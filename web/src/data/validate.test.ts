@@ -6,9 +6,72 @@ function copyDataset() {
   return structuredClone(rawDataset);
 }
 
+/** The raw dataset as loose records, so a test can break an invariant on purpose. */
+function mutableDataset(): Record<string, any> {
+  return copyDataset() as Record<string, any>;
+}
+
+function findRelease(input: Record<string, any>, predicate: (release: any) => boolean): any {
+  const match = (input.releases as any[]).find(predicate);
+  if (!match) throw new Error('seed data no longer exercises this invariant');
+  return match;
+}
+
 describe('validateDataset', () => {
   it('accepts the source-backed seed dataset', () => {
-    expect(validateDataset(copyDataset()).releases).toHaveLength(3);
+    const dataset = validateDataset(copyDataset());
+
+    expect(dataset.releases.length).toBe(rawDataset.releases.length);
+    expect(dataset.releases.length).toBeGreaterThan(0);
+    expect(new Set(dataset.releases.map((release) => release.organizationId)).size)
+      .toBe(dataset.organizations.length);
+  });
+
+  it('rejects a one-sided sibling relationship', () => {
+    const input = mutableDataset();
+    const sibling = findRelease(input, (release) => release.siblingIds?.length > 0);
+    const partner = findRelease(input, (release) => release.id === sibling.siblingIds[0]);
+    partner.siblingIds = partner.siblingIds.filter((id: string) => id !== sibling.id);
+
+    expect(() => validateDataset(input)).toThrow(/sibling relationship with .* is not reciprocal/);
+  });
+
+  it('rejects a successor in another family', () => {
+    const input = mutableDataset();
+    const source = findRelease(input, (release) => release.successorIds?.length > 0);
+    const outsider = findRelease(input, (release) => release.familyId !== source.familyId);
+    source.successorIds = [outsider.id];
+
+    expect(() => validateDataset(input)).toThrow(/must stay within family/);
+  });
+
+  it('allows derivedFromIds to cross family boundaries', () => {
+    const input = mutableDataset();
+    const derived = findRelease(input, (release) => release.derivedFromIds?.length > 0);
+    const outsider = findRelease(input, (release) => release.familyId !== derived.familyId);
+    derived.derivedFromIds = [outsider.id];
+
+    expect(() => validateDataset(input)).not.toThrow();
+  });
+
+  it('rejects an open-weight release without downloadable weights', () => {
+    const input = mutableDataset();
+    const openWeight = findRelease(input, (release) => release.accessType === 'open-weight');
+    openWeight.license.weightsDownloadable = false;
+
+    expect(() => validateDataset(input)).toThrow(/contradicts an open-weight access type/);
+  });
+
+  it('rejects an unevidenced OSI-approved licence claim', () => {
+    const input = mutableDataset();
+    const openWeight = findRelease(input, (release) => release.accessType === 'open-weight');
+    openWeight.license = {
+      name: openWeight.license.name,
+      weightsDownloadable: true,
+      osiApproved: true,
+    };
+
+    expect(() => validateDataset(input)).toThrow(/needs an spdxId or a licence URL/);
   });
 
   it('rejects a duplicate release id', () => {
