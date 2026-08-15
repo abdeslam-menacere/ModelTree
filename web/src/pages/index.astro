@@ -1,0 +1,76 @@
+---
+import LineageExplorer from '../components/LineageExplorer';
+import { dataset, sourceById } from '../data/dataset';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { formatDate } from '../lib/format';
+
+const organization = dataset.organizations[0];
+const family = dataset.families[0];
+const releases = dataset.releases.filter((release) => release.familyId === family.id);
+const sourceByReleaseId = Object.fromEntries(releases.map((release) => {
+	const source = release.sourceIds
+		.map((sourceId) => sourceById.get(sourceId))
+		.find((candidate) => candidate?.type === 'official-docs')
+		?? sourceById.get(release.sourceIds[0]);
+
+	if (!source) throw new Error(`No source found for ${release.id}`);
+	return [release.id, { title: source.title, url: source.url }];
+}));
+const latestVerification = [...dataset.releases.map(({ verifiedAt }) => verifiedAt)].sort().at(-1)!;
+const base = import.meta.env.BASE_URL;
+const passportHref = `${base}models/${releases[0].slug}/`;
+---
+
+<BaseLayout
+	title="ModelTree | AI Model Lineage"
+	description="Explore who created AI models, how families fit together, when releases arrived, and which primary sources support each fact."
+	passportHref={passportHref}
+	verifiedAt={formatDate(latestVerification)}
+>
+	<main id="main-content">
+		<section class="hero-intro" aria-labelledby="page-title">
+			<div class="hero-copy">
+				<span class="eyebrow">AI model lineage, source by source</span>
+				<h1 id="page-title">The living family tree of AI models.</h1>
+				<p>See who built each model, which family it belongs to, when it arrived, and what the official record actually says.</p>
+			</div>
+			<dl class="coverage-stats" aria-label="Current ModelTree seed coverage">
+				<div><dt>Creators</dt><dd>{dataset.organizations.length}</dd></div>
+				<div><dt>Families</dt><dd>{dataset.families.length}</dd></div>
+				<div><dt>Releases</dt><dd>{dataset.releases.length}</dd></div>
+				<div><dt>Sources</dt><dd>{dataset.sources.length}</dd></div>
+			</dl>
+		</section>
+
+		<section id="explorer" class="explorer-band">
+			<LineageExplorer
+				client:load
+				organization={organization}
+				family={family}
+				releases={releases}
+				sourceByReleaseId={sourceByReleaseId}
+				basePath={base}
+			/>
+			<noscript>
+				<div class="no-script-note">
+					<p>Selection controls need JavaScript, but every release has a static Model Passport:</p>
+					<ul>
+						{releases.map((release) => <li><a href={`${base}models/${release.slug}/`}>{release.displayName}</a></li>)}
+					</ul>
+				</div>
+			</noscript>
+		</section>
+
+		<section class="source-ledger" aria-labelledby="source-ledger-title">
+			<div>
+				<span class="eyebrow">Release record</span>
+				<h2 id="source-ledger-title">One launch, three documented variants.</h2>
+			</div>
+			<div class="ledger-entry">
+				<time datetime="2025-04-14">14 Apr 2025</time>
+				<p>OpenAI announced GPT-4.1, GPT-4.1 mini, and GPT-4.1 nano together for the API.</p>
+				<a href="https://openai.com/index/gpt-4-1/">Read the announcement</a>
+			</div>
+		</section>
+	</main>
+</BaseLayout>

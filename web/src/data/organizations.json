@@ -1,0 +1,14 @@
+[
+  {
+    "id": "openai",
+    "slug": "openai",
+    "name": "OpenAI",
+    "shortName": "OpenAI",
+    "type": "company",
+    "website": "https://openai.com/",
+    "releasePage": "https://openai.com/news/product-releases/",
+    "description": "Creator of the GPT-4.1 model family.",
+    "sourceIds": ["openai-gpt-4-1-announcement"],
+    "verifiedAt": "2026-08-14"
+  }
+]

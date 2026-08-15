@@ -1,0 +1,35 @@
+[
+  {
+    "id": "openai-gpt-4-1-announcement",
+    "url": "https://openai.com/index/gpt-4-1/",
+    "title": "Introducing GPT-4.1 in the API",
+    "type": "official-announcement",
+    "publisher": "OpenAI",
+    "publishedDate": "2025-04-14",
+    "lastCheckedDate": "2026-08-14"
+  },
+  {
+    "id": "openai-gpt-4-1-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-4.1",
+    "title": "GPT-4.1 model documentation",
+    "type": "official-docs",
+    "publisher": "OpenAI",
+    "lastCheckedDate": "2026-08-14"
+  },
+  {
+    "id": "openai-gpt-4-1-mini-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-4.1-mini",
+    "title": "GPT-4.1 mini model documentation",
+    "type": "official-docs",
+    "publisher": "OpenAI",
+    "lastCheckedDate": "2026-08-14"
+  },
+  {
+    "id": "openai-gpt-4-1-nano-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-4.1-nano",
+    "title": "GPT-4.1 nano model documentation",
+    "type": "official-docs",
+    "publisher": "OpenAI",
+    "lastCheckedDate": "2026-08-14"
+  }
+]

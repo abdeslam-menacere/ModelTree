@@ -1,0 +1,16 @@
+---
+interface Props {
+  href: string;
+}
+
+const { href } = Astro.props;
+const iconSrc = `${import.meta.env.BASE_URL}favicon.svg`;
+---
+
+<a class="brand" href={href} aria-label="ModelTree home">
+  <img src={iconSrc} width="34" height="34" alt="" />
+  <span class="brand-copy">
+    <strong>ModelTree</strong>
+    <small>AI Model Lineage</small>
+  </span>
+</a>

@@ -1,0 +1,151 @@
+---
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  CalendarDays,
+  CheckCircle2,
+  Cloud,
+  GitBranch,
+} from 'lucide-react';
+import SourceList from '../../components/SourceList.astro';
+import {
+  dataset,
+  familyById,
+  organizationById,
+  releaseById,
+  sourceById,
+} from '../../data/dataset';
+import type { ModelRelease, SourceReference } from '../../data/schema';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import {
+  accessLabel,
+  categoryLabel,
+  formatDate,
+  formatNumber,
+  statusLabel,
+} from '../../lib/format';
+
+export function getStaticPaths() {
+  return dataset.releases.map((release) => ({
+    params: { slug: release.slug },
+    props: { releaseId: release.id },
+  }));
+}
+
+interface Props {
+  releaseId: string;
+}
+
+const { releaseId } = Astro.props;
+const release = releaseById.get(releaseId);
+if (!release) throw new Error(`Unknown release ${releaseId}`);
+
+const organization = organizationById.get(release.organizationId);
+const family = familyById.get(release.familyId);
+if (!organization || !family) throw new Error(`Incomplete identity for ${release.id}`);
+
+const sources = release.sourceIds
+  .map((sourceId) => sourceById.get(sourceId))
+  .filter((source): source is SourceReference => Boolean(source));
+const siblings = release.siblingIds
+  .map((siblingId) => releaseById.get(siblingId))
+  .filter((sibling): sibling is ModelRelease => Boolean(sibling));
+const base = import.meta.env.BASE_URL;
+const homeHref = `${base}#explorer`;
+const passportHref = `${base}models/${release.slug}/`;
+---
+
+<BaseLayout
+  title={`${release.displayName} Model Passport | ModelTree`}
+  description={`${release.displayName}: release identity, family position, access, intended use, and primary sources.`}
+  passportHref={passportHref}
+  verifiedAt={formatDate(release.verifiedAt)}
+>
+  <main id="main-content" class="passport-page">
+    <a class="back-link" href={homeHref}><ArrowLeft size={17} aria-hidden="true" /> Back to lineage</a>
+
+    <header class="passport-hero">
+      <div>
+        <span class="eyebrow">Model Passport / {organization.name}</span>
+        <h1>{release.displayName}</h1>
+        <p>{release.summary}</p>
+      </div>
+      <div class="passport-stamp" aria-label={`Status: ${statusLabel(release.status)}`}>
+        <CheckCircle2 size={21} aria-hidden="true" />
+        <span><strong>{statusLabel(release.status)}</strong><small>Checked {formatDate(release.verifiedAt)}</small></span>
+      </div>
+    </header>
+
+    <section class="passport-section identity-section" aria-labelledby="identity-title">
+      <div class="section-heading">
+        <span class="section-number">01</span>
+        <div><span class="eyebrow">Identity</span><h2 id="identity-title">What it is</h2></div>
+      </div>
+      <div class="passport-grid">
+        <dl class="passport-facts">
+          <div><dt>Creator</dt><dd>{organization.name}</dd></div>
+          <div><dt>Family</dt><dd>{family.name}</dd></div>
+          <div><dt>Variant</dt><dd>{release.variant}</dd></div>
+          <div><dt>Version</dt><dd>{release.version}</dd></div>
+          <div><dt><CalendarDays size={15} aria-hidden="true" /> Released</dt><dd>{formatDate(release.releaseDate)}</dd></div>
+          <div><dt><Cloud size={15} aria-hidden="true" /> Access</dt><dd>{accessLabel(release.accessType)}</dd></div>
+        </dl>
+        <div class="purpose-block">
+          <span>When to use it</span>
+          <p>{release.intendedUse}</p>
+          <a href={sources[0].url}>Open primary announcement <ArrowUpRight size={16} aria-hidden="true" /></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="passport-section" aria-labelledby="lineage-title">
+      <div class="section-heading">
+        <span class="section-number">02</span>
+        <div><span class="eyebrow">Lineage</span><h2 id="lineage-title">Where it fits</h2></div>
+      </div>
+      <div class="family-trail">
+        <span>{organization.name}</span>
+        <GitBranch size={18} aria-hidden="true" />
+        <span>{family.name}</span>
+        <GitBranch size={18} aria-hidden="true" />
+        <strong>{release.displayName}</strong>
+      </div>
+      <p class="lineage-disclosure">This seed records family membership and sibling variants only. It does not infer a predecessor, successor, or shared architecture.</p>
+      <div class="sibling-links" aria-label="Sibling releases">
+        <span>Sibling variants</span>
+        {siblings.map((sibling) => <a href={`${base}models/${sibling.slug}/`}>{sibling.displayName}</a>)}
+      </div>
+    </section>
+
+    <section class="passport-section" aria-labelledby="technical-title">
+      <div class="section-heading">
+        <span class="section-number">03</span>
+        <div><span class="eyebrow">Technical record</span><h2 id="technical-title">Documented limits</h2></div>
+      </div>
+      <dl class="technical-facts">
+        <div><dt>Input</dt><dd>{release.inputModalities.join(', ')}</dd></div>
+        <div><dt>Output</dt><dd>{release.outputModalities.join(', ')}</dd></div>
+        <div><dt>Context window</dt><dd>{release.contextWindow ? `${formatNumber(release.contextWindow)} tokens` : 'Unknown'}</dd></div>
+        <div><dt>Maximum output</dt><dd>{release.maximumOutput ? `${formatNumber(release.maximumOutput)} tokens` : 'Unknown'}</dd></div>
+      </dl>
+      <div class="tag-groups">
+        <div>
+          <span>Categories</span>
+          <ul>{release.categories.map((category) => <li>{categoryLabel(category)}</li>)}</ul>
+        </div>
+        <div>
+          <span>API IDs</span>
+          <ul class="api-aliases">{release.apiAliases.map((alias) => <li><code>{alias}</code></li>)}</ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="passport-section sources-section" aria-labelledby="sources-title">
+      <div class="section-heading">
+        <span class="section-number">04</span>
+        <div><span class="eyebrow">Provenance</span><h2 id="sources-title">Primary sources</h2></div>
+      </div>
+      <SourceList sources={sources} />
+    </section>
+  </main>
+</BaseLayout>

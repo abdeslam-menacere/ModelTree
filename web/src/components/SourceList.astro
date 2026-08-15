@@ -1,0 +1,30 @@
+---
+import { ExternalLink } from 'lucide-react';
+import type { SourceReference } from '../data/schema';
+import { formatDate } from '../lib/format';
+
+interface Props {
+  sources: SourceReference[];
+}
+
+const { sources } = Astro.props;
+---
+
+<ul class="source-list">
+  {sources.map((source) => (
+    <li>
+      <div>
+        <span class="source-type">{source.type.replaceAll('-', ' ')}</span>
+        <a href={source.url}>
+          {source.title}
+          <ExternalLink size={15} strokeWidth={1.8} aria-hidden="true" />
+        </a>
+      </div>
+      <p>
+        {source.publisher}
+        {source.publishedDate ? ` | Published ${formatDate(source.publishedDate)}` : ''}
+        {` | Checked ${formatDate(source.lastCheckedDate)}`}
+      </p>
+    </li>
+  ))}
+</ul>

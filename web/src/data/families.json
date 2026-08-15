@@ -1,0 +1,14 @@
+[
+  {
+    "id": "openai-gpt-4-1",
+    "slug": "gpt-4-1",
+    "organizationId": "openai",
+    "name": "GPT-4.1",
+    "description": "A three-model API family introduced together across capability, latency, and cost tiers.",
+    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
+    "firstReleaseDate": "2025-04-14",
+    "status": "current",
+    "sourceIds": ["openai-gpt-4-1-announcement"],
+    "verifiedAt": "2026-08-14"
+  }
+]
