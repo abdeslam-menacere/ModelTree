@@ -139,7 +139,7 @@
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": ["anthropic-claude-fable-5"],
-    "derivedFromIds": ["anthropic-claude-fable-5"],
+    "derivedFromIds": [],
     "summary": "The same underlying model as Claude Fable 5 with safeguards lifted in some areas, offered only in limited availability.",
     "intendedUse": "Defensive cybersecurity workflows for customers approved through Anthropic's Project Glasswing.",
     "sourceIds": ["anthropic-models-overview", "anthropic-fable-5-mythos-5-docs"],

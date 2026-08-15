@@ -81,16 +81,23 @@ reading and the disagreement is written down here rather than resolved silently.
   and no shutdown date is asserted.
 - **Gemini 3.7 Flash is excluded.** Its documentation gives only "August 2026".
   `releaseDate` is a full ISO date, so a month-only release cannot be represented
-  without inventing a day. See the follow-up issue on partial release dates.
+  without inventing a day. Tracked as issue #49.
 - **Gemini 3.1 Pro Preview limits are omitted.** Its documentation gives "1M /
   64k" rather than exact token counts, and the neighbouring models publish
   1,048,576 and 65,536. Rounding one into the other would be a guess.
 - **Gemini 2.5 Pro and Flash are siblings** because a single technical report
   covers "our Gemini 2.5 models" as one set, not merely because they shared a
   general-availability date.
-- **Claude Mythos 5 is derived from Claude Fable 5** because Anthropic's docs
-  state it is the same underlying model. It is not featured, because it is only
-  available to invited customers.
+- **Claude Mythos 5 records no derivation.** Anthropic's docs say it is "the same
+  underlying model" as Claude Fable 5, which is a statement of equivalence, not of
+  parentage — it does not say which was produced from which. `derivedFromIds` is
+  therefore empty and the equivalence is carried by the sibling link and the
+  summary. Mythos 5 is not featured, because it is only available to invited
+  customers.
+- **Gemini 3.1 Flash-Lite's successor is a migration recommendation.** The
+  deprecations table names Gemini 3.5 Flash-Lite as its recommended replacement.
+  That is recorded as `successorIds` because the two are the same tier in the same
+  family; a recommended replacement in a different tier would not be.
 - **No Meta lineage is recorded.** The Llama 4 and Llama 3 model cards do not
   state a distillation or derivation relationship, so `derivedFromIds` is empty
   even where one is widely assumed.

@@ -20,11 +20,23 @@ function findRelease(input: Record<string, any>, predicate: (release: any) => bo
 describe('validateDataset', () => {
   it('accepts the source-backed seed dataset', () => {
     const dataset = validateDataset(copyDataset());
+    const releaseIds = new Set(dataset.releases.map((release) => release.id));
 
-    expect(dataset.releases.length).toBe(rawDataset.releases.length);
-    expect(dataset.releases.length).toBeGreaterThan(0);
-    expect(new Set(dataset.releases.map((release) => release.organizationId)).size)
-      .toBe(dataset.organizations.length);
+    // Named rather than counted, so deleting a record fails loudly while adding
+    // one does not force an unrelated edit to this test.
+    for (const expected of [
+      'openai-gpt-4-1-2025-04-14',
+      'anthropic-claude-fable-5',
+      'google-gemini-2-5-pro',
+      'meta-llama-4-scout',
+    ]) {
+      expect(releaseIds).toContain(expected);
+    }
+
+    const organizationIds = new Set(dataset.organizations.map((organization) => organization.id));
+    for (const release of dataset.releases) {
+      expect(organizationIds).toContain(release.organizationId);
+    }
   });
 
   it('rejects a one-sided sibling relationship', () => {
@@ -47,7 +59,9 @@ describe('validateDataset', () => {
 
   it('allows derivedFromIds to cross family boundaries', () => {
     const input = mutableDataset();
-    const derived = findRelease(input, (release) => release.derivedFromIds?.length > 0);
+    // Constructed rather than found: no seed release claims a derivation, because
+    // no source states one. The rule still has to hold.
+    const derived = findRelease(input, (release) => release.id === 'anthropic-claude-mythos-5');
     const outsider = findRelease(input, (release) => release.familyId !== derived.familyId);
     derived.derivedFromIds = [outsider.id];
 
