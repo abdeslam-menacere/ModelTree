@@ -56,8 +56,52 @@ The seed data was checked against these official pages on 2026-08-14:
 - <https://developers.openai.com/api/docs/models/gpt-4.1-mini>
 - <https://developers.openai.com/api/docs/models/gpt-4.1-nano>
 
+Anthropic, Google DeepMind, and Meta records were checked against the pages
+listed in `src/data/sources.json` on 2026-08-15. Every URL there returned HTTP
+200 during that pass and its recorded title is the page's own title.
+
 Unknown facts remain omitted. Family membership does not imply an undocumented
 predecessor, successor, or architecture relationship.
+
+### Data notes
+
+Where sources disagree or fall short, the dataset records the conservative
+reading and the disagreement is written down here rather than resolved silently.
+
+- **Claude Haiku 4.5 date.** The model identifier is `claude-haiku-4-5-20251001`
+  but the launch announcement is dated 15 October 2025. The announcement date is
+  recorded, because a dated announcement is a stronger claim than a date embedded
+  in an identifier. Identifier dates are not treated as release dates anywhere.
+- **Llama 3.3 date.** The `meta-llama/llama-models` README table says 12/04/2024
+  while the model card and the licence both say 6 December 2024. The model card
+  date is recorded.
+- **Gemini 2.5 shutdown.** `ai.google.dev` states that no shutdown date has been
+  announced for Gemini 2.5 Pro and Flash, while the Cloud platform model pages
+  give a retirement date of 2026-10-20. Both models are recorded as `current`
+  and no shutdown date is asserted.
+- **Gemini 3.7 Flash is excluded.** Its documentation gives only "August 2026".
+  `releaseDate` is a full ISO date, so a month-only release cannot be represented
+  without inventing a day. See the follow-up issue on partial release dates.
+- **Gemini 3.1 Pro Preview limits are omitted.** Its documentation gives "1M /
+  64k" rather than exact token counts, and the neighbouring models publish
+  1,048,576 and 65,536. Rounding one into the other would be a guess.
+- **Gemini 2.5 Pro and Flash are siblings** because a single technical report
+  covers "our Gemini 2.5 models" as one set, not merely because they shared a
+  general-availability date.
+- **Claude Mythos 5 is derived from Claude Fable 5** because Anthropic's docs
+  state it is the same underlying model. It is not featured, because it is only
+  available to invited customers.
+- **No Meta lineage is recorded.** The Llama 4 and Llama 3 model cards do not
+  state a distillation or derivation relationship, so `derivedFromIds` is empty
+  even where one is widely assumed.
+- **Llama licences are open-weight, not open source.** Each Llama Community
+  License requires a separate licence from Meta above 700 million monthly active
+  users, which is incompatible with free redistribution, so `osiApproved` is
+  `false` on every Meta release.
+- **Lifecycle mapping.** Anthropic "Retired" maps to `deprecated`, invitation-only
+  availability maps to `preview`, and the docs' "Legacy models" section maps to
+  `legacy`. On Hugging Face, Meta's "Current" and "History" groupings map to
+  `current` and `legacy`.
 
 ## Catalog indexes
 
@@ -75,7 +119,7 @@ generated artifacts, never an editable source of truth.
 - Every model row must resolve to a generated detail route or the build fails.
   `src/lib/routes.ts` is the single list the model route and that check share.
 - Budget: **600 bytes per model row**, keeping a 24-row catalog page under 20 KB.
-  Current measurement is 561 bytes per row.
+  Current measurement is 557 bytes per row across 16 models.
 
 `planPagination` slices a sorted slug list into fixed page boundaries, so adding
 a record that sorts onto the end leaves earlier pages unchanged.
