@@ -3,7 +3,8 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "types": ["astro/client", "node"]
   },
   "include": [".astro/types.d.ts", "**/*"],
   "exclude": ["dist"]
