@@ -10,5 +10,77 @@
     "status": "current",
     "sourceIds": ["openai-gpt-4-1-announcement"],
     "verifiedAt": "2026-08-14"
+  },
+  {
+    "id": "anthropic-claude-5",
+    "slug": "claude-5",
+    "organizationId": "anthropic",
+    "name": "Claude 5",
+    "description": "The current Claude generation. Fable and Mythos are the widely released and restricted-access editions of one model; Opus is the tier for complex agentic coding.",
+    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
+    "firstReleaseDate": "2026-06-09",
+    "status": "current",
+    "sourceIds": ["anthropic-models-overview", "anthropic-fable-5-mythos-5-docs"],
+    "verifiedAt": "2026-08-15"
+  },
+  {
+    "id": "anthropic-claude-4-5",
+    "slug": "claude-4-5",
+    "organizationId": "anthropic",
+    "name": "Claude 4.5",
+    "description": "The 2025 Claude generation. Anthropic lists Sonnet 4.5 among legacy models while Haiku 4.5 is still documented as a current model.",
+    "categories": ["language-reasoning", "coding"],
+    "firstReleaseDate": "2025-09-29",
+    "status": "legacy",
+    "sourceIds": ["anthropic-models-overview", "anthropic-model-deprecations", "anthropic-sonnet-4-5-announcement"],
+    "verifiedAt": "2026-08-15"
+  },
+  {
+    "id": "google-gemini-3",
+    "slug": "gemini-3",
+    "organizationId": "google-deepmind",
+    "name": "Gemini 3",
+    "description": "The current Gemini generation, spanning Pro, Flash, and Flash-Lite tiers across point releases that Google documents with individual release and shutdown dates.",
+    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
+    "firstReleaseDate": "2025-11-18",
+    "status": "current",
+    "sourceIds": ["google-gemini-deprecations", "google-gemini-3-guide"],
+    "verifiedAt": "2026-08-15"
+  },
+  {
+    "id": "google-gemini-2-5",
+    "slug": "gemini-2-5",
+    "organizationId": "google-deepmind",
+    "name": "Gemini 2.5",
+    "description": "The preceding Gemini generation. Its stable Pro and Flash models remain generally available and share a single technical report.",
+    "categories": ["language-reasoning", "multimodal-generalist"],
+    "firstReleaseDate": "2025-06-17",
+    "status": "current",
+    "sourceIds": ["google-gemini-deprecations", "google-gemini-2-5-report"],
+    "verifiedAt": "2026-08-15"
+  },
+  {
+    "id": "meta-llama-4",
+    "slug": "llama-4",
+    "organizationId": "meta",
+    "name": "Llama 4",
+    "description": "Meta's natively multimodal generation, built on a mixture-of-experts architecture and released as downloadable weights under a community licence.",
+    "categories": ["language-reasoning", "multimodal-generalist"],
+    "firstReleaseDate": "2025-04-05",
+    "status": "current",
+    "sourceIds": ["meta-llama-4-announcement", "meta-llama-collection"],
+    "verifiedAt": "2026-08-15"
+  },
+  {
+    "id": "meta-llama-3",
+    "slug": "llama-3",
+    "organizationId": "meta",
+    "name": "Llama 3",
+    "description": "Meta's text-only generation, grouped under History in Meta's model collection. Llama 3.1 introduced the 405B size and a 128K context window.",
+    "categories": ["language-reasoning"],
+    "firstReleaseDate": "2024-07-23",
+    "status": "legacy",
+    "sourceIds": ["meta-llama-collection", "meta-llama-3-1-model-card"],
+    "verifiedAt": "2026-08-15"
   }
 ]
