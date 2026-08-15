@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import SourceList from '../../components/SourceList.astro';
 import {
-  dataset,
   familyById,
   organizationById,
   releaseById,
@@ -24,13 +23,9 @@ import {
   formatNumber,
   statusLabel,
 } from '../../lib/format';
+import { modelStaticPaths } from '../../lib/routes';
 
-export function getStaticPaths() {
-  return dataset.releases.map((release) => ({
-    params: { slug: release.slug },
-    props: { releaseId: release.id },
-  }));
-}
+export const getStaticPaths = modelStaticPaths;
 
 interface Props {
   releaseId: string;

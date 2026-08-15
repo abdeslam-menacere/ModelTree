@@ -58,3 +58,24 @@ The seed data was checked against these official pages on 2026-08-14:
 
 Unknown facts remain omitted. Family membership does not imply an undocumented
 predecessor, successor, or architecture relationship.
+
+## Catalog indexes
+
+The build emits `dist/catalog-index.json`: normalized model, provider, alias,
+facet, and release-date indexes derived from the validated dataset. They are
+generated artifacts, never an editable source of truth.
+
+- Generation is deterministic. Identical data produces an identical file, and the
+  index carries a `contentHash` instead of a build timestamp.
+- Listing rows carry no detail payload. Summaries, sources, and API aliases stay
+  on the detail route and in the alias index.
+- Sorting compares by codepoint, so output does not vary with the host locale.
+- Aliases and providers keep their entity role, so a name shared by a model and
+  an organization stays two distinguishable rows.
+- Every model row must resolve to a generated detail route or the build fails.
+  `src/lib/routes.ts` is the single list the model route and that check share.
+- Budget: **600 bytes per model row**, keeping a 24-row catalog page under 20 KB.
+  Current measurement is 561 bytes per row.
+
+`planPagination` slices a sorted slug list into fixed page boundaries, so adding
+a record that sorts onto the end leaves earlier pages unchanged.
