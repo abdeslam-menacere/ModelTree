@@ -33,10 +33,17 @@ describe('validateDataset', () => {
       expect(releaseIds).toContain(expected);
     }
 
-    const organizationIds = new Set(dataset.organizations.map((organization) => organization.id));
-    for (const release of dataset.releases) {
-      expect(organizationIds).toContain(release.organizationId);
+    // Not enforced by validateDataset, which only checks that referenced sources
+    // exist and never the reverse. An unreferenced source is dead provenance.
+    const cited = new Set<string>();
+    for (const record of [...dataset.organizations, ...dataset.families, ...dataset.releases]) {
+      for (const sourceId of record.sourceIds) cited.add(sourceId);
     }
+    const orphaned = dataset.sources
+      .map((source) => source.id)
+      .filter((id) => !cited.has(id));
+
+    expect(orphaned).toEqual([]);
   });
 
   it('rejects a one-sided sibling relationship', () => {
