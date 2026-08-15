@@ -49,6 +49,19 @@ function addMissingReferences(
   }
 }
 
+function addEffectiveRangeIssues(
+  issues: string[],
+  owner: string,
+  record: { effectiveFrom: string; effectiveTo?: string; verifiedAt: string },
+) {
+  if (record.effectiveTo && record.effectiveTo < record.effectiveFrom) {
+    issues.push(`${owner} ends before it takes effect`);
+  }
+  if (record.effectiveFrom > record.verifiedAt) {
+    issues.push(`${owner} was verified before it takes effect`);
+  }
+}
+
 function validateReleaseRelationships(
   release: ModelRelease,
   releaseById: Map<string, ModelRelease>,
@@ -148,6 +161,128 @@ export function validateDataset(input: unknown): Dataset {
         return source ? PRIMARY_SOURCE_TYPES.has(source.type) : false;
       });
       if (!hasPrimarySource) issues.push(`featured release ${release.id} requires a primary source`);
+    }
+
+    // Derivation may cross families and organizations, so it is checked apart
+    // from the within-family relationship fields.
+    for (const derivedFrom of release.derivedFromIds) {
+      if (!releaseById.has(derivedFrom)) {
+        issues.push(`release ${release.id}.derivedFromIds references missing id "${derivedFrom}"`);
+      }
+      if (derivedFrom === release.id) {
+        issues.push(`release ${release.id}.derivedFromIds cannot reference itself`);
+      }
+    }
+  }
+
+  addDuplicateIssues(issues, 'product', 'id', data.products.map(({ id }) => id));
+  addDuplicateIssues(issues, 'product', 'slug', data.products.map(({ slug }) => slug));
+  addDuplicateIssues(issues, 'serving platform', 'id', data.servingPlatforms.map(({ id }) => id));
+  addDuplicateIssues(issues, 'serving platform', 'slug', data.servingPlatforms.map(({ slug }) => slug));
+  addDuplicateIssues(issues, 'deployment', 'id', data.deployments.map(({ id }) => id));
+  addDuplicateIssues(issues, 'pricing record', 'id', data.pricing.map(({ id }) => id));
+  addDuplicateIssues(issues, 'benchmark', 'id', data.benchmarks.map(({ id }) => id));
+  addDuplicateIssues(issues, 'benchmark', 'slug', data.benchmarks.map(({ slug }) => slug));
+  addDuplicateIssues(issues, 'benchmark result', 'id', data.benchmarkResults.map(({ id }) => id));
+  addDuplicateIssues(issues, 'release event', 'id', data.releaseEvents.map(({ id }) => id));
+
+  const releaseIds = new Set(releaseById.keys());
+  const organizationIds = new Set(organizationById.keys());
+  const platformById = new Map(data.servingPlatforms.map((platform) => [platform.id, platform]));
+  const deploymentById = new Map(data.deployments.map((deployment) => [deployment.id, deployment]));
+  const benchmarkById = new Map(data.benchmarks.map((benchmark) => [benchmark.id, benchmark]));
+
+  for (const product of data.products) {
+    if (!organizationIds.has(product.organizationId)) {
+      issues.push(`product ${product.id}.organizationId references missing id "${product.organizationId}"`);
+    }
+    addMissingReferences(issues, `product ${product.id}`, 'releaseIds', product.releaseIds, releaseIds);
+    addMissingReferences(issues, `product ${product.id}`, 'sourceIds', product.sourceIds, sourceIds);
+    addEffectiveRangeIssues(issues, `product ${product.id}`, product);
+    if (product.modelSelection === 'fixed' && product.releaseIds.length === 0) {
+      issues.push(`product ${product.id} claims a fixed model but names no release`);
+    }
+  }
+
+  for (const platform of data.servingPlatforms) {
+    if (!organizationIds.has(platform.organizationId)) {
+      issues.push(`serving platform ${platform.id}.organizationId references missing id "${platform.organizationId}"`);
+    }
+    addMissingReferences(issues, `serving platform ${platform.id}`, 'sourceIds', platform.sourceIds, sourceIds);
+  }
+
+  for (const deployment of data.deployments) {
+    if (!releaseIds.has(deployment.releaseId)) {
+      issues.push(`deployment ${deployment.id}.releaseId references missing id "${deployment.releaseId}"`);
+    }
+    if (!platformById.has(deployment.platformId)) {
+      issues.push(`deployment ${deployment.id}.platformId references missing id "${deployment.platformId}"`);
+    }
+    addMissingReferences(issues, `deployment ${deployment.id}`, 'sourceIds', deployment.sourceIds, sourceIds);
+    addEffectiveRangeIssues(issues, `deployment ${deployment.id}`, deployment);
+  }
+
+  for (const price of data.pricing) {
+    const deployment = deploymentById.get(price.deploymentId);
+    if (!deployment) {
+      issues.push(`pricing record ${price.id}.deploymentId references missing id "${price.deploymentId}"`);
+    } else if (deployment.deliveryMode === 'downloadable-weights') {
+      issues.push(`pricing record ${price.id} prices downloadable weights, which have no per-unit rate`);
+    }
+    if (Object.values(price.rates).every((rate) => rate === undefined)) {
+      issues.push(`pricing record ${price.id} states no rate`);
+    }
+    addMissingReferences(issues, `pricing record ${price.id}`, 'sourceIds', price.sourceIds, sourceIds);
+    addEffectiveRangeIssues(issues, `pricing record ${price.id}`, price);
+  }
+
+  for (const benchmark of data.benchmarks) {
+    addMissingReferences(issues, `benchmark ${benchmark.id}`, 'sourceIds', benchmark.sourceIds, sourceIds);
+  }
+
+  const resultSetups = new Set<string>();
+  for (const result of data.benchmarkResults) {
+    const benchmark = benchmarkById.get(result.benchmarkId);
+    if (!benchmark) {
+      issues.push(`benchmark result ${result.id}.benchmarkId references missing id "${result.benchmarkId}"`);
+    } else if (benchmark.metricUnit !== result.unit) {
+      issues.push(`benchmark result ${result.id} unit "${result.unit}" does not match benchmark ${benchmark.id} unit "${benchmark.metricUnit}"`);
+    }
+    if (!releaseIds.has(result.releaseId)) {
+      issues.push(`benchmark result ${result.id}.releaseId references missing id "${result.releaseId}"`);
+    }
+    addMissingReferences(issues, `benchmark result ${result.id}`, 'sourceIds', result.sourceIds, sourceIds);
+
+    // Two results for the same model under the same disclosed setup cannot both
+    // be true, and silently keeping either would fabricate comparability.
+    const setup = [
+      result.benchmarkId,
+      result.benchmarkVersion,
+      result.releaseId,
+      result.variantNote ?? '',
+      result.reasoningMode ?? '',
+      String(result.toolsEnabled ?? ''),
+      result.harness ?? '',
+    ].join('|');
+    if (resultSetups.has(setup)) {
+      issues.push(`benchmark result ${result.id} duplicates an existing result for the same model and setup`);
+    }
+    resultSetups.add(setup);
+  }
+
+  for (const event of data.releaseEvents) {
+    if (!releaseIds.has(event.releaseId)) {
+      issues.push(`release event ${event.id}.releaseId references missing id "${event.releaseId}"`);
+    }
+    addMissingReferences(issues, `release event ${event.id}`, 'sourceIds', event.sourceIds, sourceIds);
+
+    const segments = event.date.split('-').length;
+    const expected = { year: 1, month: 2, day: 3 }[event.datePrecision];
+    if (segments !== expected) {
+      issues.push(`release event ${event.id} date "${event.date}" does not match precision "${event.datePrecision}"`);
+    }
+    if (event.date > event.verifiedAt) {
+      issues.push(`release event ${event.id} was verified before it happened`);
     }
   }
 

@@ -37,5 +37,11 @@ export function categoryLabel(category: ModelRelease['categories'][number]) {
     'language-reasoning': 'Language and reasoning',
     'multimodal-generalist': 'Multimodal generalist',
     coding: 'Coding',
+    image: 'Image',
+    video: 'Video',
+    'audio-speech': 'Audio and speech',
+    'embedding-reranking': 'Embedding and reranking',
+    scientific: 'Scientific',
+    'robotics-world': 'Robotics and world',
   }[category];
 }

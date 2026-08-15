@@ -24,9 +24,30 @@ Run commands from `web/`:
 
 Editable source records live in `src/data/*.json`. `src/data/schema.ts` defines
 the entity contracts, and `src/data/validate.ts` enforces cross-record rules.
-The build fails for duplicate identifiers or slugs, impossible dates, broken
-references, non-reciprocal siblings, and featured releases without a primary
-source.
+
+| Entity | Holds |
+|---|---|
+| `organization` | A creator, lab, or platform operator |
+| `family` | A named model lineage belonging to one organization |
+| `release` | A dated model version, its tier, limits, licence, and relationships |
+| `product` | A user-facing application, which may route between models |
+| `servingPlatform` | Somewhere a model can be accessed, rarely its creator |
+| `deployment` | One release made available on one platform |
+| `pricingRecord` | Rates for one deployment, with currency, unit, and effective date |
+| `benchmarkDefinition` | What a benchmark measures, in which unit and direction |
+| `benchmarkResult` | One score for one exact release, with its evaluation setup |
+| `releaseEvent` | A dated lifecycle event such as announced or deprecated |
+| `source` | The primary reference and the date it was last checked |
+
+The build fails for duplicate identifiers or slugs, impossible or partial dates
+that contradict their stated precision, broken references, non-reciprocal
+siblings, effective ranges that end before they start, prices with no rate,
+benchmark results whose unit contradicts their benchmark or that duplicate an
+existing setup, and featured releases without a primary source.
+
+Downloadable weights and OSI-approved licensing are separate fields. Claiming
+`accessType: "open-weight"` requires a licence that actually releases weights,
+and claiming `osiApproved` requires an SPDX identifier or a licence URL.
 
 The seed data was checked against these official pages on 2026-08-14:
 

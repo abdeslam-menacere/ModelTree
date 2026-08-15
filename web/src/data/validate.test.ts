@@ -41,9 +41,234 @@ describe('validateDataset', () => {
 
   it('requires a primary source for featured records', () => {
     const input = copyDataset();
-    input.sources[0].type = 'independent-evaluation';
-    input.sources[1].type = 'independent-evaluation';
+    for (const source of input.sources) source.type = 'independent-evaluation';
 
     expect(() => validateDataset(input)).toThrow(/featured release .* requires a primary source/);
+  });
+});
+
+/** The seed data plus one valid record of every entity type the schema defines. */
+function extendedDataset(): Record<string, any> {
+  const base = copyDataset();
+  const release = base.releases[0].id;
+
+  return {
+    ...base,
+    products: [{
+      id: 'chatgpt',
+      slug: 'chatgpt',
+      name: 'ChatGPT',
+      organizationId: 'openai',
+      description: 'A consumer product that is not the same entity as the model serving it.',
+      modelSelection: 'routed',
+      releaseIds: [],
+      effectiveFrom: '2025-04-14',
+      sourceIds: ['openai-gpt-4-1-announcement'],
+      verifiedAt: '2026-08-14',
+    }],
+    servingPlatforms: [{
+      id: 'openai-api',
+      slug: 'openai-api',
+      name: 'OpenAI API',
+      organizationId: 'openai',
+      type: 'first-party-api',
+      website: 'https://platform.openai.com/',
+      sourceIds: ['openai-gpt-4-1-docs'],
+      verifiedAt: '2026-08-14',
+    }],
+    deployments: [{
+      id: 'gpt-4-1-openai-api',
+      releaseId: release,
+      platformId: 'openai-api',
+      deliveryMode: 'hosted-api',
+      apiIdentifier: 'gpt-4.1',
+      regions: [],
+      effectiveFrom: '2025-04-14',
+      sourceIds: ['openai-gpt-4-1-docs'],
+      verifiedAt: '2026-08-14',
+    }],
+    pricing: [{
+      id: 'gpt-4-1-openai-api-2025-04-14',
+      deploymentId: 'gpt-4-1-openai-api',
+      currency: 'USD',
+      unit: 'per-1m-tokens',
+      rates: { input: 2, cachedInput: 0.5, output: 8 },
+      effectiveFrom: '2025-04-14',
+      sourceIds: ['openai-gpt-4-1-announcement'],
+      verifiedAt: '2026-08-14',
+    }],
+    benchmarks: [{
+      id: 'swe-bench-verified',
+      slug: 'swe-bench-verified',
+      name: 'SWE-bench Verified',
+      domain: 'coding',
+      owner: 'OpenAI',
+      metric: 'tasks resolved',
+      metricUnit: 'percent',
+      direction: 'higher-is-better',
+      sourceIds: ['openai-gpt-4-1-announcement'],
+      verifiedAt: '2026-08-14',
+    }],
+    benchmarkResults: [{
+      id: 'gpt-4-1-swe-bench-verified',
+      benchmarkId: 'swe-bench-verified',
+      benchmarkVersion: '2025-04',
+      releaseId: release,
+      score: 54.6,
+      unit: 'percent',
+      evaluationDate: '2025-04',
+      resultType: 'official',
+      sourceIds: ['openai-gpt-4-1-announcement'],
+      verifiedAt: '2026-08-14',
+    }],
+    releaseEvents: [{
+      id: 'gpt-4-1-announced',
+      releaseId: release,
+      type: 'announced',
+      date: '2025-04-14',
+      datePrecision: 'day',
+      note: 'Introduced in the API alongside its sibling variants.',
+      sourceIds: ['openai-gpt-4-1-announcement'],
+      verifiedAt: '2026-08-14',
+    }],
+  };
+}
+
+describe('extended entity invariants', () => {
+  it('accepts one valid record of every entity type', () => {
+    const data = validateDataset(extendedDataset());
+
+    expect([
+      data.products.length,
+      data.servingPlatforms.length,
+      data.deployments.length,
+      data.pricing.length,
+      data.benchmarks.length,
+      data.benchmarkResults.length,
+      data.releaseEvents.length,
+    ]).toEqual([1, 1, 1, 1, 1, 1, 1]);
+  });
+
+  it('rejects a product that claims a fixed model but names none', () => {
+    const input = extendedDataset();
+    input.products[0].modelSelection = 'fixed';
+
+    expect(() => validateDataset(input)).toThrow(/claims a fixed model but names no release/);
+  });
+
+  it('rejects a deployment on a missing serving platform', () => {
+    const input = extendedDataset();
+    input.deployments[0].platformId = 'missing-platform';
+
+    expect(() => validateDataset(input)).toThrow(/platformId references missing id/);
+  });
+
+  it('rejects a pricing record with no rate', () => {
+    const input = extendedDataset();
+    input.pricing[0].rates = {};
+
+    expect(() => validateDataset(input)).toThrow(/states no rate/);
+  });
+
+  it('rejects a negative price', () => {
+    const input = extendedDataset();
+    input.pricing[0].rates.input = -1;
+
+    expect(() => validateDataset(input)).toThrow(/rates.input/);
+  });
+
+  it('rejects an effective range that ends before it starts', () => {
+    const input = extendedDataset();
+    input.pricing[0].effectiveTo = '2025-04-13';
+
+    expect(() => validateDataset(input)).toThrow(/ends before it takes effect/);
+  });
+
+  it('rejects a benchmark result whose unit contradicts its benchmark', () => {
+    const input = extendedDataset();
+    input.benchmarkResults[0].unit = 'elo';
+
+    expect(() => validateDataset(input)).toThrow(/does not match benchmark/);
+  });
+
+  it('rejects two results for the same model and setup', () => {
+    const input = extendedDataset();
+    input.benchmarkResults.push({ ...input.benchmarkResults[0], id: 'duplicate-setup' });
+
+    expect(() => validateDataset(input)).toThrow(/duplicates an existing result/);
+  });
+
+  it('rejects a release event whose date contradicts its stated precision', () => {
+    const input = extendedDataset();
+    input.releaseEvents[0].datePrecision = 'month';
+
+    expect(() => validateDataset(input)).toThrow(/does not match precision/);
+  });
+
+  it('accepts a partial date at month precision', () => {
+    const input = extendedDataset();
+    input.releaseEvents[0].date = '2025-04';
+    input.releaseEvents[0].datePrecision = 'month';
+
+    expect(validateDataset(input).releaseEvents[0].date).toBe('2025-04');
+  });
+
+  it('rejects an impossible partial date', () => {
+    const input = extendedDataset();
+    input.releaseEvents[0].date = '2025-13';
+    input.releaseEvents[0].datePrecision = 'month';
+
+    expect(() => validateDataset(input)).toThrow(/must be a real date/);
+  });
+
+  it('rejects an open-weight claim with no licence', () => {
+    const input = extendedDataset();
+    input.releases[0].accessType = 'open-weight';
+
+    expect(() => validateDataset(input)).toThrow(/required when a release claims downloadable weights/);
+  });
+
+  it('rejects an open-weight claim whose licence withholds the weights', () => {
+    const input = extendedDataset();
+    input.releases[0].accessType = 'open-weight';
+    input.releases[0].license = {
+      name: 'Custom community licence',
+      url: 'https://example.com/licence',
+      weightsDownloadable: false,
+      osiApproved: false,
+    };
+
+    expect(() => validateDataset(input)).toThrow(/contradicts an open-weight access type/);
+  });
+
+  it('rejects an open-source claim with no licence evidence', () => {
+    const input = extendedDataset();
+    input.releases[0].license = {
+      name: 'Apache 2.0',
+      weightsDownloadable: true,
+      osiApproved: true,
+    };
+
+    expect(() => validateDataset(input)).toThrow(/needs an spdxId or a licence URL/);
+  });
+
+  it('separates downloadable weights from an open-source licence', () => {
+    const input = extendedDataset();
+    input.releases[0].accessType = 'open-weight';
+    input.releases[0].license = {
+      name: 'Custom community licence',
+      url: 'https://example.com/licence',
+      weightsDownloadable: true,
+      osiApproved: false,
+    };
+
+    expect(validateDataset(input).releases[0].license?.osiApproved).toBe(false);
+  });
+
+  it('rejects a derivation that points at a missing release', () => {
+    const input = extendedDataset();
+    input.releases[0].derivedFromIds = ['missing-release'];
+
+    expect(() => validateDataset(input)).toThrow(/derivedFromIds references missing id/);
   });
 });
