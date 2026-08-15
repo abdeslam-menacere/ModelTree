@@ -264,36 +264,21 @@ const rows = [...dry.stdout.matchAll(/^\|\s*([a-z0-9-]+)\s*\|\s*✅\s*pass\s*\|\
 ok('CI regex parses both gates', rows.length === 2, `parsed ${rows.length}`);
 ok('receipt SHAs match HEAD', rows.every((r) => head.startsWith(r[2])));
 
-console.log('\nCI contract');
-// The workflow and the CLI each used to carry a private copy of the receipt
-// contract, with nothing checking they agreed — that is how the HTML-comment
-// bug shipped. Read the real patterns out of the workflow file and apply them
-// to the CLI's real output, so the two cannot silently drift apart again.
-const wfPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.github/workflows/drydock-gates.yml');
-const wf = fs.readFileSync(wfPath, 'utf8');
-const literalOf = (name) => {
-  const m = wf.match(new RegExp(`^\\s*const ${name} = (/.*/[a-z]*);\\s*$`, 'm'));
-  return m && m[1];
-};
-const toRegExp = (lit) => {
-  const i = lit.lastIndexOf('/');
-  return new RegExp(lit.slice(1, i), lit.slice(i + 1));
-};
-const markerLit = literalOf('RECEIPT_MARKER');
-const rowLit = literalOf('ROW_RE');
-ok('workflow declares RECEIPT_MARKER', !!markerLit, 'expected `const RECEIPT_MARKER = /.../;` in the workflow');
-ok('workflow declares ROW_RE', !!rowLit, 'expected `const ROW_RE = /.../;` in the workflow');
+console.log('\nreceipt contract');
+// Server-side CI is gone — hosted runners are disabled for this repository — so
+// the receipt patterns live here, applied to the CLI's real output. They are the
+// same literals the removed workflow enforced, including the HTML-comment bug
+// they exist to prevent.
+const MARKER = /^[ \t]*(?:\*\*drydock-receipt:v1\*\*|<!--[ \t]*drydock-receipt:v1[ \t]*-->)[ \t]*\r?$/m;
+const ROW = () => /^\|\s*([a-z0-9-]+)\s*\|\s*✅\s*pass\s*\|\s*`([0-9a-f]{7,40})`/gim; // fresh each use — the /g flag is stateful
 
-const MARKER = toRegExp(markerLit);
-const ROW = () => toRegExp(rowLit); // fresh each use — the /g flag is stateful
-
-ok("workflow's marker matches the CLI receipt", MARKER.test(dry.stdout));
-ok("workflow's row regex parses the CLI receipt", [...dry.stdout.matchAll(ROW())].length === 2);
+ok('marker matches the CLI receipt', MARKER.test(dry.stdout));
+ok('row regex parses the CLI receipt', [...dry.stdout.matchAll(ROW())].length === 2);
 // The GitHub MCP server deletes HTML comments from PR bodies.
 ok('marker survives HTML-comment stripping', MARKER.test(dry.stdout.replace(/<!--[\s\S]*?-->/g, '')));
 ok('legacy HTML-comment marker still accepted', MARKER.test('Closes #1\n\n<!-- drydock-receipt:v1 -->\n### Drydock gate receipt\n'));
 
-// The workflow's verdict, evaluated here against the patterns it actually uses.
+// The verdict a gate check reaches, evaluated against the patterns above.
 const evaluate = (body, headSha, required = ['review', 'qa']) => {
   if (!MARKER.test(body)) return ['no receipt'];
   const seen = new Map([...body.matchAll(ROW())].map((r) => [r[1], r[2]]));
@@ -376,7 +361,7 @@ ok('marks the human verdict', /\|\s*👤 ci-bot\s*\|/.test(mixed.stdout), mixed.
 ok('says what the marks mean', mixed.stdout.includes('recorded by an agent'));
 // Attribution must not cost us the CI contract: the workflow parses gate,
 // verdict and SHA, and the By column has to stay out of its way.
-ok("workflow's row regex still parses a mixed receipt", [...mixed.stdout.matchAll(ROW())].length === 2);
+ok('row regex still parses a mixed receipt', [...mixed.stdout.matchAll(ROW())].length === 2);
 const head415 = git(['rev-parse', 'HEAD'], d415.worktree);
 ok('CI accepts a mixed receipt', evaluate(mixed.stdout, head415).length === 0,
   evaluate(mixed.stdout, head415).join('; '));
