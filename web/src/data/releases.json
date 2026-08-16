@@ -482,7 +482,7 @@
     "datePrecision": "day",
     "status": "legacy",
     "featured": true,
-    "featuredRationale": "Unusually well documented for an open-weight release: the model card and licence agree on its release date, and the card benchmarks it against much larger models.",
+    "featuredRationale": "The model card and licence agree on its release date, and the card benchmarks it against much larger models.",
     "categories": ["language-reasoning"],
     "inputModalities": ["text"],
     "outputModalities": ["text"],
