@@ -428,7 +428,7 @@
     "successorIds": [],
     "siblingIds": ["meta-llama-4-scout"],
     "derivedFromIds": [],
-    "summary": "Accepts text and images together. It is divided into 128 specialist sections plus one shared section, and each token — one of the small chunks that text and images are broken into — goes to the shared section and a single specialist, using 17 billion of its 400 billion parameters. Weights are published at two levels of numeric precision, BF16 and the smaller, faster FP8.",
+    "summary": "Accepts text and images together. It is divided into 128 specialist sections plus one shared section, and each token — one of the small chunks that text and images are broken into — goes to the shared section and a single specialist, using 17 billion of its 400 billion parameters. Weights are published at two levels of numeric precision, BF16 and the smaller FP8.",
     "intendedUse": "Assistant-style chat, visual reasoning, and code generation.",
     "sourceIds": ["meta-llama-4-maverick-model-card", "meta-llama-4-announcement", "meta-llama-4-license"],
     "verifiedAt": "2026-08-15"

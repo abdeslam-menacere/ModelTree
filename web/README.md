@@ -103,9 +103,16 @@ reading and the disagreement is written down here rather than resolved silently.
   deprecations table names Gemini 3.5 Flash-Lite as its recommended replacement.
   That is recorded as `successorIds` because the two are the same tier in the same
   family; a recommended replacement in a different tier would not be.
-- **No Meta lineage is recorded.** The Llama 4 and Llama 3 model cards do not
-  state a distillation or derivation relationship, so `derivedFromIds` is empty
-  even where one is widely assumed.
+- **No Meta lineage is recorded.** The Llama 4 announcement does state that Llama
+  4 Maverick was codistilled from Llama 4 Behemoth, but Behemoth was never
+  released and has no record here, so there is no id to point at. `derivedFromIds`
+  is empty because the parent cannot be referenced, not because no source names
+  one. The Llama 3 cards state no derivation at all.
+- **Claude 4.5 lifecycle wording differs between two cited pages.** The
+  deprecations table lists `claude-sonnet-4-5-20250929` and
+  `claude-haiku-4-5-20251001` as Active, while the models overview places Sonnet
+  4.5 in its Legacy accordion. The family follows the overview's grouping and is
+  recorded as `legacy`; no retirement date is asserted for either model.
 - **Llama licences are open-weight, not open source.** Each Llama Community
   License requires a separate licence from Meta above 700 million monthly active
   users, which is incompatible with free redistribution, so `osiApproved` is
