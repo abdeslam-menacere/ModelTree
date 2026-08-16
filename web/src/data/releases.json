@@ -464,7 +464,7 @@
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
-    "summary": "The largest Llama 3.1 size. Text only, and it reads up to 128,000 tokens at once — a token is one of the small chunks that text is broken into. Every parameter is used for every token, rather than only a fraction of them the way Llama 4 does.",
+    "summary": "The largest Llama 3.1 size. Text only, and it reads up to 128,000 tokens at once — a token is one of the small chunks that text is broken into.",
     "intendedUse": "Multilingual dialogue and natural language generation across the eight languages the model card lists.",
     "sourceIds": ["meta-llama-3-1-model-card", "meta-llama-3-1-license"],
     "verifiedAt": "2026-08-15"
