@@ -76,7 +76,7 @@
     "slug": "llama-3",
     "organizationId": "meta",
     "name": "Llama 3",
-    "description": "Meta's text-only generation, grouped under History in Meta's model collection. Llama 3.1 includes a 405-billion-parameter size and reads up to 128,000 tokens in one request.",
+    "description": "Meta groups the whole Llama 3 line under History in its model collection. The two releases recorded here take text in and give text out; Llama 3.1 includes a 405-billion-parameter size and reads up to 128,000 tokens in one request.",
     "categories": ["language-reasoning"],
     "firstReleaseDate": "2024-07-23",
     "status": "legacy",

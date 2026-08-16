@@ -72,7 +72,9 @@ describe('validateDataset', () => {
     const outsider = findRelease(input, (release) => release.familyId !== derived.familyId);
     derived.derivedFromIds = [outsider.id];
 
-    expect(() => validateDataset(input)).not.toThrow();
+    const parsed = validateDataset(input);
+    const kept = parsed.releases.find((release) => release.id === 'anthropic-claude-mythos-5');
+    expect(kept?.derivedFromIds).toEqual([outsider.id]);
   });
 
   it('rejects an open-weight release without downloadable weights', () => {

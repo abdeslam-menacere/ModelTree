@@ -83,10 +83,11 @@ reading and the disagreement is written down here rather than resolved silently.
   and no shutdown date is asserted.
 - **Gemini 3.7 Flash is excluded.** Its documentation gives only "August 2026".
   `releaseDate` is a full ISO date, so a month-only release cannot be represented
-  without inventing a day. Tracked as issue #49.
-- **Gemini 3.1 Pro Preview limits are omitted.** Its documentation gives "1M /
-  64k" rather than exact token counts, and the neighbouring models publish
-  1,048,576 and 65,536. Rounding one into the other would be a guess.
+  without inventing a day. Tracked as issue #48.
+- **Llama 4 Maverick parameter count.** The model card's own table gives 400B
+  total, while the Hugging Face repository metadata on the same page reports
+  402B. The model card figure is recorded, because it is the count Meta states in
+  prose rather than one derived from the uploaded weights.
 - **Gemini 2.5 Pro and Flash are siblings** because a single technical report
   covers "our Gemini 2.5 models" as one set, not merely because they shared a
   general-availability date.
