@@ -140,7 +140,7 @@
     "successorIds": [],
     "siblingIds": ["anthropic-claude-fable-5"],
     "derivedFromIds": [],
-    "summary": "The same underlying model as Claude Fable 5 with safeguards lifted in some areas, offered only in limited availability.",
+    "summary": "Shares Claude Fable 5's capabilities, specifications, and pricing, but without the safety classifiers that can decline a request. Offered only in limited availability.",
     "intendedUse": "Defensive cybersecurity workflows for customers approved through Anthropic's Project Glasswing.",
     "sourceIds": ["anthropic-models-overview", "anthropic-fable-5-mythos-5-docs"],
     "verifiedAt": "2026-08-15"
@@ -158,7 +158,7 @@
     "datePrecision": "day",
     "status": "current",
     "featured": true,
-    "featuredRationale": "The tier Anthropic recommends first for agentic coding, with a dated launch announcement.",
+    "featuredRationale": "The tier Anthropic recommends first for coding work that runs over many steps, with a dated launch announcement.",
     "categories": ["language-reasoning", "multimodal-generalist", "coding"],
     "inputModalities": ["text", "image"],
     "outputModalities": ["text"],
@@ -170,8 +170,8 @@
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
-    "summary": "A hosted Claude model for complex agentic coding and enterprise work, priced the same as Claude Opus 4.8.",
-    "intendedUse": "Complex agentic coding and enterprise workloads.",
+    "summary": "A hosted Claude model for complex agent-driven coding and enterprise work.",
+    "intendedUse": "Complex, multi-step coding and enterprise workloads.",
     "sourceIds": ["anthropic-models-overview", "anthropic-opus-5-announcement"],
     "verifiedAt": "2026-08-15"
   },
@@ -200,7 +200,7 @@
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
-    "summary": "The fastest Claude model with near-frontier intelligence, and the only current model that still takes an explicit extended-thinking flag.",
+    "summary": "The fastest Claude model, and the only current one that still takes an explicit flag to turn extended thinking on or off.",
     "intendedUse": "Latency-sensitive work that still needs strong reasoning.",
     "sourceIds": ["anthropic-models-overview", "anthropic-haiku-4-5-announcement"],
     "verifiedAt": "2026-08-15"
@@ -229,7 +229,7 @@
     "siblingIds": [],
     "derivedFromIds": [],
     "summary": "Refines the Gemini 3 Pro series with better thinking, improved token efficiency, and more grounded, factually consistent output.",
-    "intendedUse": "Software engineering and agentic workflows that need precise tool use and reliable multi-step execution.",
+    "intendedUse": "Software engineering and multi-step automated workflows that need precise tool use.",
     "sourceIds": ["google-gemini-3-1-pro-preview-docs", "google-gemini-deprecations", "google-gemini-pro-page"],
     "verifiedAt": "2026-08-15"
   },
@@ -258,8 +258,8 @@
     "successorIds": ["google-gemini-3-5-flash-lite"],
     "siblingIds": [],
     "derivedFromIds": [],
-    "summary": "A low-latency, cost-effective multimodal model optimized for high-frequency, lightweight tasks.",
-    "intendedUse": "High-volume agentic workflows and simple data extraction where latency and API cost are the main constraints.",
+    "summary": "A fast, lightweight model that accepts text, images, audio, and video, built for high-frequency, simple tasks.",
+    "intendedUse": "High-volume automated workflows and simple data extraction where response speed is the main constraint.",
     "sourceIds": ["google-gemini-3-1-flash-lite-docs", "google-gemini-3-1-flash-lite-platform-docs", "google-gemini-deprecations"],
     "verifiedAt": "2026-08-15"
   },
@@ -288,8 +288,8 @@
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
-    "summary": "A low-latency, cost-effective multimodal model optimized for high-throughput subagent tasks and document parsing.",
-    "intendedUse": "High-volume agentic workflows, simple data extraction, and document understanding at minimal cost.",
+    "summary": "A fast, lightweight model that accepts text, images, audio, and video, built for high-throughput work and document parsing.",
+    "intendedUse": "High-volume automated workflows, simple data extraction, and document understanding.",
     "sourceIds": ["google-gemini-3-5-flash-lite-docs", "google-gemini-3-5-flash-lite-platform-docs", "google-gemini-deprecations"],
     "verifiedAt": "2026-08-15"
   },
@@ -348,7 +348,7 @@
     "successorIds": [],
     "siblingIds": ["google-gemini-2-5-pro"],
     "derivedFromIds": [],
-    "summary": "The Gemini 2.5 price-performance model, and the first Flash model with thinking capabilities.",
+    "summary": "The balanced tier of Gemini 2.5, and the first Flash model able to reason step by step before answering.",
     "intendedUse": "Large-scale, low-latency, high-volume tasks that still require thinking.",
     "sourceIds": ["google-gemini-2-5-flash-platform-docs", "google-gemini-deprecations", "google-gemini-2-5-report"],
     "verifiedAt": "2026-08-15"
@@ -387,7 +387,7 @@
     "successorIds": [],
     "siblingIds": ["meta-llama-4-maverick"],
     "derivedFromIds": [],
-    "summary": "A natively multimodal mixture-of-experts model with 16 experts and a 10M-token context window.",
+    "summary": "Accepts text and images together, and can read up to 10 million tokens in one request. Uses a mixture-of-experts design, which sends each request to 16 specialist sub-networks instead of the whole model.",
     "intendedUse": "Assistant-style chat and visual reasoning across the twelve languages the model card lists.",
     "sourceIds": ["meta-llama-4-scout-model-card", "meta-llama-4-announcement", "meta-llama-4-license"],
     "verifiedAt": "2026-08-15"
@@ -426,7 +426,7 @@
     "successorIds": [],
     "siblingIds": ["meta-llama-4-scout"],
     "derivedFromIds": [],
-    "summary": "A natively multimodal mixture-of-experts model with 128 experts, released in both BF16 and FP8 weights.",
+    "summary": "Accepts text and images together, and uses a mixture-of-experts design with 128 specialist sub-networks. Weights are published at two levels of numeric precision, BF16 and the smaller, faster FP8.",
     "intendedUse": "Assistant-style chat, visual reasoning, and code generation.",
     "sourceIds": ["meta-llama-4-maverick-model-card", "meta-llama-4-announcement", "meta-llama-4-license"],
     "verifiedAt": "2026-08-15"
@@ -464,7 +464,7 @@
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
-    "summary": "The largest Llama 3.1 size: a text-only dense model with a 128K-token context window.",
+    "summary": "The largest Llama 3.1 size. Text only, and it reads up to 128,000 tokens at once. Every parameter is used on every request, unlike the mixture-of-experts design of Llama 4.",
     "intendedUse": "Multilingual dialogue and natural language generation across the eight languages the model card lists.",
     "sourceIds": ["meta-llama-3-1-model-card", "meta-llama-3-1-license"],
     "verifiedAt": "2026-08-15"

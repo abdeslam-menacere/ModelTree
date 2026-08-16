@@ -58,7 +58,9 @@ The seed data was checked against these official pages on 2026-08-14:
 
 Anthropic, Google DeepMind, and Meta records were checked against the pages
 listed in `src/data/sources.json` on 2026-08-15. Every URL there returned HTTP
-200 during that pass and its recorded title is the page's own title.
+200 during that pass. Recorded titles are the document's own title without the
+site suffix a publisher appends to the browser `<title>`, so "Models overview"
+is recorded where the browser tab reads "Models overview - Claude Platform Docs".
 
 Unknown facts remain omitted. Family membership does not imply an undocumented
 predecessor, successor, or architecture relationship.
@@ -88,11 +90,13 @@ reading and the disagreement is written down here rather than resolved silently.
 - **Gemini 2.5 Pro and Flash are siblings** because a single technical report
   covers "our Gemini 2.5 models" as one set, not merely because they shared a
   general-availability date.
-- **Claude Mythos 5 records no derivation.** Anthropic's docs say it is "the same
-  underlying model" as Claude Fable 5, which is a statement of equivalence, not of
-  parentage — it does not say which was produced from which. `derivedFromIds` is
-  therefore empty and the equivalence is carried by the sibling link and the
-  summary. Mythos 5 is not featured, because it is only available to invited
+- **Claude Mythos 5 records no derivation.** Anthropic's docs say Mythos 5 "shares
+  the same capabilities" as Claude Fable 5 and that the two "share the same specs
+  and pricing". That is a statement of equivalence, not of parentage — it does not
+  say either was produced from the other, and the docs note a real difference
+  (Mythos 5 omits the safety classifiers that can decline a request).
+  `derivedFromIds` is therefore empty and the relationship is carried by the
+  sibling link. Mythos 5 is not featured, because it is only available to invited
   customers.
 - **Gemini 3.1 Flash-Lite's successor is a migration recommendation.** The
   deprecations table names Gemini 3.5 Flash-Lite as its recommended replacement.
