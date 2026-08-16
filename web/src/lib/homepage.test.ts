@@ -86,4 +86,18 @@ describe('homepage hierarchy', () => {
     expect(hierarchy[0].families[0].releases).toEqual([]);
     expect(firstHomepageRelease(hierarchy).id).toBe(hierarchy[1].families[0].releases[0].id);
   });
+
+  it('includes a validated organization with no families', () => {
+    const organization = dataset.organizations[0];
+    const familylessOrganization = { ...organization, id: 'familyless', name: 'Familyless' };
+    const hierarchy = buildHomepageHierarchy({
+      ...dataset,
+      organizations: [...dataset.organizations, familylessOrganization],
+    });
+
+    expect(hierarchy.find(({ organization: item }) => item.id === familylessOrganization.id)).toEqual({
+      organization: familylessOrganization,
+      families: [],
+    });
+  });
 });

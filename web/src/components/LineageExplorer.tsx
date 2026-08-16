@@ -114,7 +114,6 @@ export default function LineageExplorer({ hierarchy, sourceByReleaseId, basePath
                               ref={(node) => { nodeRefs.current[index] = node; }}
                               className="release-node"
                               data-selected={isSelected ? 'true' : 'false'}
-                              aria-current={isSelected ? 'true' : undefined}
                               href={`${normalizedBase}models/${release.slug}/`}
                               onFocus={() => selectRelease(release.slug)}
                               onMouseEnter={() => selectRelease(release.slug)}
