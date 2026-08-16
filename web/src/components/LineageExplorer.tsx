@@ -5,18 +5,11 @@ import {
   Cloud,
   ExternalLink,
   GitBranch,
-  Info,
 } from 'lucide-react';
-import {
-  startTransition,
-  useEffect,
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from 'react';
-import type { ModelFamily, ModelRelease, Organization } from '../data/schema';
+import { startTransition, useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import type { HomepageOrganization } from '../lib/homepage';
 import { accessLabel, formatDate, statusLabel } from '../lib/format';
-import { createModelSelectionUrl, readSelectedModel } from '../lib/selection';
+import { readSelectedModel } from '../lib/selection';
 
 interface SourceSummary {
   title: string;
@@ -24,164 +17,168 @@ interface SourceSummary {
 }
 
 interface Props {
-  organization: Organization;
-  family: ModelFamily;
-  releases: ModelRelease[];
+  hierarchy: HomepageOrganization[];
   sourceByReleaseId: Record<string, SourceSummary>;
   basePath: string;
 }
 
-export default function LineageExplorer({
-  organization,
-  family,
-  releases,
-  sourceByReleaseId,
-  basePath,
-}: Props) {
-  const defaultSlug = releases[0].slug;
+export default function LineageExplorer({ hierarchy, sourceByReleaseId, basePath }: Props) {
+  const entries = hierarchy.flatMap(({ organization, families }) => families.flatMap(({ family, releases }) => (
+    releases.map((release) => ({ organization, family, release }))
+  )));
+  const defaultSlug = entries[0]?.release.slug ?? '';
+  const releaseKey = entries.map(({ release }) => release.slug).join('\0');
   const [selectedSlug, setSelectedSlug] = useState(defaultSlug);
-  const nodeRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const selected = releases.find((release) => release.slug === selectedSlug) ?? releases[0];
-  const source = sourceByReleaseId[selected.id];
+  const nodeRefs = useRef<Array<HTMLAnchorElement | null>>([]);
+  const selected = entries.find(({ release }) => release.slug === selectedSlug) ?? entries[0];
   const normalizedBase = basePath.endsWith('/') ? basePath : `${basePath}/`;
 
   useEffect(() => {
-    const syncFromUrl = () => {
-      const next = readSelectedModel(
-        window.location.search,
-        releases.map((release) => release.slug),
-        defaultSlug,
-      );
-      startTransition(() => setSelectedSlug(next));
-    };
+    const next = readSelectedModel(
+      window.location.search,
+      entries.map(({ release }) => release.slug),
+      defaultSlug,
+    );
+    startTransition(() => setSelectedSlug(next));
+  }, [defaultSlug, releaseKey]);
 
-    syncFromUrl();
-    window.addEventListener('popstate', syncFromUrl);
-    return () => window.removeEventListener('popstate', syncFromUrl);
-  }, [defaultSlug, releases]);
-
-  function selectRelease(slug: string, historyMode: 'push' | 'replace' = 'push') {
-    const nextUrl = createModelSelectionUrl(window.location.href, slug);
-    if (historyMode === 'push') window.history.pushState({}, '', nextUrl);
-    else window.history.replaceState({}, '', nextUrl);
+  function selectRelease(slug: string) {
     startTransition(() => setSelectedSlug(slug));
   }
 
   function handleNodeKeyDown(event: KeyboardEvent, index: number) {
     let nextIndex: number | undefined;
     if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-      nextIndex = (index + 1) % releases.length;
+      nextIndex = (index + 1) % entries.length;
     } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-      nextIndex = (index - 1 + releases.length) % releases.length;
+      nextIndex = (index - 1 + entries.length) % entries.length;
     } else if (event.key === 'Home') {
       nextIndex = 0;
     } else if (event.key === 'End') {
-      nextIndex = releases.length - 1;
+      nextIndex = entries.length - 1;
     }
 
     if (nextIndex === undefined) return;
     event.preventDefault();
     nodeRefs.current[nextIndex]?.focus();
-    selectRelease(releases[nextIndex].slug, 'replace');
   }
+
+  let releaseIndex = 0;
 
   return (
     <section className="lineage-explorer" aria-labelledby="lineage-heading">
       <div className="explorer-heading">
         <div>
-          <span className="eyebrow">Featured ecosystem</span>
-          <h2 id="lineage-heading">One family, three sibling releases</h2>
+          <span className="eyebrow">Complete seed catalog</span>
+          <h2 id="lineage-heading">Every creator, family, and release</h2>
         </div>
         <div className="legend" aria-label="Lineage legend">
           <span><CheckCircle2 size={16} aria-hidden="true" /> Available</span>
-          <span><Cloud size={16} aria-hidden="true" /> Hosted API</span>
+          <span><Cloud size={16} aria-hidden="true" /> Model Passport</span>
         </div>
       </div>
 
-      <div className="ecosystem-selector" aria-label="Featured model creators">
-        <span>Creator</span>
-        <button type="button" aria-pressed="true">{organization.name}</button>
-        <small>1 of 1 in this seed slice</small>
+      <div className="ecosystem-selector" aria-label="Catalog coverage">
+        <span>Catalog</span>
+        <strong>{hierarchy.length} creators</strong>
+        <small>{hierarchy.reduce((count, item) => count + item.families.length, 0)} families · {entries.length} releases</small>
       </div>
 
       <div className="lineage-stage">
-        <div className="tree-plot" aria-label={`${organization.name}, ${family.name} family lineage`}>
-          <div className="tree-level tree-root">
-            <span className="tree-kicker">Company</span>
-            <strong>{organization.name}</strong>
-            <small>Model creator</small>
-          </div>
+        <div className="lineage-directory">
+          {hierarchy.map(({ organization, families }) => (
+            <section className="organization-branch" aria-labelledby={`organization-${organization.id}`} key={organization.id}>
+              <header className="tree-level tree-root">
+                <span className="tree-kicker">Creator</span>
+                <strong id={`organization-${organization.id}`}>{organization.name}</strong>
+                <small>{families.length} {families.length === 1 ? 'family' : 'families'}</small>
+              </header>
 
-          <div className="tree-connector" aria-hidden="true" />
+              <div className="family-list">
+                {families.map(({ family, releases }) => (
+                  <article className="family-branch" key={family.id}>
+                    <header className="tree-level tree-family">
+                      <span className="tree-kicker"><GitBranch size={14} aria-hidden="true" /> Family</span>
+                      <strong>{family.name}</strong>
+                      <small>First released {formatDate(family.firstReleaseDate)}</small>
+                    </header>
 
-          <div className="tree-level tree-family">
-            <span className="tree-kicker"><GitBranch size={14} aria-hidden="true" /> Family</span>
-            <strong>{family.name}</strong>
-            <small>First released {formatDate(family.firstReleaseDate)}</small>
-          </div>
-
-          <div className="tree-connector" aria-hidden="true" />
-
-          <ol className="release-nodes" aria-label={`${family.name} releases`}>
-            {releases.map((release, index) => {
-              const isSelected = release.slug === selected.slug;
-              return (
-                <li key={release.id}>
-                  <button
-                    ref={(node) => { nodeRefs.current[index] = node; }}
-                    type="button"
-                    className="release-node"
-                    data-selected={isSelected ? 'true' : 'false'}
-                    aria-pressed={isSelected}
-                    onClick={() => selectRelease(release.slug)}
-                    onKeyDown={(event) => handleNodeKeyDown(event, index)}
-                  >
-                    <span className="node-status"><span aria-hidden="true" /> {statusLabel(release.status)}</span>
-                    <strong>{release.displayName}</strong>
-                    <small>{release.variant} | {formatDate(release.releaseDate)}</small>
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
-          <p className="relationship-note"><Info size={15} aria-hidden="true" /> Sibling variants announced together. No predecessor or successor is inferred.</p>
+                    <ol className="release-nodes" aria-label={`${family.name} releases`}>
+                      {releases.map((release) => {
+                        const index = releaseIndex;
+                        releaseIndex += 1;
+                        const isSelected = release.slug === selected?.release.slug;
+                        return (
+                          <li key={release.id}>
+                            <a
+                              ref={(node) => { nodeRefs.current[index] = node; }}
+                              className="release-node"
+                              data-selected={isSelected ? 'true' : 'false'}
+                              aria-current={isSelected ? 'true' : undefined}
+                              href={`${normalizedBase}models/${release.slug}/`}
+                              onFocus={() => selectRelease(release.slug)}
+                              onMouseEnter={() => selectRelease(release.slug)}
+                              onKeyDown={(event) => handleNodeKeyDown(event, index)}
+                            >
+                              <span className="node-status"><span aria-hidden="true" /> {statusLabel(release.status)}</span>
+                              <strong>{release.displayName}</strong>
+                              <small>{release.variant} | {formatDate(release.releaseDate)}</small>
+                              <span className="node-link">View passport <ArrowUpRight size={14} aria-hidden="true" /></span>
+                            </a>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ))}
         </div>
 
-        <aside className="model-summary" aria-live="polite" aria-label={`Selected model: ${selected.displayName}`}>
-          <div className="summary-topline">
-            <span>{organization.shortName} / {family.name}</span>
-            <span className="verification-mark"><CheckCircle2 size={15} aria-hidden="true" /> Verified</span>
-          </div>
-          <h3>{selected.displayName}</h3>
-          <p className="summary-copy">{selected.summary}</p>
-          <dl className="summary-facts">
-            <div>
-              <dt><CalendarDays size={15} aria-hidden="true" /> Release</dt>
-              <dd>{formatDate(selected.releaseDate)}</dd>
+        {selected && (
+          <aside className="model-summary" aria-live="polite" aria-label={`Selected model: ${selected.release.displayName}`}>
+            <div className="summary-topline">
+              <span>{selected.organization.shortName} / {selected.family.name}</span>
+              <span className="verification-mark"><CheckCircle2 size={15} aria-hidden="true" /> Verified</span>
             </div>
-            <div>
-              <dt><CheckCircle2 size={15} aria-hidden="true" /> Status</dt>
-              <dd>{statusLabel(selected.status)}</dd>
+            <h3>{selected.release.displayName}</h3>
+            <p className="summary-copy">{selected.release.summary}</p>
+            <dl className="summary-facts">
+              <div>
+                <dt><CalendarDays size={15} aria-hidden="true" /> Release</dt>
+                <dd>{formatDate(selected.release.releaseDate)}</dd>
+              </div>
+              <div>
+                <dt><CheckCircle2 size={15} aria-hidden="true" /> Status</dt>
+                <dd>{statusLabel(selected.release.status)}</dd>
+              </div>
+              <div>
+                <dt><Cloud size={15} aria-hidden="true" /> Access</dt>
+                <dd>{accessLabel(selected.release.accessType)}</dd>
+              </div>
+            </dl>
+            <div className="summary-purpose">
+              <span>When to use it</span>
+              <p>{selected.release.intendedUse}</p>
             </div>
-            <div>
-              <dt><Cloud size={15} aria-hidden="true" /> Access</dt>
-              <dd>{accessLabel(selected.accessType)}</dd>
+            <div className="details-actions">
+              <a className="primary-action" href={`${normalizedBase}models/${selected.release.slug}/`}>
+                View Model Passport <ArrowUpRight size={17} aria-hidden="true" />
+              </a>
+              {sourceByReleaseId[selected.release.id] && (
+                <a className="text-action" href={sourceByReleaseId[selected.release.id].url}>
+                  Primary source <ExternalLink size={15} aria-hidden="true" />
+                </a>
+              )}
             </div>
-          </dl>
-          <div className="summary-purpose">
-            <span>When to use it</span>
-            <p>{selected.intendedUse}</p>
-          </div>
-          <div className="details-actions">
-            <a className="primary-action" href={`${normalizedBase}models/${selected.slug}/`}>
-              View Model Passport <ArrowUpRight size={17} aria-hidden="true" />
-            </a>
-            <a className="text-action" href={source.url}>
-              Primary source <ExternalLink size={15} aria-hidden="true" />
-            </a>
-          </div>
-          <p className="source-caption">{source.title} | Checked {formatDate(selected.verifiedAt)}</p>
-        </aside>
+            {sourceByReleaseId[selected.release.id] && (
+              <p className="source-caption">
+                {sourceByReleaseId[selected.release.id].title} | Checked {formatDate(selected.release.verifiedAt)}
+              </p>
+            )}
+          </aside>
+        )}
       </div>
     </section>
   );
