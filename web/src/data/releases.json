@@ -140,7 +140,7 @@
     "successorIds": [],
     "siblingIds": ["anthropic-claude-fable-5"],
     "derivedFromIds": [],
-    "summary": "Shares Claude Fable 5's capabilities, specifications, and pricing, but without the safety classifiers that can decline a request. Offered only in limited availability.",
+    "summary": "Shares Claude Fable 5's capabilities and specifications, but without the safety classifiers that can decline a request. Offered only in limited availability.",
     "intendedUse": "Defensive cybersecurity workflows for customers approved through Anthropic's Project Glasswing.",
     "sourceIds": ["anthropic-models-overview", "anthropic-fable-5-mythos-5-docs"],
     "verifiedAt": "2026-08-15"
@@ -464,7 +464,7 @@
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
-    "summary": "The largest Llama 3.1 size. Text only, and it reads up to 128,000 tokens at once. Every parameter is used on every request, unlike the mixture-of-experts design of Llama 4.",
+    "summary": "The largest Llama 3.1 size. Text only, and it reads up to 128,000 tokens at once. Every parameter is used on every request, rather than routing each request to a few specialist sub-networks the way Llama 4 does.",
     "intendedUse": "Multilingual dialogue and natural language generation across the eight languages the model card lists.",
     "sourceIds": ["meta-llama-3-1-model-card", "meta-llama-3-1-license"],
     "verifiedAt": "2026-08-15"
