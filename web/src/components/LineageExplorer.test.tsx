@@ -22,7 +22,8 @@ describe('LineageExplorer', () => {
       expect(markup).toContain(`>${organization.name}<`);
     }
     for (const family of dataset.families) {
-      expect(markup).toContain(`>${family.name}<`);
+      expect(markup).toContain(`<article class="family-branch" aria-labelledby="family-${family.id}">`);
+      expect(markup).toContain(`<h3 id="family-${family.id}">${family.name}</h3>`);
     }
     for (const release of dataset.releases) {
       expect(markup).toContain(`>${release.displayName}<`);

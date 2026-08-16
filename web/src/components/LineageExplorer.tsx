@@ -96,10 +96,10 @@ export default function LineageExplorer({ hierarchy, sourceByReleaseId, basePath
 
               <div className="family-list">
                 {families.map(({ family, releases }) => (
-                  <article className="family-branch" key={family.id}>
+                  <article className="family-branch" aria-labelledby={`family-${family.id}`} key={family.id}>
                     <header className="tree-level tree-family">
                       <span className="tree-kicker"><GitBranch size={14} aria-hidden="true" /> Family</span>
-                      <strong>{family.name}</strong>
+                      <h3 id={`family-${family.id}`}>{family.name}</h3>
                       <small>First released {formatDate(family.firstReleaseDate)}</small>
                     </header>
 

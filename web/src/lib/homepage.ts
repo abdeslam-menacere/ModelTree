@@ -31,3 +31,13 @@ export function buildHomepageHierarchy(dataset: Dataset): HomepageOrganization[]
         })),
     }));
 }
+
+export function firstHomepageRelease(hierarchy: readonly HomepageOrganization[]) {
+  for (const { families } of hierarchy) {
+    for (const { releases } of families) {
+      if (releases[0]) return releases[0];
+    }
+  }
+
+  throw new Error('Homepage requires at least one model release');
+}

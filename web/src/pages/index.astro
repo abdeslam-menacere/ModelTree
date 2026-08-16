@@ -3,7 +3,7 @@ import LineageExplorer from '../components/LineageExplorer';
 import { dataset, sourceById } from '../data/dataset';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { formatDate } from '../lib/format';
-import { buildHomepageHierarchy } from '../lib/homepage';
+import { buildHomepageHierarchy, firstHomepageRelease } from '../lib/homepage';
 
 const hierarchy = buildHomepageHierarchy(dataset);
 const sourceByReleaseId = Object.fromEntries(dataset.releases.map((release) => {
@@ -17,7 +17,7 @@ const sourceByReleaseId = Object.fromEntries(dataset.releases.map((release) => {
 }));
 const latestVerification = [...dataset.releases.map(({ verifiedAt }) => verifiedAt)].sort().at(-1)!;
 const base = import.meta.env.BASE_URL;
-const passportHref = `${base}models/${hierarchy[0].families[0].releases[0].slug}/`;
+const passportHref = `${base}models/${firstHomepageRelease(hierarchy).slug}/`;
 ---
 
 <BaseLayout

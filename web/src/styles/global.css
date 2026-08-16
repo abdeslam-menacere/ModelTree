@@ -376,7 +376,8 @@ main {
   background: var(--cp-bg-elevated);
 }
 
-.tree-level strong {
+.tree-level :is(strong, h3) {
+  margin: 0;
   font-family: "Newsreader Variable", Georgia, serif;
   font-size: 24px;
   font-weight: 590;
