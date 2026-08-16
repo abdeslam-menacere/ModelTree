@@ -387,7 +387,7 @@
     "successorIds": [],
     "siblingIds": ["meta-llama-4-maverick"],
     "derivedFromIds": [],
-    "summary": "Accepts text and images together, and can read up to 10 million tokens in one request. It is divided into 16 specialist sections, and each word it processes is handled by only a fraction of the model: 17 billion of its 109 billion parameters.",
+    "summary": "Accepts text and images together, and can read up to 10 million tokens in one request — a token is one of the small chunks that text and images are broken into. It is divided into 16 specialist sections, and each token is handled by only a fraction of the model: 17 billion of its 109 billion parameters.",
     "intendedUse": "Assistant-style chat and visual reasoning across the twelve languages the model card lists.",
     "sourceIds": ["meta-llama-4-scout-model-card", "meta-llama-4-announcement", "meta-llama-4-license"],
     "verifiedAt": "2026-08-15"
@@ -426,7 +426,7 @@
     "successorIds": [],
     "siblingIds": ["meta-llama-4-scout"],
     "derivedFromIds": [],
-    "summary": "Accepts text and images together. It is divided into 128 specialist sections plus one shared section, and each word it processes goes to the shared section and a single specialist, using 17 billion of its 400 billion parameters. Weights are published at two levels of numeric precision, BF16 and the smaller, faster FP8.",
+    "summary": "Accepts text and images together. It is divided into 128 specialist sections plus one shared section, and each token — one of the small chunks that text and images are broken into — goes to the shared section and a single specialist, using 17 billion of its 400 billion parameters. Weights are published at two levels of numeric precision, BF16 and the smaller, faster FP8.",
     "intendedUse": "Assistant-style chat, visual reasoning, and code generation.",
     "sourceIds": ["meta-llama-4-maverick-model-card", "meta-llama-4-announcement", "meta-llama-4-license"],
     "verifiedAt": "2026-08-15"
@@ -464,7 +464,7 @@
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
-    "summary": "The largest Llama 3.1 size. Text only, and it reads up to 128,000 tokens at once. Every parameter is used for every word it processes, rather than only a fraction of them the way Llama 4 does.",
+    "summary": "The largest Llama 3.1 size. Text only, and it reads up to 128,000 tokens at once — a token is one of the small chunks that text is broken into. Every parameter is used for every token, rather than only a fraction of them the way Llama 4 does.",
     "intendedUse": "Multilingual dialogue and natural language generation across the eight languages the model card lists.",
     "sourceIds": ["meta-llama-3-1-model-card", "meta-llama-3-1-license"],
     "verifiedAt": "2026-08-15"

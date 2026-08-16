@@ -64,7 +64,7 @@
     "slug": "llama-4",
     "organizationId": "meta",
     "name": "Llama 4",
-    "description": "Meta's first generation built to handle text and images together rather than having image support added afterwards. Each word the model processes is handled by only a fraction of it, not the whole network. The weights can be downloaded under a community licence.",
+    "description": "Meta's first generation built to handle text and images together rather than having image support added afterwards. Each token — one of the small chunks that text and images are broken into — is handled by only a fraction of the network rather than all of it. The weights can be downloaded under a community licence.",
     "categories": ["language-reasoning", "multimodal-generalist"],
     "firstReleaseDate": "2025-04-05",
     "status": "current",
