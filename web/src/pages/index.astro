@@ -3,11 +3,10 @@ import LineageExplorer from '../components/LineageExplorer';
 import { dataset, sourceById } from '../data/dataset';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { formatDate } from '../lib/format';
+import { buildHomepageHierarchy, firstHomepageRelease } from '../lib/homepage';
 
-const organization = dataset.organizations[0];
-const family = dataset.families[0];
-const releases = dataset.releases.filter((release) => release.familyId === family.id);
-const sourceByReleaseId = Object.fromEntries(releases.map((release) => {
+const hierarchy = buildHomepageHierarchy(dataset);
+const sourceByReleaseId = Object.fromEntries(dataset.releases.map((release) => {
 	const source = release.sourceIds
 		.map((sourceId) => sourceById.get(sourceId))
 		.find((candidate) => candidate?.type === 'official-docs')
@@ -18,7 +17,7 @@ const sourceByReleaseId = Object.fromEntries(releases.map((release) => {
 }));
 const latestVerification = [...dataset.releases.map(({ verifiedAt }) => verifiedAt)].sort().at(-1)!;
 const base = import.meta.env.BASE_URL;
-const passportHref = `${base}models/${releases[0].slug}/`;
+const passportHref = `${base}models/${firstHomepageRelease(hierarchy).slug}/`;
 ---
 
 <BaseLayout
@@ -45,18 +44,26 @@ const passportHref = `${base}models/${releases[0].slug}/`;
 		<section id="explorer" class="explorer-band">
 			<LineageExplorer
 				client:load
-				organization={organization}
-				family={family}
-				releases={releases}
+				hierarchy={hierarchy}
 				sourceByReleaseId={sourceByReleaseId}
 				basePath={base}
 			/>
 			<noscript>
 				<div class="no-script-note">
-					<p>Selection controls need JavaScript, but every release has a static Model Passport:</p>
-					<ul>
-						{releases.map((release) => <li><a href={`${base}models/${release.slug}/`}>{release.displayName}</a></li>)}
-					</ul>
+					<p>Every release has a static Model Passport:</p>
+					{hierarchy.map(({ organization, families }) => (
+						<section>
+							<h3>{organization.name}</h3>
+							{families.map(({ family, releases }) => (
+								<div>
+									<h4>{family.name}</h4>
+									<ul>
+										{releases.map((release) => <li><a href={`${base}models/${release.slug}/`}>{release.displayName}</a></li>)}
+									</ul>
+								</div>
+							))}
+						</section>
+					))}
 				</div>
 			</noscript>
 		</section>

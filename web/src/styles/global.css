@@ -332,7 +332,6 @@ main {
   text-transform: uppercase;
 }
 
-.ecosystem-selector button,
 .release-node {
   border: 1px solid var(--cp-border);
   border-radius: 0.625rem;
@@ -342,11 +341,7 @@ main {
   cursor: pointer;
 }
 
-.ecosystem-selector button {
-  min-height: 44px;
-  padding: 9px 18px;
-  border-color: var(--cp-accent);
-  background: var(--cp-accent-soft);
+.ecosystem-selector strong {
   font-weight: 700;
 }
 
@@ -357,13 +352,19 @@ main {
 
 .lineage-stage {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.75fr);
-  gap: 48px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.34fr);
+  gap: 32px;
 }
 
-.tree-plot {
+.lineage-directory {
+  display: grid;
   min-width: 0;
-  padding: 16px 0 6px;
+  gap: 34px;
+}
+
+.organization-branch {
+  padding-top: 18px;
+  border-top: 1px solid var(--cp-border-strong);
 }
 
 .tree-level {
@@ -375,7 +376,8 @@ main {
   background: var(--cp-bg-elevated);
 }
 
-.tree-level strong {
+.tree-level :is(strong, h3) {
+  margin: 0;
   font-family: "Newsreader Variable", Georgia, serif;
   font-size: 24px;
   font-weight: 590;
@@ -386,7 +388,10 @@ main {
 }
 
 .tree-family {
-  margin-left: 104px;
+  width: 100%;
+  min-width: 0;
+  border-left-width: 2px;
+  background: transparent;
 }
 
 .tree-kicker {
@@ -395,25 +400,19 @@ main {
   gap: 5px;
 }
 
-.tree-connector {
-  width: 105px;
-  height: 26px;
-  margin-left: 30px;
-  border-right: 1px solid var(--cp-border-strong);
-  border-bottom: 1px solid var(--cp-border-strong);
-}
-
-.tree-family + .tree-connector {
-  width: 102px;
-  margin-left: 134px;
+.family-list {
+  display: grid;
+  margin: 18px 0 0 28px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 18px;
 }
 
 .release-nodes {
   display: grid;
   margin: 0;
-  padding: 28px 0 0;
+  padding: 10px 0 0;
   list-style: none;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
@@ -421,22 +420,13 @@ main {
   position: relative;
 }
 
-.release-nodes li::before {
-  position: absolute;
-  top: -28px;
-  left: 50%;
-  width: 1px;
-  height: 28px;
-  background: var(--cp-border-strong);
-  content: "";
-}
-
 .release-node {
   display: grid;
   width: 100%;
-  min-height: 132px;
+  min-height: 126px;
   padding: 16px;
   text-align: left;
+  text-decoration: none;
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
@@ -461,6 +451,16 @@ main {
   color: var(--cp-text-muted);
 }
 
+.node-link {
+  display: inline-flex;
+  margin-top: 10px;
+  align-items: center;
+  gap: 5px;
+  color: var(--cp-accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .node-status {
   align-self: start;
   color: var(--cp-text-muted);
@@ -482,6 +482,8 @@ main {
 }
 
 .model-summary {
+  position: sticky;
+  top: 24px;
   align-self: start;
   padding: 25px;
   border: 1px solid var(--cp-border);
@@ -884,6 +886,7 @@ main {
   }
 
   .model-summary {
+    position: static;
     width: 100%;
   }
 
@@ -973,9 +976,8 @@ main {
     margin-left: 0;
   }
 
-  .tree-plot {
-    display: grid;
-    grid-template-columns: 1fr;
+  .family-list {
+    margin-left: 0;
   }
 
   .tree-level,
@@ -984,27 +986,10 @@ main {
     margin-left: 0;
   }
 
-  .tree-connector,
-  .tree-family + .tree-connector {
-    width: 1px;
-    height: 22px;
-    margin: 0 0 0 22px;
-    border: 0;
-    background: var(--cp-border-strong);
-  }
-
   .release-nodes {
     display: grid;
-    padding: 0 0 0 21px;
-    border-left: 1px solid var(--cp-border-strong);
+    padding: 10px 0 0;
     grid-template-columns: 1fr;
-  }
-
-  .release-nodes li::before {
-    top: 50%;
-    left: -21px;
-    width: 21px;
-    height: 1px;
   }
 
   .release-node {
@@ -1053,6 +1038,10 @@ main {
 }
 
 @media (max-width: 430px) {
+  .family-list {
+    grid-template-columns: 1fr;
+  }
+
   .summary-facts,
   .passport-facts,
   .technical-facts,
