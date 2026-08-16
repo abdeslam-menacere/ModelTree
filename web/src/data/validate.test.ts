@@ -6,9 +6,95 @@ function copyDataset() {
   return structuredClone(rawDataset);
 }
 
+/** The raw dataset as loose records, so a test can break an invariant on purpose. */
+function mutableDataset(): Record<string, any> {
+  return copyDataset() as Record<string, any>;
+}
+
+function findRelease(input: Record<string, any>, predicate: (release: any) => boolean): any {
+  const match = (input.releases as any[]).find(predicate);
+  if (!match) throw new Error('seed data no longer exercises this invariant');
+  return match;
+}
+
 describe('validateDataset', () => {
   it('accepts the source-backed seed dataset', () => {
-    expect(validateDataset(copyDataset()).releases).toHaveLength(3);
+    const dataset = validateDataset(copyDataset());
+    const releaseIds = new Set(dataset.releases.map((release) => release.id));
+
+    // Named rather than counted, so deleting a record fails loudly while adding
+    // one does not force an unrelated edit to this test.
+    for (const expected of [
+      'openai-gpt-4-1-2025-04-14',
+      'anthropic-claude-fable-5',
+      'google-gemini-2-5-pro',
+      'meta-llama-4-scout',
+    ]) {
+      expect(releaseIds).toContain(expected);
+    }
+
+    // Not enforced by validateDataset, which only checks that referenced sources
+    // exist and never the reverse. An unreferenced source is dead provenance.
+    const cited = new Set<string>();
+    for (const record of [...dataset.organizations, ...dataset.families, ...dataset.releases]) {
+      for (const sourceId of record.sourceIds) cited.add(sourceId);
+    }
+    const orphaned = dataset.sources
+      .map((source) => source.id)
+      .filter((id) => !cited.has(id));
+
+    expect(orphaned).toEqual([]);
+  });
+
+  it('rejects a one-sided sibling relationship', () => {
+    const input = mutableDataset();
+    const sibling = findRelease(input, (release) => release.siblingIds?.length > 0);
+    const partner = findRelease(input, (release) => release.id === sibling.siblingIds[0]);
+    partner.siblingIds = partner.siblingIds.filter((id: string) => id !== sibling.id);
+
+    expect(() => validateDataset(input)).toThrow(/sibling relationship with .* is not reciprocal/);
+  });
+
+  it('rejects a successor in another family', () => {
+    const input = mutableDataset();
+    const source = findRelease(input, (release) => release.successorIds?.length > 0);
+    const outsider = findRelease(input, (release) => release.familyId !== source.familyId);
+    source.successorIds = [outsider.id];
+
+    expect(() => validateDataset(input)).toThrow(/must stay within family/);
+  });
+
+  it('allows derivedFromIds to cross family boundaries', () => {
+    const input = mutableDataset();
+    // Constructed rather than found: no seed release claims a derivation, because
+    // no source states one. The rule still has to hold.
+    const derived = findRelease(input, (release) => release.id === 'anthropic-claude-mythos-5');
+    const outsider = findRelease(input, (release) => release.familyId !== derived.familyId);
+    derived.derivedFromIds = [outsider.id];
+
+    const parsed = validateDataset(input);
+    const kept = parsed.releases.find((release) => release.id === 'anthropic-claude-mythos-5');
+    expect(kept?.derivedFromIds).toEqual([outsider.id]);
+  });
+
+  it('rejects an open-weight release without downloadable weights', () => {
+    const input = mutableDataset();
+    const openWeight = findRelease(input, (release) => release.accessType === 'open-weight');
+    openWeight.license.weightsDownloadable = false;
+
+    expect(() => validateDataset(input)).toThrow(/contradicts an open-weight access type/);
+  });
+
+  it('rejects an unevidenced OSI-approved licence claim', () => {
+    const input = mutableDataset();
+    const openWeight = findRelease(input, (release) => release.accessType === 'open-weight');
+    openWeight.license = {
+      name: openWeight.license.name,
+      weightsDownloadable: true,
+      osiApproved: true,
+    };
+
+    expect(() => validateDataset(input)).toThrow(/needs an spdxId or a licence URL/);
   });
 
   it('rejects a duplicate release id', () => {

@@ -31,5 +31,236 @@
     "type": "official-docs",
     "publisher": "OpenAI",
     "lastCheckedDate": "2026-08-14"
+  },
+  {
+    "id": "anthropic-models-overview",
+    "url": "https://platform.claude.com/docs/en/about-claude/models/overview",
+    "title": "Models overview",
+    "type": "official-docs",
+    "publisher": "Anthropic",
+    "lastCheckedDate": "2026-08-15"
+  },
+  {
+    "id": "anthropic-fable-5-mythos-5-docs",
+    "url": "https://platform.claude.com/docs/en/about-claude/models/introducing-claude-fable-5-and-claude-mythos-5",
+    "title": "Introducing Claude Fable 5 and Claude Mythos 5",
+    "type": "official-docs",
+    "publisher": "Anthropic",
+    "lastCheckedDate": "2026-08-15"
+  },
+  {
+    "id": "anthropic-model-deprecations",
+    "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations",
+    "title": "Model deprecations",
+    "type": "official-docs",
+    "publisher": "Anthropic",
+    "lastCheckedDate": "2026-08-15"
+  },
+  {
+    "id": "anthropic-opus-5-announcement",
+    "url": "https://www.anthropic.com/news/claude-opus-5",
+    "title": "Introducing Claude Opus 5",
+    "type": "official-announcement",
+    "publisher": "Anthropic",
+    "publishedDate": "2026-07-24",
+    "lastCheckedDate": "2026-08-15"
+  },
+  {
+    "id": "anthropic-sonnet-4-5-announcement",
+    "url": "https://www.anthropic.com/news/claude-sonnet-4-5",
+    "title": "Introducing Claude Sonnet 4.5",
+    "type": "official-announcement",
+    "publisher": "Anthropic",
+    "publishedDate": "2025-09-29",
+    "lastCheckedDate": "2026-08-15"
+  },
+  {
+    "id": "anthropic-haiku-4-5-announcement",
+    "url": "https://www.anthropic.com/news/claude-haiku-4-5",
+    "title": "Introducing Claude Haiku 4.5",
+    "type": "official-announcement",
+    "publisher": "Anthropic",
+    "publishedDate": "2025-10-15",
+    "lastCheckedDate": "2026-08-15",
+    "notes": "The newsroom dates this announcement 15 Oct 2025, while the pinned model ID is claude-haiku-4-5-20251001."
+  },
+  {
+    "id": "google-deepmind-about",
+    "url": "https://deepmind.google/about/",
+    "title": "About Google DeepMind",
+    "type": "official-docs",
+    "publisher": "Google DeepMind",
+    "lastCheckedDate": "2026-08-15"
+  },
+  {
+    "id": "google-gemini-deprecations",
+    "url": "https://ai.google.dev/gemini-api/docs/deprecations",
+    "title": "Gemini deprecations",
+    "type": "official-docs",
+    "publisher": "Google",
+    "lastCheckedDate": "2026-08-15",
+    "notes": "States the release date, shutdown date, and recommended replacement for each Gemini model ID."
+  },
+  {
+    "id": "google-gemini-3-1-pro-preview-docs",
+    "url": "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-pro-preview",
+    "title": "Gemini 3.1 Pro Preview",
+    "type": "official-docs",
+    "publisher": "Google",
+    "lastCheckedDate": "2026-08-15"
+  },
+  {
+    "id": "google-gemini-3-guide",
+    "url": "https://ai.google.dev/gemini-api/docs/gemini-3",
+    "title": "Gemini 3 developer guide",
+    "type": "official-docs",
+    "publisher": "Google",
+    "lastCheckedDate": "2026-08-15"
+  },
+  {
+    "id": "google-gemini-pro-page",
+    "url": "https://deepmind.google/models/gemini/pro/",
+    "title": "Gemini Pro",
+    "type": "official-docs",
+    "publisher": "Google DeepMind",
+    "lastCheckedDate": "2026-08-15"
+  },
+  {
+    "id": "google-gemini-3-1-flash-lite-docs",
+    "url": "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite",
+    "title": "Gemini 3.1 Flash-Lite",
+    "type": "official-docs",
+    "publisher": "Google",
+    "lastCheckedDate": "2026-08-15"
+  },
+  {
+    "id": "google-gemini-3-1-flash-lite-platform-docs",
+    "url": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-1-flash-lite",
+    "title": "Gemini 3.1 Flash-Lite on Gemini Enterprise Agent Platform",
+    "type": "official-docs",
+    "publisher": "Google Cloud",
+    "lastCheckedDate": "2026-08-15",
+    "notes": "Google Cloud platform documentation; used for token limits, modalities, launch stage, and the model description it publishes."
+  },
+  {
+    "id": "google-gemini-3-5-flash-lite-docs",
+    "url": "https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite",
+    "title": "Gemini 3.5 Flash-Lite",
+    "type": "official-docs",
+    "publisher": "Google",
+    "lastCheckedDate": "2026-08-15"
+  },
+  {
+    "id": "google-gemini-3-5-flash-lite-platform-docs",
+    "url": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-5-flash-lite",
+    "title": "Gemini 3.5 Flash-Lite on Gemini Enterprise Agent Platform",
+    "type": "official-docs",
+    "publisher": "Google Cloud",
+    "lastCheckedDate": "2026-08-15",
+    "notes": "Google Cloud platform documentation; used for token limits, modalities, launch stage, and the model description it publishes."
+  },
+  {
+    "id": "google-gemini-2-5-pro-platform-docs",
+    "url": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/2-5-pro",
+    "title": "Gemini 2.5 Pro on Gemini Enterprise Agent Platform",
+    "type": "official-docs",
+    "publisher": "Google Cloud",
+    "lastCheckedDate": "2026-08-15",
+    "notes": "Google Cloud platform documentation; used for token limits, modalities, launch stage, and the model description it publishes."
+  },
+  {
+    "id": "google-gemini-2-5-flash-platform-docs",
+    "url": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/2-5-flash",
+    "title": "Gemini 2.5 Flash on Gemini Enterprise Agent Platform",
+    "type": "official-docs",
+    "publisher": "Google Cloud",
+    "lastCheckedDate": "2026-08-15",
+    "notes": "Google Cloud platform documentation; used for token limits, modalities, launch stage, and the model description it publishes."
+  },
+  {
+    "id": "google-gemini-2-5-report",
+    "url": "https://storage.googleapis.com/deepmind-media/gemini/gemini_v2_5_report.pdf",
+    "title": "Gemini 2.5 technical report",
+    "type": "official-docs",
+    "publisher": "Google DeepMind",
+    "lastCheckedDate": "2026-08-15",
+    "notes": "A single report covering the Gemini 2.5 models, which is why Pro and Flash are recorded as siblings."
+  },
+  {
+    "id": "meta-llama-4-announcement",
+    "url": "https://ai.meta.com/blog/llama-4-multimodal-intelligence/",
+    "title": "The Llama 4 herd: The beginning of a new era of natively multimodal AI innovation",
+    "type": "official-announcement",
+    "publisher": "Meta",
+    "publishedDate": "2025-04-05",
+    "lastCheckedDate": "2026-08-15"
+  },
+  {
+    "id": "meta-llama-4-scout-model-card",
+    "url": "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+    "title": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+    "type": "model-card",
+    "publisher": "Meta",
+    "lastCheckedDate": "2026-08-15"
+  },
+  {
+    "id": "meta-llama-4-maverick-model-card",
+    "url": "https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+    "title": "meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+    "type": "model-card",
+    "publisher": "Meta",
+    "lastCheckedDate": "2026-08-15"
+  },
+  {
+    "id": "meta-llama-4-license",
+    "url": "https://github.com/meta-llama/llama-models/blob/main/models/llama4/LICENSE",
+    "title": "Llama 4 Community License Agreement",
+    "type": "repository",
+    "publisher": "Meta",
+    "lastCheckedDate": "2026-08-15",
+    "notes": "Section 2 requires a separate Meta licence above 700 million monthly active users, so the licence is not OSI-approved."
+  },
+  {
+    "id": "meta-llama-3-1-model-card",
+    "url": "https://huggingface.co/meta-llama/Llama-3.1-405B-Instruct",
+    "title": "meta-llama/Llama-3.1-405B-Instruct",
+    "type": "model-card",
+    "publisher": "Meta",
+    "lastCheckedDate": "2026-08-15"
+  },
+  {
+    "id": "meta-llama-3-1-license",
+    "url": "https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/LICENSE",
+    "title": "Llama 3.1 Community License Agreement",
+    "type": "repository",
+    "publisher": "Meta",
+    "lastCheckedDate": "2026-08-15",
+    "notes": "Carries the same 700 million monthly active user restriction as later Llama licences."
+  },
+  {
+    "id": "meta-llama-3-3-model-card",
+    "url": "https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct",
+    "title": "meta-llama/Llama-3.3-70B-Instruct",
+    "type": "model-card",
+    "publisher": "Meta",
+    "lastCheckedDate": "2026-08-15"
+  },
+  {
+    "id": "meta-llama-3-3-license",
+    "url": "https://github.com/meta-llama/llama-models/blob/main/models/llama3_3/LICENSE",
+    "title": "Llama 3.3 Community License Agreement",
+    "type": "repository",
+    "publisher": "Meta",
+    "lastCheckedDate": "2026-08-15",
+    "notes": "Carries the same 700 million monthly active user restriction as later Llama licences."
+  },
+  {
+    "id": "meta-llama-collection",
+    "url": "https://huggingface.co/meta-llama",
+    "title": "meta-llama organization",
+    "type": "repository",
+    "publisher": "Meta",
+    "lastCheckedDate": "2026-08-15",
+    "notes": "Groups Llama 4 under Current and every Llama 3.x release under History."
   }
 ]
