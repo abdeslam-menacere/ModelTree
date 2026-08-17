@@ -10,6 +10,7 @@ from __future__ import annotations
 import traceback
 from typing import Any, Sequence
 
+from .checkpoints import recorded_providers
 from .contracts import (
     BudgetUsage,
     CreatorProposal,
@@ -21,9 +22,30 @@ from .contracts import (
     WorkflowStage,
 )
 from .messages import CreatorTask
+from .providers.base import ProviderError
 from .workflow import RunSettings, build_creator_workflow
 
-__all__ = ["run_creator", "run_creators", "resume_creator_run"]
+__all__ = [
+    "ProviderMismatch",
+    "run_creator",
+    "run_creators",
+    "resume_creator_run",
+]
+
+
+class ProviderMismatch(ProviderError):
+    """A resume asked for different providers than the checkpointed run used."""
+
+    def __init__(self, recorded: dict[str, str], requested: dict[str, str]) -> None:
+        super().__init__(
+            "refusing to resume: this checkpoint was produced by "
+            f"{recorded} but the requested providers are {requested}. A proposal "
+            "must state the providers that actually produced it.",
+            provider="modeltree-updater",
+            retryable=False,
+        )
+        self.recorded = recorded
+        self.requested = requested
 
 
 def _empty_budget(settings: RunSettings) -> BudgetUsage:
@@ -58,6 +80,7 @@ def _failed_proposal(
         budget=_empty_budget(settings),
         failures=(failure,),
         notes=("the workflow did not complete; nothing was proposed for this creator",),
+        providers=dict(settings.providers.descriptor),
     )
 
 
@@ -79,7 +102,13 @@ async def run_creator(
 ) -> CreatorProposal:
     """Run the full workflow for one creator and return its proposal."""
     workflow = build_creator_workflow(settings, checkpoint_storage=checkpoint_storage)
-    result = await workflow.run(CreatorTask(run_id=run_id, creator=creator))
+    result = await workflow.run(
+        CreatorTask(
+            run_id=run_id,
+            creator=creator,
+            providers=settings.providers.descriptor,
+        )
+    )
     return _single_proposal(result.get_outputs())
 
 
@@ -89,7 +118,16 @@ async def resume_creator_run(
     checkpoint_id: str,
     checkpoint_storage: Any,
 ) -> CreatorProposal:
-    """Resume a previously checkpointed creator run and finish it."""
+    """Resume a previously checkpointed creator run and finish it.
+
+    A resume must not quietly change where the evidence came from, so the
+    providers recorded in the checkpoint have to match the ones supplied here.
+    """
+    recorded = await recorded_providers(checkpoint_storage, checkpoint_id)
+    requested = dict(settings.providers.descriptor)
+    if recorded is not None and recorded != requested:
+        raise ProviderMismatch(recorded, requested)
+
     workflow = build_creator_workflow(settings, checkpoint_storage=checkpoint_storage)
     result = await workflow.run(
         checkpoint_id=checkpoint_id, checkpoint_storage=checkpoint_storage

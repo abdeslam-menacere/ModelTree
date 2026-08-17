@@ -100,7 +100,7 @@ class FixtureSourceProvider:
         self._library = library
         self._timestamp = timestamp
 
-    def discover(self, creator: CreatorRequest, *, limit: int) -> Sequence[SourceCandidate]:
+    async def discover(self, creator: CreatorRequest, *, limit: int) -> Sequence[SourceCandidate]:
         document = self._library.document(creator.creator_id)
         _fail(document, self.name)
         candidates: list[SourceCandidate] = []
@@ -119,7 +119,7 @@ class FixtureSourceProvider:
             )
         return tuple(candidates[:limit])
 
-    def fetch(self, candidate: SourceCandidate) -> FetchedPage:
+    async def fetch(self, candidate: SourceCandidate) -> FetchedPage:
         source = self._source_document(candidate)
         _fail(source, self.name)
         text = source.get("text", "")
@@ -156,7 +156,7 @@ class FixtureClaimExtractor:
         self._timestamp = timestamp
         self._verified_at = verified_at
 
-    def extract(self, creator: CreatorRequest, page: FetchedPage) -> ExtractionResult:
+    async def extract(self, creator: CreatorRequest, page: FetchedPage) -> ExtractionResult:
         document = self._library.document(creator.creator_id)
         source = next(
             (item for item in document.get("sources", []) if item["id"] == page.source.id),
@@ -218,7 +218,7 @@ class FixtureClaimReviewer:
         self._timestamp = timestamp
         self._tokens_per_claim = tokens_per_claim
 
-    def review(self, creator: CreatorRequest, claim: ClaimCandidate) -> ReviewResult:
+    async def review(self, creator: CreatorRequest, claim: ClaimCandidate) -> ReviewResult:
         raw = self._claim_document(creator.creator_id, claim.id)
         review = raw.get("review", {})
         if review.get("failure"):

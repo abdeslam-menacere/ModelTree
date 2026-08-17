@@ -34,6 +34,10 @@ class CreatorTask:
     run_id: str
     creator: CreatorRequest
     budget_state: Mapping[str, float] = field(default_factory=dict)
+    # Which providers produced this run. It travels with the message so a resumed
+    # run can be checked against the providers that started it: a proposal whose
+    # provenance changed mid-run is not the proposal it claims to be.
+    providers: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -43,6 +47,7 @@ class DiscoveredSources:
     sources: tuple[SourceCandidate, ...]
     failures: tuple[RunFailure, ...]
     budget_state: Mapping[str, float]
+    providers: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -53,6 +58,7 @@ class ExtractedClaims:
     claims: tuple[ClaimCandidate, ...]
     failures: tuple[RunFailure, ...]
     budget_state: Mapping[str, float]
+    providers: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -64,6 +70,7 @@ class ReviewedClaims:
     verdicts: tuple[ReviewVerdict, ...]
     failures: tuple[RunFailure, ...]
     budget_state: Mapping[str, float]
+    providers: Mapping[str, str] = field(default_factory=dict)
 
 
 MESSAGE_TYPES: tuple[type[Any], ...] = (

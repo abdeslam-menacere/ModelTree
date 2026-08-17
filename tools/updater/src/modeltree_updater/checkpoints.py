@@ -20,6 +20,8 @@ __all__ = [
     "create_checkpoint_storage",
     "create_in_memory_checkpoint_storage",
     "list_checkpoint_summaries",
+    "load_checkpoint",
+    "recorded_providers",
 ]
 
 
@@ -85,3 +87,29 @@ async def list_checkpoint_summaries(
             }
         )
     return summaries
+
+
+async def _resolve(value: Any) -> Any:
+    return await value if inspect.isawaitable(value) else value
+
+
+async def load_checkpoint(storage: Any, checkpoint_id: str) -> Any:
+    """Load one checkpoint, tolerating the sync and async storage variants."""
+    return await _resolve(storage.load(checkpoint_id))
+
+
+async def recorded_providers(storage: Any, checkpoint_id: str) -> dict[str, str] | None:
+    """The providers the checkpointed run was started with, if it recorded any.
+
+    Messages carry the provider descriptor, so this reads the provenance out of the
+    checkpoint itself rather than trusting whatever the resuming command asks for.
+    """
+    checkpoint = await load_checkpoint(storage, checkpoint_id)
+    if checkpoint is None:
+        return None
+    for envelopes in (getattr(checkpoint, "messages", None) or {}).values():
+        for envelope in envelopes:
+            providers = getattr(getattr(envelope, "data", None), "providers", None)
+            if providers:
+                return dict(providers)
+    return None

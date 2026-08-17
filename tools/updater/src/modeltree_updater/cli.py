@@ -14,6 +14,7 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -98,6 +99,12 @@ def build_parser() -> argparse.ArgumentParser:
     resume.add_argument("--checkpoint-id", required=True)
     resume.add_argument("--checkpoint-dir", type=Path, required=True)
     resume.add_argument("--fixtures", type=Path, default=DEFAULT_FIXTURES)
+    resume.add_argument(
+        "--provider",
+        choices=("fixtures", "foundry"),
+        default="fixtures",
+        help="must match the providers recorded in the checkpoint; a resume never substitutes them",
+    )
     resume.add_argument("--output", type=Path)
     resume.add_argument("--run-id")
     resume.add_argument("--timestamp")
@@ -155,18 +162,38 @@ def _build_providers(
     )
 
 
+SAFE_NAME = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
+
+
+def _safe_filename(value: str, *, kind: str) -> str:
+    """Names that reach the filesystem are checked, not interpolated on trust.
+
+    Creator and run ids come from fixture files, so a traversal-shaped id would
+    otherwise steer a write out of the guarded output directory.
+    """
+    if not SAFE_NAME.match(value):
+        raise ProposalOnlyViolation(
+            f"refusing to use {value!r} as a {kind} filename: expected lowercase "
+            "letters, digits, dot, underscore, or hyphen"
+        )
+    return value
+
+
 def _write_report(report: RunReport, output: Path | None, stream) -> None:
     if output is None:
         stream.write(report.to_json())
         return
 
-    directory = assert_proposal_output_path(output) / report.run_id
+    root = assert_proposal_output_path(output)
+    directory = assert_proposal_output_path(
+        root / _safe_filename(report.run_id, kind="run id")
+    )
     directory.mkdir(parents=True, exist_ok=True)
     (directory / "report.json").write_text(report.to_json(), encoding="utf-8")
     for proposal in report.proposals:
-        (directory / f"{proposal.creator_id}.json").write_text(
-            proposal.to_json(), encoding="utf-8"
-        )
+        name = _safe_filename(proposal.creator_id, kind="creator id")
+        path = assert_proposal_output_path(directory / f"{name}.json")
+        path.write_text(proposal.to_json(), encoding="utf-8")
     stream.write(f"wrote {len(report.proposals)} proposal(s) to {directory}\n")
 
 
@@ -189,7 +216,7 @@ def _run(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
         return EXIT_USAGE
 
     timestamp = args.timestamp or _default_timestamp()
-    run_id = args.run_id or f"run-{timestamp.replace(':', '').replace('-', '')}"
+    run_id = args.run_id or "run-" + re.sub(r"[^a-z0-9]+", "", timestamp.lower())
     providers = _build_providers(args.provider, library, timestamp=timestamp, env=env)
     settings = RunSettings(providers, budget=_budget(args, env), timestamp=timestamp)
 
@@ -211,7 +238,7 @@ def _run(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
 def _resume(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
     library = load_fixture_library(args.fixtures)
     timestamp = args.timestamp or _default_timestamp()
-    providers = _build_providers("fixtures", library, timestamp=timestamp, env=env)
+    providers = _build_providers(args.provider, library, timestamp=timestamp, env=env)
     settings = RunSettings(providers, budget=_budget(args, env), timestamp=timestamp)
     storage = create_checkpoint_storage(args.checkpoint_dir)
 
@@ -227,7 +254,11 @@ def _resume(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
         started_at=timestamp,
         completed_at=timestamp,
         proposals=(proposal,),
-        settings={"resumed_from": args.checkpoint_id, "mode": "proposal-only"},
+        settings={
+            "resumed_from": args.checkpoint_id,
+            "providers": providers.descriptor,
+            "mode": "proposal-only",
+        },
     )
     _write_report(report, args.output, stream)
     return _summarise(report, stream)

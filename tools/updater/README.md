@@ -38,6 +38,7 @@ copied into `web/src/data`.
 
 Useful `run` flags: `--creator` (repeatable), `--fixtures`, `--provider fixtures|foundry`,
 `--output`, `--checkpoint-dir`, `--run-id`, `--timestamp`, and the budget flags below.
+`resume` takes `--provider` too, and refuses a provider the checkpoint did not record.
 
 Exit codes: `0` success, `2` usage or configuration error, `3` at least one creator failed.
 
@@ -51,8 +52,13 @@ discover-sources → extract-claims → review-claims → bundle-proposal
 
 Each executor charges the creator's budget, records typed failures instead of swallowing
 them, and persists stage state, so a run can be checkpointed and resumed
-(`--checkpoint-dir`, then `resume --checkpoint-id`). Checkpoint restore is restricted to
-an explicit allow-list of ModelTree types (see `checkpoints.py`).
+(`--checkpoint-dir`, then `resume --checkpoint-id --provider <name>`). Checkpoint restore
+is restricted to an explicit allow-list of ModelTree types (see `checkpoints.py`).
+
+Provenance survives a resume: the provider descriptor is carried in the checkpointed
+messages, and `resume` refuses to continue if the requested providers differ from the
+ones that produced the checkpoint. A resumed run can never quietly finish against
+fixtures while claiming otherwise.
 
 Claims accepted by the reviewer are re-checked against the dataset's shape rules; a claim
 the dataset would reject is downgraded to `needs-human-review` rather than accepted.
@@ -81,13 +87,23 @@ Authentication is keyless — `DefaultAzureCredential`, no API key is read or st
 ```bash
 pip install -e ".[foundry]"
 az login
-export MODELTREE_FOUNDRY_ENDPOINT=https://<resource>.services.ai.azure.com
+export MODELTREE_FOUNDRY_ENDPOINT=https://<resource>.services.ai.azure.com/api/projects/<project>
 export MODELTREE_FOUNDRY_DEPLOYMENT=<deployment-name>
-# optional: MODELTREE_FOUNDRY_API_VERSION, MODELTREE_FOUNDRY_CREDENTIAL_SCOPE
 ```
 
+The extra installs `agent-framework-foundry`, which supplies `FoundryChatClient`.
 The Azure packages are imported lazily, so tests and fixture runs need neither the
 packages nor a cloud login.
+
+> **Status: not verified against a live deployment.** The Foundry path is covered by
+> unit tests with a stub client that reproduces the real client's contract —
+> `get_response(...)` returns an *awaitable*, message contents are sequences, and
+> usage arrives as a mapping — but no ModelTree run has yet been executed against a
+> real Foundry resource. Treat the first live run as a smoke test.
+
+Provider methods are `async def` by contract (`providers/base.py`). A synchronous
+provider is refused with a typed, non-retryable failure naming the method rather than
+silently yielding an un-awaited coroutine that looks like an empty answer.
 
 ## Proposal shape
 

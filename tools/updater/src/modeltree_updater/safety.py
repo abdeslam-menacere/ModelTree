@@ -47,7 +47,10 @@ def assert_proposal_output_path(path: Path | str, *, repo_root: Path | None = No
     between a suggestion and a reviewed repository change.
     """
     resolved = Path(path).expanduser().resolve()
-    root = repo_root or find_repository_root(resolved.parent if resolved.parent.exists() else None)
+    # Search from the requested path itself: a directory that does not exist yet
+    # still sits inside a checkout, and falling back to the process's working
+    # directory would look for the boundary in the wrong repository.
+    root = repo_root or find_repository_root(resolved)
     if root is None:
         return resolved
 

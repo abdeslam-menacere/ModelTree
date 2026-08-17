@@ -4,6 +4,14 @@ Configuration is environment-driven and authentication is keyless: the tool asks
 `DefaultAzureCredential` for a token and never reads or stores an API key. The
 Azure SDK and the Foundry chat client are imported lazily so that fixture runs,
 tests, and CI need neither the packages nor a cloud login.
+
+The client is `FoundryChatClient` from `agent-framework-foundry`, whose
+`get_response` returns an *awaitable* rather than a result. That is precisely why
+the provider methods are `async`: a synchronous provider would hand the workflow
+an un-awaited coroutine that looks like an empty answer.
+
+This path is covered by unit tests with a stub client. It has **not** been
+verified against a live Foundry deployment — see `README.md`.
 """
 
 from __future__ import annotations
@@ -35,11 +43,6 @@ __all__ = [
 
 ENV_ENDPOINT = "MODELTREE_FOUNDRY_ENDPOINT"
 ENV_DEPLOYMENT = "MODELTREE_FOUNDRY_DEPLOYMENT"
-ENV_API_VERSION = "MODELTREE_FOUNDRY_API_VERSION"
-ENV_SCOPE = "MODELTREE_FOUNDRY_CREDENTIAL_SCOPE"
-
-DEFAULT_API_VERSION = "2024-10-21"
-DEFAULT_SCOPE = "https://cognitiveservices.azure.com/.default"
 
 
 class MissingFoundryDependency(ProviderError):
@@ -60,8 +63,6 @@ class FoundryConfig:
 
     endpoint: str
     deployment: str
-    api_version: str = DEFAULT_API_VERSION
-    credential_scope: str = DEFAULT_SCOPE
 
     @classmethod
     def from_env(cls, env: Mapping[str, str]) -> "FoundryConfig":
@@ -72,12 +73,7 @@ class FoundryConfig:
                 provider="foundry",
                 retryable=False,
             )
-        return cls(
-            endpoint=env[ENV_ENDPOINT],
-            deployment=env[ENV_DEPLOYMENT],
-            api_version=env.get(ENV_API_VERSION, DEFAULT_API_VERSION),
-            credential_scope=env.get(ENV_SCOPE, DEFAULT_SCOPE),
-        )
+        return cls(endpoint=env[ENV_ENDPOINT], deployment=env[ENV_DEPLOYMENT])
 
     @property
     def descriptor(self) -> dict[str, str]:
@@ -85,7 +81,6 @@ class FoundryConfig:
         return {
             "endpoint": self.endpoint,
             "deployment": self.deployment,
-            "api_version": self.api_version,
             "auth": "DefaultAzureCredential",
         }
 
@@ -100,39 +95,75 @@ def build_credential() -> Any:
 
 
 def build_chat_client(config: FoundryConfig, *, credential: Any | None = None) -> Any:
-    """Build the Agent Framework chat client for the configured deployment."""
+    """Build the Foundry chat client for the configured project and deployment."""
     try:
-        from agent_framework.azure import AzureOpenAIChatClient  # type: ignore[attr-defined]
-    except (ImportError, AttributeError) as error:  # pragma: no cover - needs extras
-        raise MissingFoundryDependency("agent-framework-azure-ai") from error
+        from agent_framework_foundry import FoundryChatClient
+    except ImportError as error:  # pragma: no cover - needs the extras installed
+        raise MissingFoundryDependency("agent-framework-foundry") from error
 
-    return AzureOpenAIChatClient(
-        endpoint=config.endpoint,
-        deployment_name=config.deployment,
-        api_version=config.api_version,
+    return FoundryChatClient(
+        project_endpoint=config.endpoint,
+        model=config.deployment,
         credential=credential or build_credential(),
     )
+
+
+def _prompt(instructions: str, content: str) -> list[Any]:
+    """Build the two-message prompt. Message contents are sequences, not bare strings."""
+    from agent_framework import Message
+
+    return [Message("system", [instructions]), Message("user", [content])]
+
+
+async def _ask(client: Any, instructions: str, content: str) -> Any:
+    """One model call. `get_response` returns an awaitable, so it is always awaited."""
+    response = client.get_response(_prompt(instructions, content))
+    if hasattr(response, "__await__"):
+        response = await response
+    return response
+
+
+def _usage_tokens(response: Any) -> int:
+    """Token usage, whether the framework reports a mapping or an object."""
+    usage = getattr(response, "usage_details", None)
+    if isinstance(usage, Mapping):
+        total = usage.get("total_token_count")
+        if isinstance(total, int):
+            return total
+        parts = (usage.get("input_token_count"), usage.get("output_token_count"))
+        return sum(value for value in parts if isinstance(value, int))
+    total = getattr(usage, "total_token_count", None)
+    return int(total) if isinstance(total, int) else 0
 
 
 def _require_text(response: Any) -> str:
     text = getattr(response, "text", None)
     if not isinstance(text, str) or not text.strip():
         raise ProviderError(
-            "model returned an empty response", provider="foundry", retryable=True
+            "model returned an empty response",
+            provider="foundry",
+            retryable=True,
+            tokens_used=_usage_tokens(response),
         )
     return text
 
 
-def _parse_json_object(text: str) -> Mapping[str, Any]:
+def _parse_json_object(text: str, *, tokens_used: int = 0) -> Mapping[str, Any]:
     try:
         parsed = json.loads(text)
     except json.JSONDecodeError as error:
         raise ProviderError(
-            f"model response was not valid JSON: {error}", provider="foundry", retryable=True
+            f"model response was not valid JSON: {error}",
+            provider="foundry",
+            retryable=True,
+            tokens_used=tokens_used,
         ) from error
     if not isinstance(parsed, dict):
         raise ProviderError(
-            "model response was not a JSON object", provider="foundry", retryable=True
+            "model response was not a JSON object",
+            provider="foundry",
+            retryable=True,
+            tokens_used=tokens_used,
         )
     return parsed
 
@@ -152,7 +183,7 @@ REVIEW_INSTRUCTIONS = (
 
 
 class FoundryClaimExtractor:
-    """Extracts claims with a Foundry deployment. Not exercised in tests by design."""
+    """Extracts claims with a Foundry deployment."""
 
     name = "foundry:extractor"
 
@@ -169,12 +200,14 @@ class FoundryClaimExtractor:
         self._timestamp = timestamp
         self._verified_at = verified_at
 
-    def extract(self, creator: CreatorRequest, page: FetchedPage) -> ExtractionResult:
-        response = self._client.get_response(
-            f"{EXTRACTION_INSTRUCTIONS}\n\nCreator: {creator.creator_name}\n"
-            f"Source: {page.source.url}\n\n{page.text}"
+    async def extract(self, creator: CreatorRequest, page: FetchedPage) -> ExtractionResult:
+        response = await _ask(
+            self._client,
+            EXTRACTION_INSTRUCTIONS,
+            f"Creator: {creator.creator_name}\nSource: {page.source.url}\n\n{page.text}",
         )
-        payload = _parse_json_object(_require_text(response))
+        tokens = _usage_tokens(response)
+        payload = _parse_json_object(_require_text(response), tokens_used=tokens)
         claims: list[ClaimCandidate] = []
         for raw in payload.get("claims", []):
             evidence = Evidence(
@@ -198,7 +231,7 @@ class FoundryClaimExtractor:
                     extractor=f"{self.name}:{self._config.deployment}",
                 )
             )
-        return ExtractionResult(claims=tuple(claims), tokens_used=_usage_tokens(response))
+        return ExtractionResult(claims=tuple(claims), tokens_used=tokens)
 
 
 class FoundryClaimReviewer:
@@ -211,11 +244,12 @@ class FoundryClaimReviewer:
         self._config = config
         self._timestamp = timestamp
 
-    def review(self, creator: CreatorRequest, claim: ClaimCandidate) -> ReviewResult:
-        response = self._client.get_response(
-            f"{REVIEW_INSTRUCTIONS}\n\n{json.dumps(claim.to_dict(), indent=2)}"
+    async def review(self, creator: CreatorRequest, claim: ClaimCandidate) -> ReviewResult:
+        response = await _ask(
+            self._client, REVIEW_INSTRUCTIONS, json.dumps(claim.to_dict(), indent=2)
         )
-        payload = _parse_json_object(_require_text(response))
+        tokens = _usage_tokens(response)
+        payload = _parse_json_object(_require_text(response), tokens_used=tokens)
         try:
             decision = ClaimDecision(payload.get("decision", ""))
         except ValueError as error:
@@ -223,6 +257,7 @@ class FoundryClaimReviewer:
                 f"model returned an unknown decision {payload.get('decision')!r}",
                 provider="foundry",
                 retryable=True,
+                tokens_used=tokens,
             ) from error
         verdict = ReviewVerdict(
             claim_id=claim.id,
@@ -231,13 +266,7 @@ class FoundryClaimReviewer:
             reviewer=f"{self.name}:{self._config.deployment}",
             reviewed_at=self._timestamp,
         )
-        return ReviewResult(verdict=verdict, tokens_used=_usage_tokens(response))
-
-
-def _usage_tokens(response: Any) -> int:
-    usage = getattr(response, "usage_details", None)
-    total = getattr(usage, "total_token_count", None)
-    return int(total) if isinstance(total, int) else 0
+        return ReviewResult(verdict=verdict, tokens_used=tokens)
 
 
 def unsupported_source_provider(_: Sequence[SourceCandidate] | None = None) -> None:

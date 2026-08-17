@@ -11,8 +11,9 @@ Nothing in this module writes ModelTree data. The only output is a
 
 from __future__ import annotations
 
+import inspect
 from dataclasses import replace
-from typing import Any, Callable, Sequence, TypeVar
+from typing import Any, Awaitable, Callable, Sequence, TypeVar
 
 from agent_framework import Executor, Workflow, WorkflowBuilder, WorkflowContext, handler
 
@@ -90,8 +91,42 @@ def _provider_failure(stage: WorkflowStage, error: ProviderError, timestamp: str
     )
 
 
-def _call_with_retry(
-    call: Callable[[], T],
+async def _provider_call(method: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+    """Call an async provider method, refusing a synchronous one loudly.
+
+    A provider defined with `def` returns its result — or, if it wraps an async
+    client, an un-awaited coroutine that looks like an empty answer. Neither may
+    reach the workflow silently, so the mistake becomes a typed, non-retryable
+    provider failure naming the method.
+    """
+    result = method(*args, **kwargs)
+    if not inspect.isawaitable(result):
+        provider = getattr(getattr(method, "__self__", None), "name", "provider")
+        name = getattr(method, "__qualname__", getattr(method, "__name__", "call"))
+        raise ProviderError(
+            f"{name} returned {type(result).__name__}, not an awaitable; provider "
+            "methods must be declared with `async def`",
+            provider=str(provider),
+            retryable=False,
+        )
+    return await result
+
+
+def _charge_failed_attempt(error: ProviderError, ledger: BudgetLedger) -> None:
+    """A failed model call still cost tokens. Charge them; ignore exhaustion here.
+
+    The caller is already recording the failure, and the next charge attempt will
+    refuse the work, so an exhausted budget still surfaces as its own failure.
+    """
+    if error.tokens_used > 0:
+        try:
+            ledger.charge_tokens(error.tokens_used)
+        except BudgetExhausted:
+            pass
+
+
+async def _call_with_retry(
+    call: Callable[[], Awaitable[T]],
     *,
     stage: WorkflowStage,
     ledger: BudgetLedger,
@@ -105,12 +140,13 @@ def _call_with_retry(
     """
     while True:
         try:
-            return call()
+            return await call()
         except BudgetExhausted as error:
             failures.append(_budget_failure(stage, error, timestamp))
             return None
         except ProviderError as error:
             failures.append(_provider_failure(stage, error, timestamp))
+            _charge_failed_attempt(error, ledger)
             if not error.retryable:
                 return None
             try:
@@ -136,12 +172,18 @@ class DiscoverSourcesExecutor(Executor):
         failures: list[RunFailure] = []
 
         discovered: Sequence[SourceCandidate] = ()
-        result = _call_with_retry(
+
+        async def discover() -> Any:
             # One more than the page budget, so a truncated discovery is detectable
             # rather than silently looking like "there was nothing else to read".
-            lambda: settings.providers.sources.discover(
-                message.creator, limit=settings.budget.max_pages + 1
-            ),
+            return await _provider_call(
+                settings.providers.sources.discover,
+                message.creator,
+                limit=settings.budget.max_pages + 1,
+            )
+
+        result = await _call_with_retry(
+            discover,
             stage=WorkflowStage.DISCOVER,
             ledger=ledger,
             timestamp=settings.timestamp,
@@ -180,6 +222,7 @@ class DiscoverSourcesExecutor(Executor):
                 sources=tuple(discovered),
                 failures=tuple(failures),
                 budget_state=ledger.state(),
+                providers=message.providers,
             )
         )
 
@@ -202,11 +245,11 @@ class ExtractClaimsExecutor(Executor):
         read_sources: list[SourceCandidate] = []
 
         for source in message.sources:
-            def read(source: SourceCandidate = source) -> Any:
+            async def read(source: SourceCandidate = source) -> Any:
                 ledger.charge_pages(1)
-                return settings.providers.sources.fetch(source)
+                return await _provider_call(settings.providers.sources.fetch, source)
 
-            page = _call_with_retry(
+            page = await _call_with_retry(
                 read,
                 stage=WorkflowStage.EXTRACT,
                 ledger=ledger,
@@ -216,12 +259,14 @@ class ExtractClaimsExecutor(Executor):
             if page is None:
                 continue
 
-            def extract(page: Any = page) -> Any:
-                extraction = settings.providers.extractor.extract(message.creator, page)
+            async def extract(page: Any = page) -> Any:
+                extraction = await _provider_call(
+                    settings.providers.extractor.extract, message.creator, page
+                )
                 ledger.charge_tokens(extraction.tokens_used)
                 return extraction
 
-            extraction = _call_with_retry(
+            extraction = await _call_with_retry(
                 extract,
                 stage=WorkflowStage.EXTRACT,
                 ledger=ledger,
@@ -244,6 +289,7 @@ class ExtractClaimsExecutor(Executor):
                 claims=tuple(claims),
                 failures=tuple(failures),
                 budget_state=ledger.state(),
+                providers=message.providers,
             )
         )
 
@@ -265,12 +311,14 @@ class ReviewClaimsExecutor(Executor):
         verdicts: list[ReviewVerdict] = []
 
         for claim in message.claims:
-            def review(claim: ClaimCandidate = claim) -> Any:
-                result = settings.providers.reviewer.review(message.creator, claim)
+            async def review(claim: ClaimCandidate = claim) -> Any:
+                result = await _provider_call(
+                    settings.providers.reviewer.review, message.creator, claim
+                )
                 ledger.charge_tokens(result.tokens_used)
                 return result
 
-            result = _call_with_retry(
+            result = await _call_with_retry(
                 review,
                 stage=WorkflowStage.REVIEW,
                 ledger=ledger,
@@ -302,6 +350,7 @@ class ReviewClaimsExecutor(Executor):
                 verdicts=tuple(verdicts),
                 failures=tuple(failures),
                 budget_state=ledger.state(),
+                providers=message.providers,
             )
         )
 
@@ -399,6 +448,7 @@ def bundle_proposal(message: ReviewedClaims, settings: RunSettings) -> CreatorPr
         budget=usage,
         failures=message.failures,
         notes=tuple(notes),
+        providers=dict(message.providers or settings.providers.descriptor),
     )
 
 

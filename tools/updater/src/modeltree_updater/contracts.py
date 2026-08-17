@@ -259,6 +259,9 @@ class CreatorProposal(_Serialisable):
     budget: BudgetUsage
     failures: tuple[RunFailure, ...] = ()
     notes: tuple[str, ...] = ()
+    # Which providers produced this proposal. Provenance is the artefact's point,
+    # so it is recorded per creator and survives a resumed run.
+    providers: Mapping[str, str] = field(default_factory=dict)
 
     @property
     def accepted_claim_ids(self) -> tuple[str, ...]:

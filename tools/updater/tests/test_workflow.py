@@ -12,11 +12,25 @@ from modeltree_updater.contracts import (
     ProposalStatus,
     ValidationStatus,
 )
+from modeltree_updater.providers.base import ProviderError
 from modeltree_updater.runner import run_creator, run_creators
 
 
 def _run(creator_id, library, settings):
     return asyncio.run(run_creator(library.creators[creator_id], settings, run_id="run-test"))
+
+
+def _with_sources(settings, sources):
+    """The same settings with one provider swapped, for boundary tests."""
+    return type(settings)(
+        type(settings.providers)(
+            sources=sources,
+            extractor=settings.providers.extractor,
+            reviewer=settings.providers.reviewer,
+        ),
+        budget=settings.budget,
+        timestamp=settings.timestamp,
+    )
 
 
 def test_a_clean_creator_produces_a_complete_proposal(library, settings) -> None:
@@ -152,21 +166,13 @@ def test_a_crashing_creator_becomes_an_explicit_failed_proposal(library, setting
     class Exploding:
         name = "exploding:sources"
 
-        def discover(self, creator, *, limit):
+        async def discover(self, creator, *, limit):
             raise MemoryError("provider crashed outside the provider contract")
 
-        def fetch(self, candidate):  # pragma: no cover - never reached
+        async def fetch(self, candidate):  # pragma: no cover - never reached
             raise AssertionError
 
-    broken = type(settings)(
-        type(settings.providers)(
-            sources=Exploding(),
-            extractor=settings.providers.extractor,
-            reviewer=settings.providers.reviewer,
-        ),
-        budget=settings.budget,
-        timestamp=settings.timestamp,
-    )
+    broken = _with_sources(settings, Exploding())
 
     report = asyncio.run(
         run_creators([library.creators["contoso-ai"]], broken, run_id="run-test")
@@ -177,3 +183,81 @@ def test_a_crashing_creator_becomes_an_explicit_failed_proposal(library, setting
     assert report.failed_creator_ids == ("contoso-ai",)
     assert proposal.failures[0].kind is FailureKind.INTERNAL_ERROR
     assert proposal.claims == ()
+
+
+def test_provider_methods_are_actually_awaited(library, settings) -> None:
+    """A coroutine body only runs when awaited, so these flags prove the await."""
+    awaited: list[str] = []
+    inner = settings.providers.sources
+
+    class RecordingSources:
+        name = "recording:sources"
+
+        async def discover(self, creator, *, limit):
+            awaited.append("discover")
+            return await inner.discover(creator, limit=limit)
+
+        async def fetch(self, candidate):
+            awaited.append("fetch")
+            return await inner.fetch(candidate)
+
+    proposal = _run("contoso-ai", library, _with_sources(settings, RecordingSources()))
+
+    assert proposal.status is ProposalStatus.COMPLETE
+    assert awaited.count("discover") == 1
+    assert awaited.count("fetch") == len(proposal.sources)
+
+
+def test_a_synchronous_provider_is_refused_loudly(library, settings) -> None:
+    """A `def` provider must fail with an honest message, not an empty result."""
+
+    class SynchronousSources:
+        name = "synchronous:sources"
+
+        def discover(self, creator, *, limit):
+            return ()
+
+        def fetch(self, candidate):  # pragma: no cover - never reached
+            raise AssertionError
+
+    proposal = _run("contoso-ai", library, _with_sources(settings, SynchronousSources()))
+
+    failure = proposal.failures[0]
+
+    assert proposal.status is ProposalStatus.FAILED
+    assert failure.kind is FailureKind.PROVIDER_FAILURE
+    assert "async def" in failure.message
+    assert failure.retryable is False
+    assert proposal.claims == ()
+
+
+def test_tokens_spent_by_a_failed_model_call_are_still_charged(library, settings) -> None:
+    """A model that fails late already cost tokens; the budget must see them."""
+
+    class ExpensiveFailure:
+        name = "expensive:extractor"
+
+        async def extract(self, creator, page):
+            raise ProviderError(
+                "model returned an unusable response",
+                provider=self.name,
+                retryable=False,
+                tokens_used=500,
+            )
+
+    replaced = type(settings.providers)(
+        sources=settings.providers.sources,
+        extractor=ExpensiveFailure(),
+        reviewer=settings.providers.reviewer,
+    )
+    proposal = _run(
+        "contoso-ai",
+        library,
+        type(settings)(replaced, budget=settings.budget, timestamp=settings.timestamp),
+    )
+
+    assert proposal.claims == ()
+    assert proposal.budget.tokens_used == 1000  # two sources, 500 tokens each
+    assert all(
+        failure.kind is FailureKind.PROVIDER_FAILURE for failure in proposal.failures
+    )

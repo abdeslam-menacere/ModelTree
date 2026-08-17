@@ -16,7 +16,7 @@ dependencies = [
 [project.optional-dependencies]
 foundry = [
   "azure-identity>=1.19.0",
-  "agent-framework-azure-ai>=1.13.0",
+  "agent-framework-foundry>=1.10.4",
 ]
 dev = [
   "pytest>=8.0.0",
