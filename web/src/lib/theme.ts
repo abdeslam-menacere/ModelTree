@@ -42,8 +42,10 @@ export function applyTheme(
 
 /**
  * Pre-paint bootstrap, inlined into <head> so the resolved theme is on <html>
- * before the first paint. Self-contained by necessity, but interpolated from the
- * constants above so it cannot drift from the tested module.
+ * before the first paint. It interpolates the constants above, but it re-implements
+ * the precedence logic inline because it has to run before any module loads — so it
+ * can drift from `resolveThemePreference`/`resolveTheme`. The parity matrix in
+ * `theme.test.ts` runs both implementations over the same inputs to catch that.
  */
 export const themeBootstrapScript = `(() => {
   var preferences = ${JSON.stringify(THEME_PREFERENCES)};

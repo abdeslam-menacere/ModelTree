@@ -221,3 +221,33 @@ describe('themeBootstrapScript', () => {
     expect(attributes[THEME_PREFERENCE_ATTRIBUTE]).toBe('system');
   });
 });
+
+describe('themeBootstrapScript parity with the tested module', () => {
+  const searches = [
+    '?scoutTheme=light',
+    '?scoutTheme=dark',
+    '?scoutTheme=system',
+    '?scoutTheme=neon',
+    '?scoutTheme=',
+    '?model=gpt-4-1',
+    '',
+  ];
+  const storedValues = ['light', 'dark', 'system', 'neon', '', null];
+  const prefersDarkValues = [true, false];
+
+  for (const search of searches) {
+    for (const stored of storedValues) {
+      for (const prefersDark of prefersDarkValues) {
+        const label = `search=${JSON.stringify(search)} stored=${JSON.stringify(stored)} prefersDark=${prefersDark}`;
+
+        it(`agrees with resolveThemePreference/resolveTheme for ${label}`, () => {
+          const { attributes } = runBootstrapScript({ search, stored, prefersDark });
+          const preference = resolveThemePreference({ search, stored });
+
+          expect(attributes[THEME_PREFERENCE_ATTRIBUTE]).toBe(preference);
+          expect(attributes[THEME_ATTRIBUTE]).toBe(resolveTheme(preference, prefersDark));
+        });
+      }
+    }
+  }
+});
