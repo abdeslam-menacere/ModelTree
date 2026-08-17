@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { createModelSelectionUrl, readSelectedModel } from './selection';
+import {
+  createModelSelectionUrl,
+  readOptionalSelectedModel,
+  readSelectedModel,
+} from './selection';
 
 const slugs = ['gpt-4-1-2025-04-14', 'gpt-4-1-mini-2025-04-14'];
 
@@ -20,5 +24,11 @@ describe('model selection URL state', () => {
     );
 
     expect(result).toBe('/?provider=openai&model=gpt-4-1-mini-2025-04-14#explorer');
+  });
+
+  it('keeps an absent or invalid optional tree selection empty', () => {
+    expect(readOptionalSelectedModel('', slugs)).toBeUndefined();
+    expect(readOptionalSelectedModel('?model=unknown', slugs)).toBeUndefined();
+    expect(readOptionalSelectedModel(`?model=${slugs[1]}`, slugs)).toBe(slugs[1]);
   });
 });

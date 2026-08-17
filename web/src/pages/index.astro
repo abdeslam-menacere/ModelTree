@@ -25,6 +25,7 @@ const passportHref = `${base}models/${firstHomepageRelease(hierarchy).slug}/`;
 	description="Explore who created AI models, how families fit together, when releases arrived, and which primary sources support each fact."
 	passportHref={passportHref}
 	verifiedAt={formatDate(latestVerification)}
+	currentPage="explore"
 >
 	<main id="main-content">
 		<section class="hero-intro" aria-labelledby="page-title">
@@ -32,6 +33,7 @@ const passportHref = `${base}models/${firstHomepageRelease(hierarchy).slug}/`;
 				<span class="eyebrow">AI model lineage, source by source</span>
 				<h1 id="page-title">The living family tree of AI models.</h1>
 				<p>See who built each model, which family it belongs to, when it arrived, and what the official record actually says.</p>
+				<a class="primary-action hero-tree-action" href={`${base}tree/`}>Open the Model Tree</a>
 			</div>
 			<dl class="coverage-stats" aria-label="Current ModelTree seed coverage">
 				<div><dt>Creators</dt><dd>{dataset.organizations.length}</dd></div>

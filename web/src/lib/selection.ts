@@ -14,3 +14,8 @@ export function createModelSelectionUrl(input: string | URL, slug: string) {
   url.searchParams.set(MODEL_QUERY_PARAMETER, slug);
   return `${url.pathname}${url.search}${url.hash}`;
 }
+
+export function readOptionalSelectedModel(search: string, validIds: readonly string[]) {
+  const candidate = new URLSearchParams(search).get(MODEL_QUERY_PARAMETER);
+  return candidate && validIds.includes(candidate) ? candidate : undefined;
+}
