@@ -21,6 +21,12 @@ export interface ModelTreePath {
   releaseId: string;
 }
 
+export interface ModelTreeInteractionState {
+  selectedReleaseId?: string;
+  openCreatorIds: string[];
+  openFamilyIds: string[];
+}
+
 function compare(a: string, b: string) {
   if (a < b) return -1;
   return a > b ? 1 : 0;
@@ -75,4 +81,18 @@ export function modelTreeReleaseIds(tree: ModelTree) {
   return tree.featured.flatMap(({ families }) => (
     families.flatMap(({ releases }) => releases.map(({ id }) => id))
   ));
+}
+
+export function restoreModelTreeSelection(
+  tree: ModelTree,
+  releaseId: string | null | undefined,
+): ModelTreeInteractionState {
+  const path = findModelTreePath(tree, releaseId);
+  return path
+    ? {
+        selectedReleaseId: path.releaseId,
+        openCreatorIds: [path.creatorId],
+        openFamilyIds: [path.familyId],
+      }
+    : { openCreatorIds: [], openFamilyIds: [] };
 }

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
-import { buildModelTree, findModelTreePath, modelTreeReleaseIds } from './model-tree';
+import {
+  buildModelTree,
+  findModelTreePath,
+  modelTreeReleaseIds,
+  restoreModelTreeSelection,
+} from './model-tree';
 
 describe('model tree', () => {
   it('includes only creators with a featured release, then every release for those creators once', () => {
@@ -54,5 +59,20 @@ describe('model tree', () => {
     });
     expect(findModelTreePath(tree, 'not-a-release')).toBeUndefined();
     expect(findModelTreePath(tree, null)).toBeUndefined();
+  });
+
+  it('restores a valid deep link by opening its creator and family only', () => {
+    const tree = buildModelTree(dataset);
+    const release = tree.featured.at(-1)!.families.at(-1)!.releases.at(-1)!;
+
+    expect(restoreModelTreeSelection(tree, release.id)).toEqual({
+      selectedReleaseId: release.id,
+      openCreatorIds: [release.organizationId],
+      openFamilyIds: [release.familyId],
+    });
+    expect(restoreModelTreeSelection(tree, 'invalid')).toEqual({
+      openCreatorIds: [],
+      openFamilyIds: [],
+    });
   });
 });
