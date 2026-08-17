@@ -2,6 +2,8 @@
 import '@fontsource-variable/newsreader';
 import '@fontsource-variable/archivo';
 import BrandMark from '../components/BrandMark.astro';
+import ThemePicker from '../components/ThemePicker.astro';
+import { themeBootstrapScript } from '../lib/theme-bootstrap';
 import '../styles/global.css';
 
 interface Props {
@@ -19,14 +21,7 @@ const iconHref = `${base}favicon.svg`;
 <!doctype html>
 <html lang="en">
   <head>
-    <script is:inline>
-      (() => {
-        const param = new URLSearchParams(window.location.search).get("scoutTheme");
-        const theme =
-          param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-        document.documentElement.setAttribute("data-theme", theme);
-      })();
-    </script>
+    <script is:inline set:html={themeBootstrapScript}></script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
@@ -49,6 +44,7 @@ const iconHref = `${base}favicon.svg`;
     <footer class="site-footer">
       <p><strong>ModelTree</strong> separates model creators, families, releases, and sources.</p>
       <p>Seed data verified {verifiedAt}. Unknown facts stay unknown.</p>
+      <ThemePicker />
     </footer>
   </body>
 </html>

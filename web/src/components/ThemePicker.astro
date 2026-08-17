@@ -1,0 +1,64 @@
+---
+import { THEME_PREFERENCES, type ThemePreference } from '../lib/theme';
+
+const labels: Record<ThemePreference, string> = {
+  system: 'System',
+  light: 'Light',
+  dark: 'Dark',
+};
+---
+
+<div class="theme-picker" hidden data-theme-picker>
+  <label class="visually-hidden" for="theme-picker-select">Colour theme</label>
+  <select id="theme-picker-select" autocomplete="off" data-theme-picker-select>
+    {THEME_PREFERENCES.map((preference) => (
+      <option value={preference}>{labels[preference]}</option>
+    ))}
+  </select>
+</div>
+
+<script>
+  import {
+    PREFERS_DARK_QUERY,
+    SYSTEM_THEME_PREFERENCE,
+    THEME_PREFERENCE_ATTRIBUTE,
+    THEME_STORAGE_KEY,
+    applyTheme,
+    isThemePreference,
+  } from '../lib/theme';
+
+  const picker = document.querySelector<HTMLElement>('[data-theme-picker]');
+  const select = document.querySelector<HTMLSelectElement>('[data-theme-picker-select]');
+
+  if (picker && select) {
+    const media = window.matchMedia(PREFERS_DARK_QUERY);
+    const currentPreference = () => {
+      const value = document.documentElement.getAttribute(THEME_PREFERENCE_ATTRIBUTE);
+      return isThemePreference(value) ? value : SYSTEM_THEME_PREFERENCE;
+    };
+
+    picker.removeAttribute('hidden');
+    select.value = currentPreference();
+
+    select.addEventListener('change', () => {
+      const preference = isThemePreference(select.value)
+        ? select.value
+        : SYSTEM_THEME_PREFERENCE;
+
+      try {
+        window.localStorage.setItem(THEME_STORAGE_KEY, preference);
+      } catch {
+        // Storage is blocked; the choice still applies to this page load.
+      }
+
+      applyTheme(document.documentElement, preference, media.matches);
+    });
+
+    media.addEventListener('change', (event) => {
+      const preference = currentPreference();
+      if (preference === SYSTEM_THEME_PREFERENCE) {
+        applyTheme(document.documentElement, preference, event.matches);
+      }
+    });
+  }
+</script>
