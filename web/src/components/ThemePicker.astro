@@ -10,7 +10,7 @@ const labels: Record<ThemePreference, string> = {
 
 <div class="theme-picker" hidden data-theme-picker>
   <label class="visually-hidden" for="theme-picker-select">Colour theme</label>
-  <select id="theme-picker-select" data-theme-picker-select>
+  <select id="theme-picker-select" autocomplete="off" data-theme-picker-select>
     {THEME_PREFERENCES.map((preference) => (
       <option value={preference}>{labels[preference]}</option>
     ))}
