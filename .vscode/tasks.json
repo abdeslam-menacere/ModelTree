@@ -4,7 +4,7 @@
     {
       "label": "Drydock: status",
       "type": "shell",
-      "command": "node ${workspaceFolder}/bin/drydock.js status",
+      "command": "drydock status",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
       "group": "none"
@@ -13,28 +13,28 @@
       "label": "Drydock: start a dock",
       "detail": "Issue → branch + worktree + DOCK.md brief",
       "type": "shell",
-      "command": "node ${workspaceFolder}/bin/drydock.js start ${input:issue}",
+      "command": "drydock start ${input:issue}",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated" }
     },
     {
       "label": "Drydock: gate review --pass",
       "type": "shell",
-      "command": "node ${workspaceFolder}/bin/drydock.js gate ${input:issue} review --pass --note \"${input:note}\"",
+      "command": "drydock gate ${input:issue} review --pass --note \"${input:note}\"",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated" }
     },
     {
       "label": "Drydock: gate review --fail",
       "type": "shell",
-      "command": "node ${workspaceFolder}/bin/drydock.js gate ${input:issue} review --fail --note \"${input:note}\"",
+      "command": "drydock gate ${input:issue} review --fail --note \"${input:note}\"",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated" }
     },
     {
       "label": "Drydock: gate qa --pass",
       "type": "shell",
-      "command": "node ${workspaceFolder}/bin/drydock.js gate ${input:issue} qa --pass --note \"${input:note}\"",
+      "command": "drydock gate ${input:issue} qa --pass --note \"${input:note}\"",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated" }
     },
@@ -42,7 +42,7 @@
       "label": "Drydock: land (dry run)",
       "detail": "Preview the PR body and gate receipt without pushing",
       "type": "shell",
-      "command": "node ${workspaceFolder}/bin/drydock.js land ${input:issue} --dry-run",
+      "command": "drydock land ${input:issue} --dry-run",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated" }
     },
@@ -50,14 +50,14 @@
       "label": "Drydock: land",
       "detail": "Verify gates → push → open PR with receipt",
       "type": "shell",
-      "command": "node ${workspaceFolder}/bin/drydock.js land ${input:issue}",
+      "command": "drydock land ${input:issue}",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated" }
     },
     {
       "label": "Drydock: clean merged docks",
       "type": "shell",
-      "command": "node ${workspaceFolder}/bin/drydock.js clean --merged",
+      "command": "drydock clean --merged",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated" }
     },
@@ -71,9 +71,11 @@
       "presentation": { "reveal": "always", "panel": "dedicated" }
     },
     {
-      "label": "Drydock: run tests",
+      "label": "Test: web",
+      "detail": "Data-integrity and URL-state tests for the Astro site",
       "type": "shell",
-      "command": "node ${workspaceFolder}/test/smoke.test.js",
+      "command": "npm test",
+      "options": { "cwd": "${workspaceFolder}/web" },
       "problemMatcher": [],
       "group": { "kind": "test", "isDefault": true },
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
