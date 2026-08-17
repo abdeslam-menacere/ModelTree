@@ -1,0 +1,49 @@
+---
+import ModelTreeExplorer from '../components/ModelTreeExplorer';
+import { dataset, sourceById } from '../data/dataset';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { formatDate } from '../lib/format';
+import { buildModelTree } from '../lib/model-tree';
+
+const tree = buildModelTree(dataset);
+const sourceByReleaseId = Object.fromEntries(dataset.releases.map((release) => {
+	const source = release.sourceIds
+		.map((sourceId) => sourceById.get(sourceId))
+		.find((candidate) => candidate?.type === 'official-docs')
+		?? sourceById.get(release.sourceIds[0]);
+
+	if (!source) throw new Error(`No source found for ${release.id}`);
+	return [release.id, { title: source.title, url: source.url }];
+}));
+const latestVerification = [...dataset.releases.map(({ verifiedAt }) => verifiedAt)].sort().at(-1)!;
+const base = import.meta.env.BASE_URL;
+const firstRelease = tree.featured[0]?.families[0]?.releases[0];
+if (!firstRelease) throw new Error('Model Tree requires at least one featured ecosystem release');
+---
+
+<BaseLayout
+	title="Model Tree | ModelTree"
+	description="Explore editorially reviewed AI model ecosystems as a source-backed hierarchy of creators, families, and releases."
+	passportHref={`${base}models/${firstRelease.slug}/`}
+	verifiedAt={formatDate(latestVerification)}
+	currentPage="tree"
+>
+	<main id="main-content" class="tree-page">
+		<header class="tree-page-intro">
+			<div>
+				<span class="eyebrow">Semantic model lineage</span>
+				<h1>Explore the Model Tree.</h1>
+			</div>
+			<div>
+				<p>Follow reviewed ecosystems from creator to family to release. Featured placement is editorial and non-ranked.</p>
+				<p class="tree-help">Root and Featured ecosystems start open. Expand any creator and family independently, then select a release.</p>
+			</div>
+		</header>
+		<ModelTreeExplorer
+			client:load
+			tree={tree}
+			sourceByReleaseId={sourceByReleaseId}
+			basePath={base}
+		/>
+	</main>
+</BaseLayout>
