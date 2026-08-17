@@ -1,0 +1,15 @@
+{
+  "issue": 10,
+  "title": "Generalize the lineage explorer across featured ecosystems",
+  "url": "https://github.com/abdeslam-menacere/ModelTree/issues/10",
+  "branch": "feat/10-generalize-the-lineage-explorer-across-f",
+  "worktree": "C:\\workspace\\ModelTree\\ModelTree\\.docks\\10-generalize-the-lineage-explorer-across-f",
+  "base": "main",
+  "agent": "copilot",
+  "createdAt": "2026-08-16T23:59:33.118Z",
+  "gates": {
+    "review": null,
+    "qa": null
+  },
+  "status": "open"
+}
