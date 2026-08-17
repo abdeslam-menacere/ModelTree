@@ -4,10 +4,23 @@ import {
   THEME_ATTRIBUTE,
   THEME_PREFERENCE_ATTRIBUTE,
   THEME_STORAGE_KEY,
+  applyTheme,
   resolveTheme,
   resolveThemePreference,
   themeBootstrapScript,
 } from './theme';
+
+function createElementStub() {
+  const attributes: Record<string, string | undefined> = {};
+  return {
+    attributes,
+    element: {
+      setAttribute(name: string, value: string) {
+        attributes[name] = value;
+      },
+    },
+  };
+}
 
 interface BootstrapOptions {
   search: string;
@@ -84,6 +97,48 @@ describe('resolveTheme', () => {
   it('keeps an explicit preference regardless of the media preference', () => {
     expect(resolveTheme('light', true)).toBe('light');
     expect(resolveTheme('dark', false)).toBe('dark');
+  });
+});
+
+describe('applyTheme', () => {
+  it('writes the resolved theme and the system preference separately when dark is preferred', () => {
+    const { attributes, element } = createElementStub();
+
+    const resolved = applyTheme(element, 'system', true);
+
+    expect(attributes[THEME_ATTRIBUTE]).toBe('dark');
+    expect(attributes[THEME_PREFERENCE_ATTRIBUTE]).toBe('system');
+    expect(resolved).toBe('dark');
+  });
+
+  it('writes the resolved theme and the system preference separately when dark is not preferred', () => {
+    const { attributes, element } = createElementStub();
+
+    const resolved = applyTheme(element, 'system', false);
+
+    expect(attributes[THEME_ATTRIBUTE]).toBe('light');
+    expect(attributes[THEME_PREFERENCE_ATTRIBUTE]).toBe('system');
+    expect(resolved).toBe('light');
+  });
+
+  it('writes both attributes for an explicit preference that disagrees with the media query', () => {
+    const { attributes, element } = createElementStub();
+
+    const resolved = applyTheme(element, 'light', true);
+
+    expect(attributes[THEME_ATTRIBUTE]).toBe('light');
+    expect(attributes[THEME_PREFERENCE_ATTRIBUTE]).toBe('light');
+    expect(resolved).toBe('light');
+  });
+
+  it('writes both attributes for an explicit dark preference', () => {
+    const { attributes, element } = createElementStub();
+
+    const resolved = applyTheme(element, 'dark', false);
+
+    expect(attributes[THEME_ATTRIBUTE]).toBe('dark');
+    expect(attributes[THEME_PREFERENCE_ATTRIBUTE]).toBe('dark');
+    expect(resolved).toBe('dark');
   });
 });
 
