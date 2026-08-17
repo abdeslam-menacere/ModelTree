@@ -78,13 +78,24 @@ you, and you do not run it against your own work.
 
 ## This repo's own constraints
 
-If you are modifying Drydock itself rather than using it:
+ModelTree is a source-backed map of AI creators, model families, and releases.
+The site is a static Astro build; everything lives under `web/`.
 
-- **Zero runtime dependencies.** Node standard library and `git` only. Adding an
-  npm dependency needs an explicit human decision — the dependency-free property
-  is a feature.
-- ES modules, Node ≥ 20.12.
-- No network calls except through the `gh` CLI.
-- State lives in git. No database, no cache, no daemon.
-- Business logic lives in `src/commands/`. `src/lib/` stays dumb.
-- `node test/smoke.test.js` must keep passing.
+- **Run every command from `web/`.** The repository root is not a Node project.
+- `npm run validate` (tests + Astro/TypeScript diagnostics) must keep passing.
+  `npm run build` runs it, so a broken change cannot ship.
+- **Data changes are reviewable repository changes.** Seed data is versioned
+  JSON in `web/src/data/`, validated with Zod. Never fetch at runtime — there is
+  no database and no live API monitoring.
+- **Every important fact carries a primary source and a verification date.** A
+  claim added without one fails review. Unknown and conflicting data stay
+  explicit rather than being smoothed over.
+- **Creator, model, product, and serving platform are separate entities.** Do
+  not collapse them, and do not invent a composite score or universal ranking.
+- Accessibility and performance are requirements, not polish: keyboard support,
+  reduced-motion, and the asset budgets are acceptance criteria.
+- Product context lives in `docs/product/`; architecture decisions in
+  `docs/adr/`. Read them before changing structure.
+
+The Drydock CLI is installed globally — it is a tool, not a dependency of this
+project. Its source is not in this repository.
