@@ -18,6 +18,8 @@ describe('ModelTreeExplorer', () => {
 
     expect(markup).toContain('aria-expanded="true" aria-controls="model-tree-root-branches"');
     expect(markup).toContain('aria-expanded="true" aria-controls="model-tree-featured-creators"');
+    expect(markup).toContain('>AI Model Ecosystem</span>');
+    expect(markup).not.toContain('>Root</span>');
     expect(markup).toContain('Featured ecosystems');
     expect(markup).toContain('Editorially reviewed · not ranked');
     expect(markup).toContain('Others');

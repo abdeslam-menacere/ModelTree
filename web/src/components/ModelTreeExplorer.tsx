@@ -73,7 +73,7 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
                 aria-controls="model-tree-root-branches"
                 onClick={() => setRootOpen((value) => !value)}
               >
-                <span>Root</span>
+                <span>AI Model Ecosystem</span>
                 <small>Reviewed catalog</small>
               </button>
               <ul id="model-tree-root-branches" hidden={!rootOpen}>

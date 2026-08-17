@@ -30,6 +30,9 @@ describe('ModelTreeExplorer interactions', () => {
   it('opens and closes creator and family disclosures independently', async () => {
     const user = userEvent.setup();
     renderExplorer();
+    expect(screen.getByRole('button', { name: /^AI Model Ecosystem/ }).getAttribute(
+      'aria-expanded',
+    )).toBe('true');
     const anthropic = creatorButton('Anthropic');
     const google = creatorButton('Google DeepMind');
 
