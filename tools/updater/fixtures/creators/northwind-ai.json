@@ -1,0 +1,74 @@
+{
+  "creator": {
+    "creator_id": "northwind-ai",
+    "creator_name": "Northwind AI",
+    "entry_urls": ["https://www.example.com/northwind-ai/news"],
+    "notes": "Synthetic fixture creator exercising conflicting sources and an invalid claim."
+  },
+  "sources": [
+    {
+      "id": "northwind-ai-launch-post",
+      "url": "https://www.example.com/northwind-ai/blog/harbor-2",
+      "title": "Harbor 2 launch",
+      "publisher": "Northwind AI",
+      "kind": "official-announcement",
+      "published_date": "2026-03-01",
+      "text": "Harbor 2 ships with a 128,000 token context window. Harbor 2 became available in March 2026.",
+      "claims": [
+        {
+          "id": "northwind-ai-harbor-2-context-window-blog",
+          "entity_kind": "release",
+          "entity_id": "northwind-harbor-2",
+          "field_path": "contextWindow",
+          "value": 128000,
+          "quote": "Harbor 2 ships with a 128,000 token context window",
+          "confidence": 0.88,
+          "verified_at": "2026-03-02",
+          "review": {
+            "decision": "accept",
+            "rationale": "Stated directly in the launch post."
+          }
+        },
+        {
+          "id": "northwind-ai-harbor-2-release-date",
+          "entity_kind": "release",
+          "entity_id": "northwind-harbor-2",
+          "field_path": "releaseDate",
+          "value": "March 2026",
+          "quote": "Harbor 2 became available in March 2026",
+          "confidence": 0.4,
+          "verified_at": "2026-03-02",
+          "review": {
+            "decision": "accept",
+            "rationale": "Reviewer accepted a month-precision date the dataset cannot store."
+          }
+        }
+      ]
+    },
+    {
+      "id": "northwind-ai-docs",
+      "url": "https://www.example.com/northwind-ai/docs/harbor-2",
+      "title": "Harbor 2 documentation",
+      "publisher": "Northwind AI",
+      "kind": "official-docs",
+      "published_date": "2026-03-05",
+      "text": "Harbor 2 accepts up to 256,000 tokens of context.",
+      "claims": [
+        {
+          "id": "northwind-ai-harbor-2-context-window-docs",
+          "entity_kind": "release",
+          "entity_id": "northwind-harbor-2",
+          "field_path": "contextWindow",
+          "value": 256000,
+          "quote": "Harbor 2 accepts up to 256,000 tokens of context",
+          "confidence": 0.86,
+          "verified_at": "2026-03-06",
+          "review": {
+            "decision": "accept",
+            "rationale": "Stated directly in the documentation."
+          }
+        }
+      ]
+    }
+  ]
+}

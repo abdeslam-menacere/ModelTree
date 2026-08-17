@@ -66,6 +66,7 @@ web/               the Astro site
   src/data/        seed data — organizations, families, releases, sources
   src/pages/       routes, including generated Model Passport pages
   src/lib/         data loading, validation, URL state
+tools/updater/     proposal-only data updater (Python, run separately)
 docs/product/      product brief, information architecture, backlog
 docs/adr/          architecture decision records
 .github/           agent contracts, issue forms, workflows
@@ -74,6 +75,11 @@ docs/adr/          architecture decision records
 Data lives in versioned JSON under `web/src/data/`, validated with
 [Zod](https://zod.dev). A data correction is an ordinary pull request — which is
 the point of principle 8.
+
+[`tools/updater/`](tools/updater/README.md) is a separate Python tool that only
+*proposes* sourced updates for a human to review. It cannot write dataset JSON,
+create a branch, or open a pull request, which keeps principle 8 and the "no
+unreviewed automatic ingestion" not-goal intact.
 
 ## Contributing
 

@@ -1,0 +1,62 @@
+{
+  "creator": {
+    "creator_id": "fabrikam-ai",
+    "creator_name": "Fabrikam AI",
+    "entry_urls": ["https://www.example.com/fabrikam-ai/updates"],
+    "notes": "Synthetic fixture creator exercising a retryable provider failure."
+  },
+  "sources": [
+    {
+      "id": "fabrikam-ai-summit-post",
+      "url": "https://www.example.com/fabrikam-ai/blog/summit-1",
+      "title": "Summit 1 is available",
+      "publisher": "Fabrikam AI",
+      "kind": "official-announcement",
+      "published_date": "2026-04-02",
+      "text": "Summit 1 was released on 2026-04-01 with downloadable weights under Apache-2.0.",
+      "claims": [
+        {
+          "id": "fabrikam-ai-summit-1-release-date",
+          "entity_kind": "release",
+          "entity_id": "fabrikam-summit-1",
+          "field_path": "releaseDate",
+          "value": "2026-04-01",
+          "quote": "Summit 1 was released on 2026-04-01",
+          "confidence": 0.95,
+          "verified_at": "2026-04-03",
+          "review": {
+            "decision": "accept",
+            "rationale": "Exact date stated in the announcement."
+          }
+        },
+        {
+          "id": "fabrikam-ai-summit-1-license",
+          "entity_kind": "release",
+          "entity_id": "fabrikam-summit-1",
+          "field_path": "license.spdxId",
+          "value": "Apache-2.0",
+          "quote": "downloadable weights under Apache-2.0",
+          "confidence": 0.9,
+          "verified_at": "2026-04-03",
+          "review": {
+            "decision": "accept",
+            "rationale": "Licence identifier quoted from the announcement."
+          }
+        }
+      ]
+    },
+    {
+      "id": "fabrikam-ai-flaky-mirror",
+      "url": "https://www.example.com/fabrikam-ai/mirror/summit-1",
+      "title": "Summit 1 mirror page",
+      "publisher": "Fabrikam AI",
+      "kind": "repository",
+      "text": "",
+      "failure": {
+        "message": "mirror returned HTTP 503",
+        "retryable": true
+      },
+      "claims": []
+    }
+  ]
+}

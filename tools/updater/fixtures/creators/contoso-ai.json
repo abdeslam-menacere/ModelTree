@@ -1,0 +1,88 @@
+{
+  "creator": {
+    "creator_id": "contoso-ai",
+    "creator_name": "Contoso AI",
+    "entry_urls": ["https://www.example.com/contoso-ai/releases"],
+    "notes": "Synthetic fixture creator. Not ModelTree data; every URL is example.com."
+  },
+  "sources": [
+    {
+      "id": "contoso-ai-atlas-announcement",
+      "url": "https://www.example.com/contoso-ai/blog/atlas-3",
+      "title": "Introducing Atlas 3",
+      "publisher": "Contoso AI",
+      "kind": "official-announcement",
+      "published_date": "2026-02-10",
+      "text": "Atlas 3 is generally available today. Atlas 3 supports a 200,000 token context window and is served through the Contoso API as atlas-3-2026-02-10.",
+      "claims": [
+        {
+          "id": "contoso-ai-atlas-3-context-window",
+          "entity_kind": "release",
+          "entity_id": "contoso-atlas-3",
+          "field_path": "contextWindow",
+          "value": 200000,
+          "quote": "Atlas 3 supports a 200,000 token context window",
+          "confidence": 0.94,
+          "verified_at": "2026-02-11",
+          "review": {
+            "decision": "accept",
+            "rationale": "The announcement states the context window verbatim."
+          }
+        },
+        {
+          "id": "contoso-ai-atlas-3-api-aliases",
+          "entity_kind": "release",
+          "entity_id": "contoso-atlas-3",
+          "field_path": "apiAliases",
+          "value": ["atlas-3-2026-02-10"],
+          "quote": "served through the Contoso API as atlas-3-2026-02-10",
+          "confidence": 0.9,
+          "verified_at": "2026-02-11",
+          "review": {
+            "decision": "accept",
+            "rationale": "The API identifier is quoted directly from the announcement."
+          }
+        }
+      ]
+    },
+    {
+      "id": "contoso-ai-atlas-model-card",
+      "url": "https://www.example.com/contoso-ai/model-cards/atlas-3",
+      "title": "Atlas 3 model card",
+      "publisher": "Contoso AI",
+      "kind": "model-card",
+      "published_date": "2026-02-10",
+      "text": "Atlas 3 was released on 2026-02-10 and is currently the recommended general purpose model.",
+      "claims": [
+        {
+          "id": "contoso-ai-atlas-3-release-date",
+          "entity_kind": "release",
+          "entity_id": "contoso-atlas-3",
+          "field_path": "releaseDate",
+          "value": "2026-02-10",
+          "quote": "Atlas 3 was released on 2026-02-10",
+          "confidence": 0.97,
+          "verified_at": "2026-02-11",
+          "review": {
+            "decision": "accept",
+            "rationale": "The model card gives an exact release date."
+          }
+        },
+        {
+          "id": "contoso-ai-atlas-3-status",
+          "entity_kind": "release",
+          "entity_id": "contoso-atlas-3",
+          "field_path": "status",
+          "value": "current",
+          "quote": "is currently the recommended general purpose model",
+          "confidence": 0.6,
+          "verified_at": "2026-02-11",
+          "review": {
+            "decision": "needs-human-review",
+            "rationale": "\"Recommended\" is not the same statement as a lifecycle status."
+          }
+        }
+      ]
+    }
+  ]
+}
