@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { themeBootstrapScript } from './theme-bootstrap';
 import {
   PREFERS_DARK_QUERY,
   THEME_ATTRIBUTE,
@@ -7,7 +8,6 @@ import {
   applyTheme,
   resolveTheme,
   resolveThemePreference,
-  themeBootstrapScript,
 } from './theme';
 
 function createElementStub() {
