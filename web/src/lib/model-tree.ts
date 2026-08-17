@@ -96,3 +96,10 @@ export function restoreModelTreeSelection(
       }
     : { openCreatorIds: [], openFamilyIds: [] };
 }
+
+export function toggleModelTreeBranch(openIds: ReadonlySet<string>, id: string) {
+  const next = new Set(openIds);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  return next;
+}

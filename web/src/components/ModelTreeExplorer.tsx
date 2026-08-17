@@ -1,6 +1,10 @@
 import { startTransition, useEffect, useState } from 'react';
 import type { ModelTree } from '../lib/model-tree';
-import { modelTreeReleaseIds, restoreModelTreeSelection } from '../lib/model-tree';
+import {
+  modelTreeReleaseIds,
+  restoreModelTreeSelection,
+  toggleModelTreeBranch,
+} from '../lib/model-tree';
 import { accessLabel, formatDate, statusLabel } from '../lib/format';
 import { createModelSelectionUrl, readOptionalSelectedModel } from '../lib/selection';
 
@@ -13,13 +17,6 @@ interface Props {
   tree: ModelTree;
   sourceByReleaseId: Record<string, SourceSummary>;
   basePath: string;
-}
-
-function toggleItem(items: ReadonlySet<string>, id: string) {
-  const next = new Set(items);
-  if (next.has(id)) next.delete(id);
-  else next.add(id);
-  return next;
 }
 
 export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }: Props) {
@@ -102,7 +99,7 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
                             type="button"
                             aria-expanded={creatorOpen}
                             aria-controls={creatorContentId}
-                            onClick={() => setOpenCreators((items) => toggleItem(items, organization.id))}
+                            onClick={() => setOpenCreators((items) => toggleModelTreeBranch(items, organization.id))}
                           >
                             <span>{organization.name}</span>
                             <small>{families.length} {families.length === 1 ? 'family' : 'families'}</small>
@@ -118,7 +115,7 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
                                     type="button"
                                     aria-expanded={familyOpen}
                                     aria-controls={familyContentId}
-                                    onClick={() => setOpenFamilies((items) => toggleItem(items, family.id))}
+                                    onClick={() => setOpenFamilies((items) => toggleModelTreeBranch(items, family.id))}
                                   >
                                     <span>{family.name}</span>
                                     <small>{releases.length} {releases.length === 1 ? 'release' : 'releases'}</small>

@@ -5,6 +5,7 @@ import {
   findModelTreePath,
   modelTreeReleaseIds,
   restoreModelTreeSelection,
+  toggleModelTreeBranch,
 } from './model-tree';
 
 describe('model tree', () => {
@@ -74,5 +75,14 @@ describe('model tree', () => {
       openCreatorIds: [],
       openFamilyIds: [],
     });
+  });
+
+  it('toggles disclosures independently so multiple branches can remain open', () => {
+    const withFirst = toggleModelTreeBranch(new Set<string>(), 'first');
+    const withBoth = toggleModelTreeBranch(withFirst, 'second');
+    const withoutFirst = toggleModelTreeBranch(withBoth, 'first');
+
+    expect([...withBoth]).toEqual(['first', 'second']);
+    expect([...withoutFirst]).toEqual(['second']);
   });
 });
