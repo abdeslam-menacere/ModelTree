@@ -32,6 +32,14 @@ function compare(a: string, b: string) {
   return a > b ? 1 : 0;
 }
 
+function newestFamilyReleaseDate(dataset: Dataset, familyId: string) {
+  return dataset.releases
+    .filter((release) => release.familyId === familyId)
+    .reduce((newest, release) => (
+      compare(release.releaseDate, newest) > 0 ? release.releaseDate : newest
+    ), '');
+}
+
 export function buildModelTree(dataset: Dataset): ModelTree {
   const featuredCreatorIds = new Set(
     dataset.releases.filter(({ featured }) => featured).map(({ organizationId }) => organizationId),
@@ -44,7 +52,13 @@ export function buildModelTree(dataset: Dataset): ModelTree {
       organization,
       families: dataset.families
         .filter(({ organizationId }) => organizationId === organization.id)
-        .sort((a, b) => compare(a.name, b.name) || compare(a.id, b.id))
+        .sort((a, b) => (
+          compare(
+            newestFamilyReleaseDate(dataset, b.id),
+            newestFamilyReleaseDate(dataset, a.id),
+          )
+          || compare(a.id, b.id)
+        ))
         .map((family) => ({
           family,
           releases: dataset.releases

@@ -26,16 +26,24 @@ describe('model tree', () => {
     expect(new Set(actualReleaseIds).size).toBe(actualReleaseIds.length);
   });
 
-  it('uses deterministic creator/family order and newest-first release order with ID ties', () => {
+  it('orders creators deterministically and families/releases newest first with ID ties', () => {
     const tree = buildModelTree(dataset);
 
     expect(tree.featured.map(({ organization }) => organization.name)).toEqual(
       [...tree.featured.map(({ organization }) => organization.name)].sort(),
     );
     for (const creator of tree.featured) {
-      expect(creator.families.map(({ family }) => family.name)).toEqual(
-        [...creator.families.map(({ family }) => family.name)].sort(),
-      );
+      const familyKeys = creator.families.map(({ family, releases }) => ({
+        id: family.id,
+        newestReleaseDate: releases[0].releaseDate,
+      }));
+      expect(familyKeys).toEqual([...familyKeys].sort((a, b) => (
+        b.newestReleaseDate < a.newestReleaseDate
+          ? -1
+          : b.newestReleaseDate > a.newestReleaseDate
+            ? 1
+            : a.id < b.id ? -1 : a.id > b.id ? 1 : 0
+      )));
       for (const { releases } of creator.families) {
         const keys = releases.map(({ releaseDate, id }) => `${releaseDate}\0${id}`);
         const expected = [...keys].sort((a, b) => {
@@ -46,6 +54,12 @@ describe('model tree', () => {
         expect(keys).toEqual(expected);
       }
     }
+
+    const anthropic = tree.featured.find(({ organization }) => organization.id === 'anthropic')!;
+    expect(anthropic.families.map(({ family }) => family.name)).toEqual([
+      'Claude 5',
+      'Claude 4.5',
+    ]);
   });
 
   it('keeps Others visible and empty and resolves only valid release paths', () => {
