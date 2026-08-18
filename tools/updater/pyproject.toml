@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "modeltree-updater"
+version = "0.1.0"
+description = "Proposal-only ModelTree data updater built on Microsoft Agent Framework workflows"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+  "agent-framework-core>=1.13.0",
+]
+
+[project.optional-dependencies]
+foundry = [
+  "azure-identity>=1.19.0",
+  "agent-framework-foundry>=1.10.4",
+]
+dev = [
+  "pytest>=8.0.0",
+]
+
+[project.scripts]
+modeltree-updater = "modeltree_updater.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/modeltree_updater"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

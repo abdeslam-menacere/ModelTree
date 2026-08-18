@@ -1,6 +1,14 @@
 node_modules/
 *.log
 
+# Python (tools/updater)
+__pycache__/
+*.py[cod]
+.venv/
+.venv-*/
+.pytest_cache/
+*.egg-info/
+
 # Drydock
 .drydock/tmp/
 
