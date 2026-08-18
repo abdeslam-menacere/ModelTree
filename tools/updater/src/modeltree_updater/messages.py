@@ -16,6 +16,7 @@ from .contracts import (
     ReviewVerdict,
     RunFailure,
     SourceCandidate,
+    SourceVerdict,
 )
 
 __all__ = [
@@ -71,6 +72,10 @@ class ReviewedClaims:
     failures: tuple[RunFailure, ...]
     budget_state: Mapping[str, float]
     providers: Mapping[str, str] = field(default_factory=dict)
+    # Every lens verdict on a newly discovered source. The approval decision itself
+    # is deterministic and is made once, in the bundling stage.
+    source_verdicts: tuple[SourceVerdict, ...] = ()
+    newly_discovered_source_ids: tuple[str, ...] = ()
 
 
 MESSAGE_TYPES: tuple[type[Any], ...] = (

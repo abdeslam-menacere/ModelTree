@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 from ..contracts import (
     ClaimCandidate,
@@ -27,18 +27,30 @@ from ..contracts import (
     EntityKind,
     Evidence,
     FetchedPage,
+    ReviewLens,
     ReviewVerdict,
     SourceCandidate,
+    SourceVerdict,
 )
-from .base import ExtractionResult, ProviderError, ReviewResult
+from .base import (
+    ExtractionResult,
+    ProviderError,
+    ReviewPanel,
+    ReviewResult,
+    SourceReviewResult,
+)
+
+if TYPE_CHECKING:  # pragma: no cover - typing only, avoids an import cycle
+    from ..review import ClaimReviewRequest, SourceReviewRequest
 
 __all__ = [
     "FoundryConfig",
     "FoundryClaimExtractor",
-    "FoundryClaimReviewer",
+    "FoundryLensReviewer",
     "MissingFoundryDependency",
     "build_credential",
     "build_chat_client",
+    "build_foundry_panel",
 ]
 
 ENV_ENDPOINT = "MODELTREE_FOUNDRY_ENDPOINT"
@@ -176,10 +188,123 @@ EXTRACTION_INSTRUCTIONS = (
 )
 
 REVIEW_INSTRUCTIONS = (
-    "Judge a single claim against its quoted evidence. Return JSON: "
-    "{\"decision\": \"accept\"|\"reject\"|\"needs-human-review\", \"rationale\"}. "
-    "Choose needs-human-review whenever the evidence is ambiguous or incomplete."
+    "You are one of three independent reviewers, each with a different job. Judge "
+    "only your own lens; do not speculate about the other two. Return JSON: "
+    "{\"decision\": \"accept\"|\"reject\"|\"needs-human-review\"|\"abstain\", "
+    "\"rationale\"}. Abstain when your lens has nothing to go on. Choose "
+    "needs-human-review when your lens applies but the answer is genuinely unclear."
 )
+
+
+class FoundryLensReviewer:
+    """One semantic lens, answered by a Foundry deployment.
+
+    Each lens is a separate instance with a separate brief and a separate prompt,
+    and is given only the material `review.build_claim_request` allocated to it, so
+    the three reviewers are genuinely different jobs rather than one repeated three
+    times.
+    """
+
+    def __init__(
+        self,
+        client: Any,
+        config: FoundryConfig,
+        lens: ReviewLens,
+        *,
+        timestamp: str,
+    ) -> None:
+        self._client = client
+        self._config = config
+        self.lens = lens
+        self.name = f"foundry:reviewer:{lens.value}"
+        self._timestamp = timestamp
+
+    async def review_claim(self, request: "ClaimReviewRequest") -> ReviewResult:
+        payload = {
+            "lens": request.lens.value,
+            "brief": request.brief,
+            "creator": request.creator.creator_name,
+            "claim": request.claim.to_dict(),
+            "evidence": [item.to_dict() for item in request.evidence],
+            "cited_sources": [item.to_dict() for item in request.cited_sources],
+            "sibling_claims": [item.to_dict() for item in request.sibling_claims],
+            "creator_sources": [item.to_dict() for item in request.creator_sources],
+            "field_expectation": (
+                {
+                    "entity_kind": request.expectation.entity_kind.value,
+                    "field_path": request.expectation.field_path,
+                    "kind": request.expectation.kind,
+                    "allowed": list(request.expectation.allowed),
+                    "known_field_paths": list(request.expectation.known_field_paths),
+                }
+                if request.expectation
+                else None
+            ),
+        }
+        decision, rationale, tokens = await self._decide(request.brief, payload)
+        verdict = ReviewVerdict(
+            claim_id=request.claim.id,
+            decision=decision,
+            rationale=rationale,
+            reviewer=f"{self.name}:{self._config.deployment}",
+            reviewed_at=self._timestamp,
+            lens=self.lens,
+            evidence_refs=tuple(item.source_id for item in request.evidence),
+        )
+        return ReviewResult(verdict=verdict, tokens_used=tokens)
+
+    async def review_source(self, request: "SourceReviewRequest") -> SourceReviewResult:
+        payload = {
+            "lens": request.lens.value,
+            "brief": request.brief,
+            "creator": request.creator.creator_name,
+            "source": request.source.to_dict(),
+            "configured_origins": list(request.configured_origins),
+            "known_sources": [item.to_dict() for item in request.known_sources],
+        }
+        decision, rationale, tokens = await self._decide(request.brief, payload)
+        verdict = SourceVerdict(
+            source_id=request.source.id,
+            decision=decision,
+            rationale=rationale,
+            reviewer=f"{self.name}:{self._config.deployment}",
+            reviewed_at=self._timestamp,
+            lens=self.lens,
+        )
+        return SourceReviewResult(verdict=verdict, tokens_used=tokens)
+
+    async def _decide(
+        self, brief: str, payload: Mapping[str, Any]
+    ) -> tuple[ClaimDecision, str, int]:
+        response = await _ask(
+            self._client,
+            f"{REVIEW_INSTRUCTIONS}\n\nYour lens: {brief}",
+            json.dumps(payload, indent=2, default=str),
+        )
+        tokens = _usage_tokens(response)
+        parsed = _parse_json_object(_require_text(response), tokens_used=tokens)
+        try:
+            decision = ClaimDecision(parsed.get("decision", ""))
+        except ValueError as error:
+            raise ProviderError(
+                f"model returned an unknown decision {parsed.get('decision')!r}",
+                provider="foundry",
+                retryable=True,
+                tokens_used=tokens,
+            ) from error
+        return decision, str(parsed.get("rationale", "")), tokens
+
+
+def build_foundry_panel(
+    client: Any, config: FoundryConfig, *, timestamp: str
+) -> ReviewPanel:
+    return ReviewPanel(
+        provenance=FoundryLensReviewer(client, config, ReviewLens.PROVENANCE, timestamp=timestamp),
+        consistency=FoundryLensReviewer(
+            client, config, ReviewLens.CONSISTENCY, timestamp=timestamp
+        ),
+        editorial=FoundryLensReviewer(client, config, ReviewLens.EDITORIAL, timestamp=timestamp),
+    )
 
 
 class FoundryClaimExtractor:
@@ -232,41 +357,6 @@ class FoundryClaimExtractor:
                 )
             )
         return ExtractionResult(claims=tuple(claims), tokens_used=tokens)
-
-
-class FoundryClaimReviewer:
-    """Reviews a claim with a Foundry deployment, seeing only the claim and evidence."""
-
-    name = "foundry:reviewer"
-
-    def __init__(self, client: Any, config: FoundryConfig, *, timestamp: str) -> None:
-        self._client = client
-        self._config = config
-        self._timestamp = timestamp
-
-    async def review(self, creator: CreatorRequest, claim: ClaimCandidate) -> ReviewResult:
-        response = await _ask(
-            self._client, REVIEW_INSTRUCTIONS, json.dumps(claim.to_dict(), indent=2)
-        )
-        tokens = _usage_tokens(response)
-        payload = _parse_json_object(_require_text(response), tokens_used=tokens)
-        try:
-            decision = ClaimDecision(payload.get("decision", ""))
-        except ValueError as error:
-            raise ProviderError(
-                f"model returned an unknown decision {payload.get('decision')!r}",
-                provider="foundry",
-                retryable=True,
-                tokens_used=tokens,
-            ) from error
-        verdict = ReviewVerdict(
-            claim_id=claim.id,
-            decision=decision,
-            rationale=str(payload.get("rationale", "")),
-            reviewer=f"{self.name}:{self._config.deployment}",
-            reviewed_at=self._timestamp,
-        )
-        return ReviewResult(verdict=verdict, tokens_used=tokens)
 
 
 def unsupported_source_provider(_: Sequence[SourceCandidate] | None = None) -> None:

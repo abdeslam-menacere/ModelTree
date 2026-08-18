@@ -18,18 +18,23 @@ from ..contracts import (
     ClaimCandidate,
     CreatorRequest,
     FetchedPage,
+    ReviewLens,
     ReviewVerdict,
     SourceCandidate,
+    SourceVerdict,
 )
+from ..review import ClaimReviewRequest, SourceReviewRequest
 
 __all__ = [
     "ClaimExtractor",
-    "ClaimReviewer",
     "ExtractionResult",
+    "LensReviewer",
     "ProviderError",
     "ProviderBundle",
+    "ReviewPanel",
     "ReviewResult",
     "SourceProvider",
+    "SourceReviewResult",
 ]
 
 
@@ -64,6 +69,12 @@ class ReviewResult:
     tokens_used: int
 
 
+@dataclass(frozen=True)
+class SourceReviewResult:
+    verdict: SourceVerdict
+    tokens_used: int
+
+
 @runtime_checkable
 class SourceProvider(Protocol):
     """Finds and reads candidate sources for one creator."""
@@ -87,26 +98,72 @@ class ClaimExtractor(Protocol):
 
 
 @runtime_checkable
-class ClaimReviewer(Protocol):
-    """Judges a single claim. A reviewer never sees the extractor's reasoning."""
+class LensReviewer(Protocol):
+    """Judges one claim or source through exactly one lens.
+
+    A reviewer never sees the extractor's reasoning, never sees the other lenses'
+    verdicts, and is handed only the material its own lens needs — the request is
+    built by `review.build_claim_request`, which withholds the rest on purpose.
+    """
 
     name: str
+    lens: ReviewLens
 
-    async def review(self, creator: CreatorRequest, claim: ClaimCandidate) -> ReviewResult: ...
+    async def review_claim(self, request: ClaimReviewRequest) -> ReviewResult: ...
+
+    async def review_source(self, request: SourceReviewRequest) -> SourceReviewResult: ...
+
+
+@dataclass(frozen=True)
+class ReviewPanel:
+    """The three semantic lenses, in a fixed order so runs stay reproducible."""
+
+    provenance: LensReviewer
+    consistency: LensReviewer
+    editorial: LensReviewer
+
+    def __post_init__(self) -> None:
+        expected = dict(
+            zip(
+                ("provenance", "consistency", "editorial"),
+                (ReviewLens.PROVENANCE, ReviewLens.CONSISTENCY, ReviewLens.EDITORIAL),
+            )
+        )
+        for attribute, lens in expected.items():
+            reviewer = getattr(self, attribute)
+            if getattr(reviewer, "lens", None) is not lens:
+                raise ValueError(
+                    f"panel slot {attribute!r} must hold a reviewer whose lens is "
+                    f"{lens.value!r}, got {getattr(reviewer, 'lens', None)!r}"
+                )
+
+    @property
+    def reviewers(self) -> tuple[LensReviewer, ...]:
+        return (self.provenance, self.consistency, self.editorial)
+
+    def reviewer_for(self, lens: ReviewLens) -> LensReviewer:
+        for reviewer in self.reviewers:
+            if reviewer.lens is lens:
+                return reviewer
+        raise KeyError(f"no reviewer for lens {lens!r}")  # pragma: no cover - guarded above
+
+    @property
+    def descriptor(self) -> dict[str, str]:
+        return {f"reviewer:{reviewer.lens.value}": reviewer.name for reviewer in self.reviewers}
 
 
 @dataclass(frozen=True)
 class ProviderBundle:
-    """The three provider boundaries a run needs, resolved once by the CLI."""
+    """The provider boundaries a run needs, resolved once by the CLI."""
 
     sources: SourceProvider
     extractor: ClaimExtractor
-    reviewer: ClaimReviewer
+    panel: ReviewPanel
 
     @property
     def descriptor(self) -> dict[str, str]:
         return {
             "sources": self.sources.name,
             "extractor": self.extractor.name,
-            "reviewer": self.reviewer.name,
+            **self.panel.descriptor,
         }

@@ -29,8 +29,8 @@ from .contracts import ProposalStatus, RunReport
 from .providers.base import ProviderBundle, ProviderError
 from .providers.fixtures import (
     FixtureClaimExtractor,
-    FixtureClaimReviewer,
     FixtureSourceProvider,
+    build_fixture_panel,
     load_fixture_library,
 )
 from .runner import resume_creator_run, run_creators
@@ -140,15 +140,15 @@ def _build_providers(
         return ProviderBundle(
             sources=sources,
             extractor=FixtureClaimExtractor(library, timestamp=timestamp),
-            reviewer=FixtureClaimReviewer(library, timestamp=timestamp),
+            panel=build_fixture_panel(library, timestamp=timestamp),
         )
 
     # Imported here so an offline run never needs the Azure packages installed.
     from .providers.foundry import (
         FoundryClaimExtractor,
-        FoundryClaimReviewer,
         FoundryConfig,
         build_chat_client,
+        build_foundry_panel,
     )
 
     config = FoundryConfig.from_env(env)
@@ -158,7 +158,7 @@ def _build_providers(
         extractor=FoundryClaimExtractor(
             client, config, timestamp=timestamp, verified_at=timestamp[:10]
         ),
-        reviewer=FoundryClaimReviewer(client, config, timestamp=timestamp),
+        panel=build_foundry_panel(client, config, timestamp=timestamp),
     )
 
 
