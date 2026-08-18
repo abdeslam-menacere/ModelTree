@@ -1,0 +1,123 @@
+{
+  "creator": {
+    "creator_id": "google-deepmind",
+    "creator_name": "Google DeepMind",
+    "entry_urls": ["https://www.example.com/google-deepmind/discover"],
+    "notes": "OFFLINE SYNTHETIC fixture. Hosts are RFC 2606 reserved domains and the model names are invented; nothing here is a real Google DeepMind fact. The real, reviewed source seeds live in profiles/google-deepmind.json. This fixture only exercises the proposal pipeline: atomic extraction, a majority-approved newly discovered source, and an unknown left explicit."
+  },
+  "sources": [
+    {
+      "id": "google-deepmind-fixture-configured-discover",
+      "url": "https://www.example.com/google-deepmind/discover/quartz-1",
+      "title": "Quartz 1 announcement",
+      "publisher": "Google DeepMind",
+      "kind": "official-announcement",
+      "published_date": "2026-05-10",
+      "text": "Quartz 1 was released on 2026-05-10 and is a multimodal-generalist model.",
+      "claims": [
+        {
+          "id": "google-deepmind-fixture-quartz-1-release-date",
+          "entity_kind": "release",
+          "entity_id": "google-deepmind-quartz-1",
+          "field_path": "releaseDate",
+          "value": "2026-05-10",
+          "quote": "Quartz 1 was released on 2026-05-10",
+          "confidence": 0.95,
+          "verified_at": "2026-05-11",
+          "review": {
+            "decision": "accept",
+            "rationale": "Exact date on the creator's own configured page."
+          }
+        },
+        {
+          "id": "google-deepmind-fixture-quartz-1-categories",
+          "entity_kind": "release",
+          "entity_id": "google-deepmind-quartz-1",
+          "field_path": "categories",
+          "value": ["multimodal-generalist"],
+          "quote": "Quartz 1 was released on 2026-05-10 and is a multimodal-generalist model",
+          "confidence": 0.85,
+          "verified_at": "2026-05-11",
+          "review": {
+            "decision": "accept",
+            "rationale": "Category stated on the configured page."
+          }
+        }
+      ]
+    },
+    {
+      "id": "google-deepmind-fixture-approved-discovery",
+      "url": "https://docs.example.org/google-deepmind/quartz-1",
+      "title": "Quartz 1 API reference",
+      "publisher": "Google DeepMind",
+      "kind": "official-docs",
+      "published_date": "2026-05-10",
+      "text": "Quartz 1 supports a 1,000,000 token context window.",
+      "source_reviews": {
+        "provenance": {
+          "decision": "accept",
+          "rationale": "First-party documentation on a new origin for the same creator."
+        },
+        "consistency": {
+          "decision": "accept",
+          "rationale": "Consistent with the configured announcement."
+        },
+        "editorial": {
+          "decision": "reject",
+          "rationale": "A second origin deserves a human glance before it becomes a seed."
+        }
+      },
+      "claims": [
+        {
+          "id": "google-deepmind-fixture-quartz-1-context-window",
+          "entity_kind": "release",
+          "entity_id": "google-deepmind-quartz-1",
+          "field_path": "contextWindow",
+          "value": 1000000,
+          "quote": "Quartz 1 supports a 1,000,000 token context window",
+          "confidence": 0.9,
+          "verified_at": "2026-05-11",
+          "review": {
+            "decision": "accept",
+            "rationale": "Stated directly in the documentation."
+          }
+        }
+      ]
+    },
+    {
+      "id": "google-deepmind-fixture-unknown-max-output",
+      "url": "https://www.example.com/google-deepmind/discover/quartz-1-limits",
+      "title": "Quartz 1 output limits",
+      "publisher": "Google DeepMind",
+      "kind": "official-announcement",
+      "published_date": "2026-05-12",
+      "text": "Quartz 1's maximum output is not stated numerically on this page.",
+      "claims": [
+        {
+          "id": "google-deepmind-fixture-quartz-1-maximum-output",
+          "entity_kind": "release",
+          "entity_id": "google-deepmind-quartz-1",
+          "field_path": "maximumOutput",
+          "value": 8192,
+          "quote": "Quartz 1's maximum output is not stated numerically on this page",
+          "confidence": 0.3,
+          "verified_at": "2026-05-12",
+          "reviews": {
+            "provenance": {
+              "decision": "accept",
+              "rationale": "The page is first-party."
+            },
+            "consistency": {
+              "decision": "needs-human-review",
+              "rationale": "The quote gives no explicit number; the value is unsupported."
+            },
+            "editorial": {
+              "decision": "needs-human-review",
+              "rationale": "Leave the maximum output unknown rather than guess."
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

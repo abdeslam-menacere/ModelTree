@@ -1,0 +1,123 @@
+{
+  "creator": {
+    "creator_id": "openai",
+    "creator_name": "OpenAI",
+    "entry_urls": ["https://www.example.com/openai/releases"],
+    "notes": "OFFLINE SYNTHETIC fixture. Hosts are RFC 2606 reserved domains and the model names are invented; nothing here is a real OpenAI fact. The real, reviewed OpenAI source seeds live in profiles/openai.json. This fixture only exercises the proposal pipeline: atomic extraction, a majority-approved newly discovered source, and an unknown left explicit."
+  },
+  "sources": [
+    {
+      "id": "openai-fixture-configured-notes",
+      "url": "https://www.example.com/openai/releases/nimbus-1",
+      "title": "Nimbus 1 release notes",
+      "publisher": "OpenAI",
+      "kind": "official-announcement",
+      "published_date": "2026-05-01",
+      "text": "Nimbus 1 was released on 2026-05-01. The Nimbus family first shipped on 2026-05-01.",
+      "claims": [
+        {
+          "id": "openai-fixture-nimbus-1-release-date",
+          "entity_kind": "release",
+          "entity_id": "openai-nimbus-1",
+          "field_path": "releaseDate",
+          "value": "2026-05-01",
+          "quote": "Nimbus 1 was released on 2026-05-01",
+          "confidence": 0.95,
+          "verified_at": "2026-05-02",
+          "review": {
+            "decision": "accept",
+            "rationale": "Exact date on the creator's own configured release page."
+          }
+        },
+        {
+          "id": "openai-fixture-nimbus-family-first-release",
+          "entity_kind": "family",
+          "entity_id": "openai-nimbus",
+          "field_path": "firstReleaseDate",
+          "value": "2026-05-01",
+          "quote": "The Nimbus family first shipped on 2026-05-01",
+          "confidence": 0.9,
+          "verified_at": "2026-05-02",
+          "review": {
+            "decision": "accept",
+            "rationale": "Family first-release date stated on the configured page."
+          }
+        }
+      ]
+    },
+    {
+      "id": "openai-fixture-approved-discovery",
+      "url": "https://docs.example.org/openai/nimbus-1",
+      "title": "Nimbus 1 model reference",
+      "publisher": "OpenAI",
+      "kind": "official-docs",
+      "published_date": "2026-05-01",
+      "text": "Nimbus 1 accepts up to 128,000 tokens of context.",
+      "source_reviews": {
+        "provenance": {
+          "decision": "accept",
+          "rationale": "First-party documentation for the same creator, on a new origin."
+        },
+        "consistency": {
+          "decision": "accept",
+          "rationale": "Consistent with the configured release notes and adds a detail."
+        },
+        "editorial": {
+          "decision": "reject",
+          "rationale": "A second origin deserves a human glance before it becomes a seed."
+        }
+      },
+      "claims": [
+        {
+          "id": "openai-fixture-nimbus-1-context-window",
+          "entity_kind": "release",
+          "entity_id": "openai-nimbus-1",
+          "field_path": "contextWindow",
+          "value": 128000,
+          "quote": "Nimbus 1 accepts up to 128,000 tokens of context",
+          "confidence": 0.9,
+          "verified_at": "2026-05-02",
+          "review": {
+            "decision": "accept",
+            "rationale": "Stated directly in the documentation."
+          }
+        }
+      ]
+    },
+    {
+      "id": "openai-fixture-unknown-max-output",
+      "url": "https://www.example.com/openai/releases/nimbus-1-limits",
+      "title": "Nimbus 1 output limits",
+      "publisher": "OpenAI",
+      "kind": "official-announcement",
+      "published_date": "2026-05-03",
+      "text": "Nimbus 1's maximum output is described only loosely, without a firm number.",
+      "claims": [
+        {
+          "id": "openai-fixture-nimbus-1-maximum-output",
+          "entity_kind": "release",
+          "entity_id": "openai-nimbus-1",
+          "field_path": "maximumOutput",
+          "value": 16384,
+          "quote": "Nimbus 1's maximum output is described only loosely, without a firm number",
+          "confidence": 0.35,
+          "verified_at": "2026-05-03",
+          "reviews": {
+            "provenance": {
+              "decision": "accept",
+              "rationale": "The page is first-party."
+            },
+            "consistency": {
+              "decision": "needs-human-review",
+              "rationale": "The quote gives no explicit number; the value is not supported."
+            },
+            "editorial": {
+              "decision": "needs-human-review",
+              "rationale": "Leave the maximum output unknown rather than guess a figure."
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
