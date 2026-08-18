@@ -1,0 +1,145 @@
+{
+  "creator": {
+    "creator_id": "tailspin-ai",
+    "creator_name": "Tailspin AI",
+    "entry_urls": ["https://www.example.com/tailspin-ai/releases"],
+    "notes": "Synthetic fixture creator exercising every review-panel outcome: unanimous, 2-of-3 majority, a three-way split, and a lens that fails and therefore abstains."
+  },
+  "sources": [
+    {
+      "id": "tailspin-ai-vector-2-announcement",
+      "url": "https://www.example.com/tailspin-ai/blog/vector-2",
+      "title": "Vector 2 is here",
+      "publisher": "Tailspin AI",
+      "kind": "official-announcement",
+      "published_date": "2026-05-04",
+      "text": "Vector 2 was released on 2026-05-04. Vector 2 offers a 64,000 token context window under the MIT licence, has 12.5 billion total parameters, and is the current recommended model.",
+      "claims": [
+        {
+          "id": "tailspin-ai-vector-2-context-window",
+          "entity_kind": "release",
+          "entity_id": "tailspin-vector-2",
+          "field_path": "contextWindow",
+          "value": 64000,
+          "quote": "Vector 2 offers a 64,000 token context window",
+          "confidence": 0.93,
+          "verified_at": "2026-05-05",
+          "reviews": {
+            "provenance": {
+              "decision": "accept",
+              "rationale": "The announcement states the number verbatim."
+            },
+            "consistency": {
+              "decision": "accept",
+              "rationale": "No other claim in this run gives a different context window."
+            },
+            "editorial": {
+              "decision": "accept",
+              "rationale": "contextWindow on a release is the right home for this fact."
+            }
+          }
+        },
+        {
+          "id": "tailspin-ai-vector-2-license",
+          "entity_kind": "release",
+          "entity_id": "tailspin-vector-2",
+          "field_path": "license.spdxId",
+          "value": "MIT",
+          "quote": "under the MIT licence",
+          "confidence": 0.82,
+          "verified_at": "2026-05-05",
+          "reviews": {
+            "provenance": {
+              "decision": "accept",
+              "rationale": "The licence name appears in the quoted sentence."
+            },
+            "consistency": {
+              "decision": "accept",
+              "rationale": "Nothing else in the run names a different licence."
+            },
+            "editorial": {
+              "decision": "reject",
+              "rationale": "A prose licence name is not necessarily the SPDX identifier; the dissent is recorded rather than resolved."
+            }
+          }
+        },
+        {
+          "id": "tailspin-ai-vector-2-parameters",
+          "entity_kind": "release",
+          "entity_id": "tailspin-vector-2",
+          "field_path": "parameters.totalBillions",
+          "value": 12.5,
+          "quote": "has 12.5 billion total parameters",
+          "confidence": 0.55,
+          "verified_at": "2026-05-05",
+          "reviews": {
+            "provenance": {
+              "decision": "accept",
+              "rationale": "The figure is quoted directly."
+            },
+            "consistency": {
+              "decision": "reject",
+              "rationale": "A marketing post is a weaker parameter source than a model card, and none was read."
+            },
+            "editorial": {
+              "decision": "needs-human-review",
+              "rationale": "Whether this counts as total or active parameters is genuinely unclear."
+            }
+          }
+        },
+        {
+          "id": "tailspin-ai-vector-2-release-date",
+          "entity_kind": "release",
+          "entity_id": "tailspin-vector-2",
+          "field_path": "releaseDate",
+          "value": "2026-05-04",
+          "quote": "Vector 2 was released on 2026-05-04",
+          "confidence": 0.96,
+          "verified_at": "2026-05-05",
+          "reviews": {
+            "provenance": {
+              "failure": {
+                "message": "provenance reviewer returned an unusable response",
+                "retryable": false
+              }
+            },
+            "consistency": {
+              "decision": "accept",
+              "rationale": "The date agrees with the source's own publication date."
+            },
+            "editorial": {
+              "decision": "accept",
+              "rationale": "Day-precision releaseDate is exactly what the dataset stores."
+            }
+          }
+        },
+        {
+          "id": "tailspin-ai-vector-2-status",
+          "entity_kind": "release",
+          "entity_id": "tailspin-vector-2",
+          "field_path": "status",
+          "value": "current",
+          "quote": "is the current recommended model",
+          "confidence": 0.5,
+          "verified_at": "2026-05-05",
+          "reviews": {
+            "provenance": {
+              "failure": {
+                "message": "provenance reviewer returned an unusable response",
+                "retryable": false
+              }
+            },
+            "consistency": {
+              "decision": "accept",
+              "rationale": "No later release contradicts a current status."
+            },
+            "editorial": {
+              "decision": "abstain",
+              "rationale": "\"Recommended\" and lifecycle status are different ideas; this lens has nothing decisive to add."
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

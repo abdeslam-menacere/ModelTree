@@ -19,7 +19,9 @@ from modeltree_updater.providers.fixtures import (  # noqa: E402
 from modeltree_updater.workflow import RunSettings  # noqa: E402
 
 FIXTURE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "creators"
-TIMESTAMP = "2026-01-01T00:00:00+00:00"
+# Later than every fixture's `verified_at`: the date gate refuses evidence that
+# claims to have been checked after the run that read it.
+TIMESTAMP = "2026-06-01T00:00:00+00:00"
 
 
 @pytest.fixture()
