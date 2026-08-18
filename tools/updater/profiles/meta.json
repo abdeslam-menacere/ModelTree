@@ -1,0 +1,97 @@
+{
+  "creator": {
+    "id": "meta",
+    "name": "Meta AI",
+    "type": "company",
+    "aliases": ["Meta", "Meta Platforms, Inc.", "Meta AI", "FAIR"]
+  },
+  "notes": [
+    "Reviewed creator profile for Meta AI. Seeds are canonical Meta-owned URLs plus the official Meta Llama distribution org on Hugging Face; the tool describes and never fetches them."
+  ],
+  "terminology": {
+    "family": "The open-weight family is Llama, with generations such as Llama 3 and Llama 3.1 and sizes given in parameters (8B, 70B, 405B).",
+    "release": "A specific Llama model, e.g. Llama 3.1 70B Instruct. Base and Instruct are variants of a release.",
+    "distribution": "Llama weights are distributed under the Llama Community License; official weights are published to the meta-llama organization on Hugging Face.",
+    "serving": "Meta serves Llama through partners; the weights themselves are downloadable rather than served from a single first-party API."
+  },
+  "naming_rules": [
+    {
+      "subject": "family",
+      "rule": "The family is Llama. Record generation and parameter size as attributes; do not split sizes into separate families.",
+      "example": "Llama 3.1 70B is the 70B size of the Llama 3.1 generation."
+    },
+    {
+      "subject": "release",
+      "rule": "Record base vs instruction-tuned as a variant of the release, not as a separate family.",
+      "example": "Llama 3.1 70B Instruct is the Instruct variant of Llama 3.1 70B."
+    },
+    {
+      "subject": "size",
+      "rule": "Parameter counts use Meta's own suffix form (8B, 70B, 405B); keep them verbatim.",
+      "example": "Llama 3.1 405B"
+    }
+  ],
+  "source_catalog": [
+    {
+      "id": "meta-ai-blog",
+      "owner": "Meta",
+      "url": "https://ai.meta.com/blog/",
+      "kind": "official-announcement",
+      "allowed_paths": ["/blog/"],
+      "allowed_content_types": ["announcement", "research-post"],
+      "trust": "primary",
+      "trust_notes": "Meta AI's official blog; authoritative for Llama announcements and research.",
+      "verified_at": "2026-08-18",
+      "verification": "Official Meta AI blog under the Meta-owned ai.meta.com host."
+    },
+    {
+      "id": "meta-ai-site",
+      "owner": "Meta",
+      "url": "https://ai.meta.com/",
+      "kind": "official-docs",
+      "allowed_paths": ["/llama/", "/resources/"],
+      "allowed_content_types": ["model-reference", "resource"],
+      "trust": "primary",
+      "trust_notes": "Meta AI's site sections for Llama and resources; authoritative for model overviews and licensing.",
+      "verified_at": "2026-08-18",
+      "verification": "Llama and resource sections under the Meta-owned ai.meta.com host."
+    },
+    {
+      "id": "meta-llama-huggingface",
+      "owner": "Meta (via Hugging Face)",
+      "url": "https://huggingface.co/meta-llama",
+      "kind": "model-card",
+      "allowed_paths": ["/meta-llama"],
+      "allowed_content_types": ["model-card", "repository"],
+      "trust": "primary",
+      "trust_notes": "The official Meta Llama organization on Hugging Face; the canonical distribution point for Llama weights and model cards. Hosted by Hugging Face but the meta-llama org is Meta's own.",
+      "verified_at": "2026-08-18",
+      "verification": "Official meta-llama organization on huggingface.co, Meta's stated weight-distribution channel."
+    }
+  ],
+  "extraction_rules": {
+    "entity_kinds": ["organization", "family", "release", "product", "serving-platform", "deployment"],
+    "notes": [
+      "Attribute Llama releases to the single Llama family; record generation, size, and variant as attributes.",
+      "Take model cards from the official meta-llama Hugging Face org, not from re-uploads by third parties.",
+      "Record licensing (Llama Community License) from a Meta-owned page, not from a mirror."
+    ]
+  },
+  "ambiguities": [
+    {
+      "topic": "First-party vs mirrored weights",
+      "note": "Many third parties re-host Llama weights on Hugging Face and elsewhere.",
+      "guidance": "Treat only the meta-llama org as first-party; a mirror is a newly discovered source that must pass review."
+    },
+    {
+      "topic": "Base vs Instruct variant",
+      "note": "A single size ships as both a base and an instruction-tuned model.",
+      "guidance": "Record them as variants of one release; do not merge their benchmark numbers."
+    },
+    {
+      "topic": "No single serving API",
+      "note": "Meta distributes weights rather than serving Llama from one first-party API.",
+      "guidance": "Record third-party serving as separate deployments; do not invent a Meta-hosted serving platform."
+    }
+  ]
+}

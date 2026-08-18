@@ -1,0 +1,85 @@
+{
+  "creator": {
+    "id": "anthropic",
+    "name": "Anthropic",
+    "type": "company",
+    "aliases": ["Anthropic PBC", "Anthropic, PBC"]
+  },
+  "notes": [
+    "Reviewed creator profile for Anthropic. Seeds are canonical Anthropic-owned URLs; the tool describes and never fetches them."
+  ],
+  "terminology": {
+    "family": "Anthropic's model family is Claude, with generational lines such as Claude 3 and Claude 3.5 and tiers named Haiku, Sonnet, and Opus.",
+    "release": "A dated Claude model, e.g. claude-3-5-sonnet-20241022. The tier (Sonnet) and generation (3.5) together identify a line; the date identifies the release.",
+    "tier": "Haiku, Sonnet, and Opus are size/capability tiers within a generation, not separate families.",
+    "serving": "Claude is served through the Anthropic API and, separately, through Amazon Bedrock and Google Cloud Vertex AI."
+  },
+  "naming_rules": [
+    {
+      "subject": "family",
+      "rule": "The family is Claude. Record the generation and tier as attributes of the release, not as separate families.",
+      "example": "Claude 3.5 Sonnet is the Sonnet tier of the Claude 3.5 generation."
+    },
+    {
+      "subject": "release",
+      "rule": "The canonical release name is the dated API model id; the human name is an alias.",
+      "example": "canonicalName claude-3-5-sonnet-20241022, aliases [\"Claude 3.5 Sonnet\"]"
+    },
+    {
+      "subject": "tier",
+      "rule": "Preserve Anthropic's tier order Haiku < Sonnet < Opus; do not translate to another vendor's tier words.",
+      "example": "Opus is the largest tier."
+    }
+  ],
+  "source_catalog": [
+    {
+      "id": "anthropic-news",
+      "owner": "Anthropic",
+      "url": "https://www.anthropic.com/news",
+      "kind": "official-announcement",
+      "allowed_paths": ["/news"],
+      "allowed_content_types": ["announcement", "research-post"],
+      "trust": "primary",
+      "trust_notes": "Anthropic's official news feed on its primary marketing site.",
+      "verified_at": "2026-08-18",
+      "verification": "Canonical news index reachable from the anthropic.com home navigation."
+    },
+    {
+      "id": "anthropic-docs",
+      "owner": "Anthropic",
+      "url": "https://docs.anthropic.com/",
+      "kind": "official-docs",
+      "allowed_paths": ["/"],
+      "allowed_content_types": ["model-reference", "api-alias"],
+      "trust": "primary",
+      "trust_notes": "Anthropic's developer documentation; authoritative for API model identifiers and context-window limits.",
+      "verified_at": "2026-08-18",
+      "verification": "Developer documentation under the Anthropic-owned docs.anthropic.com host."
+    }
+  ],
+  "extraction_rules": {
+    "entity_kinds": ["organization", "family", "release", "product", "serving-platform", "deployment"],
+    "notes": [
+      "Attribute every Claude release to the single Claude family; record generation and tier as attributes.",
+      "Extract API model ids only from the docs, never inferred from a tier name.",
+      "Record Bedrock and Vertex serving as separate serving-platform / deployment entities."
+    ]
+  },
+  "ambiguities": [
+    {
+      "topic": "Generation vs tier",
+      "note": "\"Claude 3.5 Sonnet\" encodes both a generation (3.5) and a tier (Sonnet).",
+      "guidance": "Split them into structured attributes; do not treat the whole string as an opaque family name."
+    },
+    {
+      "topic": "Model-card location",
+      "note": "Anthropic publishes model cards, but their exact URL path has changed across generations.",
+      "guidance": "Only cite a model card at a URL confirmed from docs.anthropic.com; otherwise leave the card reference empty for a human."
+    },
+    {
+      "topic": "Third-party serving ids",
+      "note": "Bedrock and Vertex expose their own model ids that differ from Anthropic's.",
+      "guidance": "Keep the platform-specific id on the deployment, not on the release's canonical name."
+    }
+  ]
+}

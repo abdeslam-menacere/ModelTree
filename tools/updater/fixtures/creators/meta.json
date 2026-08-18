@@ -1,0 +1,123 @@
+{
+  "creator": {
+    "creator_id": "meta",
+    "creator_name": "Meta AI",
+    "entry_urls": ["https://www.example.com/meta/blog"],
+    "notes": "OFFLINE SYNTHETIC fixture. Hosts are RFC 2606 reserved domains and the model names are invented; nothing here is a real Meta fact. The real, reviewed Meta source seeds live in profiles/meta.json. This fixture only exercises the proposal pipeline: atomic extraction across entity kinds, a majority-approved newly discovered source, and an unknown left explicit."
+  },
+  "sources": [
+    {
+      "id": "meta-fixture-configured-blog",
+      "url": "https://www.example.com/meta/blog/ridge-1",
+      "title": "Introducing Ridge 1",
+      "publisher": "Meta AI",
+      "kind": "official-announcement",
+      "published_date": "2026-05-15",
+      "text": "Ridge 1 was released on 2026-05-15 as an open-weight model with downloadable weights.",
+      "claims": [
+        {
+          "id": "meta-fixture-ridge-1-release-date",
+          "entity_kind": "release",
+          "entity_id": "meta-ridge-1",
+          "field_path": "releaseDate",
+          "value": "2026-05-15",
+          "quote": "Ridge 1 was released on 2026-05-15",
+          "confidence": 0.95,
+          "verified_at": "2026-05-16",
+          "review": {
+            "decision": "accept",
+            "rationale": "Exact date on the creator's own configured blog."
+          }
+        },
+        {
+          "id": "meta-fixture-ridge-1-weights-downloadable",
+          "entity_kind": "release",
+          "entity_id": "meta-ridge-1",
+          "field_path": "license.weightsDownloadable",
+          "value": true,
+          "quote": "Ridge 1 was released on 2026-05-15 as an open-weight model with downloadable weights",
+          "confidence": 0.85,
+          "verified_at": "2026-05-16",
+          "review": {
+            "decision": "accept",
+            "rationale": "Downloadable weights stated on the configured page."
+          }
+        }
+      ]
+    },
+    {
+      "id": "meta-fixture-approved-discovery",
+      "url": "https://models.example.org/meta/ridge-1",
+      "title": "Ridge 1 model card",
+      "publisher": "Meta AI",
+      "kind": "model-card",
+      "published_date": "2026-05-15",
+      "text": "Ridge 1 has 70 billion total parameters.",
+      "source_reviews": {
+        "provenance": {
+          "decision": "accept",
+          "rationale": "The creator's official model card on its stated distribution channel."
+        },
+        "consistency": {
+          "decision": "accept",
+          "rationale": "Consistent with the configured blog announcement."
+        },
+        "editorial": {
+          "decision": "reject",
+          "rationale": "A distribution mirror deserves a human glance before it becomes a seed."
+        }
+      },
+      "claims": [
+        {
+          "id": "meta-fixture-ridge-1-total-parameters",
+          "entity_kind": "release",
+          "entity_id": "meta-ridge-1",
+          "field_path": "parameters.totalBillions",
+          "value": 70,
+          "quote": "Ridge 1 has 70 billion total parameters",
+          "confidence": 0.9,
+          "verified_at": "2026-05-16",
+          "review": {
+            "decision": "accept",
+            "rationale": "Stated directly on the model card."
+          }
+        }
+      ]
+    },
+    {
+      "id": "meta-fixture-unknown-active-params",
+      "url": "https://www.example.com/meta/blog/ridge-1-details",
+      "title": "Ridge 1 architecture notes",
+      "publisher": "Meta AI",
+      "kind": "official-announcement",
+      "published_date": "2026-05-17",
+      "text": "Ridge 1's active parameter count is not disclosed on this page.",
+      "claims": [
+        {
+          "id": "meta-fixture-ridge-1-active-parameters",
+          "entity_kind": "release",
+          "entity_id": "meta-ridge-1",
+          "field_path": "parameters.activeBillions",
+          "value": 17,
+          "quote": "Ridge 1's active parameter count is not disclosed on this page",
+          "confidence": 0.3,
+          "verified_at": "2026-05-17",
+          "reviews": {
+            "provenance": {
+              "decision": "accept",
+              "rationale": "The page is first-party."
+            },
+            "consistency": {
+              "decision": "needs-human-review",
+              "rationale": "The quote discloses no number; the value is unsupported."
+            },
+            "editorial": {
+              "decision": "needs-human-review",
+              "rationale": "Leave the active parameter count unknown rather than guess."
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

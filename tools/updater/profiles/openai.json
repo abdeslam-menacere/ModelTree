@@ -1,0 +1,85 @@
+{
+  "creator": {
+    "id": "openai",
+    "name": "OpenAI",
+    "type": "company",
+    "aliases": ["OpenAI, Inc.", "OpenAI OpCo, LLC"]
+  },
+  "notes": [
+    "Reviewed creator profile for OpenAI. Seeds are canonical OpenAI-owned URLs; the tool describes and never fetches them."
+  ],
+  "terminology": {
+    "family": "OpenAI groups models into families such as the GPT series (GPT-4, GPT-4o) and the o-series reasoning models (o1, o3).",
+    "release": "A specific, usually dated model version exposed through the API, e.g. gpt-4o-2024-08-06. The dateless name (gpt-4o) is an alias that points at the current dated snapshot.",
+    "product": "ChatGPT is a product built on these models and is a separate entity from any individual model release.",
+    "serving": "Models are served through the OpenAI API (platform.openai.com) and, separately, through Microsoft Azure OpenAI."
+  },
+  "naming_rules": [
+    {
+      "subject": "family",
+      "rule": "Use OpenAI's own family label (GPT series, o-series). Do not merge the GPT and o-series families.",
+      "example": "GPT-4o belongs to the GPT family; o3 belongs to the o-series."
+    },
+    {
+      "subject": "release",
+      "rule": "Prefer the dated snapshot as the canonical release name; record the dateless name as an API alias.",
+      "example": "canonicalName gpt-4o-2024-08-06, apiAliases [\"gpt-4o\"]"
+    },
+    {
+      "subject": "api-alias",
+      "rule": "API model identifiers are lowercase, hyphenated strings taken verbatim from the API reference.",
+      "example": "gpt-4o-mini"
+    }
+  ],
+  "source_catalog": [
+    {
+      "id": "openai-news",
+      "owner": "OpenAI",
+      "url": "https://openai.com/news/",
+      "kind": "official-announcement",
+      "allowed_paths": ["/news/", "/index/"],
+      "allowed_content_types": ["announcement", "research-post"],
+      "trust": "primary",
+      "trust_notes": "OpenAI's official announcement and research feed, linked from the openai.com global navigation.",
+      "verified_at": "2026-08-18",
+      "verification": "Canonical announcement index reachable from the openai.com home navigation."
+    },
+    {
+      "id": "openai-api-docs",
+      "owner": "OpenAI",
+      "url": "https://platform.openai.com/docs/models",
+      "kind": "official-docs",
+      "allowed_paths": ["/docs/"],
+      "allowed_content_types": ["model-reference", "api-alias"],
+      "trust": "primary",
+      "trust_notes": "The API model reference; authoritative for exposed model identifiers and context-window limits.",
+      "verified_at": "2026-08-18",
+      "verification": "Developer platform documentation under the openai.com-owned platform.openai.com host."
+    }
+  ],
+  "extraction_rules": {
+    "entity_kinds": ["organization", "family", "release", "product", "serving-platform", "deployment"],
+    "notes": [
+      "Extract API identifiers only from the API reference, never inferred from prose.",
+      "Keep ChatGPT (product) claims separate from GPT/o-series model releases.",
+      "A dateless model name is an apiAliases entry, not a release's canonicalName."
+    ]
+  },
+  "ambiguities": [
+    {
+      "topic": "GPT family vs o-series boundary",
+      "note": "Reasoning models (o1, o3) and GPT models are marketed together but are distinct families.",
+      "guidance": "Attribute each release to the family OpenAI names for it; do not invent a combined family."
+    },
+    {
+      "topic": "ChatGPT product vs GPT models",
+      "note": "\"ChatGPT\" is often used loosely to mean the underlying model.",
+      "guidance": "Record ChatGPT as a product; attribute capabilities to the specific model release only when the source does."
+    },
+    {
+      "topic": "Dated snapshot vs rolling alias",
+      "note": "gpt-4o may point at different dated snapshots over time.",
+      "guidance": "Treat the dated snapshot as the release; leave the alias to snapshot mapping to a human if the source is silent."
+    }
+  ]
+}

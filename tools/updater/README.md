@@ -40,8 +40,13 @@ copied into `web/src/data`.
 |---|---|
 | `run` | Run the workflow for one or more creators |
 | `creators` | List creators available in the fixtures |
+| `profiles` | List the version-controlled creator profiles and their trusted catalog |
 | `checkpoints` | List stored checkpoints for the creator workflow |
 | `resume` | Finish a checkpointed run from a checkpoint id |
+
+`profiles` reads `profiles/*.json` and prints one row per creator (id, name, and the
+number of catalogued sources); `profiles --json` emits the loaded library for scripting.
+It only reads profile data — it never runs the workflow or reaches a source.
 
 Useful `run` flags: `--creator` (repeatable), `--fixtures`, `--provider fixtures|foundry`,
 `--output`, `--checkpoint-dir`, `--run-id`, `--timestamp`, and the budget flags below.
@@ -112,7 +117,94 @@ an adjudication recording both what the panel decided (`semantic_decision`) and 
 binds (`decision`, plus `vetoed_by`). A split panel becomes a visible
 `reviewer-disagreement` conflict; disagreement is never averaged away or dropped.
 
-## Budgets
+## Creator profiles and the trusted source catalog
+
+The differences between creators are **data, not code**. There is one shared
+implementation; each creator is a version-controlled profile under `profiles/<id>.json`,
+loaded by `profiles.py` into a `CreatorProfile`. Nothing in Python branches on a
+creator id — a new creator is a new reviewed JSON file, not a new code path.
+
+A profile is a reviewed description of a creator and *which* sources are trusted for it.
+It never fetches anything: issue #73 owns a network provider. A profile only says what a
+source is and what may be taken from it.
+
+```jsonc
+{
+  "creator": {                    // identity, mapped to a CreatorRequest for a run
+    "id": "openai",               // stable slug; the profile file name
+    "name": "OpenAI",
+    "type": "company",
+    "aliases": ["OpenAI, Inc."]
+  },
+  "notes": ["free-text reviewer notes"],
+  "terminology": {                // how this creator uses family/release/product/serving
+    "family": "…", "release": "…", "product": "…", "serving": "…"
+  },
+  "naming_rules": [               // per-subject naming guidance, with an example
+    { "subject": "release", "rule": "…", "example": "…" }
+  ],
+  "source_catalog": [             // the trusted sources — see the table below
+    {
+      "id": "openai-news",
+      "owner": "OpenAI",
+      "url": "https://openai.com/news/",
+      "kind": "official-announcement",
+      "allowed_paths": ["/news/", "/index/"],
+      "allowed_content_types": ["announcement", "research-post"],
+      "trust": "primary",
+      "trust_notes": "why this source is trusted",
+      "verified_at": "2026-08-18",
+      "verification": "how the seed URL was confirmed"
+    }
+  ],
+  "extraction_rules": {           // what kinds of entity may be extracted, plus notes
+    "entity_kinds": ["organization", "family", "release", "product"],
+    "notes": ["extract API ids only from the API reference", "…"]
+  },
+  "ambiguities": [                // unknowns that stay explicit, never smoothed over
+    { "topic": "…", "note": "…", "guidance": "…" }
+  ]
+}
+```
+
+Each `source_catalog` entry is a `TrustedSource`:
+
+| Field | Meaning |
+|---|---|
+| `id` | stable id for the source within the profile |
+| `owner` | who publishes it |
+| `url` | the canonical seed URL (its origin + allowed paths define the source's scope) |
+| `kind` | one of `official-announcement`, `official-docs`, `model-card`, `repository`, `benchmark-owner`, `independent-evaluation` |
+| `allowed_paths` | path prefixes admitted for this source; a trusted origin reached by another path is treated as a discovery |
+| `allowed_content_types` | free-text labels for what the source is expected to carry |
+| `trust` | trust tier (e.g. `primary`) |
+| `trust_notes` | why it is trusted |
+| `verified_at` | date the seed URL was last confirmed |
+| `verification` | how it was confirmed |
+
+Seed URLs are **real** creator-owned URLs, kept deliberately conservative: where an exact
+sub-path was uncertain, the profile uses the canonical root the reviewer is sure of rather
+than a guessed deep link. No seed URL is fabricated to look complete.
+
+## The source scout
+
+`scout.py` turns *leads* into *sources for review* — never into evidence. A lead
+(`ScoutFinding`) is what a search returns: a URL, a title, a publisher, and maybe a
+snippet. A `SourceScout(profile)` triages each lead against the profile's catalog:
+
+* a lead from an origin and path the profile already trusts becomes a **configured**
+  source, usable without a discovery vote;
+* any other lead — including a trusted origin reached by an un-admitted path — becomes a
+  **newly discovered** `SourceProposal`, put forward for the same recorded 2-of-3 review
+  path described above. The scout proposes; a reviewer decides.
+
+**A search snippet is never evidence.** `ScoutFinding` and `SourceProposal` have nowhere
+to store an `Evidence` record; a snippet travels only as `search_snippet`, a
+human-readable reason to read the page. `snippet_is_never_evidence()` exists solely to
+make that rule executable and greppable — it always raises. Evidence is built only in the
+extraction stage, from the bytes a source actually serves after it is read.
+
+
 
 Per creator, configurable by flag or environment variable:
 
@@ -177,13 +269,16 @@ src/modeltree_updater/
   checkpoints.py   durable checkpoint storage and its type allow-list
   cli.py           local CLI
   safety.py        proposal-only output guard
+  profiles.py      shared loader for version-controlled creator profiles + catalog
+  scout.py         triages source leads into proposals; snippets are never evidence
   providers/       source, extraction, and review-panel boundaries
+profiles/          version-controlled creator profiles and their trusted source catalog
 fixtures/creators/ synthetic creator fixtures for offline runs and CI
 tests/             pytest suite; no network, no credentials
 ```
 
 ## Out of scope here
 
-Human publication approval, creator-specific prompts or profiles, public usage or
-recommendation UI, GitHub issue publication, scheduled execution, and production
-deployment.
+Human publication approval, public usage or recommendation UI, GitHub issue publication,
+scheduled execution, and production deployment. A network source provider is issue #73;
+this tool describes trusted sources but never fetches them.
