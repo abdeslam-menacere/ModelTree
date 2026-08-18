@@ -8,7 +8,9 @@ import {
   GitBranch,
 } from 'lucide-react';
 import SourceList from '../../components/SourceList.astro';
+import UsageEvidence from '../../components/UsageEvidence';
 import {
+  dataset,
   familyById,
   organizationById,
   releaseById,
@@ -24,6 +26,7 @@ import {
   statusLabel,
 } from '../../lib/format';
 import { modelStaticPaths } from '../../lib/routes';
+import { buildUsageEvidence } from '../../lib/usage-evidence';
 
 export const getStaticPaths = modelStaticPaths;
 
@@ -45,6 +48,10 @@ const sources = release.sourceIds
 const siblings = release.siblingIds
   .map((siblingId) => releaseById.get(siblingId))
   .filter((sibling): sibling is ModelRelease => Boolean(sibling));
+// The build date, so a figure verified long ago is marked stale in the output
+// rather than depending on when the page is read.
+const buildDate = new Date().toISOString().slice(0, 10);
+const usageEvidence = buildUsageEvidence(dataset, release.id, buildDate);
 const base = import.meta.env.BASE_URL;
 const homeHref = `${base}#explorer`;
 const passportHref = `${base}models/${release.slug}/`;
@@ -136,9 +143,11 @@ const passportHref = `${base}models/${release.slug}/`;
       </div>
     </section>
 
+    <UsageEvidence evidence={usageEvidence} releaseName={release.displayName} />
+
     <section class="passport-section sources-section" aria-labelledby="sources-title">
       <div class="section-heading">
-        <span class="section-number">04</span>
+        <span class="section-number">05</span>
         <div><span class="eyebrow">Provenance</span><h2 id="sources-title">Primary sources</h2></div>
       </div>
       <SourceList sources={sources} />

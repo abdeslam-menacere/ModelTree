@@ -1,4 +1,10 @@
-import { datasetSchema, type Dataset, type ModelRelease, type SourceReference } from './schema';
+import {
+  datasetSchema,
+  type Dataset,
+  type ModelRelease,
+  type SourceReference,
+  type UsageObservation,
+} from './schema';
 
 const PRIMARY_SOURCE_TYPES = new Set<SourceReference['type']>([
   'official-announcement',
@@ -6,6 +12,42 @@ const PRIMARY_SOURCE_TYPES = new Set<SourceReference['type']>([
   'model-card',
   'repository',
 ]);
+
+/**
+ * Two observations may only be discussed together when they counted the same
+ * thing, in the same unit, over the same population. Nothing is converted.
+ */
+export function comparabilityKey(observation: UsageObservation) {
+  return [
+    observation.metric,
+    observation.unit.trim().toLowerCase(),
+    observation.population.trim().toLowerCase(),
+  ].join('|');
+}
+
+/** The earliest and latest day a partial date could mean, so YYYY is not read as 1 January. */
+function earliestDay(value: string) {
+  const [year, month] = value.split('-');
+  return `${year}-${month ?? '01'}-01`;
+}
+
+function latestDay(value: string) {
+  const parts = value.split('-');
+  if (parts.length === 3) return value;
+  if (parts.length === 2) {
+    const [year, month] = parts.map(Number);
+    const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    return `${parts[0]}-${parts[1]}-${String(lastDay).padStart(2, '0')}`;
+  }
+  return `${parts[0]}-12-31`;
+}
+
+function publishersOf(sourceIds: string[], sourceById: Map<string, SourceReference>) {
+  return sourceIds
+    .map((sourceId) => sourceById.get(sourceId)?.publisher)
+    .filter((publisher): publisher is string => Boolean(publisher))
+    .map((publisher) => publisher.trim().toLowerCase());
+}
 
 export class DataValidationError extends Error {
   constructor(issues: string[]) {
@@ -283,6 +325,130 @@ export function validateDataset(input: unknown): Dataset {
     }
     if (event.date > event.verifiedAt) {
       issues.push(`release event ${event.id} was verified before it happened`);
+    }
+  }
+
+  addDuplicateIssues(issues, 'usage observation', 'id', data.usageObservations.map(({ id }) => id));
+  addDuplicateIssues(issues, 'usage synthesis', 'id', data.usageSyntheses.map(({ id }) => id));
+
+  const observationById = new Map(data.usageObservations.map((observation) => [observation.id, observation]));
+
+  for (const observation of data.usageObservations) {
+    const owner = `usage observation ${observation.id}`;
+    const release = releaseById.get(observation.releaseId);
+    if (!release) {
+      issues.push(`${owner}.releaseId references missing id "${observation.releaseId}"`);
+    }
+    addMissingReferences(issues, owner, 'sourceIds', observation.sourceIds, sourceIds);
+    addDuplicateIssues(issues, owner, 'sourceIds entry', observation.sourceIds);
+
+    if (earliestDay(observation.windowStart) > latestDay(observation.windowEnd)) {
+      issues.push(`${owner} measurement window ends before it starts`);
+    }
+    if (earliestDay(observation.windowEnd) > observation.verifiedAt) {
+      issues.push(`${owner} was verified before its measurement window ended`);
+    }
+    if (release && latestDay(observation.windowStart) < release.releaseDate) {
+      issues.push(`${owner} measures a window that precedes release ${release.id}`);
+    }
+
+    // Independence is a property of who published the evidence, not of how the
+    // record labels itself, so it is checked against the creating organization.
+    const creator = release ? organizationById.get(release.organizationId) : undefined;
+    const creatorNames = creator
+      ? new Set([creator.name.trim().toLowerCase(), creator.shortName.trim().toLowerCase()])
+      : new Set<string>();
+    const publishers = publishersOf(observation.sourceIds, sourceById);
+    const creatorPublished = publishers.some((publisher) => creatorNames.has(publisher));
+
+    if (observation.sourceCategory === 'creator-self-report') {
+      if (creator && !creatorPublished) {
+        issues.push(`${owner} is labelled a creator self-report but cites no source published by ${creator.name}`);
+      }
+      const hasPrimarySource = observation.sourceIds.some((sourceId) => {
+        const source = sourceById.get(sourceId);
+        return source ? PRIMARY_SOURCE_TYPES.has(source.type) : false;
+      });
+      if (!hasPrimarySource) issues.push(`${owner} is a creator self-report without a primary source`);
+    } else if (creator && creatorPublished) {
+      issues.push(`${owner} claims independent evidence but cites a source published by ${creator.name}`);
+    }
+
+    for (const conflictId of observation.conflictsWithIds) {
+      const counterpart = observationById.get(conflictId);
+      if (!counterpart) {
+        issues.push(`${owner}.conflictsWithIds references missing id "${conflictId}"`);
+        continue;
+      }
+      if (conflictId === observation.id) {
+        issues.push(`${owner}.conflictsWithIds cannot reference itself`);
+        continue;
+      }
+      if (counterpart.releaseId !== observation.releaseId) {
+        issues.push(`${owner} conflicts with ${conflictId}, which describes another release`);
+      }
+      // Different metrics, units, or populations are incomparable rather than
+      // contradictory; recording them as a conflict would imply a shared scale.
+      if (comparabilityKey(counterpart) !== comparabilityKey(observation)) {
+        issues.push(`${owner} conflicts with ${conflictId}, which measures an incomparable metric or population`);
+      }
+      if (!counterpart.conflictsWithIds.includes(observation.id)) {
+        issues.push(`${owner} conflict with ${conflictId} is not reciprocal`);
+      }
+    }
+  }
+
+  for (const synthesis of data.usageSyntheses) {
+    const owner = `usage synthesis ${synthesis.id}`;
+    if (!releaseIds.has(synthesis.releaseId)) {
+      issues.push(`${owner}.releaseId references missing id "${synthesis.releaseId}"`);
+    }
+    addDuplicateIssues(issues, owner, 'observationIds entry', synthesis.observationIds);
+
+    const cited = synthesis.observationIds
+      .map((observationId) => {
+        const observation = observationById.get(observationId);
+        if (!observation) issues.push(`${owner}.observationIds references missing id "${observationId}"`);
+        return observation;
+      })
+      .filter((observation): observation is UsageObservation => Boolean(observation));
+
+    for (const observation of cited) {
+      if (observation.releaseId !== synthesis.releaseId) {
+        issues.push(`${owner} cites observation ${observation.id}, which describes another release`);
+      }
+      if (synthesis.verifiedAt < observation.verifiedAt) {
+        issues.push(`${owner} was verified before observation ${observation.id}`);
+      }
+    }
+
+    const keys = new Set(cited.map(comparabilityKey));
+    if (keys.size > 1) {
+      issues.push(`${owner} combines incomparable metrics or populations, which cannot be synthesized`);
+    }
+
+    // The bar for a cross-source statement: two non-creator observations from
+    // two different publishers. One publisher restated twice is still one voice.
+    const independentPublishers = new Set(
+      cited
+        .filter((observation) => observation.sourceCategory !== 'creator-self-report')
+        .flatMap((observation) => publishersOf(observation.sourceIds, sourceById)),
+    );
+    const independentObservations = cited.filter(
+      (observation) => observation.sourceCategory !== 'creator-self-report',
+    );
+    if (independentObservations.length < 2 || independentPublishers.size < 2) {
+      issues.push(`${owner} requires at least two independent non-creator sources`);
+    }
+
+    const declaresConflict = cited.some((observation) => cited.some(
+      (other) => other.id !== observation.id && observation.conflictsWithIds.includes(other.id),
+    ));
+    if (synthesis.agreement === 'agreeing' && declaresConflict) {
+      issues.push(`${owner} reports agreement between observations that record a conflict`);
+    }
+    if (synthesis.agreement === 'conflicting' && !declaresConflict) {
+      issues.push(`${owner} reports a conflict that none of its observations records`);
     }
   }
 

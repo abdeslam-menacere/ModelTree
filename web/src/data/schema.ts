@@ -310,6 +310,70 @@ export const releaseEventSchema = z.object({
   verifiedAt: isoDate,
 });
 
+/**
+ * How a usage figure was produced. The category decides how the observation is
+ * labelled and whether it may support a cross-source synthesis; it is never a
+ * quality ranking of the source.
+ */
+export const usageSourceCategory = z.enum([
+  'creator-self-report',
+  'platform-operator-report',
+  'independent-measurement',
+  'developer-survey',
+  'community-signal',
+]);
+
+/** The coarse shape of what was counted. Never converted between kinds. */
+export const usageMetricKind = z.enum([
+  'active-users',
+  'developer-accounts',
+  'requests',
+  'tokens',
+  'downloads',
+  'deployments',
+  'repository-signal',
+  'survey-share',
+]);
+
+export const usageObservationSchema = z.object({
+  id: entityId,
+  releaseId: entityId,
+  metric: usageMetricKind,
+  // The metric as the source itself names it, so two figures are never merged
+  // because a coarse kind happens to match.
+  metricLabel: z.string().min(1),
+  unit: z.string().min(1),
+  // Exactly who or what was counted. Two observations of the same metric over
+  // different populations are separate facts, not two readings of one fact.
+  population: z.string().min(1),
+  value: z.number().optional(),
+  // Always required: the claim as stated, so a missing numeric value still
+  // renders something a reader can check against the source.
+  valueAsStated: z.string().min(1),
+  windowStart: partialDate,
+  windowEnd: partialDate,
+  methodology: z.string().min(1),
+  sourceCategory: usageSourceCategory,
+  sourceIds: z.array(entityId).min(1),
+  scope: z.string().min(1),
+  caveats: z.array(z.string().min(1)).min(1),
+  // Conflicting readings stay side by side; nothing picks a winner.
+  conflictsWithIds: z.array(entityId).default([]),
+  verifiedAt: isoDate,
+});
+
+export const usageSynthesisSchema = z.object({
+  id: entityId,
+  releaseId: entityId,
+  statement: z.string().min(1),
+  observationIds: z.array(entityId).min(2),
+  // A synthesis may report agreement or disagreement; it may not resolve it.
+  agreement: z.enum(['agreeing', 'conflicting']),
+  comparabilityNote: z.string().min(1),
+  caveats: z.array(z.string().min(1)).min(1),
+  verifiedAt: isoDate,
+});
+
 export const datasetSchema = z.object({
   sources: z.array(sourceSchema).min(1),
   organizations: z.array(organizationSchema).min(1),
@@ -322,6 +386,8 @@ export const datasetSchema = z.object({
   benchmarks: z.array(benchmarkDefinitionSchema).default([]),
   benchmarkResults: z.array(benchmarkResultSchema).default([]),
   releaseEvents: z.array(releaseEventSchema).default([]),
+  usageObservations: z.array(usageObservationSchema).default([]),
+  usageSyntheses: z.array(usageSynthesisSchema).default([]),
 });
 
 export type SourceReference = z.infer<typeof sourceSchema>;
@@ -335,4 +401,8 @@ export type PricingRecord = z.infer<typeof pricingRecordSchema>;
 export type BenchmarkDefinition = z.infer<typeof benchmarkDefinitionSchema>;
 export type BenchmarkResult = z.infer<typeof benchmarkResultSchema>;
 export type ReleaseEvent = z.infer<typeof releaseEventSchema>;
+export type UsageSourceCategory = z.infer<typeof usageSourceCategory>;
+export type UsageMetricKind = z.infer<typeof usageMetricKind>;
+export type UsageObservation = z.infer<typeof usageObservationSchema>;
+export type UsageSynthesis = z.infer<typeof usageSynthesisSchema>;
 export type Dataset = z.infer<typeof datasetSchema>;

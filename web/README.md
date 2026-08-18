@@ -37,6 +37,8 @@ the entity contracts, and `src/data/validate.ts` enforces cross-record rules.
 | `benchmarkDefinition` | What a benchmark measures, in which unit and direction |
 | `benchmarkResult` | One score for one exact release, with its evaluation setup |
 | `releaseEvent` | A dated lifecycle event such as announced or deprecated |
+| `usageObservation` | One source-qualified usage reading: metric, population, window, method, and caveats |
+| `usageSynthesis` | A cross-source statement over comparable observations from two independent publishers |
 | `source` | The primary reference and the date it was last checked |
 
 The build fails for duplicate identifiers or slugs, impossible or partial dates
@@ -44,6 +46,19 @@ that contradict their stated precision, broken references, non-reciprocal
 siblings, effective ranges that end before they start, prices with no rate,
 benchmark results whose unit contradicts their benchmark or that duplicate an
 existing setup, and featured releases without a primary source.
+
+Usage evidence carries its own rules. An observation is rejected when it cites
+no source, states no caveat, measures a window that closes after its own
+verification date or begins before the release existed, labels itself
+independent while citing a source published by the model's creator, or labels
+itself a creator self-report without one. Conflicts must be reciprocal and must
+describe the same metric, unit, and population; incomparable readings are not
+conflicts. A `usageSynthesis` is rejected unless it cites at least two
+non-creator observations from at least two different publishers over one
+comparability group, so a single-source observation can never become a
+cross-source statement. Nothing normalizes, weights, or ranks observations, and
+`usage-observations.json` and `usage-syntheses.json` stay empty until a real
+source supports an entry.
 
 Downloadable weights and OSI-approved licensing are separate fields. Claiming
 `accessType: "open-weight"` requires a licence that actually releases weights,
