@@ -16,6 +16,7 @@ from typing import Any, Mapping, Sequence
 
 __all__ = [
     "BudgetUsage",
+    "ClaimAdjudication",
     "ClaimCandidate",
     "ClaimDecision",
     "Conflict",
@@ -26,11 +27,17 @@ __all__ = [
     "EntityKind",
     "FailureKind",
     "FetchedPage",
+    "GateResult",
+    "GateStatus",
     "ProposalStatus",
+    "REVIEW_LENSES",
+    "ReviewLens",
     "ReviewVerdict",
     "RunFailure",
     "RunReport",
+    "SourceApproval",
     "SourceCandidate",
+    "SourceVerdict",
     "ValidationResult",
     "ValidationStatus",
     "WorkflowStage",
@@ -94,6 +101,36 @@ class ClaimDecision(str, Enum):
     ACCEPT = "accept"
     REJECT = "reject"
     NEEDS_HUMAN_REVIEW = "needs-human-review"
+    # A reviewer that could not judge — no opinion, and never counted as consent.
+    ABSTAIN = "abstain"
+
+
+class ReviewLens(str, Enum):
+    """The three semantic review jobs.
+
+    They are deliberately *different jobs*, not three copies of one reviewer: each
+    lens is given a different view of the run (see `review.py`) and answers a
+    different question, so agreement between two of them means something.
+    """
+
+    PROVENANCE = "provenance"
+    CONSISTENCY = "consistency"
+    EDITORIAL = "editorial"
+
+
+REVIEW_LENSES: tuple[ReviewLens, ...] = (
+    ReviewLens.PROVENANCE,
+    ReviewLens.CONSISTENCY,
+    ReviewLens.EDITORIAL,
+)
+
+
+class GateStatus(str, Enum):
+    """Outcome of one deterministic gate. `FAILED` is a veto, never a vote."""
+
+    PASSED = "passed"
+    FAILED = "failed"
+    NOT_APPLICABLE = "not-applicable"
 
 
 class ValidationStatus(str, Enum):
@@ -105,6 +142,9 @@ class ValidationStatus(str, Enum):
 class ConflictKind(str, Enum):
     CONTRADICTORY_VALUES = "contradictory-values"
     CONTRADICTORY_SOURCES = "contradictory-sources"
+    # The reviewers themselves disagreed. Recorded rather than resolved: a 2-of-3
+    # majority is a decision, not a consensus, and the dissent stays visible.
+    REVIEWER_DISAGREEMENT = "reviewer-disagreement"
 
 
 class ProposalStatus(str, Enum):
@@ -187,11 +227,94 @@ class ClaimCandidate(_Serialisable):
 
 @dataclass(frozen=True)
 class ReviewVerdict(_Serialisable):
+    """One reviewer's judgment of one claim. Never rewritten after the fact.
+
+    `lens` records *which job* produced it, so the three identities survive into
+    the bundle. `evidence_refs` names the evidence the reviewer actually cited.
+    """
+
     claim_id: str
     decision: ClaimDecision
     rationale: str
     reviewer: str
     reviewed_at: str
+    lens: ReviewLens | None = None
+    evidence_refs: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class SourceVerdict(_Serialisable):
+    """One reviewer's judgment of a newly discovered source."""
+
+    source_id: str
+    decision: ClaimDecision
+    rationale: str
+    reviewer: str
+    reviewed_at: str
+    lens: ReviewLens | None = None
+
+
+@dataclass(frozen=True)
+class GateResult(_Serialisable):
+    """One deterministic check against one subject.
+
+    A failed gate is a veto: no reviewer majority can overturn it. That asymmetry
+    is the point — semantic judgment is advisory, objective validation is binding.
+    """
+
+    gate: str
+    subject_kind: str  # "claim" | "source"
+    subject_id: str
+    status: GateStatus
+    issues: tuple[str, ...]
+    checked_at: str
+
+    @property
+    def failed(self) -> bool:
+        return self.status is GateStatus.FAILED
+
+
+@dataclass(frozen=True)
+class ClaimAdjudication(_Serialisable):
+    """How one claim was decided, showing the votes *and* the gates separately.
+
+    `semantic_decision` is what the reviewers alone concluded; `decision` is what
+    actually binds. When they differ, a deterministic gate vetoed the majority and
+    `vetoed_by` names it.
+    """
+
+    claim_id: str
+    decision: ClaimDecision
+    semantic_decision: ClaimDecision
+    accept_votes: int
+    reject_votes: int
+    abstain_votes: int
+    vetoed_by: tuple[str, ...]
+    unanimous: bool
+    rationale: str
+    verdicts: tuple[ReviewVerdict, ...]
+    decided_at: str
+
+
+@dataclass(frozen=True)
+class SourceApproval(_Serialisable):
+    """Whether a source may back claims in this run's proposal.
+
+    Sources the creator profile already configured are trusted without a vote. A
+    newly discovered source needs a 2-of-3 semantic majority — and still cannot be
+    used if a deterministic gate (URL safety, contract shape) failed.
+    """
+
+    source_id: str
+    newly_discovered: bool
+    approved: bool
+    accept_votes: int
+    reject_votes: int
+    abstain_votes: int
+    vetoed_by: tuple[str, ...]
+    rationale: str
+    verdicts: tuple[SourceVerdict, ...]
+    decided_at: str
 
 
 @dataclass(frozen=True)
@@ -262,13 +385,33 @@ class CreatorProposal(_Serialisable):
     # Which providers produced this proposal. Provenance is the artefact's point,
     # so it is recorded per creator and survives a resumed run.
     providers: Mapping[str, str] = field(default_factory=dict)
+    # Every deterministic check that ran, passed or failed, and how each claim was
+    # decided from the three lens verdicts plus those checks.
+    gates: tuple[GateResult, ...] = ()
+    adjudications: tuple[ClaimAdjudication, ...] = ()
+    source_approvals: tuple[SourceApproval, ...] = ()
 
     @property
     def accepted_claim_ids(self) -> tuple[str, ...]:
+        if self.adjudications:
+            return tuple(
+                adjudication.claim_id
+                for adjudication in self.adjudications
+                if adjudication.decision is ClaimDecision.ACCEPT
+            )
         return tuple(
             verdict.claim_id
             for verdict in self.verdicts
             if verdict.decision is ClaimDecision.ACCEPT
+        )
+
+    @property
+    def vetoed_claim_ids(self) -> tuple[str, ...]:
+        """Claims a deterministic gate rejected, whatever the reviewers voted."""
+        return tuple(
+            adjudication.claim_id
+            for adjudication in self.adjudications
+            if adjudication.vetoed_by
         )
 
 

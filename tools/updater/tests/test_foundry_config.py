@@ -21,15 +21,18 @@ from modeltree_updater.contracts import (
     EntityKind,
     Evidence,
     FetchedPage,
+    ReviewLens,
     SourceCandidate,
     SourceKind,
 )
 from modeltree_updater.providers.base import ProviderError
 from modeltree_updater.providers.foundry import (
     FoundryClaimExtractor,
-    FoundryClaimReviewer,
+    FoundryLensReviewer,
     FoundryConfig,
+    build_foundry_panel,
 )
+from modeltree_updater.review import build_claim_request
 
 CONFIG = FoundryConfig(
     endpoint="https://example-foundry.services.ai.azure.com/api/projects/demo",
@@ -71,8 +74,8 @@ class StubChatClient:
         return _respond()
 
 
-def _page() -> FetchedPage:
-    source = SourceCandidate(
+def _source() -> SourceCandidate:
+    return SourceCandidate(
         id="contoso-ai-release-notes",
         creator_id="contoso-ai",
         url="https://www.example.com/contoso-ai/releases",
@@ -81,8 +84,11 @@ def _page() -> FetchedPage:
         kind=SourceKind.OFFICIAL_DOCS,
         discovered_at=TIMESTAMP,
     )
+
+
+def _page() -> FetchedPage:
     return FetchedPage(
-        source=source,
+        source=_source(),
         text="Atlas 3 supports a 200,000 token context window.",
         retrieved_at=TIMESTAMP,
         content_hash="sha256:stub",
@@ -179,15 +185,43 @@ def test_extraction_awaits_the_client_and_attaches_evidence() -> None:
     assert result.claims[0].extractor == "foundry:extractor:gpt-4.1-mini"
 
 
+def _reviewer(client: object, lens: ReviewLens = ReviewLens.PROVENANCE) -> FoundryLensReviewer:
+    return FoundryLensReviewer(client, CONFIG, lens, timestamp=TIMESTAMP)
+
+
+def _request(lens: ReviewLens = ReviewLens.PROVENANCE):
+    claim = _claim()
+    return build_claim_request(
+        lens, creator=CREATOR, claim=claim, claims=[claim], sources=[_source()]
+    )
+
+
 def test_review_awaits_the_client_and_returns_a_verdict() -> None:
     client = StubChatClient({"decision": "accept", "rationale": "the page states it"})
-    reviewer = FoundryClaimReviewer(client, CONFIG, timestamp=TIMESTAMP)
 
-    result = asyncio.run(reviewer.review(CREATOR, _claim()))
+    result = asyncio.run(_reviewer(client).review_claim(_request()))
 
     assert client.awaited == 1
     assert result.verdict.decision is ClaimDecision.ACCEPT
-    assert result.verdict.reviewer == "foundry:reviewer:gpt-4.1-mini"
+    assert result.verdict.lens is ReviewLens.PROVENANCE
+    assert result.verdict.reviewer == "foundry:reviewer:provenance:gpt-4.1-mini"
+
+
+def test_each_lens_is_given_its_own_brief() -> None:
+    briefs = set()
+    for lens in ReviewLens:
+        client = StubChatClient({"decision": "abstain", "rationale": ""})
+        asyncio.run(_reviewer(client, lens).review_claim(_request(lens)))
+        briefs.add(client.calls[0][0].text)
+
+    # Three reviewers doing three different jobs, not one prompt sent three times.
+    assert len(briefs) == 3
+
+
+def test_the_panel_exposes_one_reviewer_per_lens() -> None:
+    panel = build_foundry_panel(StubChatClient({}), CONFIG, timestamp=TIMESTAMP)
+
+    assert [reviewer.lens for reviewer in panel.reviewers] == list(ReviewLens)
 
 
 def test_the_prompt_sends_message_objects_not_bare_strings() -> None:
@@ -203,10 +237,9 @@ def test_the_prompt_sends_message_objects_not_bare_strings() -> None:
 
 def test_an_unusable_response_is_retryable_and_reports_its_cost() -> None:
     client = StubChatClient("not json at all", tokens=77)
-    reviewer = FoundryClaimReviewer(client, CONFIG, timestamp=TIMESTAMP)
 
     with pytest.raises(ProviderError) as error:
-        asyncio.run(reviewer.review(CREATOR, _claim()))
+        asyncio.run(_reviewer(client).review_claim(_request()))
 
     assert error.value.retryable is True
     assert error.value.tokens_used == 77
@@ -214,9 +247,8 @@ def test_an_unusable_response_is_retryable_and_reports_its_cost() -> None:
 
 def test_an_unknown_decision_is_never_silently_accepted() -> None:
     client = StubChatClient({"decision": "probably", "rationale": "unsure"})
-    reviewer = FoundryClaimReviewer(client, CONFIG, timestamp=TIMESTAMP)
 
     with pytest.raises(ProviderError) as error:
-        asyncio.run(reviewer.review(CREATOR, _claim()))
+        asyncio.run(_reviewer(client).review_claim(_request()))
 
     assert "unknown decision" in str(error.value)

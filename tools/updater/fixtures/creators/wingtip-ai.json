@@ -1,0 +1,152 @@
+{
+  "creator": {
+    "creator_id": "wingtip-ai",
+    "creator_name": "Wingtip AI",
+    "entry_urls": ["https://www.example.com/wingtip-ai/releases"],
+    "notes": "Synthetic fixture creator exercising source approval: a configured source, a newly discovered source a majority approves, one it does not, and one that fails the deterministic URL gate no matter how the panel votes."
+  },
+  "sources": [
+    {
+      "id": "wingtip-ai-official-notes",
+      "url": "https://www.example.com/wingtip-ai/blog/beacon-1",
+      "title": "Beacon 1 release notes",
+      "publisher": "Wingtip AI",
+      "kind": "official-announcement",
+      "published_date": "2026-05-10",
+      "text": "Beacon 1 was released on 2026-05-10.",
+      "claims": [
+        {
+          "id": "wingtip-ai-beacon-1-release-date",
+          "entity_kind": "release",
+          "entity_id": "wingtip-beacon-1",
+          "field_path": "releaseDate",
+          "value": "2026-05-10",
+          "quote": "Beacon 1 was released on 2026-05-10",
+          "confidence": 0.95,
+          "verified_at": "2026-05-11",
+          "review": {
+            "decision": "accept",
+            "rationale": "Exact date on the creator's own configured release page."
+          }
+        }
+      ]
+    },
+    {
+      "id": "wingtip-ai-approved-discovery",
+      "url": "https://docs.example.org/wingtip-ai/beacon-1",
+      "title": "Beacon 1 documentation",
+      "publisher": "Wingtip AI",
+      "kind": "official-docs",
+      "published_date": "2026-05-10",
+      "text": "Beacon 1 accepts up to 32,000 tokens of context.",
+      "source_reviews": {
+        "provenance": {
+          "decision": "accept",
+          "rationale": "First-party documentation published by the creator."
+        },
+        "consistency": {
+          "decision": "accept",
+          "rationale": "Agrees with the configured release notes and adds detail."
+        },
+        "editorial": {
+          "decision": "reject",
+          "rationale": "A second origin for the same creator deserves a human look."
+        }
+      },
+      "claims": [
+        {
+          "id": "wingtip-ai-beacon-1-context-window",
+          "entity_kind": "release",
+          "entity_id": "wingtip-beacon-1",
+          "field_path": "contextWindow",
+          "value": 32000,
+          "quote": "Beacon 1 accepts up to 32,000 tokens of context",
+          "confidence": 0.9,
+          "verified_at": "2026-05-11",
+          "review": {
+            "decision": "accept",
+            "rationale": "Stated directly in the documentation."
+          }
+        }
+      ]
+    },
+    {
+      "id": "wingtip-ai-unapproved-discovery",
+      "url": "https://rumours.example.net/wingtip-ai/beacon-1",
+      "title": "What we hear about Beacon 1",
+      "publisher": "Rumour Mill",
+      "kind": "independent-evaluation",
+      "published_date": "2026-05-12",
+      "text": "Beacon 1 reportedly has a 200,000 token maximum output.",
+      "source_reviews": {
+        "provenance": {
+          "decision": "reject",
+          "rationale": "Commentary about the creator, not a primary publisher."
+        },
+        "consistency": {
+          "decision": "abstain",
+          "rationale": "Nothing to compare against; the figure appears nowhere else."
+        },
+        "editorial": {
+          "decision": "accept",
+          "rationale": "It is at least about this creator's own model."
+        }
+      },
+      "claims": [
+        {
+          "id": "wingtip-ai-beacon-1-maximum-output",
+          "entity_kind": "release",
+          "entity_id": "wingtip-beacon-1",
+          "field_path": "maximumOutput",
+          "value": 200000,
+          "quote": "Beacon 1 reportedly has a 200,000 token maximum output",
+          "confidence": 0.3,
+          "verified_at": "2026-05-13",
+          "review": {
+            "decision": "accept",
+            "rationale": "All three lenses read the quote as supporting the number."
+          }
+        }
+      ]
+    },
+    {
+      "id": "wingtip-ai-insecure-mirror",
+      "url": "http://mirror.example.org/wingtip-ai/beacon-1",
+      "title": "Beacon 1 mirror",
+      "publisher": "Wingtip AI",
+      "kind": "repository",
+      "published_date": "2026-05-10",
+      "text": "Beacon 1 is described as generally available.",
+      "source_reviews": {
+        "provenance": {
+          "decision": "accept",
+          "rationale": "Looks like a first-party mirror."
+        },
+        "consistency": {
+          "decision": "accept",
+          "rationale": "Consistent with the configured release notes."
+        },
+        "editorial": {
+          "decision": "accept",
+          "rationale": "About this creator's own model."
+        }
+      },
+      "claims": [
+        {
+          "id": "wingtip-ai-beacon-1-status",
+          "entity_kind": "release",
+          "entity_id": "wingtip-beacon-1",
+          "field_path": "status",
+          "value": "current",
+          "quote": "Beacon 1 is described as generally available",
+          "confidence": 0.7,
+          "verified_at": "2026-05-11",
+          "review": {
+            "decision": "accept",
+            "rationale": "Unanimous on the reading of the sentence; the plain-HTTP origin is not this lens's job."
+          }
+        }
+      ]
+    }
+  ]
+}

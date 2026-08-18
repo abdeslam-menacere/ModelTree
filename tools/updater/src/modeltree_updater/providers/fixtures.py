@@ -19,24 +19,35 @@ from ..contracts import (
     EntityKind,
     Evidence,
     FetchedPage,
+    ReviewLens,
     ReviewVerdict,
     SourceCandidate,
     SourceKind,
+    SourceVerdict,
     content_hash,
 )
-from .base import ExtractionResult, ProviderBundle, ProviderError, ReviewResult
+from ..review import ClaimReviewRequest, SourceReviewRequest
+from .base import (
+    ExtractionResult,
+    ProviderBundle,
+    ProviderError,
+    ReviewPanel,
+    ReviewResult,
+    SourceReviewResult,
+)
 
 __all__ = [
     "FixtureClaimExtractor",
-    "FixtureClaimReviewer",
+    "FixtureLensReviewer",
     "FixtureLibrary",
     "FixtureSourceProvider",
     "build_fixture_bundle",
+    "build_fixture_panel",
     "load_fixture_library",
 ]
 
-DEFAULT_TIMESTAMP = "2026-01-01T00:00:00+00:00"
-DEFAULT_DATE = "2026-01-01"
+DEFAULT_TIMESTAMP = "2026-06-01T00:00:00+00:00"
+DEFAULT_DATE = "2026-06-01"
 
 
 @dataclass(frozen=True)
@@ -204,38 +215,78 @@ class FixtureClaimExtractor:
         return ExtractionResult(claims=tuple(claims), tokens_used=tokens)
 
 
-class FixtureClaimReviewer:
-    name = "fixtures:reviewer"
+class FixtureLensReviewer:
+    """One semantic lens, answered from the fixture file.
+
+    A fixture claim may give one `review` block used by every lens, or a `reviews`
+    map keyed by lens name to make the three disagree deliberately. Sources take the
+    same shape under `source_review` / `source_reviews`.
+    """
 
     def __init__(
         self,
         library: FixtureLibrary,
+        lens: ReviewLens,
         *,
         timestamp: str = DEFAULT_TIMESTAMP,
         tokens_per_claim: int = 64,
     ) -> None:
         self._library = library
+        self.lens = lens
+        self.name = f"fixtures:reviewer:{lens.value}"
         self._timestamp = timestamp
         self._tokens_per_claim = tokens_per_claim
 
-    async def review(self, creator: CreatorRequest, claim: ClaimCandidate) -> ReviewResult:
-        raw = self._claim_document(creator.creator_id, claim.id)
-        review = raw.get("review", {})
-        if review.get("failure"):
-            raise ProviderError(
-                review["failure"].get("message", "fixture review failure"),
-                provider=self.name,
-                retryable=bool(review["failure"].get("retryable", False)),
-            )
-        decision = ClaimDecision(review.get("decision", ClaimDecision.NEEDS_HUMAN_REVIEW.value))
+    async def review_claim(self, request: ClaimReviewRequest) -> ReviewResult:
+        claim = request.claim
+        raw = self._claim_document(claim.creator_id, claim.id)
+        review = self._lens_review(raw, "review", "reviews")
+        self._maybe_fail(review)
         verdict = ReviewVerdict(
             claim_id=claim.id,
-            decision=decision,
+            decision=ClaimDecision(
+                review.get("decision", ClaimDecision.NEEDS_HUMAN_REVIEW.value)
+            ),
             rationale=review.get("rationale", "recorded by fixture reviewer"),
             reviewer=self.name,
             reviewed_at=self._timestamp,
+            lens=self.lens,
+            evidence_refs=tuple(evidence.source_id for evidence in request.evidence),
         )
         return ReviewResult(verdict=verdict, tokens_used=self._tokens_per_claim)
+
+    async def review_source(self, request: SourceReviewRequest) -> SourceReviewResult:
+        raw = self._source_document(request.creator.creator_id, request.source.id)
+        review = self._lens_review(raw, "source_review", "source_reviews")
+        self._maybe_fail(review)
+        verdict = SourceVerdict(
+            source_id=request.source.id,
+            # A fixture that says nothing about a newly discovered source abstains;
+            # silence is never read as approval.
+            decision=ClaimDecision(review.get("decision", ClaimDecision.ABSTAIN.value)),
+            rationale=review.get("rationale", "recorded by fixture reviewer"),
+            reviewer=self.name,
+            reviewed_at=self._timestamp,
+            lens=self.lens,
+        )
+        return SourceReviewResult(verdict=verdict, tokens_used=self._tokens_per_claim)
+
+    def _lens_review(
+        self, raw: Mapping[str, Any], single_key: str, per_lens_key: str
+    ) -> Mapping[str, Any]:
+        per_lens = raw.get(per_lens_key) or {}
+        if self.lens.value in per_lens:
+            return per_lens[self.lens.value]
+        return raw.get(single_key, {})
+
+    def _maybe_fail(self, review: Mapping[str, Any]) -> None:
+        failure = review.get("failure")
+        if failure:
+            raise ProviderError(
+                failure.get("message", "fixture review failure"),
+                provider=self.name,
+                retryable=bool(failure.get("retryable", False)),
+            )
 
     def _claim_document(self, creator_id: str, claim_id: str) -> Mapping[str, Any]:
         document = self._library.document(creator_id)
@@ -249,6 +300,27 @@ class FixtureClaimReviewer:
             retryable=False,
         )
 
+    def _source_document(self, creator_id: str, source_id: str) -> Mapping[str, Any]:
+        document = self._library.document(creator_id)
+        for source in document.get("sources", []):
+            if source["id"] == source_id:
+                return source
+        raise ProviderError(
+            f"fixture source {source_id!r} not found",
+            provider=self.name,
+            retryable=False,
+        )
+
+
+def build_fixture_panel(
+    library: FixtureLibrary, *, timestamp: str = DEFAULT_TIMESTAMP
+) -> ReviewPanel:
+    return ReviewPanel(
+        provenance=FixtureLensReviewer(library, ReviewLens.PROVENANCE, timestamp=timestamp),
+        consistency=FixtureLensReviewer(library, ReviewLens.CONSISTENCY, timestamp=timestamp),
+        editorial=FixtureLensReviewer(library, ReviewLens.EDITORIAL, timestamp=timestamp),
+    )
+
 
 def build_fixture_bundle(
     library: FixtureLibrary, *, timestamp: str = DEFAULT_TIMESTAMP
@@ -256,5 +328,5 @@ def build_fixture_bundle(
     return ProviderBundle(
         sources=FixtureSourceProvider(library, timestamp=timestamp),
         extractor=FixtureClaimExtractor(library, timestamp=timestamp),
-        reviewer=FixtureClaimReviewer(library, timestamp=timestamp),
+        panel=build_fixture_panel(library, timestamp=timestamp),
     )

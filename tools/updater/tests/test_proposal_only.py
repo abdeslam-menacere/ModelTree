@@ -9,6 +9,7 @@ from __future__ import annotations
 import ast
 import json
 import re
+import tokenize
 from io import StringIO
 from pathlib import Path
 
@@ -117,7 +118,7 @@ def test_the_cli_refuses_to_write_into_a_checkout_dataset(tmp_path, fixture_dir)
             "--output",
             str(dataset / "proposals"),
             "--timestamp",
-            "2026-01-01T00:00:00+00:00",
+            "2026-06-01T00:00:00+00:00",
         ],
         env={},
         stream=stream,
@@ -175,6 +176,44 @@ def test_a_proposal_written_by_the_cli_stays_a_proposal(tmp_path, fixture_dir) -
     # A proposal, not dataset shapes: claims carry verdicts and evidence, and the
     # file is nowhere near `web/src/data`.
     assert {"status", "claims", "verdicts", "validations", "providers"} <= set(written)
+    # The audit trail travels with it: gates, adjudications, and source approvals.
+    assert {"gates", "adjudications", "source_approvals"} <= set(written)
+
+
+def test_the_review_and_gate_modules_are_inside_the_proposal_only_scan() -> None:
+    """New modules must not quietly sit outside the boundary the scan enforces."""
+    scanned = {path.name for path in _sources()}
+
+    assert {"gates.py", "review.py"} <= scanned
+
+
+BYPASS_PATTERN = re.compile(r"skip[_-]gates|force[_-]gates|ignore[_-]gates|no[_-]gates")
+
+
+def _code_only(path: Path) -> str:
+    """Source with comments and string literals removed.
+
+    Prose *about* the absence of a bypass ("there is no --force") must not read as
+    a bypass, so only executable tokens are searched.
+    """
+    tokens = []
+    with tokenize.open(path) as handle:
+        for token in tokenize.generate_tokens(handle.readline):
+            if token.type in {tokenize.COMMENT, tokenize.STRING}:
+                continue
+            tokens.append(token.string)
+    return " ".join(tokens)
+
+
+def test_nothing_offers_a_way_to_bypass_a_deterministic_gate() -> None:
+    """A gate that can be waived is not a gate.
+
+    If a bypass is ever genuinely needed it belongs in branch protection, where it
+    is auditable, not in this tool.
+    """
+    offenders = [path.name for path in _sources() if BYPASS_PATTERN.search(_code_only(path))]
+
+    assert offenders == []
 
 
 def test_writing_proposals_into_the_web_app_is_refused(tmp_path) -> None:

@@ -5,34 +5,54 @@ bundle a proposal. Each one charges the creator's budget, records typed failures
 instead of swallowing them, and persists its stage state so the run can be
 checkpointed and resumed.
 
+The review stage runs three independent semantic lenses concurrently and records
+their votes. It does not decide anything: the bundling stage runs the deterministic
+hard gates and adjudicates, so an objective failure always beats a majority.
+
 Nothing in this module writes ModelTree data. The only output is a
 :class:`~modeltree_updater.contracts.CreatorProposal`.
 """
 
 from __future__ import annotations
 
+import asyncio
 import inspect
 from dataclasses import replace
-from typing import Any, Awaitable, Callable, Sequence, TypeVar
+from typing import Any, Awaitable, Callable, Mapping, Sequence, TypeVar
 
 from agent_framework import Executor, Workflow, WorkflowBuilder, WorkflowContext, handler
 
 from .budgets import BudgetExhausted, BudgetLedger, CreatorBudget
 from .conflicts import detect_conflicts
 from .contracts import (
+    REVIEW_LENSES,
+    ClaimAdjudication,
     ClaimCandidate,
     ClaimDecision,
+    ConflictKind,
     CreatorProposal,
     FailureKind,
+    GateResult,
     ProposalStatus,
+    ReviewLens,
     ReviewVerdict,
     RunFailure,
+    SourceApproval,
     SourceCandidate,
-    ValidationStatus,
+    SourceVerdict,
     WorkflowStage,
 )
+from .gates import run_claim_gates, run_source_gates
 from .messages import CreatorTask, DiscoveredSources, ExtractedClaims, ReviewedClaims
 from .providers.base import ProviderBundle, ProviderError
+from .review import (
+    adjudicate_claim,
+    approve_source,
+    build_claim_request,
+    build_source_request,
+    disagreement_conflicts,
+    is_newly_discovered,
+)
 from .validation import validate_claims
 
 __all__ = [
@@ -295,7 +315,12 @@ class ExtractClaimsExecutor(Executor):
 
 
 class ReviewClaimsExecutor(Executor):
-    """Stage 3 — judge each claim against its evidence, one claim at a time."""
+    """Stage 3 — run the three semantic lenses concurrently over sources and claims.
+
+    The lenses are independent jobs and never see each other's verdicts, so they are
+    dispatched together with `asyncio.gather`. Only the *votes* are collected here;
+    the decision is made in stage 4, where the deterministic gates can veto it.
+    """
 
     def __init__(self, settings: RunSettings, executor_id: str = "review-claims") -> None:
         super().__init__(id=executor_id)
@@ -308,36 +333,16 @@ class ReviewClaimsExecutor(Executor):
         settings = self._settings
         ledger = settings.ledger(message.budget_state)
         failures = list(message.failures)
-        verdicts: list[ReviewVerdict] = []
 
-        for claim in message.claims:
-            async def review(claim: ClaimCandidate = claim) -> Any:
-                result = await _provider_call(
-                    settings.providers.reviewer.review, message.creator, claim
-                )
-                ledger.charge_tokens(result.tokens_used)
-                return result
-
-            result = await _call_with_retry(
-                review,
-                stage=WorkflowStage.REVIEW,
-                ledger=ledger,
-                timestamp=settings.timestamp,
-                failures=failures,
-            )
-            if result is None:
-                # An unreviewed claim is never treated as accepted.
-                verdicts.append(
-                    ReviewVerdict(
-                        claim_id=claim.id,
-                        decision=ClaimDecision.NEEDS_HUMAN_REVIEW,
-                        rationale="review did not complete; see proposal failures",
-                        reviewer="modeltree-updater",
-                        reviewed_at=settings.timestamp,
-                    )
-                )
-                continue
-            verdicts.append(result.verdict)
+        newly_discovered = tuple(
+            source.id
+            for source in message.sources
+            if is_newly_discovered(source, message.creator)
+        )
+        source_verdicts = await self._review_sources(
+            message, ledger=ledger, failures=failures, newly_discovered=newly_discovered
+        )
+        verdicts = await self._review_claims(message, ledger=ledger, failures=failures)
 
         ctx.set_state("stage", WorkflowStage.REVIEW.value)
         ctx.set_state("verdicts_recorded", len(verdicts))
@@ -351,8 +356,167 @@ class ReviewClaimsExecutor(Executor):
                 failures=tuple(failures),
                 budget_state=ledger.state(),
                 providers=message.providers,
+                source_verdicts=tuple(source_verdicts),
+                newly_discovered_source_ids=newly_discovered,
             )
         )
+
+    async def _review_sources(
+        self,
+        message: ExtractedClaims,
+        *,
+        ledger: BudgetLedger,
+        failures: list[RunFailure],
+        newly_discovered: Sequence[str],
+    ) -> list[SourceVerdict]:
+        """Vote only on sources the creator profile did not already configure."""
+        settings = self._settings
+        verdicts: list[SourceVerdict] = []
+
+        for source in message.sources:
+            if source.id not in newly_discovered:
+                continue
+            requests = {
+                lens: build_source_request(
+                    lens,
+                    creator=message.creator,
+                    source=source,
+                    sources=message.sources,
+                )
+                for lens in REVIEW_LENSES
+            }
+            results = await self._run_panel(
+                "review_source",
+                requests,
+                ledger=ledger,
+                failures=failures,
+                timestamp=settings.timestamp,
+            )
+            for lens, result in zip(REVIEW_LENSES, results):
+                if result is None:
+                    verdicts.append(
+                        SourceVerdict(
+                            source_id=source.id,
+                            decision=ClaimDecision.ABSTAIN,
+                            rationale=(
+                                f"the {lens.value} review did not complete; see proposal "
+                                "failures. An absent reviewer never counts as consent."
+                            ),
+                            reviewer=_reviewer_name(settings, lens),
+                            reviewed_at=settings.timestamp,
+                            lens=lens,
+                        )
+                    )
+                    continue
+                verdicts.append(result.verdict)
+        return verdicts
+
+    async def _review_claims(
+        self,
+        message: ExtractedClaims,
+        *,
+        ledger: BudgetLedger,
+        failures: list[RunFailure],
+    ) -> list[ReviewVerdict]:
+        settings = self._settings
+        verdicts: list[ReviewVerdict] = []
+
+        for claim in message.claims:
+            requests = {
+                lens: build_claim_request(
+                    lens,
+                    creator=message.creator,
+                    claim=claim,
+                    claims=message.claims,
+                    sources=message.sources,
+                )
+                for lens in REVIEW_LENSES
+            }
+            results = await self._run_panel(
+                "review_claim",
+                requests,
+                ledger=ledger,
+                failures=failures,
+                timestamp=settings.timestamp,
+            )
+            for lens, result in zip(REVIEW_LENSES, results):
+                if result is None:
+                    # A lens that could not run abstains. It is never silently
+                    # treated as agreement, so a majority still needs two real votes.
+                    verdicts.append(
+                        ReviewVerdict(
+                            claim_id=claim.id,
+                            decision=ClaimDecision.ABSTAIN,
+                            rationale=(
+                                f"the {lens.value} review did not complete; see proposal "
+                                "failures. An absent reviewer never counts as consent."
+                            ),
+                            reviewer=_reviewer_name(settings, lens),
+                            reviewed_at=settings.timestamp,
+                            lens=lens,
+                        )
+                    )
+                    continue
+                verdicts.append(result.verdict)
+        return verdicts
+
+    async def _run_panel(
+        self,
+        method_name: str,
+        requests: Mapping[ReviewLens, Any],
+        *,
+        ledger: BudgetLedger,
+        failures: list[RunFailure],
+        timestamp: str,
+    ) -> list[Any]:
+        """Dispatch all three lenses at once, then settle the budget in lens order.
+
+        Charging after the gather keeps the ledger deterministic: three concurrent
+        calls would otherwise charge in whatever order they happened to finish. The
+        cost of that choice is bounded and explicit — one panel can overrun the token
+        budget by at most the two calls that were already in flight, and the overrun
+        is charged, recorded, and stops the next panel.
+        """
+        panel = self._settings.providers.panel
+
+        def dispatch(reviewer: Any, lens: ReviewLens) -> Callable[[], Awaitable[Any]]:
+            async def call() -> Any:
+                # The bound method is handed to the guard directly, so a provider
+                # written with `def` is still refused as a typed failure naming it.
+                return await _provider_call(getattr(reviewer, method_name), requests[lens])
+
+            return call
+
+        results = await asyncio.gather(
+            *(
+                _call_with_retry(
+                    dispatch(reviewer, lens),
+                    stage=WorkflowStage.REVIEW,
+                    ledger=ledger,
+                    timestamp=timestamp,
+                    failures=failures,
+                )
+                for lens, reviewer in zip(REVIEW_LENSES, panel.reviewers)
+            )
+        )
+
+        settled: list[Any] = []
+        for result in results:
+            if result is None:
+                settled.append(None)
+                continue
+            try:
+                ledger.charge_tokens(result.tokens_used)
+            except BudgetExhausted as error:
+                failures.append(_budget_failure(WorkflowStage.REVIEW, error, timestamp))
+                settled.append(None)
+                continue
+            settled.append(result)
+        return settled
+
+
+def _reviewer_name(settings: RunSettings, lens: ReviewLens) -> str:
+    return settings.providers.panel.reviewer_for(lens).name
 
 
 class BundleProposalExecutor(Executor):
@@ -373,37 +537,72 @@ class BundleProposalExecutor(Executor):
 
 
 def bundle_proposal(message: ReviewedClaims, settings: RunSettings) -> CreatorProposal:
-    """Assemble the proposal. Pure enough to unit test without a workflow run."""
+    """Assemble the proposal. Pure enough to unit test without a workflow run.
+
+    This is where semantic judgment meets objective validation. The gates run first
+    and independently of the votes; the adjudication then combines them with the
+    rule that a failed gate rejects the candidate no matter how the panel voted.
+    """
     timestamp = settings.timestamp
     checked_at = timestamp[:10]
     validations = validate_claims(message.claims, checked_at=checked_at)
-    invalid_ids = {
-        result.claim_id for result in validations if result.status is ValidationStatus.INVALID
-    }
 
-    verdicts: list[ReviewVerdict] = []
-    for verdict in message.verdicts:
-        if verdict.decision is ClaimDecision.ACCEPT and verdict.claim_id in invalid_ids:
-            # A claim the dataset would reject cannot stand as accepted.
-            verdicts.append(
-                replace(
-                    verdict,
-                    decision=ClaimDecision.NEEDS_HUMAN_REVIEW,
-                    rationale=(
-                        f"{verdict.rationale} (downgraded: claim failed dataset validation)"
-                    ),
-                )
+    gates: list[GateResult] = []
+    source_approvals: list[SourceApproval] = []
+    verdicts_by_source: dict[str, list[SourceVerdict]] = {}
+    for verdict in message.source_verdicts:
+        verdicts_by_source.setdefault(verdict.source_id, []).append(verdict)
+
+    for source in message.sources:
+        source_gates = run_source_gates(source, checked_at=checked_at)
+        gates.extend(source_gates)
+        source_approvals.append(
+            approve_source(
+                source,
+                verdicts_by_source.get(source.id, ()),
+                source_gates,
+                newly_discovered=source.id in message.newly_discovered_source_ids,
+                decided_at=checked_at,
             )
-        else:
-            verdicts.append(verdict)
+        )
+
+    approved_source_ids = frozenset(
+        approval.source_id for approval in source_approvals if approval.approved
+    )
+
+    verdicts_by_claim: dict[str, list[ReviewVerdict]] = {}
+    for verdict in message.verdicts:
+        verdicts_by_claim.setdefault(verdict.claim_id, []).append(verdict)
+
+    adjudications: list[ClaimAdjudication] = []
+    for claim in message.claims:
+        claim_gates = run_claim_gates(
+            claim,
+            creator=message.creator,
+            sources=message.sources,
+            claims=message.claims,
+            approved_source_ids=approved_source_ids,
+            checked_at=checked_at,
+        )
+        gates.extend(claim_gates)
+        adjudications.append(
+            adjudicate_claim(
+                claim.id,
+                verdicts_by_claim.get(claim.id, ()),
+                claim_gates,
+                decided_at=checked_at,
+            )
+        )
 
     accepted_ids = {
-        verdict.claim_id for verdict in verdicts if verdict.decision is ClaimDecision.ACCEPT
+        adjudication.claim_id
+        for adjudication in adjudications
+        if adjudication.decision is ClaimDecision.ACCEPT
     }
     conflicts = detect_conflicts(
         [claim for claim in message.claims if claim.id in accepted_ids],
         detected_at=checked_at,
-    )
+    ) + disagreement_conflicts(message.claims, adjudications, detected_at=checked_at)
 
     ledger = settings.ledger(message.budget_state)
     usage = ledger.snapshot()
@@ -420,6 +619,11 @@ def bundle_proposal(message: ReviewedClaims, settings: RunSettings) -> CreatorPr
             ),
         )
 
+    vetoed = [adjudication for adjudication in adjudications if adjudication.vetoed_by]
+    unapproved = [
+        approval for approval in source_approvals if not approval.approved
+    ]
+
     if message.failures and not message.sources and not message.claims:
         status = ProposalStatus.FAILED
     elif message.failures or conflicts:
@@ -432,8 +636,21 @@ def bundle_proposal(message: ReviewedClaims, settings: RunSettings) -> CreatorPr
         notes.append(
             "budget exhausted (" + ", ".join(usage.exhausted_by) + "); coverage is partial"
         )
-    if conflicts:
+    if any(conflict.kind is not ConflictKind.REVIEWER_DISAGREEMENT for conflict in conflicts):
         notes.append("sources disagree; conflicts are listed unresolved for a human decision")
+    if any(conflict.kind is ConflictKind.REVIEWER_DISAGREEMENT for conflict in conflicts):
+        notes.append(
+            "the review panel split on at least one claim; every lens verdict is recorded"
+        )
+    if vetoed:
+        notes.append(
+            f"{len(vetoed)} claim(s) rejected by a deterministic gate; a reviewer "
+            "majority cannot override one"
+        )
+    if unapproved:
+        notes.append(
+            f"{len(unapproved)} source(s) were not approved for use in this proposal"
+        )
 
     return CreatorProposal(
         run_id=message.run_id,
@@ -442,13 +659,16 @@ def bundle_proposal(message: ReviewedClaims, settings: RunSettings) -> CreatorPr
         generated_at=timestamp,
         sources=message.sources,
         claims=message.claims,
-        verdicts=tuple(verdicts),
+        verdicts=tuple(message.verdicts),
         validations=validations,
         conflicts=conflicts,
         budget=usage,
         failures=message.failures,
         notes=tuple(notes),
         providers=dict(message.providers or settings.providers.descriptor),
+        gates=tuple(gates),
+        adjudications=tuple(adjudications),
+        source_approvals=tuple(source_approvals),
     )
 
 

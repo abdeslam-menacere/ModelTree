@@ -38,7 +38,7 @@ def test_run_writes_proposal_files_without_network_or_credentials(
             "--run-id",
             "run-cli",
             "--timestamp",
-            "2026-01-01T00:00:00+00:00",
+            "2026-06-01T00:00:00+00:00",
         ]
     )
 
@@ -60,7 +60,7 @@ def test_run_prints_the_report_when_no_output_directory_is_given(fixture_dir) ->
             "--fixtures",
             str(fixture_dir),
             "--timestamp",
-            "2026-01-01T00:00:00+00:00",
+            "2026-06-01T00:00:00+00:00",
         ]
     )
     report = json.loads(output[: output.rindex("}") + 1])

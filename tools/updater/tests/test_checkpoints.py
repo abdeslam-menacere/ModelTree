@@ -127,7 +127,7 @@ def test_resuming_with_different_providers_is_refused(tmp_path, library, setting
         type(settings.providers)(
             sources=Impostor(),
             extractor=settings.providers.extractor,
-            reviewer=settings.providers.reviewer,
+            panel=settings.providers.panel,
         ),
         budget=settings.budget,
         timestamp=settings.timestamp,

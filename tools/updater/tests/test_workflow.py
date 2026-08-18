@@ -26,7 +26,7 @@ def _with_sources(settings, sources):
         type(settings.providers)(
             sources=sources,
             extractor=settings.providers.extractor,
-            reviewer=settings.providers.reviewer,
+            panel=settings.providers.panel,
         ),
         budget=settings.budget,
         timestamp=settings.timestamp,
@@ -69,23 +69,35 @@ def test_conflicting_sources_leave_the_proposal_incomplete(library, settings) ->
     assert any("sources disagree" in note for note in proposal.notes)
 
 
-def test_an_invalid_claim_is_downgraded_rather_than_accepted(library, settings) -> None:
-    proposal = _run("northwind-ai", library, settings)
+def test_a_unanimous_panel_cannot_outvote_a_deterministic_gate(library, settings) -> None:
+    """The northwind fixture has all three lenses accepting a month-precision date.
 
-    verdict = next(
-        item
-        for item in proposal.verdicts
-        if item.claim_id == "northwind-ai-harbor-2-release-date"
-    )
+    The dataset cannot store "March 2026", so schema validation and the date gate
+    both fail. The claim is rejected anyway — and the three accept verdicts survive
+    verbatim, because the disagreement between judgment and validation is the thing
+    a human needs to see.
+    """
+    proposal = _run("northwind-ai", library, settings)
+    claim_id = "northwind-ai-harbor-2-release-date"
+
+    verdicts = [item for item in proposal.verdicts if item.claim_id == claim_id]
     validation = next(
-        item
-        for item in proposal.validations
-        if item.claim_id == "northwind-ai-harbor-2-release-date"
+        item for item in proposal.validations if item.claim_id == claim_id
+    )
+    adjudication = next(
+        item for item in proposal.adjudications if item.claim_id == claim_id
     )
 
     assert validation.status is ValidationStatus.INVALID
-    assert verdict.decision is ClaimDecision.NEEDS_HUMAN_REVIEW
-    assert "downgraded" in verdict.rationale
+    assert [verdict.decision for verdict in verdicts] == [ClaimDecision.ACCEPT] * 3
+    assert adjudication.semantic_decision is ClaimDecision.ACCEPT
+    assert adjudication.accept_votes == 3
+    assert adjudication.decision is ClaimDecision.REJECT
+    assert "schema-validation" in adjudication.vetoed_by
+    assert "date-sanity" in adjudication.vetoed_by
+    assert claim_id not in proposal.accepted_claim_ids
+    assert claim_id in proposal.vetoed_claim_ids
+    assert any("cannot override" in note for note in proposal.notes)
 
 
 def test_provider_failures_are_typed_outcomes(library, settings) -> None:
@@ -248,7 +260,7 @@ def test_tokens_spent_by_a_failed_model_call_are_still_charged(library, settings
     replaced = type(settings.providers)(
         sources=settings.providers.sources,
         extractor=ExpensiveFailure(),
-        reviewer=settings.providers.reviewer,
+        panel=settings.providers.panel,
     )
     proposal = _run(
         "contoso-ai",
