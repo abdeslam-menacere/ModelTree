@@ -2,6 +2,7 @@ import {
   datasetSchema,
   type Dataset,
   type ModelRelease,
+  type Publisher,
   type SourceReference,
   type UsageObservation,
 } from './schema';
@@ -42,11 +43,36 @@ function latestDay(value: string) {
   return `${parts[0]}-12-31`;
 }
 
-function publishersOf(sourceIds: string[], sourceById: Map<string, SourceReference>) {
-  return sourceIds
-    .map((sourceId) => sourceById.get(sourceId)?.publisher)
-    .filter((publisher): publisher is string => Boolean(publisher))
-    .map((publisher) => publisher.trim().toLowerCase());
+/**
+ * Publisher identity, resolved through the ownership graph. `groupRoot` walks the
+ * `control.parentId` chain to the controlling company so that corporate siblings
+ * (an arm and its parent, or two arms of one parent) resolve to a single voice.
+ * Two publishers that merely share a display name have distinct ids and distinct
+ * roots, so they stay two voices.
+ */
+function buildPublisherIndex(publishers: Publisher[]) {
+  const byId = new Map(publishers.map((publisher) => [publisher.id, publisher]));
+  const rootCache = new Map<string, string>();
+
+  function groupRoot(publisherId: string): string {
+    const cached = rootCache.get(publisherId);
+    if (cached) return cached;
+
+    const seen = new Set<string>();
+    let current = publisherId;
+    while (true) {
+      if (seen.has(current)) break; // A cycle is reported separately.
+      seen.add(current);
+      const parent = byId.get(current)?.control?.parentId;
+      if (!parent || !byId.has(parent)) break;
+      current = parent;
+    }
+
+    rootCache.set(publisherId, current);
+    return current;
+  }
+
+  return { byId, groupRoot };
 }
 
 export class DataValidationError extends Error {
@@ -155,13 +181,53 @@ export function validateDataset(input: unknown): Dataset {
 
   const sourceById = new Map(data.sources.map((source) => [source.id, source]));
   const sourceIds = new Set(sourceById.keys());
+  const { byId: publisherById, groupRoot } = buildPublisherIndex(data.publishers);
+  const publisherIds = new Set(publisherById.keys());
   const organizationById = new Map(data.organizations.map((organization) => [organization.id, organization]));
   const familyById = new Map(data.families.map((family) => [family.id, family]));
   const releaseById = new Map(data.releases.map((release) => [release.id, release]));
 
   for (const source of data.sources) {
+    if (!publisherIds.has(source.publisherId)) {
+      issues.push(`source ${source.id}.publisherId references missing id "${source.publisherId}"`);
+    }
     if (source.publishedDate && source.publishedDate > source.lastCheckedDate) {
       issues.push(`source ${source.id} was checked before its published date`);
+    }
+  }
+
+  addDuplicateIssues(issues, 'publisher', 'id', data.publishers.map(({ id }) => id));
+  for (const publisher of data.publishers) {
+    const owner = `publisher ${publisher.id}`;
+    if (publisher.organizationId && !organizationById.has(publisher.organizationId)) {
+      issues.push(`${owner}.organizationId references missing id "${publisher.organizationId}"`);
+    }
+    if (publisher.control) {
+      const { parentId, sourceIds: controlSourceIds } = publisher.control;
+      if (parentId === publisher.id) {
+        issues.push(`${owner}.control.parentId cannot reference itself`);
+      } else if (!publisherIds.has(parentId)) {
+        issues.push(`${owner}.control.parentId references missing id "${parentId}"`);
+      }
+      // An ownership claim is a fact like any other: it must cite real sources.
+      addMissingReferences(issues, owner, 'control.sourceIds', controlSourceIds, sourceIds);
+      addDuplicateIssues(issues, owner, 'control.sourceIds entry', controlSourceIds);
+    }
+  }
+  // A cycle in the ownership chain would make the controlling company undefined.
+  for (const publisher of data.publishers) {
+    const seen = new Set<string>();
+    let current: string | undefined = publisher.id;
+    while (current) {
+      if (seen.has(current)) {
+        if (current === publisher.id) {
+          issues.push(`publisher ${publisher.id} is part of an ownership cycle`);
+        }
+        break;
+      }
+      seen.add(current);
+      const parent: string | undefined = publisherById.get(current)?.control?.parentId;
+      current = parent && publisherById.has(parent) ? parent : undefined;
     }
   }
 
@@ -352,14 +418,25 @@ export function validateDataset(input: unknown): Dataset {
       issues.push(`${owner} measures a window that precedes release ${release.id}`);
     }
 
-    // Independence is a property of who published the evidence, not of how the
-    // record labels itself, so it is checked against the creating organization.
+    // Independence is a property of who published the evidence. Publisher
+    // identity is resolved through the ownership graph, so a corporate sibling
+    // of the creator (an arm of the same parent company) is not independent,
+    // and two unrelated publishers that share a display name are not merged.
     const creator = release ? organizationById.get(release.organizationId) : undefined;
-    const creatorNames = creator
-      ? new Set([creator.name.trim().toLowerCase(), creator.shortName.trim().toLowerCase()])
+    const creatorRoots = creator
+      ? new Set(
+          data.publishers
+            .filter((publisher) => publisher.organizationId === creator.id)
+            .map((publisher) => groupRoot(publisher.id)),
+        )
       : new Set<string>();
-    const publishers = publishersOf(observation.sourceIds, sourceById);
-    const creatorPublished = publishers.some((publisher) => creatorNames.has(publisher));
+    const creatorPublished = observation.sourceIds.some((sourceId) => {
+      const publisherId = sourceById.get(sourceId)?.publisherId;
+      if (!publisherId) return false;
+      const publisher = publisherById.get(publisherId);
+      if (creator && publisher?.organizationId === creator.id) return true;
+      return creatorRoots.has(groupRoot(publisherId));
+    });
 
     if (observation.sourceCategory === 'creator-self-report') {
       if (creator && !creatorPublished) {
@@ -428,11 +505,18 @@ export function validateDataset(input: unknown): Dataset {
     }
 
     // The bar for a cross-source statement: two non-creator observations from
-    // two different publishers. One publisher restated twice is still one voice.
+    // two different publishers. Publishers are counted by their controlling
+    // company, so an arm and its parent (or two arms of one parent) are one
+    // voice, while two unrelated publishers sharing a name stay two.
     const independentPublishers = new Set(
       cited
         .filter((observation) => observation.sourceCategory !== 'creator-self-report')
-        .flatMap((observation) => publishersOf(observation.sourceIds, sourceById)),
+        .flatMap((observation) =>
+          observation.sourceIds
+            .map((sourceId) => sourceById.get(sourceId)?.publisherId)
+            .filter((publisherId): publisherId is string => Boolean(publisherId))
+            .map((publisherId) => groupRoot(publisherId)),
+        ),
     );
     const independentObservations = cited.filter(
       (observation) => observation.sourceCategory !== 'creator-self-report',

@@ -69,15 +69,15 @@ function ObservationCard({ view }: { view: UsageObservationView }) {
         <ul>{observation.caveats.map((caveat) => <li key={caveat}>{caveat}</li>)}</ul>
       </div>
       <ul className="usage-sources">
-        {view.sources.map((source) => (
+        {view.sources.map(({ source, publisherName }) => (
           <li key={source.id}>
             <a href={source.url}>
               {source.title}
               <ExternalLink size={14} strokeWidth={1.8} aria-hidden="true" />
-              <span className="visually-hidden"> — {source.publisher}, {source.type.replaceAll('-', ' ')}</span>
+              <span className="visually-hidden"> — {publisherName}, {source.type.replaceAll('-', ' ')}</span>
             </a>
             <span className="usage-source-meta">
-              {source.publisher} · {source.type.replaceAll('-', ' ')} · checked {formatDate(source.lastCheckedDate)}
+              {publisherName} · {source.type.replaceAll('-', ' ')} · checked {formatDate(source.lastCheckedDate)}
             </span>
           </li>
         ))}
