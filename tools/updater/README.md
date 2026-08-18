@@ -49,8 +49,9 @@ number of catalogued sources); `profiles --json` emits the loaded library for sc
 It only reads profile data — it never runs the workflow or reaches a source.
 
 Useful `run` flags: `--creator` (repeatable), `--fixtures`, `--provider fixtures|foundry`,
-`--output`, `--checkpoint-dir`, `--run-id`, `--timestamp`, and the budget flags below.
-`resume` takes `--provider` too, and refuses a provider the checkpoint did not record.
+`--sources fixtures|network`, `--output`, `--checkpoint-dir`, `--run-id`, `--timestamp`, and
+the budget flags below. `resume` takes `--provider` and `--sources` too, and refuses any
+provider the checkpoint did not record.
 
 Exit codes: `0` success, `2` usage or configuration error, `3` at least one creator failed.
 
@@ -206,6 +207,52 @@ extraction stage, from the bytes a source actually serves after it is read.
 
 
 
+## Fetching real pages (the network source provider)
+
+`--sources network` swaps the fixture reader for `NetworkSourceProvider`
+(`providers/network.py`), the one component in the package that reaches the
+network. It implements the *same* async `SourceProvider` protocol as the fixture
+provider — `discover` turns a creator's configured seed URLs (`entry_urls`) into
+candidates, `fetch` retrieves one — so the workflow, its per-creator budgets, and
+its typed-failure handling are unchanged. Fixtures remain the default; offline and
+CI runs are unaffected.
+
+For a live run the sources come from the network but the extractor and reviewers
+still come from `--provider` (use `--provider foundry` for a real run, since the
+fixture extractor only understands fixture pages):
+
+```bash
+modeltree-updater run --creator openai --sources network --provider foundry \
+  --output ../../out/proposals
+```
+
+What it guarantees, and how it behaves as an honest citizen:
+
+* **The content hash is of the exact bytes served** — not the decoded or
+  tag-stripped text the extractor reads — so `Evidence.content_hash` reproduces on
+  a second fetch of unchanged content and changes the moment the served bytes do.
+  `retrieved_at` is the real instant the bytes arrived.
+* **HTTPS-only, no private hosts, no bare IPs, no embedded credentials**, applied
+  *before* the request (the `url-safety` gate runs later, after the fetch) and
+  re-checked on every redirect hop so a redirect cannot smuggle a fetch to a
+  private host.
+* **`robots.txt` is respected** per host (an absent/4xx robots means no
+  restriction; an unavailable 429/5xx robots is a transient, retryable failure —
+  never a guess), requests are **rate-limited per host**, and the client
+  **identifies itself** truthfully in `User-Agent`.
+* **Every failure is a typed `ProviderError`.** Transient causes (connection
+  errors, timeouts, HTTP 429/5xx, unverifiable robots) are retryable and spend the
+  retry budget; deterministic ones (unsafe URL, robots disallow, unsupported
+  content type, oversized body, a 4xx) are not. No new silent failure mode.
+
+> **Status: exercised against a real page.** `tests/test_network_provider.py`
+> covers the whole provider offline with an injected opener; one test
+> (`@pytest.mark.network`) performs a real fetch and is **excluded from the
+> default run** (`addopts = -m 'not network'`). Run it explicitly with
+> `pytest -m network`.
+
+## Budgets
+
 Per creator, configurable by flag or environment variable:
 
 | Flag | Environment variable | Default |
@@ -272,6 +319,7 @@ src/modeltree_updater/
   profiles.py      shared loader for version-controlled creator profiles + catalog
   scout.py         triages source leads into proposals; snippets are never evidence
   providers/       source, extraction, and review-panel boundaries
+                   (fixtures, the Foundry models, and the network source fetcher)
 profiles/          version-controlled creator profiles and their trusted source catalog
 fixtures/creators/ synthetic creator fixtures for offline runs and CI
 tests/             pytest suite; no network, no credentials
@@ -280,5 +328,7 @@ tests/             pytest suite; no network, no credentials
 ## Out of scope here
 
 Human publication approval, public usage or recommendation UI, GitHub issue publication,
-scheduled execution, and production deployment. A network source provider is issue #73;
-this tool describes trusted sources but never fetches them.
+scheduled execution, and production deployment. Source *discovery* by search — turning an
+open-web query into leads — also stays out: the network provider fetches the seed URLs a
+creator profile already configures (see "Fetching real pages" above), it does not crawl or
+search.
