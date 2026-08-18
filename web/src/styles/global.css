@@ -912,6 +912,240 @@ main {
   font-size: 12px;
 }
 
+.usage-flags {
+  display: flex;
+  margin: 0 0 28px;
+  padding: 0;
+  list-style: none;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.usage-flags li {
+  padding: 6px 11px;
+  border: 1px solid var(--cp-border);
+  border-radius: 0.625rem;
+  background: var(--cp-surface);
+  color: var(--cp-text-muted);
+  font-size: 13px;
+}
+
+.usage-empty {
+  padding: 24px 25px;
+  border: 1px dashed var(--cp-border-strong);
+  border-radius: 0.625rem;
+  background: var(--cp-bg-elevated);
+}
+
+.usage-empty p {
+  margin: 0 0 12px;
+  max-width: 74ch;
+}
+
+.usage-empty p + p {
+  color: var(--cp-text-muted);
+}
+
+.usage-empty-headline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.usage-groups {
+  display: grid;
+  gap: 34px;
+}
+
+.usage-group {
+  padding-top: 26px;
+  border-top: 1px solid var(--cp-border);
+}
+
+.usage-group h3 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.usage-group h4 {
+  margin: 26px 0 12px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.usage-group-scope,
+.usage-synthesis-eligibility,
+.usage-comparability,
+.usage-source-meta {
+  margin: 8px 0 0;
+  color: var(--cp-text-muted);
+  font-size: 14px;
+  max-width: 78ch;
+}
+
+.usage-observations,
+.usage-sources,
+.usage-caveats ul,
+.usage-caveat-list,
+.usage-syntheses ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.usage-observation {
+  padding: 20px 22px;
+  margin-bottom: 16px;
+  border: 1px solid var(--cp-border);
+  border-left: 4px solid var(--cp-border-strong);
+  border-radius: 0.625rem;
+  background: var(--cp-surface);
+}
+
+/* Creator self-reports are set apart by their own heading, wording, and border
+   weight, so the distinction survives without colour. */
+.usage-observation:has(.usage-provenance-note) {
+  border-left-style: dashed;
+}
+
+.usage-provenance {
+  display: flex;
+  margin: 0 0 10px;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.usage-provenance-label {
+  padding: 4px 9px;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 0.4rem;
+  font-size: 12px;
+  font-weight: 720;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.usage-provenance-note,
+.usage-stale,
+.usage-conflict {
+  color: var(--cp-text-muted);
+  font-size: 13px;
+}
+
+.usage-statement {
+  margin: 0 0 16px;
+  font-family: "Newsreader Variable", Georgia, serif;
+  font-size: 21px;
+}
+
+.usage-facts {
+  display: grid;
+  margin: 0;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px 24px;
+}
+
+.usage-facts dt {
+  color: var(--cp-text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.usage-facts dd {
+  margin: 4px 0 0;
+  font-size: 15px;
+}
+
+.usage-stale,
+.usage-conflict {
+  display: flex;
+  margin-top: 6px;
+  align-items: center;
+  gap: 7px;
+}
+
+.usage-conflict {
+  margin: 16px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 0.5rem;
+}
+
+.usage-caveats h5 {
+  margin: 18px 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.usage-caveats li,
+.usage-caveat-list li {
+  margin-bottom: 5px;
+  padding-left: 16px;
+  position: relative;
+  color: var(--cp-text-muted);
+  font-size: 14px;
+}
+
+.usage-caveats li::before,
+.usage-caveat-list li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+}
+
+.usage-sources {
+  margin-top: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.usage-syntheses {
+  margin-bottom: 32px;
+}
+
+.usage-syntheses > ul > li {
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  border: 1px solid var(--cp-border);
+  border-radius: 0.625rem;
+  background: var(--cp-bg-elevated);
+}
+
+.usage-synthesis-kind {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 720;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.usage-methodology {
+  margin-top: 34px;
+  padding: 18px 22px;
+  border: 1px solid var(--cp-border);
+  border-radius: 0.625rem;
+}
+
+.usage-methodology summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.usage-methodology h3 {
+  margin: 20px 0 6px;
+  font-size: 16px;
+}
+
+.usage-methodology p {
+  margin: 0;
+  color: var(--cp-text-muted);
+  max-width: 78ch;
+}
+
 .tree-page {
   padding-bottom: 80px;
 }
