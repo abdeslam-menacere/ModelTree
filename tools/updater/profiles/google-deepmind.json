@@ -1,0 +1,97 @@
+{
+  "creator": {
+    "id": "google-deepmind",
+    "name": "Google DeepMind",
+    "type": "company",
+    "aliases": ["Google DeepMind", "DeepMind", "Google AI"]
+  },
+  "notes": [
+    "Reviewed creator profile for Google DeepMind. Seeds are canonical Google/DeepMind-owned URLs; the tool describes and never fetches them."
+  ],
+  "terminology": {
+    "family": "The flagship family is Gemini, with generations such as Gemini 1.5 and Gemini 2.0 and sizes such as Nano, Flash, Pro, and Ultra.",
+    "release": "A specific Gemini model exposed through an API, e.g. gemini-1.5-pro. Size (Pro) and generation (1.5) identify a line.",
+    "product": "The Gemini app (formerly Bard) is a product built on Gemini models and is a separate entity.",
+    "serving": "Gemini is served through the Gemini API on Google AI for developers and, separately, through Google Cloud Vertex AI."
+  },
+  "naming_rules": [
+    {
+      "subject": "family",
+      "rule": "The family is Gemini. Record generation and size as attributes; do not create a separate family per size.",
+      "example": "Gemini 1.5 Pro is the Pro size of the Gemini 1.5 generation."
+    },
+    {
+      "subject": "release",
+      "rule": "The canonical release name is the API model id; the marketing name is an alias.",
+      "example": "canonicalName gemini-1.5-pro, aliases [\"Gemini 1.5 Pro\"]"
+    },
+    {
+      "subject": "product",
+      "rule": "Keep the Gemini app (product) distinct from Gemini models; note the former-Bard alias on the product.",
+      "example": "Gemini app, aliases [\"Bard\"]"
+    }
+  ],
+  "source_catalog": [
+    {
+      "id": "deepmind-site",
+      "owner": "Google DeepMind",
+      "url": "https://deepmind.google/",
+      "kind": "official-announcement",
+      "allowed_paths": ["/discover/", "/models/", "/technologies/"],
+      "allowed_content_types": ["announcement", "research-post"],
+      "trust": "primary",
+      "trust_notes": "Google DeepMind's official site; authoritative for DeepMind model announcements and research.",
+      "verified_at": "2026-08-18",
+      "verification": "Canonical DeepMind site reachable at the Google-owned deepmind.google host."
+    },
+    {
+      "id": "google-keyword-ai",
+      "owner": "Google",
+      "url": "https://blog.google/technology/ai/",
+      "kind": "official-announcement",
+      "allowed_paths": ["/technology/ai/"],
+      "allowed_content_types": ["announcement"],
+      "trust": "primary",
+      "trust_notes": "Google's official blog (The Keyword), AI section; used for Gemini product and launch announcements.",
+      "verified_at": "2026-08-18",
+      "verification": "AI section of the Google-owned blog.google host."
+    },
+    {
+      "id": "google-ai-gemini-docs",
+      "owner": "Google",
+      "url": "https://ai.google.dev/gemini-api/docs",
+      "kind": "official-docs",
+      "allowed_paths": ["/gemini-api/docs"],
+      "allowed_content_types": ["model-reference", "api-alias"],
+      "trust": "primary",
+      "trust_notes": "Gemini API developer documentation; authoritative for exposed model ids and limits.",
+      "verified_at": "2026-08-18",
+      "verification": "Developer documentation under the Google-owned ai.google.dev host."
+    }
+  ],
+  "extraction_rules": {
+    "entity_kinds": ["organization", "family", "release", "product", "serving-platform", "deployment"],
+    "notes": [
+      "Attribute Gemini releases to the single Gemini family; record generation and size as attributes.",
+      "Keep the Gemini app (product) separate from Gemini model releases.",
+      "Record Vertex AI serving as a separate serving-platform / deployment entity."
+    ]
+  },
+  "ambiguities": [
+    {
+      "topic": "DeepMind vs Google branding",
+      "note": "Models are announced under both Google DeepMind and the broader Google brand.",
+      "guidance": "Attribute the model to Google DeepMind as creator; cite whichever official Google-owned page carried the claim."
+    },
+    {
+      "topic": "Gemini app vs Gemini model",
+      "note": "\"Gemini\" names both the product (formerly Bard) and the model family.",
+      "guidance": "Record the app as a product and the models as releases; do not conflate them."
+    },
+    {
+      "topic": "Generation vs size",
+      "note": "\"Gemini 1.5 Pro\" encodes a generation (1.5) and a size (Pro).",
+      "guidance": "Split them into structured attributes rather than one opaque name."
+    }
+  ]
+}
