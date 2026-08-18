@@ -33,6 +33,108 @@
     "lastCheckedDate": "2026-08-14"
   },
   {
+    "id": "openai-gpt-5-6-launch",
+    "url": "https://openai.com/index/gpt-5-6/",
+    "title": "GPT-5.6: Frontier intelligence that scales with your ambition",
+    "type": "official-announcement",
+    "publisherId": "openai",
+    "publishedDate": "2026-07-09",
+    "lastCheckedDate": "2026-08-18",
+    "notes": "General-availability launch of the GPT-5.6 family (Sol, Terra, Luna). The article body states launch-day API pricing per 1M tokens of Sol $5 input / $30 output, Terra $2.50 input / $15 output, and Luna $1 input / $6 output. A banner dated 2026-07-30 records that Luna's price was later cut by ~80% and Terra's by ~20%, and links to openai-gpt-5-6-price-update; the body table therefore reflects the pre-cut prices."
+  },
+  {
+    "id": "openai-gpt-5-6-price-update",
+    "url": "https://openai.com/index/advancing-the-price-performance-frontier-with-gpt-5-6/",
+    "title": "Advancing the price-performance frontier with GPT-5.6",
+    "type": "official-announcement",
+    "publisherId": "openai",
+    "publishedDate": "2026-07-30",
+    "lastCheckedDate": "2026-08-18",
+    "notes": "Records the 2026-07-30 price cut: from that date, API pricing per 1M tokens is Terra $2 input / $12 output and Luna $0.20 input / $1.20 output, while Sol pricing is unchanged. This supersedes the launch-day prices in openai-gpt-5-6-launch; both states are kept explicit."
+  },
+  {
+    "id": "openai-gpt-5-6-sol-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
+    "title": "GPT-5.6 Sol model documentation",
+    "type": "official-docs",
+    "publisherId": "openai",
+    "lastCheckedDate": "2026-08-18",
+    "notes": "Lists text and image input, text output, a 1,050,000-token context window, 128,000 max output tokens, and a 2026-02-16 knowledge cutoff. States the gpt-5.6 alias routes to Sol and that Sol roughly corresponds to the unsuffixed tier of earlier GPT-5 families."
+  },
+  {
+    "id": "openai-gpt-5-6-terra-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+    "title": "GPT-5.6 Terra model documentation",
+    "type": "official-docs",
+    "publisherId": "openai",
+    "lastCheckedDate": "2026-08-18",
+    "notes": "Lists text and image input, text output, a 1,050,000-token context window, 128,000 max output tokens, and a 2026-02-16 knowledge cutoff. States Terra roughly corresponds to the mini tier of earlier GPT-5 families."
+  },
+  {
+    "id": "openai-gpt-5-6-luna-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+    "title": "GPT-5.6 Luna model documentation",
+    "type": "official-docs",
+    "publisherId": "openai",
+    "lastCheckedDate": "2026-08-18",
+    "notes": "Lists text and image input, text output, a 1,050,000-token context window, 128,000 max output tokens, and a 2026-02-16 knowledge cutoff. States Luna roughly corresponds to the nano tier of earlier GPT-5 families."
+  },
+  {
+    "id": "openai-gpt-5-6-sol-preview",
+    "url": "https://openai.com/index/previewing-gpt-5-6-sol/",
+    "title": "Previewing GPT-5.6 Sol: a next-generation model",
+    "type": "official-announcement",
+    "publisherId": "openai",
+    "publishedDate": "2026-06-26",
+    "lastCheckedDate": "2026-08-18",
+    "notes": "Limited preview of GPT-5.6 Sol ahead of the 2026-07-09 general-availability launch."
+  },
+  {
+    "id": "openai-gpt-5-5-announcement",
+    "url": "https://openai.com/index/introducing-gpt-5-5/",
+    "title": "Introducing GPT-5.5",
+    "type": "official-announcement",
+    "publisherId": "openai",
+    "publishedDate": "2026-04-23",
+    "lastCheckedDate": "2026-08-18"
+  },
+  {
+    "id": "openai-gpt-5-5-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-5.5",
+    "title": "GPT-5.5 model documentation",
+    "type": "official-docs",
+    "publisherId": "openai",
+    "lastCheckedDate": "2026-08-18",
+    "notes": "Default snapshot gpt-5.5-2026-04-23. Lists text and image input, text output, a 1,050,000-token context window, 128,000 max output tokens, and a 2025-12-01 knowledge cutoff."
+  },
+  {
+    "id": "openai-gpt-5-4-announcement",
+    "url": "https://openai.com/index/introducing-gpt-5-4/",
+    "title": "Introducing GPT-5.4",
+    "type": "official-announcement",
+    "publisherId": "openai",
+    "publishedDate": "2026-03-05",
+    "lastCheckedDate": "2026-08-18"
+  },
+  {
+    "id": "openai-gpt-5-4-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-5.4",
+    "title": "GPT-5.4 model documentation",
+    "type": "official-docs",
+    "publisherId": "openai",
+    "lastCheckedDate": "2026-08-18",
+    "notes": "Default snapshot gpt-5.4-2026-03-05. Lists text and image input, text output, a 1,050,000-token context window, 128,000 max output tokens, and a 2025-08-31 knowledge cutoff."
+  },
+  {
+    "id": "openai-gpt-5-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-5",
+    "title": "GPT-5 model documentation",
+    "type": "official-docs",
+    "publisherId": "openai",
+    "lastCheckedDate": "2026-08-18",
+    "notes": "Default snapshot gpt-5-2025-08-07, which is the basis for the recorded release date. OpenAI labels GPT-5 its previous model and recommends GPT-5.6. Lists text and image input, text output, a 400,000-token context window, 128,000 max output tokens, and a 2024-09-30 knowledge cutoff."
+  },
+  {
     "id": "anthropic-models-overview",
     "url": "https://platform.claude.com/docs/en/about-claude/models/overview",
     "title": "Models overview",
