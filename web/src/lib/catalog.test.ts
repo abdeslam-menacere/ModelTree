@@ -53,9 +53,10 @@ function makeDataset(overrides: Record<string, unknown> = {}) {
       url: 'https://example.com/a',
       title: 'Announcement',
       type: 'official-announcement',
-      publisher: 'Example',
+      publisherId: 'example',
       lastCheckedDate: '2026-01-01',
     }],
+    publishers: [{ id: 'example', name: 'Example' }],
     organizations: [
       {
         id: 'alpha',

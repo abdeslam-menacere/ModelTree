@@ -4,6 +4,9 @@ import { validateDataset } from './validate';
 export const dataset = validateDataset(rawDataset);
 
 export const sourceById = new Map(dataset.sources.map((source) => [source.id, source]));
+export const publisherById = new Map(
+  dataset.publishers.map((publisher) => [publisher.id, publisher]),
+);
 export const organizationById = new Map(
   dataset.organizations.map((organization) => [organization.id, organization]),
 );

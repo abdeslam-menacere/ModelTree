@@ -74,10 +74,41 @@ export const sourceSchema = z.object({
     'benchmark-owner',
     'independent-evaluation',
   ]),
-  publisher: z.string().min(1),
+  // Publisher identity is an entity reference, never a free-text label: two
+  // corporate siblings must resolve to one voice and two unrelated publishers
+  // that share a display name must stay distinct. The string lived here before;
+  // it now lives on the referenced publisher.
+  publisherId: entityId,
   publishedDate: isoDate.optional(),
   lastCheckedDate: isoDate,
   notes: z.string().min(1).optional(),
+});
+
+/**
+ * Who stands behind a source. A publisher is its own entity, separate from the
+ * creating organization, the product, and the serving platform. Independence
+ * and the two-independent-publisher synthesis bar are decided on publisher
+ * identity, so a publisher must be resolvable to a stable id and, where it is an
+ * arm of a larger company, to that company.
+ */
+export const publisherSchema = z.object({
+  id: entityId,
+  name: z.string().min(1),
+  // The creator organization this publisher is the official voice of, when it
+  // is one. Independent analysts, platform operators, and holding companies
+  // leave it unset. This replaces the old name/shortName string comparison.
+  organizationId: entityId.optional(),
+  // An ownership/control fact: this publisher is an arm of a parent publisher
+  // (the controlling company). Sibling arms of one parent collapse to a single
+  // voice. Ownership is a claim like any other in this repository, so it
+  // carries its own primary sources and a verification date.
+  control: z
+    .object({
+      parentId: entityId,
+      sourceIds: z.array(entityId).min(1),
+      verifiedAt: isoDate,
+    })
+    .optional(),
 });
 
 export const organizationSchema = z.object({
@@ -376,6 +407,7 @@ export const usageSynthesisSchema = z.object({
 
 export const datasetSchema = z.object({
   sources: z.array(sourceSchema).min(1),
+  publishers: z.array(publisherSchema).default([]),
   organizations: z.array(organizationSchema).min(1),
   families: z.array(familySchema).min(1),
   releases: z.array(releaseSchema).min(1),
@@ -391,6 +423,7 @@ export const datasetSchema = z.object({
 });
 
 export type SourceReference = z.infer<typeof sourceSchema>;
+export type Publisher = z.infer<typeof publisherSchema>;
 export type Organization = z.infer<typeof organizationSchema>;
 export type ModelFamily = z.infer<typeof familySchema>;
 export type ModelRelease = z.infer<typeof releaseSchema>;

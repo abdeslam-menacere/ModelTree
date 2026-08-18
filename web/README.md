@@ -40,6 +40,7 @@ the entity contracts, and `src/data/validate.ts` enforces cross-record rules.
 | `usageObservation` | One source-qualified usage reading: metric, population, window, method, and caveats |
 | `usageSynthesis` | A cross-source statement over comparable observations from two independent publishers |
 | `source` | The primary reference and the date it was last checked |
+| `publisher` | Who a source speaks for, plus an optional sourced, dated controlling-company link |
 
 The build fails for duplicate identifiers or slugs, impossible or partial dates
 that contradict their stated precision, broken references, non-reciprocal
@@ -54,11 +55,42 @@ independent while citing a source published by the model's creator, or labels
 itself a creator self-report without one. Conflicts must be reciprocal and must
 describe the same metric, unit, and population; incomparable readings are not
 conflicts. A `usageSynthesis` is rejected unless it cites at least two
-non-creator observations from at least two different publishers over one
+non-creator observations from at least two independent publishers over one
 comparability group, so a single-source observation can never become a
 cross-source statement. Nothing normalizes, weights, or ranks observations, and
 `usage-observations.json` and `usage-syntheses.json` stay empty until a real
 source supports an entry.
+
+### Sources and publishers
+
+Every `source` names a `publisherId`, and every id must resolve to an entry in
+`src/data/publishers.json`. A publisher is a first-class entity, not a free-text
+label, so two sources are "the same voice" only when they point at the same
+publisher id — never because their names happen to match. Give genuinely
+distinct organizations distinct ids even if they share a display name; the name
+is for readers, the id decides independence.
+
+A publisher carries two optional links, and the difference matters:
+
+- `organizationId` marks the publisher as a creator's own voice. Set it only
+  when the publisher *is* that creator (for example, publisher `openai` →
+  organization `openai`). A source from such a publisher can never count as
+  independent evidence about that creator's releases.
+- `control` records that the publisher is owned or controlled by another
+  publisher: `{ parentId, sourceIds, verifiedAt }`. Ownership is itself a fact,
+  so `sourceIds` must cite at least one primary source for the relationship and
+  `verifiedAt` dates when it was checked, exactly like any other claim here.
+  Independence and the two-publisher synthesis bar both resolve a publisher to
+  the root of its `control` chain, so sibling arms of one company (for example
+  `google` and `google-cloud`, both under `alphabet`) count as a single voice.
+
+Only encode a `control` link you can cite and are confident is true. If you are
+unsure whether two publishers are related, leave them unlinked: an honest gap
+that treats them as independent is preferable to an invented ownership claim.
+The controlling company lives only in `publishers.json`; do not add it to
+`organizations` unless it is itself a model creator, since organizations feed the
+creator listings.
+
 
 Downloadable weights and OSI-approved licensing are separate fields. Claiming
 `accessType: "open-weight"` requires a licence that actually releases weights,

@@ -1,5 +1,6 @@
 import families from './families.json';
 import organizations from './organizations.json';
+import publishers from './publishers.json';
 import releases from './releases.json';
 import sources from './sources.json';
 // Empty until an observation can be tied to a real source that states its
@@ -9,6 +10,7 @@ import usageSyntheses from './usage-syntheses.json';
 
 export const rawDataset = {
   sources,
+  publishers,
   organizations,
   families,
   releases,

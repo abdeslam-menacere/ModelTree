@@ -1,0 +1,49 @@
+[
+  {
+    "id": "openai",
+    "name": "OpenAI",
+    "organizationId": "openai"
+  },
+  {
+    "id": "anthropic",
+    "name": "Anthropic",
+    "organizationId": "anthropic"
+  },
+  {
+    "id": "meta",
+    "name": "Meta",
+    "organizationId": "meta"
+  },
+  {
+    "id": "alphabet",
+    "name": "Alphabet"
+  },
+  {
+    "id": "google",
+    "name": "Google",
+    "control": {
+      "parentId": "alphabet",
+      "sourceIds": ["alphabet-about"],
+      "verifiedAt": "2026-08-15"
+    }
+  },
+  {
+    "id": "google-cloud",
+    "name": "Google Cloud",
+    "control": {
+      "parentId": "google",
+      "sourceIds": ["google-cloud-about"],
+      "verifiedAt": "2026-08-15"
+    }
+  },
+  {
+    "id": "google-deepmind",
+    "name": "Google DeepMind",
+    "organizationId": "google-deepmind",
+    "control": {
+      "parentId": "alphabet",
+      "sourceIds": ["google-deepmind-about", "alphabet-about"],
+      "verifiedAt": "2026-08-15"
+    }
+  }
+]

@@ -1,6 +1,7 @@
 import { comparabilityKey } from '../data/validate';
 import type {
   Dataset,
+  Publisher,
   SourceReference,
   UsageObservation,
   UsageSynthesis,
@@ -13,9 +14,15 @@ import type {
  */
 export const STALE_AFTER_DAYS = 180;
 
+/** A cited source paired with the display name of the publisher behind it. */
+export interface UsageSourceView {
+  source: SourceReference;
+  publisherName: string;
+}
+
 export interface UsageObservationView {
   observation: UsageObservation;
-  sources: SourceReference[];
+  sources: UsageSourceView[];
   isCreatorSelfReport: boolean;
   provenanceLabel: string;
   isStale: boolean;
@@ -72,24 +79,52 @@ export function daysSince(verifiedAt: string, today: string) {
 }
 
 /**
- * Publishers behind non-creator observations. Two restatements from the same
- * publisher are one voice, so publishers are counted rather than observations.
+ * The controlling company behind a publisher. Walks the ownership chain so an
+ * arm and its parent resolve to one voice; a display-name collision does not,
+ * because identity is the id, not the name.
+ */
+function publisherVoice(
+  publisherId: string,
+  publisherById: Map<string, Publisher>,
+): { key: string; name: string } {
+  const seen = new Set<string>();
+  let current = publisherId;
+  while (true) {
+    if (seen.has(current)) break;
+    seen.add(current);
+    const parent = publisherById.get(current)?.control?.parentId;
+    if (!parent || !publisherById.has(parent)) break;
+    current = parent;
+  }
+  const name = publisherById.get(current)?.name
+    ?? publisherById.get(publisherId)?.name
+    ?? publisherId;
+  return { key: current, name };
+}
+
+/**
+ * Publishers behind non-creator observations, counted by controlling company.
+ * Two restatements from the same publisher (or an arm and its parent) are one
+ * voice; two independent publishers stay two even if their names collide.
  */
 export function independentPublishers(
   observations: UsageObservation[],
   sourceById: Map<string, SourceReference>,
+  publisherById: Map<string, Publisher>,
 ) {
-  const publishers = new Set<string>();
+  const voices = new Map<string, string>();
 
   for (const observation of observations) {
     if (observation.sourceCategory === 'creator-self-report') continue;
     for (const sourceId of observation.sourceIds) {
-      const publisher = sourceById.get(sourceId)?.publisher;
-      if (publisher) publishers.add(publisher.trim());
+      const publisherId = sourceById.get(sourceId)?.publisherId;
+      if (!publisherId) continue;
+      const { key, name } = publisherVoice(publisherId, publisherById);
+      voices.set(key, name);
     }
   }
 
-  return [...publishers].sort();
+  return [...voices.values()].sort();
 }
 
 /**
@@ -100,20 +135,23 @@ export function independentPublishers(
 export function canSynthesize(
   observations: UsageObservation[],
   sourceById: Map<string, SourceReference>,
+  publisherById: Map<string, Publisher>,
 ) {
   const nonCreator = observations.filter(
     (observation) => observation.sourceCategory !== 'creator-self-report',
   );
 
-  return nonCreator.length >= 2 && independentPublishers(nonCreator, sourceById).length >= 2;
+  return nonCreator.length >= 2
+    && independentPublishers(nonCreator, sourceById, publisherById).length >= 2;
 }
 
 export function buildUsageEvidence(
-  dataset: Pick<Dataset, 'sources' | 'usageObservations' | 'usageSyntheses'>,
+  dataset: Pick<Dataset, 'sources' | 'publishers' | 'usageObservations' | 'usageSyntheses'>,
   releaseId: string,
   today: string,
 ): UsageEvidenceView {
   const sourceById = new Map(dataset.sources.map((source) => [source.id, source]));
+  const publisherById = new Map(dataset.publishers.map((publisher) => [publisher.id, publisher]));
   const observations = dataset.usageObservations.filter(
     (observation) => observation.releaseId === releaseId,
   );
@@ -128,7 +166,11 @@ export function buildUsageEvidence(
       observation,
       sources: observation.sourceIds
         .map((sourceId) => sourceById.get(sourceId))
-        .filter((source): source is SourceReference => Boolean(source)),
+        .filter((source): source is SourceReference => Boolean(source))
+        .map((source) => ({
+          source,
+          publisherName: publisherById.get(source.publisherId)?.name ?? source.publisherId,
+        })),
       isCreatorSelfReport: observation.sourceCategory === 'creator-self-report',
       provenanceLabel: usageProvenanceLabel(observation.sourceCategory),
       isStale: daysSinceVerified > STALE_AFTER_DAYS,
@@ -157,8 +199,8 @@ export function buildUsageEvidence(
 
   for (const group of groups.values()) {
     const groupObservations = group.observations.map(({ observation }) => observation);
-    group.independentPublishers = independentPublishers(groupObservations, sourceById);
-    group.canSynthesize = canSynthesize(groupObservations, sourceById);
+    group.independentPublishers = independentPublishers(groupObservations, sourceById, publisherById);
+    group.canSynthesize = canSynthesize(groupObservations, sourceById, publisherById);
     group.hasConflict = group.observations.some((view) => view.conflictsWith.length > 0);
   }
 

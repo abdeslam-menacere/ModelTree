@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { rawDataset } from '../data/raw';
 import { validateDataset } from '../data/validate';
-import type { SourceReference, UsageObservation } from '../data/schema';
+import type { Publisher, SourceReference, UsageObservation } from '../data/schema';
 import {
   buildUsageEvidence,
   canSynthesize,
@@ -12,13 +12,25 @@ import {
 
 const TODAY = '2026-08-18';
 
+// Two publishers deliberately share the display name "Analyst House" but have
+// distinct ids, so they must count as two independent voices.
+const publishers: Publisher[] = [
+  { id: 'example-creator', name: 'Example Creator' },
+  { id: 'router-platform', name: 'Router Platform' },
+  { id: 'analyst-house', name: 'Analyst House' },
+  { id: 'analyst-house-a', name: 'Analyst House' },
+  { id: 'analyst-house-b', name: 'Analyst House' },
+];
+
+const publisherById = new Map(publishers.map((publisher) => [publisher.id, publisher]));
+
 const sources: SourceReference[] = [
   {
     id: 'creator-blog',
     url: 'https://example.com/creator',
     title: 'Creator usage update',
     type: 'official-announcement',
-    publisher: 'Example Creator',
+    publisherId: 'example-creator',
     lastCheckedDate: '2026-08-01',
   },
   {
@@ -26,7 +38,7 @@ const sources: SourceReference[] = [
     url: 'https://example.com/platform',
     title: 'Platform routing report',
     type: 'independent-evaluation',
-    publisher: 'Router Platform',
+    publisherId: 'router-platform',
     lastCheckedDate: '2026-08-01',
   },
   {
@@ -34,7 +46,7 @@ const sources: SourceReference[] = [
     url: 'https://example.com/analyst',
     title: 'Analyst measurement',
     type: 'independent-evaluation',
-    publisher: 'Analyst House',
+    publisherId: 'analyst-house',
     lastCheckedDate: '2026-08-01',
   },
   {
@@ -42,7 +54,23 @@ const sources: SourceReference[] = [
     url: 'https://example.com/analyst-2',
     title: 'Analyst measurement, second quarter',
     type: 'independent-evaluation',
-    publisher: 'Analyst House',
+    publisherId: 'analyst-house',
+    lastCheckedDate: '2026-08-01',
+  },
+  {
+    id: 'analyst-a-report',
+    url: 'https://example.com/analyst-a',
+    title: 'First analyst house measurement',
+    type: 'independent-evaluation',
+    publisherId: 'analyst-house-a',
+    lastCheckedDate: '2026-08-01',
+  },
+  {
+    id: 'analyst-b-report',
+    url: 'https://example.com/analyst-b',
+    title: 'Second analyst house measurement',
+    type: 'independent-evaluation',
+    publisherId: 'analyst-house-b',
     lastCheckedDate: '2026-08-01',
   },
 ];
@@ -73,7 +101,7 @@ function observation(overrides: Partial<UsageObservation> = {}): UsageObservatio
 
 describe('synthesis thresholds', () => {
   it('refuses a synthesis from a single non-creator observation', () => {
-    expect(canSynthesize([observation()], sourceById)).toBe(false);
+    expect(canSynthesize([observation()], sourceById, publisherById)).toBe(false);
   });
 
   it('refuses a synthesis when two observations share one publisher', () => {
@@ -82,8 +110,21 @@ describe('synthesis thresholds', () => {
       observation({ id: 'observation-b', sourceIds: ['analyst-second-report'] }),
     ];
 
-    expect(independentPublishers(observations, sourceById)).toEqual(['Analyst House']);
-    expect(canSynthesize(observations, sourceById)).toBe(false);
+    expect(independentPublishers(observations, sourceById, publisherById)).toEqual(['Analyst House']);
+    expect(canSynthesize(observations, sourceById, publisherById)).toBe(false);
+  });
+
+  it('counts two independent publishers that share a display name as two', () => {
+    const observations = [
+      observation({ id: 'observation-a', sourceIds: ['analyst-a-report'] }),
+      observation({ id: 'observation-b', sourceIds: ['analyst-b-report'] }),
+    ];
+
+    expect(independentPublishers(observations, sourceById, publisherById)).toEqual([
+      'Analyst House',
+      'Analyst House',
+    ]);
+    expect(canSynthesize(observations, sourceById, publisherById)).toBe(true);
   });
 
   it('refuses a synthesis when creator self-reports make up the count', () => {
@@ -96,7 +137,7 @@ describe('synthesis thresholds', () => {
       }),
     ];
 
-    expect(canSynthesize(observations, sourceById)).toBe(false);
+    expect(canSynthesize(observations, sourceById, publisherById)).toBe(false);
   });
 
   it('allows a synthesis from two independent publishers', () => {
@@ -105,14 +146,14 @@ describe('synthesis thresholds', () => {
       observation({ id: 'observation-b', sourceIds: ['analyst-report'] }),
     ];
 
-    expect(canSynthesize(observations, sourceById)).toBe(true);
+    expect(canSynthesize(observations, sourceById, publisherById)).toBe(true);
   });
 });
 
 describe('buildUsageEvidence', () => {
   it('reports the no-data state when nothing is recorded', () => {
     const view = buildUsageEvidence(
-      { sources, usageObservations: [], usageSyntheses: [] },
+      { sources, publishers, usageObservations: [], usageSyntheses: [] },
       'release-a',
       TODAY,
     );
@@ -126,6 +167,7 @@ describe('buildUsageEvidence', () => {
     const view = buildUsageEvidence(
       {
         sources,
+        publishers,
         usageObservations: [
           observation({ id: 'observation-a' }),
           observation({
@@ -156,6 +198,7 @@ describe('buildUsageEvidence', () => {
     const view = buildUsageEvidence(
       {
         sources,
+        publishers,
         usageObservations: [
           observation({
             id: 'observation-a',
@@ -183,6 +226,7 @@ describe('buildUsageEvidence', () => {
     const view = buildUsageEvidence(
       {
         sources,
+        publishers,
         usageObservations: [
           observation({
             id: 'observation-a',

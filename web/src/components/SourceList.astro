@@ -1,6 +1,7 @@
 ---
 import { ExternalLink } from 'lucide-react';
 import type { SourceReference } from '../data/schema';
+import { publisherById } from '../data/dataset';
 import { formatDate } from '../lib/format';
 
 interface Props {
@@ -21,7 +22,7 @@ const { sources } = Astro.props;
         </a>
       </div>
       <p>
-        {source.publisher}
+        {publisherById.get(source.publisherId)?.name ?? source.publisherId}
         {source.publishedDate ? ` | Published ${formatDate(source.publishedDate)}` : ''}
         {` | Checked ${formatDate(source.lastCheckedDate)}`}
       </p>
