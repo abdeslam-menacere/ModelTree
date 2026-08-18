@@ -4,6 +4,16 @@ import { comparabilityKey, validateDataset } from './validate';
 import type { UsageObservation, UsageSynthesis } from './schema';
 
 const RELEASE_ID = 'openai-gpt-4-1-2025-04-14';
+// A real Google DeepMind release, for the corporate-sibling reproduction.
+const DEEPMIND_RELEASE_ID = 'google-gemini-2-5-pro';
+
+// Publishers injected alongside EXTRA_SOURCES. "OpenAI", "Google", and
+// "Google Cloud" already exist in the seed (publishers.json); only the
+// third-party analyst and router voices are new here.
+const EXTRA_PUBLISHERS = [
+  { id: 'router-platform', name: 'Router Platform' },
+  { id: 'analyst-house', name: 'Analyst House' },
+];
 
 const EXTRA_SOURCES = [
   {
@@ -11,7 +21,7 @@ const EXTRA_SOURCES = [
     url: 'https://example.com/creator-usage',
     title: 'Creator usage update',
     type: 'official-announcement',
-    publisher: 'OpenAI',
+    publisherId: 'openai',
     lastCheckedDate: '2026-08-01',
   },
   {
@@ -19,7 +29,7 @@ const EXTRA_SOURCES = [
     url: 'https://example.com/router-usage',
     title: 'Aggregator routing report',
     type: 'independent-evaluation',
-    publisher: 'Router Platform',
+    publisherId: 'router-platform',
     lastCheckedDate: '2026-08-01',
   },
   {
@@ -27,7 +37,7 @@ const EXTRA_SOURCES = [
     url: 'https://example.com/analyst-usage',
     title: 'Analyst measurement',
     type: 'independent-evaluation',
-    publisher: 'Analyst House',
+    publisherId: 'analyst-house',
     lastCheckedDate: '2026-08-01',
   },
   {
@@ -35,7 +45,23 @@ const EXTRA_SOURCES = [
     url: 'https://example.com/analyst-usage-2',
     title: 'Analyst measurement, second window',
     type: 'independent-evaluation',
-    publisher: 'Analyst House',
+    publisherId: 'analyst-house',
+    lastCheckedDate: '2026-08-01',
+  },
+  {
+    id: 'test-google-usage-report',
+    url: 'https://example.com/google-usage',
+    title: 'Google usage note',
+    type: 'independent-evaluation',
+    publisherId: 'google',
+    lastCheckedDate: '2026-08-01',
+  },
+  {
+    id: 'test-google-cloud-usage-report',
+    url: 'https://example.com/google-cloud-usage',
+    title: 'Google Cloud usage note',
+    type: 'independent-evaluation',
+    publisherId: 'google-cloud',
     lastCheckedDate: '2026-08-01',
   },
 ];
@@ -83,6 +109,7 @@ function datasetWith(
 ): Record<string, unknown> {
   const input = structuredClone(rawDataset) as Record<string, any>;
   input.sources = [...input.sources, ...structuredClone(EXTRA_SOURCES)];
+  input.publishers = [...input.publishers, ...structuredClone(EXTRA_PUBLISHERS)];
   input.usageObservations = usageObservations;
   input.usageSyntheses = usageSyntheses;
   return input;
@@ -296,6 +323,56 @@ describe('cross-source synthesis rules', () => {
       ],
       [synthesis()],
     ))).toThrow(/describes another release/);
+  });
+});
+
+describe('publisher independence resolves corporate siblings', () => {
+  it('rejects a Google + Google Cloud synthesis on a Google DeepMind release', () => {
+    // The exact reproduction from the issue: two Alphabet arms planted on a
+    // Google DeepMind release. Google and Google Cloud both resolve to Alphabet,
+    // the same controlling company as the creator, so neither reading is
+    // independent of the model's creator.
+    const siblingPair = [
+      observation({
+        id: 'test-observation-google',
+        releaseId: DEEPMIND_RELEASE_ID,
+        sourceIds: ['test-google-usage-report'],
+      }),
+      observation({
+        id: 'test-observation-google-cloud',
+        releaseId: DEEPMIND_RELEASE_ID,
+        sourceIds: ['test-google-cloud-usage-report'],
+      }),
+    ];
+    const crossSource = synthesis({
+      releaseId: DEEPMIND_RELEASE_ID,
+      observationIds: ['test-observation-google', 'test-observation-google-cloud'],
+    });
+
+    expect(() => validateDataset(datasetWith(siblingPair, [crossSource])))
+      .toThrow(/claims independent evidence but cites a source published by Google DeepMind/);
+  });
+
+  it('counts two sibling publishers as one voice at the synthesis bar', () => {
+    // Same two Alphabet arms, this time reporting on an OpenAI release, so they
+    // clear the per-observation creator check. They still collapse to a single
+    // Alphabet voice, so the two-independent-publisher bar refuses the synthesis.
+    const siblingPair = [
+      observation({
+        id: 'test-observation-google',
+        sourceIds: ['test-google-usage-report'],
+      }),
+      observation({
+        id: 'test-observation-google-cloud',
+        sourceIds: ['test-google-cloud-usage-report'],
+      }),
+    ];
+    const crossSource = synthesis({
+      observationIds: ['test-observation-google', 'test-observation-google-cloud'],
+    });
+
+    expect(() => validateDataset(datasetWith(siblingPair, [crossSource])))
+      .toThrow(/requires at least two independent non-creator sources/);
   });
 });
 

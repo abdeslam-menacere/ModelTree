@@ -1,10 +1,16 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import type { SourceReference, UsageObservation } from '../data/schema';
+import type { Publisher, SourceReference, UsageObservation } from '../data/schema';
 import { buildUsageEvidence } from '../lib/usage-evidence';
 import UsageEvidence from './UsageEvidence';
 
 const TODAY = '2026-08-18';
+
+const publishers: Publisher[] = [
+  { id: 'example-creator', name: 'Example Creator' },
+  { id: 'router-platform', name: 'Router Platform' },
+  { id: 'analyst-house', name: 'Analyst House' },
+];
 
 const sources: SourceReference[] = [
   {
@@ -12,7 +18,7 @@ const sources: SourceReference[] = [
     url: 'https://example.com/creator',
     title: 'Creator usage update',
     type: 'official-announcement',
-    publisher: 'Example Creator',
+    publisherId: 'example-creator',
     lastCheckedDate: '2026-08-01',
   },
   {
@@ -20,7 +26,7 @@ const sources: SourceReference[] = [
     url: 'https://example.com/router',
     title: 'Aggregator routing report',
     type: 'independent-evaluation',
-    publisher: 'Router Platform',
+    publisherId: 'router-platform',
     lastCheckedDate: '2026-08-01',
   },
   {
@@ -28,7 +34,7 @@ const sources: SourceReference[] = [
     url: 'https://example.com/analyst',
     title: 'Analyst measurement',
     type: 'independent-evaluation',
-    publisher: 'Analyst House',
+    publisherId: 'analyst-house',
     lastCheckedDate: '2026-08-01',
   },
 ];
@@ -57,7 +63,7 @@ function observation(overrides: Partial<UsageObservation> = {}): UsageObservatio
 
 function render(usageObservations: UsageObservation[]) {
   const evidence = buildUsageEvidence(
-    { sources, usageObservations, usageSyntheses: [] },
+    { sources, publishers, usageObservations, usageSyntheses: [] },
     'release-a',
     TODAY,
   );

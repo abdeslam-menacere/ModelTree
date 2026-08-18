@@ -39,6 +39,10 @@ describe('validateDataset', () => {
     for (const record of [...dataset.organizations, ...dataset.families, ...dataset.releases]) {
       for (const sourceId of record.sourceIds) cited.add(sourceId);
     }
+    // Publishers cite sources for their controlling-company (ownership) facts.
+    for (const publisher of dataset.publishers) {
+      for (const sourceId of publisher.control?.sourceIds ?? []) cited.add(sourceId);
+    }
     const orphaned = dataset.sources
       .map((source) => source.id)
       .filter((id) => !cited.has(id));
