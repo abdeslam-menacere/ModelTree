@@ -23,6 +23,13 @@ pytest
 
 `python -m modeltree_updater ...` works identically without installing the console script.
 
+## Continuous integration
+
+`.github/workflows/updater-tests.yml` runs this suite on every pull request that
+touches `tools/updater/`. It installs the package from a clean, uncached environment on
+Python 3.11 and 3.13, so an unsatisfiable dependency pin or a broken `pyproject.toml`
+fails CI rather than review. The job uses no secrets and reaches no model endpoint.
+
 The bundled fixtures under `fixtures/creators/` are synthetic (`example.com`, invented
 creators). They exercise the pipeline; they are not ModelTree data and must never be
 copied into `web/src/data`.
