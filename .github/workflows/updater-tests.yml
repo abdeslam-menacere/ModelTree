@@ -1,0 +1,65 @@
+name: Updater tests
+
+# Runs the tools/updater pytest suite on pull requests that touch it.
+# The job installs the package itself, so an unsatisfiable dependency pin or a
+# broken pyproject.toml fails here instead of at review time.
+# It uses no secrets and never reaches a model endpoint: the fixture providers
+# under tools/updater/fixtures keep the suite offline.
+
+on:
+  pull_request:
+    paths:
+      - 'tools/updater/**'
+      - '.github/workflows/updater-tests.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'tools/updater/**'
+      - '.github/workflows/updater-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: tools/updater
+
+jobs:
+  pytest:
+    name: pytest (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The floor declared by requires-python, and the current release.
+        python-version: ['3.11', '3.13']
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # Deliberately uncached and non-editable: the install must resolve
+      # dependencies and build the wheel from scratch on every run.
+      - name: Install the updater and its test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install '.[dev]'
+
+      - name: Run pytest
+        run: pytest
+
+      # The unsatisfiable pin that shipped in #68 was in an optional group.
+      # Resolving the extras (without installing Azure packages into the test
+      # environment) keeps that class of error machine-detectable.
+      - name: Check the optional dependency groups still resolve
+        run: python -m pip install --dry-run --quiet '.[foundry]'
