@@ -35,6 +35,7 @@ from .providers.fixtures import (
 )
 from .runner import resume_creator_run, run_creators
 from .safety import ProposalOnlyViolation, assert_proposal_output_path
+from .profiles import DEFAULT_PROFILES_DIR, ProfileError, load_profile_library
 from .workflow import WORKFLOW_NAME, RunSettings
 
 __all__ = ["main", "build_parser"]
@@ -91,6 +92,24 @@ def build_parser() -> argparse.ArgumentParser:
 
     creators = subparsers.add_parser("creators", help="list creators available in the fixtures")
     creators.add_argument("--fixtures", type=Path, default=DEFAULT_FIXTURES)
+
+    profiles = subparsers.add_parser(
+        "profiles",
+        help="list version-controlled creator profiles and their trusted source catalog",
+    )
+    profiles.add_argument(
+        "--profiles",
+        dest="profiles_dir",
+        type=Path,
+        default=DEFAULT_PROFILES_DIR,
+        help="directory of creator profile files",
+    )
+    profiles.add_argument(
+        "--json",
+        dest="as_json",
+        action="store_true",
+        help="emit the catalog as JSON instead of a summary table",
+    )
 
     checkpoints = subparsers.add_parser("checkpoints", help="list stored checkpoints")
     checkpoints.add_argument("--checkpoint-dir", type=Path, required=True)
@@ -279,6 +298,42 @@ def _creators(args: argparse.Namespace, stream) -> int:
     return EXIT_OK
 
 
+def _profiles(args: argparse.Namespace, stream) -> int:
+    """List the loaded creator profiles and their trusted source catalog.
+
+    Read-only: the one shared loader parses every ``profiles/<id>.json`` and this
+    command only reports what it found. It never fetches a source and never writes.
+    """
+    library = load_profile_library(args.profiles_dir)
+    if args.as_json:
+        catalogue = {
+            profile.creator_id: {
+                "creator_name": profile.creator_name,
+                "aliases": list(profile.aliases),
+                "terminology_keys": sorted(profile.terminology),
+                "naming_rules": [rule.to_dict() for rule in profile.naming_rules],
+                "ambiguities": [item.to_dict() for item in profile.ambiguities],
+                "source_catalog": [source.to_dict() for source in profile.catalog],
+            }
+            for profile in library
+        }
+        stream.write(json.dumps(catalogue, indent=2, default=str) + "\n")
+        return EXIT_OK
+
+    for profile in library:
+        stream.write(
+            f"{profile.creator_id}\t{profile.creator_name}\t"
+            f"{len(profile.catalog)} source(s), {len(profile.naming_rules)} naming rule(s), "
+            f"{len(profile.ambiguities)} ambiguity note(s)\n"
+        )
+        for source in profile.catalog:
+            stream.write(
+                f"    - {source.id}\t{source.kind.value}\t{source.url}\t"
+                f"(owner {source.owner}, trust {source.trust}, verified {source.verified_at})\n"
+            )
+    return EXIT_OK
+
+
 def main(
     argv: Sequence[str] | None = None,
     *,
@@ -299,10 +354,12 @@ def main(
             return _checkpoints(args, stream)
         if args.command == "creators":
             return _creators(args, stream)
+        if args.command == "profiles":
+            return _profiles(args, stream)
     except ProposalOnlyViolation as error:
         stream.write(f"proposal-only guard: {error}\n")
         return EXIT_USAGE
-    except (ProviderError, FileNotFoundError) as error:
+    except (ProviderError, ProfileError, FileNotFoundError) as error:
         stream.write(f"error: {error}\n")
         return EXIT_USAGE
 
