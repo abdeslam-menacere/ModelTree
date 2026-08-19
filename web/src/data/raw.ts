@@ -1,4 +1,6 @@
 import families from './families.json';
+import modelFitEvidenceGaps from './model-fit-evidence-gaps.json';
+import modelFitStatements from './model-fit-statements.json';
 import organizations from './organizations.json';
 import publishers from './publishers.json';
 import releases from './releases.json';
@@ -16,4 +18,6 @@ export const rawDataset = {
   releases,
   usageObservations,
   usageSyntheses,
+  modelFitStatements,
+  modelFitEvidenceGaps,
 };

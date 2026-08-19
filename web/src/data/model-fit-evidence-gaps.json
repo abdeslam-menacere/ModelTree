@@ -1,0 +1,26 @@
+[
+  {
+    "id": "gap-llama-4-scout-benchmarks",
+    "releaseId": "meta-llama-4-scout",
+    "dimension": "measured-benchmark-evidence",
+    "reason": "no-qualifying-source",
+    "note": "No evaluation result is recorded for this release, so no guidance is derived about how it behaves on a task — including across the long context window its model card documents.",
+    "verifiedAt": "2026-08-15"
+  },
+  {
+    "id": "gap-llama-4-scout-usage",
+    "releaseId": "meta-llama-4-scout",
+    "dimension": "usage-evidence",
+    "reason": "no-qualifying-source",
+    "note": "No source-qualified usage observation is recorded for this release, so no guidance is derived from who is running it or at what scale.",
+    "verifiedAt": "2026-08-15"
+  },
+  {
+    "id": "gap-gpt-5-benchmarks",
+    "releaseId": "openai-gpt-5",
+    "dimension": "measured-benchmark-evidence",
+    "reason": "no-qualifying-source",
+    "note": "No evaluation result is recorded for this release, so the lifecycle guidance above is not accompanied by any measured comparison with the models that succeeded it.",
+    "verifiedAt": "2026-08-18"
+  }
+]

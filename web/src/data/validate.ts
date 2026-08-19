@@ -1,11 +1,14 @@
 import {
   datasetSchema,
   type Dataset,
+  type FitFactRef,
+  type ModelFamily,
   type ModelRelease,
   type Publisher,
   type SourceReference,
   type UsageObservation,
 } from './schema';
+import { RUBRIC_DIMENSION_SUPPORT } from './model-fit-rubric';
 
 const PRIMARY_SOURCE_TYPES = new Set<SourceReference['type']>([
   'official-announcement',
@@ -153,6 +156,260 @@ function validateReleaseRelationships(
       if (field === 'siblingIds' && !related.siblingIds.includes(release.id)) {
         issues.push(`release ${release.id} sibling relationship with ${relatedId} is not reciprocal`);
       }
+    }
+  }
+}
+
+/**
+ * One structured fact a guidance statement rests on, resolved to the record it
+ * points at. `subject` records what the fact describes, so a statement can be
+ * held to facts about its own model.
+ */
+interface ResolvedFitFact {
+  label: string;
+  releaseId?: string;
+  familyId?: string;
+  sourceIds: string[];
+  verifiedAt: string;
+}
+
+function describeFitFact(ref: FitFactRef) {
+  switch (ref.kind) {
+    case 'release-field':
+      return `release field ${ref.field} on ${ref.releaseId}`;
+    case 'family-field':
+      return `family field ${ref.field} on ${ref.familyId}`;
+    case 'release-event':
+      return `release event ${ref.eventId}`;
+    case 'benchmark-result':
+      return `benchmark result ${ref.benchmarkResultId}`;
+    case 'usage-observation':
+      return `usage observation ${ref.usageObservationId}`;
+    case 'pricing-record':
+      return `pricing record ${ref.pricingRecordId}`;
+  }
+}
+
+/**
+ * Resolves a fact reference against the dataset, or explains why it does not
+ * resolve. A field reference must also name a field the record actually holds:
+ * guidance about a context window cannot be derived from a release that
+ * documents none.
+ */
+function resolveFitFact(
+  ref: FitFactRef,
+  data: Dataset,
+  indexes: {
+    releaseById: Map<string, ModelRelease>;
+    familyById: Map<string, ModelFamily>;
+  },
+): ResolvedFitFact | string {
+  const label = describeFitFact(ref);
+
+  switch (ref.kind) {
+    case 'release-field': {
+      const release = indexes.releaseById.get(ref.releaseId);
+      if (!release) return `cites ${label}, which references a missing release`;
+      if (release[ref.field] === undefined) {
+        return `cites ${label}, which the release does not record`;
+      }
+      return {
+        label,
+        releaseId: release.id,
+        sourceIds: release.sourceIds,
+        verifiedAt: release.verifiedAt,
+      };
+    }
+    case 'family-field': {
+      const family = indexes.familyById.get(ref.familyId);
+      if (!family) return `cites ${label}, which references a missing family`;
+      if (family[ref.field] === undefined) {
+        return `cites ${label}, which the family does not record`;
+      }
+      return {
+        label,
+        familyId: family.id,
+        sourceIds: family.sourceIds,
+        verifiedAt: family.verifiedAt,
+      };
+    }
+    case 'release-event': {
+      const event = data.releaseEvents.find(({ id }) => id === ref.eventId);
+      if (!event) return `cites ${label}, which does not exist`;
+      return {
+        label,
+        releaseId: event.releaseId,
+        sourceIds: event.sourceIds,
+        verifiedAt: event.verifiedAt,
+      };
+    }
+    case 'benchmark-result': {
+      const result = data.benchmarkResults.find(({ id }) => id === ref.benchmarkResultId);
+      if (!result) return `cites ${label}, which does not exist`;
+      return {
+        label,
+        releaseId: result.releaseId,
+        sourceIds: result.sourceIds,
+        verifiedAt: result.verifiedAt,
+      };
+    }
+    case 'usage-observation': {
+      const observation = data.usageObservations.find(({ id }) => id === ref.usageObservationId);
+      if (!observation) return `cites ${label}, which does not exist`;
+      return {
+        label,
+        releaseId: observation.releaseId,
+        sourceIds: observation.sourceIds,
+        verifiedAt: observation.verifiedAt,
+      };
+    }
+    case 'pricing-record': {
+      const pricing = data.pricing.find(({ id }) => id === ref.pricingRecordId);
+      if (!pricing) return `cites ${label}, which does not exist`;
+      const deployment = data.deployments.find(({ id }) => id === pricing.deploymentId);
+      if (!deployment) return `cites ${label}, whose deployment does not exist`;
+      return {
+        label,
+        releaseId: deployment.releaseId,
+        sourceIds: pricing.sourceIds,
+        verifiedAt: pricing.verifiedAt,
+      };
+    }
+  }
+}
+
+/** Whether a cited fact answers the question a rubric dimension asks. */
+function factAnswersDimension(ref: FitFactRef, dimension: keyof typeof RUBRIC_DIMENSION_SUPPORT) {
+  const support = RUBRIC_DIMENSION_SUPPORT[dimension];
+  if (!support.factKinds.includes(ref.kind)) return false;
+  if (ref.kind === 'release-field') {
+    return support.releaseFields?.includes(ref.field) ?? false;
+  }
+  if (ref.kind === 'family-field') {
+    return support.familyFields?.includes(ref.field) ?? false;
+  }
+  return true;
+}
+
+/**
+ * Conditional model-fit guidance, held to the rules that keep it guidance rather
+ * than a verdict: every statement traces to structured facts about its own
+ * release, cites no source those facts do not already cite, discloses rubric
+ * dimensions that its facts actually answer, keeps contradictions reciprocal and
+ * unresolved, and never claims a dimension that is separately recorded as an
+ * evidence gap. Winner language is refused by the schema itself.
+ */
+function validateModelFitGuidance(
+  data: Dataset,
+  context: {
+    issues: string[];
+    sourceIds: Set<string>;
+    releaseById: Map<string, ModelRelease>;
+    familyById: Map<string, ModelFamily>;
+  },
+) {
+  const { issues, sourceIds, releaseById, familyById } = context;
+
+  addDuplicateIssues(issues, 'model fit statement', 'id', data.modelFitStatements.map(({ id }) => id));
+  addDuplicateIssues(issues, 'model fit evidence gap', 'id', data.modelFitEvidenceGaps.map(({ id }) => id));
+
+  const statementById = new Map(data.modelFitStatements.map((statement) => [statement.id, statement]));
+  const supportedDimensions = new Map<string, Set<string>>();
+
+  for (const statement of data.modelFitStatements) {
+    const owner = `model fit statement ${statement.id}`;
+    const release = releaseById.get(statement.releaseId);
+    if (!release) {
+      issues.push(`${owner}.releaseId references missing id "${statement.releaseId}"`);
+    }
+
+    addMissingReferences(issues, owner, 'sourceIds', statement.sourceIds, sourceIds);
+    addDuplicateIssues(issues, owner, 'sourceIds entry', statement.sourceIds);
+
+    const resolved: { ref: FitFactRef; fact: ResolvedFitFact }[] = [];
+    for (const ref of statement.facts) {
+      const outcome = resolveFitFact(ref, data, { releaseById, familyById });
+      if (typeof outcome === 'string') {
+        issues.push(`${owner} ${outcome}`);
+        continue;
+      }
+      resolved.push({ ref, fact: outcome });
+
+      // Guidance stands on facts about the model it describes. A fact about
+      // another release would make the statement comparative, which is ranking.
+      if (outcome.releaseId && outcome.releaseId !== statement.releaseId) {
+        issues.push(`${owner} ${outcome.label} describes release ${outcome.releaseId}, not ${statement.releaseId}`);
+      }
+      if (outcome.familyId && release && outcome.familyId !== release.familyId) {
+        issues.push(`${owner} ${outcome.label} describes family ${outcome.familyId}, which is not the family of ${statement.releaseId}`);
+      }
+    }
+
+    for (const dimension of statement.rubricDimensions) {
+      if (!resolved.some(({ ref }) => factAnswersDimension(ref, dimension))) {
+        issues.push(`${owner} discloses rubric dimension "${dimension}" without citing a fact that answers it`);
+      }
+    }
+
+    // A statement may only cite sources its own facts already cite, so guidance
+    // can never introduce an external claim that no recorded fact carries.
+    const factSources = new Set(resolved.flatMap(({ fact }) => fact.sourceIds));
+    for (const sourceId of statement.sourceIds) {
+      if (sourceIds.has(sourceId) && !factSources.has(sourceId)) {
+        issues.push(`${owner} cites source "${sourceId}", which none of the facts it rests on cites`);
+      }
+    }
+
+    for (const { fact } of resolved) {
+      if (statement.verifiedAt < fact.verifiedAt) {
+        issues.push(`${owner} was verified before ${fact.label}`);
+      }
+    }
+
+    if (resolved.length > 0) {
+      const dimensions = supportedDimensions.get(statement.releaseId) ?? new Set<string>();
+      for (const dimension of statement.rubricDimensions) dimensions.add(dimension);
+      supportedDimensions.set(statement.releaseId, dimensions);
+    }
+
+    for (const conflictId of statement.conflictsWithIds) {
+      if (conflictId === statement.id) {
+        issues.push(`${owner}.conflictsWithIds cannot reference itself`);
+        continue;
+      }
+      const counterpart = statementById.get(conflictId);
+      if (!counterpart) {
+        issues.push(`${owner}.conflictsWithIds references missing id "${conflictId}"`);
+        continue;
+      }
+      if (counterpart.releaseId !== statement.releaseId) {
+        issues.push(`${owner} conflicts with ${conflictId}, which describes another release`);
+      }
+      // Guidance derived from different dimensions is not contradictory; it is
+      // simply about different things.
+      const shared = statement.rubricDimensions.some(
+        (dimension) => counterpart.rubricDimensions.includes(dimension),
+      );
+      if (!shared) {
+        issues.push(`${owner} conflicts with ${conflictId}, which shares no rubric dimension with it`);
+      }
+      if (!counterpart.conflictsWithIds.includes(statement.id)) {
+        issues.push(`${owner} conflict with ${conflictId} is not reciprocal`);
+      }
+    }
+  }
+
+  const gapKeys = data.modelFitEvidenceGaps.map((gap) => `${gap.releaseId}/${gap.dimension}`);
+  addDuplicateIssues(issues, 'model fit evidence gap', 'release and dimension', gapKeys);
+
+  for (const gap of data.modelFitEvidenceGaps) {
+    const owner = `model fit evidence gap ${gap.id}`;
+    if (!releaseById.has(gap.releaseId)) {
+      issues.push(`${owner}.releaseId references missing id "${gap.releaseId}"`);
+    }
+    // A dimension cannot be both answered and unanswerable for one release.
+    if (supportedDimensions.get(gap.releaseId)?.has(gap.dimension)) {
+      issues.push(`${owner} records dimension "${gap.dimension}" as unsupported while a statement derives guidance from it`);
     }
   }
 }
@@ -535,6 +792,13 @@ export function validateDataset(input: unknown): Dataset {
       issues.push(`${owner} reports a conflict that none of its observations records`);
     }
   }
+
+  validateModelFitGuidance(data, {
+    issues,
+    sourceIds,
+    releaseById,
+    familyById,
+  });
 
   if (issues.length) throw new DataValidationError(issues);
   return data;
