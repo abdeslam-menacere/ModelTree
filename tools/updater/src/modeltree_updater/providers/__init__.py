@@ -20,6 +20,7 @@ from .fixtures import (
     build_fixture_panel,
     load_fixture_library,
 )
+from .network import NetworkSourceProvider
 
 __all__ = [
     "ClaimExtractor",
@@ -29,6 +30,7 @@ __all__ = [
     "FixtureLibrary",
     "FixtureSourceProvider",
     "LensReviewer",
+    "NetworkSourceProvider",
     "ProviderBundle",
     "ProviderError",
     "ReviewPanel",

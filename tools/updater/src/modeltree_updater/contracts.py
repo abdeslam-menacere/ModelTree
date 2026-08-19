@@ -42,12 +42,24 @@ __all__ = [
     "ValidationStatus",
     "WorkflowStage",
     "content_hash",
+    "content_hash_bytes",
 ]
+
+
+def content_hash_bytes(raw: bytes) -> str:
+    """Stable digest of the *exact* bytes retrieved from a source.
+
+    Hashing the raw response body — not a decoded, normalised, or re-serialised
+    rendering of it — is what makes the digest a reproducible proof: a second
+    fetch of an unchanged page yields byte-identical content and therefore the
+    same hash, while any change to the served bytes changes it.
+    """
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
 def content_hash(text: str) -> str:
     """Stable digest used to prove which bytes a claim was extracted from."""
-    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return content_hash_bytes(text.encode("utf-8"))
 
 
 def _encode(value: Any) -> Any:

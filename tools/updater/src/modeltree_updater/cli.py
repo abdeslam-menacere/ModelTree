@@ -33,6 +33,7 @@ from .providers.fixtures import (
     build_fixture_panel,
     load_fixture_library,
 )
+from .providers.network import NetworkSourceProvider
 from .runner import resume_creator_run, run_creators
 from .safety import ProposalOnlyViolation, assert_proposal_output_path
 from .profiles import DEFAULT_PROFILES_DIR, ProfileError, load_profile_library
@@ -81,6 +82,15 @@ def build_parser() -> argparse.ArgumentParser:
         default="fixtures",
         help="fixtures runs offline; foundry uses a Microsoft Foundry deployment for the models",
     )
+    run.add_argument(
+        "--sources",
+        choices=("fixtures", "network"),
+        default="fixtures",
+        help=(
+            "where sources come from: fixtures reads synthetic pages offline (default); "
+            "network fetches the creator's real seed URLs over HTTPS"
+        ),
+    )
     run.add_argument("--output", type=Path, help="directory to write proposal JSON into")
     run.add_argument("--checkpoint-dir", type=Path, help="directory for durable checkpoints")
     run.add_argument("--run-id", help="identifier recorded in the proposals")
@@ -124,6 +134,12 @@ def build_parser() -> argparse.ArgumentParser:
         default="fixtures",
         help="must match the providers recorded in the checkpoint; a resume never substitutes them",
     )
+    resume.add_argument(
+        "--sources",
+        choices=("fixtures", "network"),
+        default="fixtures",
+        help="must match the source provider recorded in the checkpoint",
+    )
     resume.add_argument("--output", type=Path)
     resume.add_argument("--run-id")
     resume.add_argument("--timestamp")
@@ -151,10 +167,14 @@ def _build_providers(
     provider: str,
     library,
     *,
+    sources_kind: str = "fixtures",
     timestamp: str,
     env: Mapping[str, str],
 ) -> ProviderBundle:
-    sources = FixtureSourceProvider(library, timestamp=timestamp)
+    if sources_kind == "network":
+        sources = NetworkSourceProvider()
+    else:
+        sources = FixtureSourceProvider(library, timestamp=timestamp)
     if provider == "fixtures":
         return ProviderBundle(
             sources=sources,
@@ -236,7 +256,13 @@ def _run(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
 
     timestamp = args.timestamp or _default_timestamp()
     run_id = args.run_id or "run-" + re.sub(r"[^a-z0-9]+", "", timestamp.lower())
-    providers = _build_providers(args.provider, library, timestamp=timestamp, env=env)
+    providers = _build_providers(
+        args.provider,
+        library,
+        sources_kind=args.sources,
+        timestamp=timestamp,
+        env=env,
+    )
     settings = RunSettings(providers, budget=_budget(args, env), timestamp=timestamp)
 
     storage = (
@@ -257,7 +283,13 @@ def _run(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
 def _resume(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
     library = load_fixture_library(args.fixtures)
     timestamp = args.timestamp or _default_timestamp()
-    providers = _build_providers(args.provider, library, timestamp=timestamp, env=env)
+    providers = _build_providers(
+        args.provider,
+        library,
+        sources_kind=args.sources,
+        timestamp=timestamp,
+        env=env,
+    )
     settings = RunSettings(providers, budget=_budget(args, env), timestamp=timestamp)
     storage = create_checkpoint_storage(args.checkpoint_dir)
 
