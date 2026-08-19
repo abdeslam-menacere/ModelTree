@@ -4,8 +4,10 @@ A Python tool that **proposes** source-backed ModelTree updates. It reads source
 extracts atomic claims with their evidence, reviews and validates them, and writes a
 proposal bundle for a human to act on.
 
-It has no path to publication by design: it never writes `web/src/data`, never creates a
-branch, and never opens a pull request. `tests/test_proposal_only.py` enforces that.
+It has no path to publication of *data* by design: it never writes `web/src/data`, never
+creates a branch, and never opens a pull request. `tests/test_proposal_only.py` enforces
+that. It can create one GitHub **issue** per creator so a human sees the proposal — that
+is the only write it has, and it is described under "Publishing proposals" below.
 
 The Astro site stays static. This tool runs separately and is not part of the web build.
 
@@ -18,6 +20,7 @@ pip install -e ".[dev]"
 
 modeltree-updater creators
 modeltree-updater run --creator contoso-ai --output ../../out/proposals
+modeltree-updater publish --report ../../out/proposals/<run-id>/report.json --dry-run
 pytest
 ```
 
@@ -32,13 +35,15 @@ fails CI rather than review. The job uses no secrets and reaches no model endpoi
 
 The bundled fixtures under `fixtures/creators/` are synthetic (`example.com`, invented
 creators). They exercise the pipeline; they are not ModelTree data and must never be
-copied into `web/src/data`.
+copied into `web/src/data`. `quiet-ai` is deliberately empty: it is the no-change case
+that must produce no GitHub issue.
 
 ## Commands
 
 | Command | Action |
 |---|---|
 | `run` | Run the workflow for one or more creators |
+| `publish` | Create or update one GitHub proposal issue per material creator |
 | `creators` | List creators available in the fixtures |
 | `profiles` | List the version-controlled creator profiles and their trusted catalog |
 | `checkpoints` | List stored checkpoints for the creator workflow |
@@ -53,7 +58,8 @@ Useful `run` flags: `--creator` (repeatable), `--fixtures`, `--provider fixtures
 the budget flags below. `resume` takes `--provider` and `--sources` too, and refuses any
 provider the checkpoint did not record.
 
-Exit codes: `0` success, `2` usage or configuration error, `3` at least one creator failed.
+Exit codes: `0` success, `2` usage or configuration error, `3` at least one creator failed,
+`4` at least one creator could not be published.
 
 ## The workflow
 
@@ -266,6 +272,120 @@ Exhausting a budget is an explicit outcome: the proposal records a `budget-exhau
 failure, lists the exhausted resource in `budget.exhausted_by`, and reports `incomplete`
 or `failed`. A budget must never look like "there was nothing to find".
 
+## Publishing proposals
+
+`publish` turns a written run artefact into GitHub issues. It reads `report.json` back
+from disk rather than re-running the workflow, so the issue a human reads is provably the
+artefact that was produced — and the expensive step (models, network) is separate from the
+step that needs a token.
+
+```bash
+# render the exact payload; no repository, no token, no network
+modeltree-updater publish --report ../../out/proposals/<run-id>/report.json --dry-run
+
+# create or update the issues
+GITHUB_TOKEN=<token with issues:write> \
+  modeltree-updater publish --report ../../out/proposals/<run-id>/report.json \
+                            --repo owner/name
+```
+
+`--repo` defaults to `$GITHUB_REPOSITORY`. The dry run prints the title and the byte-exact
+body that a real publication would send.
+
+### One issue per creator
+
+Identity is a hidden marker that must be the **first line** of the issue body:
+
+```
+<!-- modeltree-proposal: v1 creator=<creator-id> -->
+```
+
+Matching compares that first line for equality. It is never a substring search: a rendered
+body quotes fetched pages, so marker-shaped text can legitimately appear inside the
+content, and treating that as identity would let one creator's proposal steer an update
+onto another creator's issue.
+
+The title is `ModelTree proposal: <creator-id>`. Re-running updates the same issue in
+place, so the issue stays the single, current view of that creator.
+
+### What gets published, and when
+
+An issue is created or updated only when the run has something material to say: at least
+one claim candidate (**any** decision — a rejected or vetoed claim is a reviewable outcome,
+not silence), at least one conflict, at least one failure, or a status other than
+`complete`. A complete run that found nothing makes **no GitHub request at all**, not even
+a read, and leaves any existing open proposal untouched — deciding a stale proposal is a
+human's call, and closing it would destroy the review context.
+
+The body carries the candidate patch (accepted claims as logical operations, plus a
+copy-pasteable JSON block), the atomic evidence behind every claim, every source approval
+decision with its vote tally, **all** reviewer verdicts and adjudications, every
+deterministic gate and validation result, the conflicts, the budget ledger, and the
+completion status with each failure spelled out. It is a pure function of the artefact:
+re-rendering the same `report.json` is byte-identical, so an unchanged run does not churn
+the issue. GitHub caps a body at 65 536 characters; an oversized proposal is truncated
+section by section, least valuable detail first, and says in the body exactly what was
+dropped.
+
+### Duplicates
+
+If more than one open issue carries a creator's marker, `publish` updates the
+**lowest-numbered** one, leaves the rest exactly as they are, and reports the duplicates
+both on stdout and in a warning block inside the body it just wrote. It never closes an
+issue: the Issues API has no conditional write, so a read-then-close is a race that could
+close an issue a human had repurposed in the meantime. Duplicates are *prevented* by the
+repository-wide, non-cancelling `concurrency` group on the workflow, and reported if they
+happen anyway.
+
+### The manual GitHub workflow
+
+`.github/workflows/publish-updater-proposals.yml` runs the pair of commands on a runner.
+
+- `workflow_dispatch` **only**. There is deliberately no schedule: a run spends model
+  tokens and writes issues a human then has to read.
+- Inputs: `creators` (comma-separated), `mode` (`fixtures` runs offline, `live` fetches
+  real pages through Foundry), and `dry_run`, which defaults to `true`.
+- Permissions are `contents: read` at the top level; the job adds `issues: write` and
+  `id-token: write` and nothing else. It therefore *cannot* modify repository content,
+  create a branch, or open a pull request. The checkout runs with
+  `persist-credentials: false`. `tests/test_publication_workflow.py` asserts all of this
+  against the parsed YAML, so the claim is machine-checked rather than prose.
+- The run artefact is uploaded, so the published issue can be diffed against the JSON.
+
+### Azure setup this repository documents but does not provision
+
+Live mode signs in with `azure/login@v2` using **Microsoft Entra workload identity
+federation**. There is no client secret and no API key anywhere in the workflow, the code,
+or the tests. Creating the following is a deliberate manual, auditable act — this
+repository describes what is needed and provisions none of it:
+
+1. **A Microsoft Entra application (or user-assigned managed identity)** for the publisher.
+2. **A federated credential** on it, with issuer `https://token.actions.githubusercontent.com`,
+   audience `api://AzureADTokenExchange`, and a subject that matches how the workflow is
+   dispatched:
+   - `repo:<owner>/<repo>:ref:refs/heads/main` — dispatches from `main`;
+   - add one subject per branch you dispatch from, or
+     `repo:<owner>/<repo>:environment:<environment-name>` if the job is bound to an
+     environment.
+3. **A role assignment** granting that identity **Azure AI User** on the Foundry *project*
+   (not the subscription). That is the least privilege that lets it call a model
+   deployment; no data-plane key is issued or needed.
+4. **Repository variables** (not secrets): `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`,
+   `AZURE_SUBSCRIPTION_ID`, `MODELTREE_FOUNDRY_ENDPOINT`, `MODELTREE_FOUNDRY_DEPLOYMENT`.
+
+The only secret the workflow uses is the automatic `GITHUB_TOKEN`, scoped by the
+permissions block above.
+
+### Live publication tests
+
+`tests/test_live_publication.py` publishes to a real repository and is marked `live`, which
+the default `pytest` run excludes along with `network`. Normal CI stays offline and
+credential-free. Opt in against a scratch repository you own:
+
+```bash
+MODELTREE_LIVE_PUBLISH_REPO=you/scratch GITHUB_TOKEN=<issues:write> pytest -m live
+```
+
 ## Microsoft Foundry (optional)
 
 `--provider foundry` uses a Foundry model deployment for extraction and for all three
@@ -316,6 +436,9 @@ src/modeltree_updater/
   checkpoints.py   durable checkpoint storage and its type allow-list
   cli.py           local CLI
   safety.py        proposal-only output guard
+  parsing.py       strict reader that rebuilds contracts from a written artefact
+  publisher.py     materiality, issue identity, deterministic issue rendering
+  github_issues.py the only module that speaks to GitHub, and only about issues
   profiles.py      shared loader for version-controlled creator profiles + catalog
   scout.py         triages source leads into proposals; snippets are never evidence
   providers/       source, extraction, and review-panel boundaries
@@ -327,8 +450,9 @@ tests/             pytest suite; no network, no credentials
 
 ## Out of scope here
 
-Human publication approval, public usage or recommendation UI, GitHub issue publication,
-scheduled execution, and production deployment. Source *discovery* by search — turning an
-open-web query into leads — also stays out: the network provider fetches the seed URLs a
-creator profile already configures (see "Fetching real pages" above), it does not crawl or
-search.
+Human publication approval, public usage or recommendation UI, scheduled execution,
+committing or pull-requesting data changes, provisioning the Azure resources the
+publication workflow needs, and production deployment. Source *discovery* by search —
+turning an open-web query into leads — also stays out: the network provider fetches the
+seed URLs a creator profile already configures (see "Fetching real pages" above), it does
+not crawl or search.
