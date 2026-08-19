@@ -24,9 +24,20 @@ close, an issue can be edited into something else entirely. Duplicates are inste
 *prevented* by the repository-global concurrency group on the publication
 workflow, and *reported* if they appear anyway.
 
-Rendering is deterministic: the body is a pure function of the proposal (plus any
-duplicate issue numbers), with no render-time clock and no local file paths, so a
-`--dry-run` prints byte-for-byte what a real publication would send.
+**Never replace a body without a trace.** An update overwrites the previous run's
+evidence wholesale, and a reviewer who was reading it would otherwise have no way
+to see that anything was replaced. So before a body written by a *different* run
+is overwritten, that run is recorded in a comment — its id and its material
+counts — and the new body names it in the header table. The comment is filed
+before the rewrite, not after: it exists to survive the thing it describes. If the
+body being replaced cannot be read, the comment says exactly that instead of
+guessing at counts or staying quiet.
+
+Rendering is deterministic: the body is a pure function of the proposal, any
+duplicate issue numbers, and the run it supersedes, with no render-time clock and
+no local file paths, so a `--dry-run` prints byte-for-byte what a real publication
+would send. Re-rendering the *same* run carries the earlier supersession forward
+unchanged, so a repeated publication is byte-identical and adds no comment.
 """
 
 from __future__ import annotations
@@ -50,11 +61,14 @@ from .github_issues import MAX_BODY_CHARS, Issue, IssuesClient
 __all__ = [
     "IssuePayload",
     "MARKER_VERSION",
+    "PriorState",
     "PublicationAction",
     "PublicationError",
     "PublicationFailure",
     "PublicationOutcome",
     "PublicationReport",
+    "STATE_VERSION",
+    "UNREADABLE_RUN",
     "find_open_proposals",
     "identity_marker",
     "is_material",
@@ -62,16 +76,30 @@ __all__ = [
     "matches_identity",
     "publish_proposal",
     "publish_report",
+    "read_state",
     "render_body",
     "render_issue",
+    "state_marker",
+    "supersession_comment",
 ]
 
 MARKER_VERSION = "v1"
+STATE_VERSION = "v1"
 
 # A creator id reaches both the hidden marker and the issue title, so it is
 # checked rather than interpolated on trust: an id carrying `-->` could otherwise
 # close the marker comment early and forge a second identity inside one body.
 CREATOR_ID = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
+
+# A run id reaches the state marker for the same reason, so it gets the same
+# treatment. The character set excludes `>` and whitespace, so no value that
+# passes can terminate the comment it is written into.
+RUN_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+# Sentinels for the `supersedes=` field of the state marker. Neither can be a
+# valid run id, so neither can be confused with one.
+NO_SUPERSEDED_RUN = "-"
+UNREADABLE_RUN = "?"
 
 
 class PublicationError(RuntimeError):
@@ -102,6 +130,9 @@ class PublicationOutcome:
     payload: IssuePayload | None = None
     issue_number: int | None = None
     duplicates: tuple[int, ...] = ()
+    # The run whose body this update replaced, recorded in a comment before the
+    # rewrite. `UNREADABLE_RUN` means a body was replaced but could not be read.
+    superseded_run: str | None = None
 
 
 @dataclass(frozen=True)
@@ -140,6 +171,15 @@ def _checked_creator_id(creator_id: str) -> str:
     return creator_id
 
 
+def _checked_run_id(run_id: str) -> str:
+    if not RUN_ID.match(run_id or ""):
+        raise PublicationError(
+            f"refusing to publish a proposal for run id {run_id!r}: expected letters, "
+            "digits, dot, underscore, or hyphen"
+        )
+    return run_id
+
+
 def identity_marker(creator_id: str) -> str:
     """The stable proposal identity, and the only thing that identifies an issue."""
     return f"<!-- modeltree-proposal: {MARKER_VERSION} creator={_checked_creator_id(creator_id)} -->"
@@ -172,6 +212,101 @@ def find_open_proposals(issues: Iterable[Issue], creator_id: str) -> tuple[Issue
         if issue.state == "open" and matches_identity(issue.body, creator_id)
     ]
     return tuple(sorted(matches, key=lambda issue: issue.number))
+
+
+# ---------------------------------------------------------------------------
+# supersession state
+# ---------------------------------------------------------------------------
+
+# Written as line 2 of every body, immediately under the identity marker. The
+# visible header table names the superseded run for a human; this line is what
+# the *next* run reads, so it is a strict machine format rather than something
+# recovered by parsing rendered markdown — a body's summary must not depend on
+# how a table happens to be formatted.
+_STATE = re.compile(
+    r"^<!--\s*modeltree-run:\s*v1\s+"
+    r"run=(?P<run>[A-Za-z0-9][A-Za-z0-9._-]*)\s+"
+    r"supersedes=(?P<supersedes>[-?]|[A-Za-z0-9][A-Za-z0-9._-]*)\s+"
+    r"claims=(?P<claims>\d+)\s+"
+    r"accepted=(?P<accepted>\d+)\s+"
+    r"conflicts=(?P<conflicts>\d+)\s+"
+    r"failures=(?P<failures>\d+)\s*-->$"
+)
+
+
+@dataclass(frozen=True)
+class PriorState:
+    """What the body about to be overwritten said about itself."""
+
+    run_id: str
+    supersedes: str | None
+    claims: int
+    accepted: int
+    conflicts: int
+    failures: int
+
+
+def _supersedes_token(supersedes: str | None) -> str:
+    if supersedes is None:
+        return NO_SUPERSEDED_RUN
+    if supersedes == UNREADABLE_RUN:
+        return UNREADABLE_RUN
+    return _checked_run_id(supersedes)
+
+
+def state_marker(proposal: CreatorProposal, supersedes: str | None = None) -> str:
+    """The machine-readable summary of this body, for the run that replaces it."""
+    return (
+        f"<!-- modeltree-run: {STATE_VERSION} "
+        f"run={_checked_run_id(proposal.run_id)} "
+        f"supersedes={_supersedes_token(supersedes)} "
+        f"claims={len(proposal.claims)} "
+        f"accepted={len(proposal.accepted_claim_ids)} "
+        f"conflicts={len(proposal.conflicts)} "
+        f"failures={len(proposal.failures)} -->"
+    )
+
+
+def read_state(body: str | None) -> PriorState | None:
+    """The state this tool wrote into a body, or `None` if it cannot be read.
+
+    Anchored to the second line for the same reason identity is anchored to the
+    first: proposal content is attacker-influenced text, and a quoted page that
+    happens to contain a state marker must not be able to describe the issue.
+
+    `None` means "this body was not written by this tool, or was hand-edited, or
+    came from a format this version does not know" — all of which are reported as
+    unreadable rather than guessed at.
+    """
+    lines = (body or "").split("\n")
+    if len(lines) < 2:
+        return None
+    match = _STATE.match(lines[1].strip())
+    if match is None:
+        return None
+    supersedes = match.group("supersedes")
+    return PriorState(
+        run_id=match.group("run"),
+        supersedes=None if supersedes == NO_SUPERSEDED_RUN else supersedes,
+        claims=int(match.group("claims")),
+        accepted=int(match.group("accepted")),
+        conflicts=int(match.group("conflicts")),
+        failures=int(match.group("failures")),
+    )
+
+
+def _supersedes_for(prior: PriorState | None, run_id: str) -> str | None:
+    """What this run's body should name as the run it replaced.
+
+    Re-rendering the same run must not disturb the record: the earlier
+    supersession is carried forward unchanged so the body stays byte-identical
+    and no second comment is filed.
+    """
+    if prior is None:
+        return UNREADABLE_RUN
+    if prior.run_id == run_id:
+        return prior.supersedes
+    return prior.run_id
 
 
 # ---------------------------------------------------------------------------
@@ -678,13 +813,20 @@ def _sections(proposal: CreatorProposal) -> tuple[_Section, ...]:
     )
 
 
-def _header(proposal: CreatorProposal) -> list[str]:
+def _header(proposal: CreatorProposal, supersedes: str | None) -> list[str]:
     providers = (
         ", ".join(f"{name}={value}" for name, value in sorted(proposal.providers.items()))
         or "unrecorded"
     )
+    if supersedes is None:
+        superseded_cell = "—"
+    elif supersedes == UNREADABLE_RUN:
+        superseded_cell = "_a body that could not be read — see the note below_"
+    else:
+        superseded_cell = _code(supersedes)
     return [
         identity_marker(proposal.creator_id),
+        state_marker(proposal, supersedes),
         f"# {issue_title(proposal.creator_id)}",
         "",
         "A proposal from the source-backed ModelTree updater. **Nothing here has "
@@ -696,6 +838,7 @@ def _header(proposal: CreatorProposal) -> list[str]:
             [
                 ["Creator", _code(proposal.creator_id)],
                 ["Run", _code(proposal.run_id)],
+                ["Supersedes run", superseded_cell],
                 ["Generated at", _code(proposal.generated_at)],
                 ["Completion status", f"**{proposal.status.value}**"],
                 ["Providers", _cell(providers)],
@@ -718,11 +861,25 @@ def _omission_notice(section: _Section, proposal: CreatorProposal) -> tuple[str,
 
 
 def _publication_notes(
-    duplicates: Sequence[int], dropped: Sequence[_Section], proposal: CreatorProposal
+    duplicates: Sequence[int],
+    dropped: Sequence[_Section],
+    proposal: CreatorProposal,
+    supersedes: str | None,
 ) -> list[str]:
-    if not duplicates and not dropped:
+    unreadable = supersedes == UNREADABLE_RUN
+    if not duplicates and not dropped and not unreadable:
         return []
     lines = ["## Publication notes", ""]
+    if unreadable:
+        lines += [
+            "> [!WARNING]",
+            "> This run replaced a body it could not read: the previous body did not "
+            "carry the state marker this tool writes, so it was hand-edited or "
+            "produced by an older version. Its run id and counts are unknown and are "
+            "not guessed at here. A comment filed just before the rewrite records "
+            "that the replacement happened.",
+            "",
+        ]
     if duplicates:
         lines += [
             "> [!WARNING]",
@@ -749,9 +906,10 @@ def _assemble(
     *,
     dropped_keys: Sequence[str],
     duplicates: Sequence[int],
+    supersedes: str | None,
 ) -> str:
     dropped = [section for section in sections if section.key in dropped_keys]
-    lines = _header(proposal)
+    lines = _header(proposal, supersedes)
     for section in sections:
         body = (
             _omission_notice(section, proposal)
@@ -759,7 +917,7 @@ def _assemble(
             else section.lines
         )
         lines += ["", f"## {section.heading}", "", *body]
-    lines += ["", *_publication_notes(duplicates, dropped, proposal)]
+    lines += ["", *_publication_notes(duplicates, dropped, proposal, supersedes)]
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -771,7 +929,12 @@ def _hard_truncate(body: str) -> str:
     return body[: MAX_BODY_CHARS - len(notice)] + notice
 
 
-def render_body(proposal: CreatorProposal, *, duplicates: Sequence[int] = ()) -> str:
+def render_body(
+    proposal: CreatorProposal,
+    *,
+    duplicates: Sequence[int] = (),
+    supersedes: str | None = None,
+) -> str:
     """The exact issue body for this proposal. A pure function of its inputs."""
     sections = _sections(proposal)
     droppable = [
@@ -784,7 +947,11 @@ def render_body(proposal: CreatorProposal, *, duplicates: Sequence[int] = ()) ->
     dropped: list[str] = []
     while True:
         body = _assemble(
-            proposal, sections, dropped_keys=dropped, duplicates=duplicates
+            proposal,
+            sections,
+            dropped_keys=dropped,
+            duplicates=duplicates,
+            supersedes=supersedes,
         )
         if len(body) <= MAX_BODY_CHARS:
             return body
@@ -794,12 +961,57 @@ def render_body(proposal: CreatorProposal, *, duplicates: Sequence[int] = ()) ->
 
 
 def render_issue(
-    proposal: CreatorProposal, *, duplicates: Sequence[int] = ()
+    proposal: CreatorProposal,
+    *,
+    duplicates: Sequence[int] = (),
+    supersedes: str | None = None,
 ) -> IssuePayload:
     return IssuePayload(
         title=issue_title(proposal.creator_id),
-        body=render_body(proposal, duplicates=duplicates),
+        body=render_body(proposal, duplicates=duplicates, supersedes=supersedes),
     )
+
+
+def supersession_comment(
+    proposal: CreatorProposal, prior: PriorState | None
+) -> str:
+    """The record filed before a body written by another run is overwritten."""
+    lines = [
+        f"### Run {_code(proposal.run_id)} is replacing this issue's body",
+        "",
+        "Filed before the rewrite, so the run being replaced is not lost with it. "
+        "This issue always holds the newest run only; once the body above is "
+        "overwritten this tool cannot recover what it said.",
+        "",
+    ]
+    if prior is None:
+        lines += [
+            "> [!WARNING]",
+            "> **The body being replaced could not be read.** It did not carry the "
+            "state marker this tool writes, so it was hand-edited or produced by an "
+            "older version. Its run id and its counts are unknown, and are not "
+            "guessed at here.",
+        ]
+    else:
+        lines += [
+            f"It held run {_code(prior.run_id)}, which reported:",
+            "",
+            *_table(
+                ["", ""],
+                [
+                    ["Candidate claims", str(prior.claims)],
+                    ["Accepted", str(prior.accepted)],
+                    ["Conflicts", str(prior.conflicts)],
+                    ["Failures", str(prior.failures)],
+                ],
+            ),
+            "",
+            f"The complete record of run {_code(prior.run_id)} — its evidence, "
+            "verdicts, and validation — is in that run's artefact "
+            f"({_code(proposal.creator_id + '.json')}). Only the counts above are "
+            "kept here.",
+        ]
+    return "\n".join(lines).rstrip() + "\n"
 
 
 # ---------------------------------------------------------------------------
@@ -819,9 +1031,9 @@ def publish_proposal(
 
     existing = find_open_proposals(client.list_open_issues(), proposal.creator_id)
     duplicates = tuple(issue.number for issue in existing[1:])
-    payload = render_issue(proposal, duplicates=duplicates)
 
     if not existing:
+        payload = render_issue(proposal, duplicates=duplicates)
         created = client.create_issue(title=payload.title, body=payload.body)
         return PublicationOutcome(
             creator_id=proposal.creator_id,
@@ -831,6 +1043,23 @@ def publish_proposal(
         )
 
     canonical = existing[0]
+    prior = read_state(canonical.body)
+    replacing = prior is None or prior.run_id != proposal.run_id
+    supersedes = _supersedes_for(prior, proposal.run_id)
+    payload = render_issue(
+        proposal, duplicates=duplicates, supersedes=supersedes
+    )
+
+    if replacing:
+        # Before the overwrite, never after. If the update below fails, an
+        # accurate record of what this run was about to replace still exists and
+        # the failure is reported; if the order were reversed, a failed comment
+        # would leave the previous run's evidence gone with nothing to show for
+        # it — the one outcome this is here to prevent.
+        client.create_comment(
+            canonical.number, body=supersession_comment(proposal, prior)
+        )
+
     updated = client.update_issue(
         canonical.number, title=payload.title, body=payload.body
     )
@@ -840,6 +1069,7 @@ def publish_proposal(
         payload=payload,
         issue_number=updated.number,
         duplicates=duplicates,
+        superseded_run=supersedes if replacing else None,
     )
 
 
@@ -878,7 +1108,12 @@ def publish_report(
 
 
 def _render_only(proposal: CreatorProposal) -> PublicationOutcome:
-    """A dry run: the exact payload, produced without touching GitHub."""
+    """A dry run: the exact payload, produced without touching GitHub.
+
+    Nothing is read, so nothing is known about an existing issue: no duplicates
+    can be reported and no superseded run can be named. The CLI says so rather
+    than letting a clean dry run read as evidence that neither exists.
+    """
     if not is_material(proposal):
         return PublicationOutcome(
             creator_id=proposal.creator_id,

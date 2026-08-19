@@ -1,11 +1,13 @@
 """The one place this tool talks to GitHub, and it can only talk about issues.
 
 The updater proposes; a human disposes. Publication is therefore deliberately
-narrow: this module can create an issue, edit an issue, and list open issues. It
-builds exactly one URL shape — ``/repos/{owner}/{repo}/issues`` — so there is no
-code path here that could reach a branch, a commit, a file, a merge, or a pull
-request, whatever a caller asked for. `tests/test_proposal_only.py` enforces that
-this is the only module in the package allowed to name the GitHub API at all.
+narrow: this module can create an issue, edit an issue, comment on an issue, and
+list open issues. Every request is built under ``/repos/{owner}/{repo}/issues``,
+so there is no code path here that could reach a branch, a commit, a file, a
+merge, or a pull request, whatever a caller asked for.
+`tests/test_proposal_only.py` enforces that this is the only module in the
+package allowed to name the GitHub API at all, and reads the URL fragments it can
+build straight out of the syntax tree.
 
 Everything above this boundary depends on the :class:`IssuesClient` protocol, so
 the whole publication decision — materiality, identity, deduplication — is
@@ -88,6 +90,14 @@ class IssuesClient(Protocol):
     def update_issue(self, number: int, *, title: str, body: str) -> Issue:
         """Replace the title and body of an existing issue."""
 
+    def create_comment(self, number: int, *, body: str) -> None:
+        """Add a comment to an existing issue.
+
+        Publication needs this to record what an update is about to overwrite: a
+        body replaced wholesale takes the previous run's evidence with it, and a
+        comment is the only append-only record this tool can leave.
+        """
+
 
 def split_repository(repository: str) -> tuple[str, str]:
     """Validate and split ``owner/name``.
@@ -162,11 +172,19 @@ class RestIssuesClient:
     def repository(self) -> str:
         return f"{self._owner}/{self._repo}"
 
-    # -- the only URL this client can build -------------------------------------
+    # -- the only URLs this client can build -------------------------------------
 
     def _issues_url(self, *, number: int | None = None, query: str = "") -> str:
         suffix = "" if number is None else f"/{int(number)}"
         return f"{self._api_url}/repos/{self._owner}/{self._repo}/issues{suffix}{query}"
+
+    def _comments_url(self, number: int) -> str:
+        """The comment collection of one issue, and nothing else.
+
+        Built from :meth:`_issues_url` so it inherits the same validated owner and
+        repository, and cannot address anything outside `/issues`.
+        """
+        return f"{self._issues_url(number=number)}/comments"
 
     def _headers(self) -> dict[str, str]:
         return {
@@ -241,6 +259,9 @@ class RestIssuesClient:
                 payload={"title": title, "body": body},
             )
         )
+
+    def create_comment(self, number: int, *, body: str) -> None:
+        self._send(self._comments_url(number), method="POST", payload={"body": body})
 
 
 def _issue(data: Any) -> Issue:

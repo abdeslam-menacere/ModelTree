@@ -40,6 +40,7 @@ from .providers.fixtures import (
 )
 from .providers.network import NetworkSourceProvider
 from .publisher import (
+    UNREADABLE_RUN,
     PublicationAction,
     PublicationError,
     PublicationReport,
@@ -375,6 +376,13 @@ def _summarise_publication(result: PublicationReport, stream) -> int:
             payload = outcome.payload
             assert payload is not None  # RENDERED always carries its payload
             stream.write(f"=== {creator}: dry run, nothing was sent ===\n")
+            stream.write(
+                "note: nothing was read from GitHub, so this run has NOT checked "
+                "for duplicate open proposals and cannot name a superseded run. A "
+                "clean dry run is not evidence that neither exists; a real "
+                "publication may add a publication-notes block, a superseded run, "
+                "and a supersession comment.\n"
+            )
             stream.write(f"title: {payload.title}\n")
             stream.write("body:\n")
             stream.write(payload.body)
@@ -387,8 +395,15 @@ def _summarise_publication(result: PublicationReport, stream) -> int:
             if outcome.duplicates
             else ""
         )
+        if outcome.superseded_run == UNREADABLE_RUN:
+            superseded = "; replaced a body that could not be read, recorded in a comment"
+        elif outcome.superseded_run:
+            superseded = f"; superseded run {outcome.superseded_run}, recorded in a comment"
+        else:
+            superseded = ""
         stream.write(
-            f"{creator}: {outcome.action.value} issue #{outcome.issue_number}{duplicates}\n"
+            f"{creator}: {outcome.action.value} issue #{outcome.issue_number}"
+            f"{superseded}{duplicates}\n"
         )
 
     for failure in result.failures:
