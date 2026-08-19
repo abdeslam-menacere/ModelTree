@@ -149,12 +149,12 @@ def test_the_body_carries_every_section_the_issue_requires(proposal_factory) -> 
 
     for heading in (
         "## Candidate patch",
-        "## Evidence",
-        "## Source decisions",
+        "## Atomic evidence",
+        "## Sources and source decisions",
         "## Reviewer verdicts",
         "## Deterministic validation",
         "## Conflicts",
-        "## Budget",
+        "## Budget usage",
         "## Completion status",
     ):
         assert heading in body, heading
@@ -166,7 +166,7 @@ def test_the_body_shows_every_reviewer_verdict(proposal_factory) -> None:
 
     assert proposal.verdicts
     for verdict in proposal.verdicts:
-        assert verdict.reviewer_id in body
+        assert verdict.reviewer in body
         assert verdict.lens.value in body
     for adjudication in proposal.adjudications:
         assert adjudication.claim_id in body
@@ -192,7 +192,9 @@ def test_the_body_shows_every_deterministic_gate_including_failures(
 
     assert proposal.gates
     for gate in proposal.gates:
-        assert gate.name in body
+        assert gate.gate in body
+    if any(gate.failed for gate in proposal.gates):
+        assert "**failed**" in body
     for validation in proposal.validations:
         assert validation.claim_id in body
 
@@ -265,6 +267,7 @@ def test_table_content_cannot_break_out_of_its_row(proposal_factory) -> None:
 
 
 def test_an_oversized_proposal_is_truncated_explicitly(proposal_factory) -> None:
+    """Nothing is dropped silently: the body names what it had to leave out."""
     proposal = proposal_factory(MATERIAL)
     huge = dataclasses.replace(proposal, claims=proposal.claims * 4000)
 
@@ -272,7 +275,9 @@ def test_an_oversized_proposal_is_truncated_explicitly(proposal_factory) -> None
 
     assert len(body) <= MAX_BODY_CHARS
     assert body.splitlines()[0] == identity_marker(MATERIAL)
-    assert "truncat" in body.lower()
+    assert "## Publication notes" in body
+    assert "omitted to fit a GitHub issue body" in body
+    assert "## Completion status" in body
 
 
 # ---------------------------------------------------------------------------
