@@ -12,6 +12,54 @@
     "verifiedAt": "2026-08-14"
   },
   {
+    "id": "openai-gpt-5-6",
+    "slug": "gpt-5-6",
+    "organizationId": "openai",
+    "name": "GPT-5.6",
+    "description": "The current GPT-5 generation, released for general availability on 2026-07-09 after a limited preview of its flagship tier. In OpenAI's words the family spans three durable capability tiers: Sol (the flagship), Terra (a lower-cost model competitive with GPT-5.5), and Luna (the fastest and most affordable), where the number identifies the generation and the tier names can advance on their own cadence. It succeeds GPT-5.5.",
+    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
+    "firstReleaseDate": "2026-07-09",
+    "status": "current",
+    "sourceIds": ["openai-gpt-5-6-launch", "openai-gpt-5-6-sol-docs"],
+    "verifiedAt": "2026-08-18"
+  },
+  {
+    "id": "openai-gpt-5-5",
+    "slug": "gpt-5-5",
+    "organizationId": "openai",
+    "name": "GPT-5.5",
+    "description": "The GPT-5 generation immediately preceding GPT-5.6, introduced in the API on 2026-04-23 as a frontier model for complex coding, research, and data-analysis work. OpenAI's GPT-5.6 documentation positions the Terra tier as competitive with GPT-5.5, and its model documentation still lists GPT-5.5 as available; GPT-5.6 is its successor generation.",
+    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
+    "firstReleaseDate": "2026-04-23",
+    "status": "legacy",
+    "sourceIds": ["openai-gpt-5-5-announcement", "openai-gpt-5-5-docs"],
+    "verifiedAt": "2026-08-18"
+  },
+  {
+    "id": "openai-gpt-5-4",
+    "slug": "gpt-5-4",
+    "organizationId": "openai",
+    "name": "GPT-5.4",
+    "description": "An earlier GPT-5 generation, introduced on 2026-03-05 as OpenAI's frontier model for professional work, with state-of-the-art coding, computer use, and a roughly one-million-token context window. It precedes GPT-5.5 and GPT-5.6 in the GPT-5 line.",
+    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
+    "firstReleaseDate": "2026-03-05",
+    "status": "legacy",
+    "sourceIds": ["openai-gpt-5-4-announcement", "openai-gpt-5-4-docs"],
+    "verifiedAt": "2026-08-18"
+  },
+  {
+    "id": "openai-gpt-5",
+    "slug": "gpt-5",
+    "organizationId": "openai",
+    "name": "GPT-5",
+    "description": "The first GPT-5 generation and the root of the line that GPT-5.4, GPT-5.5, and GPT-5.6 build on. Its date is taken from the pinned API snapshot gpt-5-2025-08-07; OpenAI's model documentation now labels GPT-5 a previous model and recommends GPT-5.6 in its place.",
+    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
+    "firstReleaseDate": "2025-08-07",
+    "status": "legacy",
+    "sourceIds": ["openai-gpt-5-docs"],
+    "verifiedAt": "2026-08-18"
+  },
+  {
     "id": "anthropic-claude-5",
     "slug": "claude-5",
     "organizationId": "anthropic",
