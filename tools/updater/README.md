@@ -337,6 +337,39 @@ close an issue a human had repurposed in the meantime. Duplicates are *prevented
 repository-wide, non-cancelling `concurrency` group on the workflow, and reported if they
 happen anyway.
 
+### Supersession: what an update replaced
+
+An update overwrites the body wholesale, so the previous run's evidence goes with it. A
+reviewer who was reading that evidence would otherwise have no way to see that anything
+changed. Every body therefore carries a machine-readable state line, immediately under the
+identity marker and read only from that second line:
+
+```
+<!-- modeltree-run: v1 run=<id> supersedes=<id|-|?> claims=N accepted=N conflicts=N failures=N -->
+```
+
+When a run is about to overwrite a body written by a **different** run, it first posts a
+comment naming that run and its material counts, then rewrites the body, whose header table
+gains a `Supersedes run` row. The order matters: the comment exists to survive the thing it
+describes, so it is filed *before* the rewrite. If the rewrite then fails, the record still
+stands and the CLI reports the failure — the reverse order can lose the previous run with
+nothing to show for it.
+
+- Re-publishing the **same** run carries the earlier supersession forward unchanged, so the
+  body stays byte-identical and no second comment appears.
+- If the body being replaced **cannot be read** — hand-edited, or written by an older
+  version — the comment says exactly that. It does not guess at a run id or at counts, and
+  it does not stay silent. The new body repeats the warning.
+- A run id reaches the state line, so it is validated (letters, digits, `.`, `_`, `-`) for
+  the same reason a creator id is: a value carrying `-->` could otherwise close the comment
+  early and forge a second state line.
+- The comment endpoint (`POST /repos/{owner}/{repo}/issues/{n}/comments`) is the only
+  addition to the client's URL surface, it stays under `/issues`, and it needs no permission
+  beyond the `issues: write` the workflow already has.
+
+A `--dry-run` reads nothing, so it can neither check for duplicates nor name a superseded
+run. It says so in its output: a clean dry run is not evidence that neither exists.
+
 ### The manual GitHub workflow
 
 `.github/workflows/publish-updater-proposals.yml` runs the pair of commands on a runner.
@@ -437,7 +470,7 @@ src/modeltree_updater/
   cli.py           local CLI
   safety.py        proposal-only output guard
   parsing.py       strict reader that rebuilds contracts from a written artefact
-  publisher.py     materiality, issue identity, deterministic issue rendering
+  publisher.py     materiality, issue identity, supersession, deterministic rendering
   github_issues.py the only module that speaks to GitHub, and only about issues
   profiles.py      shared loader for version-controlled creator profiles + catalog
   scout.py         triages source leads into proposals; snippets are never evidence
