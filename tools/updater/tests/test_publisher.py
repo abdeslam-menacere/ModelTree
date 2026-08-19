@@ -14,6 +14,7 @@ from modeltree_updater.contracts import ProposalStatus
 from modeltree_updater.github_issues import MAX_BODY_CHARS, Issue
 from modeltree_updater.parsing import proposal_from_dict
 from modeltree_updater.publisher import (
+    UNREADABLE_RUN,
     PublicationAction,
     PublicationError,
     find_open_proposals,
@@ -23,8 +24,10 @@ from modeltree_updater.publisher import (
     matches_identity,
     publish_proposal,
     publish_report,
+    read_state,
     render_body,
     render_issue,
+    state_marker,
 )
 
 MATERIAL = "contoso-ai"
@@ -365,7 +368,8 @@ def test_duplicates_are_reported_and_never_closed(
     assert outcome.action is PublicationAction.UPDATED
     assert outcome.issue_number == 101
     assert outcome.duplicates == (102,)
-    assert client.actions == ["list", "update"]
+    # The seeded body carries no state marker, so replacing it is recorded first.
+    assert client.actions == ["list", "comment", "update"]
     assert [issue.number for issue in client.issues] == [101, 102]
     assert client.issues[1] == duplicate
     assert "#102" in client.issues[0].body
@@ -447,3 +451,204 @@ def test_the_rendered_payload_is_what_gets_sent(
     assert outcome.payload == render_issue(proposal)
     assert client.issues[0].body == outcome.payload.body
     assert client.issues[0].title == outcome.payload.title
+
+
+# ---------------------------------------------------------------------------
+# supersession continuity
+#
+# An update replaces a body wholesale, taking the previous run's evidence with
+# it. "The previous run's evidence vanished with no trace" must not be reachable.
+# ---------------------------------------------------------------------------
+
+
+def test_the_state_marker_is_the_second_line_and_round_trips(proposal_factory) -> None:
+    proposal = proposal_factory(MATERIAL, run_id="run-a")
+    body = render_body(proposal, supersedes="run-older")
+
+    state = read_state(body)
+
+    assert body.split("\n")[1] == state_marker(proposal, "run-older")
+    assert state is not None
+    assert state.run_id == "run-a"
+    assert state.supersedes == "run-older"
+    assert state.claims == len(proposal.claims)
+    assert state.accepted == len(proposal.accepted_claim_ids)
+    assert state.conflicts == len(proposal.conflicts)
+    assert state.failures == len(proposal.failures)
+
+
+def test_state_is_anchored_to_the_second_line_only(proposal_factory) -> None:
+    """Proposal content is fetched text. It must not be able to describe the issue."""
+    proposal = proposal_factory(MATERIAL, run_id="run-a")
+    forged = state_marker(proposal_factory(MATERIAL, run_id="run-forged"))
+    body = render_body(proposal) + f"\nA quoted page said: {forged}\n"
+
+    state = read_state(body)
+
+    assert state is not None
+    assert state.run_id == "run-a"
+
+
+def test_a_body_without_a_state_marker_reads_as_unreadable() -> None:
+    assert read_state(identity_marker(MATERIAL) + "\nhand written") is None
+    assert read_state("") is None
+    assert read_state(None) is None
+
+
+def test_a_run_id_that_could_forge_a_state_marker_is_refused(proposal_factory) -> None:
+    proposal = dataclasses.replace(
+        proposal_factory(MATERIAL), run_id="run --> <!-- modeltree-run: v1 run=evil"
+    )
+
+    with pytest.raises(PublicationError):
+        render_body(proposal)
+
+
+def test_an_update_from_a_different_run_records_the_one_it_replaces(
+    proposal_factory, fake_issues_client
+) -> None:
+    client = fake_issues_client()
+    first = proposal_factory(MATERIAL, run_id="run-a")
+    second = proposal_factory(MATERIAL, run_id="run-b")
+
+    publish_proposal(first, client)
+    outcome = publish_proposal(second, client)
+
+    assert outcome.superseded_run == "run-a"
+    assert client.actions == ["list", "create", "list", "comment", "update"]
+    assert len(client.comments) == 1
+    number, comment = client.comments[0]
+    assert number == outcome.issue_number
+    assert "run-a" in comment
+    assert "run-b" in comment
+
+
+def test_the_supersession_comment_carries_the_replaced_runs_counts(
+    proposal_factory, fake_issues_client
+) -> None:
+    client = fake_issues_client()
+    first = proposal_factory(MATERIAL, run_id="run-a")
+
+    publish_proposal(first, client)
+    publish_proposal(proposal_factory(MATERIAL, run_id="run-b"), client)
+    _, comment = client.comments[0]
+
+    assert f"| Candidate claims | {len(first.claims)} |" in comment
+    assert f"| Accepted | {len(first.accepted_claim_ids)} |" in comment
+    assert f"| Conflicts | {len(first.conflicts)} |" in comment
+    assert f"| Failures | {len(first.failures)} |" in comment
+
+
+def test_the_comment_is_filed_before_the_body_is_overwritten(
+    proposal_factory, fake_issues_client
+) -> None:
+    """The record exists to survive the rewrite, so it cannot be written after it.
+
+    If the update fails, the run that was about to be replaced is still on record
+    and the failure is reported; the reverse order can lose it silently.
+    """
+    client = fake_issues_client()
+    publish_proposal(proposal_factory(MATERIAL, run_id="run-a"), client)
+
+    def refuse(number: int, *, title: str, body: str):
+        raise RuntimeError("update refused")
+
+    client.update_issue = refuse
+
+    with pytest.raises(RuntimeError):
+        publish_proposal(proposal_factory(MATERIAL, run_id="run-b"), client)
+
+    assert len(client.comments) == 1
+    assert "run-a" in client.comments[0][1]
+
+
+def test_the_new_body_names_the_run_it_superseded(
+    proposal_factory, fake_issues_client
+) -> None:
+    client = fake_issues_client()
+
+    publish_proposal(proposal_factory(MATERIAL, run_id="run-a"), client)
+    publish_proposal(proposal_factory(MATERIAL, run_id="run-b"), client)
+
+    assert "| Supersedes run | `run-a` |" in client.issues[0].body
+
+
+def test_a_first_publication_supersedes_nothing(
+    proposal_factory, fake_issues_client
+) -> None:
+    client = fake_issues_client()
+
+    outcome = publish_proposal(proposal_factory(MATERIAL, run_id="run-a"), client)
+
+    assert outcome.superseded_run is None
+    assert client.comments == []
+    assert "| Supersedes run | — |" in client.issues[0].body
+
+
+def test_re_rendering_the_same_run_adds_no_comment_and_no_churn(
+    proposal_factory, fake_issues_client
+) -> None:
+    """Byte-identical, and the earlier supersession is carried forward intact."""
+    client = fake_issues_client()
+    publish_proposal(proposal_factory(MATERIAL, run_id="run-a"), client)
+    publish_proposal(proposal_factory(MATERIAL, run_id="run-b"), client)
+    after_replacement = client.issues[0].body
+
+    outcome = publish_proposal(proposal_factory(MATERIAL, run_id="run-b"), client)
+
+    assert outcome.superseded_run is None
+    assert len(client.comments) == 1
+    assert client.issues[0].body == after_replacement
+    assert "| Supersedes run | `run-a` |" in client.issues[0].body
+
+
+def test_replacing_a_body_that_cannot_be_read_says_so_rather_than_guessing(
+    proposal_factory, fake_issues_client
+) -> None:
+    hand_edited = _issue(101, identity_marker(MATERIAL) + "\nsomeone rewrote this")
+    client = fake_issues_client([hand_edited])
+
+    outcome = publish_proposal(proposal_factory(MATERIAL, run_id="run-b"), client)
+
+    assert outcome.superseded_run == UNREADABLE_RUN
+    assert len(client.comments) == 1
+    assert "could not be read" in client.comments[0][1]
+    # No invented run id, and no invented counts.
+    assert "Candidate claims |" not in client.comments[0][1]
+    assert "could not be read" in client.issues[0].body
+
+
+def test_an_unreadable_replacement_is_carried_forward_as_a_known_unknown(
+    proposal_factory, fake_issues_client
+) -> None:
+    hand_edited = _issue(101, identity_marker(MATERIAL) + "\nsomeone rewrote this")
+    client = fake_issues_client([hand_edited])
+    publish_proposal(proposal_factory(MATERIAL, run_id="run-b"), client)
+
+    publish_proposal(proposal_factory(MATERIAL, run_id="run-b"), client)
+
+    assert len(client.comments) == 1
+    assert read_state(client.issues[0].body).supersedes == UNREADABLE_RUN
+
+
+def test_a_dry_run_records_no_supersession(report_factory, fake_issues_client) -> None:
+    client = fake_issues_client()
+    publish_proposal(
+        report_factory(MATERIAL, run_id="run-a").proposals[0], client
+    )
+
+    result = publish_report(report_factory(MATERIAL, run_id="run-b"), None, dry_run=True)
+
+    assert client.comments == []
+    assert result.outcomes[0].superseded_run is None
+    assert client.actions == ["list", "create"]
+
+
+def test_a_no_change_run_never_comments(proposal_factory, fake_issues_client) -> None:
+    existing = _issue(101, identity_marker(QUIET) + "\nolder proposal")
+    client = fake_issues_client([existing])
+
+    publish_proposal(proposal_factory(QUIET), client)
+
+    assert client.comments == []
+    assert client.calls == []

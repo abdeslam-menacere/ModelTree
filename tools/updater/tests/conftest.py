@@ -98,6 +98,7 @@ class FakeIssuesClient:
     def __init__(self, issues: Sequence[Issue] = ()) -> None:
         self.issues = list(issues)
         self.calls: list[tuple] = []
+        self.comments: list[tuple[int, str]] = []
         self._next_number = max((issue.number for issue in self.issues), default=100) + 1
 
     def list_open_issues(self) -> Sequence[Issue]:
@@ -120,6 +121,10 @@ class FakeIssuesClient:
                 )
                 return self.issues[index]
         raise AssertionError(f"no issue #{number} to update")
+
+    def create_comment(self, number: int, *, body: str) -> None:
+        self.calls.append(("comment", number, body))
+        self.comments.append((number, body))
 
     @property
     def actions(self) -> list[str]:

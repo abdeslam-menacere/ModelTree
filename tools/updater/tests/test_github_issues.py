@@ -140,21 +140,42 @@ def test_updating_an_issue_patches_that_issue() -> None:
     assert recorder.requests[0]["payload"] == {"title": "t", "body": "b"}
 
 
+def test_commenting_posts_to_that_issues_comments() -> None:
+    recorder = Recorder([_json({"id": 1}, status=201)])
+
+    _client(recorder).create_comment(7, body="recorded")
+
+    assert recorder.requests[0]["method"] == "POST"
+    assert recorder.paths == ["/repos/octo/modeltree/issues/7/comments"]
+    assert recorder.requests[0]["payload"] == {"body": "recorded"}
+
+
+def test_a_comment_cannot_be_addressed_outside_the_repository() -> None:
+    """The comment URL is built from the same validated owner and repository."""
+    recorder = Recorder([_json({"id": 1}, status=201)])
+
+    _client(recorder, "octo/modeltree").create_comment(7, body="b")
+
+    assert recorder.paths[0].startswith("/repos/octo/modeltree/issues/")
+
+
 def test_every_url_this_client_can_build_ends_at_issues() -> None:
-    """The client has one URL builder; this asserts what it can reach."""
+    """Every URL builder in the client; this asserts what they can reach."""
     recorder = Recorder(
-        [_json([]), _json(_issue(7), status=201), _json(_issue(7))]
+        [_json([]), _json(_issue(7), status=201), _json(_issue(7)), _json({"id": 1}, status=201)]
     )
     client = _client(recorder)
 
     client.list_open_issues()
     client.create_issue(title="t", body="b")
     client.update_issue(7, title="t", body="b")
+    client.create_comment(7, body="b")
 
     for path in recorder.paths:
         assert path in {
             "/repos/octo/modeltree/issues",
             "/repos/octo/modeltree/issues/7",
+            "/repos/octo/modeltree/issues/7/comments",
         }, path
 
 

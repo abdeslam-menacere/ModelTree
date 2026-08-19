@@ -80,7 +80,12 @@ def test_only_the_issues_boundary_names_the_github_api() -> None:
 
 
 def test_the_issues_boundary_can_only_address_issues() -> None:
-    """Every URL path this package can build, read straight out of the syntax tree."""
+    """Every URL path this package can build, read straight out of the syntax tree.
+
+    `/comments` is here because supersession continuity needs to file a record
+    before it overwrites a body. It is still under `/issues`, and this pin is what
+    stops the set from quietly growing past that.
+    """
     tree = ast.parse((PACKAGE_ROOT / ISSUES_BOUNDARY).read_text(encoding="utf-8"))
     paths = {
         node.value
@@ -90,7 +95,7 @@ def test_the_issues_boundary_can_only_address_issues() -> None:
         and node.value.startswith("/")
     }
 
-    assert paths <= {"/", "/repos/", "/issues"}, paths
+    assert paths <= {"/", "/repos/", "/issues", "/comments"}, paths
 
 
 def test_every_written_path_passes_through_the_guard() -> None:

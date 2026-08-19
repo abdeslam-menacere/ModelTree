@@ -170,3 +170,29 @@ def test_a_dry_run_needs_no_credentials_and_no_repository(artefact) -> None:
     code, _ = _run(["publish", "--report", str(artefact(MATERIAL)), "--dry-run"])
 
     assert code == EXIT_OK
+
+
+def test_a_dry_run_says_it_has_not_checked_for_duplicates(artefact) -> None:
+    """A clean dry run must not read as evidence that no duplicate exists."""
+    code, output = _run(["publish", "--report", str(artefact(MATERIAL)), "--dry-run"])
+
+    assert code == EXIT_OK
+    assert "has NOT checked" in output
+    assert "duplicate open proposals" in output
+    assert "superseded run" in output
+
+
+def test_publishing_a_later_run_reports_what_it_superseded(
+    artefact, fake_issues_client, monkeypatch
+) -> None:
+    client = fake_issues_client()
+    monkeypatch.setattr(cli, "RestIssuesClient", lambda **kwargs: client, raising=True)
+    env = {"GITHUB_TOKEN": "t0ken", "GITHUB_REPOSITORY": "octo/modeltree"}
+    first = artefact(MATERIAL, run_id="run-one")
+    second = artefact(MATERIAL, run_id="run-two")
+
+    _run(["publish", "--report", str(first)], env=env)
+    _, output = _run(["publish", "--report", str(second)], env=env)
+
+    assert "superseded run run-one, recorded in a comment" in output
+    assert len(client.comments) == 1
