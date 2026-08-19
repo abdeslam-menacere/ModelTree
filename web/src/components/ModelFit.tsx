@@ -215,8 +215,11 @@ export default function ModelFit({ guidance, releaseName, headingId = 'fit-title
             filter, not a judgement about meaning. It catches the usual ways a verdict gets written
             down, but a comparative claim phrased around those words would pass it, and it errs
             toward rejecting borderline wording that an author can simply rephrase. The check that
-            actually holds is provenance, below: a statement cannot introduce a claim that no
-            recorded fact carries, so an unsupported comparison has nothing to stand on.
+            actually holds is provenance, below: a statement may cite only the sources the facts
+            beneath it already cite, so a comparison cannot pull in a source no recorded fact
+            carries. That constrains where evidence comes from, not what a sentence means. Neither
+            check reads a statement and decides whether its facts support it — that judgement stays
+            with you, which is why every statement lists the facts and sources it rests on.
           </p>
           <h3>The rubric is disclosed, not weighted</h3>
           <p>
@@ -234,7 +237,7 @@ export default function ModelFit({ guidance, releaseName, headingId = 'fit-title
             A statement must rest on at least one structured fact already recorded here — a release or
             family field, a lifecycle event, an evaluation result, a usage observation, or a pricing
             record — and it must be a fact about this release. It may cite only sources those facts
-            already cite, so guidance can never introduce a claim no recorded fact carries, and it
+            already cite, so guidance cannot pull in a source no recorded fact carries, and it
             cannot be dated earlier than the evidence beneath it.
           </p>
           <h3>Conflicts are shown, not resolved</h3>

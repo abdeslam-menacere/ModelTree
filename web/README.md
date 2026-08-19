@@ -81,7 +81,7 @@ Every statement must be traceable, which is enforced rather than encouraged:
   benchmark result, a usage observation, or a pricing record — and every cited
   fact must describe the statement's own release (or that release's family).
 - Its `sourceIds` must be a subset of the sources those facts already cite, so
-  guidance can never smuggle in a claim no recorded fact carries.
+  guidance cannot pull in a source no recorded fact carries.
 - It cannot be dated earlier than the evidence beneath it.
 - Each declared entry in `rubricDimensions` must be answered by a cited fact of a
   kind the rubric allows for that dimension. The rubric lives in
@@ -100,12 +100,17 @@ not a semantic one: a comparative claim written around those words ("no model
 handles long context better than this one") passes it, and it errs toward
 rejecting borderline wording an author can rephrase. `model-fit.test.ts` asserts
 both directions, including a phrasing the filter knowingly does not catch, so the
-limitation is recorded in the suite rather than only in prose. The guarantee that
-actually carries weight is the provenance rule above: a statement cannot
-introduce a claim no recorded fact carries. The filter runs over ModelTree's
-editorial text only — creator-authored prose recorded elsewhere, such as a
-release `summary` or `intendedUse`, is reported as the creator's claim rather
-than asserted as ModelTree's.
+limitation is recorded in the suite rather than only in prose. The rule with more
+teeth is the provenance rule above: a statement may cite only the sources its own
+facts cite, so a comparison cannot pull in a source no recorded fact carries. Be
+precise about that one too — it constrains where evidence comes from, not what a
+sentence means. Neither check verifies that a statement's content follows from
+the facts it rests on; nothing here does semantic entailment. What the system
+offers instead is that the facts and sources behind every statement are rendered
+beside it, so a reader can check the derivation themselves. The filter runs over
+ModelTree's editorial text only — creator-authored prose recorded elsewhere, such
+as a release `summary` or `intendedUse`, is reported as the creator's claim
+rather than asserted as ModelTree's.
 
 A statement's `verifiedAt` is the verification date of the newest fact it cites,
 not a record that an editor re-read the derivation, and it is labelled as

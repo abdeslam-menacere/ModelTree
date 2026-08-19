@@ -352,7 +352,8 @@ function validateModelFitGuidance(
     }
 
     // A statement may only cite sources its own facts already cite, so guidance
-    // can never introduce an external claim that no recorded fact carries.
+    // cannot pull in a source no recorded fact carries. This constrains sourcing,
+    // not semantics: it does not check that the statement follows from the facts.
     const factSources = new Set(resolved.flatMap(({ fact }) => fact.sourceIds));
     for (const sourceId of statement.sourceIds) {
       if (sourceIds.has(sourceId) && !factSources.has(sourceId)) {

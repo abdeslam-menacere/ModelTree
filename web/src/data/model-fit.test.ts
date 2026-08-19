@@ -426,8 +426,12 @@ describe('universal-winner language', () => {
     const missed = 'No model handles long context better than this one.';
 
     expect(findUniversalClaim(missed)).toBeUndefined();
-    // Published, and only the provenance rules stand between this and a reader.
-    // The vocabulary filter is a backstop, not the guarantee.
+    // It passes provenance too, and that is the point: it cites the same source
+    // the contextWindow fact carries, so the subset rule has nothing to object
+    // to. No mechanical check here rejects this sentence. The subset rule
+    // governs where a citation may come from, never whether the sentence
+    // follows from it, so an author writing carelessly is caught by review and
+    // by the facts rendered beside the statement — not by validation.
     expect(() => validateDataset(datasetWith([statement({ statement: missed })]))).not.toThrow();
   });
 

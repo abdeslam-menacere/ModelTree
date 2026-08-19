@@ -320,6 +320,21 @@ describe('ModelFit rendering states', () => {
     expect(markup).not.toContain('rejected before it can be published');
   });
 
+  it('describes the provenance rule as a sourcing rule, not a semantic one', () => {
+    const markup = render([]);
+
+    expect(markup).toContain('may cite only the sources the facts beneath it already cite');
+    expect(markup).toContain('cannot pull in a source no recorded fact carries');
+    expect(markup).toContain('constrains where evidence comes from, not what a sentence means');
+    // The provenance rule is a subset check over sourceIds. It does not test
+    // whether a statement's content follows from its facts: the known-miss
+    // phrasing in model-fit.test.ts cites a legitimate source and validates.
+    // Earlier copy said an unsupported comparison had "nothing to stand on",
+    // which claimed an entailment check that does not exist anywhere here.
+    expect(markup).not.toContain('nothing to stand on');
+    expect(markup).not.toContain('introduce a claim');
+  });
+
   it('says the statement date is the evidence date, not a review date', () => {
     const markup = render([statement()]);
 

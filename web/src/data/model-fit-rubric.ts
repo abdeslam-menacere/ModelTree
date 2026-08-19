@@ -137,9 +137,11 @@ export const RUBRIC_DIMENSION_SUPPORT: Record<FitRubricDimension, DimensionSuppo
  * comparative claim worded around them — "no model handles long context better
  * than this one" passes every pattern here. It is a backstop; the rule that
  * actually holds is provenance, enforced in `validate.ts`: a statement may cite
- * only sources the facts beneath it already cite, so it cannot introduce a claim
- * no recorded fact carries. The list deliberately errs toward rejection, since a
- * false positive costs an author a rewording and a false negative ships.
+ * only sources the facts beneath it already cite, so it cannot pull in a source
+ * no recorded fact carries. That rule constrains sourcing, not meaning — it does
+ * not check that a statement follows from its facts, and nothing here does. The
+ * list deliberately errs toward rejection, since a false positive costs an
+ * author a rewording and a false negative ships.
  *
  * These run over ModelTree's own editorial text only — the condition, the
  * statement, its scope and caveats, and the note on an evidence gap. They do not
