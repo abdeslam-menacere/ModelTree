@@ -1,0 +1,9 @@
+{
+  "creator": {
+    "creator_id": "quiet-ai",
+    "creator_name": "Quiet AI",
+    "entry_urls": ["https://www.example.com/quiet-ai/releases"],
+    "notes": "Synthetic fixture creator with nothing to report. Exercises the no-change path: a complete run that finds no candidate, no conflict, and no failure must create no proposal issue at all."
+  },
+  "sources": []
+}

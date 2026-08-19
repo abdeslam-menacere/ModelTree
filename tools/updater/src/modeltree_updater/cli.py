@@ -3,9 +3,12 @@
 Typical use, with no network and no cloud credentials::
 
     python -m modeltree_updater run --creator anthropic --output out/proposals
+    python -m modeltree_updater publish --report out/proposals/<run-id>/report.json --dry-run
 
 The CLI selects creators, applies per-creator budgets, writes proposal JSON to a
-directory outside the web app, and reports what it could not finish.
+directory outside the web app, and reports what it could not finish. `publish`
+turns a written artefact into one GitHub issue per material creator; `--dry-run`
+prints the exact payload and sends nothing.
 """
 
 from __future__ import annotations
@@ -26,6 +29,8 @@ from .checkpoints import (
     list_checkpoint_summaries,
 )
 from .contracts import ProposalStatus, RunReport
+from .github_issues import DEFAULT_API_URL, GitHubError, RestIssuesClient
+from .parsing import ArtifactError, load_run_report
 from .providers.base import ProviderBundle, ProviderError
 from .providers.fixtures import (
     FixtureClaimExtractor,
@@ -34,6 +39,12 @@ from .providers.fixtures import (
     load_fixture_library,
 )
 from .providers.network import NetworkSourceProvider
+from .publisher import (
+    PublicationAction,
+    PublicationError,
+    PublicationReport,
+    publish_report,
+)
 from .runner import resume_creator_run, run_creators
 from .safety import ProposalOnlyViolation, assert_proposal_output_path
 from .profiles import DEFAULT_PROFILES_DIR, ProfileError, load_profile_library
@@ -46,6 +57,7 @@ DEFAULT_FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "creators"
 EXIT_OK = 0
 EXIT_USAGE = 2
 EXIT_CREATOR_FAILED = 3
+EXIT_PUBLISH_FAILED = 4
 
 
 def _default_timestamp() -> str:
@@ -102,6 +114,36 @@ def build_parser() -> argparse.ArgumentParser:
 
     creators = subparsers.add_parser("creators", help="list creators available in the fixtures")
     creators.add_argument("--fixtures", type=Path, default=DEFAULT_FIXTURES)
+
+    publish = subparsers.add_parser(
+        "publish",
+        help="create or update one GitHub proposal issue per material creator",
+        description=(
+            "Publish a written run artefact as GitHub issues. One open issue per "
+            "creator, updated in place on a rerun. A creator with nothing material "
+            "to report creates no issue and causes no GitHub request at all. This "
+            "command can only create and edit issues; it cannot touch repository "
+            "content, a branch, or a pull request."
+        ),
+    )
+    publish.add_argument(
+        "--report",
+        type=Path,
+        required=True,
+        help="the report.json written by `run --output`",
+    )
+    publish.add_argument(
+        "--repo",
+        help="target repository as owner/name; defaults to $GITHUB_REPOSITORY",
+    )
+    publish.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=(
+            "print the exact issue title and body that would be sent, and send "
+            "nothing. Needs no repository, no token, and no network."
+        ),
+    )
 
     profiles = subparsers.add_parser(
         "profiles",
@@ -315,6 +357,76 @@ def _resume(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
     return _summarise(report, stream)
 
 
+def _summarise_publication(result: PublicationReport, stream) -> int:
+    """Report exactly what was, or would be, sent.
+
+    A dry run prints the payload verbatim — the same string a real publication
+    would send — so it can be reviewed, diffed, or piped somewhere before anyone
+    grants this tool a token.
+    """
+    for outcome in result.outcomes:
+        creator = outcome.creator_id
+        if outcome.action is PublicationAction.SKIPPED_NO_CHANGE:
+            stream.write(
+                f"{creator}: nothing material to report; no issue created or updated\n"
+            )
+            continue
+        if outcome.action is PublicationAction.RENDERED:
+            payload = outcome.payload
+            assert payload is not None  # RENDERED always carries its payload
+            stream.write(f"=== {creator}: dry run, nothing was sent ===\n")
+            stream.write(f"title: {payload.title}\n")
+            stream.write("body:\n")
+            stream.write(payload.body)
+            stream.write(f"=== end {creator} ===\n")
+            continue
+        duplicates = (
+            " (duplicate open proposals left untouched: "
+            + ", ".join(f"#{number}" for number in outcome.duplicates)
+            + ")"
+            if outcome.duplicates
+            else ""
+        )
+        stream.write(
+            f"{creator}: {outcome.action.value} issue #{outcome.issue_number}{duplicates}\n"
+        )
+
+    for failure in result.failures:
+        stream.write(f"{failure.creator_id}: publication failed: {failure.message}\n")
+    return EXIT_PUBLISH_FAILED if result.failures else EXIT_OK
+
+
+def _publish(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
+    report = load_run_report(args.report)
+
+    if args.dry_run:
+        return _summarise_publication(
+            publish_report(report, None, dry_run=True), stream
+        )
+
+    repository = args.repo or env.get("GITHUB_REPOSITORY", "")
+    if not repository:
+        stream.write(
+            "error: --repo (or GITHUB_REPOSITORY) is required to publish; "
+            "use --dry-run to render the payload instead\n"
+        )
+        return EXIT_USAGE
+
+    token = env.get("GITHUB_TOKEN", "")
+    if not token:
+        stream.write(
+            "error: GITHUB_TOKEN is required to publish; --dry-run needs no credentials\n"
+        )
+        return EXIT_USAGE
+
+    client = RestIssuesClient(
+        repository=repository,
+        token=token,
+        api_url=env.get("GITHUB_API_URL") or DEFAULT_API_URL,
+    )
+    return _summarise_publication(publish_report(report, client), stream)
+
+
 def _checkpoints(args: argparse.Namespace, stream) -> int:
     storage = create_checkpoint_storage(args.checkpoint_dir)
     summaries = asyncio.run(list_checkpoint_summaries(storage, workflow_name=WORKFLOW_NAME))
@@ -382,6 +494,8 @@ def main(
             return _run(args, env, stream)
         if args.command == "resume":
             return _resume(args, env, stream)
+        if args.command == "publish":
+            return _publish(args, env, stream)
         if args.command == "checkpoints":
             return _checkpoints(args, stream)
         if args.command == "creators":
@@ -391,7 +505,14 @@ def main(
     except ProposalOnlyViolation as error:
         stream.write(f"proposal-only guard: {error}\n")
         return EXIT_USAGE
-    except (ProviderError, ProfileError, FileNotFoundError) as error:
+    except (
+        ProviderError,
+        ProfileError,
+        ArtifactError,
+        GitHubError,
+        PublicationError,
+        FileNotFoundError,
+    ) as error:
         stream.write(f"error: {error}\n")
         return EXIT_USAGE
 
