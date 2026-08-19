@@ -10,7 +10,9 @@ import type {
   SourceReference,
 } from '../data/schema';
 // Guidance ages the same way a usage figure does, so it reuses one staleness
-// rule rather than introducing a second number that could drift from it.
+// rule rather than introducing a second number that could drift from it. What
+// ages is the evidence: a statement's date is the verification date of the
+// newest fact beneath it, not a record of editorial review.
 import { STALE_AFTER_DAYS, daysSince } from './usage-evidence';
 import { accessLabel, categoryLabel, formatDate, formatNumber, statusLabel } from './format';
 

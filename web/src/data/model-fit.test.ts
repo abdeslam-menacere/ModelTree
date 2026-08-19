@@ -7,6 +7,7 @@ import type { ModelFitEvidenceGap, ModelFitStatement } from './schema';
 const RELEASE_ID = 'meta-llama-4-scout';
 const FAMILY_ID = 'meta-llama-4';
 const OTHER_RELEASE_ID = 'openai-gpt-4-1-2025-04-14';
+const SEED_SOURCE_ID = 'meta-llama-4-scout-model-card';
 
 /** A statement over facts the seed already records, so only the rule under test varies. */
 function statement(overrides: Partial<ModelFitStatement> = {}): ModelFitStatement {
@@ -47,6 +48,91 @@ function datasetWith(
   const input = structuredClone(rawDataset) as Record<string, any>;
   input.modelFitStatements = modelFitStatements;
   input.modelFitEvidenceGaps = modelFitEvidenceGaps;
+  return input;
+}
+
+/**
+ * The seed carries no lifecycle event, benchmark, or pricing record, so the
+ * rubric's mapping for those fact kinds would otherwise go untested in the
+ * accept direction. These are synthetic records attached to a real release and
+ * citing a source it already cites; they exist only to exercise the support
+ * table and are not seeded into the repository.
+ */
+function datasetWithSupportingRecords(
+  modelFitStatements: ModelFitStatement[],
+): Record<string, unknown> {
+  const input = datasetWith(modelFitStatements) as Record<string, any>;
+
+  input.releaseEvents = [{
+    id: 'test-release-event',
+    releaseId: RELEASE_ID,
+    type: 'generally-available',
+    date: '2025-04-05',
+    datePrecision: 'day',
+    note: 'Published for download on the day of the announcement.',
+    sourceIds: [SEED_SOURCE_ID],
+    verifiedAt: '2026-08-15',
+  }];
+
+  input.benchmarks = [{
+    id: 'test-benchmark',
+    slug: 'test-benchmark',
+    name: 'Test Benchmark',
+    domain: 'general-reasoning',
+    owner: 'Test Benchmark Owner',
+    metric: 'accuracy',
+    metricUnit: '%',
+    direction: 'higher-is-better',
+    sourceIds: [SEED_SOURCE_ID],
+    verifiedAt: '2026-08-15',
+  }];
+
+  input.benchmarkResults = [{
+    id: 'test-benchmark-result',
+    benchmarkId: 'test-benchmark',
+    benchmarkVersion: '2026-01',
+    releaseId: RELEASE_ID,
+    score: 70,
+    unit: '%',
+    evaluationDate: '2026-06',
+    resultType: 'official',
+    sourceIds: [SEED_SOURCE_ID],
+    verifiedAt: '2026-08-15',
+  }];
+
+  input.servingPlatforms = [{
+    id: 'test-platform',
+    slug: 'test-platform',
+    name: 'Test Platform',
+    organizationId: 'meta',
+    type: 'model-hub',
+    website: 'https://platform.test/',
+    sourceIds: [SEED_SOURCE_ID],
+    verifiedAt: '2026-08-15',
+  }];
+
+  input.deployments = [{
+    id: 'test-deployment',
+    releaseId: RELEASE_ID,
+    platformId: 'test-platform',
+    deliveryMode: 'hosted-api',
+    regions: [],
+    effectiveFrom: '2025-04-05',
+    sourceIds: [SEED_SOURCE_ID],
+    verifiedAt: '2026-08-15',
+  }];
+
+  input.pricing = [{
+    id: 'test-pricing',
+    deploymentId: 'test-deployment',
+    currency: 'USD',
+    unit: 'per-1m-tokens',
+    rates: { input: 0.5, output: 2 },
+    effectiveFrom: '2025-04-05',
+    sourceIds: [SEED_SOURCE_ID],
+    verifiedAt: '2026-08-15',
+  }];
+
   return input;
 }
 
@@ -197,6 +283,67 @@ describe('rubric application', () => {
       facts: [{ kind: 'benchmark-result', benchmarkResultId: 'no-such-result' }],
     })]))).toThrow(/cites benchmark result no-such-result, which does not exist/);
   });
+
+  // The seed uses only release and family fields, so these three mappings are
+  // exercised against synthetic records to keep the support table itself honest.
+  it('accepts a benchmark result for the measured-evidence dimension', () => {
+    const parsed = validateDataset(datasetWithSupportingRecords([statement({
+      rubricDimensions: ['measured-benchmark-evidence'],
+      facts: [{ kind: 'benchmark-result', benchmarkResultId: 'test-benchmark-result' }],
+    })]));
+
+    expect(parsed.modelFitStatements[0].facts[0].kind).toBe('benchmark-result');
+  });
+
+  it('accepts a pricing record for the cost-structure dimension', () => {
+    const parsed = validateDataset(datasetWithSupportingRecords([statement({
+      rubricDimensions: ['cost-structure'],
+      facts: [{ kind: 'pricing-record', pricingRecordId: 'test-pricing' }],
+    })]));
+
+    expect(parsed.modelFitStatements[0].facts[0].kind).toBe('pricing-record');
+  });
+
+  it('accepts a lifecycle event for the lifecycle-stability dimension', () => {
+    const parsed = validateDataset(datasetWithSupportingRecords([statement({
+      rubricDimensions: ['lifecycle-stability'],
+      facts: [{ kind: 'release-event', eventId: 'test-release-event' }],
+    })]));
+
+    expect(parsed.modelFitStatements[0].facts[0].kind).toBe('release-event');
+  });
+
+  it('refuses a pricing record as an answer to a dimension it cannot answer', () => {
+    expect(() => validateDataset(datasetWithSupportingRecords([statement({
+      rubricDimensions: ['context-window'],
+      facts: [{ kind: 'pricing-record', pricingRecordId: 'test-pricing' }],
+    })]))).toThrow(/discloses rubric dimension "context-window" without citing a fact that answers it/);
+  });
+
+  it('refuses a release field as an answer to the cost-structure dimension', () => {
+    expect(() => validateDataset(datasetWithSupportingRecords([statement({
+      rubricDimensions: ['cost-structure'],
+      facts: [{ kind: 'release-field', releaseId: RELEASE_ID, field: 'accessType' }],
+    })]))).toThrow(/discloses rubric dimension "cost-structure" without citing a fact that answers it/);
+  });
+
+  it('refuses a benchmark result as an answer to the usage-evidence dimension', () => {
+    expect(() => validateDataset(datasetWithSupportingRecords([statement({
+      rubricDimensions: ['usage-evidence'],
+      facts: [{ kind: 'benchmark-result', benchmarkResultId: 'test-benchmark-result' }],
+    })]))).toThrow(/discloses rubric dimension "usage-evidence" without citing a fact that answers it/);
+  });
+
+  it('still holds a synthetic fact to the release it describes', () => {
+    const input = datasetWithSupportingRecords([statement({
+      rubricDimensions: ['cost-structure'],
+      facts: [{ kind: 'pricing-record', pricingRecordId: 'test-pricing' }],
+    })]) as Record<string, any>;
+    input.deployments[0].releaseId = OTHER_RELEASE_ID;
+
+    expect(() => validateDataset(input))
+      .toThrow(/describes release openai-gpt-4-1-2025-04-14, not meta-llama-4-scout/);
+  });
 });
 
 describe('universal-winner language', () => {
@@ -254,6 +401,43 @@ describe('universal-winner language', () => {
     })]));
 
     expect(parsed.modelFitStatements).toHaveLength(1);
+  });
+
+  // Wording that brushes a pattern without making a winner claim. These are the
+  // cases a blunter filter would break, so they are pinned.
+  const nearMisses = [
+    'No benchmark score is recorded for this release.',
+    'Most of the documented limits are stated in prose rather than in a table.',
+    'The vendor is leading with a newer model on its own documentation pages.',
+    'Suitable for any deployment that must stay inside a private network.',
+    'The licence is always worth reading in full before adopting the model.',
+    'This is not a top-of-the-range configuration of the family.',
+    'The documentation is thinner here than for other releases in the family.',
+  ];
+
+  it.each(nearMisses)('allows the near-miss phrasing "%s"', (text) => {
+    expect(findUniversalClaim(text)).toBeUndefined();
+    expect(() => validateDataset(datasetWith([statement({ caveats: [text] })]))).not.toThrow();
+  });
+
+  // The two directions the filter gets wrong, asserted so the limitation lives
+  // in the suite rather than only in the prose that describes it.
+  it('does not catch a comparative claim worded around the pattern list', () => {
+    const missed = 'No model handles long context better than this one.';
+
+    expect(findUniversalClaim(missed)).toBeUndefined();
+    // Published, and only the provenance rules stand between this and a reader.
+    // The vocabulary filter is a backstop, not the guarantee.
+    expect(() => validateDataset(datasetWith([statement({ statement: missed })]))).not.toThrow();
+  });
+
+  it('rejects an honest caveat that happens to contain a listed word', () => {
+    // A false positive: the caveat makes no winner claim, but "best" is on the
+    // list. Accepted deliberately — an author can reword, whereas a false
+    // negative ships. The rewritten form is in the near-miss list above.
+    expect(() => validateDataset(datasetWith([statement({
+      caveats: ['This is not the best-documented release in its family.'],
+    })]))).toThrow(/unsupported universal-winner language/);
   });
 
   it('detects the phrase directly, without needing a whole dataset', () => {

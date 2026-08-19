@@ -60,13 +60,13 @@ function StatementCard({ view }: { view: FitStatementView }) {
           <dd>{statement.scope}</dd>
         </div>
         <div>
-          <dt>Last verified</dt>
+          <dt>Evidence verified</dt>
           <dd>
             {formatDate(statement.verifiedAt)}
             {view.isStale ? (
               <span className="fit-stale">
                 <AlertTriangle size={14} aria-hidden="true" />
-                Stale: not re-checked for {view.daysSinceVerified} days
+                Stale: the evidence beneath this has not been re-checked for {view.daysSinceVerified} days
               </span>
             ) : null}
           </dd>
@@ -165,7 +165,7 @@ export default function ModelFit({ guidance, releaseName, headingId = 'fit-title
           <ul className="fit-flags">
             <li>{guidance.statementCount} recorded statement{guidance.statementCount === 1 ? '' : 's'}</li>
             {guidance.hasConflict ? <li>Includes contradicting statements, kept side by side</li> : null}
-            {guidance.hasStale ? <li>Includes stale guidance awaiting re-verification</li> : null}
+            {guidance.hasStale ? <li>Includes guidance whose evidence is awaiting re-verification</li> : null}
             {guidance.gaps.length > 0 ? <li>{guidance.gaps.length} rubric dimension{guidance.gaps.length === 1 ? '' : 's'} with no qualifying evidence</li> : null}
           </ul>
 
@@ -205,9 +205,18 @@ export default function ModelFit({ guidance, releaseName, headingId = 'fit-title
           <p>
             Every statement is filed as one of three kinds — good fit when, trade-off, or avoid when —
             and each carries the condition it applies under. There is no fourth, unconditional kind,
-            no composite score, and no comparison against other models. Validation refuses winner
-            language outright: a statement that calls a model the strongest, the one to pick for
-            everything, or that places it above the field is rejected before it can be published.
+            no composite score, and no comparison against other models.
+          </p>
+          <h3>What the wording check does, and what it cannot do</h3>
+          <p>
+            Validation refuses a fixed list of vocabulary in ModelTree’s own editorial text:
+            superlatives, best-in-class and go-to framing, beats-everything phrasing, numeric
+            rankings, universal quantifiers, and composite-score wording. That is a vocabulary
+            filter, not a judgement about meaning. It catches the usual ways a verdict gets written
+            down, but a comparative claim phrased around those words would pass it, and it errs
+            toward rejecting borderline wording that an author can simply rephrase. The check that
+            actually holds is provenance, below: a statement cannot introduce a claim that no
+            recorded fact carries, so an unsupported comparison has nothing to stand on.
           </p>
           <h3>The rubric is disclosed, not weighted</h3>
           <p>
@@ -238,9 +247,11 @@ export default function ModelFit({ guidance, releaseName, headingId = 'fit-title
           <p>
             Recorded facts are mostly documentation, and documentation states what an interface
             accepts rather than how well a model behaves. Where a dimension has no qualifying
-            evidence, it is listed as a gap instead of being filled by inference. Guidance that has
-            not been re-checked within {STALE_AFTER_DAYS} days is marked stale. Nothing here is a
-            recommendation tailored to a reader, and nothing here ranks models.
+            evidence, it is listed as a gap instead of being filled by inference. The date shown on
+            a statement is the verification date of the newest fact beneath it, not a record that an
+            editor re-read the reasoning; once that evidence is more than {STALE_AFTER_DAYS} days
+            old the statement is marked stale. Nothing here is a recommendation tailored to a
+            reader, and nothing here ranks models.
           </p>
         </div>
       </details>

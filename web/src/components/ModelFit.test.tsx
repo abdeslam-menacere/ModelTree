@@ -294,11 +294,37 @@ describe('ModelFit rendering states', () => {
     expect(markup).toContain('The family this release belongs to is recorded as legacy.');
   });
 
-  it('marks stale guidance in text', () => {
+  it('labels the date as evidence verification, not editorial review', () => {
+    const markup = render([statement()]);
+
+    expect(markup).toContain('<dt>Evidence verified</dt>');
+    expect(markup).not.toContain('Last verified');
+  });
+
+  it('marks stale guidance as stale evidence, in text', () => {
     const markup = render([statement({ verifiedAt: '2025-06-01' })]);
 
-    expect(markup).toMatch(/Stale: not re-checked for \d+ days/);
-    expect(markup).toContain('Includes stale guidance awaiting re-verification');
+    expect(markup).toMatch(/Stale: the evidence beneath this has not been re-checked for \d+ days/);
+    expect(markup).toContain('Includes guidance whose evidence is awaiting re-verification');
+  });
+
+  it('describes the wording check without overstating what it can detect', () => {
+    const markup = render([]);
+
+    expect(markup).toContain('What the wording check does, and what it cannot do');
+    expect(markup).toContain('a vocabulary filter, not a judgement about meaning');
+    expect(markup).toContain('a comparative claim phrased around those words would pass it');
+    expect(markup).toContain('The check that actually holds is provenance');
+    // The old copy promised that anything placing a model above the field was
+    // rejected before publication. It is not, and the page must not say so.
+    expect(markup).not.toContain('rejected before it can be published');
+  });
+
+  it('says the statement date is the evidence date, not a review date', () => {
+    const markup = render([statement()]);
+
+    expect(markup).toContain('the verification date of the newest fact beneath it');
+    expect(markup).toContain('not a record that an editor re-read the reasoning');
   });
 
   it('always carries the methodology explanation', () => {

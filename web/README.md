@@ -90,14 +90,27 @@ Every statement must be traceable, which is enforced rather than encouraged:
 - `summary` is not a citable release field. It is ModelTree's prose, so deriving
   guidance from it would cite ModelTree as evidence for ModelTree.
 
-Universal-winner language is rejected by the schema. Superlatives, best-in-class
-and go-to framing, beats-everything claims, numeric rankings, universal
-quantifiers, and composite-score wording all fail validation in a statement's
+Universal-winner language is refused by the schema, and it is worth being precise
+about what that check is. It matches a fixed list of vocabulary — superlatives,
+best-in-class and go-to framing, beats-everything claims, numeric rankings,
+universal quantifiers, and composite-score wording — in a statement's
 `condition`, `statement`, `scope`, and `caveats`, and in an evidence gap's
-`note`. The rejection names the phrase that failed. The gate runs over
-ModelTree's editorial text only — creator-authored prose recorded elsewhere, such
-as a release `summary` or `intendedUse`, is reported as the creator's claim
-rather than asserted as ModelTree's.
+`note`. The rejection names the phrase that failed. It is a vocabulary filter,
+not a semantic one: a comparative claim written around those words ("no model
+handles long context better than this one") passes it, and it errs toward
+rejecting borderline wording an author can rephrase. `model-fit.test.ts` asserts
+both directions, including a phrasing the filter knowingly does not catch, so the
+limitation is recorded in the suite rather than only in prose. The guarantee that
+actually carries weight is the provenance rule above: a statement cannot
+introduce a claim no recorded fact carries. The filter runs over ModelTree's
+editorial text only — creator-authored prose recorded elsewhere, such as a
+release `summary` or `intendedUse`, is reported as the creator's claim rather
+than asserted as ModelTree's.
+
+A statement's `verifiedAt` is the verification date of the newest fact it cites,
+not a record that an editor re-read the derivation, and it is labelled as
+evidence verification wherever it is displayed. Nothing currently re-verifies
+guidance independently of its evidence.
 
 Contradictions are kept, not resolved: `conflictsWithIds` must be reciprocal,
 must stay within one release, and must share at least one rubric dimension, since
