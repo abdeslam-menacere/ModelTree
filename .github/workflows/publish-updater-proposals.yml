@@ -1,0 +1,134 @@
+# Publishes creator proposals as GitHub issues. It cannot do anything else: it
+# has no write access to repository content, so it cannot commit, branch, or open
+# a pull request, and there is no code path here that tries.
+#
+# Deliberately manual. A run spends model tokens and writes issues a human then
+# has to read, so a human decides when it happens. Issue #66 excludes schedules
+# from this version.
+name: Publish updater proposals
+
+on:
+  workflow_dispatch:
+    inputs:
+      creators:
+        description: Comma-separated creator ids. Blank runs every creator in the fixture library.
+        required: false
+        default: openai,anthropic,google-deepmind,meta
+        type: string
+      mode:
+        description: fixtures runs fully offline; live fetches real pages through the Foundry deployment.
+        required: true
+        default: fixtures
+        type: choice
+        options:
+          - fixtures
+          - live
+      dry_run:
+        description: Render the exact issue payload into the log and send nothing to GitHub.
+        required: true
+        default: true
+        type: boolean
+
+# Least privilege, set at the top so no job can start from a wider default.
+permissions:
+  contents: read
+
+# Repository-global and never cancelled. Two publishers running at once could
+# both read "no open proposal for this creator" and both create one; cancelling a
+# publisher mid-write could leave an issue half updated.
+concurrency:
+  group: modeltree-proposal-publication
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+    working-directory: tools/updater
+
+jobs:
+  publish:
+    name: Publish creator proposals
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      # Read the code to install the updater.
+      contents: read
+      # Create and update proposal issues. This is the only write this job has.
+      issues: write
+      # Mint the OIDC token for Microsoft Entra workload identity. There is no
+      # client secret and no API key anywhere in this workflow.
+      id-token: write
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          # The publisher never pushes, so the checkout keeps no credentials.
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install the updater
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+
+      - name: Install the Foundry client
+        if: inputs.mode == 'live'
+        run: python -m pip install '.[foundry]'
+
+      - name: Sign in to Azure with workload identity
+        if: inputs.mode == 'live'
+        uses: azure/login@v2
+        with:
+          # Federated credential: no secret is stored for this workflow.
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Run the updater
+        env:
+          # Inputs reach the shell as environment variables, never interpolated
+          # into the script itself.
+          CREATORS: ${{ inputs.creators }}
+          MODE: ${{ inputs.mode }}
+          RUN_ID: run-${{ github.run_id }}-${{ github.run_attempt }}
+          MODELTREE_FOUNDRY_ENDPOINT: ${{ vars.MODELTREE_FOUNDRY_ENDPOINT }}
+          MODELTREE_FOUNDRY_DEPLOYMENT: ${{ vars.MODELTREE_FOUNDRY_DEPLOYMENT }}
+        run: |
+          set -euo pipefail
+          args=()
+          for creator in ${CREATORS//,/ }; do
+            args+=(--creator "$creator")
+          done
+          if [ "$MODE" = "live" ]; then
+            args+=(--provider foundry --sources network)
+          fi
+          python -m modeltree_updater run "${args[@]}" \
+            --run-id "$RUN_ID" \
+            --output "$RUNNER_TEMP/proposals"
+
+      - name: Publish the proposals
+        env:
+          # The job token, scoped by the permissions block above to issues only.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          RUN_ID: run-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          args=(--report "$RUNNER_TEMP/proposals/$RUN_ID/report.json" --repo "$GITHUB_REPOSITORY")
+          if [ "$DRY_RUN" = "true" ]; then
+            args+=(--dry-run)
+          fi
+          python -m modeltree_updater publish "${args[@]}"
+
+      - name: Keep the run artefact for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proposals-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/proposals
+          if-no-files-found: warn
+          retention-days: 14
