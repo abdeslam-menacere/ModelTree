@@ -59,6 +59,13 @@ Useful `run` flags: `--creator` (repeatable), `--fixtures`, `--provider fixtures
 `--provider` and `--sources` too, and refuses any provider the checkpoint did not record;
 it has no `--long-tail` flag because the policy is restored from the checkpoint.
 
+Every directory flag goes through the same guard in `safety.py`: `--output` and
+`--checkpoint-dir` alike resolve `..` first and then refuse any path inside `web/`,
+whether what would land there is a proposal or workflow state. There is no flag or
+environment variable that turns this off. `tests/test_proposal_only.py` parses every
+module under `src/` and fails if a call creates a path that did not come back from the
+guard, so a new write site cannot be added without one.
+
 Exit codes: `0` success, `2` usage or configuration error, `3` at least one creator failed,
 `4` at least one creator could not be published.
 
@@ -342,6 +349,11 @@ Exhausting a budget is an explicit outcome: the proposal records a `budget-exhau
 failure, lists the exhausted resource in `budget.exhausted_by`, and reports `incomplete`
 or `failed`. A budget must never look like "there was nothing to find".
 
+An unusable *limit* is a different thing and is reported as one: a negative count, a
+non-positive `--max-seconds`, or a non-numeric environment variable exits `2` with a
+message naming the flag or variable, in the same shape as every other configuration
+error.
+
 ## Publishing proposals
 
 `publish` turns a written run artefact into GitHub issues. It reads `report.json` back
@@ -541,7 +553,7 @@ src/modeltree_updater/
   runner.py        one creator, then many, continuing past failures
   checkpoints.py   durable checkpoint storage and its type allow-list
   cli.py           local CLI
-  safety.py        proposal-only output guard
+  safety.py        proposal-only path guard for every directory flag
   parsing.py       strict reader that rebuilds contracts from a written artefact
   publisher.py     materiality, issue identity, supersession, deterministic rendering
   github_issues.py the only module that speaks to GitHub, and only about issues

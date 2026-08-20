@@ -16,6 +16,7 @@ verified against a live Foundry deployment — see `README.md`.
 
 from __future__ import annotations
 
+import inspect
 import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
@@ -128,9 +129,16 @@ def _prompt(instructions: str, content: str) -> list[Any]:
 
 
 async def _ask(client: Any, instructions: str, content: str) -> Any:
-    """One model call. `get_response` returns an awaitable, so it is always awaited."""
+    """One model call. `get_response` returns an awaitable, so it is always awaited.
+
+    Detected with `inspect.isawaitable`, matching `workflow._provider_call`. A
+    generator-based awaitable is awaitable without carrying the attribute the
+    weaker `hasattr` check looked for, so that check would hand the caller an
+    un-awaited object that reads as an empty answer — the exact mistake the
+    workflow turns into a typed provider failure.
+    """
     response = client.get_response(_prompt(instructions, content))
-    if hasattr(response, "__await__"):
+    if inspect.isawaitable(response):
         response = await response
     return response
 

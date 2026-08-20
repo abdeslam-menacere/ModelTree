@@ -23,7 +23,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Mapping, Sequence
 
-from .budgets import CreatorBudget
+from .budgets import CreatorBudget, InvalidBudget
 from .checkpoints import (
     create_checkpoint_storage,
     list_checkpoint_summaries,
@@ -568,6 +568,7 @@ def main(
         ProfileError,
         ArtifactError,
         GitHubError,
+        InvalidBudget,
         PublicationError,
         FileNotFoundError,
     ) as error:

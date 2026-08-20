@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import types
 from pathlib import Path
 
 import pytest
@@ -72,6 +73,30 @@ class StubChatClient:
             return StubResponse(text, self._tokens)
 
         return _respond()
+
+
+class GeneratorAwaitableClient:
+    """`get_response` returns a *generator-based* awaitable.
+
+    Legal to await and `inspect.isawaitable` says so, but it carries no
+    `__await__` attribute — the case the old `hasattr` check failed to await,
+    handing the caller a generator that reads as an empty answer.
+    """
+
+    def __init__(self, payload: object, *, tokens: int = 42) -> None:
+        self._payload = payload
+        self._tokens = tokens
+        self.awaited = 0
+
+    @types.coroutine
+    def _respond(self):
+        if False:  # pragma: no cover - makes this a generator without yielding
+            yield
+        self.awaited += 1
+        return StubResponse(json.dumps(self._payload), self._tokens)
+
+    def get_response(self, messages, **_: object):
+        return self._respond()
 
 
 def _source() -> SourceCandidate:
@@ -158,6 +183,34 @@ def test_no_api_key_is_read_anywhere_in_the_provider() -> None:
 
     assert "api_key" not in text
     assert "AZURE_OPENAI_API_KEY" not in text
+
+
+def test_awaitable_detection_is_spelled_one_way_across_the_package() -> None:
+    """`inspect.isawaitable` everywhere, never `hasattr(x, "__await__")`.
+
+    The two disagree, and the disagreement is the failure mode this provider was
+    written to avoid: a generator-based awaitable has no `__await__` attribute, so
+    the weaker check leaves it un-awaited and it reads as an empty answer.
+    """
+    package = Path(__file__).resolve().parents[1] / "src" / "modeltree_updater"
+    offenders = sorted(
+        path.relative_to(package).as_posix()
+        for path in package.rglob("*.py")
+        if "__await__" in path.read_text(encoding="utf-8")
+    )
+
+    assert offenders == []
+
+
+def test_the_client_call_awaits_a_generator_based_awaitable() -> None:
+    """The stronger check is not theoretical: this shape used to slip through."""
+    client = GeneratorAwaitableClient({"claims": []})
+
+    result = asyncio.run(_extractor(client).extract(CREATOR, _page()))
+
+    assert client.awaited == 1
+    assert result.claims == ()
+    assert result.tokens_used == 42
 
 
 def test_extraction_awaits_the_client_and_attaches_evidence() -> None:
