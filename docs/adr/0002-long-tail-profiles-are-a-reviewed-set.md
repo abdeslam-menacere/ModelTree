@@ -51,9 +51,9 @@ topics silently became the default's.
 
 ### Positive
 
-- An id match *is* a file match, by construction, so rebuilding a profile from a
-  recorded id is sound rather than hopeful. The checkpoint needs no path and no
-  content hash.
+- An id match *is* a match on one reviewed document, by construction, so rebuilding a
+  profile from a recorded id is sound rather than hopeful. The checkpoint needs no path
+  and no content hash.
 - A proposal's promotion criteria and escalated mappings can be traced to a document
   in this repository, which is reviewable in a diff like every other fact here.
 - The failure is loud and early — at run start, before anything is fetched — rather
@@ -72,6 +72,11 @@ topics silently became the default's.
   reviewed set does not contain. It cannot be reached through the CLI, and a run
   started that way cannot be resumed. The enforcement point is the operator boundary,
   not the Python API.
+- The second residual, equally plain: this pins *which document* a resumed run reads, not
+  *what that document said when the run started*. Editing a reviewed profile in place
+  between start and resume is not detected, because rejecting option 2 means there is no
+  content hash to compare. The claim this decision supports is "a resumed run never
+  silently reads a different document", not "a resumed run never sees changed criteria".
 
 ## Alternatives Considered
 

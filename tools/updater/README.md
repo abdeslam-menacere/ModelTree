@@ -232,12 +232,18 @@ a file handed in at run time. The set also refuses two documents answering to on
 which is what makes the next paragraph sound.
 
 `resume` deliberately has **no** such flag: the policy and the profile id are recorded in
-the checkpoint, so a resumed run restores the bar it started under rather than re-deciding
+the checkpoint, so a resumed run takes its bar from the checkpoint rather than re-deciding
 it from whatever the resuming command passed. The profile itself is rebuilt by looking the
-recorded id up in the reviewed set — because an id names exactly one document, that gives
-back the profile the run actually started with, promotion criteria and unresolved-mapping
-topics included. A checkpoint whose profile cannot be honoured, including one naming an id
-the reviewed set does not contain, stops the run with `ProfileMismatch`.
+recorded id up in the reviewed set — because the set refuses two documents answering to one
+id, that id names exactly one document, so the rebuilt profile carries that document's
+promotion criteria and unresolved-mapping topics instead of the default profile's. A
+checkpoint naming an id the reviewed set does not contain stops the run with
+`ProfileMismatch`; it is never resolved to a nearest match or to the default.
+
+What that does **not** cover: editing a reviewed profile in place between the start of a run
+and its resume. The checkpoint records the id, not a content hash, so the resumed run reads
+the edited document. That is deliberate rather than overlooked — a reviewed profile changes
+by a reviewed change to this repository, which is a different control from this one.
 
 Three things differ from a dedicated profile, and all three follow from one fact — nobody
 has reviewed this creator:
