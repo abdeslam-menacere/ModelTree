@@ -28,8 +28,18 @@ FORBIDDEN_PATTERNS = {
     "shells out": re.compile(r"\b(subprocess|os\.system|os\.popen|pty\.spawn)\b"),
     "drives git": re.compile(r"""["'`]\s*git\s+(commit|push|checkout|branch|merge)"""),
     "imports a git library": re.compile(r"^\s*(import|from)\s+(git|pygit2|dulwich)\b", re.M),
-    "calls the GitHub API": re.compile(r"api\.github\.com|/pulls\b|gh\s+pr\s+create"),
+    "opens a pull request": re.compile(r"/pulls\b|gh\s+pr\s+create"),
+    "writes repository content": re.compile(
+        r"/contents/|/git/refs\b|/git/commits\b|/git/blobs\b|/git/trees\b"
+        r"|/merges\b|/branches\b"
+    ),
 }
+
+# Publication needs one place that knows the GitHub API exists. It does not need
+# one in every module, so the rule is narrowed to a single allow-listed boundary
+# rather than dropped. Everything above it depends on a protocol, not on HTTP.
+GITHUB_API = re.compile(r"api\.github\.com")
+ISSUES_BOUNDARY = "github_issues.py"
 
 # Anything that puts bytes on disk: a write helper, or `open` in a writing mode.
 WRITE_CALL = re.compile(r"\.write_text\(|\.write_bytes\(|\bopen\(\s*[^)]*['\"][wxa]")
@@ -57,6 +67,35 @@ def test_only_the_guarded_cli_writes_files() -> None:
     )
 
     assert writers == ["cli.py"]
+
+
+def test_only_the_issues_boundary_names_the_github_api() -> None:
+    offenders = sorted(
+        path.name
+        for path in _sources()
+        if GITHUB_API.search(path.read_text(encoding="utf-8"))
+    )
+
+    assert offenders == [ISSUES_BOUNDARY]
+
+
+def test_the_issues_boundary_can_only_address_issues() -> None:
+    """Every URL path this package can build, read straight out of the syntax tree.
+
+    `/comments` is here because supersession continuity needs to file a record
+    before it overwrites a body. It is still under `/issues`, and this pin is what
+    stops the set from quietly growing past that.
+    """
+    tree = ast.parse((PACKAGE_ROOT / ISSUES_BOUNDARY).read_text(encoding="utf-8"))
+    paths = {
+        node.value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and node.value.startswith("/")
+    }
+
+    assert paths <= {"/", "/repos/", "/issues", "/comments"}, paths
 
 
 def test_every_written_path_passes_through_the_guard() -> None:
@@ -184,7 +223,13 @@ def test_the_review_and_gate_modules_are_inside_the_proposal_only_scan() -> None
     """New modules must not quietly sit outside the boundary the scan enforces."""
     scanned = {path.name for path in _sources()}
 
-    assert {"gates.py", "review.py"} <= scanned
+    assert {
+        "gates.py",
+        "review.py",
+        "github_issues.py",
+        "parsing.py",
+        "publisher.py",
+    } <= scanned
 
 
 BYPASS_PATTERN = re.compile(r"skip[_-]gates|force[_-]gates|ignore[_-]gates|no[_-]gates")

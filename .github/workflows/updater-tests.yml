@@ -11,12 +11,16 @@ on:
     paths:
       - 'tools/updater/**'
       - '.github/workflows/updater-tests.yml'
+      # The suite asserts this workflow's permission model, so a change to it
+      # has to re-run the suite.
+      - '.github/workflows/publish-updater-proposals.yml'
   push:
     branches:
       - main
     paths:
       - 'tools/updater/**'
       - '.github/workflows/updater-tests.yml'
+      - '.github/workflows/publish-updater-proposals.yml'
   workflow_dispatch:
 
 permissions:

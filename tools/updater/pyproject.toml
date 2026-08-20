@@ -20,6 +20,10 @@ foundry = [
 ]
 dev = [
   "pytest>=8.0.0",
+  # Only used by the tests that assert the publication workflow's permission
+  # model. Parsing the YAML is what makes "least privilege" machine-checked
+  # instead of a claim in prose.
+  "PyYAML>=6.0",
 ]
 
 [project.scripts]
@@ -30,7 +34,8 @@ packages = ["src/modeltree_updater"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q -m 'not network'"
+addopts = "-q -m 'not network and not live'"
 markers = [
   "network: exercises real network egress; opt-in and excluded from the default offline run",
+  "live: writes to a real GitHub repository; opt-in and excluded from the default offline run",
 ]
