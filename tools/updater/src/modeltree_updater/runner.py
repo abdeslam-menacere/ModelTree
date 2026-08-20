@@ -145,11 +145,20 @@ async def resume_creator_run(
     policy carries the promotion criteria and the unresolved-mapping topics, which
     the policy alone cannot rebuild, so it is rebuilt from the recorded profile id
     by looking that id up in the **reviewed set** of generic profiles. Because that
-    set refuses two documents answering to one id, the id identifies the file, and
-    the resumed run gets back the document the run started under rather than
+    set refuses two documents answering to one id, the id identifies the file, so a
+    run started through the CLI gets back the document it started under rather than
     whichever file happened to sit at the default path. An id the reviewed set does
     not contain, or a resume that asks for a different profile than the checkpoint
     records, stops the run.
+
+    Two limits, so this does not read as more than it is. A profile built in-process
+    from an arbitrary path — which the CLI cannot do, but the loader still allows —
+    may declare an id the reviewed set does contain, and that resume gets the
+    reviewed document rather than the one the run started with; see ADR 0002. And a
+    reviewed set that cannot be loaded at all, because the directory is missing or
+    empty, surfaces as ``FileNotFoundError`` rather than ``ProfileMismatch``: that
+    is a broken installation, not a disagreement about which profile applies. The
+    CLI maps both to exit 2.
     """
     recorded = await recorded_providers(checkpoint_storage, checkpoint_id)
     requested = dict(settings.providers.descriptor)

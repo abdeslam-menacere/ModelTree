@@ -69,9 +69,16 @@ topics silently became the default's.
 - The residual, stated plainly: `load_long_tail_profile(path)` still accepts any path,
   because the loader's own failure modes are tested against temporary files. A test —
   or anything else running in-process — can therefore still build a profile the
-  reviewed set does not contain. It cannot be reached through the CLI, and a run
-  started that way cannot be resumed. The enforcement point is the operator boundary,
-  not the Python API.
+  reviewed set does not contain. It cannot be reached through the CLI. Resuming such a
+  run does not restore it either way, but the two cases differ and both are worth
+  stating: an id outside the reviewed set stops the resume with `ProfileMismatch`,
+  while an id that **collides** with a reviewed one resumes silently under the
+  *reviewed* document — #94's substitution, still reachable on the Python API. That is
+  accepted rather than chased: the operator boundary is the enforcement point, and
+  resolving towards the reviewed document is the safe direction to fail. The colliding
+  case is pinned by
+  `test_an_in_process_colliding_profile_resumes_under_the_reviewed_document`, so this
+  paragraph cannot quietly go stale.
 - The second residual, equally plain: this pins *which document* a resumed run reads, not
   *what that document said when the run started*. Editing a reviewed profile in place
   between start and resume is not detected, because rejecting option 2 means there is no
