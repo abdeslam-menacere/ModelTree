@@ -21,6 +21,7 @@ __all__ = [
     "create_in_memory_checkpoint_storage",
     "list_checkpoint_summaries",
     "load_checkpoint",
+    "recorded_profile_id",
     "recorded_providers",
 ]
 
@@ -49,6 +50,7 @@ ALLOWED_CHECKPOINT_TYPES: tuple[str, ...] = tuple(
         contracts.GateStatus,
         contracts.ProposalStatus,
         contracts.ReviewLens,
+        contracts.ReviewPolicy,
         contracts.ReviewVerdict,
         contracts.RunFailure,
         contracts.SourceApproval,
@@ -118,4 +120,23 @@ async def recorded_providers(storage: Any, checkpoint_id: str) -> dict[str, str]
             providers = getattr(getattr(envelope, "data", None), "providers", None)
             if providers:
                 return dict(providers)
+    return None
+
+
+async def recorded_profile_id(storage: Any, checkpoint_id: str) -> str | None:
+    """The profile the checkpointed run was started under, if it recorded one.
+
+    Read for the same reason as the providers, and with more at stake: the review
+    threshold rides on it. A resumed long-tail run must be judged on the bar it
+    began with, so the checkpoint answers that question rather than the flags of
+    whoever resumes it.
+    """
+    checkpoint = await load_checkpoint(storage, checkpoint_id)
+    if checkpoint is None:
+        return None
+    for envelopes in (getattr(checkpoint, "messages", None) or {}).values():
+        for envelope in envelopes:
+            profile_id = getattr(getattr(envelope, "data", None), "profile_id", None)
+            if profile_id:
+                return str(profile_id)
     return None

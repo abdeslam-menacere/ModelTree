@@ -13,6 +13,7 @@ from typing import Any, Mapping
 from .contracts import (
     ClaimCandidate,
     CreatorRequest,
+    ReviewPolicy,
     ReviewVerdict,
     RunFailure,
     SourceCandidate,
@@ -39,6 +40,12 @@ class CreatorTask:
     # run can be checked against the providers that started it: a proposal whose
     # provenance changed mid-run is not the proposal it claims to be.
     providers: Mapping[str, str] = field(default_factory=dict)
+    # The acceptance threshold and the profile this run was started under. They
+    # travel with the message for the same reason, and for a stronger one: the
+    # policy is then *in the checkpoint*, so a resumed run adjudicates on the bar it
+    # began with rather than on whatever flag the resuming command happened to pass.
+    review_policy: ReviewPolicy | None = None
+    profile_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -49,6 +56,8 @@ class DiscoveredSources:
     failures: tuple[RunFailure, ...]
     budget_state: Mapping[str, float]
     providers: Mapping[str, str] = field(default_factory=dict)
+    review_policy: ReviewPolicy | None = None
+    profile_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -60,6 +69,8 @@ class ExtractedClaims:
     failures: tuple[RunFailure, ...]
     budget_state: Mapping[str, float]
     providers: Mapping[str, str] = field(default_factory=dict)
+    review_policy: ReviewPolicy | None = None
+    profile_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -72,6 +83,8 @@ class ReviewedClaims:
     failures: tuple[RunFailure, ...]
     budget_state: Mapping[str, float]
     providers: Mapping[str, str] = field(default_factory=dict)
+    review_policy: ReviewPolicy | None = None
+    profile_id: str | None = None
     # Every lens verdict on a newly discovered source. The approval decision itself
     # is deterministic and is made once, in the bundling stage.
     source_verdicts: tuple[SourceVerdict, ...] = ()
