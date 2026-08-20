@@ -54,7 +54,7 @@ number of catalogued sources); `profiles --json` emits the loaded library for sc
 It only reads profile data — it never runs the workflow or reaches a source.
 
 Useful `run` flags: `--creator` (repeatable), `--fixtures`, `--provider fixtures|foundry`,
-`--sources fixtures|network`, `--long-tail`, `--long-tail-profile`, `--output`,
+`--sources fixtures|network`, `--long-tail`, `--long-tail-profile <id>`, `--output`,
 `--checkpoint-dir`, `--run-id`, `--timestamp`, and the budget flags below. `resume` takes
 `--provider` and `--sources` too, and refuses any provider the checkpoint did not record;
 it has no `--long-tail` flag because the policy is restored from the checkpoint.
@@ -223,11 +223,21 @@ It is **opt-in**, never an automatic fallback:
 python -m modeltree_updater run --creator litware-ai --long-tail --output ./out
 ```
 
-`--long-tail-profile <path>` swaps in a different reviewed profile document. `resume`
-deliberately has **no** such flag: the policy and the profile id are recorded in the
-checkpoint, so a resumed run restores the bar it started under rather than re-deciding it
-from whatever the resuming command passed. A checkpoint whose profile cannot be honoured
-stops the run with `ProfileMismatch`.
+`--long-tail-profile <id>` names a different reviewed generic profile. It takes an **id**,
+not a path: the profiles a run can be started under are the reviewed set in
+`profiles/generic/`, keyed by the `id` each document declares, and a path — or an id that
+is not in the set — is refused with exit 2. A profile decides the promotion criteria and
+which mappings stay explicit, so it is a reviewed artefact of this repository rather than
+a file handed in at run time. The set also refuses two documents answering to one id,
+which is what makes the next paragraph sound.
+
+`resume` deliberately has **no** such flag: the policy and the profile id are recorded in
+the checkpoint, so a resumed run restores the bar it started under rather than re-deciding
+it from whatever the resuming command passed. The profile itself is rebuilt by looking the
+recorded id up in the reviewed set — because an id names exactly one document, that gives
+back the profile the run actually started with, promotion criteria and unresolved-mapping
+topics included. A checkpoint whose profile cannot be honoured, including one naming an id
+the reviewed set does not contain, stops the run with `ProfileMismatch`.
 
 Three things differ from a dedicated profile, and all three follow from one fact — nobody
 has reviewed this creator:
@@ -563,7 +573,7 @@ src/modeltree_updater/
   providers/       source, extraction, and review-panel boundaries
                    (fixtures, the Foundry models, and the network source fetcher)
 profiles/          version-controlled creator profiles and their trusted source catalog
-profiles/generic/  the one generic profile for creators without a dedicated one
+profiles/generic/  the reviewed generic profiles, named by id with --long-tail-profile
 fixtures/creators/ synthetic creator fixtures for offline runs and CI
 tests/             pytest suite; no network, no credentials
 ```
