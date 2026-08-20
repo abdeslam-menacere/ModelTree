@@ -1,0 +1,94 @@
+{
+  "creator": {
+    "creator_id": "litware-ai",
+    "creator_name": "Litware AI",
+    "entry_urls": ["https://www.example.com/litware-ai/updates"],
+    "notes": "Synthetic long-tail creator with barely anything to go on. One accepted claim, one unsettled ownership mapping, and a second source that a small page budget drops. Exercises the not-recommended promotion outcome and the budget-exhausted outcome under the unanimous policy."
+  },
+  "sources": [
+    {
+      "id": "litware-ai-update",
+      "url": "https://www.example.com/litware-ai/blog/quill-1",
+      "title": "Quill 1 is out",
+      "publisher": "Litware AI",
+      "kind": "official-announcement",
+      "published_date": "2026-01-20",
+      "text": "Quill 1 accepts 32,000 tokens of context. Litware AI is a small team working out of a shared research space.",
+      "claims": [
+        {
+          "id": "litware-ai-quill-1-context-window",
+          "entity_kind": "release",
+          "entity_id": "litware-quill-1",
+          "field_path": "contextWindow",
+          "value": 32000,
+          "quote": "Quill 1 accepts 32,000 tokens of context",
+          "confidence": 0.86,
+          "verified_at": "2026-01-21",
+          "review": {
+            "decision": "accept",
+            "rationale": "Stated directly in the announcement."
+          }
+        },
+        {
+          "id": "litware-ai-organization-type",
+          "entity_kind": "organization",
+          "entity_id": "litware-ai",
+          "field_path": "type",
+          "value": "research-lab",
+          "quote": "Litware AI is a small team working out of a shared research space",
+          "confidence": 0.35,
+          "verified_at": "2026-01-21",
+          "reviews": {
+            "provenance": {
+              "decision": "abstain",
+              "rationale": "'A small team in a shared research space' does not state a company, a research lab, a nonprofit, or a community."
+            },
+            "consistency": {
+              "decision": "abstain",
+              "rationale": "Nothing else in the run says who owns or runs this creator."
+            },
+            "editorial": {
+              "decision": "abstain",
+              "rationale": "Picking one of the four organization types here would be a guess dressed as a sourced fact."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "litware-ai-notes",
+      "url": "https://www.example.com/litware-ai/docs/quill-1",
+      "title": "Quill 1 notes",
+      "publisher": "Litware AI",
+      "kind": "official-docs",
+      "published_date": "2026-01-22",
+      "text": "Quill 1 is the current model.",
+      "claims": [
+        {
+          "id": "litware-ai-quill-1-status",
+          "entity_kind": "release",
+          "entity_id": "litware-quill-1",
+          "field_path": "status",
+          "value": "current",
+          "quote": "Quill 1 is the current model",
+          "confidence": 0.6,
+          "verified_at": "2026-01-23",
+          "reviews": {
+            "provenance": {
+              "decision": "accept",
+              "rationale": "The quote states it."
+            },
+            "consistency": {
+              "decision": "abstain",
+              "rationale": "One undated line on a page of notes is thin ground for a lifecycle status."
+            },
+            "editorial": {
+              "decision": "abstain",
+              "rationale": "No reviewed profile tells me how this creator uses the word 'current'."
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
