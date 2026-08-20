@@ -128,3 +128,63 @@ jobs:
             echo "Opening a new stale-site issue."
             gh issue create --repo "$REPO" --title "$STALE_SITE_TITLE" --body-file "$RUNNER_TEMP/stale-site.md"
           fi
+
+  # An alert that never resolves is one you learn to ignore. `report-failure`
+  # opens the stale-site issue but nothing ever closed it, so an open alert
+  # stopped meaning "the site is stale right now" and started meaning nothing at
+  # all. This job is its mirror image: a deploy that succeeds on `main` has
+  # unfrozen the site, so the alert it raised is answered and closed here.
+  report-recovery:
+    name: Resolve the stale-site alert
+    needs: deploy
+    # `needs.deploy.result` rather than `success()`, which is also true when a
+    # needed job was *skipped* - as `deploy` is on a fork, where its
+    # `github.repository` guard does not hold. A deploy that never ran has not
+    # unfrozen anything and must not resolve an alert.
+    #
+    # The ref check is the same clause `report-failure` uses, and it is
+    # load-bearing in the other direction here: `deploy` carries no ref guard of
+    # its own, so a `workflow_dispatch` from a branch really does deploy that
+    # branch. Closing a genuine alert off the back of that would report the site
+    # recovered when `main` is still broken.
+    if: needs.deploy.result == 'success' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      # Resolve the stale-site issue, and nothing else. Every scope left out of
+      # a job-level block is `none`, so this job cannot deploy, cannot mint an
+      # OIDC token, and cannot read repository contents - it never checks out.
+      issues: write
+    steps:
+      - name: Close the stale-site issue
+        env:
+          # The job token, scoped by the permissions block above to issues only.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RECOVERED_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          # The same lookup `report-failure` files under, deliberately character
+          # for character: narrow with search, then match the title exactly. A
+          # looser rule here would close whatever the search happened to return.
+          existing="$(gh issue list --repo "$REPO" --state open --search "\"$STALE_SITE_TITLE\" in:title" --json number,title \
+            | jq -r --arg t "$STALE_SITE_TITLE" 'map(select(.title == $t)) | .[0].number // empty')"
+
+          if [ -z "$existing" ]; then
+            echo "No stale-site issue is open; nothing to resolve."
+            exit 0
+          fi
+
+          {
+            echo "The deploy job in \`pages.yml\` succeeded, so GitHub Pages is serving the"
+            echo "current build again. The site is no longer stale, and this alert is"
+            echo "answered."
+            echo
+            echo "- Recovering commit: \`$RECOVERED_SHA\`"
+            echo "- Successful run: $RUN_URL"
+          } > "$RUNNER_TEMP/site-recovered.md"
+
+          echo "Resolving issue #$existing."
+          gh issue comment "$existing" --repo "$REPO" --body-file "$RUNNER_TEMP/site-recovered.md"
+          gh issue close "$existing" --repo "$REPO" --reason completed
