@@ -29,9 +29,12 @@ __all__ = [
     "FetchedPage",
     "GateResult",
     "GateStatus",
+    "PromotionAssessment",
+    "PromotionCriterion",
     "ProposalStatus",
     "REVIEW_LENSES",
     "ReviewLens",
+    "ReviewPolicy",
     "ReviewVerdict",
     "RunFailure",
     "RunReport",
@@ -157,6 +160,10 @@ class ConflictKind(str, Enum):
     # The reviewers themselves disagreed. Recorded rather than resolved: a 2-of-3
     # majority is a decision, not a consensus, and the dissent stays visible.
     REVIEWER_DISAGREEMENT = "reviewer-disagreement"
+    # A naming, ownership, or lineage mapping the run could not settle. Recorded so
+    # the unknown survives as a question instead of vanishing into "not accepted" —
+    # a plausible guess would be worse than an open conflict.
+    UNRESOLVED_MAPPING = "unresolved-mapping"
 
 
 class ProposalStatus(str, Enum):
@@ -267,6 +274,35 @@ class SourceVerdict(_Serialisable):
 
 
 @dataclass(frozen=True)
+class ReviewPolicy(_Serialisable):
+    """How many of the three lens verdicts a decision needs.
+
+    The threshold is data, not a constant, so a run states the bar it actually
+    applied instead of leaving a reader to assume one. Two policies exist: the
+    agreed 2-of-3 majority for creators with a reviewed dedicated profile, and a
+    unanimous 3-of-3 for the generic long-tail profile, where far less is known
+    about the creator and its sources.
+
+    Only the *acceptance* bar moves. `required_rejects` stays at two under both
+    policies: raising the bar for refusing something would make a thinly-evidenced
+    creator harder to say no to, which is the opposite of the intent.
+    """
+
+    id: str
+    required_accepts: int
+    required_rejects: int
+    description: str
+    # How the threshold reads in a rationale, e.g. "2-of-3 majority".
+    decision_label: str
+
+    def accepts(self, accept_votes: int) -> bool:
+        return accept_votes >= self.required_accepts
+
+    def rejects(self, reject_votes: int) -> bool:
+        return reject_votes >= self.required_rejects
+
+
+@dataclass(frozen=True)
 class GateResult(_Serialisable):
     """One deterministic check against one subject.
 
@@ -313,8 +349,10 @@ class SourceApproval(_Serialisable):
     """Whether a source may back claims in this run's proposal.
 
     Sources the creator profile already configured are trusted without a vote. A
-    newly discovered source needs a 2-of-3 semantic majority — and still cannot be
-    used if a deterministic gate (URL safety, contract shape) failed.
+    newly discovered source needs the run's :class:`ReviewPolicy` threshold — a
+    2-of-3 semantic majority for a creator with a reviewed dedicated profile, all
+    three lenses under the generic long-tail profile — and still cannot be used if a
+    deterministic gate (URL safety, contract shape) failed.
     """
 
     source_id: str
@@ -327,6 +365,44 @@ class SourceApproval(_Serialisable):
     rationale: str
     verdicts: tuple[SourceVerdict, ...]
     decided_at: str
+
+
+@dataclass(frozen=True)
+class PromotionCriterion(_Serialisable):
+    """One published, deterministic test for "does this creator merit a dedicated
+    profile?".
+
+    The threshold and the observed value are both recorded, so a creator that came
+    close is as legible as one that passed. Nothing here acts: a met criterion is a
+    signal for a human, never an instruction to a machine.
+    """
+
+    id: str
+    description: str
+    threshold: int
+    observed: int
+    met: bool
+
+
+@dataclass(frozen=True)
+class PromotionAssessment(_Serialisable):
+    """Whether this long-tail creator should be considered for a dedicated profile.
+
+    Recorded for *every* creator processed under the generic profile, recommended or
+    not, so the absence of a recommendation is itself evidence rather than silence.
+    Creating the profile is a human act — this tool has no code path that writes one.
+    """
+
+    creator_id: str
+    profile_id: str
+    recommended: bool
+    criteria: tuple[PromotionCriterion, ...]
+    rationale: str
+    assessed_at: str
+    next_step: str = (
+        "a human decides whether to add profiles/<creator>.json; this tool never "
+        "creates a dedicated profile"
+    )
 
 
 @dataclass(frozen=True)
@@ -402,6 +478,11 @@ class CreatorProposal(_Serialisable):
     gates: tuple[GateResult, ...] = ()
     adjudications: tuple[ClaimAdjudication, ...] = ()
     source_approvals: tuple[SourceApproval, ...] = ()
+    # The acceptance threshold this run actually applied, and — for a creator
+    # processed under the generic long-tail profile — whether it merits a dedicated
+    # one. Both are `None` for a run that used no explicit profile.
+    review_policy: ReviewPolicy | None = None
+    promotion: PromotionAssessment | None = None
 
     @property
     def accepted_claim_ids(self) -> tuple[str, ...]:

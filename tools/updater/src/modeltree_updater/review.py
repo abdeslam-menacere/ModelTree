@@ -21,6 +21,10 @@ Aggregation rules, from the program specification:
 
 * A 2-of-3 majority accepts or rejects a claim, and may approve a newly discovered
   source for use in this run's proposal.
+* That threshold is a :class:`~modeltree_updater.contracts.ReviewPolicy`, carried by
+  the run rather than fixed here. The generic long-tail profile raises the *accept*
+  bar to a unanimous 3-of-3, because far less is known about a creator with no
+  reviewed dedicated profile. The reject bar never moves.
 * Abstentions never count as consent; two positive votes are always required.
 * The majority is **advisory about semantic judgment only**. A failed deterministic
   gate vetoes it (see `gates.py`), and this module never lets a vote outrank one.
@@ -44,6 +48,7 @@ from .contracts import (
     Evidence,
     GateResult,
     ReviewLens,
+    ReviewPolicy,
     ReviewVerdict,
     SourceApproval,
     SourceCandidate,
@@ -57,8 +62,10 @@ __all__ = [
     "FieldExpectation",
     "LENS_BRIEFS",
     "MAJORITY",
+    "MAJORITY_POLICY",
     "PANEL_SIZE",
     "SourceReviewRequest",
+    "UNANIMOUS_POLICY",
     "adjudicate_claim",
     "approve_source",
     "build_claim_request",
@@ -69,6 +76,30 @@ __all__ = [
 
 PANEL_SIZE = 3
 MAJORITY = 2
+
+MAJORITY_POLICY = ReviewPolicy(
+    id="majority-2-of-3",
+    required_accepts=MAJORITY,
+    required_rejects=MAJORITY,
+    description=(
+        "The agreed policy for creators with a reviewed dedicated profile: two of the "
+        "three lenses may accept a claim or approve a newly discovered source."
+    ),
+    decision_label=f"{MAJORITY}-of-{PANEL_SIZE} majority",
+)
+
+UNANIMOUS_POLICY = ReviewPolicy(
+    id="unanimous-3-of-3",
+    required_accepts=PANEL_SIZE,
+    required_rejects=MAJORITY,
+    description=(
+        "The generic long-tail policy. All three lenses must accept a claim or approve "
+        "a newly discovered source; a single dissent or abstention leaves it for a "
+        "human. The reject bar stays at two — refusing a thinly-evidenced candidate "
+        "must not get harder than accepting one."
+    ),
+    decision_label=f"unanimous {PANEL_SIZE}-of-{PANEL_SIZE} accept",
+)
 
 LENS_BRIEFS: Mapping[ReviewLens, str] = {
     ReviewLens.PROVENANCE: (
@@ -242,10 +273,10 @@ def _tally(decisions: Sequence[ClaimDecision]) -> tuple[int, int, int]:
     return accept, reject, len(decisions) - accept - reject
 
 
-def _semantic_decision(accept: int, reject: int) -> ClaimDecision:
-    if accept >= MAJORITY:
+def _semantic_decision(accept: int, reject: int, policy: ReviewPolicy) -> ClaimDecision:
+    if policy.accepts(accept):
         return ClaimDecision.ACCEPT
-    if reject >= MAJORITY:
+    if policy.rejects(reject):
         return ClaimDecision.REJECT
     return ClaimDecision.NEEDS_HUMAN_REVIEW
 
@@ -256,16 +287,20 @@ def adjudicate_claim(
     gate_results: Sequence[GateResult],
     *,
     decided_at: str,
+    policy: ReviewPolicy = MAJORITY_POLICY,
 ) -> ClaimAdjudication:
     """Combine the three lens verdicts with the deterministic gates.
 
     The gates win. Always. A unanimous panel cannot admit a candidate that failed an
     objective check, and the adjudication records both answers so the disagreement
     between judgment and validation is visible rather than resolved silently.
+
+    ``policy`` sets how many accepts are needed. It is supplied by the run, so a
+    long-tail creator's claim cannot be accepted on the pilot creators' threshold.
     """
     decisions = [verdict.decision for verdict in verdicts]
     accept, reject, abstain = _tally(decisions)
-    semantic = _semantic_decision(accept, reject)
+    semantic = _semantic_decision(accept, reject, policy)
     vetoed_by = failed_gates(gate_results)
 
     if vetoed_by:
@@ -283,7 +318,7 @@ def adjudicate_claim(
             rationale = f"{reject} of {PANEL_SIZE} reviewers rejected"
         else:
             rationale = (
-                f"no {MAJORITY}-of-{PANEL_SIZE} majority ({accept} accept, {reject} "
+                f"no {policy.decision_label} ({accept} accept, {reject} "
                 f"reject, {abstain} abstain); escalated for a human decision"
             )
 
@@ -309,12 +344,14 @@ def approve_source(
     *,
     newly_discovered: bool,
     decided_at: str,
+    policy: ReviewPolicy = MAJORITY_POLICY,
 ) -> SourceApproval:
     """Decide whether a source may back claims in this run.
 
-    A configured source is trusted without a vote. A newly discovered one needs a
-    2-of-3 majority — the agreed policy, permissive on purpose — and a failed gate
-    still refuses it whatever the panel said.
+    A configured source is trusted without a vote. A newly discovered one needs the
+    run's threshold — the agreed 2-of-3 majority for a creator with a reviewed
+    dedicated profile, or all three lenses under the generic long-tail profile — and
+    a failed gate still refuses it whatever the panel said.
     """
     decisions = [verdict.decision for verdict in verdicts]
     accept, reject, abstain = _tally(decisions)
@@ -329,7 +366,7 @@ def approve_source(
     elif not newly_discovered:
         approved = True
         rationale = "configured source for this creator; no discovery vote required"
-    elif accept >= MAJORITY:
+    elif policy.accepts(accept):
         approved = True
         rationale = (
             f"newly discovered source approved by {accept} of {PANEL_SIZE} reviewers "
