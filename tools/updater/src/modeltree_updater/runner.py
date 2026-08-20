@@ -103,6 +103,14 @@ async def run_creator(
     checkpoint_storage: Any | None = None,
 ) -> CreatorProposal:
     """Run the full workflow for one creator and return its proposal."""
+    if settings.long_tail is not None:
+        # Instantiate the generic profile for this creator *before* anything is
+        # fetched. It produces the same `CreatorProfile` type the dedicated profiles
+        # load to, and building it runs the URL safety check over the creator's seed
+        # URLs — so an unsafe seed stops the run here rather than being read first
+        # and refused afterwards. Being trusted less must never mean being checked
+        # less.
+        settings.long_tail.for_creator(creator)
     workflow = build_creator_workflow(settings, checkpoint_storage=checkpoint_storage)
     result = await workflow.run(
         CreatorTask(

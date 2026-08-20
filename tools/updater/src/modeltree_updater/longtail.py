@@ -46,6 +46,7 @@ from .contracts import (
     SourceKind,
     _Serialisable,
 )
+from .gates import url_safety_issues
 from .profiles import (
     CreatorProfile,
     ExtractionRules,
@@ -161,6 +162,12 @@ class LongTailProfile(_Serialisable):
         catalog: list[TrustedSource] = []
         seen: set[str] = set()
         for url in creator.entry_urls:
+            # A seed is trusted less than a catalogued source, so it is checked at
+            # least as hard. Building a catalog entry from a URL that fails the
+            # objective safety check would let low trust buy a lighter path.
+            issues = url_safety_issues(f"seed url for {creator.creator_id}", url)
+            if issues:
+                raise ProfileError("; ".join(issues))
             origin = origin_of(url)
             if origin in seen:
                 continue
