@@ -15,6 +15,14 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+# The alert's identity, defined once for the whole workflow. `report-failure`
+# files under this exact title and `report-recovery` closes what matches it
+# exactly, so the two look up the same issue by construction. Restating the
+# string in either job would let them drift apart, and a recovery job matching a
+# title the failure job no longer uses would close somebody else's issue.
+env:
+  STALE_SITE_TITLE: 'GitHub Pages deploy failed - the published site is stale'
+
 jobs:
   deploy:
     if: github.repository == 'abdeslam-menacere/ModelTree'
@@ -93,8 +101,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          title='GitHub Pages deploy failed - the published site is stale'
-
           {
             echo "The deploy job in \`pages.yml\` failed, so GitHub Pages is still serving the"
             echo "previous successful build. The site is **stale, not broken** - it will go on"
@@ -112,13 +118,13 @@ jobs:
           # Narrow with search, then match the title exactly, so a repeated
           # failure comments on the open report instead of filing a duplicate
           # on every push.
-          existing="$(gh issue list --repo "$REPO" --state open --search "\"$title\" in:title" --json number,title \
-            | jq -r --arg t "$title" 'map(select(.title == $t)) | .[0].number // empty')"
+          existing="$(gh issue list --repo "$REPO" --state open --search "\"$STALE_SITE_TITLE\" in:title" --json number,title \
+            | jq -r --arg t "$STALE_SITE_TITLE" 'map(select(.title == $t)) | .[0].number // empty')"
 
           if [ -n "$existing" ]; then
             echo "Commenting on existing issue #$existing."
             gh issue comment "$existing" --repo "$REPO" --body-file "$RUNNER_TEMP/stale-site.md"
           else
             echo "Opening a new stale-site issue."
-            gh issue create --repo "$REPO" --title "$title" --body-file "$RUNNER_TEMP/stale-site.md"
+            gh issue create --repo "$REPO" --title "$STALE_SITE_TITLE" --body-file "$RUNNER_TEMP/stale-site.md"
           fi
