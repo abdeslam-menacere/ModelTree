@@ -1,10 +1,16 @@
 """The generic long-tail profile: one profile, every creator without a dedicated one.
 
 Covering minor and niche creators must not mean writing another agent. This module
-loads a single reviewed document — ``profiles/generic/long-tail.json`` — and turns it
-into the same :class:`~modeltree_updater.profiles.CreatorProfile` the pilot creators
+loads a reviewed document — by default ``profiles/generic/long-tail.json`` — and turns
+it into the same :class:`~modeltree_updater.profiles.CreatorProfile` the pilot creators
 use, so a long-tail run travels through exactly the same executors, the same three
 lenses, the same deterministic hard gates, and the same proposal-only boundary.
+
+Those documents are a **reviewed set**, not operator input: ``profiles/generic/*.json``,
+each identified by the ``id`` it declares, loaded by :func:`load_long_tail_library`,
+which refuses two documents answering to one id. A run names the profile it wants by
+id, and a resumed run rebuilds its profile from the id its checkpoint recorded — so
+the set has to make an id name exactly one file.
 
 Three things differ, and all three are consequences of one fact — nobody has reviewed
 this creator:
@@ -60,22 +66,30 @@ from .review import PANEL_SIZE, REVIEW_POLICIES
 
 __all__ = [
     "DEFAULT_LONG_TAIL_PROFILE",
+    "DEFAULT_LONG_TAIL_PROFILE_ID",
     "KNOWN_PROMOTION_CRITERIA",
+    "REVIEWED_LONG_TAIL_DIR",
+    "LongTailLibrary",
     "LongTailProfile",
     "PromotionRules",
     "PromotionThreshold",
     "UnresolvedTopic",
     "assess_promotion",
+    "load_long_tail_library",
     "load_long_tail_profile",
+    "reviewed_long_tail_profile",
     "unresolved_mapping_conflicts",
 ]
 
-# The generic profile lives in its own directory: `profiles/*.json` is the set of
-# reviewed *per-creator* profiles, and this is a template applied to many creators,
-# not a fifth creator. `load_profile_library` therefore never picks it up.
-DEFAULT_LONG_TAIL_PROFILE = (
-    Path(__file__).resolve().parents[2] / "profiles" / "generic" / "long-tail.json"
-)
+# The generic profiles live in their own directory: `profiles/*.json` is the set of
+# reviewed *per-creator* profiles, and these are templates applied to many creators,
+# not extra creators. `load_profile_library` therefore never picks them up.
+REVIEWED_LONG_TAIL_DIR = Path(__file__).resolve().parents[2] / "profiles" / "generic"
+
+DEFAULT_LONG_TAIL_PROFILE = REVIEWED_LONG_TAIL_DIR / "long-tail.json"
+
+# The profile a `--long-tail` run applies unless another reviewed one is named.
+DEFAULT_LONG_TAIL_PROFILE_ID = "long-tail-generic"
 
 # Every criterion has to be measurable from a finished run. An id with no measurement
 # behind it would silently never be met, so the loader refuses one it cannot compute.
@@ -217,6 +231,17 @@ class LongTailProfile(_Serialisable):
             if topic.matches(claim):
                 return topic
         return None
+
+
+@dataclass(frozen=True)
+class LongTailLibrary:
+    """The reviewed generic profiles, keyed by the id each document declares."""
+
+    profiles: Mapping[str, LongTailProfile]
+
+    @property
+    def ids(self) -> tuple[str, ...]:
+        return tuple(sorted(self.profiles))
 
 
 def _require(document: Mapping[str, Any], key: str, *, path: Path) -> Any:
@@ -375,6 +400,60 @@ def load_long_tail_profile(path: Path | str = DEFAULT_LONG_TAIL_PROFILE) -> Long
         seed_trust_notes=_require(seed, "trust_notes", path=path),
         notes=tuple(document.get("notes", ())),
     )
+
+
+def load_long_tail_library(
+    directory: Path | str = REVIEWED_LONG_TAIL_DIR,
+) -> LongTailLibrary:
+    """Load every reviewed generic profile in a directory, keyed by declared id.
+
+    Mirrors :func:`~modeltree_updater.profiles.load_profile_library`, and refuses a
+    duplicate id for a sharper reason than tidiness. A checkpoint records the profile
+    *id* a run was started under, and a resume rebuilds the profile from it. If two
+    reviewed documents could answer to one id, that rebuild would be a guess — which
+    is the defect this set exists to remove. One id, one file, or the set does not
+    load at all.
+    """
+    directory = Path(directory)
+    if not directory.is_dir():
+        raise FileNotFoundError(f"long-tail profiles directory not found: {directory}")
+
+    profiles: dict[str, LongTailProfile] = {}
+    sources: dict[str, Path] = {}
+    for path in sorted(directory.glob("*.json")):
+        profile = load_long_tail_profile(path)
+        if profile.id in profiles:
+            raise ProfileError(
+                f"duplicate long-tail profile id {profile.id!r} in {path.name} and "
+                f"{sources[profile.id].name}: an id has to name exactly one reviewed "
+                "document, because a resumed run rebuilds its profile from the id the "
+                "checkpoint recorded"
+            )
+        profiles[profile.id] = profile
+        sources[profile.id] = path
+    if not profiles:
+        raise FileNotFoundError(f"no long-tail profiles found in {directory}")
+    return LongTailLibrary(profiles=profiles)
+
+
+def reviewed_long_tail_profile(
+    profile_id: str, *, directory: Path | str = REVIEWED_LONG_TAIL_DIR
+) -> LongTailProfile:
+    """The reviewed profile answering to ``profile_id``, or a loud refusal.
+
+    The one way a run — new or resumed — obtains a profile to be judged under. A
+    profile shapes the promotion criteria and the mappings that stay explicit, so it
+    is a reviewed artefact of this repository rather than something an operator hands
+    in on the command line.
+    """
+    library = load_long_tail_library(directory)
+    profile = library.profiles.get(profile_id)
+    if profile is None:
+        raise ProfileError(
+            f"unknown long-tail profile {profile_id!r}; the reviewed profiles are "
+            f"{', '.join(library.ids)}"
+        )
+    return profile
 
 
 def unresolved_mapping_conflicts(

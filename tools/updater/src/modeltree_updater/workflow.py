@@ -73,7 +73,7 @@ T = TypeVar("T")
 
 
 class ProfileMismatch(ProviderError):
-    """A resume asked for a different profile than the checkpointed run used.
+    """A resume could not honour the profile the checkpointed run used.
 
     The review policy lives in the checkpoint, so it is restored rather than
     re-decided. The profile behind it carries the promotion criteria and the
@@ -81,13 +81,23 @@ class ProfileMismatch(ProviderError):
     so if the resuming command supplies a different one, or none, the run stops.
     Adjudicating a long-tail creator on the pilot creators' bar because a flag was
     forgotten is exactly the silent change this refuses to make.
+
+    ``reason`` states a refusal the recorded-versus-requested pair does not describe
+    on its own: a checkpoint naming a profile id that the reviewed set no longer
+    contains cannot be rebuilt at all, and guessing the nearest one would be the
+    substitution this refuses.
     """
 
-    def __init__(self, recorded: str | None, requested: str | None) -> None:
+    def __init__(
+        self, recorded: str | None, requested: str | None, *, reason: str | None = None
+    ) -> None:
+        detail = reason or (
+            f"this checkpoint was produced under profile {recorded!r} but the "
+            f"requested profile is {requested!r}"
+        )
         super().__init__(
-            "refusing to resume: this checkpoint was produced under profile "
-            f"{recorded!r} but the requested profile is {requested!r}. The review "
-            "policy a proposal was decided under must be the one it states.",
+            f"refusing to resume: {detail}. The review policy a proposal was decided "
+            "under must be the one it states.",
             provider="modeltree-updater",
             retryable=False,
         )
