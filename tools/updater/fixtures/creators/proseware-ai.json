@@ -1,0 +1,214 @@
+{
+  "creator": {
+    "creator_id": "proseware-ai",
+    "creator_name": "Proseware AI",
+    "entry_urls": ["https://www.example.com/proseware-ai/news"],
+    "notes": "Synthetic long-tail creator with no dedicated profile. Exercises the unanimous path end to end: claims that all three lenses accept, a 2-of-3 accept that must NOT pass, a single reject that blocks acceptance, a naming mapping every lens abstained on, a newly discovered source approved 3-of-3, and a newly discovered source approved by only 2 of 3 that must be refused. Rich enough that the promotion criteria are all met."
+  },
+  "sources": [
+    {
+      "id": "proseware-ai-launch",
+      "url": "https://www.example.com/proseware-ai/blog/scribe-2",
+      "title": "Introducing Scribe 2",
+      "publisher": "Proseware AI",
+      "kind": "official-announcement",
+      "published_date": "2026-02-10",
+      "text": "Scribe 2 handles 64,000 tokens of context. It is the second model we have shipped under the Scribe name.",
+      "claims": [
+        {
+          "id": "proseware-ai-scribe-2-context-window",
+          "entity_kind": "release",
+          "entity_id": "proseware-scribe-2",
+          "field_path": "contextWindow",
+          "value": 64000,
+          "quote": "Scribe 2 handles 64,000 tokens of context",
+          "confidence": 0.91,
+          "verified_at": "2026-02-11",
+          "review": {
+            "decision": "accept",
+            "rationale": "The announcement states the number outright."
+          }
+        },
+        {
+          "id": "proseware-ai-scribe-family-name",
+          "entity_kind": "family",
+          "entity_id": "proseware-scribe",
+          "field_path": "name",
+          "value": "Scribe",
+          "quote": "It is the second model we have shipped under the Scribe name",
+          "confidence": 0.45,
+          "verified_at": "2026-02-11",
+          "reviews": {
+            "provenance": {
+              "decision": "abstain",
+              "rationale": "The page uses 'the Scribe name' in passing. Whether that is a family label or a brand is not something this quote settles."
+            },
+            "consistency": {
+              "decision": "abstain",
+              "rationale": "There is no reviewed terminology for this creator, so there is nothing to check the proposed family label against."
+            },
+            "editorial": {
+              "decision": "abstain",
+              "rationale": "Naming a family here would fix a mapping the source never states. Better left open."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "proseware-ai-docs",
+      "url": "https://www.example.com/proseware-ai/docs/scribe-2",
+      "title": "Scribe 2 documentation",
+      "publisher": "Proseware AI",
+      "kind": "official-docs",
+      "published_date": "2026-02-12",
+      "text": "Scribe 2 is the current generally available model. It returns up to 8,192 tokens per response. Scribe 2 is a long-form drafting model. Scribe 2 is intended for drafting and editing prose.",
+      "claims": [
+        {
+          "id": "proseware-ai-scribe-2-status",
+          "entity_kind": "release",
+          "entity_id": "proseware-scribe-2",
+          "field_path": "status",
+          "value": "current",
+          "quote": "Scribe 2 is the current generally available model",
+          "confidence": 0.89,
+          "verified_at": "2026-02-13",
+          "review": {
+            "decision": "accept",
+            "rationale": "Stated directly in the documentation."
+          }
+        },
+        {
+          "id": "proseware-ai-scribe-2-maximum-output",
+          "entity_kind": "release",
+          "entity_id": "proseware-scribe-2",
+          "field_path": "maximumOutput",
+          "value": 8192,
+          "quote": "It returns up to 8,192 tokens per response",
+          "confidence": 0.9,
+          "verified_at": "2026-02-13",
+          "review": {
+            "decision": "accept",
+            "rationale": "Stated directly in the documentation."
+          }
+        },
+        {
+          "id": "proseware-ai-scribe-2-summary",
+          "entity_kind": "release",
+          "entity_id": "proseware-scribe-2",
+          "field_path": "summary",
+          "value": "A long-form drafting model.",
+          "quote": "Scribe 2 is a long-form drafting model",
+          "confidence": 0.72,
+          "reviews": {
+            "provenance": {
+              "decision": "accept",
+              "rationale": "The quote says exactly this."
+            },
+            "consistency": {
+              "decision": "accept",
+              "rationale": "Nothing else in the run contradicts it."
+            },
+            "editorial": {
+              "decision": "abstain",
+              "rationale": "A one-line marketing description from an unreviewed creator is not something I can judge as a dataset summary."
+            }
+          },
+          "verified_at": "2026-02-13"
+        },
+        {
+          "id": "proseware-ai-scribe-2-intended-use",
+          "entity_kind": "release",
+          "entity_id": "proseware-scribe-2",
+          "field_path": "intendedUse",
+          "value": "Drafting and editing prose.",
+          "quote": "Scribe 2 is intended for drafting and editing prose",
+          "confidence": 0.68,
+          "verified_at": "2026-02-13",
+          "reviews": {
+            "provenance": {
+              "decision": "accept",
+              "rationale": "The quote states the intended use."
+            },
+            "consistency": {
+              "decision": "accept",
+              "rationale": "Consistent with the rest of the documentation."
+            },
+            "editorial": {
+              "decision": "reject",
+              "rationale": "This restates the product pitch rather than an intended-use statement, and for an unreviewed creator that distinction matters."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "proseware-ai-partner-docs",
+      "url": "https://docs.example.org/proseware-ai/scribe-2",
+      "title": "Scribe 2 model card",
+      "publisher": "Proseware AI",
+      "kind": "model-card",
+      "published_date": "2026-02-14",
+      "text": "Scribe 2 has 12 billion total parameters.",
+      "source_review": {
+        "decision": "accept",
+        "rationale": "Published by the creator itself on its documentation host and cited as the model card for this release."
+      },
+      "claims": [
+        {
+          "id": "proseware-ai-scribe-2-total-parameters",
+          "entity_kind": "release",
+          "entity_id": "proseware-scribe-2",
+          "field_path": "parameters.totalBillions",
+          "value": 12.0,
+          "quote": "Scribe 2 has 12 billion total parameters",
+          "confidence": 0.87,
+          "verified_at": "2026-02-15",
+          "review": {
+            "decision": "accept",
+            "rationale": "Stated directly in the model card."
+          }
+        }
+      ]
+    },
+    {
+      "id": "proseware-ai-rumour",
+      "url": "https://rumours.example.net/proseware-ai/scribe-3",
+      "title": "What we hear about Scribe 3",
+      "publisher": "Rumour Mill",
+      "kind": "independent-evaluation",
+      "published_date": "2026-02-20",
+      "text": "Scribe 3 is said to accept 128,000 tokens of context.",
+      "source_reviews": {
+        "provenance": {
+          "decision": "accept",
+          "rationale": "The page exists and says what is quoted."
+        },
+        "consistency": {
+          "decision": "accept",
+          "rationale": "Nothing else in the run contradicts it."
+        },
+        "editorial": {
+          "decision": "reject",
+          "rationale": "Third-party speculation about an unannounced release, for a creator nobody has reviewed. Not a source this proposal should rest on."
+        }
+      },
+      "claims": [
+        {
+          "id": "proseware-ai-scribe-3-context-window",
+          "entity_kind": "release",
+          "entity_id": "proseware-scribe-3",
+          "field_path": "contextWindow",
+          "value": 128000,
+          "quote": "Scribe 3 is said to accept 128,000 tokens of context",
+          "confidence": 0.55,
+          "verified_at": "2026-02-21",
+          "review": {
+            "decision": "accept",
+            "rationale": "The quote supports the value, whatever the source is worth."
+          }
+        }
+      ]
+    }
+  ]
+}

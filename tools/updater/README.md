@@ -54,9 +54,10 @@ number of catalogued sources); `profiles --json` emits the loaded library for sc
 It only reads profile data — it never runs the workflow or reaches a source.
 
 Useful `run` flags: `--creator` (repeatable), `--fixtures`, `--provider fixtures|foundry`,
-`--sources fixtures|network`, `--output`, `--checkpoint-dir`, `--run-id`, `--timestamp`, and
-the budget flags below. `resume` takes `--provider` and `--sources` too, and refuses any
-provider the checkpoint did not record.
+`--sources fixtures|network`, `--long-tail`, `--long-tail-profile`, `--output`,
+`--checkpoint-dir`, `--run-id`, `--timestamp`, and the budget flags below. `resume` takes
+`--provider` and `--sources` too, and refuses any provider the checkpoint did not record;
+it has no `--long-tail` flag because the policy is restored from the checkpoint.
 
 Exit codes: `0` success, `2` usage or configuration error, `3` at least one creator failed,
 `4` at least one creator could not be published.
@@ -102,6 +103,14 @@ proposal. That last rule is deliberately permissive; it is the agreed policy and
 recorded here rather than quietly tightened. Abstentions never count as consent, so a
 majority always needs two positive votes; a reviewer that fails or does not run abstains.
 No majority means `needs-human-review`, never a guess.
+
+That threshold is a `ReviewPolicy` the run carries, not a number hard-coded in the
+aggregation. Creators with a reviewed dedicated profile use `majority-2-of-3`; the generic
+long-tail profile uses `unanimous-3-of-3` (see below). The **reject** threshold stays at
+two under both — raising the bar for *acceptance* is the point, and making it harder to
+refuse a thin candidate would be backwards. Every proposal records the policy it was
+decided under, and the policy travels in the checkpoint so a resumed run cannot be
+adjudicated on a different bar than the one it started with.
 
 **Deterministic gates are hard vetoes.** They are objective checks, and a failed gate
 rejects the candidate however the panel voted — a unanimous accept loses to one failed
@@ -192,6 +201,67 @@ Each `source_catalog` entry is a `TrustedSource`:
 Seed URLs are **real** creator-owned URLs, kept deliberately conservative: where an exact
 sub-path was uncertain, the profile uses the canonical root the reviewer is sure of rather
 than a guessed deep link. No seed URL is fabricated to look complete.
+
+## The generic long-tail profile
+
+Four creators have a reviewed dedicated profile. Everyone else — the minor and niche
+creators that make up most of the field — is covered by **one** generic profile,
+`profiles/generic/long-tail.json`, loaded by `longtail.py`. It is a profile, driven
+through the same executors, the same three lenses, the same deterministic hard gates, and
+the same proposal-only boundary. There is no second pipeline and no second agent.
+
+It is **opt-in**, never an automatic fallback:
+
+```bash
+python -m modeltree_updater run --creator litware-ai --long-tail --output ./out
+```
+
+`--long-tail-profile <path>` swaps in a different reviewed profile document. `resume`
+deliberately has **no** such flag: the policy and the profile id are recorded in the
+checkpoint, so a resumed run restores the bar it started under rather than re-deciding it
+from whatever the resuming command passed. A checkpoint whose profile cannot be honoured
+stops the run with `ProfileMismatch`.
+
+Three things differ from a dedicated profile, and all three follow from one fact — nobody
+has reviewed this creator:
+
+| | Dedicated profile | Generic long-tail profile |
+|---|---|---|
+| Accepting a claim | 2 of 3 lenses | **all 3** |
+| Approving a newly discovered source | 2 of 3 lenses | **all 3** |
+| Rejecting | 2 of 3 lenses | 2 of 3 lenses (unchanged) |
+| Unsettled naming / ownership / lineage | escalated | escalated **and** recorded as an `unresolved-mapping` conflict |
+| Promotion assessment | — | recorded on every run |
+
+The profile document *restates* a `review_policy`; it does not define one. The loader
+resolves the declared `id` against the policies `review.py` actually implements, checks
+every field of the restatement matches, and **refuses** any policy that asks for less than
+unanimity. Editing the file can therefore produce a load error but never a quieter gate,
+and the threshold recorded in a proposal is always one the aggregation really applied.
+
+**Where the seeds come from.** A long-tail creator has no catalogued sources, so
+`LongTailProfile.for_creator()` builds a `CreatorProfile` whose catalog is the run's own
+`entry_urls` — the URLs the operator supplied. Nothing here discovers, infers, or invents
+a URL. They are marked `trust: "unverified-seed"` and carry **no** `verified_at`, because
+nobody checked them and stamping a date on an unreviewed URL would fabricate provenance.
+Lower trust buys a seed nothing: the seed URLs are run through the same `url-safety` check
+before a single page is fetched (an unsafe seed stops the run), and everything read
+afterwards passes exactly the same gate set as a catalogued source. Anything off a seed
+origin is a discovery and needs the unanimous vote.
+
+**Unknown mappings stay unknown.** A claim about naming, ownership, or lineage that the
+panel could not settle becomes an explicit `unresolved-mapping` conflict naming the topic
+and the profile's guidance. This matters because a claim all three lenses *abstain* on is
+technically unanimous, so reviewer-disagreement detection says nothing about it — without
+this it would leave no trace at all. The conflict is scoped to the long-tail path; a
+dedicated-profile run's conflict output is unchanged.
+
+**Promotion is a flag, never an action.** Every long-tail creator is assessed against the
+criteria published in the profile — accepted claims, distinct approved sources actually
+backing them, escalated mappings — and the observed value is recorded whether or not the
+threshold was met, so a near miss is as legible as a pass. A recommendation asks a human
+to write `profiles/<creator>.json`. **No code path in this tool creates a dedicated
+profile**, and automatic creation is explicitly out of scope.
 
 ## The source scout
 
@@ -452,7 +522,10 @@ silently yielding an un-awaited coroutine that looks like an empty answer.
 (with quoted evidence, source URL, content hash, and verification date), `verdicts` (three
 per claim, one per lens), `adjudications` (the vote tally, the binding decision, and any
 `vetoed_by` gates), `gates` (every deterministic result, passed or failed),
-`source_approvals`, `validations`, `conflicts`, `budget`, `failures`, and `notes`.
+`source_approvals`, `validations`, `conflicts`, `budget`, `failures`, `notes`, and
+`review_policy` (the acceptance threshold this run actually applied). A creator processed
+under the generic long-tail profile also carries `promotion`: the criteria, their
+thresholds, the observed values, and whether a dedicated profile is recommended.
 
 ## Layout
 
@@ -473,10 +546,12 @@ src/modeltree_updater/
   publisher.py     materiality, issue identity, supersession, deterministic rendering
   github_issues.py the only module that speaks to GitHub, and only about issues
   profiles.py      shared loader for version-controlled creator profiles + catalog
+  longtail.py      the generic long-tail profile: unanimity, unresolved mappings, promotion
   scout.py         triages source leads into proposals; snippets are never evidence
   providers/       source, extraction, and review-panel boundaries
                    (fixtures, the Foundry models, and the network source fetcher)
 profiles/          version-controlled creator profiles and their trusted source catalog
+profiles/generic/  the one generic profile for creators without a dedicated one
 fixtures/creators/ synthetic creator fixtures for offline runs and CI
 tests/             pytest suite; no network, no credentials
 ```
@@ -488,4 +563,6 @@ committing or pull-requesting data changes, provisioning the Azure resources the
 publication workflow needs, and production deployment. Source *discovery* by search —
 turning an open-web query into leads — also stays out: the network provider fetches the
 seed URLs a creator profile already configures (see "Fetching real pages" above), it does
-not crawl or search.
+not crawl or search. **Automatic creation of dedicated creator profiles** is out too: the
+long-tail promotion assessment is a flag for a human, exhaustive catalog coverage is not
+attempted, and there is no lower-confidence publication path.

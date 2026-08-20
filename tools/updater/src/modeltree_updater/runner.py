@@ -10,7 +10,7 @@ from __future__ import annotations
 import traceback
 from typing import Any, Sequence
 
-from .checkpoints import recorded_providers
+from .checkpoints import recorded_profile_id, recorded_providers
 from .contracts import (
     BudgetUsage,
     CreatorProposal,
@@ -21,11 +21,13 @@ from .contracts import (
     RunReport,
     WorkflowStage,
 )
+from .longtail import load_long_tail_profile
 from .messages import CreatorTask
 from .providers.base import ProviderError
-from .workflow import RunSettings, build_creator_workflow
+from .workflow import ProfileMismatch, RunSettings, build_creator_workflow
 
 __all__ = [
+    "ProfileMismatch",
     "ProviderMismatch",
     "run_creator",
     "run_creators",
@@ -101,12 +103,25 @@ async def run_creator(
     checkpoint_storage: Any | None = None,
 ) -> CreatorProposal:
     """Run the full workflow for one creator and return its proposal."""
+    if settings.long_tail is not None:
+        # Instantiate the generic profile for this creator *before* anything is
+        # fetched. It produces the same `CreatorProfile` type the dedicated profiles
+        # load to, and building it runs the URL safety check over the creator's seed
+        # URLs — so an unsafe seed stops the run here rather than being read first
+        # and refused afterwards. Being trusted less must never mean being checked
+        # less.
+        settings.long_tail.for_creator(creator)
     workflow = build_creator_workflow(settings, checkpoint_storage=checkpoint_storage)
     result = await workflow.run(
         CreatorTask(
             run_id=run_id,
             creator=creator,
             providers=settings.providers.descriptor,
+            # Stamped once, at the start. Everything downstream forwards it, so the
+            # bar this run is judged by is fixed here and recorded in every
+            # checkpoint rather than re-decided later.
+            review_policy=settings.review_policy,
+            profile_id=settings.profile_id,
         )
     )
     return _single_proposal(result.get_outputs())
@@ -122,11 +137,28 @@ async def resume_creator_run(
 
     A resume must not quietly change where the evidence came from, so the
     providers recorded in the checkpoint have to match the ones supplied here.
+
+    It must not quietly change the *bar* either. The review policy travels in the
+    checkpointed messages, so it is restored rather than re-decided — the resuming
+    command's ``--long-tail`` flag is not consulted for it. The profile behind that
+    policy carries the promotion criteria and the unresolved-mapping topics, which
+    the policy alone cannot rebuild, so it is loaded from the recorded profile id.
+    An unknown id, or a resume that asks for a different profile than the checkpoint
+    records, stops the run.
     """
     recorded = await recorded_providers(checkpoint_storage, checkpoint_id)
     requested = dict(settings.providers.descriptor)
     if recorded is not None and recorded != requested:
         raise ProviderMismatch(recorded, requested)
+
+    recorded_profile = await recorded_profile_id(checkpoint_storage, checkpoint_id)
+    if recorded_profile is not None and settings.profile_id is None:
+        profile = load_long_tail_profile()
+        if profile.id != recorded_profile:
+            raise ProfileMismatch(recorded_profile, profile.id)
+        settings.adopt_long_tail(profile)
+    if recorded_profile != settings.profile_id:
+        raise ProfileMismatch(recorded_profile, settings.profile_id)
 
     workflow = build_creator_workflow(settings, checkpoint_storage=checkpoint_storage)
     result = await workflow.run(

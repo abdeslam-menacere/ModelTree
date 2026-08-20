@@ -225,6 +225,7 @@ def test_the_review_and_gate_modules_are_inside_the_proposal_only_scan() -> None
 
     assert {
         "gates.py",
+        "longtail.py",
         "review.py",
         "github_issues.py",
         "parsing.py",

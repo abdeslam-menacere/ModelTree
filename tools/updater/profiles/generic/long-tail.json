@@ -1,0 +1,122 @@
+{
+  "profile": {
+    "id": "long-tail-generic",
+    "kind": "long-tail",
+    "name": "Generic long-tail creator profile",
+    "applies_to": "any creator that does not have a reviewed dedicated profile in profiles/*.json"
+  },
+  "notes": [
+    "One generic profile stands in for every minor or niche creator, so covering the long tail never means writing another agent implementation. It is instantiated for a creator from that run's own seed URLs and travels through exactly the same executors, gates, and proposal-only boundary as a dedicated profile.",
+    "Much less is known here than for a pilot creator: nobody has reviewed this creator's terminology, its family boundaries, or which of its pages are authoritative. Everything below follows from that, and nothing below is a shortcut around it.",
+    "The review policy below is a restatement of a policy implemented in review.py, not a definition of one. The loader matches it field by field against the named constant and refuses anything short of unanimous acceptance, so editing this file can only produce a load error, never a quieter gate."
+  ],
+  "review_policy": {
+    "id": "unanimous-3-of-3",
+    "required_accepts": 3,
+    "required_rejects": 2,
+    "decision_label": "unanimous 3-of-3 accept",
+    "description": "The generic long-tail policy. All three lenses must accept a claim or approve a newly discovered source; a single dissent or abstention leaves it for a human. The reject bar stays at two — refusing a thinly-evidenced candidate must not get harder than accepting one."
+  },
+  "seed_source": {
+    "kind": "official-announcement",
+    "trust": "unverified-seed",
+    "trust_notes": "Supplied as this run's entry URL for a creator with no reviewed dedicated profile. Nobody has confirmed that it is the creator's authoritative publication point, so it carries no verification date and claims nothing beyond 'this is where the run was told to look'."
+  },
+  "terminology": {
+    "family": "Whatever the creator itself calls a group of related models. The generic profile has no reviewed mapping for this creator, so a family is only recorded when the source names one.",
+    "release": "A specific model version the creator published. A version string is only a release when the source presents it as one.",
+    "product": "An application or assistant built on models. It is a separate entity from any model release, even when the creator uses one name for both.",
+    "serving": "Where a model can be called. A serving platform is a separate entity from the creator and from the model."
+  },
+  "naming_rules": [
+    {
+      "subject": "family",
+      "rule": "Use the creator's own label verbatim. Do not normalise it towards a better-known creator's naming, and do not invent a family to hold a release that names none.",
+      "example": "If the source says only \"Model 7\", record the release and leave the family unknown."
+    },
+    {
+      "subject": "release",
+      "rule": "Record the release name exactly as published. Do not derive a canonical name from a dateless alias, or an alias from a canonical name, unless the source states both.",
+      "example": "\"v2.1 (2026-03-04)\" is one release name, not a canonicalName plus an inferred alias."
+    },
+    {
+      "subject": "product",
+      "rule": "Keep the product separate from the model it runs on, even when the creator uses a single name for both.",
+      "example": "A chat app named after its model is still a product entity."
+    },
+    {
+      "subject": "ownership",
+      "rule": "Attribute an entity only to the organization the source names. A shared brand, an investor, or a hosting platform is not ownership.",
+      "example": "A model served on a third-party platform is not owned by that platform."
+    }
+  ],
+  "extraction_rules": {
+    "entity_kinds": ["organization", "family", "release", "product", "serving-platform", "deployment"],
+    "notes": [
+      "Extract only what the fetched page states. The generic profile has no creator-specific reading rules to fall back on, so inference is not available here.",
+      "A value that requires knowing this creator's conventions is not extractable under this profile; leave it for a dedicated profile and let the promotion signal ask for one.",
+      "Creator, model, product, and serving platform stay four separate entities."
+    ]
+  },
+  "ambiguities": [
+    {
+      "topic": "unreviewed source authority",
+      "note": "No human has confirmed which of this creator's pages are authoritative, so a seed URL is a starting point rather than a trusted publication feed.",
+      "guidance": "leave explicit; do not guess"
+    },
+    {
+      "topic": "family and release boundaries",
+      "note": "Small creators frequently publish a version number with no stated family, or reuse one name across a product and a model.",
+      "guidance": "record what the source states and leave the boundary unknown; do not infer a hierarchy"
+    },
+    {
+      "topic": "organization identity",
+      "note": "Long-tail creators are often renamed, acquired, or published under a parent, a lab name, and a brand at once.",
+      "guidance": "record the name the source uses; never merge two names into one organization without a source that does"
+    }
+  ],
+  "unresolved_topics": [
+    {
+      "topic": "naming",
+      "note": "What this creator calls its organizations, families, releases, products, and API identifiers.",
+      "guidance": "An escalated naming claim stays an open conflict for a human. A plausible-looking normalisation is worse than an unknown, because it cannot be told apart from a sourced fact later.",
+      "entity_kinds": ["organization", "family", "release", "product", "serving-platform", "deployment"],
+      "field_paths": ["name", "shortName", "displayName", "canonicalName", "version", "apiAliases", "apiIdentifier"]
+    },
+    {
+      "topic": "ownership",
+      "note": "Which organization an entity belongs to, and which platform serves it.",
+      "guidance": "An escalated ownership claim stays an open conflict. Do not attribute an entity to an organization because a brand, an investor, or a host connects them.",
+      "entity_kinds": ["organization", "product", "serving-platform", "deployment"],
+      "field_paths": ["type", "website", "releasePage", "modelSelection", "deliveryMode"]
+    },
+    {
+      "topic": "lineage",
+      "note": "Which line a release belongs to and where that line starts. ModelTree's proposable fields carry no explicit parent pointer, so lineage under this profile is the family or release entity a claim attaches to together with the fields that define the line.",
+      "guidance": "An escalated lineage claim stays an open conflict. Never attach a release to a family the source does not attach it to.",
+      "entity_kinds": ["family", "release"],
+      "field_paths": ["categories", "firstReleaseDate"]
+    }
+  ],
+  "promotion_criteria": {
+    "rule": "all",
+    "description": "Whether this creator is worth the maintenance of a reviewed dedicated profile. Every criterion is measured from the run that just happened, every observed value is recorded whether or not the criterion is met, and a recommendation is a flag for a human. Nothing in this tool creates a dedicated profile.",
+    "criteria": [
+      {
+        "id": "accepted-claims",
+        "threshold": 3,
+        "description": "At least three claims survived unanimous review and every deterministic gate. Below that there is not enough material for a dedicated profile to be worth maintaining."
+      },
+      {
+        "id": "approved-sources",
+        "threshold": 2,
+        "description": "At least two distinct approved sources actually backed those accepted claims. A creator whose whole record rests on one page does not yet need a reviewed source catalog."
+      },
+      {
+        "id": "escalated-mappings",
+        "threshold": 1,
+        "description": "At least one naming, ownership, or lineage mapping had to be escalated to a human. This is the signal a dedicated profile would actually fix: reviewed terminology and naming rules are what resolve these. A creator the generic profile handles cleanly does not need one."
+      }
+    ]
+  }
+}

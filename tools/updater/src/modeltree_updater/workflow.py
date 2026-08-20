@@ -29,12 +29,14 @@ from .contracts import (
     ClaimAdjudication,
     ClaimCandidate,
     ClaimDecision,
+    Conflict,
     ConflictKind,
     CreatorProposal,
     FailureKind,
     GateResult,
     ProposalStatus,
     ReviewLens,
+    ReviewPolicy,
     ReviewVerdict,
     RunFailure,
     SourceApproval,
@@ -43,9 +45,11 @@ from .contracts import (
     WorkflowStage,
 )
 from .gates import run_claim_gates, run_source_gates
+from .longtail import LongTailProfile, assess_promotion, unresolved_mapping_conflicts
 from .messages import CreatorTask, DiscoveredSources, ExtractedClaims, ReviewedClaims
 from .providers.base import ProviderBundle, ProviderError
 from .review import (
+    MAJORITY_POLICY,
     adjudicate_claim,
     approve_source,
     build_claim_request,
@@ -57,6 +61,7 @@ from .validation import validate_claims
 
 __all__ = [
     "WORKFLOW_NAME",
+    "ProfileMismatch",
     "RunSettings",
     "build_creator_workflow",
     "bundle_proposal",
@@ -65,6 +70,29 @@ __all__ = [
 WORKFLOW_NAME = "modeltree-creator-proposal"
 
 T = TypeVar("T")
+
+
+class ProfileMismatch(ProviderError):
+    """A resume asked for a different profile than the checkpointed run used.
+
+    The review policy lives in the checkpoint, so it is restored rather than
+    re-decided. The profile behind it carries the promotion criteria and the
+    unresolved-mapping topics, which cannot be reconstructed from the policy alone —
+    so if the resuming command supplies a different one, or none, the run stops.
+    Adjudicating a long-tail creator on the pilot creators' bar because a flag was
+    forgotten is exactly the silent change this refuses to make.
+    """
+
+    def __init__(self, recorded: str | None, requested: str | None) -> None:
+        super().__init__(
+            "refusing to resume: this checkpoint was produced under profile "
+            f"{recorded!r} but the requested profile is {requested!r}. The review "
+            "policy a proposal was decided under must be the one it states.",
+            provider="modeltree-updater",
+            retryable=False,
+        )
+        self.recorded = recorded
+        self.requested = requested
 
 
 class RunSettings:
@@ -77,11 +105,33 @@ class RunSettings:
         budget: CreatorBudget,
         timestamp: str,
         clock: Callable[[], float] | None = None,
+        long_tail: LongTailProfile | None = None,
     ) -> None:
         self.providers = providers
         self.budget = budget
         self.timestamp = timestamp
         self.clock = clock
+        # The generic long-tail profile, when this run was asked for one. `None` means
+        # the creators being processed have reviewed dedicated profiles and the agreed
+        # majority policy applies — which is what every landed run does.
+        self.long_tail = long_tail
+
+    @property
+    def review_policy(self) -> ReviewPolicy:
+        """The threshold a *new* run starts under. A resumed run uses its own."""
+        return self.long_tail.review_policy if self.long_tail else MAJORITY_POLICY
+
+    @property
+    def profile_id(self) -> str | None:
+        return self.long_tail.id if self.long_tail else None
+
+    def adopt_long_tail(self, profile: LongTailProfile) -> None:
+        """Attach the profile a checkpoint says the run was started under.
+
+        Used by the resume path so the recorded profile, not the resuming command,
+        decides how the rest of the run is judged.
+        """
+        self.long_tail = profile
 
     def ledger(self, state: Any) -> BudgetLedger:
         if self.clock is None:
@@ -243,6 +293,8 @@ class DiscoverSourcesExecutor(Executor):
                 failures=tuple(failures),
                 budget_state=ledger.state(),
                 providers=message.providers,
+                review_policy=message.review_policy,
+                profile_id=message.profile_id,
             )
         )
 
@@ -310,6 +362,8 @@ class ExtractClaimsExecutor(Executor):
                 failures=tuple(failures),
                 budget_state=ledger.state(),
                 providers=message.providers,
+                review_policy=message.review_policy,
+                profile_id=message.profile_id,
             )
         )
 
@@ -356,6 +410,8 @@ class ReviewClaimsExecutor(Executor):
                 failures=tuple(failures),
                 budget_state=ledger.state(),
                 providers=message.providers,
+                review_policy=message.review_policy,
+                profile_id=message.profile_id,
                 source_verdicts=tuple(source_verdicts),
                 newly_discovered_source_ids=newly_discovered,
             )
@@ -536,13 +592,38 @@ class BundleProposalExecutor(Executor):
         await ctx.yield_output(proposal)
 
 
+def _profile_for(
+    message: ReviewedClaims, settings: RunSettings
+) -> LongTailProfile | None:
+    """The long-tail profile this message was produced under, if any.
+
+    The message is the authority: it was written when the run started and survives
+    in the checkpoint. The settings only have to *supply* the same profile, because
+    the promotion criteria and unresolved-mapping topics cannot be reconstructed
+    from the recorded policy alone.
+    """
+    recorded = message.profile_id
+    supplied = settings.profile_id
+    if recorded != supplied:
+        raise ProfileMismatch(recorded, supplied)
+    return settings.long_tail if recorded is not None else None
+
+
 def bundle_proposal(message: ReviewedClaims, settings: RunSettings) -> CreatorProposal:
     """Assemble the proposal. Pure enough to unit test without a workflow run.
 
     This is where semantic judgment meets objective validation. The gates run first
     and independently of the votes; the adjudication then combines them with the
     rule that a failed gate rejects the candidate no matter how the panel voted.
+
+    The acceptance threshold comes from the *message*, not from the settings, so a
+    resumed run is judged on the bar it started under. When the message names a
+    profile, the settings must carry that same profile — it holds the promotion
+    criteria and the unresolved-mapping topics — or the run stops rather than
+    quietly finishing under a different one.
     """
+    profile = _profile_for(message, settings)
+    policy = message.review_policy or MAJORITY_POLICY
     timestamp = settings.timestamp
     checked_at = timestamp[:10]
     validations = validate_claims(message.claims, checked_at=checked_at)
@@ -563,6 +644,7 @@ def bundle_proposal(message: ReviewedClaims, settings: RunSettings) -> CreatorPr
                 source_gates,
                 newly_discovered=source.id in message.newly_discovered_source_ids,
                 decided_at=checked_at,
+                policy=policy,
             )
         )
 
@@ -591,6 +673,7 @@ def bundle_proposal(message: ReviewedClaims, settings: RunSettings) -> CreatorPr
                 verdicts_by_claim.get(claim.id, ()),
                 claim_gates,
                 decided_at=checked_at,
+                policy=policy,
             )
         )
 
@@ -603,6 +686,26 @@ def bundle_proposal(message: ReviewedClaims, settings: RunSettings) -> CreatorPr
         [claim for claim in message.claims if claim.id in accepted_ids],
         detected_at=checked_at,
     ) + disagreement_conflicts(message.claims, adjudications, detected_at=checked_at)
+
+    # Only the long-tail path records these. A creator with a reviewed dedicated
+    # profile has reviewed terminology and naming rules, so its conflict output is
+    # unchanged — byte for byte — by everything below.
+    unresolved: tuple[Conflict, ...] = ()
+    promotion = None
+    if profile is not None:
+        unresolved = unresolved_mapping_conflicts(
+            profile, message.claims, adjudications, detected_at=checked_at
+        )
+        conflicts = conflicts + unresolved
+        promotion = assess_promotion(
+            profile,
+            creator_id=message.creator.creator_id,
+            claims=message.claims,
+            adjudications=adjudications,
+            source_approvals=source_approvals,
+            unresolved=unresolved,
+            assessed_at=checked_at,
+        )
 
     ledger = settings.ledger(message.budget_state)
     usage = ledger.snapshot()
@@ -632,15 +735,30 @@ def bundle_proposal(message: ReviewedClaims, settings: RunSettings) -> CreatorPr
         status = ProposalStatus.COMPLETE
 
     notes: list[str] = []
+    if profile is not None:
+        notes.append(
+            f"generic long-tail profile {profile.id!r}: this creator has no reviewed "
+            f"dedicated profile, so claims and newly discovered sources needed "
+            f"{policy.decision_label}"
+        )
     if usage.exhausted:
         notes.append(
             "budget exhausted (" + ", ".join(usage.exhausted_by) + "); coverage is partial"
         )
-    if any(conflict.kind is not ConflictKind.REVIEWER_DISAGREEMENT for conflict in conflicts):
+    if any(
+        conflict.kind
+        not in (ConflictKind.REVIEWER_DISAGREEMENT, ConflictKind.UNRESOLVED_MAPPING)
+        for conflict in conflicts
+    ):
         notes.append("sources disagree; conflicts are listed unresolved for a human decision")
     if any(conflict.kind is ConflictKind.REVIEWER_DISAGREEMENT for conflict in conflicts):
         notes.append(
             "the review panel split on at least one claim; every lens verdict is recorded"
+        )
+    if unresolved:
+        notes.append(
+            f"{len(unresolved)} naming, ownership or lineage mapping(s) could not be "
+            "settled; they are recorded as open conflicts rather than guessed"
         )
     if vetoed:
         notes.append(
@@ -650,6 +768,11 @@ def bundle_proposal(message: ReviewedClaims, settings: RunSettings) -> CreatorPr
     if unapproved:
         notes.append(
             f"{len(unapproved)} source(s) were not approved for use in this proposal"
+        )
+    if promotion is not None:
+        notes.append(
+            f"promotion signal: a dedicated profile is {'' if promotion.recommended else 'not '}"
+            f"recommended for {promotion.creator_id}; creating one is a human decision"
         )
 
     return CreatorProposal(
@@ -669,6 +792,8 @@ def bundle_proposal(message: ReviewedClaims, settings: RunSettings) -> CreatorPr
         gates=tuple(gates),
         adjudications=tuple(adjudications),
         source_approvals=tuple(source_approvals),
+        review_policy=policy,
+        promotion=promotion,
     )
 
 

@@ -461,7 +461,20 @@ def _patch_section(proposal: CreatorProposal) -> _Section:
         lines += ["No candidate was accepted in this run.", ""]
 
     if rejected:
+        escalated = [
+            claim
+            for claim in rejected
+            if _binding_decision(claim, adjudications) is ClaimDecision.NEEDS_HUMAN_REVIEW
+        ]
         lines += ["", "### Candidates not accepted", ""]
+        if escalated:
+            lines += [
+                f"{len(escalated)} of these are **`needs-human-review`**: the panel "
+                "did not reach this run's threshold, so nothing was decided and "
+                "nothing was guessed. They are open questions, not refusals — the "
+                "binding decision column below says which is which.",
+                "",
+            ]
         lines += _table(
             ["Claim", "Entity", "Field", "Value", "Binding decision", "Vetoed by"],
             [
@@ -800,17 +813,67 @@ def _completion_section(proposal: CreatorProposal) -> _Section:
     )
 
 
+def _promotion_section(proposal: CreatorProposal) -> _Section:
+    """Rendered only for a creator processed under the generic long-tail profile."""
+    promotion = proposal.promotion
+    assert promotion is not None  # only built when there is one
+    verdict = (
+        "**A dedicated profile is recommended for this creator.**"
+        if promotion.recommended
+        else "**No dedicated profile is recommended for this creator on this run.**"
+    )
+    lines = [
+        "This creator has no reviewed dedicated profile, so it was processed under "
+        f"the generic profile {_code(promotion.profile_id)} and every claim and "
+        "newly discovered source needed all three reviewers, not two.",
+        "",
+        verdict,
+        "",
+        _cell(promotion.rationale),
+        "",
+        *_table(
+            ["Criterion", "Observed", "Threshold", "Met", "Why it matters"],
+            [
+                [
+                    _code(criterion.id),
+                    str(criterion.observed),
+                    str(criterion.threshold),
+                    "yes" if criterion.met else "no",
+                    _cell(criterion.description),
+                ]
+                for criterion in promotion.criteria
+            ],
+        ),
+        "",
+        _cell(promotion.next_step),
+    ]
+    return _Section(
+        key="promotion",
+        heading="Profile and promotion",
+        lines=tuple(lines),
+        drop_rank=None,
+        entries=len(promotion.criteria),
+    )
+
+
 def _sections(proposal: CreatorProposal) -> tuple[_Section, ...]:
-    return (
+    sections = [
         _patch_section(proposal),
         _evidence_section(proposal),
         _source_section(proposal),
         _verdict_section(proposal),
         _validation_section(proposal),
         _conflict_section(proposal),
+    ]
+    # Absent for a creator with a reviewed dedicated profile, so those bodies are
+    # unchanged. There is no equivalent "promote" section to omit for them.
+    if proposal.promotion is not None:
+        sections.append(_promotion_section(proposal))
+    sections += [
         _budget_section(proposal),
         _completion_section(proposal),
-    )
+    ]
+    return tuple(sections)
 
 
 def _header(proposal: CreatorProposal, supersedes: str | None) -> list[str]:
@@ -842,6 +905,11 @@ def _header(proposal: CreatorProposal, supersedes: str | None) -> list[str]:
                 ["Generated at", _code(proposal.generated_at)],
                 ["Completion status", f"**{proposal.status.value}**"],
                 ["Providers", _cell(providers)],
+                *(
+                    [["Review policy", _cell(proposal.review_policy.decision_label)]]
+                    if proposal.review_policy is not None
+                    else []
+                ),
                 ["Candidate claims", str(len(proposal.claims))],
                 ["Accepted", str(len(proposal.accepted_claim_ids))],
                 ["Conflicts", str(len(proposal.conflicts))],

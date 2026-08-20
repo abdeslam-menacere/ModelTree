@@ -30,6 +30,7 @@ from .checkpoints import (
 )
 from .contracts import ProposalStatus, RunReport
 from .github_issues import DEFAULT_API_URL, GitHubError, RestIssuesClient
+from .longtail import DEFAULT_LONG_TAIL_PROFILE, load_long_tail_profile
 from .parsing import ArtifactError, load_run_report
 from .providers.base import ProviderBundle, ProviderError
 from .providers.fixtures import (
@@ -105,6 +106,25 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     run.add_argument("--output", type=Path, help="directory to write proposal JSON into")
+    run.add_argument(
+        "--long-tail",
+        dest="long_tail",
+        action="store_true",
+        help=(
+            "process these creators under the generic long-tail profile: acceptance "
+            "needs all three reviewers, unsettled naming/ownership/lineage mappings "
+            "are recorded as conflicts, and each creator is assessed for whether it "
+            "merits a dedicated profile. Opt in explicitly - it is not a fallback, "
+            "because the threshold a proposal was decided under must be a choice."
+        ),
+    )
+    run.add_argument(
+        "--long-tail-profile",
+        dest="long_tail_profile",
+        type=Path,
+        default=DEFAULT_LONG_TAIL_PROFILE,
+        help="the reviewed generic profile to apply with --long-tail",
+    )
     run.add_argument("--checkpoint-dir", type=Path, help="directory for durable checkpoints")
     run.add_argument("--run-id", help="identifier recorded in the proposals")
     run.add_argument("--timestamp", help="ISO timestamp recorded in the proposals")
@@ -186,6 +206,9 @@ def build_parser() -> argparse.ArgumentParser:
     resume.add_argument("--output", type=Path)
     resume.add_argument("--run-id")
     resume.add_argument("--timestamp")
+    # Deliberately no --long-tail here. The review policy and the profile are read
+    # out of the checkpoint, so resuming cannot change the bar a run is judged by,
+    # and forgetting a flag cannot silently downgrade it.
 
     return parser
 
@@ -286,7 +309,22 @@ def _summarise(report: RunReport, stream) -> int:
             f"({len(proposal.claims)} claim(s), {len(proposal.accepted_claim_ids)} accepted, "
             f"{len(proposal.conflicts)} conflict(s), {len(proposal.failures)} failure(s))\n"
         )
+        if proposal.promotion is not None:
+            verdict = "recommended" if proposal.promotion.recommended else "not recommended"
+            met = sum(1 for item in proposal.promotion.criteria if item.met)
+            stream.write(
+                f"  dedicated profile {verdict} "
+                f"({met}/{len(proposal.promotion.criteria)} criteria met); "
+                "a human decides whether to create one\n"
+            )
     return EXIT_CREATOR_FAILED if report.failed_creator_ids else EXIT_OK
+
+
+def _long_tail_profile(args: argparse.Namespace):
+    """The generic profile for this run, or None when none was asked for."""
+    if not getattr(args, "long_tail", False):
+        return None
+    return load_long_tail_profile(args.long_tail_profile)
 
 
 def _run(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
@@ -306,7 +344,12 @@ def _run(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
         timestamp=timestamp,
         env=env,
     )
-    settings = RunSettings(providers, budget=_budget(args, env), timestamp=timestamp)
+    settings = RunSettings(
+        providers,
+        budget=_budget(args, env),
+        timestamp=timestamp,
+        long_tail=_long_tail_profile(args),
+    )
 
     storage = (
         create_checkpoint_storage(args.checkpoint_dir) if args.checkpoint_dir else None

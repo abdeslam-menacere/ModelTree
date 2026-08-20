@@ -32,8 +32,11 @@ from .contracts import (
     FailureKind,
     GateResult,
     GateStatus,
+    PromotionAssessment,
+    PromotionCriterion,
     ProposalStatus,
     ReviewLens,
+    ReviewPolicy,
     ReviewVerdict,
     RunFailure,
     RunReport,
@@ -229,6 +232,23 @@ def _failure(data: Any, path: str) -> RunFailure:
     )
 
 
+def _review_policy(data: Any, path: str) -> ReviewPolicy:
+    return _build(ReviewPolicy, {}, data, path)
+
+
+def _promotion_criterion(data: Any, path: str) -> PromotionCriterion:
+    return _build(PromotionCriterion, {}, data, path)
+
+
+def _promotion(data: Any, path: str) -> PromotionAssessment:
+    return _build(
+        PromotionAssessment,
+        {"criteria": _sequence(_promotion_criterion)},
+        data,
+        path,
+    )
+
+
 def proposal_from_dict(data: Any, path: str = "proposal") -> CreatorProposal:
     """Rebuild one creator proposal from its artefact JSON."""
     return _build(
@@ -246,6 +266,8 @@ def proposal_from_dict(data: Any, path: str = "proposal") -> CreatorProposal:
             "gates": _sequence(_gate),
             "adjudications": _sequence(_adjudication),
             "source_approvals": _sequence(_approval),
+            "review_policy": _optional(_review_policy),
+            "promotion": _optional(_promotion),
         },
         data,
         path,
