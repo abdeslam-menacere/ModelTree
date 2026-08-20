@@ -511,7 +511,52 @@ def test_a_profile_cannot_be_edited_down_to_a_majority(tmp_path) -> None:
     with pytest.raises(ProfileError) as error:
         load_long_tail_profile(path)
 
+    assert "required_accepts" in str(error.value)
+
+
+def test_a_profile_cannot_name_the_majority_policy_instead(tmp_path) -> None:
+    """Swapping in the dedicated-profile policy wholesale is refused just the same."""
+    document = _profile_document()
+    document["review_policy"] = {
+        "id": MAJORITY_POLICY.id,
+        "required_accepts": MAJORITY_POLICY.required_accepts,
+        "required_rejects": MAJORITY_POLICY.required_rejects,
+        "decision_label": MAJORITY_POLICY.decision_label,
+        "description": MAJORITY_POLICY.description,
+    }
+    path = tmp_path / "majority.json"
+    path.write_text(json.dumps(document), encoding="utf-8")
+
+    with pytest.raises(ProfileError) as error:
+        load_long_tail_profile(path)
+
     assert "unanimous" in str(error.value)
+
+
+def test_a_profile_cannot_invent_a_policy_the_code_does_not_implement(tmp_path) -> None:
+    """A recorded threshold nobody applies would be a fiction in the artefact."""
+    document = _profile_document()
+    document["review_policy"]["id"] = "unanimous-4-of-4"
+    path = tmp_path / "invented.json"
+    path.write_text(json.dumps(document), encoding="utf-8")
+
+    with pytest.raises(ProfileError) as error:
+        load_long_tail_profile(path)
+
+    assert "unknown review policy" in str(error.value)
+
+
+def test_a_profile_cannot_reword_the_policy_it_restates(tmp_path) -> None:
+    """The file declares a policy; review.py defines it."""
+    document = _profile_document()
+    document["review_policy"]["decision_label"] = "any two will do"
+    path = tmp_path / "reworded.json"
+    path.write_text(json.dumps(document), encoding="utf-8")
+
+    with pytest.raises(ProfileError) as error:
+        load_long_tail_profile(path)
+
+    assert "decision_label" in str(error.value)
 
 
 def test_a_promotion_criterion_nothing_measures_is_refused(tmp_path) -> None:

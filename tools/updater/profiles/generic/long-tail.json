@@ -7,14 +7,15 @@
   },
   "notes": [
     "One generic profile stands in for every minor or niche creator, so covering the long tail never means writing another agent implementation. It is instantiated for a creator from that run's own seed URLs and travels through exactly the same executors, gates, and proposal-only boundary as a dedicated profile.",
-    "Much less is known here than for a pilot creator: nobody has reviewed this creator's terminology, its family boundaries, or which of its pages are authoritative. Everything below follows from that, and nothing below is a shortcut around it."
+    "Much less is known here than for a pilot creator: nobody has reviewed this creator's terminology, its family boundaries, or which of its pages are authoritative. Everything below follows from that, and nothing below is a shortcut around it.",
+    "The review policy below is a restatement of a policy implemented in review.py, not a definition of one. The loader matches it field by field against the named constant and refuses anything short of unanimous acceptance, so editing this file can only produce a load error, never a quieter gate."
   ],
   "review_policy": {
     "id": "unanimous-3-of-3",
     "required_accepts": 3,
     "required_rejects": 2,
     "decision_label": "unanimous 3-of-3 accept",
-    "description": "All three semantic lenses must accept a claim, or approve a newly discovered source, before it may be used. A single dissent or abstention leaves the candidate for a human. The reject threshold stays at two: raising the bar for refusing a thinly-evidenced candidate would be backwards. The loader refuses any long-tail profile that declares an accept threshold below unanimity, so this file cannot be edited into a weaker gate."
+    "description": "The generic long-tail policy. All three lenses must accept a claim or approve a newly discovered source; a single dissent or abstention leaves it for a human. The reject bar stays at two — refusing a thinly-evidenced candidate must not get harder than accepting one."
   },
   "seed_source": {
     "kind": "official-announcement",

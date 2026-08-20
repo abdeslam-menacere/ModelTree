@@ -64,6 +64,7 @@ __all__ = [
     "MAJORITY",
     "MAJORITY_POLICY",
     "PANEL_SIZE",
+    "REVIEW_POLICIES",
     "SourceReviewRequest",
     "UNANIMOUS_POLICY",
     "adjudicate_claim",
@@ -100,6 +101,14 @@ UNANIMOUS_POLICY = ReviewPolicy(
     ),
     decision_label=f"unanimous {PANEL_SIZE}-of-{PANEL_SIZE} accept",
 )
+
+# The policies the aggregation actually implements, by id. A profile may name one of
+# these; it cannot define a new one, because a threshold that no code applies would
+# make the proposal's recorded policy a fiction.
+REVIEW_POLICIES: Mapping[str, ReviewPolicy] = {
+    MAJORITY_POLICY.id: MAJORITY_POLICY,
+    UNANIMOUS_POLICY.id: UNANIMOUS_POLICY,
+}
 
 LENS_BRIEFS: Mapping[ReviewLens, str] = {
     ReviewLens.PROVENANCE: (

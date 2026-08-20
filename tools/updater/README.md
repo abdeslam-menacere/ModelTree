@@ -104,8 +104,8 @@ recorded here rather than quietly tightened. Abstentions never count as consent,
 majority always needs two positive votes; a reviewer that fails or does not run abstains.
 No majority means `needs-human-review`, never a guess.
 
-That threshold is a `ReviewPolicy` carried by the run, not a constant baked into
-`review.py`. Creators with a reviewed dedicated profile use `majority-2-of-3`; the generic
+That threshold is a `ReviewPolicy` the run carries, not a number hard-coded in the
+aggregation. Creators with a reviewed dedicated profile use `majority-2-of-3`; the generic
 long-tail profile uses `unanimous-3-of-3` (see below). The **reject** threshold stays at
 two under both — raising the bar for *acceptance* is the point, and making it harder to
 refuse a thin candidate would be backwards. Every proposal records the policy it was
@@ -233,9 +233,11 @@ has reviewed this creator:
 | Unsettled naming / ownership / lineage | escalated | escalated **and** recorded as an `unresolved-mapping` conflict |
 | Promotion assessment | — | recorded on every run |
 
-The profile document declares its own `review_policy`, and the loader **refuses** one that
-asks for anything less than unanimity — the threshold is data so that it is reviewable,
-not so that it is adjustable.
+The profile document *restates* a `review_policy`; it does not define one. The loader
+resolves the declared `id` against the policies `review.py` actually implements, checks
+every field of the restatement matches, and **refuses** any policy that asks for less than
+unanimity. Editing the file can therefore produce a load error but never a quieter gate,
+and the threshold recorded in a proposal is always one the aggregation really applied.
 
 **Where the seeds come from.** A long-tail creator has no catalogued sources, so
 `LongTailProfile.for_creator()` builds a `CreatorProfile` whose catalog is the run's own

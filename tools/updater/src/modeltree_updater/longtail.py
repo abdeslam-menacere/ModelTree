@@ -56,7 +56,7 @@ from .profiles import (
     TrustedSource,
     origin_of,
 )
-from .review import PANEL_SIZE
+from .review import PANEL_SIZE, REVIEW_POLICIES
 
 __all__ = [
     "DEFAULT_LONG_TAIL_PROFILE",
@@ -233,30 +233,39 @@ def _entity_kind(value: Any, *, path: Path) -> EntityKind:
 
 
 def _review_policy(raw: Mapping[str, Any], *, path: Path) -> ReviewPolicy:
-    """Load the declared policy, refusing anything short of unanimity.
+    """Resolve the declared policy against the ones the code actually implements.
 
-    The threshold is data so that it is reviewable, not so that it is adjustable. A
-    long-tail profile that asked for a 2-of-3 accept would be a bypass of the very
-    rule this profile exists to apply, so it is rejected at load time rather than
-    honoured.
+    The file *declares* a policy; it does not *define* one. The declaration is
+    matched field by field against the named constant in ``review.py`` and the
+    constant is what the run uses, so editing this file can only ever produce a
+    load error — never a quieter gate, and never a rationale string that says
+    something the aggregation does not do.
+
+    Anything short of unanimity is refused outright: a long-tail profile asking
+    for a 2-of-3 accept would be a bypass of the one rule it exists to apply.
     """
-    policy = ReviewPolicy(
-        id=_require(raw, "id", path=path),
-        required_accepts=int(_require(raw, "required_accepts", path=path)),
-        required_rejects=int(_require(raw, "required_rejects", path=path)),
-        description=_require(raw, "description", path=path),
-        decision_label=_require(raw, "decision_label", path=path),
-    )
+    declared_id = _require(raw, "id", path=path)
+    policy = REVIEW_POLICIES.get(str(declared_id))
+    if policy is None:
+        known = ", ".join(sorted(REVIEW_POLICIES))
+        raise ProfileError(
+            f"{path.name}: unknown review policy {declared_id!r}; the code implements {known}"
+        )
     if policy.required_accepts != PANEL_SIZE:
         raise ProfileError(
             f"{path.name}: the long-tail profile requires unanimous acceptance, so "
-            f"required_accepts must be {PANEL_SIZE}, not {policy.required_accepts}"
+            f"the review policy must ask for {PANEL_SIZE} accepts, but "
+            f"{policy.id!r} asks for {policy.required_accepts}"
         )
-    if not 1 <= policy.required_rejects <= PANEL_SIZE:
-        raise ProfileError(
-            f"{path.name}: required_rejects must be between 1 and {PANEL_SIZE}, "
-            f"got {policy.required_rejects}"
-        )
+    for field in ("required_accepts", "required_rejects", "decision_label", "description"):
+        declared = _require(raw, field, path=path)
+        actual = getattr(policy, field)
+        if declared != actual:
+            raise ProfileError(
+                f"{path.name}: review policy {policy.id!r} declares {field}={declared!r}, "
+                f"but the implemented policy is {actual!r}; the file must restate the "
+                "policy exactly or the proposal would record a bar nobody applied"
+            )
     return policy
 
 
