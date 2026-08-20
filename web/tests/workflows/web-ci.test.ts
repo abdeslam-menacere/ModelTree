@@ -39,6 +39,21 @@ function stepNamed(owner: YamlMapping, label: string, name: string): YamlMapping
   return step;
 }
 
+/**
+ * The `gh issue list | jq` pipeline a script actually looks the stale-site issue
+ * up with, pulled out of the committed workflow rather than restated here, so
+ * the assertions cover the shipped rule and not a copy of it.
+ */
+function issueLookup(script: string, label: string): string {
+  const found = script.match(/existing="\$\(gh issue list[\s\S]*?\)"/);
+
+  if (found === null) {
+    throw new Error(`Expected ${label} to find the stale-site issue with gh issue list`);
+  }
+
+  return found[0].replace(/\\\n\s*/g, ' ').replace(/\s+/g, ' ');
+}
+
 /** Every `permissions:` block in a document, top level and per job. */
 function permissionBlocks(document: YamlMapping): YamlMapping[] {
   const blocks: YamlMapping[] = [];
@@ -65,6 +80,7 @@ const workflowDocs = readFileSync(
 const webCiJob = job(webCi.document, 'web-ci');
 const deployJob = job(pages.document, 'deploy');
 const reportJob = job(pages.document, 'report-failure');
+const recoveryJob = job(pages.document, 'report-recovery');
 
 describe('web-ci.yml triggers', () => {
   const triggers = mapping(webCi.document.on, 'on');
@@ -254,6 +270,103 @@ describe('pages.yml makes a failed deploy visible', () => {
   });
 });
 
+describe('pages.yml resolves the alert once the site recovers', () => {
+  const recover = steps(recoveryJob, 'jobs.report-recovery')[0] ?? {};
+  const script = String(recover.run);
+
+  it('runs only after a deploy that actually succeeded on main', () => {
+    expect(recoveryJob.needs).toBe('deploy');
+    expect(String(recoveryJob.if)).toContain("needs.deploy.result == 'success'");
+  });
+
+  // success() is also true when a needed job was *skipped*, which is what deploy
+  // does on a fork, where its github.repository guard does not hold. A deploy
+  // that never ran has unfrozen nothing and must not resolve an alert.
+  it('does not read a skipped deploy as a recovery', () => {
+    expect(String(recoveryJob.if)).not.toContain('success()');
+  });
+
+  // deploy carries no ref guard of its own, so a workflow_dispatch from a branch
+  // really does deploy that branch. Closing a genuine alert off the back of that
+  // would report the site recovered while main is still broken.
+  it('guards the ref with the same clause the failure path uses', () => {
+    const guard = "github.ref == 'refs/heads/main'";
+
+    expect(String(reportJob.if)).toContain(guard);
+    expect(String(recoveryJob.if)).toContain(guard);
+  });
+
+  it('closes the alert and says which run and commit resolved it', () => {
+    expect(script).toContain('gh issue comment');
+    expect(script).toContain('gh issue close');
+    expect(mapping(recover.env, 'report-recovery.env')).toMatchObject({
+      RECOVERED_SHA: '${{ github.sha }}',
+    });
+    expect(script).toContain('$RECOVERED_SHA');
+    expect(script).toContain('$RUN_URL');
+  });
+
+  // A successful deploy with no alert open is the ordinary case, and by far the
+  // most common one. It must not turn the workflow red.
+  it('succeeds quietly when no alert is open', () => {
+    const branch = script.slice(script.indexOf('-z "$existing"'));
+
+    expect(branch.slice(0, branch.indexOf('fi'))).toContain('exit 0');
+  });
+
+  it('resolves alerts without ever filing one', () => {
+    expect(script).not.toContain('gh issue create');
+  });
+
+  it('never checks out, and touches no action at all', () => {
+    expect(recoveryJob.environment).toBeUndefined();
+
+    for (const step of steps(recoveryJob, 'jobs.report-recovery')) {
+      expect(step.uses).toBeUndefined();
+    }
+  });
+});
+
+describe('pages.yml keeps the failure and recovery paths on one definition', () => {
+  const title = mapping(pages.document.env, 'pages.yml env').STALE_SITE_TITLE;
+  const failureScript = String((steps(reportJob, 'jobs.report-failure')[0] ?? {}).run);
+  const recoveryScript = String((steps(recoveryJob, 'jobs.report-recovery')[0] ?? {}).run);
+
+  // Pinned rather than read back, because renaming the alert orphans every issue
+  // the previous title already opened: the recovery job would stop matching them
+  // and they would stay open forever, which is the bug this job exists to fix.
+  it('names the alert at the workflow level', () => {
+    expect(title).toBe('GitHub Pages deploy failed - the published site is stale');
+  });
+
+  // The two jobs identify the same issue only because there is one string to
+  // identify it by. Counting occurrences in the committed file is what makes
+  // that structural rather than conventional: a second copy anywhere fails here,
+  // so there is nothing for a later edit to drift away from.
+  it('carries no second copy of that title to drift away from', () => {
+    expect(pages.source.split(String(title)).length - 1).toBe(1);
+  });
+
+  it('has both jobs read that one definition', () => {
+    expect(failureScript).toContain('$STALE_SITE_TITLE');
+    expect(recoveryScript).toContain('$STALE_SITE_TITLE');
+  });
+
+  // Sharing the title is not sufficient on its own: matching it loosely on one
+  // path and exactly on the other diverges just as badly, and the recovery job
+  // would close whatever the search happened to rank first. Both lookups are
+  // read out of the committed scripts, so editing one alone fails here.
+  it('looks the issue up by an identical rule on both paths', () => {
+    expect(issueLookup(recoveryScript, 'jobs.report-recovery')).toBe(
+      issueLookup(failureScript, 'jobs.report-failure'),
+    );
+  });
+
+  it('matches the title exactly, rather than trusting search relevance', () => {
+    expect(issueLookup(failureScript, 'jobs.report-failure')).toContain('select(.title == $t)');
+  });
+});
+
 describe('pages.yml permissions', () => {
   it('starts every job from contents: read', () => {
     expect(pages.document.permissions).toEqual({ contents: 'read' });
@@ -268,6 +381,27 @@ describe('pages.yml permissions', () => {
     expect(deploy).toEqual({ contents: 'read', pages: 'write', 'id-token': 'write' });
     expect(report.pages).toBeUndefined();
     expect(report['id-token']).toBeUndefined();
+  });
+
+  // The recovery job resolves an issue. It needs no source, so it is granted no
+  // source: every scope left out of a job-level block is none, which makes this
+  // strictly narrower than the failure job rather than a copy of it.
+  it('lets the recovery job write issues and nothing else', () => {
+    expect(recoveryJob.permissions).toEqual({ issues: 'write' });
+  });
+
+  // Stated over every job rather than the two that exist today, so a third
+  // reporting job cannot quietly arrive holding the keys to the deployment.
+  it('gives no job outside deploy any way to publish the site', () => {
+    for (const [id, definition] of Object.entries(mapping(pages.document.jobs, 'jobs'))) {
+      if (id === 'deploy') continue;
+
+      const block = mapping(mapping(definition, `jobs.${id}`).permissions, `jobs.${id}.permissions`);
+
+      expect(block.pages, `jobs.${id} must not publish`).toBeUndefined();
+      expect(block['id-token'], `jobs.${id} must not mint an OIDC token`).toBeUndefined();
+      expect(block.contents, `jobs.${id} must not write repository contents`).not.toBe('write');
+    }
   });
 });
 

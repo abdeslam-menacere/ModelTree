@@ -10,7 +10,7 @@ the right ones.
 |---|---|---|
 | [`web-ci.yml`](web-ci.yml) | `pull_request` (every one), `workflow_dispatch` | Validates and builds the Astro site under `web/` |
 | [`updater-tests.yml`](updater-tests.yml) | `pull_request` and `push` to `main`, path-filtered to `tools/updater/**` | The updater's pytest suite |
-| [`pages.yml`](pages.yml) | `push` to `main`, `workflow_dispatch` | Builds and deploys the site, and reports a failed deploy |
+| [`pages.yml`](pages.yml) | `push` to `main`, `workflow_dispatch` | Builds and deploys the site, reports a failed deploy, and resolves that report when the deploy recovers |
 | [`publish-updater-proposals.yml`](publish-updater-proposals.yml) | `workflow_dispatch` only | Files creator proposals as issues |
 
 ## Status check names
@@ -65,6 +65,7 @@ start from a wider default. Write scopes are granted per job, never globally:
 |---|---|---|
 | `pages.yml` → `deploy` | `pages: write`, `id-token: write` | Publish the built site and mint the OIDC token `actions/deploy-pages` exchanges |
 | `pages.yml` → `report-failure` | `issues: write` | File or update the stale-site issue |
+| `pages.yml` → `report-recovery` | `issues: write` | Close the stale-site issue once a deploy succeeds |
 | `publish-updater-proposals.yml` → `publish` | `issues: write`, `id-token: write` | Write proposal issues; sign in with workload identity |
 
 `web-ci.yml` and `updater-tests.yml` hold no write scope at all. Nothing in this
@@ -81,6 +82,28 @@ serving stale content while looking perfectly healthy.
 The `report-failure` job exists so that state cannot pass unnoticed: when the
 deploy fails on `main` it opens an issue naming the failing commit and the run,
 or comments on the open one rather than filing a duplicate for every failed push.
+
+### And the alert resolves itself
+
+An alert that never resolves is one you learn to ignore. `report-recovery` is
+the mirror image of `report-failure`: when a deploy **succeeds** on `main` it
+closes the open stale-site issue, commenting with the recovering commit and run.
+So an open stale-site issue means the site is stale *right now*, not that it was
+stale at some point in the past.
+
+Both jobs find that issue through a single workflow-level
+`env: STALE_SITE_TITLE`, matched exactly. That constant is shared rather than
+restated on purpose — two copies of the title could drift apart, and a recovery
+job matching a title the failure job no longer files under would close an
+unrelated issue. The tests assert the string appears exactly once in `pages.yml`
+and that both jobs look the issue up by a character-identical rule.
+
+`report-recovery` runs on `needs.deploy.result == 'success'` rather than
+`success()`, because `success()` is also true when a needed job was *skipped* —
+as `deploy` is on a fork. It is gated to `refs/heads/main` for the same reason
+`report-failure` is: `deploy` has no ref guard, so a `workflow_dispatch` from a
+branch genuinely deploys that branch, and that must not resolve an alert about
+`main`.
 
 ## Changing a workflow
 
