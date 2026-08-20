@@ -30,7 +30,7 @@ from .checkpoints import (
 )
 from .contracts import ProposalStatus, RunReport
 from .github_issues import DEFAULT_API_URL, GitHubError, RestIssuesClient
-from .longtail import DEFAULT_LONG_TAIL_PROFILE, load_long_tail_profile
+from .longtail import DEFAULT_LONG_TAIL_PROFILE_ID, reviewed_long_tail_profile
 from .parsing import ArtifactError, load_run_report
 from .providers.base import ProviderBundle, ProviderError
 from .providers.fixtures import (
@@ -121,9 +121,14 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument(
         "--long-tail-profile",
         dest="long_tail_profile",
-        type=Path,
-        default=DEFAULT_LONG_TAIL_PROFILE,
-        help="the reviewed generic profile to apply with --long-tail",
+        metavar="ID",
+        default=DEFAULT_LONG_TAIL_PROFILE_ID,
+        help=(
+            "id of the reviewed generic profile to apply with --long-tail. Only the "
+            "profiles reviewed into profiles/generic/ can be named: a profile decides "
+            "the promotion criteria and which mappings stay explicit, so it is a "
+            "reviewed artefact of this repository, not a file handed in at run time."
+        ),
     )
     run.add_argument("--checkpoint-dir", type=Path, help="directory for durable checkpoints")
     run.add_argument("--run-id", help="identifier recorded in the proposals")
@@ -321,10 +326,22 @@ def _summarise(report: RunReport, stream) -> int:
 
 
 def _long_tail_profile(args: argparse.Namespace):
-    """The generic profile for this run, or None when none was asked for."""
+    """The generic profile for this run, or None when none was asked for.
+
+    Resolved by id against the reviewed set. A path is refused rather than loaded:
+    an unreviewed document would decide this run's promotion criteria and its
+    unresolved-mapping topics, and a checkpoint records only the profile *id*, so a
+    file that is not in the reviewed set could not be reattached on resume anyway.
+    """
     if not getattr(args, "long_tail", False):
         return None
-    return load_long_tail_profile(args.long_tail_profile)
+    requested = str(args.long_tail_profile)
+    if requested.endswith(".json") or "/" in requested or "\\" in requested:
+        raise ProfileError(
+            f"--long-tail-profile takes the id of a reviewed profile, not a path "
+            f"({requested!r}); the reviewed profiles live in profiles/generic/"
+        )
+    return reviewed_long_tail_profile(requested)
 
 
 def _run(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:

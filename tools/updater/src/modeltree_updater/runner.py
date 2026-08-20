@@ -21,8 +21,9 @@ from .contracts import (
     RunReport,
     WorkflowStage,
 )
-from .longtail import load_long_tail_profile
+from .longtail import reviewed_long_tail_profile
 from .messages import CreatorTask
+from .profiles import ProfileError
 from .providers.base import ProviderError
 from .workflow import ProfileMismatch, RunSettings, build_creator_workflow
 
@@ -142,9 +143,22 @@ async def resume_creator_run(
     checkpointed messages, so it is restored rather than re-decided — the resuming
     command's ``--long-tail`` flag is not consulted for it. The profile behind that
     policy carries the promotion criteria and the unresolved-mapping topics, which
-    the policy alone cannot rebuild, so it is loaded from the recorded profile id.
-    An unknown id, or a resume that asks for a different profile than the checkpoint
+    the policy alone cannot rebuild, so it is rebuilt from the recorded profile id
+    by looking that id up in the **reviewed set** of generic profiles. Because that
+    set refuses two documents answering to one id, the id identifies the file, so a
+    run started through the CLI gets back the document it started under rather than
+    whichever file happened to sit at the default path. An id the reviewed set does
+    not contain, or a resume that asks for a different profile than the checkpoint
     records, stops the run.
+
+    Two limits, so this does not read as more than it is. A profile built in-process
+    from an arbitrary path — which the CLI cannot do, but the loader still allows —
+    may declare an id the reviewed set does contain, and that resume gets the
+    reviewed document rather than the one the run started with; see ADR 0002. And a
+    reviewed set that cannot be loaded at all, because the directory is missing or
+    empty, surfaces as ``FileNotFoundError`` rather than ``ProfileMismatch``: that
+    is a broken installation, not a disagreement about which profile applies. The
+    CLI maps both to exit 2.
     """
     recorded = await recorded_providers(checkpoint_storage, checkpoint_id)
     requested = dict(settings.providers.descriptor)
@@ -153,9 +167,17 @@ async def resume_creator_run(
 
     recorded_profile = await recorded_profile_id(checkpoint_storage, checkpoint_id)
     if recorded_profile is not None and settings.profile_id is None:
-        profile = load_long_tail_profile()
-        if profile.id != recorded_profile:
-            raise ProfileMismatch(recorded_profile, profile.id)
+        try:
+            profile = reviewed_long_tail_profile(recorded_profile)
+        except ProfileError as error:
+            raise ProfileMismatch(
+                recorded_profile,
+                None,
+                reason=(
+                    f"this checkpoint was produced under profile {recorded_profile!r}, "
+                    f"which is not in the reviewed set ({error})"
+                ),
+            ) from error
         settings.adopt_long_tail(profile)
     if recorded_profile != settings.profile_id:
         raise ProfileMismatch(recorded_profile, settings.profile_id)

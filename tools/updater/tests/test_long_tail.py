@@ -12,12 +12,14 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import io
 import json
 
 import pytest
 
 from modeltree_updater.budgets import CreatorBudget
 from modeltree_updater.checkpoints import create_checkpoint_storage, recorded_profile_id
+from modeltree_updater.cli import EXIT_USAGE, build_parser, main
 from modeltree_updater.contracts import (
     ClaimDecision,
     ConflictKind,
@@ -29,8 +31,11 @@ from modeltree_updater.contracts import (
 from modeltree_updater.gates import GATE_SOURCE_APPROVAL
 from modeltree_updater.longtail import (
     DEFAULT_LONG_TAIL_PROFILE,
+    DEFAULT_LONG_TAIL_PROFILE_ID,
     KNOWN_PROMOTION_CRITERIA,
+    load_long_tail_library,
     load_long_tail_profile,
+    reviewed_long_tail_profile,
 )
 from modeltree_updater.messages import ReviewedClaims
 from modeltree_updater.profiles import ProfileError
@@ -599,3 +604,295 @@ def test_a_dedicated_profile_body_has_no_promotion_section(library) -> None:
 
     assert "## Profile and promotion" not in body
     assert "2-of-3 majority" in body
+
+
+# --------------------------------------------------------------------------
+# A profile id names exactly one reviewed document
+# --------------------------------------------------------------------------
+# A checkpoint records the profile *id*, and a resume rebuilds the profile from
+# it. That is only sound if an id identifies a file, so the profiles a run can be
+# started under are the reviewed set in `profiles/generic/`, and the set refuses
+# two documents answering to one id. Before this, `--long-tail-profile` took any
+# path and the resume loaded the default one back, so two files sharing an id
+# meant a resumed run silently swapped one for the other.
+
+
+def _custom_profile_file(path, *, profile_id=DEFAULT_LONG_TAIL_PROFILE_ID):
+    """A loadable profile that differs from the reviewed one where it matters.
+
+    The declared review policy is untouched — the loader refuses anything short of
+    unanimity, and the policy survives a resume in the checkpointed messages anyway.
+    What differs is exactly what the policy cannot rebuild: the promotion criteria
+    and the mappings that stay explicit. This is the file whose contents must never
+    be quietly stood in for, or quietly stand in for the reviewed one.
+    """
+    document = _profile_document()
+    document["profile"]["id"] = profile_id
+    document["promotion_criteria"]["criteria"] = [
+        {
+            "id": "accepted-claims",
+            "threshold": 99,
+            "description": "a bar nobody reviewed",
+        }
+    ]
+    document["unresolved_topics"] = [
+        {
+            "topic": "naming",
+            "note": "a note nobody reviewed",
+            "guidance": "guidance nobody reviewed",
+            "entity_kinds": ["family"],
+            "field_paths": ["categories"],
+        }
+    ]
+    path.write_text(json.dumps(document), encoding="utf-8")
+    return path
+
+
+def _cli(argv):
+    stream = io.StringIO()
+    return main(argv, env={}, stream=stream), stream.getvalue()
+
+
+def test_the_reviewed_set_contains_the_shipped_profile() -> None:
+    library = load_long_tail_library()
+
+    assert DEFAULT_LONG_TAIL_PROFILE_ID in library.ids
+    assert reviewed_long_tail_profile(DEFAULT_LONG_TAIL_PROFILE_ID) == (
+        load_long_tail_profile(DEFAULT_LONG_TAIL_PROFILE)
+    )
+
+
+def test_two_reviewed_profiles_cannot_answer_to_one_id(tmp_path) -> None:
+    """The uniqueness that makes rebuilding a profile from a recorded id honest."""
+    document = _profile_document()
+    (tmp_path / "long-tail.json").write_text(json.dumps(document), encoding="utf-8")
+    _custom_profile_file(tmp_path / "twin.json")
+
+    with pytest.raises(ProfileError) as error:
+        load_long_tail_library(tmp_path)
+
+    assert "duplicate" in str(error.value)
+    assert DEFAULT_LONG_TAIL_PROFILE_ID in str(error.value)
+
+
+def test_a_run_cannot_be_started_from_an_unreviewed_profile_file(
+    tmp_path, fixture_dir
+) -> None:
+    """The refusal that closes the swap, stated at the moment it becomes possible.
+
+    The file here is the awkward one: it declares the same id as the reviewed
+    profile, so an id comparison cannot tell them apart, but its promotion criteria
+    and unresolved-mapping topics are different. There is no longer a run to
+    checkpoint and resume, because the run is refused before anything is fetched.
+    """
+    custom = _custom_profile_file(tmp_path / "custom.json")
+    output_dir = tmp_path / "proposals"
+
+    code, output = _cli(
+        [
+            "run",
+            "--creator",
+            THIN,
+            "--fixtures",
+            str(fixture_dir),
+            "--long-tail",
+            "--long-tail-profile",
+            str(custom),
+            "--output",
+            str(output_dir),
+            "--run-id",
+            "run-custom",
+            "--timestamp",
+            TIMESTAMP,
+        ]
+    )
+
+    assert code == EXIT_USAGE
+    assert "not a path" in output
+    assert "profiles/generic" in output
+    # Refused before the workflow ran: no proposal, and nothing to resume later.
+    assert not output_dir.exists()
+
+
+def test_an_unknown_profile_id_is_refused_and_the_reviewed_set_is_named(
+    fixture_dir,
+) -> None:
+    code, output = _cli(
+        [
+            "run",
+            "--creator",
+            THIN,
+            "--fixtures",
+            str(fixture_dir),
+            "--long-tail",
+            "--long-tail-profile",
+            "long-tail-experimental",
+            "--timestamp",
+            TIMESTAMP,
+        ]
+    )
+
+    assert code == EXIT_USAGE
+    assert "unknown long-tail profile" in output
+    assert DEFAULT_LONG_TAIL_PROFILE_ID in output
+
+
+def test_a_resume_adopts_the_reviewed_document_for_the_recorded_id(
+    tmp_path, library
+) -> None:
+    """The wiring: a resume rebuilds its profile from the reviewed set, not a flag.
+
+    Weak on purpose, and worth naming as such rather than dressing up. With one
+    document in the reviewed set this assertion holds identically against the code
+    it replaced, which loaded the default path — there is nothing here to
+    discriminate, so it cannot fail against the defect. It pins the shape and
+    nothing more.
+
+    The tests that can fail against the defect are
+    `test_a_run_cannot_be_started_from_an_unreviewed_profile_file` and
+    `test_a_checkpointed_profile_outside_the_reviewed_set_stops_the_resume`; the
+    residual is pinned by
+    `test_an_in_process_colliding_profile_resumes_under_the_reviewed_document`.
+    Adding a second document to `profiles/generic/` to make this one discriminate
+    would put an unreviewed artefact in the reviewed set, which is what ADR 0002
+    exists to prevent.
+    """
+    storage = create_checkpoint_storage(tmp_path / "checkpoints")
+    _run(RICH, library, storage=storage)
+    settings = _settings(library, long_tail=False)
+
+    async def scenario():
+        checkpoint = await _first_checkpoint(storage)
+        return await resume_creator_run(
+            settings,
+            checkpoint_id=checkpoint.checkpoint_id,
+            checkpoint_storage=storage,
+        )
+
+    resumed = asyncio.run(scenario())
+    reviewed = reviewed_long_tail_profile(DEFAULT_LONG_TAIL_PROFILE_ID)
+
+    assert settings.long_tail == reviewed
+    assert [criterion.id for criterion in resumed.promotion.criteria] == [
+        threshold.id for threshold in reviewed.promotion.criteria
+    ]
+    assert [criterion.threshold for criterion in resumed.promotion.criteria] == [
+        threshold.threshold for threshold in reviewed.promotion.criteria
+    ]
+
+
+def test_a_checkpointed_profile_outside_the_reviewed_set_stops_the_resume(
+    tmp_path, library
+) -> None:
+    """No nearest match, and no falling back to whatever sits at the default path.
+
+    Constructing a profile from an arbitrary file is still possible in-process — the
+    loader takes a path so that malformed documents can be tested. Note the id here
+    is deliberately *outside* the reviewed set, which is the case that stops: there
+    is nothing to rebuild the profile from. An in-process profile whose id collides
+    with a reviewed one behaves differently, and
+    `test_an_in_process_colliding_profile_resumes_under_the_reviewed_document`
+    covers that.
+    """
+    custom = _custom_profile_file(
+        tmp_path / "experimental.json", profile_id="long-tail-experimental"
+    )
+    storage = create_checkpoint_storage(tmp_path / "checkpoints")
+    settings = RunSettings(
+        build_fixture_bundle(library, timestamp=TIMESTAMP),
+        budget=CreatorBudget(),
+        timestamp=TIMESTAMP,
+        long_tail=load_long_tail_profile(custom),
+    )
+    asyncio.run(
+        run_creator(
+            library.creators[RICH],
+            settings,
+            run_id="run-experimental",
+            checkpoint_storage=storage,
+        )
+    )
+
+    async def scenario():
+        checkpoint = await _first_checkpoint(storage)
+        return await resume_creator_run(
+            _settings(library, long_tail=False),
+            checkpoint_id=checkpoint.checkpoint_id,
+            checkpoint_storage=storage,
+        )
+
+    with pytest.raises(ProfileMismatch) as error:
+        asyncio.run(scenario())
+
+    assert "long-tail-experimental" in str(error.value)
+    assert "not in the reviewed set" in str(error.value)
+    assert DEFAULT_LONG_TAIL_PROFILE_ID in str(error.value)
+
+
+def test_an_in_process_colliding_profile_resumes_under_the_reviewed_document(
+    tmp_path, library
+) -> None:
+    """The residual ADR 0002 accepts, pinned so the prose cannot drift off it.
+
+    The CLI cannot start this run — that is what the reviewed set is for — but the
+    loader still takes a path, so in-process code can. When such a profile declares
+    an id the reviewed set *does* contain, the resume rebuilds from that id and gets
+    the reviewed document back: #94's substitution, surviving on the Python API.
+
+    This is documented, not fixed. It resolves towards the reviewed document rather
+    than away from it, which is the safe direction, and closing it would mean
+    checkpointing a content hash — the option #94 weighed and this repository
+    rejected. The assertion exists so that "cannot be resumed" cannot be written in
+    the ADR again without a test going red.
+    """
+    custom = _custom_profile_file(tmp_path / "collides.json")
+    unreviewed = load_long_tail_profile(custom)
+    reviewed = reviewed_long_tail_profile(DEFAULT_LONG_TAIL_PROFILE_ID)
+
+    assert unreviewed.id == reviewed.id, "the collision is the whole premise"
+    assert unreviewed.promotion.criteria != reviewed.promotion.criteria
+
+    storage = create_checkpoint_storage(tmp_path / "checkpoints")
+    settings = RunSettings(
+        build_fixture_bundle(library, timestamp=TIMESTAMP),
+        budget=CreatorBudget(),
+        timestamp=TIMESTAMP,
+        long_tail=unreviewed,
+    )
+    asyncio.run(
+        run_creator(
+            library.creators[RICH],
+            settings,
+            run_id="run-collides",
+            checkpoint_storage=storage,
+        )
+    )
+
+    resuming = _settings(library, long_tail=False)
+
+    async def scenario():
+        checkpoint = await _first_checkpoint(storage)
+        return await resume_creator_run(
+            resuming,
+            checkpoint_id=checkpoint.checkpoint_id,
+            checkpoint_storage=storage,
+        )
+
+    asyncio.run(scenario())
+
+    assert resuming.long_tail == reviewed
+    assert resuming.long_tail != unreviewed
+
+
+def test_resume_still_takes_no_profile_flag_of_any_kind() -> None:
+    """Naming the profile by id must not become a way to name one on resume.
+
+    The bar a resumed run is judged by comes out of its checkpoint. A flag that
+    could restate it is a flag that could get it wrong.
+    """
+    parser = build_parser()
+    base = ["resume", "--checkpoint-id", "c1", "--checkpoint-dir", "checkpoints"]
+
+    for flag in (["--long-tail"], ["--long-tail-profile", DEFAULT_LONG_TAIL_PROFILE_ID]):
+        with pytest.raises(SystemExit):
+            parser.parse_args(base + flag)
