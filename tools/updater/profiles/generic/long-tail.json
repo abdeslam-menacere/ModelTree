@@ -94,7 +94,7 @@
       "note": "Which line a release belongs to and where that line starts. ModelTree's proposable fields carry no explicit parent pointer, so lineage under this profile is the family or release entity a claim attaches to together with the fields that define the line.",
       "guidance": "An escalated lineage claim stays an open conflict. Never attach a release to a family the source does not attach it to.",
       "entity_kinds": ["family", "release"],
-      "field_paths": ["categories", "firstReleaseDate", "status", "releaseDate"]
+      "field_paths": ["categories", "firstReleaseDate"]
     }
   ],
   "promotion_criteria": {
