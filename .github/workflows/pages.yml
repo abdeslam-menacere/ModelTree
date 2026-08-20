@@ -6,10 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+# Least privilege, set at the top so no job can start from a wider default. Each
+# job below widens this for itself and no further.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -19,6 +19,13 @@ jobs:
   deploy:
     if: github.repository == 'abdeslam-menacere/ModelTree'
     runs-on: ubuntu-latest
+    permissions:
+      # Read the code to build the site.
+      contents: read
+      # Publish the built site.
+      pages: write
+      # Mint the OIDC token actions/deploy-pages exchanges for a deployment.
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -56,3 +63,62 @@ jobs:
       - name: Deploy GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # A failed deploy used to be silent. `npm run build` is
+  # `npm run validate && astro build`, so a red web suite on main stops the
+  # deploy step, and GitHub Pages simply keeps serving the previous successful
+  # build. The site does not break, it freezes: stale content, healthy
+  # appearance, and no signal anywhere except a red run in the Actions tab. For
+  # a project whose whole purpose is being up to date, that is the worst
+  # available failure mode, so it becomes an issue you cannot miss.
+  report-failure:
+    name: Report a stale site
+    needs: deploy
+    if: failure() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # File and update the stale-site issue. This is the only repository write
+      # in this workflow other than the Pages deployment itself, and only this
+      # job holds it.
+      issues: write
+    steps:
+      - name: Open or update the stale-site issue
+        env:
+          # The job token, scoped by the permissions block above to issues only.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          FAILED_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          title='GitHub Pages deploy failed - the published site is stale'
+
+          {
+            echo "The deploy job in \`pages.yml\` failed, so GitHub Pages is still serving the"
+            echo "previous successful build. The site is **stale, not broken** - it will go on"
+            echo "looking perfectly healthy until this is fixed."
+            echo
+            echo "- Failing commit: \`$FAILED_SHA\`"
+            echo "- Failed run: $RUN_URL"
+            echo
+            echo "\`pages.yml\` builds with \`npm run build\`, which is"
+            echo "\`npm run validate && astro build\`. A failure here is usually the web test"
+            echo "suite or the Astro and TypeScript diagnostics going red on \`main\`. Fixing"
+            echo "that and pushing to \`main\` redeploys and unfreezes the site."
+          } > "$RUNNER_TEMP/stale-site.md"
+
+          # Narrow with search, then match the title exactly, so a repeated
+          # failure comments on the open report instead of filing a duplicate
+          # on every push.
+          existing="$(gh issue list --repo "$REPO" --state open --search "\"$title\" in:title" --json number,title \
+            | jq -r --arg t "$title" 'map(select(.title == $t)) | .[0].number // empty')"
+
+          if [ -n "$existing" ]; then
+            echo "Commenting on existing issue #$existing."
+            gh issue comment "$existing" --repo "$REPO" --body-file "$RUNNER_TEMP/stale-site.md"
+          else
+            echo "Opening a new stale-site issue."
+            gh issue create --repo "$REPO" --title "$title" --body-file "$RUNNER_TEMP/stale-site.md"
+          fi
