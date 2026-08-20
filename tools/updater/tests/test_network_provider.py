@@ -8,6 +8,7 @@ excluded from the default run by ``addopts`` in ``pyproject.toml``.
 from __future__ import annotations
 
 import asyncio
+import inspect
 from datetime import datetime, timezone
 from urllib import error as urllib_error
 
@@ -94,7 +95,7 @@ def test_provider_methods_return_awaitables() -> None:
     provider, _ = _provider({})
     creator = CreatorRequest(creator_id="c", creator_name="C", entry_urls=())
     discover = provider.discover(creator, limit=1)
-    assert hasattr(discover, "__await__")
+    assert inspect.isawaitable(discover)
     _run(discover)
 
 
