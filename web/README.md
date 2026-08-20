@@ -39,6 +39,8 @@ the entity contracts, and `src/data/validate.ts` enforces cross-record rules.
 | `releaseEvent` | A dated lifecycle event such as announced or deprecated |
 | `usageObservation` | One source-qualified usage reading: metric, population, window, method, and caveats |
 | `usageSynthesis` | A cross-source statement over comparable observations from two independent publishers |
+| `modelFitStatement` | One conditional fit statement about one release: its classification, condition, disclosed rubric dimensions, the recorded facts it rests on, scope, and caveats |
+| `modelFitEvidenceGap` | A rubric dimension that yields no guidance for a release, and why |
 | `source` | The primary reference and the date it was last checked |
 | `publisher` | Who a source speaks for, plus an optional sourced, dated controlling-company link |
 
@@ -60,6 +62,71 @@ comparability group, so a single-source observation can never become a
 cross-source statement. Nothing normalizes, weights, or ranks observations, and
 `usage-observations.json` and `usage-syntheses.json` stay empty until a real
 source supports an entry.
+
+### Conditional fit guidance
+
+`model-fit-statements.json` holds ModelTree's own editorial reading of the
+records: when a release is a good fit, where it is a trade-off, and when to avoid
+it. It is the only place in the dataset where ModelTree speaks in its own voice,
+so it carries the strictest rules in the repository.
+
+A statement is filed as exactly one of `good-fit-when`, `trade-off`, or
+`avoid-when`, and states the `condition` it applies under. There is no fourth,
+unconditional kind. Guidance never compares one release with another, and no
+composite score, weighting, or ordering exists anywhere in the rubric.
+
+Every statement must be traceable, which is enforced rather than encouraged:
+
+- It cites at least one `fact` — a release or family field, a lifecycle event, a
+  benchmark result, a usage observation, or a pricing record — and every cited
+  fact must describe the statement's own release (or that release's family).
+- Its `sourceIds` must be a subset of the sources those facts already cite, so
+  guidance cannot pull in a source no recorded fact carries.
+- It cannot be dated earlier than the evidence beneath it.
+- Each declared entry in `rubricDimensions` must be answered by a cited fact of a
+  kind the rubric allows for that dimension. The rubric lives in
+  `src/data/model-fit-rubric.ts`; a dimension is a disclosure of which question
+  was asked, never a score.
+- `summary` is not a citable release field. It is ModelTree's prose, so deriving
+  guidance from it would cite ModelTree as evidence for ModelTree.
+
+Universal-winner language is refused by the schema, and it is worth being precise
+about what that check is. It matches a fixed list of vocabulary — superlatives,
+best-in-class and go-to framing, beats-everything claims, numeric rankings,
+universal quantifiers, and composite-score wording — in a statement's
+`condition`, `statement`, `scope`, and `caveats`, and in an evidence gap's
+`note`. The rejection names the phrase that failed. It is a vocabulary filter,
+not a semantic one: a comparative claim written around those words ("no model
+handles long context better than this one") passes it, and it errs toward
+rejecting borderline wording an author can rephrase. `model-fit.test.ts` asserts
+both directions, including a phrasing the filter knowingly does not catch, so the
+limitation is recorded in the suite rather than only in prose. The rule with more
+teeth is the provenance rule above: a statement may cite only the sources its own
+facts cite, so a comparison cannot pull in a source no recorded fact carries. Be
+precise about that one too — it constrains where evidence comes from, not what a
+sentence means. Neither check verifies that a statement's content follows from
+the facts it rests on; nothing here does semantic entailment. What the system
+offers instead is that the facts and sources behind every statement are rendered
+beside it, so a reader can check the derivation themselves. The filter runs over
+ModelTree's editorial text only — creator-authored prose recorded elsewhere, such
+as a release `summary` or `intendedUse`, is reported as the creator's claim
+rather than asserted as ModelTree's.
+
+A statement's `verifiedAt` is the verification date of the newest fact it cites,
+not a record that an editor re-read the derivation, and it is labelled as
+evidence verification wherever it is displayed. Nothing currently re-verifies
+guidance independently of its evidence.
+
+Contradictions are kept, not resolved: `conflictsWithIds` must be reciprocal,
+must stay within one release, and must share at least one rubric dimension, since
+guidance derived from different dimensions is not contradictory. Both readings
+render side by side and neither is marked correct.
+
+A `modelFitEvidenceGap` records a dimension that was looked at and could not be
+supported, so an absence is not read as a silent negative. A gap carries no
+source, because it asserts no fact about the model, and it may not name a
+dimension that a published statement on the same release already derives guidance
+from — a dimension cannot be both answered and unanswerable.
 
 ### Sources and publishers
 
@@ -168,6 +235,23 @@ reading and the disagreement is written down here rather than resolved silently.
   availability maps to `preview`, and the docs' "Legacy models" section maps to
   `legacy`. On Hugging Face, Meta's "Current" and "History" groupings map to
   `current` and `legacy`.
+- **Conditional fit guidance is seeded, not exhaustive.** Seven statements are
+  recorded, across Llama 4 Scout, Claude Mythos 5, Claude Haiku 4.5, and GPT-5.
+  Each is derived from facts already recorded here and cites only sources those
+  facts already carry, so guidance introduces no new external claim and every
+  statement's `verifiedAt` is the verification date of the evidence beneath it. A
+  release with no statement is a release where no derivable guidance was found,
+  not one judged unsuitable.
+- **The Claude Haiku 4.5 lifecycle disagreement is published as a conflict.** The
+  release is recorded `current` while its family is recorded `legacy`, because the
+  vendor's own deprecation table and models overview group it differently (see the
+  Claude 4.5 note above). Both readings are published as conflicting statements,
+  linked reciprocally, and neither is marked correct. This is the intended
+  behaviour of the conflict state, not an error awaiting correction.
+- **Two evidence gaps are recorded for Llama 4 Scout and one for GPT-5.** Each
+  names a rubric dimension that was looked at and could not be supported — no
+  benchmark result and no usage observation are recorded for those releases — so
+  the absence is visible rather than silent.
 
 ## Catalog indexes
 

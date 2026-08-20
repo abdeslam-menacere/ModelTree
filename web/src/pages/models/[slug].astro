@@ -8,6 +8,7 @@ import {
   GitBranch,
 } from 'lucide-react';
 import SourceList from '../../components/SourceList.astro';
+import ModelFit from '../../components/ModelFit';
 import UsageEvidence from '../../components/UsageEvidence';
 import {
   dataset,
@@ -26,6 +27,7 @@ import {
   statusLabel,
 } from '../../lib/format';
 import { modelStaticPaths } from '../../lib/routes';
+import { buildModelFitGuidance } from '../../lib/model-fit';
 import { buildUsageEvidence } from '../../lib/usage-evidence';
 
 export const getStaticPaths = modelStaticPaths;
@@ -52,6 +54,7 @@ const siblings = release.siblingIds
 // rather than depending on when the page is read.
 const buildDate = new Date().toISOString().slice(0, 10);
 const usageEvidence = buildUsageEvidence(dataset, release.id, buildDate);
+const fitGuidance = buildModelFitGuidance(dataset, release.id, buildDate);
 const base = import.meta.env.BASE_URL;
 const homeHref = `${base}#explorer`;
 const passportHref = `${base}models/${release.slug}/`;
@@ -145,9 +148,11 @@ const passportHref = `${base}models/${release.slug}/`;
 
     <UsageEvidence evidence={usageEvidence} releaseName={release.displayName} />
 
+    <ModelFit guidance={fitGuidance} releaseName={release.displayName} />
+
     <section class="passport-section sources-section" aria-labelledby="sources-title">
       <div class="section-heading">
-        <span class="section-number">05</span>
+        <span class="section-number">06</span>
         <div><span class="eyebrow">Provenance</span><h2 id="sources-title">Primary sources</h2></div>
       </div>
       <SourceList sources={sources} />

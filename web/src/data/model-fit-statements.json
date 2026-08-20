@@ -1,0 +1,127 @@
+[
+  {
+    "id": "fit-llama-4-scout-self-hosting",
+    "releaseId": "meta-llama-4-scout",
+    "classification": "good-fit-when",
+    "condition": "you have to run the model on infrastructure you operate yourself",
+    "statement": "Meta publishes downloadable weights for Llama 4 Scout under the Llama 4 Community License Agreement, so it can be deployed on hardware the operator controls rather than reached only through a vendor API.",
+    "rubricDimensions": ["access-and-licensing"],
+    "facts": [
+      { "kind": "release-field", "releaseId": "meta-llama-4-scout", "field": "accessType" },
+      { "kind": "release-field", "releaseId": "meta-llama-4-scout", "field": "license" }
+    ],
+    "sourceIds": ["meta-llama-4-scout-model-card", "meta-llama-4-license"],
+    "scope": "Covers how the weights may be obtained and run. It says nothing about output quality, cost, or the terms of any hosted offering built on these weights.",
+    "caveats": [
+      "Downloadable weights are not an OSI-approved open-source licence; the agreement carries conditions of its own.",
+      "ModelTree records no benchmark result or usage observation for this release, so this statement rests on availability facts alone."
+    ],
+    "conflictsWithIds": [],
+    "verifiedAt": "2026-08-15"
+  },
+  {
+    "id": "fit-llama-4-scout-mau-threshold",
+    "releaseId": "meta-llama-4-scout",
+    "classification": "avoid-when",
+    "condition": "your product will pass 700 million monthly active users without a separate agreement with Meta",
+    "statement": "Section 2 of the Llama 4 Community License Agreement requires a separate licence from Meta above 700 million monthly active users, and the published agreement does not itself grant that licence.",
+    "rubricDimensions": ["access-and-licensing"],
+    "facts": [{ "kind": "release-field", "releaseId": "meta-llama-4-scout", "field": "license" }],
+    "sourceIds": ["meta-llama-4-license"],
+    "scope": "Covers the licence condition as published. It does not describe what terms Meta grants on request, which are not public.",
+    "caveats": [
+      "The threshold is measured by the licence's own definition of monthly active users, not by any figure recorded here.",
+      "Licence terms change between model generations; this reading applies to the Llama 4 agreement only."
+    ],
+    "conflictsWithIds": [],
+    "verifiedAt": "2026-08-15"
+  },
+  {
+    "id": "fit-llama-4-scout-context-window",
+    "releaseId": "meta-llama-4-scout",
+    "classification": "trade-off",
+    "condition": "you plan to depend on the full 10,000,000-token context window the model card documents",
+    "statement": "The documented context window states what the interface accepts, not how well the model uses it; ModelTree records no measured evidence of retrieval quality across that length for this release.",
+    "rubricDimensions": ["context-window", "documented-limits"],
+    "facts": [{ "kind": "release-field", "releaseId": "meta-llama-4-scout", "field": "contextWindow" }],
+    "sourceIds": ["meta-llama-4-scout-model-card"],
+    "scope": "Covers the stated input limit only. Serving platforms may accept less, and no long-context evaluation is recorded here.",
+    "caveats": [
+      "A stated context window is a documented interface limit, not a measurement of behaviour.",
+      "No long-context benchmark result is recorded for this release, so the gap is stated rather than filled by inference."
+    ],
+    "conflictsWithIds": [],
+    "verifiedAt": "2026-08-15"
+  },
+  {
+    "id": "fit-claude-mythos-5-limited-availability",
+    "releaseId": "anthropic-claude-mythos-5",
+    "classification": "avoid-when",
+    "condition": "you need a model you can adopt without vendor approval",
+    "statement": "Anthropic records Claude Mythos 5 as a preview release available through Project Glasswing approval, so access depends on being accepted rather than on signing up.",
+    "rubricDimensions": ["lifecycle-stability", "documented-limits"],
+    "facts": [
+      { "kind": "release-field", "releaseId": "anthropic-claude-mythos-5", "field": "status" },
+      { "kind": "release-field", "releaseId": "anthropic-claude-mythos-5", "field": "intendedUse" }
+    ],
+    "sourceIds": ["anthropic-models-overview", "anthropic-fable-5-mythos-5-docs"],
+    "scope": "Covers the recorded availability stage and the use the documentation states it is offered for. It makes no claim about the model's behaviour.",
+    "caveats": [
+      "Preview availability can change without a new release, so this reading is only as current as its verification date.",
+      "The documented intended use is defensive cybersecurity work; other uses are outside what the cited pages describe."
+    ],
+    "conflictsWithIds": [],
+    "verifiedAt": "2026-08-15"
+  },
+  {
+    "id": "fit-claude-haiku-4-5-release-current",
+    "releaseId": "anthropic-claude-haiku-4-5",
+    "classification": "good-fit-when",
+    "condition": "you need a release the vendor's own pages still record as current",
+    "statement": "Claude Haiku 4.5 is recorded as a current release, and no retirement date is asserted for it here.",
+    "rubricDimensions": ["lifecycle-stability"],
+    "facts": [{ "kind": "release-field", "releaseId": "anthropic-claude-haiku-4-5", "field": "status" }],
+    "sourceIds": ["anthropic-models-overview", "anthropic-haiku-4-5-announcement"],
+    "scope": "Covers the recorded lifecycle stage of this release only.",
+    "caveats": [
+      "The family this release belongs to is recorded as legacy, which is tracked as a conflicting statement rather than resolved.",
+      "A lifecycle stage is a vendor label, not a commitment about how long the model remains available."
+    ],
+    "conflictsWithIds": ["fit-claude-haiku-4-5-family-legacy"],
+    "verifiedAt": "2026-08-15"
+  },
+  {
+    "id": "fit-claude-haiku-4-5-family-legacy",
+    "releaseId": "anthropic-claude-haiku-4-5",
+    "classification": "trade-off",
+    "condition": "you are planning a deployment that has to outlast the current model generation",
+    "statement": "The Claude 4.5 family this release belongs to is recorded as legacy, so the release-level and family-level lifecycle records point in different directions and migration may be needed sooner than the release label suggests.",
+    "rubricDimensions": ["lifecycle-stability"],
+    "facts": [{ "kind": "family-field", "familyId": "anthropic-claude-4-5", "field": "status" }],
+    "sourceIds": ["anthropic-models-overview", "anthropic-model-deprecations"],
+    "scope": "Covers the recorded lifecycle stage of the family. It does not assert a retirement date, because none is recorded.",
+    "caveats": [
+      "The vendor's own pages disagree: the deprecation table lists the model identifier as active while the models overview groups the 4.5 generation as legacy.",
+      "Both readings are kept and neither is treated as correcting the other."
+    ],
+    "conflictsWithIds": ["fit-claude-haiku-4-5-release-current"],
+    "verifiedAt": "2026-08-15"
+  },
+  {
+    "id": "fit-gpt-5-superseded",
+    "releaseId": "openai-gpt-5",
+    "classification": "avoid-when",
+    "condition": "you are starting new work rather than maintaining an existing integration",
+    "statement": "OpenAI's model documentation labels GPT-5 a previous model and points users to GPT-5.6, and the release is recorded as legacy here.",
+    "rubricDimensions": ["lifecycle-stability"],
+    "facts": [{ "kind": "release-field", "releaseId": "openai-gpt-5", "field": "status" }],
+    "sourceIds": ["openai-gpt-5-docs"],
+    "scope": "Covers the recorded lifecycle stage. It does not compare GPT-5's behaviour with any later release, because no evaluation is recorded here.",
+    "caveats": [
+      "No shutdown date is recorded, so existing integrations are not stated to be at risk on any particular date.",
+      "A vendor pointing to a newer model is a lifecycle fact, not a measured difference in capability."
+    ],
+    "conflictsWithIds": [],
+    "verifiedAt": "2026-08-18"
+  }
+]

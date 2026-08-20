@@ -1,4 +1,12 @@
 import { z } from 'zod';
+import {
+  FAMILY_FACT_FIELDS,
+  FIT_CLASSIFICATIONS,
+  FIT_GAP_REASONS,
+  FIT_RUBRIC_DIMENSIONS,
+  RELEASE_FACT_FIELDS,
+  findUniversalClaim,
+} from './model-fit-rubric';
 
 const entityId = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 const slug = entityId;
@@ -405,6 +413,97 @@ export const usageSynthesisSchema = z.object({
   verifiedAt: isoDate,
 });
 
+/** Exactly one of these. Guidance is always conditional; there is no neutral verdict. */
+export const fitClassification = z.enum(FIT_CLASSIFICATIONS);
+
+/** The disclosed rubric dimension a statement was derived from. Never a score. */
+export const fitRubricDimension = z.enum(FIT_RUBRIC_DIMENSIONS);
+
+export const fitGapReason = z.enum(FIT_GAP_REASONS);
+
+/**
+ * A pointer to one structured fact already recorded in this dataset. Guidance
+ * may not stand on prose: every statement resolves to records that each carry
+ * their own primary sources and verification date, so the guidance itself
+ * introduces no new external claim.
+ */
+export const fitFactRefSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('release-field'), releaseId: entityId, field: z.enum(RELEASE_FACT_FIELDS) }),
+  z.object({ kind: z.literal('family-field'), familyId: entityId, field: z.enum(FAMILY_FACT_FIELDS) }),
+  z.object({ kind: z.literal('release-event'), eventId: entityId }),
+  z.object({ kind: z.literal('benchmark-result'), benchmarkResultId: entityId }),
+  z.object({ kind: z.literal('usage-observation'), usageObservationId: entityId }),
+  z.object({ kind: z.literal('pricing-record'), pricingRecordId: entityId }),
+]);
+
+/**
+ * One piece of conditional model-fit guidance.
+ *
+ * The shape enforces the editorial position: a statement cannot exist without a
+ * condition it applies under, the rubric dimensions it was derived from, the
+ * facts it rests on, its scope, and at least one caveat. Nothing here ranks a
+ * model against another, and the text is checked for winner language below.
+ */
+export const modelFitStatementSchema = z.object({
+  id: entityId,
+  releaseId: entityId,
+  classification: fitClassification,
+  // The "when". Conditionality is structural rather than a matter of phrasing.
+  condition: z.string().min(1),
+  statement: z.string().min(1),
+  // The disclosed rubric. Each dimension must be answered by a cited fact.
+  rubricDimensions: z.array(fitRubricDimension).min(1),
+  facts: z.array(fitFactRefSchema).min(1),
+  sourceIds: z.array(entityId).min(1),
+  scope: z.string().min(1),
+  caveats: z.array(z.string().min(1)).min(1),
+  // Contradicting guidance is kept side by side; nothing picks a winner.
+  conflictsWithIds: z.array(entityId).default([]),
+  verifiedAt: isoDate,
+}).superRefine((statement, context) => {
+  const fields: [string, string[]][] = [
+    ['condition', [statement.condition]],
+    ['statement', [statement.statement]],
+    ['scope', [statement.scope]],
+    ['caveats', statement.caveats],
+  ];
+
+  for (const [field, values] of fields) {
+    values.forEach((value, index) => {
+      const found = findUniversalClaim(value);
+      if (!found) return;
+      context.addIssue({
+        code: 'custom',
+        path: field === 'caveats' ? [field, index] : [field],
+        message: `uses unsupported universal-winner language ("${found.phrase}", ${found.name}); guidance is conditional and never declares an overall best model`,
+      });
+    });
+  }
+});
+
+/**
+ * A rubric dimension ModelTree looked at and could not support. Absence of
+ * guidance is recorded rather than left to be read as a silent negative, and a
+ * gap carries no source because it asserts no fact about the model.
+ */
+export const modelFitEvidenceGapSchema = z.object({
+  id: entityId,
+  releaseId: entityId,
+  dimension: fitRubricDimension,
+  reason: fitGapReason,
+  note: z.string().min(1),
+  verifiedAt: isoDate,
+}).superRefine((gap, context) => {
+  const found = findUniversalClaim(gap.note);
+  if (found) {
+    context.addIssue({
+      code: 'custom',
+      path: ['note'],
+      message: `uses unsupported universal-winner language ("${found.phrase}", ${found.name}); guidance is conditional and never declares an overall best model`,
+    });
+  }
+});
+
 export const datasetSchema = z.object({
   sources: z.array(sourceSchema).min(1),
   publishers: z.array(publisherSchema).default([]),
@@ -420,6 +519,8 @@ export const datasetSchema = z.object({
   releaseEvents: z.array(releaseEventSchema).default([]),
   usageObservations: z.array(usageObservationSchema).default([]),
   usageSyntheses: z.array(usageSynthesisSchema).default([]),
+  modelFitStatements: z.array(modelFitStatementSchema).default([]),
+  modelFitEvidenceGaps: z.array(modelFitEvidenceGapSchema).default([]),
 });
 
 export type SourceReference = z.infer<typeof sourceSchema>;
@@ -438,4 +539,10 @@ export type UsageSourceCategory = z.infer<typeof usageSourceCategory>;
 export type UsageMetricKind = z.infer<typeof usageMetricKind>;
 export type UsageObservation = z.infer<typeof usageObservationSchema>;
 export type UsageSynthesis = z.infer<typeof usageSynthesisSchema>;
+export type FitClassification = z.infer<typeof fitClassification>;
+export type FitRubricDimension = z.infer<typeof fitRubricDimension>;
+export type FitGapReason = z.infer<typeof fitGapReason>;
+export type FitFactRef = z.infer<typeof fitFactRefSchema>;
+export type ModelFitStatement = z.infer<typeof modelFitStatementSchema>;
+export type ModelFitEvidenceGap = z.infer<typeof modelFitEvidenceGapSchema>;
 export type Dataset = z.infer<typeof datasetSchema>;

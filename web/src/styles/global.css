@@ -1146,6 +1146,329 @@ main {
   max-width: 78ch;
 }
 
+.fit-disclosure {
+  display: flex;
+  margin: 0 0 26px;
+  padding: 16px 18px;
+  align-items: flex-start;
+  gap: 11px;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 0.625rem;
+  background: var(--cp-bg-elevated);
+  color: var(--cp-text-muted);
+  font-size: 14px;
+  max-width: 82ch;
+}
+
+.fit-flags {
+  display: flex;
+  margin: 0 0 28px;
+  padding: 0;
+  list-style: none;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fit-flags li {
+  padding: 6px 11px;
+  border: 1px solid var(--cp-border);
+  border-radius: 0.625rem;
+  background: var(--cp-surface);
+  color: var(--cp-text-muted);
+  font-size: 13px;
+}
+
+.fit-empty {
+  padding: 24px 25px;
+  border: 1px dashed var(--cp-border-strong);
+  border-radius: 0.625rem;
+  background: var(--cp-bg-elevated);
+}
+
+.fit-empty p {
+  margin: 0 0 12px;
+  max-width: 74ch;
+}
+
+.fit-empty p + p {
+  color: var(--cp-text-muted);
+}
+
+.fit-empty-headline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.fit-groups {
+  display: grid;
+  gap: 34px;
+}
+
+.fit-group {
+  padding-top: 26px;
+  border-top: 1px solid var(--cp-border);
+}
+
+.fit-group h3,
+.fit-gaps h3 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.fit-group-description,
+.fit-dimension-question,
+.fit-evidence-note,
+.fit-source-meta {
+  margin: 8px 0 0;
+  color: var(--cp-text-muted);
+  font-size: 14px;
+  max-width: 78ch;
+}
+
+.fit-sources,
+.fit-caveats ul,
+.fit-dimensions,
+.fit-evidence-facts,
+.fit-gap-list,
+.fit-rubric-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fit-statement {
+  padding: 20px 22px;
+  margin-top: 18px;
+  border: 1px solid var(--cp-border);
+  border-left: 4px solid var(--cp-border-strong);
+  border-radius: 0.625rem;
+  background: var(--cp-surface);
+}
+
+/* The three kinds are told apart by their own heading text and border weight, so
+   the distinction never depends on colour. */
+.fit-group-trade-off .fit-statement {
+  border-left-style: double;
+}
+
+.fit-group-avoid-when .fit-statement {
+  border-left-style: dashed;
+}
+
+.fit-statement h4 {
+  display: flex;
+  margin: 0 0 12px;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 17px;
+}
+
+.fit-classification {
+  padding: 4px 9px;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 0.4rem;
+  font-size: 12px;
+  font-weight: 720;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.fit-synthesis {
+  margin: 0 0 16px;
+  font-family: "Newsreader Variable", Georgia, serif;
+  font-size: 20px;
+}
+
+.fit-synthesis-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--cp-text-muted);
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.fit-facts {
+  display: grid;
+  margin: 0;
+  gap: 14px 24px;
+}
+
+.fit-facts dt {
+  color: var(--cp-text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.fit-facts dd {
+  margin: 4px 0 0;
+  font-size: 15px;
+}
+
+.fit-dimensions li {
+  font-size: 15px;
+}
+
+.fit-dimension-question {
+  display: inline;
+  font-size: 14px;
+}
+
+.fit-stale,
+.fit-conflict {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--cp-text-muted);
+  font-size: 13px;
+}
+
+.fit-stale {
+  margin-top: 6px;
+}
+
+.fit-conflict {
+  margin: 16px 0 0;
+  padding: 10px 12px;
+  align-items: flex-start;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 0.5rem;
+}
+
+.fit-caveats h5,
+.fit-evidence h5,
+.fit-statement-sources h5 {
+  margin: 18px 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.fit-caveats li {
+  margin-bottom: 5px;
+  padding-left: 16px;
+  position: relative;
+  color: var(--cp-text-muted);
+  font-size: 14px;
+}
+
+.fit-caveats li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+}
+
+.fit-evidence-group {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--cp-border);
+  border-radius: 0.5rem;
+  background: var(--cp-bg-elevated);
+}
+
+.fit-evidence-group h6 {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.fit-evidence-facts li + li {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--cp-border);
+}
+
+.fit-evidence-facts li {
+  margin-top: 12px;
+}
+
+.fit-fact,
+.fit-gap-dimension {
+  display: flex;
+  margin: 0;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fit-fact-label {
+  font-size: 12px;
+  font-weight: 720;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.fit-fact-detail {
+  font-size: 15px;
+}
+
+.fit-sources {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.fit-gaps {
+  margin-top: 34px;
+  padding-top: 26px;
+  border-top: 1px solid var(--cp-border);
+}
+
+.fit-gap-list li {
+  padding: 16px 18px;
+  margin-top: 14px;
+  border: 1px dashed var(--cp-border-strong);
+  border-radius: 0.625rem;
+}
+
+.fit-gap-list p {
+  margin: 6px 0 0;
+  max-width: 78ch;
+}
+
+.fit-gap-reason {
+  padding: 3px 8px;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 0.4rem;
+  color: var(--cp-text-muted);
+  font-size: 12px;
+}
+
+.fit-methodology {
+  margin-top: 34px;
+  padding: 18px 22px;
+  border: 1px solid var(--cp-border);
+  border-radius: 0.625rem;
+}
+
+.fit-methodology summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.fit-methodology h3 {
+  margin: 20px 0 6px;
+  font-size: 16px;
+}
+
+.fit-methodology p {
+  margin: 0;
+  color: var(--cp-text-muted);
+  max-width: 78ch;
+}
+
+.fit-rubric-list li {
+  margin-top: 6px;
+  color: var(--cp-text-muted);
+  font-size: 14px;
+  max-width: 78ch;
+}
+
 .tree-page {
   padding-bottom: 80px;
 }
