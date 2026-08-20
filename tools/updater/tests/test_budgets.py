@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import pytest
 
-from modeltree_updater.budgets import BudgetExhausted, BudgetLedger, CreatorBudget
+from modeltree_updater.budgets import (
+    BudgetExhausted,
+    BudgetLedger,
+    CreatorBudget,
+    InvalidBudget,
+)
 
 
 def test_from_env_reads_every_limit() -> None:
@@ -76,7 +81,34 @@ def test_state_round_trip_keeps_spending_the_same_budget() -> None:
 
 
 def test_invalid_budgets_are_rejected() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidBudget):
         CreatorBudget(max_pages=-1)
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidBudget):
         CreatorBudget(max_seconds=0)
+
+
+def test_an_invalid_budget_is_still_a_value_error() -> None:
+    """A named type for the CLI to catch, without breaking callers that don't."""
+    assert issubclass(InvalidBudget, ValueError)
+
+
+@pytest.mark.parametrize(
+    "variable,value",
+    [
+        ("MODELTREE_UPDATER_MAX_PAGES", "lots"),
+        ("MODELTREE_UPDATER_MAX_TOKENS", ""),
+        ("MODELTREE_UPDATER_MAX_SECONDS", "soon"),
+        ("MODELTREE_UPDATER_MAX_RETRIES", "2.5"),
+    ],
+)
+def test_a_non_numeric_environment_variable_names_itself(variable: str, value: str) -> None:
+    """The message has to say which variable, or it is not actionable."""
+    with pytest.raises(InvalidBudget) as error:
+        CreatorBudget.from_env({variable: value})
+
+    assert variable in str(error.value)
+    assert repr(value) in str(error.value)
+
+
+def test_an_unset_environment_keeps_the_defaults() -> None:
+    assert CreatorBudget.from_env({}) == CreatorBudget()

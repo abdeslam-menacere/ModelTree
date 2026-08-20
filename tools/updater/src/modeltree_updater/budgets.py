@@ -9,13 +9,42 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Callable, Mapping
+from typing import Any, Callable, Mapping
 
 from .contracts import BudgetUsage
 
-__all__ = ["BudgetExhausted", "BudgetLedger", "CreatorBudget"]
+__all__ = ["BudgetExhausted", "BudgetLedger", "CreatorBudget", "InvalidBudget"]
 
 _ENV_PREFIX = "MODELTREE_UPDATER_"
+
+
+class InvalidBudget(ValueError):
+    """Raised when a configured limit cannot be used.
+
+    A `ValueError` so existing callers keep working, but a named type so the CLI
+    can turn a bad `--max-pages` or a bad environment variable into the same
+    clean exit 2 every other misconfiguration gets, rather than a traceback.
+    """
+
+
+def _limit(
+    env: Mapping[str, str],
+    name: str,
+    default: float,
+    *,
+    cast: Callable[[str], Any],
+    expected: str,
+) -> Any:
+    """One budget limit read from the environment, or the default if unset."""
+    raw = env.get(f"{_ENV_PREFIX}{name}")
+    if raw is None:
+        return default
+    try:
+        return cast(raw)
+    except (TypeError, ValueError) as error:
+        raise InvalidBudget(
+            f"{_ENV_PREFIX}{name} must be {expected}, got {raw!r}"
+        ) from error
 
 
 @dataclass(frozen=True)
@@ -31,18 +60,26 @@ class CreatorBudget:
         for name in ("max_pages", "max_tokens", "max_retries"):
             value = getattr(self, name)
             if not isinstance(value, int) or value < 0:
-                raise ValueError(f"{name} must be a non-negative integer, got {value!r}")
-        if self.max_seconds <= 0:
-            raise ValueError(f"max_seconds must be positive, got {self.max_seconds!r}")
+                raise InvalidBudget(f"{name} must be a non-negative integer, got {value!r}")
+        if not isinstance(self.max_seconds, (int, float)) or self.max_seconds <= 0:
+            raise InvalidBudget(f"max_seconds must be positive, got {self.max_seconds!r}")
 
     @classmethod
     def from_env(cls, env: Mapping[str, str]) -> "CreatorBudget":
         defaults = cls()
         return cls(
-            max_pages=int(env.get(f"{_ENV_PREFIX}MAX_PAGES", defaults.max_pages)),
-            max_tokens=int(env.get(f"{_ENV_PREFIX}MAX_TOKENS", defaults.max_tokens)),
-            max_seconds=float(env.get(f"{_ENV_PREFIX}MAX_SECONDS", defaults.max_seconds)),
-            max_retries=int(env.get(f"{_ENV_PREFIX}MAX_RETRIES", defaults.max_retries)),
+            max_pages=_limit(
+                env, "MAX_PAGES", defaults.max_pages, cast=int, expected="an integer"
+            ),
+            max_tokens=_limit(
+                env, "MAX_TOKENS", defaults.max_tokens, cast=int, expected="an integer"
+            ),
+            max_seconds=_limit(
+                env, "MAX_SECONDS", defaults.max_seconds, cast=float, expected="a number"
+            ),
+            max_retries=_limit(
+                env, "MAX_RETRIES", defaults.max_retries, cast=int, expected="an integer"
+            ),
         )
 
 

@@ -5,6 +5,8 @@ from __future__ import annotations
 import io
 import json
 
+import pytest
+
 from modeltree_updater.cli import EXIT_CREATOR_FAILED, EXIT_OK, EXIT_USAGE, main
 
 
@@ -122,6 +124,36 @@ def test_unknown_creator_is_a_usage_error(fixture_dir) -> None:
 
     assert code == EXIT_USAGE
     assert "unknown creator id(s): nobody" in output
+
+
+@pytest.mark.parametrize(
+    "flag,value,expected",
+    [
+        ("--max-pages", "-1", "max_pages must be a non-negative integer"),
+        ("--max-tokens", "-5", "max_tokens must be a non-negative integer"),
+        ("--max-seconds", "0", "max_seconds must be positive"),
+        ("--max-retries", "-2", "max_retries must be a non-negative integer"),
+    ],
+)
+def test_an_invalid_budget_flag_exits_cleanly(fixture_dir, flag, value, expected) -> None:
+    """Exit 2 and a sentence, like every other misconfiguration — not a traceback."""
+    code, output = _run(
+        ["run", "--creator", "contoso-ai", "--fixtures", str(fixture_dir), flag, value]
+    )
+
+    assert code == EXIT_USAGE
+    assert f"error: {expected}" in output
+    assert "Traceback" not in output
+
+
+def test_an_invalid_budget_environment_variable_exits_cleanly(fixture_dir) -> None:
+    code, output = _run(
+        ["run", "--creator", "contoso-ai", "--fixtures", str(fixture_dir)],
+        env={"MODELTREE_UPDATER_MAX_SECONDS": "soon"},
+    )
+
+    assert code == EXIT_USAGE
+    assert "error: MODELTREE_UPDATER_MAX_SECONDS must be a number, got 'soon'" in output
 
 
 def test_a_failed_creator_sets_a_distinct_exit_code(tmp_path, fixture_dir, monkeypatch) -> None:
