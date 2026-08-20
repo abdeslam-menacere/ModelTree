@@ -15,6 +15,7 @@ from modeltree_updater.checkpoints import (
 )
 from modeltree_updater.contracts import ProposalStatus
 from modeltree_updater.runner import ProviderMismatch, resume_creator_run, run_creator
+from modeltree_updater.safety import ProposalOnlyViolation
 from modeltree_updater.workflow import WORKFLOW_NAME
 
 
@@ -28,6 +29,39 @@ async def _list(storage):
 def test_message_types_are_allow_listed_for_restore() -> None:
     assert "modeltree_updater.messages:CreatorTask" in ALLOWED_CHECKPOINT_TYPES
     assert "modeltree_updater.contracts:ClaimCandidate" in ALLOWED_CHECKPOINT_TYPES
+
+
+def test_a_checkpoint_directory_inside_the_web_app_is_refused(tmp_path) -> None:
+    """The storage factory is the guard's call site, so every caller inherits it."""
+    repo_root = tmp_path / "repo"
+    dataset = repo_root / "web" / "src" / "data"
+    dataset.mkdir(parents=True)
+
+    with pytest.raises(ProposalOnlyViolation):
+        create_checkpoint_storage(dataset / "checkpoints")
+
+    assert list(dataset.iterdir()) == []
+
+
+def test_a_traversal_shaped_checkpoint_directory_is_refused(tmp_path) -> None:
+    """`..` is resolved before the boundary is checked, not after."""
+    repo_root = tmp_path / "repo"
+    (repo_root / "web" / "src" / "data").mkdir(parents=True)
+    (repo_root / "out").mkdir()
+
+    with pytest.raises(ProposalOnlyViolation):
+        create_checkpoint_storage(repo_root / "out" / ".." / "web" / "checkpoints")
+
+    assert not (repo_root / "web" / "checkpoints").exists()
+
+
+def test_a_checkpoint_directory_outside_the_web_app_is_created(tmp_path) -> None:
+    repo_root = tmp_path / "repo"
+    (repo_root / "web" / "src" / "data").mkdir(parents=True)
+
+    create_checkpoint_storage(repo_root / "out" / "checkpoints")
+
+    assert (repo_root / "out" / "checkpoints").is_dir()
 
 
 def test_a_run_writes_checkpoints_and_can_be_resumed(tmp_path, library, settings) -> None:

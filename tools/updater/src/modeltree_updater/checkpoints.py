@@ -3,6 +3,12 @@
 Agent Framework persists workflow state between supersteps. Because checkpoints
 restore Python objects, every ModelTree type that can appear in a message is
 allow-listed explicitly rather than relaxing the framework's deserialisation guard.
+
+The checkpoint directory is a caller-supplied path, so it passes the same
+proposal-only guard as `--output`. Checkpoint state is workflow bookkeeping
+rather than a proposal, but it is still this tool creating directories from a
+flag, and the boundary is about where the tool may write at all — not about what
+it happens to be writing.
 """
 
 from __future__ import annotations
@@ -14,6 +20,7 @@ from typing import Any, Sequence
 from agent_framework import FileCheckpointStorage, InMemoryCheckpointStorage
 
 from . import contracts, messages
+from .safety import assert_proposal_output_path
 
 __all__ = [
     "ALLOWED_CHECKPOINT_TYPES",
@@ -65,8 +72,13 @@ ALLOWED_CHECKPOINT_TYPES: tuple[str, ...] = tuple(
 
 
 def create_checkpoint_storage(directory: str | Path) -> FileCheckpointStorage:
-    """File-backed storage so a run survives the process that started it."""
-    path = Path(directory)
+    """File-backed storage so a run survives the process that started it.
+
+    Guarded before the directory is created: `--checkpoint-dir` reaches this from
+    `run`, `resume`, and `checkpoints` alike, so refusing here covers every entry
+    point instead of trusting each command to remember.
+    """
+    path = assert_proposal_output_path(directory)
     path.mkdir(parents=True, exist_ok=True)
     return FileCheckpointStorage(path, allowed_checkpoint_types=list(ALLOWED_CHECKPOINT_TYPES))
 
