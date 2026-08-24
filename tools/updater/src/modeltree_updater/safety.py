@@ -48,8 +48,9 @@ def find_repository_roots(start: Path | None = None) -> tuple[Path, ...]:
     `web/src/data` made the boundary disappear in exactly the checkouts that still
     needed it: a sparse checkout or partial clone that has not materialised
     `web/`, a worktree inspected before checkout finished, or any future move of
-    `src/data`. Every marker above sits outside `web/`, so an absent dataset
-    directory no longer reads as "not a checkout".
+    `src/data`. The markers are read as "any of these" and every one but the
+    trailing legacy entry sits outside `web/`, so an absent dataset directory no
+    longer reads as "not a checkout".
 
     All of them are returned rather than just the nearest, because stopping at
     the nearest would let a repository nested *inside* `web/` — a scratch clone,
