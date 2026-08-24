@@ -17,6 +17,8 @@ import pytest
 
 from modeltree_updater import cli
 from modeltree_updater.safety import (
+    PROTECTED_RELATIVE_PATHS,
+    REPOSITORY_MARKERS,
     ProposalOnlyViolation,
     assert_proposal_output_path,
     find_repository_root,
@@ -601,3 +603,129 @@ def test_repository_root_detection_finds_the_dataset(tmp_path) -> None:
 
     assert find_repository_root(nested) == repo_root.resolve()
     assert find_repository_root(tmp_path) is None
+
+
+# The shape of a checkout that has not materialised the dataset directory: a
+# sparse checkout or partial clone, a worktree read before checkout finished, or
+# a future move of `src/data`. Each marker is written on its own so a regression
+# in any one of them is named by the failing parameter rather than hidden behind
+# the others.
+CHECKOUT_MARKERS = {
+    ".git as a directory": (".git", None),
+    ".git as a worktree file": (".git", "gitdir: ../.git/worktrees/dock\n"),
+    "the drydock config": ("drydock.config.json", "{}\n"),
+    "this tool's manifest": ("tools/updater/pyproject.toml", "[project]\n"),
+}
+
+
+def _sparse_checkout(root: Path, marker: str, contents: str | None) -> Path:
+    """A checkout carrying one marker and a `web/` with no `web/src/data`."""
+    (root / "web" / "src").mkdir(parents=True)
+    target = root / marker
+    if contents is None:
+        target.mkdir(parents=True)
+    else:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(contents, encoding="utf-8")
+    return root
+
+
+@pytest.mark.parametrize(
+    "marker,contents", list(CHECKOUT_MARKERS.values()), ids=list(CHECKOUT_MARKERS)
+)
+def test_a_checkout_missing_its_dataset_still_refuses_the_web_app(
+    tmp_path, marker, contents
+) -> None:
+    """The fail-open case from #102: no `web/src/data`, so no boundary at all.
+
+    Detection used to test for the protected directory itself, so its absence
+    read as "not in a checkout" and `web/` became writable — including the
+    dataset directory the guard exists to keep out of this tool's reach.
+    """
+    repo_root = _sparse_checkout(tmp_path / "repo", marker, contents)
+
+    for target in (
+        repo_root / "web" / "src" / "data" / "releases.json",
+        repo_root / "web" / "src" / "proposals",
+        repo_root / "web" / "proposals",
+    ):
+        with pytest.raises(ProposalOnlyViolation):
+            assert_proposal_output_path(target)
+
+    assert not (repo_root / "web" / "src" / "data").exists()
+
+
+@pytest.mark.parametrize(
+    "marker,contents", list(CHECKOUT_MARKERS.values()), ids=list(CHECKOUT_MARKERS)
+)
+def test_every_marker_locates_the_root_without_the_protected_directory(
+    tmp_path, marker, contents
+) -> None:
+    repo_root = _sparse_checkout(tmp_path / "repo", marker, contents)
+
+    assert find_repository_root(repo_root / "web" / "src") == repo_root.resolve()
+
+
+def test_root_detection_never_rests_on_the_directory_it_protects() -> None:
+    """Every protected path must have a marker that does not live inside it."""
+    outside = [
+        marker for marker in REPOSITORY_MARKERS if marker[0] not in PROTECTED_RELATIVE_PATHS
+    ]
+
+    assert outside, "at least one marker must sit outside the protected tree"
+
+
+def test_an_unlocatable_root_permits_the_write_deliberately(tmp_path) -> None:
+    """The documented outcome for "no checkout here", pinned so it stays a choice.
+
+    A bare directory carries no marker, so there is no reviewed repository data
+    to protect and `--output` keeps working — which is the ordinary way to run
+    this tool. This also pins the known residual: a stray `web/` in such a tree
+    is not covered, because nothing identifies that tree as a ModelTree checkout.
+    """
+    (tmp_path / "web").mkdir()
+
+    assert find_repository_root(tmp_path) is None
+    assert assert_proposal_output_path(tmp_path / "proposals") == (tmp_path / "proposals").resolve()
+    assert (
+        assert_proposal_output_path(tmp_path / "web" / "proposals")
+        == (tmp_path / "web" / "proposals").resolve()
+    )
+
+
+def test_the_refusal_says_how_to_proceed(tmp_path) -> None:
+    """Refusing loudly is only useful if the message names the way out."""
+    repo_root = _sparse_checkout(tmp_path / "repo", ".git", None)
+
+    with pytest.raises(ProposalOnlyViolation) as refusal:
+        assert_proposal_output_path(repo_root / "web" / "proposals")
+
+    message = str(refusal.value)
+    assert str((repo_root / "web").resolve()) in message
+    assert "outside it" in message
+
+
+def test_the_cli_refuses_output_inside_a_checkout_missing_its_dataset(
+    tmp_path, fixture_dir
+) -> None:
+    """End to end: the guard's new reach is the one `--output` actually gets."""
+    repo_root = _sparse_checkout(tmp_path / "repo", ".git", None)
+    stream = StringIO()
+
+    exit_code = cli.main(
+        [
+            "run",
+            "--creator",
+            "contoso-ai",
+            "--fixtures",
+            str(fixture_dir),
+            "--output",
+            str(repo_root / "web" / "src" / "data" / "proposals"),
+        ],
+        env={},
+        stream=stream,
+    )
+
+    assert exit_code == cli.EXIT_USAGE
+    assert "proposal-only guard" in stream.getvalue()
+    assert not (repo_root / "web" / "src" / "data").exists()
