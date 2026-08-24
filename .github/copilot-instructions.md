@@ -23,15 +23,19 @@ Every rule below follows from it. A change that weakens it needs a decision
 recorded as an ADR under `docs/adr/`, not a commit message.
 
 ADRs are named `NNNN-kebab-case-title.md` — four digits, the next unused number,
-never reused. Two exist: `0001-static-first-architecture.md` and
-`0002-long-tail-profiles-are-a-reviewed-set.md`. Read one before writing
-another. Each opens with `# ADR NNNN: Title`, then a metadata list (`Status`,
-`Date`, `Decision owners`, plus `Supersedes` when it revises an earlier one),
+never reused. Read the most recent one before writing another. Each opens with
+`# ADR NNNN: Title`, then a metadata list (`Status`, `Date`, `Decision owners`,
+and optionally `Supersedes`, which records the ADR's relationship to earlier
+decisions — explicitly including "nothing" when it replaces none),
 then `## Context`, `## Decision`, `## Consequences` split into `### Positive`
 and `### Costs`, `## Alternatives Considered`, and `## Guardrails`.
 
-No ADR records how much of the loop runs unattended. Until one does, the posture
-in force is the one described in this file.
+No ADR records how much of the loop runs unattended. `drydock.config.json` does
+set `autonomy.level` to `full`, with `merge.enabled` true and
+`retriesOnGateFail` 2. That is the policy an installed Drydock would enforce,
+not permission to act on it yourself: with the CLI absent nothing is gating,
+merging, or retrying on your behalf. The posture described in this file is the
+one in force.
 
 ## Where am I
 
@@ -116,3 +120,16 @@ The site is a static Astro build; everything lives under `web/`.
 The Drydock CLI is a tool, not a dependency of this project. Its source is not
 in this repository, and — as noted at the top — it is not installed in the
 environments these docks currently run in.
+
+## Follow-ups
+
+Known gaps in this file, recorded rather than fixed. Both pre-date the change
+that added this section.
+
+- The "Where am I" table maps `drydock.config.json` at the root to "the main
+  repo", but that file is committed, so it is present in every dock worktree
+  too and the row cannot discriminate on its own. The branch test noted under
+  the table is the reliable one until the table is reworked.
+- "no `DOCK.md` was generated" infers absence from the CLI being missing rather
+  than from checking. It fails safe — the manual posture is the conservative
+  branch either way — so it is not urgent.
