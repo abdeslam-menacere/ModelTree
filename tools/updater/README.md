@@ -66,6 +66,21 @@ environment variable that turns this off. `tests/test_proposal_only.py` parses e
 module under `src/` and fails if a call creates a path that did not come back from the
 guard, so a new write site cannot be added without one.
 
+The guard finds the checkout it is protecting by looking for `.git`, then
+`drydock.config.json`, then `tools/updater/pyproject.toml`, then `web/src/data` — any
+one of them is enough. `.git` leads because it is the only one present in every state
+of a checkout, including a sparse checkout or partial clone that has not materialised
+`web/`, and a linked worktree where it is a file rather than a directory. Detection
+deliberately does not rest on `web/src/data`: keying it on the directory being
+protected meant the boundary vanished exactly when that directory was missing, which
+is the defect #102 fixed. Every enclosing checkout is checked, not just the nearest,
+so a scratch clone or linked worktree sitting under `web/` cannot become the root and
+take the real `web/` out of scope. Outside any checkout — `--output ~/proposals`, say
+— no marker is found and the write is allowed, because there is no reviewed repository
+data there to protect; the residual is a tree that holds a copy of `web/` while
+carrying none of the markers, such as an unpacked archive, which is not recognised as
+a checkout.
+
 Exit codes: `0` success, `2` usage or configuration error, `3` at least one creator failed,
 `4` at least one creator could not be published.
 
