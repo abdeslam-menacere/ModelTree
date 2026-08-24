@@ -120,16 +120,3 @@ The site is a static Astro build; everything lives under `web/`.
 The Drydock CLI is a tool, not a dependency of this project. Its source is not
 in this repository, and — as noted at the top — it is not installed in the
 environments these docks currently run in.
-
-## Follow-ups
-
-Known gaps in this file, recorded rather than fixed. Both pre-date the change
-that added this section.
-
-- The "Where am I" table maps `drydock.config.json` at the root to "the main
-  repo", but that file is committed, so it is present in every dock worktree
-  too and the row cannot discriminate on its own. The branch test noted under
-  the table is the reliable one until the table is reworked.
-- "no `DOCK.md` was generated" infers absence from the CLI being missing rather
-  than from checking. It fails safe — the manual posture is the conservative
-  branch either way — so it is not urgent.
