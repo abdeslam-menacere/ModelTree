@@ -22,6 +22,7 @@ from modeltree_updater.safety import (
     ProposalOnlyViolation,
     assert_proposal_output_path,
     find_repository_root,
+    find_repository_roots,
 )
 
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent / "src" / "modeltree_updater"
@@ -703,6 +704,25 @@ def test_the_refusal_says_how_to_proceed(tmp_path) -> None:
     message = str(refusal.value)
     assert str((repo_root / "web").resolve()) in message
     assert "outside it" in message
+
+
+def test_a_repository_nested_inside_the_web_app_cannot_shrink_the_boundary(tmp_path) -> None:
+    """A subdirectory must not be able to redefine where the boundary is.
+
+    Root detection walks upwards, so a scratch clone or linked worktree sitting
+    under `web/` carries a marker of its own. If the search stopped at the nearest
+    one it would become the root, and the enclosing checkout's `web/` — the thing
+    actually being protected — would fall outside the guard.
+    """
+    repo_root = tmp_path / "repo"
+    (repo_root / "web" / "src" / "data").mkdir(parents=True)
+    nested = repo_root / "web" / "scratch"
+    (nested / ".git").mkdir(parents=True)
+
+    assert find_repository_roots(nested)[0] == nested.resolve()
+    assert repo_root.resolve() in find_repository_roots(nested)
+    with pytest.raises(ProposalOnlyViolation):
+        assert_proposal_output_path(nested / "out" / "proposals")
 
 
 def test_the_cli_refuses_output_inside_a_checkout_missing_its_dataset(

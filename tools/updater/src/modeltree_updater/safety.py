@@ -15,6 +15,7 @@ __all__ = [
     "ProposalOnlyViolation",
     "assert_proposal_output_path",
     "find_repository_root",
+    "find_repository_roots",
 ]
 
 PROTECTED_RELATIVE_PATHS: tuple[str, ...] = ("web",)
@@ -40,8 +41,8 @@ class ProposalOnlyViolation(RuntimeError):
     """Raised when an operation would leave the proposal-only boundary."""
 
 
-def find_repository_root(start: Path | None = None) -> Path | None:
-    """Locate the ModelTree checkout containing `start`, if there is one.
+def find_repository_roots(start: Path | None = None) -> tuple[Path, ...]:
+    """Every checkout enclosing `start`, nearest first.
 
     Detection is never keyed on the directory this module protects. Testing for
     `web/src/data` made the boundary disappear in exactly the checkouts that still
@@ -50,14 +51,28 @@ def find_repository_root(start: Path | None = None) -> Path | None:
     `src/data`. Every marker above sits outside `web/`, so an absent dataset
     directory no longer reads as "not a checkout".
 
-    The nearest ancestor carrying a marker wins, so a checkout nested inside
-    another tree is bounded by its own root.
+    All of them are returned rather than just the nearest, because stopping at
+    the nearest would let a repository nested *inside* `web/` — a scratch clone,
+    a linked worktree — become the root and take the enclosing checkout's `web/`
+    out of scope. A boundary that a subdirectory can shrink is not a boundary.
     """
     current = (start or Path.cwd()).resolve()
-    for candidate in (current, *current.parents):
-        if any(candidate.joinpath(*marker).exists() for marker in REPOSITORY_MARKERS):
-            return candidate
-    return None
+    return tuple(
+        candidate
+        for candidate in (current, *current.parents)
+        if any(candidate.joinpath(*marker).exists() for marker in REPOSITORY_MARKERS)
+    )
+
+
+def find_repository_root(start: Path | None = None) -> Path | None:
+    """Locate the ModelTree checkout containing `start`, if there is one.
+
+    The nearest enclosing checkout, or `None`. `find_repository_roots` is what the
+    guard uses; this is the single-answer form for callers that want to know where
+    they are rather than what they must not touch.
+    """
+    roots = find_repository_roots(start)
+    return roots[0] if roots else None
 
 
 def _is_within(path: Path, parent: Path) -> bool:
@@ -88,16 +103,15 @@ def assert_proposal_output_path(path: Path | str, *, repo_root: Path | None = No
     # Search from the requested path itself: a directory that does not exist yet
     # still sits inside a checkout, and falling back to the process's working
     # directory would look for the boundary in the wrong repository.
-    root = repo_root or find_repository_root(resolved)
-    if root is None:
-        return resolved
+    roots = (repo_root,) if repo_root is not None else find_repository_roots(resolved)
 
-    for relative in PROTECTED_RELATIVE_PATHS:
-        protected = (root / relative).resolve()
-        if _is_within(resolved, protected):
-            raise ProposalOnlyViolation(
-                f"refusing to write proposals to {resolved}: {protected} holds reviewed "
-                "repository data, and this tool only produces proposals — choose an "
-                "output directory outside it"
-            )
+    for root in roots:
+        for relative in PROTECTED_RELATIVE_PATHS:
+            protected = (root / relative).resolve()
+            if _is_within(resolved, protected):
+                raise ProposalOnlyViolation(
+                    f"refusing to write proposals to {resolved}: {protected} holds reviewed "
+                    "repository data, and this tool only produces proposals — choose an "
+                    "output directory outside it"
+                )
     return resolved
