@@ -834,16 +834,22 @@ def test_an_in_process_colliding_profile_resumes_under_the_reviewed_document(
 ) -> None:
     """The residual ADR 0002 accepts, pinned so the prose cannot drift off it.
 
-    The CLI cannot start this run — that is what the reviewed set is for — but the
-    loader still takes a path, so in-process code can. When such a profile declares
+    The CLI cannot *start* this run — that is what the reviewed set is for — but the
+    loader still takes a path, so in-process code can, and a checkpoint written by an
+    older build that accepted paths records no schema or tool-version marker, so a
+    resume can still reach this state through the CLI. When such a profile declares
     an id the reviewed set *does* contain, the resume rebuilds from that id and gets
     the reviewed document back: #94's substitution, surviving on the Python API.
 
     This is documented, not fixed. It resolves towards the reviewed document rather
-    than away from it, which is the safe direction, and closing it would mean
-    checkpointing a content hash — the option #94 weighed and this repository
-    rejected. The assertion exists so that "cannot be resumed" cannot be written in
-    the ADR again without a test going red.
+    than away from it, which is the safe direction for *provenance* — though not
+    necessarily the stricter one: the fixture here declares an ``accepted-claims``
+    threshold of 99 against the reviewed profile's 3, so the substitution loosens the
+    promotion bar. That stays bounded because promotion criteria drive a
+    recommendation, while acceptance is pinned by the unanimous review policy this
+    path never touches. Closing it would mean checkpointing a content hash — the
+    option #94 weighed and this repository rejected. The assertion exists so that
+    "cannot be resumed" cannot be written in the ADR again without a test going red.
     """
     custom = _custom_profile_file(tmp_path / "collides.json")
     unreviewed = load_long_tail_profile(custom)

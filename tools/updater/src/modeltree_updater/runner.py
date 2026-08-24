@@ -152,9 +152,14 @@ async def resume_creator_run(
     records, stops the run.
 
     Two limits, so this does not read as more than it is. A profile built in-process
-    from an arbitrary path — which the CLI cannot do, but the loader still allows —
-    may declare an id the reviewed set does contain, and that resume gets the
-    reviewed document rather than the one the run started with; see ADR 0002. And a
+    from an arbitrary path — which no newly started CLI run can do, though the loader
+    still allows it, and a checkpoint written by an older build that accepted paths
+    can still bring one back through this function, since checkpoints carry no schema
+    or tool-version marker — may declare an id the reviewed set does contain, and that
+    resume gets the reviewed document rather than the one the run started with. That
+    resolves towards a reviewed document, which is safe for *provenance*; it is not
+    necessarily the stricter document, so the substituted promotion criteria may be
+    looser than the ones the run started under. See ADR 0002. And a
     reviewed set that cannot be loaded at all, because the directory is missing or
     empty, surfaces as ``FileNotFoundError`` rather than ``ProfileMismatch``: that
     is a broken installation, not a disagreement about which profile applies. The

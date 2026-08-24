@@ -69,14 +69,29 @@ topics silently became the default's.
 - The residual, stated plainly: `load_long_tail_profile(path)` still accepts any path,
   because the loader's own failure modes are tested against temporary files. A test —
   or anything else running in-process — can therefore still build a profile the
-  reviewed set does not contain. It cannot be reached through the CLI. Resuming such a
-  run does not restore it either way, but the two cases differ and both are worth
-  stating: an id outside the reviewed set stops the resume with `ProfileMismatch`,
+  reviewed set does not contain. No **newly started** run reaches it through the CLI;
+  that is exactly what taking an id buys. Resume is the qualification: a checkpoint
+  records no schema or tool-version marker, so one written by an older build — when
+  `--long-tail-profile` still took a path — carries whatever id that unreviewed
+  document declared, and resuming it with today's CLI reaches the colliding case below
+  *through the CLI*. That is pre-#94 behaviour rather than a new hole, and the window
+  is narrow while the updater has never run end-to-end (#93), but it is not closed.
+  Resuming such a run does not restore the unreviewed document either way, and the two
+  cases differ: an id outside the reviewed set stops the resume with `ProfileMismatch`,
   while an id that **collides** with a reviewed one resumes silently under the
   *reviewed* document — #94's substitution, still reachable on the Python API. That is
   accepted rather than chased: the operator boundary is the enforcement point, and
-  resolving towards the reviewed document is the safe direction to fail. The colliding
-  case is pinned by
+  resolving towards the reviewed document is the safe direction for **provenance** —
+  you land on a document this repository reviewed. It is not necessarily the *stricter*
+  document, and the pinning test's own fixture is the counter-example: it declares an
+  `accepted-claims` threshold of 99 against the reviewed profile's 3, so the
+  substitution loosens the promotion bar rather than tightening it. What that can cost
+  is bounded, and belongs beside the correction: promotion criteria shape a
+  **recommendation**, not acceptance. Acceptance is pinned independently by the
+  unanimous 3-of-3 review policy, which this path does not touch. So the consequence is
+  a proposal recommended for promotion that a stricter profile would not have
+  recommended — not an unreviewed change reaching the dataset. The colliding case is
+  pinned by
   `test_an_in_process_colliding_profile_resumes_under_the_reviewed_document`, so this
   paragraph cannot quietly go stale.
 - The second residual, equally plain: this pins *which document* a resumed run reads, not
