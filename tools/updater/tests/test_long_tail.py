@@ -843,13 +843,16 @@ def test_an_in_process_colliding_profile_resumes_under_the_reviewed_document(
 
     This is documented, not fixed. It resolves towards the reviewed document rather
     than away from it, which is the safe direction for *provenance* — though not
-    necessarily the stricter one: the fixture here declares an ``accepted-claims``
-    threshold of 99 against the reviewed profile's 3, so the substitution loosens the
-    promotion bar. That stays bounded because promotion criteria drive a
-    recommendation, while acceptance is pinned by the unanimous review policy this
-    path never touches. Closing it would mean checkpointing a content hash — the
-    option #94 weighed and this repository rejected. The assertion exists so that
-    "cannot be resumed" cannot be written in the ADR again without a test going red.
+    necessarily the stricter one: the fixture here declares a single
+    ``accepted-claims`` criterion at 99, so the substitution lowers that bar to the
+    reviewed profile's 3 while adding the ``approved-sources`` and
+    ``escalated-mappings`` criteria the reviewed document also requires under
+    ``rule: "all"``. Strictness is not ordered between them. That stays bounded
+    because promotion criteria drive a recommendation, while acceptance is pinned by
+    the unanimous review policy this path never touches. Closing it would mean
+    checkpointing a content hash — the option #94 weighed and this repository
+    rejected. The assertion exists so that "cannot be resumed" cannot be written in
+    the ADR again without a test going red.
     """
     custom = _custom_profile_file(tmp_path / "collides.json")
     unreviewed = load_long_tail_profile(custom)

@@ -83,17 +83,21 @@ topics silently became the default's.
   accepted rather than chased: the operator boundary is the enforcement point, and
   resolving towards the reviewed document is the safe direction for **provenance** —
   you land on a document this repository reviewed. It is not necessarily the *stricter*
-  document, and the pinning test's own fixture is the counter-example: it declares an
-  `accepted-claims` threshold of 99 against the reviewed profile's 3, so the
-  substitution loosens the promotion bar rather than tightening it. What that can cost
-  is bounded, and belongs beside the correction: promotion criteria shape a
-  **recommendation**, not acceptance. Acceptance is pinned independently by the
-  unanimous 3-of-3 review policy, which this path does not touch. So the consequence is
-  a proposal recommended for promotion that a stricter profile would not have
-  recommended — not an unreviewed change reaching the dataset. The colliding case is
-  pinned by
+  document, and the pinning test's own fixture is the counter-example: it declares a
+  single `accepted-claims` criterion at 99, so the substitution lowers that bar to the
+  reviewed profile's 3 — while adding the `approved-sources` and `escalated-mappings`
+  criteria the reviewed document also requires under `rule: "all"`. Strictness is not
+  ordered between the two documents: the substitution can loosen one axis and tighten
+  another in the same move. What that can cost is bounded, and belongs beside the
+  correction: promotion criteria shape a **recommendation**, not acceptance.
+  Acceptance is pinned independently by the unanimous 3-of-3 review policy, which this
+  path does not touch. So the consequence is a proposal recommended for promotion that
+  the document the run started under would not have recommended, or the reverse — not
+  an unreviewed change reaching the dataset. The colliding case is pinned by
   `test_an_in_process_colliding_profile_resumes_under_the_reviewed_document`, so this
-  paragraph cannot quietly go stale.
+  paragraph cannot quietly go stale. It has already needed that: the first correction
+  of this bullet carried a smaller overclaim of its own on a different axis, which is
+  why these numbers name specific criteria rather than "the bar".
 - The second residual, equally plain: this pins *which document* a resumed run reads, not
   *what that document said when the run started*. Editing a reviewed profile in place
   between start and resume is not detected, because rejecting option 2 means there is no

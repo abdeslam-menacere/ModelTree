@@ -158,8 +158,9 @@ async def resume_creator_run(
     or tool-version marker — may declare an id the reviewed set does contain, and that
     resume gets the reviewed document rather than the one the run started with. That
     resolves towards a reviewed document, which is safe for *provenance*; it is not
-    necessarily the stricter document, so the substituted promotion criteria may be
-    looser than the ones the run started under. See ADR 0002. And a
+    necessarily the stricter document, and strictness is not ordered between the
+    two — the substituted promotion criteria can be looser on one criterion and
+    stricter on another than the ones the run started under. See ADR 0002. And a
     reviewed set that cannot be loaded at all, because the directory is missing or
     empty, surfaces as ``FileNotFoundError`` rather than ``ProfileMismatch``: that
     is a broken installation, not a disagreement about which profile applies. The
