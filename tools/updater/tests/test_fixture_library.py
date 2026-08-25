@@ -22,7 +22,8 @@ import pytest
 
 from modeltree_updater.profiles import (
     ProfileError,
-    _duplicate_key,
+    _DuplicateIdGuard,
+    _refuse_padded_id,
     _reviewed_profile_paths,
 )
 from modeltree_updater.providers import fixtures
@@ -63,7 +64,62 @@ def test_fixture_discovery_shares_one_implementation_with_the_reviewed_sets() ->
     a copy nobody was looking at. A fourth copy would restore exactly that.
     """
     assert fixtures._reviewed_profile_paths is _reviewed_profile_paths
-    assert fixtures._duplicate_key is _duplicate_key
+    assert fixtures._DuplicateIdGuard is _DuplicateIdGuard
+    assert fixtures._refuse_padded_id is _refuse_padded_id
+
+
+def test_a_fixture_id_padded_with_whitespace_is_refused(tmp_path) -> None:
+    """The whitespace rule reaches this loader too, because it is the same rule.
+
+    The long-tail set refused a padded id and the other two did not, which is the same
+    "one rule, three copies" divergence that let the duplicate check itself rot in this
+    file (#199). A fixture declaring `" acme-labs"` is refused here exactly as a
+    reviewed profile declaring it is, and for the same reason: the library is read by
+    exact lookup, so the document would answer to a string no run will ask for.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id=" acme-labs")
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    message = str(error.value)
+    assert "whitespace" in message
+    assert "acme.json" in message
+
+
+def test_two_fixture_ids_differing_only_in_whitespace_cannot_both_load(
+    tmp_path,
+) -> None:
+    """The reported defect, in the loader it was reported against.
+
+    At the merge base this directory produced a two-entry library and said nothing,
+    which in `mode=fixtures` is a green run carrying a proposal for a creator whose
+    twin was quietly dropped.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id="acme-labs")
+    _fixture_file(tmp_path / "other.json", creator_id="acme-labs ")
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    assert "whitespace" in str(error.value)
+
+
+def test_a_fixture_type_collision_is_not_reported_as_a_case_collision(
+    tmp_path,
+) -> None:
+    """`True` and `"true"` differ in type as well as case, and the message says so.
+
+    This loader restated the wording rather than sharing it, so it carried the same
+    false sentence as the other two. It is now one sentence, built in one place.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id=True)
+    _fixture_file(tmp_path / "other.json", creator_id="true")
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    assert "differing only in type and case" in str(error.value)
 
 
 def test_a_duplicate_creator_id_is_refused_and_names_both_files(tmp_path) -> None:
