@@ -271,4 +271,28 @@ describe('buildUsageEvidence', () => {
       );
     }
   });
+
+  it('keeps the seed readings of the two Llama 4 Scout repositories in separate groups', () => {
+    const seed = validateDataset(structuredClone(rawDataset));
+
+    // The two seeded readings share a metric and a unit, so population is the
+    // only thing separating them. Rewording those two strings into one would
+    // merge them into a single group and imply a combined total the sources
+    // never state, and no other assertion would notice.
+    expect(buildUsageEvidence(seed, 'meta-llama-4-scout', TODAY).groups).toHaveLength(2);
+  });
+
+  it('refuses a synthesis for every seeded group while one publisher supplies the evidence', () => {
+    const seed = validateDataset(structuredClone(rawDataset));
+    const observed = new Set(seed.usageObservations.map((observation) => observation.releaseId));
+
+    // Asserted through the threshold rather than by pinning usageSyntheses to
+    // [], so that adding a second independent publisher fails this test and
+    // asks a human to decide instead of freezing the empty state.
+    for (const releaseId of observed) {
+      for (const group of buildUsageEvidence(seed, releaseId, TODAY).groups) {
+        expect(group.canSynthesize).toBe(false);
+      }
+    }
+  });
 });
