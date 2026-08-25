@@ -66,7 +66,7 @@ the first row that matches.
 |---|---|---|
 | `DOCK.md` at the root | a dock worktree | Work only on that one issue |
 | no `DOCK.md`, and `git branch --show-current` reports the branch for the issue you were given | a dock worktree with no `DOCK.md` | Work only on that one issue; your brief is the issue plus whatever kicked off your session |
-| no `DOCK.md`, and `git branch --show-current` reports the repository's default branch | the main repo | Coordinate; don't implement features here |
+| no `DOCK.md`, and `git branch --show-current` reports the branch that `git symbolic-ref --short refs/remotes/origin/HEAD` names, which it prints as `origin/<branch>` | the main repo | Coordinate; don't implement features here |
 | no `DOCK.md`, and `git branch --show-current` reports nothing (detached HEAD) or a branch you can't tie to the issue you were given | the table can't tell | Don't guess. Treat whatever kicked off your session as authoritative, and record which you assumed (rule 3 below) |
 
 Do not use `drydock.config.json` as the test. It is tracked, so it is checked
@@ -74,14 +74,21 @@ out into every worktree including every dock, and a row keyed on it matches
 everywhere. The first row is the one that goes unmatched when there is no
 `DOCK.md` at your root; your branch then decides which of the rest applies.
 
+Where `git symbolic-ref --short refs/remotes/origin/HEAD` exits non-zero — a
+checkout carrying no remote-tracking refs is enough for that — the default
+branch is not discoverable here, so the main-repo row cannot match and the row
+that says the table can't tell is the one that applies. Do not put the name
+`main` in place of the command: in a repository whose default branch was
+renamed, that reads the main-repo row as matching when it does not.
+
 ## Working in a dock
 
 1. **One issue only.** A bug, refactor, or missing test unrelated to your issue
    goes under `## Follow-ups` in `DOCK.md` if this worktree has one; otherwise it
    goes in the summary you post to the issue (see **Finishing**). Either way it is
-   a proposed new issue, and those are its only two destinations: never record it
-   in this file, because anything appended here reads to the next agent as
-   sanctioned practice. Do not fix it.
+   a proposed new issue, and it goes nowhere else: never record it in this
+   file, because anything appended here reads to the next agent as sanctioned
+   practice. Do not fix it.
    Out-of-scope changes fail review — this is the most common failure by far.
 2. **Stay inside the worktree.** Sibling directories are other docks with other
    agents actively working. Never read or modify anything outside your root.
@@ -112,8 +119,10 @@ core of the product.
 - Do not edit `.drydock/docks/*.json` by hand. Do not hand-write a gate receipt
   into a PR body.
 - A verdict may be recorded by an agent, attributed `agent:<role>` via the
-  `DRYDOCK_ACTOR` environment variable. (`drydock gate --as` is not a flag
-  today, and unknown flags are ignored rather than rejected.) It is only worth
+  `DRYDOCK_ACTOR` environment variable. (Set that variable; do not substitute
+  a `drydock gate` flag such as `--as` for it. What flags that command accepts
+  is what `drydock gate --help` reports, and where the CLI is absent nothing
+  does, so do not assume an unrecognised flag is harmless.) It is only worth
   something if the reviewer and QA agents never saw the developer's summary or
   session — issue text and `git diff` only. Do not review your own work.
 
@@ -122,7 +131,9 @@ core of the product.
 Post a summary containing: what changed in one paragraph, every file touched and
 why, real test output, every assumption made, and anything you deliberately did
 **not** do and why. Post it to the issue as well as to the session — with no
-human watching the loop, the comment trail is the only oversight there is.
+human watching the loop, the comment trail is what a later reader has to
+reconstruct your work from, and the reviewer and QA gates are oversight in
+their own right.
 
 Then stop and hand off to the review gate. Whether that gate is run by a human
 or by a reviewer agent is set by this repo's configuration; either way it is not
