@@ -1,0 +1,267 @@
+"""Fixture discovery obeys the same rule as the two reviewed sets, and refuses.
+
+`providers/fixtures.py` was the third loader to decide for itself which files in a
+directory are documents, and the only one with no duplicate check at all: two fixture
+files declaring one creator id left one entry in the library and said nothing. That it
+loads *test doubles* is the argument for closing it, not against. `mode=fixtures` is the
+mode the publisher workflow dispatches, so a dropped fixture creator does not turn a run
+red — it produces a green run carrying fewer proposals than the author wrote.
+
+These tests hold down that the rule is **shared** rather than restated (#108, #151), and
+that widening what is refused never widens what an id matches.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+from modeltree_updater.profiles import (
+    ProfileError,
+    _duplicate_key,
+    _reviewed_profile_paths,
+)
+from modeltree_updater.providers import fixtures
+from modeltree_updater.providers.base import ProviderError
+from modeltree_updater.providers.fixtures import load_fixture_library
+
+
+def _fixture_file(path: Path, *, creator_id: Any, creator_name: str = "Fixture Co") -> Path:
+    """One minimal creator fixture: the smallest document this loader accepts."""
+    document = {
+        "creator": {
+            "creator_id": creator_id,
+            "creator_name": creator_name,
+            "entry_urls": ["https://www.example.com/fixture/releases"],
+        },
+        "sources": [],
+    }
+    path.write_text(json.dumps(document), encoding="utf-8")
+    return path
+
+
+def _deep_hash(payload: Any) -> str:
+    """A hash over everything a document carries, not just how much of it.
+
+    A count agrees with itself while the contents change underneath, which is the
+    failure mode a discovery change is most likely to produce.
+    """
+    encoded = json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def test_fixture_discovery_shares_one_implementation_with_the_reviewed_sets() -> None:
+    """The sharing is the fix, so it is pinned rather than left to convention.
+
+    Three copies of one rule is how the defect survived two fixes: #108 corrected
+    `longtail.py`, #151 corrected `profiles.py` and made those two share an
+    implementation, and this loader kept the original defect throughout because it held
+    a copy nobody was looking at. A fourth copy would restore exactly that.
+    """
+    assert fixtures._reviewed_profile_paths is _reviewed_profile_paths
+    assert fixtures._duplicate_key is _duplicate_key
+
+
+def test_a_duplicate_creator_id_is_refused_and_names_both_files(tmp_path) -> None:
+    """Two files, one id: refused by name, where before the second quietly won.
+
+    The refusal names both files because "duplicate creator id" is useless to someone
+    who then has to grep a directory to find out which two documents collided.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id="acme-labs")
+    _fixture_file(tmp_path / "acme-copy.json", creator_id="acme-labs")
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    message = str(error.value)
+    assert "duplicate creator id" in message
+    assert "'acme-labs'" in message
+    assert "acme.json" in message and "acme-copy.json" in message
+
+
+def test_two_creator_ids_differing_only_in_case_are_one_id(tmp_path) -> None:
+    """Two ids a reader would call the same name collide, and the refusal says so.
+
+    The message has to name both declared strings and say "case", because "duplicate"
+    is baffling in front of two ids that do not look alike.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id="acme-labs")
+    _fixture_file(tmp_path / "other.json", creator_id="Acme-Labs")
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    message = str(error.value)
+    assert "duplicate creator id" in message
+    assert "case" in message
+    assert "'acme-labs'" in message and "'Acme-Labs'" in message
+    assert "acme.json" in message and "other.json" in message
+
+
+def test_two_fixtures_whose_ids_are_one_dict_key_are_refused(tmp_path) -> None:
+    """Folding case does not replace comparing the declared ids, so both are guarded.
+
+    `True` and `1` fold to different strings while being the same dict key. Guarding on
+    the folded key alone would miss the collision and let the second document overwrite
+    the first — one entry in the library for two documents on disk, with nothing said.
+    Whether such an id should be rejected for being non-string is a separate question,
+    and not this one.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id=True)
+    _fixture_file(tmp_path / "other.json", creator_id=1)
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    assert "duplicate creator id" in str(error.value)
+
+
+def test_two_creator_ids_differing_by_more_than_case_are_two_fixtures(tmp_path) -> None:
+    """Regression pin: passes before and after the fix, and is kept deliberately.
+
+    Folding refuses strictly more than comparing exact strings does, so it needs a
+    guard against refusing ids that are genuinely distinct. This asserts the widening
+    stopped where it was meant to.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id="acme-labs")
+    _fixture_file(tmp_path / "other.json", creator_id="acme-labs-research")
+
+    library = load_fixture_library(tmp_path)
+
+    assert library.creator_ids == ("acme-labs", "acme-labs-research")
+
+
+def test_the_lookup_stays_exact_although_the_collision_check_folds(tmp_path) -> None:
+    """Regression pin: passes before and after, and is the pin that matters most.
+
+    Widening what is *refused* is monotone and safe; widening what an id *matches* is
+    not. Before this change there was no folding to leak, so the property held for
+    free — the pin exists because folding was just introduced next to the lookup, and
+    if it ever leaked in, a run would start resolving ids that should be unknown. That
+    is a silent success in place of a loud refusal: the same defect class this change
+    removes, pointed the other way.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id="Acme-Labs")
+
+    library = load_fixture_library(tmp_path)
+
+    assert library.creator_ids == ("Acme-Labs",)
+    assert "acme-labs" not in library.creators
+    with pytest.raises(ProviderError):
+        library.document("acme-labs")
+    assert library.document("Acme-Labs")["creator"]["creator_id"] == "Acme-Labs"
+
+
+def test_a_case_variant_extension_is_refused_rather_than_silently_ignored(tmp_path) -> None:
+    """`acme.JSON` is a fixture on Windows and absent on Linux, so it is refused.
+
+    Matching lowercase alone would make the platforms agree, but agree on silence: the
+    author still has a file that is not a fixture and no reason why. The refusal names
+    the file and the suffix it actually has.
+    """
+    _fixture_file(tmp_path / "keeper.json", creator_id="keeper")
+    _fixture_file(tmp_path / "acme.JSON", creator_id="acme-labs")
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    message = str(error.value)
+    assert "acme.JSON" in message
+    assert "'.JSON'" in message
+
+
+def test_a_neighbour_that_was_never_a_fixture_is_still_ignored(tmp_path) -> None:
+    """The refusal is narrow: only a file plainly meant to be a fixture trips it.
+
+    Regression pin — a `.txt` neighbour was ignored by the old `glob("*.json")` too.
+    It is here because the case-variant refusal above is the kind of tightening that
+    over-reaches, and a directory holding a README must keep loading.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id="acme-labs")
+    (tmp_path / "README.md").write_text("how these fixtures work", encoding="utf-8")
+    (tmp_path / "notes.txt").write_text("not a fixture", encoding="utf-8")
+
+    library = load_fixture_library(tmp_path)
+
+    assert library.creator_ids == ("acme-labs",)
+
+
+def test_a_dot_prefixed_fixture_is_not_part_of_the_working_set(tmp_path) -> None:
+    """A leading dot is the author saying "not part of the working set", and is honoured.
+
+    `glob("*.json")` matched dot-prefixed names on every platform, so a file an author
+    had deliberately set aside was loaded anyway — and, being a fixture, was loaded into
+    a run rather than into a review.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id="acme-labs")
+    _fixture_file(tmp_path / ".draft.json", creator_id="draft-labs")
+
+    library = load_fixture_library(tmp_path)
+
+    assert library.creator_ids == ("acme-labs",)
+
+
+def test_the_leading_dot_is_judged_before_the_extension(tmp_path) -> None:
+    """`.draft.JSON` is skipped for its dot, not refused for its case.
+
+    The two rules could disagree about one file, so the order is pinned rather than
+    left to whichever branch happens to come first. Honouring a stated intent beats
+    correcting an incidental one.
+
+    Non-vacuity is platform-dependent here, and deliberately reported as such: on a
+    case-insensitive filesystem the pre-fix loader loaded this file, so it fails
+    before the change; on Linux the pre-fix `glob("*.json")` never matched it, so
+    there it is a regression pin rather than new coverage.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id="acme-labs")
+    _fixture_file(tmp_path / ".draft.JSON", creator_id="draft-labs")
+
+    library = load_fixture_library(tmp_path)
+
+    assert library.creator_ids == ("acme-labs",)
+
+
+def test_a_directory_named_like_a_fixture_is_not_a_document(tmp_path) -> None:
+    """`archive.json/` was globbed and handed to the parser, which is nobody's answer.
+
+    Refusing it for its extension and reading it as a document are both wrong answers
+    to something that was never a file.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id="acme-labs")
+    (tmp_path / "archive.json").mkdir()
+
+    library = load_fixture_library(tmp_path)
+
+    assert library.creator_ids == ("acme-labs",)
+
+
+def test_the_shipped_fixture_library_still_loads_every_document(fixture_dir) -> None:
+    """Regression pin: the tightening must not drop or alter anything already on disk.
+
+    Checked against the directory read independently of the loader, and by deep hash
+    per document rather than by a count — a count agrees with itself while the contents
+    change underneath. Written this way rather than as a pinned literal so that adding
+    a fixture does not break it, while a fixture silently vanishing still does.
+    """
+    on_disk = {}
+    for path in sorted(fixture_dir.iterdir()):
+        if path.suffix != ".json" or not path.is_file():
+            continue
+        document = json.loads(path.read_text(encoding="utf-8"))
+        on_disk[document["creator"]["creator_id"]] = _deep_hash(document)
+
+    library = load_fixture_library(fixture_dir)
+
+    assert set(library.creators) == set(on_disk), "a fixture on disk is not in the library"
+    assert set(library.documents) == set(on_disk)
+    assert {
+        creator_id: _deep_hash(document)
+        for creator_id, document in library.documents.items()
+    } == on_disk
+    for creator_id, request in library.creators.items():
+        assert request.creator_id == creator_id
