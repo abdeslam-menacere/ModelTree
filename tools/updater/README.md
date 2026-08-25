@@ -77,9 +77,24 @@ is the defect #102 fixed. Every enclosing checkout is checked, not just the near
 so a scratch clone or linked worktree sitting under `web/` cannot become the root and
 take the real `web/` out of scope. Outside any checkout — `--output ~/proposals`, say
 — no marker is found and the write is allowed, because there is no reviewed repository
-data there to protect; the residual is a tree that holds a copy of `web/` while
-carrying none of the markers, such as an unpacked archive, which is not recognised as
-a checkout.
+data there to protect. An export that kept the source layout is not part of that gap:
+`drydock.config.json`, `tools/updater/pyproject.toml` and `web/src/data` are tracked
+files, so a `git archive` or a source zip carries three of the four markers and is
+detected even with no `.git`. The residual is narrower still than "a stray copy of
+`web/`" suggests, because `web/src/data` is itself one of the markers: a faithful copy
+of `web/` brings that marker along and is detected one level up. What is left is a
+`web/` directory carrying none of the four — one belonging to an unrelated project
+that is not a git checkout, or a partial copy of this repository's `web/` that did not
+bring `src/data` with it, such as an assets-only extract or a copy of the build output.
+
+Making `.git` a marker also widened the guard's reach, and that is intended rather than
+a bug. `--output` anywhere under any git repository's `web/` is refused, including
+repositories with no connection to ModelTree, so an unrelated site of your own with a
+`web/` directory is no longer a usable output target. The asymmetry is the point: a
+marker that matches a tree which is not ModelTree costs one loud refusal naming the
+remedy, while a marker that misses a tree which is ModelTree costs a silent write into
+reviewed data. A path that used to work and now refuses needs an output directory
+outside that repository, not a way around the guard.
 
 Exit codes: `0` success, `2` usage or configuration error, `3` at least one creator failed,
 `4` at least one creator could not be published.
