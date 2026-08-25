@@ -38,7 +38,19 @@ REPOSITORY_MARKERS: tuple[tuple[str, ...], ...] = (
 
 
 class ProposalOnlyViolation(RuntimeError):
-    """Raised when an operation would leave the proposal-only boundary."""
+    """Raised when this tool refuses to write where it was asked to.
+
+    The rule is an exclusion, not a containment. Nothing confines this tool to a
+    proposal area it has to stay inside: `assert_proposal_output_path` refuses
+    `PROTECTED_RELATIVE_PATHS` — `web/` — in every enclosing checkout, and leaves
+    the rest writable by design, `.github/`, `docs/`, `tools/`, and the checkout
+    root included, because proposals and checkpoints have to land somewhere.
+
+    The CLI raises this same type for a second, narrower refusal: an id whose
+    shape could steer a write out of the chosen output directory. That one is
+    about a name, not about a protected region, and it does not widen the rule
+    above.
+    """
 
 
 def find_repository_roots(start: Path | None = None) -> tuple[Path, ...]:
