@@ -16,15 +16,33 @@
 //
 // Where trust comes from, and why neither anchor is writable by the run:
 //
-//   1. `web/src/data/sources.json` **as committed at `--base`** - every source
-//      that reached the base ref did so through a merged, reviewed change.
-//      Read from git, never from the working tree, because the working tree is
-//      what the run is about to write. Reading the file on disk would let a run
-//      apply its own patch and then be approved by it, which does not close the
+//   1. `web/src/data/sources.json` **as committed at the anchor commit** - every
+//      source that reached it did so through a merged, reviewed change. Read
+//      from git, never from the working tree, because the working tree is what
+//      the run is about to write. Reading the file on disk would let a run apply
+//      its own patch and then be approved by it, which does not close the
 //      circle, it just moves it.
 //   2. `tools/updater/profiles/**/*.json` `source_catalog[].url` - the reviewed
 //      catalogues. `gate-scope.mjs` refuses any change touching
 //      `tools/updater/`, so a refresh cannot edit this anchor at all.
+//
+// **Which commit is the anchor is not the run's choice to make.** Anchor 2 is
+// unforgeable because the scope gate bars the path outright, but anchor 1 is a
+// file the refresh is explicitly allowed to patch; the only thing that makes it
+// safe is being read at a commit the run did not author. So the anchor is
+// computed, not supplied: `git merge-base HEAD refs/remotes/origin/main`, the
+// point at which this branch left published history. A run that commits its
+// source and then invokes the gate moves `HEAD`, but the merge base stays where
+// it was, so the committed-then-cited source is not in the anchor tree and is
+// refused exactly as an uncommitted one is. Defaulting the anchor to `HEAD`
+// would have left the whole gate resting on the caller passing the right ref,
+// and the caller is the agent under test.
+//
+// `refs/remotes/origin/main` is what the remote says `main` is. A run cannot
+// move it without pushing to a protected branch, which is the auditable path ADR
+// 0003 asks for. A stale one only moves the anchor *backwards*, which narrows
+// trust and is safe; a missing one - a shallow or single-branch clone - is a
+// gate that cannot run, so it exits 2 rather than guessing.
 //
 // Trust attaches to an **origin** (scheme + host), not to a URL, exactly as the
 // Python side's `is_newly_discovered` does. A creator announcing a new model on
@@ -49,15 +67,18 @@
 // Usage:
 //   node gate-source-approval.mjs --claims <path> [--base <ref>] [--repo <dir>] [--json]
 //
-// `--base` names a git ref, not a file: it defaults to `HEAD` and selects the
-// committed tree the run started from. Pass the merge base when gating a branch
-// that already carries the run's commit. It is not a bypass - moving the anchor
-// means committing the source to a ref first, which is the auditable path ADR
-// 0003 asks for. There is no `--force`, no `--skip`, and no environment
-// variable; an unrecognised flag exits 2.
+// `--base` is optional and can only ever **narrow**. The anchor is the merge
+// base with `refs/remotes/origin/main` whether or not it is passed; supplying it
+// pins an older commit that is already an ancestor of that merge base, which is
+// useful for re-gating an older bundle. A ref that is not an ancestor of the
+// merge base - anything this branch authored, `HEAD` included - exits 2. Making
+// the flag *required* rather than narrowing would not have helped: a required
+// value is still a value the agent under test supplies. There is no `--force`,
+// no `--skip`, and no environment variable; an unrecognised flag exits 2.
 //
 // Exit 0 = every citation rests on inherited trust. Exit 1 = at least one does
-// not. Exit 2 = the gate could not run, which is never treated as a pass.
+// not, or the bundle is malformed in a way that hides whether it does. Exit 2 =
+// the gate could not run, which is never treated as a pass.
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
@@ -66,6 +87,10 @@ import { fileURLToPath } from 'node:url';
 
 const DATASET_SOURCES = 'web/src/data/sources.json';
 const PROFILE_DIR = 'tools/updater/profiles';
+
+// What the remote says `main` is. Not a local branch: a local `main` is a ref
+// this working copy can move, and an anchor the run can move is not an anchor.
+const PUBLISHED_REF = 'refs/remotes/origin/main';
 
 const GATE = 'source-approval';
 
@@ -76,12 +101,24 @@ function fail(message, where) {
 }
 
 function parseArgs(argv) {
-  const args = { claims: null, base: 'HEAD', repo: null, json: false, help: false };
+  // `base` starts as null, not `HEAD`: absence must not be the most permissive
+  // setting, and here it resolves to the merge base rather than to the run's own
+  // commit. `null` means "not supplied" and is distinct from a supplied but
+  // unusable value, which exits 2.
+  const args = { claims: null, base: null, repo: null, json: false, help: false };
+  const value = (i, flag) => {
+    const next = argv[i];
+    if (typeof next !== 'string' || next.length === 0) {
+      process.stderr.write(`gate-source-approval: ${flag} needs a value\n`);
+      process.exit(2);
+    }
+    return next;
+  };
   for (let i = 2; i < argv.length; i += 1) {
     const flag = argv[i];
-    if (flag === '--claims') args.claims = argv[++i];
-    else if (flag === '--base') args.base = argv[++i];
-    else if (flag === '--repo') args.repo = argv[++i];
+    if (flag === '--claims') args.claims = value(++i, '--claims');
+    else if (flag === '--base') args.base = value(++i, '--base');
+    else if (flag === '--repo') args.repo = value(++i, '--repo');
     else if (flag === '--json') args.json = true;
     else if (flag === '--help' || flag === '-h') args.help = true;
     else {
@@ -90,6 +127,60 @@ function parseArgs(argv) {
     }
   }
   return args;
+}
+
+/**
+ * The commit the anchors are read at, and the one decision in this gate that
+ * the run is not allowed to make.
+ *
+ * It is the merge base of `HEAD` with the published `main`: the last commit
+ * this branch shares with reviewed history. Committing a source only moves
+ * `HEAD`, never the merge base, so commit-then-gate buys the run nothing.
+ *
+ * A caller-supplied `--base` may only narrow - it has to be an ancestor of that
+ * merge base, so it can pin something older and reviewed but can never select
+ * anything this branch authored.
+ */
+function resolveAnchor(cwd, requested) {
+  let published;
+  try {
+    published = git(cwd, 'rev-parse', '--verify', `${PUBLISHED_REF}^{commit}`).trim();
+  } catch {
+    throw new Error(
+      `cannot resolve ${PUBLISHED_REF}, so there is no published history to anchor trust in. `
+      + `A shallow or single-branch clone will do this; fetch main before gating`,
+    );
+  }
+
+  let anchor;
+  try {
+    anchor = git(cwd, 'merge-base', 'HEAD', published).trim();
+  } catch {
+    throw new Error(`HEAD shares no history with ${PUBLISHED_REF} (${published.slice(0, 10)})`);
+  }
+  if (anchor.length === 0) throw new Error(`no merge base between HEAD and ${PUBLISHED_REF}`);
+
+  if (requested === null) return { anchor, published, requested: null };
+
+  let pinned;
+  try {
+    pinned = git(cwd, 'rev-parse', '--verify', `${requested}^{commit}`).trim();
+  } catch {
+    throw new Error(`--base ${requested} is not a commit in this repository`);
+  }
+  try {
+    // `--is-ancestor` exits non-zero when it does not hold, which throws here.
+    // A commit is its own ancestor, so pinning the merge base itself is allowed.
+    git(cwd, 'merge-base', '--is-ancestor', pinned, anchor);
+  } catch {
+    throw new Error(
+      `--base ${requested} (${pinned.slice(0, 10)}) is not an ancestor of the merge base with `
+      + `${PUBLISHED_REF} (${anchor.slice(0, 10)}), so it is not trust this run inherited. `
+      + `--base may only narrow the anchor to an older reviewed commit, never widen it to one `
+      + `this branch authored`,
+    );
+  }
+  return { anchor: pinned, published, requested };
 }
 
 /** The repository root, found from this script's own location. */
@@ -222,10 +313,6 @@ function main() {
     process.stderr.write('gate-source-approval: --claims <path> is required\n');
     return 2;
   }
-  if (typeof args.base !== 'string' || args.base.length === 0) {
-    process.stderr.write('gate-source-approval: --base needs a git ref\n');
-    return 2;
-  }
 
   const cwd = args.repo ? resolve(args.repo) : repoRoot();
   if (!existsSync(cwd)) {
@@ -256,15 +343,18 @@ function main() {
     return 2;
   }
 
+  let anchor;
   let baseline;
   let catalog;
   try {
-    baseline = datasetAnchor(cwd, args.base);
-    catalog = catalogAnchor(cwd, args.base);
+    anchor = resolveAnchor(cwd, args.base);
+    baseline = datasetAnchor(cwd, anchor.anchor);
+    catalog = catalogAnchor(cwd, anchor.anchor);
   } catch (error) {
     process.stderr.write(`gate-source-approval: ${error.message}\n`);
     return 2;
   }
+  const anchorAt = anchor.anchor.slice(0, 10);
 
   const approvedOrigins = new Set();
   for (const record of baseline.values()) {
@@ -280,7 +370,7 @@ function main() {
   // would refuse every citation for the wrong reason. Neither is a pass.
   if (approvedOrigins.size === 0) {
     process.stderr.write(
-      `gate-source-approval: no approved origin at ${args.base} - neither ${DATASET_SOURCES} nor `
+      `gate-source-approval: no approved origin at ${anchorAt} - neither ${DATASET_SOURCES} nor `
       + `${PROFILE_DIR} yielded one, so there is nothing to check against\n`,
     );
     return 2;
@@ -310,14 +400,41 @@ function main() {
   let citations = 0;
 
   bundle.claims.forEach((claim, index) => {
-    if (claim === null || typeof claim !== 'object') return;
+    // Malformed shapes are refused rather than skipped. Skipping them would make
+    // absence the most permissive input in a gate whose whole subject is what a
+    // run may leave out - a missing `sourceId` already refuses, so a missing
+    // `evidence` must too. `gate-evidence.mjs` happens to refuse these as well,
+    // but that is a coincidence of ordering, and a gate that is only closed
+    // because another one runs first is not closed.
+    if (claim === null || typeof claim !== 'object' || Array.isArray(claim)) {
+      fail(
+        'is not a claim object, so whether it rests on an approved source cannot be established',
+        `claim:#${index}`,
+      );
+      return;
+    }
     const where = `claim:${claim.id ?? `#${index}`}`;
-    if (!Array.isArray(claim.evidence)) return;
+    if (!Array.isArray(claim.evidence)) {
+      fail(
+        'has no evidence array, so there is nothing to bind to an approved source; an explicitly '
+        + 'empty one is a different thing and is left to gate-evidence to judge',
+        where,
+      );
+      return;
+    }
 
     claim.evidence.forEach((item, position) => {
-      if (item === null || typeof item !== 'object' || Array.isArray(item)) return;
       const at = `${where}#evidence[${position}]`;
       citations += 1;
+
+      if (item === null || typeof item !== 'object' || Array.isArray(item)) {
+        fail(
+          `is ${item === null ? 'null' : Array.isArray(item) ? 'an array' : `a ${typeof item}`} `
+          + `rather than an evidence object, so the source it rests on cannot be identified`,
+          at,
+        );
+        return;
+      }
 
       const sourceId = item.sourceId;
       if (typeof sourceId !== 'string' || sourceId.length === 0) {
@@ -330,7 +447,7 @@ function main() {
       const record = baseline.get(sourceId);
       if (proposal === undefined && record === undefined) {
         fail(
-          `rests on source "${sourceId}", which is neither in the dataset at ${args.base} nor `
+          `rests on source "${sourceId}", which is neither in the dataset at ${anchorAt} nor `
           + `proposed by this bundle, so nothing approved it`,
           at,
         );
@@ -377,7 +494,19 @@ function main() {
     bundle: bundlePath,
     runId: bundle.runId ?? null,
     creator: bundle.creator ?? null,
-    base: args.base,
+    // Not just which commit, but how it was arrived at. A human reading the pull
+    // request has to be able to see that the anchor was the merge base with
+    // published history rather than something the run picked.
+    base: anchor.anchor,
+    anchor: {
+      commit: anchor.anchor,
+      publishedRef: PUBLISHED_REF,
+      publishedCommit: anchor.published,
+      selectedBy: anchor.requested === null
+        ? `merge-base with ${PUBLISHED_REF}`
+        : `--base ${anchor.requested}, narrowed from the merge-base with ${PUBLISHED_REF}`,
+      requestedBase: anchor.requested,
+    },
     anchors: {
       datasetSources: baseline.size,
       profileCatalogues: catalog.files.length,
@@ -396,8 +525,9 @@ function main() {
   } else if (failures.length === 0) {
     process.stdout.write(
       `gate-source-approval: ${citations} citation(s) rest on approved sources `
-      + `(${inherited.size} inherited from the dataset at ${args.base}, ${proposed.size} proposed `
-      + `on ${approvedOrigins.size} already-trusted origin(s))\n`,
+      + `(${inherited.size} inherited from the dataset at ${anchorAt}, the merge base with `
+      + `${PUBLISHED_REF}; ${proposed.size} proposed on ${approvedOrigins.size} already-trusted `
+      + `origin(s))\n`,
     );
   } else {
     process.stdout.write(`gate-source-approval: ${failures.length} failure(s)\n`);
