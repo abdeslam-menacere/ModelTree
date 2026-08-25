@@ -79,25 +79,36 @@ topics silently became the default's.
   Resuming such a run does not restore the unreviewed document either way, and the two
   cases differ: an id outside the reviewed set stops the resume with `ProfileMismatch`,
   while an id that **collides** with a reviewed one resumes silently under the
-  *reviewed* document — #94's substitution, still reachable on the Python API. That is
-  accepted rather than chased: the operator boundary is the enforcement point, and
-  resolving towards the reviewed document is the safe direction for **provenance** —
-  you land on a document this repository reviewed. It is not necessarily the *stricter*
-  document, and the pinning test's own fixture is the counter-example: it declares a
-  single `accepted-claims` criterion at 99, so the substitution lowers that bar to the
-  reviewed profile's 3 — while adding the `approved-sources` and `escalated-mappings`
-  criteria the reviewed document also requires under `rule: "all"`. Strictness is not
+  *reviewed* document — #94's substitution, reachable in-process on the Python API and,
+  through a pre-#94 checkpoint, on resume through the CLI as well. That is accepted
+  rather than chased — but not on the grounds that the operator boundary is the
+  enforcement point, because resume is precisely the case where that boundary does not
+  hold. It is accepted on what the substitution can reach, which the rest of this bullet
+  sets out: a recommendation, never acceptance. Resolving towards the reviewed document
+  is separately the safe direction for **provenance** — you land on a document this
+  repository reviewed. It is not necessarily the *stricter* document, and the pinning
+  test's own fixture is the counter-example: it declares a single `accepted-claims`
+  criterion at 99, so the substitution lowers that bar to the reviewed profile's 3 —
+  while adding the `approved-sources` and `escalated-mappings` criteria the reviewed
+  document also requires under `rule: "all"`. Strictness is not
   ordered between the two documents: the substitution can loosen one axis and tighten
   another in the same move. What that can cost is bounded, and belongs beside the
   correction: promotion criteria shape a **recommendation**, not acceptance.
   Acceptance is pinned independently by the unanimous 3-of-3 review policy, which this
   path does not touch. So the consequence is a proposal recommended for promotion that
   the document the run started under would not have recommended, or the reverse — not
-  an unreviewed change reaching the dataset. The colliding case is pinned by
-  `test_an_in_process_colliding_profile_resumes_under_the_reviewed_document`, so this
-  paragraph cannot quietly go stale. It has already needed that: the first correction
-  of this bullet carried a smaller overclaim of its own on a different axis, which is
-  why these numbers name specific criteria rather than "the bar".
+  an unreviewed change reaching the dataset.
+  `test_an_in_process_colliding_profile_resumes_under_the_reviewed_document` pins the
+  behavioural half of that, and only that half: a resume in this state ends up under the
+  reviewed document rather than the unreviewed one. It pins *which document is read*. It
+  asserts nothing about thresholds, criteria counts, or which way the promotion bar
+  moves, so it cannot hold the strictness comparison above upright. Those thresholds are
+  read off that test's fixture and the reviewed profile, and no assertion holds either at
+  its value: lower the fixture's and the test stays green while the comparison here
+  quietly goes false. Check them against those two documents rather than against a green
+  run. The strictness reading they support was reached in review, by reading the fixture
+  against the evaluator, which is why this bullet names specific criteria rather than
+  "the bar".
 - The second residual, equally plain: this pins *which document* a resumed run reads, not
   *what that document said when the run started*. Editing a reviewed profile in place
   between start and resume is not detected, because rejecting option 2 means there is no
