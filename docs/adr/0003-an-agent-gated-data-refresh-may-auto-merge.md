@@ -34,9 +34,11 @@ requirement — for two independent reasons, either of which is sufficient.
   writes ModelTree JSON, creates a branch, or opens a pull request, and
   `tools/updater/tests/test_proposal_only.py` enforces that as a structural
   property of the source tree rather than a convention. Its publisher workflow,
-  `publish-updater-proposals.yml`, is `workflow_dispatch` only and holds
-  `contents: read, issues: write`, so it cannot commit even if asked. That
-  constraint is deliberate and this ADR does not weaken it.
+  `publish-updater-proposals.yml`, is `workflow_dispatch` only and holds exactly
+  `contents: read`, `issues: write`, and `id-token: write` — the last mints the
+  Entra workload-identity token and grants no repository write — so it cannot
+  commit even if asked. That constraint is deliberate and this ADR does not
+  weaken it.
 - **It has never run end to end.** It is blocked on #93 — no Azure Foundry or
   Entra configuration exists, and `gh variable list` and `gh secret list` are both
   empty — and on #139. Fixing both would produce a working *proposal* pipeline,
@@ -65,22 +67,54 @@ satisfy any one of them does not merge:
   provenance and direct source support; cross-source and lineage consistency;
   editorial correctness and entity-boundary discipline. Each sees the claim and
   its fetched evidence only: not the scout's rationale, and not another
-  reviewer's verdict. Acceptance is 2-of-3. Every verdict and rationale is carried
-  into the pull request body, so the reasoning is reviewable after the fact even
-  though nobody reviewed it before.
+  reviewer's verdict. Acceptance is **2-of-3 for a creator with a reviewed
+  profile and unanimous 3-of-3 for a long-tail creator**, which is ADR 0002's
+  threshold and ADR 0002's reasoning: far less is known about a creator nobody
+  has reviewed, so a single dissent should be enough to hold a claim back. The
+  publishing path does not get a lower bar than the proposal-only path. Every
+  verdict and rationale is carried into the pull request body, so the reasoning
+  is reviewable after the fact even though nobody reviewed it before.
 - **Deterministic gates, which cannot be outvoted.** They run *after* review and
   no number of accepts overrides one failure: unsafe URLs, malformed records,
   impossible or future dates, broken entity references, lineage violations,
-  entity-boundary violations, and any attempt to introduce a composite or
-  universal score. The final hard gate is `npm run validate` from `web/` against
-  the patched dataset. A rejected claim is dropped and the remainder re-validated,
-  so a bad claim costs itself and not the run.
+  entity-boundary violations, **every claim bound to an approved source**, and
+  any attempt to introduce a composite or universal score. The final hard gate is
+  `npm run validate` from `web/` against the patched dataset. A rejected claim is
+  dropped and the remainder re-validated, so a bad claim costs itself and not the
+  run.
+
+  The approved-source binding is `tools/updater/`'s `source-approval` gate
+  (`gates.py`), and it is required here rather than assumed because the dataset
+  validator cannot stand in for it. `sources.json` is itself part of the dataset
+  the run may patch, and `validateDataset` checks `sourceIds` *referentially* —
+  that every cited id resolves to a record in the dataset. A run that adds a
+  source record and cites it therefore satisfies referential integrity while
+  citing something nobody approved. `npm run validate` catches a claim with **no**
+  source; only this gate catches a claim whose source the run invented for it.
 - **GitHub, not the agent, performs the merge.** `gh pr merge --auto --squash`
   hands the decision to the repository: the merge happens when `web-ci` is green
   and not before. The skill does not poll and then merge, and it never pushes to
   `main`. After merge it confirms the Pages deployment and reverts the merge
   commit if the deploy failed. Every run files a summary issue; a run that changed
   nothing files one and closes it immediately.
+
+**Adopting this ADR does not enable the automation.** It states the terms on
+which the automation may be enabled, and there are three preconditions, none of
+which this document can apply to itself:
+
+1. `allow_auto_merge` is enabled and `main` is protected with `web-ci` as a
+   required status check. These are settings, and ADR 0001 keeps them explicit
+   owner actions.
+2. The skill set's deterministic gates enforce the approved-source binding above.
+   As of this ADR they do not — see the divergence bullet under `### Costs` — so
+   this precondition is open, and it is a gap to close in #146 rather than a cost
+   accepted here.
+3. Review thresholds are per-profile as stated above, not flat.
+
+Until all three hold, this ADR authorises nothing to merge. That is the ordinary
+reading of the permissive-divergence guardrail below rather than an exception to
+it: the automation stays stopped until the skill set is corrected, which is
+exactly what that guardrail requires.
 
 The human is not removed from the loop. They move from approving each claim to
 owning the rules, the required check, and the revert.
@@ -128,26 +162,55 @@ owning the rules, the required check, and the revert.
 - **Two implementations of the same rules will drift, and nothing measures it.**
   #146 reimplements the deterministic gates inside the skill set rather than
   sharing one implementation with `tools/updater/`, specifically so that
-  subsystem is not touched. They have already diverged at the moment of writing:
-  `tools/updater/src/modeltree_updater/gates.py` defines `url-safety`,
-  `typed-contract`, `schema-validation`, `date-sanity`, `reference-integrity`,
-  `lineage-invariants`, and `source-approval`, while the skill set's list adds
-  entity-boundary and composite-score checks and names no `source-approval`
-  equivalent. The review thresholds diverge too, and in the direction that
-  matters: #59 carries the threshold as a `ReviewPolicy` and its generic long-tail
-  profile raises acceptance to a unanimous 3-of-3 because far less is known about
-  a creator nobody has reviewed (ADR 0002;
-  `tools/updater/profiles/generic/long-tail.json`), whereas the skill set accepts
-  2-of-3 for every claim — including the long-tail claims the reviewed
-  proposal-only path decided needed unanimity, and these are the ones that
-  auto-merge. Stated plainly rather than smoothed over: the publishing path is
-  the more permissive of the two.
-- **Which is authoritative:** `tools/updater/` is the reviewed statement of these
-  rules, and the skill set's copy is the one that must move when they disagree. A
-  divergence is a bug in the skill set, never a licence to prefer its answer. But
-  the skill set is what actually gates a merge, so until it moves, the divergence
-  is what runs — which is why a disagreement discovered is grounds to disable the
-  automation rather than to open a debate. No test compares the two today.
+  subsystem is not touched. They have already diverged, in more than one
+  direction, so the differences are recorded separately rather than netted off
+  into a single verdict about which is safer:
+
+  - *Permissive, and therefore a precondition rather than a cost.*
+    `tools/updater/src/modeltree_updater/gates.py` defines `url-safety`,
+    `typed-contract`, `schema-validation`, `date-sanity`, `reference-integrity`,
+    `lineage-invariants`, and `source-approval`. The skill set names no
+    `source-approval` equivalent, and relocates that function to the scout —
+    dropping a claim whose only support is a search-result snippet, *before*
+    review. That is pre-review and agent-mediated, which is the one thing the
+    Decision says this class of check must not be, and it is not covered by
+    `npm run validate` for the reason given in the Decision. This is not filed
+    here as an accepted cost. It is precondition 2 above, to be closed in #146
+    before first enablement.
+  - *Stricter, and therefore a finding rather than a stop.* The skill set gates
+    any attempt to introduce a composite or universal score. `gates.py` has no
+    equivalent; #67 is held by review and by ADR 0001's guardrail rather than by
+    a deterministic check. A publishing path that refuses more than the
+    proposal-only path refuses is not a hazard, but it is still drift, and the
+    check belongs in `tools/updater/` too.
+  - *Neither — a naming difference that looks like drift.* The skill set names an
+    entity-boundary check that does not appear in `gates.py`'s seven names, but
+    the rule is enforced there, inside `lineage-invariants`
+    (`_claim_lineage_issues`: "entity kinds must stay separate"). Same rule,
+    different partition. This is the trap in the whole comparison: gate *names*
+    are not the unit of equivalence, and comparing them produces false drift in
+    both directions — a missing name that is enforced elsewhere, and, in
+    principle, a shared name enforcing different things.
+
+  The review thresholds do **not** diverge: both are 2-of-3 for a creator with a
+  reviewed profile and unanimous 3-of-3 for a long-tail creator, on ADR 0002's
+  reasoning. That is stated as a requirement in the Decision so it stays true.
+
+  What remains an accepted cost is the structural fact underneath all of this:
+  two implementations exist, neither reads the other, and **no test compares
+  them**. All three findings above came from a person reading two implementations
+  side by side, and the third shows that the cheap comparison — match the gate
+  names — is the wrong one. The next divergence will be found by someone doing
+  the expensive version, or not at all.
+- **Which is authoritative, and in which direction:** `tools/updater/` is the
+  reviewed statement of these rules and the skill set's copy is the one that
+  moves. But "correct the skill set" cannot mean "make it identical", because
+  that would order the removal of a stricter check, so the rule is directional.
+  The publishing path may be **stricter** than `tools/updater/`; it may never be
+  **more permissive**. A permissive divergence stops the automation. A stricter
+  one is a finding raised against `tools/updater/` and stops nothing. Neither is
+  ever a licence to prefer the skill set's answer on the grounds that it is the
+  one that actually runs.
 - **Policy that governs this repository now lives outside it.** `allow_auto_merge`
   and `web-ci` as a required check are settings, not files, so they appear in no
   diff and no gate verifies them. If `web-ci` is ever dropped from branch
@@ -211,7 +274,14 @@ owning the rules, the required check, and the revert.
 - **Do not weaken `tools/updater/`'s proposal-only constraint or its tests on the
   strength of this decision.** It authorises a different mechanism alongside that
   one, and says nothing in its favour.
-- **If the skill set's gates and `tools/updater/`'s gates disagree, stop the
-  automation and correct the skill set.** Do not pick whichever answer lets the
-  run continue.
+- **If the skill set's gates are more permissive than `tools/updater/`'s at any
+  point, the automation does not run until the skill set is corrected.** That
+  applies to the `source-approval` gap that exists today — which is why the
+  Decision makes closing it a precondition of first enablement — and to anything
+  discovered later; there is no grandfathering and no carve-out for a divergence
+  that predates adoption. A skill-set gate that is *stricter* than its
+  counterpart is a finding raised against `tools/updater/`, not a reason to stop.
+  Compare the rules enforced, not the gate names: the names partition the same
+  work differently, so a name-level comparison reports drift that is not there
+  and can miss drift that is. Do not pick whichever answer lets the run continue.
 - **No run skips its summary issue**, including a run that changed nothing.
