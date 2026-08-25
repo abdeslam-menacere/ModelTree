@@ -211,11 +211,7 @@ async def run_creators(
                     creator,
                     settings,
                     run_id=run_id,
-                    checkpoint_storage=(
-                        None
-                        if creator.creator_id in {"openai", "google-deepmind", "meta"}
-                        else checkpoint_storage
-                    ),
+                    checkpoint_storage=checkpoint_storage,
                 )
             )
         except Exception as error:  # noqa: BLE001 - one creator must not sink the run
