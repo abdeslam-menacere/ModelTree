@@ -464,8 +464,8 @@ dry run: no destination named; a real publication would need --repo or GITHUB_RE
 A dry run still needs no repository — the third line is not an error, and the payload is
 rendered either way. The destination is reported as given: it is neither validated nor
 contacted, because a dry run holds no credentials and reaches no network to check it
-against. It sits outside the `=== <creator>: dry run ===` block, so naming a repository
-adds a line and changes nothing about the payload itself.
+against. It sits outside the `=== <creator>: dry run, nothing was sent ===` block, so
+naming a repository adds a line and changes nothing about the payload itself.
 
 ### One issue per creator
 
