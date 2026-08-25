@@ -7,6 +7,8 @@ guard below refuses to write anywhere near the dataset even if asked to.
 
 from __future__ import annotations
 
+import os
+from collections.abc import Iterable
 from pathlib import Path
 
 __all__ = [
@@ -53,6 +55,52 @@ class ProposalOnlyViolation(RuntimeError):
     """
 
 
+def _unique(paths: Iterable[Path]) -> tuple[Path, ...]:
+    """The given paths with repeats dropped, first occurrence winning."""
+    seen: dict[Path, None] = {}
+    for path in paths:
+        seen.setdefault(path, None)
+    return tuple(seen)
+
+
+def _roots_above(origin: Path) -> tuple[Path, ...]:
+    """Every marker-carrying directory at or above `origin`, nearest first.
+
+    `origin` is walked exactly as handed in. Choosing its form is the caller's
+    decision, and `assert_proposal_output_path` depends on being able to make
+    that choice more than once for the same output path.
+    """
+    return tuple(
+        candidate
+        for candidate in (origin, *origin.parents)
+        if any(candidate.joinpath(*marker).exists() for marker in REPOSITORY_MARKERS)
+    )
+
+
+def _both_spellings(path: Path | str) -> tuple[Path, Path]:
+    """A path as it resolves on disk, and as it reads lexically. Resolved first.
+
+    Neither spelling can be trusted alone, and neither is a safe replacement for
+    the other:
+
+    Resolving is what closes `notweb/../web/out`. Read lexically that does not
+    sit under `web/`, and only following it to where it actually lands shows
+    that it does.
+
+    Reading lexically is what keeps a `web/` that is a symlink or junction to a
+    target outside the checkout protected. Resolving such a path moves it to
+    that target, which encloses none of the markers, so no checkout is found and
+    the fail-open below applies to a path that is plainly inside `web/` as
+    written — while the write still lands in reviewed data, because the link
+    target *is* where `web/` lives.
+
+    So both are produced and both are checked. An extra spelling can only ever
+    add a refusal, never remove one.
+    """
+    expanded = os.path.expanduser(os.fspath(path))
+    return Path(expanded).resolve(), Path(os.path.abspath(expanded))
+
+
 def find_repository_roots(start: Path | None = None) -> tuple[Path, ...]:
     """Every checkout enclosing `start`, nearest first.
 
@@ -70,11 +118,7 @@ def find_repository_roots(start: Path | None = None) -> tuple[Path, ...]:
     out of scope. A boundary that a subdirectory can shrink is not a boundary.
     """
     current = (start or Path.cwd()).resolve()
-    return tuple(
-        candidate
-        for candidate in (current, *current.parents)
-        if any(candidate.joinpath(*marker).exists() for marker in REPOSITORY_MARKERS)
-    )
+    return _roots_above(current)
 
 
 def find_repository_root(start: Path | None = None) -> Path | None:
@@ -118,20 +162,36 @@ def assert_proposal_output_path(path: Path | str, *, repo_root: Path | None = No
     not bring `src/data` — an assets-only extract, or a copy of the build
     output. Such a tree is not recognised as a checkout, so its `web/` is not
     protected.
+
+    A `web/` that is a symlink or junction to a target outside the checkout is
+    covered, because the output path is searched in both of the spellings
+    `_both_spellings` returns rather than only in its resolved one. The residual
+    that shape leaves is an output path aimed at the link's *target* directly
+    instead of through the link. Neither spelling of such a path passes through
+    the checkout, so no marker is found and the fail-open above applies; only
+    scanning for links pointing at that target could connect the two, and this
+    guard does not search outside the path it was given.
     """
-    resolved = Path(path).expanduser().resolve()
+    resolved, lexical = _both_spellings(path)
     # Search from the requested path itself: a directory that does not exist yet
     # still sits inside a checkout, and falling back to the process's working
     # directory would look for the boundary in the wrong repository.
-    roots = (repo_root,) if repo_root is not None else find_repository_roots(resolved)
+    roots = (
+        (repo_root,)
+        if repo_root is not None
+        else _unique(root for origin in (resolved, lexical) for root in _roots_above(origin))
+    )
 
     for root in roots:
         for relative in PROTECTED_RELATIVE_PATHS:
-            protected = (root / relative).resolve()
-            if _is_within(resolved, protected):
-                raise ProposalOnlyViolation(
-                    f"refusing to write proposals to {resolved}: {protected} holds reviewed "
-                    "repository data, and this tool only produces proposals — choose an "
-                    "output directory outside it"
-                )
+            # Each spelling of the output path is compared against the matching
+            # spelling of the protected directory, so a link is followed on both
+            # sides or on neither, never on one.
+            for origin, protected in zip((resolved, lexical), _both_spellings(root / relative)):
+                if _is_within(origin, protected):
+                    raise ProposalOnlyViolation(
+                        f"refusing to write proposals to {origin}: {protected} holds reviewed "
+                        "repository data, and this tool only produces proposals — choose an "
+                        "output directory outside it"
+                    )
     return resolved
