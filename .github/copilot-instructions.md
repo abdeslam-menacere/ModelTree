@@ -47,28 +47,30 @@ the first row that matches.
 | If you see | You are in | Do |
 |---|---|---|
 | `DOCK.md` at the root | a dock worktree | Work only on that one issue |
-| no `DOCK.md`, and `git branch --show-current` reports the branch for the issue you were given | a dock worktree, CLI absent | Work only on that one issue; your brief is the issue plus whatever kicked off your session |
+| no `DOCK.md`, and `git branch --show-current` reports the branch for the issue you were given | a dock worktree, no generated brief | Work only on that one issue; your brief is the issue plus whatever kicked off your session |
 | no `DOCK.md`, and `git branch --show-current` reports `main` | the main repo | Coordinate; don't implement features here |
 | no `DOCK.md`, and `git branch --show-current` reports nothing (detached HEAD) or a branch you can't tie to an issue | the table can't tell | Don't guess. Treat whatever kicked off your session as authoritative, and record which you assumed (rule 3 below) |
 
 Do not use `drydock.config.json` as the test. It is tracked, so it is checked
 out into every worktree including every dock, and a row keyed on it matches
-everywhere. With the CLI absent the first row never matches either, because no
-`DOCK.md` is generated — the second row is the one that will apply to you.
+everywhere. The first row is the one that goes unmatched when the CLI is absent,
+because no `DOCK.md` is generated; your branch then decides which of the rest
+applies.
 
 ## Working in a dock
 
 1. **One issue only.** A bug, refactor, or missing test unrelated to your issue
-   goes under `## Follow-ups` in `DOCK.md` as a proposed new issue when the CLI
-   generated one; when it did not, it goes in the summary you post to the issue
-   (see **Finishing**), still as a proposed new issue. Never write it into a file
-   in the repository — least of all this one. Do not fix it.
+   goes under `## Follow-ups` in `DOCK.md` if this worktree has one; otherwise it
+   goes in the summary you post to the issue (see **Finishing**). Either way it is
+   a proposed new issue, and those are its only two destinations: never record it
+   in this file, because anything appended here reads to the next agent as
+   sanctioned practice. Do not fix it.
    Out-of-scope changes fail review — this is the most common failure by far.
 2. **Stay inside the worktree.** Sibling directories are other docks with other
    agents actively working. Never read or modify anything outside your root.
 3. **Record assumptions.** Ambiguity gets written into `## Assumptions` in
-   `DOCK.md` when the CLI generated one, and otherwise into the summary you post
-   to the issue; then you proceed. Silent guessing is the failure mode this entire
+   `DOCK.md` if this worktree has one, and otherwise into the summary you post to
+   the issue; then you proceed. Silent guessing is the failure mode this entire
    system exists to prevent.
 4. **Never switch branches, rebase, or merge by hand.** Landing is `drydock land`
    after the gates pass, and merging is GitHub's once CI is green. Your work ends
