@@ -94,7 +94,7 @@ That is genuinely automatic ingestion, and it narrows principle 8: a data change
 is still a reviewable pull request carrying every quote, hash, and verdict, but
 no human approves it before it merges. Only the nine dataset JSON documents may
 change that way; anything else stops the run and files an issue.
-[ADR 0003](docs/adr/0003-unattended-data-refresh-may-auto-merge.md) records the
+[ADR 0003](docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md) records the
 decision and is honest about what it costs.
 
 ## Contributing

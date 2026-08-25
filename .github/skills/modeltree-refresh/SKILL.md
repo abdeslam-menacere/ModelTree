@@ -17,7 +17,7 @@ and owns what happens between stages.
 **This publishes to production without a human approving it.** ADR 0003
 authorises that, defines exactly which changes qualify, and is honest about what
 it costs. Read it before changing anything here:
-[`../../../docs/adr/0003-unattended-data-refresh-may-auto-merge.md`](../../../docs/adr/0003-unattended-data-refresh-may-auto-merge.md).
+[`../../../docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md`](../../../docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md).
 
 ## Run it
 

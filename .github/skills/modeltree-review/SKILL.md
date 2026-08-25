@@ -35,10 +35,10 @@ accepted. Do not re-run a reviewer that rejected in the hope of a different
 answer — one vote each, and a rerun to get a better answer is vote-rigging
 however it is framed.
 
-ADR 0003 states the limit of this plainly and you should hold it in mind rather
-than trusting the number: three instances of the same model family reading the
-same page share a failure mode. 2-of-3 buys independence of *reasoning*, not
-independence of *training*. A source that is itself wrong can carry all three.
+Hold the limit of this in mind rather than trusting the number: three instances
+of the same model family reading the same page share a failure mode. 2-of-3 buys
+independence of *reasoning*, not independence of *training*. A source that is
+itself wrong can carry all three.
 
 ## The three rubrics
 

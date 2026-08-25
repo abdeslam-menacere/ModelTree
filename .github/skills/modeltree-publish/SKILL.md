@@ -10,7 +10,7 @@ GitHub merges once CI is green, confirm the site actually deployed, and file the
 summary that makes the whole run auditable after the fact.
 
 ADR 0003 authorises this and bounds it. Read
-[`../../../docs/adr/0003-unattended-data-refresh-may-auto-merge.md`](../../../docs/adr/0003-unattended-data-refresh-may-auto-merge.md)
+[`../../../docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md`](../../../docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md)
 before changing anything here.
 
 ## Preconditions — all four, no exceptions

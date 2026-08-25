@@ -83,7 +83,7 @@ criteria and exceptions belong on `/methodology`.
 
 > Automatic ingestion itself is no longer a non-goal. The daily refresh in
 > `.github/skills/` publishes without a human approving it, under
-> [ADR 0003](../adr/0003-unattended-data-refresh-may-auto-merge.md), and is bounded
+> [ADR 0003](../adr/0003-an-agent-gated-data-refresh-may-auto-merge.md), and is bounded
 > to the dataset JSON documents. What remains a non-goal is ingestion that carries
 > no primary source, passes no adversarial review, and clears no deterministic
 > gate.

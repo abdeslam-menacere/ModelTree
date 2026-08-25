@@ -57,7 +57,7 @@ is the correct outcome, not a failure.
 
 ## Why it can merge without a human
 
-[ADR 0003](../../docs/adr/0003-unattended-data-refresh-may-auto-merge.md). Read
+[ADR 0003](../../docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md). Read
 it before changing a threshold, a gate, or the qualifying class. It states the
 residual risk plainly: the gates catch data that is malformed, impossible, or
 unreferenced, and they do not catch a claim that is well-formed and simply wrong.
@@ -80,6 +80,6 @@ a test change is a gate change nobody verified.
 
 ## Related
 
-- [`../../docs/adr/0003-unattended-data-refresh-may-auto-merge.md`](../../docs/adr/0003-unattended-data-refresh-may-auto-merge.md) — the authorising decision
+- [`../../docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md`](../../docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md) — the authorising decision
 - [`modeltree-gates/reference/claim-bundle.md`](modeltree-gates/reference/claim-bundle.md) — the interface all five skills share
 - [`../../tools/updater/`](../../tools/updater/README.md) — the separate Python subsystem that only *proposes* changes. These skills do not use it and never modify it.
