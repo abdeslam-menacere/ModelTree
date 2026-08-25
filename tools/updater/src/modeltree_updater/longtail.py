@@ -62,6 +62,8 @@ from .profiles import (
     ProfileError,
     SourceAmbiguity,
     TrustedSource,
+    _duplicate_key,
+    _reviewed_profile_paths,
     origin_of,
 )
 from .review import PANEL_SIZE, REVIEW_POLICIES
@@ -424,62 +426,6 @@ def load_long_tail_profile(path: Path | str = DEFAULT_LONG_TAIL_PROFILE) -> Long
     )
 
 
-def _reviewed_profile_paths(directory: Path) -> list[Path]:
-    """The documents in the reviewed set, decided the same way on every platform.
-
-    ``glob("*.json")`` is case-insensitive on Windows and case-sensitive on Linux, so
-    a file named ``long-tail.JSON`` was a reviewed profile on one and did not exist on
-    the other. A contributor could add a profile, watch it work locally, and have it
-    silently absent from CI. Discovery here matches the suffix ``.json`` exactly, which
-    is the same answer everywhere because a directory listing preserves the name's case.
-
-    A file whose extension differs from ``.json`` only by case is **refused**, not
-    skipped. Matching lowercase alone would make the platforms agree, but it would agree
-    on silence: the contributor still gets a file that is not a profile and no reason
-    why. The refusal is narrow — a ``.txt`` or ``.md`` neighbour is ignored as before,
-    so only a file plainly meant to be a profile trips it.
-
-    A name beginning with a dot is skipped, and skipped *first*. That is the deliberate
-    asymmetry: a leading dot is the author saying "not part of the working set", so
-    honouring it is honouring a stated intent, whereas an uppercased extension is a file
-    someone meant as a profile where only the case was incidental.
-    """
-    paths: list[Path] = []
-    for path in sorted(directory.iterdir()):
-        # A directory is not a candidate under either rule: refusing `archive.JSON`
-        # for its extension, and handing `archive.json` to the parser, are both the
-        # wrong answer to something that was never a document.
-        if path.name.startswith(".") or not path.is_file():
-            continue
-        if path.suffix == ".json":
-            paths.append(path)
-        elif path.suffix.casefold() == ".json":
-            raise ProfileError(
-                f"{path.name}: a reviewed long-tail profile must end in '.json' exactly, "
-                f"not {path.suffix!r}; keeping it would leave the reviewed set to depend "
-                "on whether the filesystem reading it is case-sensitive, so rename the file"
-            )
-    return paths
-
-
-def _duplicate_key(profile_id: str) -> str:
-    """The key two documents collide on, which is broader than the key they load under.
-
-    Two ids differing only in case are one id to the reader the duplicate check exists
-    for: it is there so that nobody has to work out which of two similar documents won.
-    Folding is not a *superset* of comparing declared ids, though, and does not replace
-    it: ``True`` and ``1`` fold to different strings while being one dict key, so
-    :func:`load_long_tail_library` guards on both key spaces. What folding cannot do is
-    widen what an id *matches*, because the mapping a run reads is still keyed by the
-    exact declared string — the resume path must keep matching the exact id a checkpoint
-    recorded.
-
-    ``str()`` because a document can declare a non-string id, and refusing that is a
-    different question from this one.
-    """
-    return str(profile_id).casefold()
-
-
 def load_long_tail_library(
     directory: Path | str = REVIEWED_LONG_TAIL_DIR,
 ) -> LongTailLibrary:
@@ -492,8 +438,10 @@ def load_long_tail_library(
     is the defect this set exists to remove. One id, one file, or the set does not
     load at all.
 
-    Which files are candidates is :func:`_reviewed_profile_paths`' decision, and it is
-    the same decision on every operating system.
+    Which files are candidates is
+    :func:`~modeltree_updater.profiles._reviewed_profile_paths`' decision — the same
+    decision, made by the same code, that the dedicated profiles are discovered by —
+    and it is the same decision on every operating system.
     """
     directory = Path(directory)
     if not directory.is_dir():
@@ -501,7 +449,7 @@ def load_long_tail_library(
 
     profiles: dict[str, LongTailProfile] = {}
     sources: dict[Any, tuple[str, Path]] = {}
-    for path in _reviewed_profile_paths(directory):
+    for path in _reviewed_profile_paths(directory, kind="a reviewed long-tail profile"):
         profile = load_long_tail_profile(path)
         key = _duplicate_key(profile.id)
         # Neither key space contains the other. Folding catches 'x' against 'X'; the
