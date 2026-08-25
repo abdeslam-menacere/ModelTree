@@ -24,6 +24,7 @@ const DATA = join(REPO, 'web', 'src', 'data');
 const GATE_DATASET = join(HERE, 'gate-dataset.mjs');
 const GATE_EVIDENCE = join(HERE, 'gate-evidence.mjs');
 const GATE_SCOPE = join(HERE, 'gate-scope.mjs');
+const GATE_SOURCE_APPROVAL = join(HERE, 'gate-source-approval.mjs');
 
 // A date the fixtures are anchored to, so a passing suite today still passes in
 // a year. Real "today" is never used: these tests would then drift.
@@ -479,6 +480,258 @@ describe('gate-evidence', () => {
       })],
     });
     assert.notEqual(result.code, 0, `a claim that never chose a threshold must not pass: ${result.stdout}`);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe('gate-source-approval', () => {
+  // The gate reads its anchors from git at `--base`, so these run against the
+  // committed tree. `sources.json` is unmodified by this change, so HEAD and the
+  // working tree agree and reading the file here is a fair way to name a source
+  // the dataset really does stand behind.
+  const REAL_SOURCES = JSON.parse(readFileSync(join(DATA, 'sources.json'), 'utf8'));
+  const REAL = REAL_SOURCES[0];
+  const REAL_ORIGIN = new URL(REAL.url).origin;
+
+  /** A bundle gated against the real repository. */
+  function gateSources(bundle, extra = []) {
+    const dir = mkdtempSync(join(tmpdir(), 'modeltree-approval-'));
+    try {
+      const path = join(dir, 'claims.json');
+      writeFileSync(path, JSON.stringify(bundle, null, 2));
+      return run(GATE_SOURCE_APPROVAL, ['--claims', path, '--json', ...extra]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  /** Evidence citing `sourceId`, read from `url`. */
+  function evidence(sourceId, url) {
+    return {
+      sourceId,
+      url,
+      contentHash: HASH,
+      fetchedAt: TODAY,
+      quote: 'Today we are releasing this model to all API customers.',
+      retrieval: 'fetch',
+    };
+  }
+
+  /** A `sources` claim adding `id` at `url`, unanimously accepted by the panel. */
+  function addSource(id, url) {
+    return claim({
+      id: `add-${id}`,
+      kind: 'add',
+      collection: 'sources',
+      targetId: id,
+      field: undefined,
+      currentValue: null,
+      proposedValue: {
+        id,
+        url,
+        title: 'A source',
+        type: 'official-announcement',
+        publisherId: 'openai',
+        lastCheckedDate: TODAY,
+      },
+      statement: `${url} is a primary source for this creator.`,
+      evidence: [evidence(id, url)],
+    });
+  }
+
+  test('a claim resting on a source already in the dataset passes', () => {
+    const result = gateSources({
+      runId: 'r1',
+      creator: 'openai',
+      policy: 'pilot',
+      claims: [claim({ evidence: [evidence(REAL.id, REAL.url)] })],
+    });
+    assert.equal(result.code, 0, result.stdout);
+    const report = JSON.parse(result.stdout);
+    assert.deepEqual(report.inheritedSources, [REAL.id]);
+    assert.ok(report.anchors.approvedOrigins.length > 0, 'the gate must have a trust anchor');
+  });
+
+  // The probe that found this hole. Before this gate existed, exactly this
+  // bundle produced `all gates passed over 105 records` and exit 0: a source
+  // nobody approved, added and cited in the same run, satisfying referential
+  // integrity the whole way. It is the load-bearing case in #167 and the reason
+  // ADR 0003 holds this as a precondition rather than an accepted cost.
+  test('a fabricated source on an unrelated domain, cited from a real release, is refused', () => {
+    const url = 'https://contoso-model-notes.example/claude-4-6';
+    const result = gateSources({
+      runId: 'r1',
+      creator: 'anthropic',
+      policy: 'pilot',
+      claims: [
+        addSource('contoso-model-notes', url),
+        claim({ evidence: [evidence('contoso-model-notes', url)] }),
+      ],
+    });
+    assertFailed(result, 'source-approval', 'a run cannot approve its own source');
+    const report = JSON.parse(result.stdout);
+    assert.ok(
+      report.failures.some((failure) => failure.where === 'claim:openai-gpt-5-7-release-date#evidence[0]'),
+      'the claim that cites the invented source must be named, not only the claim that adds it',
+    );
+  });
+
+  // The gates run after review and cannot be outvoted (ADR 0003). A unanimous
+  // panel is the strongest thing the run can produce, and it changes nothing.
+  test('no panel majority can approve a source on an origin nobody stands behind', () => {
+    const url = 'https://contoso-model-notes.example/claude-4-6';
+    const unanimous = [
+      { reviewer: 'provenance', vote: 'accept', rationale: 'The page states it plainly.' },
+      { reviewer: 'consistency', vote: 'accept', rationale: 'Agrees with the timeline.' },
+      { reviewer: 'editorial', vote: 'accept', rationale: 'Entity boundary respected.' },
+    ];
+    const source = addSource('contoso-model-notes', url);
+    const result = gateSources({
+      runId: 'r1',
+      creator: 'anthropic',
+      policy: 'pilot',
+      claims: [
+        { ...source, verdicts: unanimous },
+        claim({ evidence: [evidence('contoso-model-notes', url)], verdicts: unanimous }),
+      ],
+    });
+    assertFailed(result, 'source-approval', 'a run cannot approve its own source');
+  });
+
+  // The other direction, and the reason the rule is drawn at the origin rather
+  // than at "no new source record". `sources.json` holds one entry per page, so
+  // every new release announcement is a new source record. A rule that refused
+  // those would refuse the refresh its entire purpose.
+  test('a new page on an origin the dataset already stands behind is allowed', () => {
+    const url = `${REAL_ORIGIN}/a-page-published-since-the-last-refresh`;
+    const result = gateSources({
+      runId: 'r1',
+      creator: 'openai',
+      policy: 'pilot',
+      claims: [
+        addSource('a-newly-announced-page', url),
+        claim({ evidence: [evidence('a-newly-announced-page', url)] }),
+      ],
+    });
+    assert.equal(result.code, 0, result.stdout);
+    assert.deepEqual(JSON.parse(result.stdout).proposedSources, ['a-newly-announced-page']);
+  });
+
+  test('a claim citing a source that is neither in the dataset nor proposed is refused', () => {
+    const result = gateSources({
+      runId: 'r1',
+      creator: 'openai',
+      policy: 'pilot',
+      claims: [claim({ evidence: [evidence('a-source-nobody-ever-added', REAL.url)] })],
+    });
+    assertFailed(result, 'source-approval', 'nothing approved it');
+  });
+
+  // Without this, an approved id is just a label a run can staple onto any page
+  // it likes, and the binding is decorative.
+  test('evidence read from a different origin than the source it cites is refused', () => {
+    const result = gateSources({
+      runId: 'r1',
+      creator: 'openai',
+      policy: 'pilot',
+      claims: [claim({ evidence: [evidence(REAL.id, 'https://mirror-of-everything.example/page')] })],
+    });
+    assertFailed(result, 'source-approval', 'evidence must come from the source it cites');
+  });
+
+  test('repointing an approved source at a new origin is refused', () => {
+    const url = 'https://contoso-model-notes.example/relocated';
+    const result = gateSources({
+      runId: 'r1',
+      creator: 'openai',
+      policy: 'pilot',
+      claims: [
+        claim({
+          id: 'repoint-the-source',
+          kind: 'change',
+          collection: 'sources',
+          targetId: REAL.id,
+          field: 'url',
+          currentValue: REAL.url,
+          proposedValue: url,
+          statement: 'The source moved.',
+          evidence: [evidence(REAL.id, url)],
+        }),
+      ],
+    });
+    assertFailed(result, 'source-approval', 'a run cannot approve its own source');
+  });
+
+  /** A throwaway git repository, so the test never depends on the real tree. */
+  function scratchRepo(build, bundle, extra = []) {
+    const dir = mkdtempSync(join(tmpdir(), 'modeltree-approval-repo-'));
+    const git = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' });
+    try {
+      git('init', '-q');
+      git('config', 'user.email', 'gate@example.com');
+      git('config', 'user.name', 'Gate Test');
+      execFileSync('node', ['-e', 'require("fs").mkdirSync("web/src/data",{recursive:true})'], { cwd: dir });
+      writeFileSync(join(dir, 'README.md'), 'scratch\n');
+      build({ dir, git });
+      const path = join(dir, 'claims.json');
+      writeFileSync(path, JSON.stringify(bundle, null, 2));
+      return run(GATE_SOURCE_APPROVAL, ['--claims', path, '--repo', dir, '--json', ...extra]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  // The whole gate turns on this. `sources.json` is a file the run is about to
+  // write, so a gate that read it from disk could be satisfied by the run's own
+  // uncommitted patch - which would not close the circle, only move it. The
+  // anchor is the committed blob, and this proves it.
+  test('a source written into the working tree does not approve itself', () => {
+    const evil = { id: 'evil-source', url: 'https://evil.example/a', title: 'E', type: 'official-announcement', publisherId: 'p', lastCheckedDate: TODAY };
+    const good = { id: 'good-source', url: 'https://good.example/a', title: 'G', type: 'official-announcement', publisherId: 'p', lastCheckedDate: TODAY };
+    const result = scratchRepo(
+      ({ dir, git }) => {
+        const file = join(dir, 'web', 'src', 'data', 'sources.json');
+        writeFileSync(file, JSON.stringify([good], null, 2));
+        git('add', '-A');
+        git('commit', '-qm', 'base');
+        // The run applies its own patch before the gate runs.
+        writeFileSync(file, JSON.stringify([good, evil], null, 2));
+      },
+      {
+        runId: 'r1',
+        creator: 'someone',
+        policy: 'pilot',
+        claims: [claim({ evidence: [evidence('evil-source', evil.url)] })],
+      },
+    );
+    assertFailed(result, 'source-approval', 'nothing approved it');
+  });
+
+  test('a base ref carrying no dataset exits 2 rather than passing', () => {
+    const result = scratchRepo(
+      ({ git }) => {
+        git('add', '-A');
+        git('commit', '-qm', 'no dataset here');
+      },
+      { runId: 'r1', creator: 'someone', policy: 'pilot', claims: [claim()] },
+    );
+    assert.equal(result.code, 2, `a gate with no trust anchor must not report success:\n${result.stdout}`);
+  });
+
+  // ADR 0003's "no escape hatch" guardrail, as a test rather than as a promise.
+  test('there is no flag that lets a refused bundle through', () => {
+    const url = 'https://contoso-model-notes.example/claude-4-6';
+    const bundle = {
+      runId: 'r1',
+      creator: 'anthropic',
+      policy: 'pilot',
+      claims: [addSource('contoso-model-notes', url), claim({ evidence: [evidence('contoso-model-notes', url)] })],
+    };
+    for (const flag of ['--force', '--skip', '--skip-gates', '--yes']) {
+      const result = gateSources(bundle, [flag]);
+      assert.equal(result.code, 2, `${flag} must not be recognised, and must never be a pass`);
+    }
   });
 });
 
