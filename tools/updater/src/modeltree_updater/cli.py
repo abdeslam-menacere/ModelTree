@@ -670,7 +670,12 @@ def _publish(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
     if args.dry_run:
         # Both of these come after the artefact is loaded, so a missing report is
         # still reported as itself rather than behind a destination — or a
-        # refusal — for a run that cannot happen.
+        # refusal — for a run that cannot happen. Enforced rather than merely
+        # asserted here: hoisting this block above `load_run_report` turns
+        # `test_publish_cli.py`'s
+        # `test_an_unloadable_artefact_under_dry_run_reports_only_itself` and
+        # `test_an_unloadable_artefact_is_reported_ahead_of_a_malformed_repo`
+        # red. See #156 — this comment used to be the only thing saying so.
         refusal = _malformed_repo_refusal(args)
         if refusal is not None:
             stream.write(refusal + "\n")
