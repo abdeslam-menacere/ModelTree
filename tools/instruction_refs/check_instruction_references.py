@@ -53,8 +53,17 @@ config *values*, so ".docks" is not extracted from `drydock.config.json` in the
 first place; this rule is what keeps the answer correct if the instructions file
 ever cites the directory directly.
 
+**Not paths at all.** A URL, a scoped or versioned package name, and a
+`owner/repo#131` citation all contain a slash without naming anything in this
+repository, so none of them is treated as a path: they are neither resolved nor
+reported. External URL liveness is out of scope and a URL is not fetched. The
+last of those three matters most, because the issue-citation rule tells an
+author to write owner/repo#N and this file backticks such things by house style
+-- so without it the checker would flag its own prescribed remedy as a dangling
+path, and punish compliance with its own instruction.
+
 Standard library only, and no network: `pip install` fails on the development
-machine, and external URL liveness is deliberately not checked.
+machine.
 
 Usage:
 
@@ -77,12 +86,13 @@ from pathlib import Path, PurePosixPath
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DOCUMENT = Path(".github") / "copilot-instructions.md"
 
-# A backticked span is a path candidate when it contains "/" or ends in one of
-# these. The allowlist is what keeps `autonomy.level` and `merge.enabled` -- the
-# config keys quoted in the autonomy paragraph -- out of the candidate set while
-# keeping `drydock.config.json` in it. It can miss an exotic extension, which is
-# a silent pass; it will not invent a path, which would be a false positive.
-# That bias is deliberate: a checker that fires on prose gets turned off.
+# A backticked span is a path candidate when it ends in one of these, or when it
+# contains "/" and starts at something this repository actually has. The
+# allowlist is what keeps `autonomy.level` and `merge.enabled` -- the config keys
+# quoted in the autonomy paragraph -- out of the candidate set while keeping
+# `drydock.config.json` in it. It can miss an exotic extension, which is a silent
+# pass. That bias is deliberate, and it points this way on purpose: a checker
+# that fires on prose gets turned off rather than fixed.
 PATH_EXTENSIONS = frozenset(
     {
         ".astro",
@@ -119,7 +129,24 @@ TEMPLATE_RE = re.compile(r"[<>{}]|([A-Z])\1{2,}")
 BARE_ISSUE_RE = re.compile(r"(?<![\w/#])#(\d+)")
 SECTION_RE = re.compile(r"\u00a7\s*([0-9]+(?:\.[0-9]+)*)?")
 HEADING_RE = re.compile(r"^#{1,6}\s+(.*?)\s*$", re.MULTILINE)
-GLOB_CHARS = "*?"
+# Brackets included so a real Astro route can be cited. Note that resolve_path
+# tries the literal name first: glob reads "[slug]" as a character class, which
+# would miss the very file `web/src/pages/models/[slug].astro` names.
+GLOB_CHARS = "*?[]"
+
+# Never a repository path, whatever else it looks like: a URL scheme, a scope or
+# version suffix (`@astrojs/mdx`, `actions/checkout@v4`), and a trailing issue
+# number (`owner/repo#131`). Checked before anything else so the intent is legible
+# here rather than emerging as a side effect of the first-segment test below.
+NON_PATH_RE = re.compile(r"://|@|#\d+$")
+
+# `[#80](https://github.com/abdeslam-menacere/ModelTree/issues/80)` names the
+# repository more completely than owner/repo#N does, so its label is not a bare
+# citation. Without this the raw scan sees "[#80]" and reports the qualified form
+# as the unqualified one.
+ISSUE_LINK_RE = re.compile(
+    r"\[#\d+\]\(\s*https?://[^)\s]*?/(?:issues|pull)/\d+[^)\s]*\)", re.IGNORECASE
+)
 
 # "no `DOCK.md`", "there is no `DOCK.md`", "without the `DOCK.md`". Adjacency is
 # the point: "not documented in `SPEC.md`" puts a word between the cue and the
@@ -210,14 +237,43 @@ def line_of(text: str, offset: int) -> int:
     return text.count("\n", 0, offset) + 1
 
 
-def is_path_candidate(token: str) -> bool:
+def names_a_top_level_entry(repo_root: Path, token: str) -> bool:
+    """Whether a slash-bearing token starts at something this repository has.
+
+    `abdeslam-menacere/ModelTree`, `github/docs`, `3.11/3.13` and `and/or` all
+    contain a slash and none of them is a path. `web/src/data/` is. The
+    difference that holds up mechanically is whether the first segment names a
+    real top-level entry, and it costs one stat.
+    """
+    first = token.lstrip("/").split("/", 1)[0]
+    if not first or first in {".", ".."}:
+        return False
+    try:
+        return (repo_root / first).exists()
+    except OSError:
+        return False
+
+
+def is_path_candidate(repo_root: Path, token: str) -> bool:
     if not token or any(char.isspace() for char in token):
         return False
     if token.startswith("-"):
         return False
-    if "/" in token:
-        return True
-    return PurePosixPath(token).suffix.lower() in PATH_EXTENSIONS
+    if NON_PATH_RE.search(token):
+        return False
+    known_extension = (
+        PurePosixPath(token.rstrip("/")).suffix.lower() in PATH_EXTENSIONS
+    )
+    if "/" not in token:
+        return known_extension
+    # A slash alone is not enough. Requiring the extension, the trailing slash or
+    # a real first segment keeps `nonexistent/guide.md` and `nonexistent/dir/`
+    # catchable while leaving prose and repository slugs alone.
+    return (
+        known_extension
+        or token.endswith("/")
+        or names_a_top_level_entry(repo_root, token)
+    )
 
 
 def is_template(token: str) -> bool:
@@ -274,10 +330,24 @@ def resolve_path(repo_root: Path, token: str) -> bool:
     relative = relative.rstrip("/")
     if not relative:
         return False
-    if any(char in relative for char in GLOB_CHARS):
-        return any(repo_root.glob(relative))
     target = repo_root / relative
-    return target.is_dir() if wants_directory else target.exists()
+    try:
+        if target.is_dir() if wants_directory else target.exists():
+            return True
+    except OSError:
+        pass
+    # Only then as a pattern. Literal first because `[slug].astro` is a real
+    # filename here, and glob would read those brackets as a character class and
+    # miss the exact file the reference names.
+    if any(char in relative for char in GLOB_CHARS):
+        try:
+            matches = list(repo_root.glob(relative))
+        except (OSError, ValueError):
+            return False
+        if wants_directory:
+            return any(match.is_dir() for match in matches)
+        return bool(matches)
+    return False
 
 
 def numbered_heading(document: Path, number: str) -> bool:
@@ -295,7 +365,7 @@ def check_paths(text: str, repo_root: Path, report: Report) -> None:
     for match in CODE_SPAN_RE.finditer(text):
         token = match.group(1)
         report.spans += 1
-        if not is_path_candidate(token) or token in report.candidates:
+        if not is_path_candidate(repo_root, token) or token in report.candidates:
             continue
         report.candidates.append(token)
         line = line_of(text, match.start())
@@ -340,14 +410,20 @@ def check_paths(text: str, repo_root: Path, report: Report) -> None:
 
 
 def check_issue_citations(text: str, report: Report) -> None:
+    linked = [match.span() for match in ISSUE_LINK_RE.finditer(text)]
     for match in BARE_ISSUE_RE.finditer(text):
+        if any(
+            start <= match.start() and match.end() <= end for start, end in linked
+        ):
+            continue
         report.problems.append(
             Finding(
                 line_of(text, match.start()),
                 match.group(0),
                 "bare issue citation. #3 and #4 in this repository resolve to "
                 "closed, unrelated issues, so a bare number sends a reader "
-                "somewhere plausible and wrong. Write owner/repo#N.",
+                "somewhere plausible and wrong. Write owner/repo#N, unbackticked, "
+                "or link it as [#N](https://github.com/owner/repo/issues/N).",
             )
         )
 
@@ -375,7 +451,7 @@ def check_section_markers(text: str, repo_root: Path, report: Report) -> None:
             for end, token in spans
             if end <= match.start()
             and match.start() - end <= SECTION_LOOKBEHIND
-            and is_path_candidate(token)
+            and is_path_candidate(repo_root, token)
             and not is_template(token)
         ]
         if not documents:
