@@ -8,13 +8,13 @@ Read this before doing anything. If this worktree has a `DOCK.md` at its root,
 read it first — it is your complete brief and it wins on scope. If there is no
 `DOCK.md`, read the next paragraph.
 
-**The Drydock CLI is not installed in the environments these docks currently run
-in.** Check with `drydock --version`. If it is not on your PATH, then no
-`DOCK.md` was generated, none of the `drydock` commands named below are
+**Do not assume the Drydock CLI is there — check with `drydock --version`.** It
+has not been installed in any environment these docks have run in so far. If it
+is not on your PATH, then none of the `drydock` commands named below are
 available to you, and the manual posture applies: implement, commit, post your
-summary, and stop at the review gate. Your brief is then the issue itself plus
-whatever kicked off your session. Every rule in this file still holds — only the
-tooling that would have carried it out is missing.
+summary, and stop at the review gate. With no `DOCK.md` at your root, your brief
+is the issue itself plus whatever kicked off your session. Every rule in this
+file still holds — only the tooling that would have carried it out is missing.
 
 ## The invariant
 
@@ -34,9 +34,11 @@ and `### Costs`, `## Alternatives Considered`, and `## Guardrails`.
 No ADR records how much of the loop runs unattended. `drydock.config.json` does
 set `autonomy.level` to `full`, with `merge.enabled` true and
 `retriesOnGateFail` 2. That is the policy an installed Drydock would enforce,
-not permission to act on it yourself: with the CLI absent nothing is gating,
-merging, or retrying on your behalf. The posture described in this file is the
-one in force.
+not permission to act on it yourself: where `drydock` is not on your PATH,
+nothing is merging or retrying on your behalf. Gating still happens either way —
+reviewer and QA agents run the gates and record their verdicts on the issue — so
+it is never you who gates your own work. The posture described in this file is
+the one in force.
 
 ## Where am I
 
@@ -47,15 +49,14 @@ the first row that matches.
 | If you see | You are in | Do |
 |---|---|---|
 | `DOCK.md` at the root | a dock worktree | Work only on that one issue |
-| no `DOCK.md`, and `git branch --show-current` reports the branch for the issue you were given | a dock worktree, no generated brief | Work only on that one issue; your brief is the issue plus whatever kicked off your session |
+| no `DOCK.md`, and `git branch --show-current` reports the branch for the issue you were given | a dock worktree with no `DOCK.md` | Work only on that one issue; your brief is the issue plus whatever kicked off your session |
 | no `DOCK.md`, and `git branch --show-current` reports the repository's default branch | the main repo | Coordinate; don't implement features here |
 | no `DOCK.md`, and `git branch --show-current` reports nothing (detached HEAD) or a branch you can't tie to the issue you were given | the table can't tell | Don't guess. Treat whatever kicked off your session as authoritative, and record which you assumed (rule 3 below) |
 
 Do not use `drydock.config.json` as the test. It is tracked, so it is checked
 out into every worktree including every dock, and a row keyed on it matches
-everywhere. The first row is the one that goes unmatched when the CLI is absent,
-because no `DOCK.md` is generated; your branch then decides which of the rest
-applies.
+everywhere. The first row is the one that goes unmatched when there is no
+`DOCK.md` at your root; your branch then decides which of the rest applies.
 
 ## Working in a dock
 
@@ -133,5 +134,5 @@ The site is a static Astro build; everything lives under `web/`.
   `docs/adr/`. Read them before changing structure.
 
 The Drydock CLI is a tool, not a dependency of this project. Its source is not
-in this repository, and — as noted at the top — it is not installed in the
-environments these docks currently run in.
+in this repository, and — as noted at the top — whether it is on your PATH is
+something you check with `drydock --version` rather than assume.
