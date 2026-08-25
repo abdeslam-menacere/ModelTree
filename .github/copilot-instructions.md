@@ -4,8 +4,9 @@ This project uses **Drydock**: every GitHub issue gets its own branch, its own
 git worktree, and its own agent session, and nothing opens a pull request until
 review and QA have both passed against the current commit.
 
-Read this before doing anything. If you are inside a dock worktree, read that
-dock's `DOCK.md` first — it is your complete brief and it wins on scope.
+Read this before doing anything. If you are inside a dock worktree and the CLI
+generated a `DOCK.md`, read it first — it is your complete brief and it wins on
+scope. If there is no `DOCK.md`, read the next paragraph.
 
 **The Drydock CLI is not installed in the environments these docks currently run
 in.** Check with `drydock --version`. If it is not on your PATH, then no
@@ -39,25 +40,35 @@ one in force.
 
 ## Where am I
 
+`drydock status` answers this at any time, from anywhere in the repo, when the
+CLI is available. Without it, work down this table — top row first, and stop at
+the first row that matches.
+
 | If you see | You are in | Do |
 |---|---|---|
 | `DOCK.md` at the root | a dock worktree | Work only on that one issue |
-| `drydock.config.json` at the root | the main repo | Coordinate; don't implement features here |
+| no `DOCK.md`, and `git branch --show-current` reports the branch for the issue you were given | a dock worktree, CLI absent | Work only on that one issue; your brief is the issue plus whatever kicked off your session |
+| no `DOCK.md`, and `git branch --show-current` reports `main` | the main repo | Coordinate; don't implement features here |
+| no `DOCK.md`, and `git branch --show-current` reports nothing (detached HEAD) or a branch you can't tie to an issue | the table can't tell | Don't guess. Treat whatever kicked off your session as authoritative, and record which you assumed (rule 3 below) |
 
-`drydock status` answers this at any time, from anywhere in the repo, when the
-CLI is available. Without it the first row never matches, because no `DOCK.md`
-is generated; you are in a dock if your checkout is on an issue branch rather
-than `main`.
+Do not use `drydock.config.json` as the test. It is tracked, so it is checked
+out into every worktree including every dock, and a row keyed on it matches
+everywhere. With the CLI absent the first row never matches either, because no
+`DOCK.md` is generated — the second row is the one that will apply to you.
 
 ## Working in a dock
 
 1. **One issue only.** A bug, refactor, or missing test unrelated to your issue
-   goes under `## Follow-ups` in `DOCK.md` as a proposed new issue. Do not fix it.
+   goes under `## Follow-ups` in `DOCK.md` as a proposed new issue when the CLI
+   generated one; when it did not, it goes in the summary you post to the issue
+   (see **Finishing**), still as a proposed new issue. Never write it into a file
+   in the repository — least of all this one. Do not fix it.
    Out-of-scope changes fail review — this is the most common failure by far.
 2. **Stay inside the worktree.** Sibling directories are other docks with other
    agents actively working. Never read or modify anything outside your root.
 3. **Record assumptions.** Ambiguity gets written into `## Assumptions` in
-   `DOCK.md`, then you proceed. Silent guessing is the failure mode this entire
+   `DOCK.md` when the CLI generated one, and otherwise into the summary you post
+   to the issue; then you proceed. Silent guessing is the failure mode this entire
    system exists to prevent.
 4. **Never switch branches, rebase, or merge by hand.** Landing is `drydock land`
    after the gates pass, and merging is GitHub's once CI is green. Your work ends
