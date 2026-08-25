@@ -653,6 +653,19 @@ def _cli(argv):
     return main(argv, env={}, stream=stream), stream.getvalue()
 
 
+def _reviewed_profile_file(path, *, profile_id=DEFAULT_LONG_TAIL_PROFILE_ID):
+    """The shipped document, written under an arbitrary name and declared id.
+
+    Unlike :func:`_custom_profile_file` this is the reviewed content — it is for the
+    tests that care about *which files are the set*, not about which of two documents
+    was picked.
+    """
+    document = _profile_document()
+    document["profile"]["id"] = profile_id
+    path.write_text(json.dumps(document), encoding="utf-8")
+    return path
+
+
 def test_the_reviewed_set_contains_the_shipped_profile() -> None:
     library = load_long_tail_library()
 
@@ -673,6 +686,165 @@ def test_two_reviewed_profiles_cannot_answer_to_one_id(tmp_path) -> None:
 
     assert "duplicate" in str(error.value)
     assert DEFAULT_LONG_TAIL_PROFILE_ID in str(error.value)
+
+
+# --------------------------------------------------------------------------
+# Which files are the reviewed set, decided the same way on every platform
+# --------------------------------------------------------------------------
+# `glob("*.json")` is case-insensitive on Windows and case-sensitive on Linux, so
+# `long-tail.JSON` was a reviewed profile on a developer machine and did not exist
+# in CI. A rule that quietly holds on one operating system is weaker than the ADR
+# reads, so discovery now matches `.json` exactly, refuses a file whose extension
+# differs only in case rather than dropping it in silence, and leaves dotfiles out.
+# The duplicate check folds case with it; the *lookup* deliberately does not.
+
+
+def test_an_uppercase_json_extension_is_refused_rather_than_silently_skipped(
+    tmp_path,
+) -> None:
+    """The local-versus-CI divergence, turned into a sentence that names the file.
+
+    Matching lowercase alone would make the platforms agree, but agree on *silence*:
+    the contributor still has a file that is not a profile and still no reason why.
+    A name differing from `.json` only in case is a file someone plainly meant as a
+    profile, so it is refused out loud, at load, before anything is fetched.
+    """
+    _reviewed_profile_file(tmp_path / "long-tail.json")
+    _reviewed_profile_file(tmp_path / "extra.JSON", profile_id="long-tail-experimental")
+
+    with pytest.raises(ProfileError) as error:
+        load_long_tail_library(tmp_path)
+
+    assert "extra.JSON" in str(error.value)
+    assert "'.json' exactly" in str(error.value)
+
+
+def test_a_lowercase_json_extension_is_what_discovery_accepts(tmp_path) -> None:
+    """The accept side, and the proof that the refusal above stays narrow.
+
+    A neighbour that is not JSON at all is ignored exactly as before. Only a file
+    whose extension *is* `.json` under case folding, without being `.json`, trips it.
+    """
+    _reviewed_profile_file(tmp_path / "long-tail.json")
+    (tmp_path / "notes.txt").write_text("not a profile", encoding="utf-8")
+    (tmp_path / "README.md").write_text("# not a profile", encoding="utf-8")
+
+    library = load_long_tail_library(tmp_path)
+
+    assert library.ids == (DEFAULT_LONG_TAIL_PROFILE_ID,)
+
+
+def test_a_dotfile_is_not_part_of_the_reviewed_set(tmp_path) -> None:
+    """A name beginning with a dot says "not part of the working set"; that is honoured."""
+    _reviewed_profile_file(tmp_path / "long-tail.json")
+    _reviewed_profile_file(tmp_path / ".hidden.json", profile_id="long-tail-hidden")
+
+    library = load_long_tail_library(tmp_path)
+
+    assert library.ids == (DEFAULT_LONG_TAIL_PROFILE_ID,)
+
+
+def test_the_same_document_without_the_leading_dot_is_a_reviewed_profile(
+    tmp_path,
+) -> None:
+    """The accept side: the dot is the whole reason, not the contents."""
+    _reviewed_profile_file(tmp_path / "long-tail.json")
+    _reviewed_profile_file(tmp_path / "hidden.json", profile_id="long-tail-hidden")
+
+    library = load_long_tail_library(tmp_path)
+
+    assert library.ids == (DEFAULT_LONG_TAIL_PROFILE_ID, "long-tail-hidden")
+
+
+def test_a_hidden_file_is_skipped_before_its_extension_is_judged(tmp_path) -> None:
+    """Where the two rules meet, the dotfile rule wins, and that asymmetry is the point.
+
+    `.hidden.JSON` is not refused for its extension because it never reaches that
+    question. Refusing it would punish an author who already said the file was not
+    part of the set; refusing `extra.JSON` respects an author who said it was.
+    """
+    _reviewed_profile_file(tmp_path / "long-tail.json")
+    _reviewed_profile_file(tmp_path / ".hidden.JSON", profile_id="long-tail-hidden")
+
+    library = load_long_tail_library(tmp_path)
+
+    assert library.ids == (DEFAULT_LONG_TAIL_PROFILE_ID,)
+
+
+def test_two_ids_differing_only_in_case_are_one_id(tmp_path) -> None:
+    """The duplicate check exists so nobody reasons about which document won.
+
+    Two ids a reader would call the same name defeat that intent, so they collide
+    here. The refusal names both declared strings, because "duplicate" is otherwise
+    baffling in front of two files that do not look alike.
+    """
+    _reviewed_profile_file(tmp_path / "long-tail.json")
+    _custom_profile_file(tmp_path / "twin.json", profile_id="Long-Tail-Generic")
+
+    with pytest.raises(ProfileError) as error:
+        load_long_tail_library(tmp_path)
+
+    message = str(error.value)
+    assert "duplicate" in message
+    assert "case" in message
+    assert "Long-Tail-Generic" in message
+    assert DEFAULT_LONG_TAIL_PROFILE_ID in message
+
+
+def test_two_ids_differing_by_more_than_case_are_two_profiles(tmp_path) -> None:
+    """Folding case refuses more; it must not refuse ids that are genuinely distinct."""
+    _reviewed_profile_file(tmp_path / "long-tail.json")
+    _reviewed_profile_file(
+        tmp_path / "experimental.json", profile_id="long-tail-experimental"
+    )
+
+    library = load_long_tail_library(tmp_path)
+
+    assert library.ids == ("long-tail-experimental", DEFAULT_LONG_TAIL_PROFILE_ID)
+
+
+def test_resolution_still_matches_the_recorded_id_exactly(tmp_path) -> None:
+    """The narrow question is the duplicate check. The lookup must stay exact.
+
+    A checkpoint records a literal string and a resume rebuilds the profile from it.
+    If `Long-Tail-Generic` resolved to the document declaring `long-tail-generic`, a
+    resumed run could land on a document it did not start under — #94's substitution,
+    which ADR 0002 exists to close. Folding case in the duplicate check only ever
+    refuses a set; it must never widen what an id matches.
+    """
+    _reviewed_profile_file(tmp_path / "long-tail.json")
+
+    exact = reviewed_long_tail_profile(DEFAULT_LONG_TAIL_PROFILE_ID, directory=tmp_path)
+    assert exact.id == DEFAULT_LONG_TAIL_PROFILE_ID
+
+    for near_miss in (
+        "Long-Tail-Generic",
+        DEFAULT_LONG_TAIL_PROFILE_ID.upper(),
+        f" {DEFAULT_LONG_TAIL_PROFILE_ID} ",
+    ):
+        with pytest.raises(ProfileError) as error:
+            reviewed_long_tail_profile(near_miss, directory=tmp_path)
+        assert "unknown long-tail profile" in str(error.value)
+
+
+def test_a_declared_id_padded_with_whitespace_is_refused(tmp_path) -> None:
+    """Refused rather than trimmed, so a profile never answers to an unwritten string.
+
+    Stripping would register the document under an id it does not declare, and a
+    reader of the JSON could no longer tell which string resolves. Refusing says what
+    is wrong and cannot change what any well-formed id resolves to.
+    """
+    padded = _reviewed_profile_file(
+        tmp_path / "padded.json", profile_id=f" {DEFAULT_LONG_TAIL_PROFILE_ID} "
+    )
+
+    with pytest.raises(ProfileError) as error:
+        load_long_tail_profile(padded)
+
+    assert "whitespace" in str(error.value)
+
+    _reviewed_profile_file(padded, profile_id=DEFAULT_LONG_TAIL_PROFILE_ID)
+    assert load_long_tail_profile(padded).id == DEFAULT_LONG_TAIL_PROFILE_ID
 
 
 def test_a_run_cannot_be_started_from_an_unreviewed_profile_file(
