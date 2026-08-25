@@ -164,14 +164,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     publish.add_argument(
         "--repo",
-        help="target repository as owner/name; defaults to $GITHUB_REPOSITORY",
+        help=(
+            "target repository as owner/name; defaults to $GITHUB_REPOSITORY. "
+            "Under --dry-run it is named in the preview and nothing else: it is "
+            "neither validated nor contacted"
+        ),
     )
     publish.add_argument(
         "--dry-run",
         action="store_true",
         help=(
             "print the exact issue title and body that would be sent, and send "
-            "nothing. Needs no repository, no token, and no network."
+            "nothing. Names the repository it would have published to, but needs "
+            "no repository, no token, and no network."
         ),
     )
 
@@ -500,10 +505,56 @@ def _summarise_publication(result: PublicationReport, stream) -> int:
     return EXIT_PUBLISH_FAILED if result.failures else EXIT_OK
 
 
+def _dry_run_destination(args: argparse.Namespace, env: Mapping[str, str]) -> str:
+    """Name the repository a dry run *would* publish to, however it was named.
+
+    ``--repo`` under ``--dry-run`` used to be read nowhere at all: the dry-run
+    branch returned before the flag was resolved, so the operator could not tell
+    ``--repo`` was honoured from ``--repo`` was discarded. Naming the destination
+    here is that missing signal, and the attribution (``--repo`` versus the
+    environment) is the part that answers the actual question. Neither being set
+    is reported too, and is *not* an error: a dry run that needs no repository is
+    what ``--dry-run``'s own help promises, and it is the ordinary invocation.
+
+    The alternative was to refuse ``--repo`` with ``--dry-run`` outright, which is
+    what the analogous ``--long-tail-profile`` defect settled on (see
+    ``_long_tail_profile``). That precedent deliberately is not followed, because
+    the fact it turned on is absent here. There, a silently ignored flag left the
+    run at the ordinary majority bar while the operator had named the profile
+    carrying the unanimous one, so inferring the opt-in would have decided the
+    review threshold on their behalf; refusing was the reversible direction
+    because the only invocation it changed was one already mis-running. Here a
+    dry run reads nothing, sends nothing, and renders the same bytes either way —
+    ``publish_report(report, None, dry_run=True)`` dispatches to ``_render_only``,
+    which takes neither a client nor a repository, and no repository appears in
+    the payload. No bar can be lowered and no wrong run needs stopping, so
+    refusing would only reject a harmless invocation: specifically a wrapper that
+    pins ``--repo`` and toggles ``--dry-run``, which would break at exactly the
+    moment the tool is being used most safely. Reporting the destination removes
+    the silence without removing an invocation, and can still be tightened to a
+    refusal later; a refusal that had broken scripts is the harder one to undo.
+
+    The value is reported as given. It is not validated or contacted, because a
+    dry run has no credentials and reaches no network to check it against.
+    """
+    if args.repo:
+        return f"dry run: would publish to {args.repo} (from --repo)"
+    from_env = env.get("GITHUB_REPOSITORY", "")
+    if from_env:
+        return f"dry run: would publish to {from_env} (from GITHUB_REPOSITORY)"
+    return (
+        "dry run: no destination named; a real publication would need --repo "
+        "or GITHUB_REPOSITORY"
+    )
+
+
 def _publish(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
     report = load_run_report(args.report)
 
     if args.dry_run:
+        # After the artefact is loaded, so a missing report is still reported as
+        # itself rather than behind a destination for a run that cannot happen.
+        stream.write(_dry_run_destination(args, env) + "\n")
         return _summarise_publication(
             publish_report(report, None, dry_run=True), stream
         )
