@@ -1,0 +1,60 @@
+name: Skills CI
+
+# Runs the deterministic gate self-tests that the data-refresh skills depend on.
+#
+# Those gates are the only thing standing between an unattended agent run and
+# GitHub Pages: they run after the semantic review panel and cannot be outvoted
+# by it (ADR 0003). A gate that silently stopped firing would leave the pipeline
+# looking green while checking nothing, so the tests prove every rule still
+# fires by breaking real data in exactly the way that rule exists to catch.
+#
+# Path-filtered on purpose. Unlike `web-ci`, this check is NOT required on main,
+# so a pull request that never reports one is fine; filtering keeps it off the
+# many pull requests that touch no gate code.
+#
+# It uses no secrets and holds no write scope of any kind.
+
+on:
+  pull_request:
+    paths:
+      - '.github/skills/**'
+      - '.github/workflows/skills-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  skills-ci:
+    name: skills-ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          # This job never pushes.
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          # Matches web-ci and pages.yml. The gate scripts are dependency-free,
+          # so there is nothing to install and no lockfile to cache.
+          node-version: 22
+
+      # Node's own test runner, no dependencies. The file path is passed
+      # explicitly: `node --test <directory>` resolves differently and fails to
+      # find the suite.
+      - name: Run the gate self-tests
+        run: node --test .github/skills/modeltree-gates/scripts/gates.test.mjs
+
+      # The gates are written against the dataset as it actually is. If a data
+      # change makes a gate wrong, that shows up here rather than at 3am in an
+      # unattended refresh.
+      - name: Run the dataset gate against the live data
+        run: node .github/skills/modeltree-gates/scripts/gate-dataset.mjs
