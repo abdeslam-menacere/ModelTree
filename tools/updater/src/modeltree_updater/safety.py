@@ -107,10 +107,17 @@ def assert_proposal_output_path(path: Path | str, *, repo_root: Path | None = No
     sits inside no checkout at all, so there is no reviewed repository data there
     for this guard to stand in front of; refusing would break `--output
     ~/proposals`, which is the ordinary way to run this tool, and the only way
-    back would be an opt-out flag this module must never grow. The residual it
-    leaves is narrow and known: a tree holding a copy of `web/` while carrying
-    none of the markers — an unpacked archive, say — is not recognised as a
-    checkout and its `web/` is not protected.
+    back would be an opt-out flag this module must never grow.
+
+    The residual it leaves is narrower than "a tree holding a copy of `web/`"
+    suggests, because `web/src/data` is itself one of the markers: a faithful
+    copy brings it along and the tree is detected one directory up, and an
+    export that kept the source layout carries three of the four even with no
+    `.git`. What is left is a tree with none of the four whose `web/` belongs
+    to an unrelated project, or is a partial copy of this repository's that did
+    not bring `src/data` — an assets-only extract, or a copy of the build
+    output. Such a tree is not recognised as a checkout, so its `web/` is not
+    protected.
     """
     resolved = Path(path).expanduser().resolve()
     # Search from the requested path itself: a directory that does not exist yet
