@@ -94,14 +94,17 @@ satisfy any one of them does not merge:
   dropped and the remainder re-validated, so a bad claim costs itself and not the
   run.
 
-  The approved-source binding is `tools/updater/`'s `source-approval` gate
-  (`gates.py`), and it is required here rather than assumed because the dataset
-  validator cannot stand in for it. `sources.json` is itself part of the dataset
-  the run may patch, and `validateDataset` checks `sourceIds` *referentially* —
-  that every cited id resolves to a record in the dataset. A run that adds a
-  source record and cites it therefore satisfies referential integrity while
-  citing something nobody approved. `npm run validate` catches a claim with **no**
-  source; only this gate catches a claim whose source the run invented for it.
+  The approved-source binding exists twice, once on each side, and it is required
+  here rather than assumed because the dataset validator cannot stand in for it.
+  `sources.json` is itself part of the dataset the run may patch, and
+  `validateDataset` checks `sourceIds` *referentially* — that every cited id
+  resolves to a record in the dataset. A run that adds a source record and cites
+  it therefore satisfies referential integrity while citing something nobody
+  approved. `npm run validate` catches a claim with **no** source; only this gate
+  catches a claim whose source the run invented for it. On the proposal-only side
+  it is `gates.py`'s `source-approval`; on the publishing side it is
+  `.github/skills/modeltree-gates/scripts/gate-source-approval.mjs`, added by #167
+  to close precondition 2 below.
 - **GitHub, not the agent, performs the merge.** `gh pr merge --auto --squash`
   hands the decision to the repository: the merge happens when `web-ci` is green
   and not before. The skill does not poll and then merge, and it never pushes to
@@ -115,17 +118,37 @@ which this document can apply to itself:
 
 1. `allow_auto_merge` is enabled and `main` is protected with `web-ci` as a
    required status check. These are settings, and ADR 0001 keeps them explicit
-   owner actions.
+   owner actions. **Satisfied** — applied by the owner and verified live on
+   2026-08-25: `allow_auto_merge: true`, and `main` protection requiring
+   `["web-ci"]`. Being settings rather than files, they appear in no diff and can
+   be changed back without anything in this repository noticing; see the
+   policy-lives-outside-the-repository cost below.
 2. The skill set's deterministic gates enforce the approved-source binding above.
-   As of this ADR they do not — see the divergence bullet under `### Costs` — so
-   this precondition is open, and it is a gap to close in #146 rather than a cost
-   accepted here.
-3. Review thresholds are per-profile as stated above, not flat.
+   **Satisfied** by #167, which added
+   `.github/skills/modeltree-gates/scripts/gate-source-approval.mjs` and ten
+   self-tests, including the probe that found the hole: a fabricated source on an
+   unrelated domain, cited from a real release, which used to pass every gate and
+   is now refused. What closed it, precisely, is that the gate's two trust anchors
+   are things a run cannot write — the committed `web/src/data/sources.json` read
+   from git at the base ref, and the `source_catalog` entries in
+   `tools/updater/profiles/`, which the qualifying class forbids a refresh to
+   touch. Reading `sources.json` from the working tree instead would have moved
+   the circularity rather than closing it, since the working tree is what the run
+   is about to write; a self-test asserts the committed blob is what counts.
+3. Review thresholds are per-profile as stated above, not flat. **Satisfied** —
+   `gate-evidence.mjs` carries `THRESHOLDS = { pilot: 2, 'long-tail': 3 }`,
+   refuses a bundle that omits `policy` rather than defaulting to the looser bar,
+   and proves both with self-tests.
 
-Until all three hold, this ADR authorises nothing to merge. That is the ordinary
-reading of the permissive-divergence guardrail below rather than an exception to
-it: the automation stays stopped until the skill set is corrected, which is
-exactly what that guardrail requires.
+All three now hold, and that is still not an enablement. Nothing in this
+repository runs a refresh on a schedule or on a trigger; enabling one is a
+separate, deliberate decision, and this ADR governs it rather than performing it.
+What has changed is that the remaining distance between the skill set and a live
+unattended publisher is a switch somebody must throw, not a check nobody wrote.
+
+The permissive-divergence guardrail below still binds continuously rather than
+being discharged: a divergence found tomorrow stops the automation exactly as
+this one did.
 
 The human is not removed from the loop. They move from approving each claim to
 owning the rules, the required check, and the revert.
@@ -177,17 +200,30 @@ owning the rules, the required check, and the revert.
   direction, so the differences are recorded separately rather than netted off
   into a single verdict about which is safer:
 
-  - *Permissive, and therefore a precondition rather than a cost.*
-    `tools/updater/src/modeltree_updater/gates.py` defines `url-safety`,
+  - *Permissive — was precondition 2, and is now closed.* At adoption,
+    `tools/updater/src/modeltree_updater/gates.py` defined `url-safety`,
     `typed-contract`, `schema-validation`, `date-sanity`, `reference-integrity`,
-    `lineage-invariants`, and `source-approval`. The skill set names no
-    `source-approval` equivalent, and relocates that function to the scout —
-    dropping a claim whose only support is a search-result snippet, *before*
-    review. That is pre-review and agent-mediated, which is the one thing the
-    Decision says this class of check must not be, and it is not covered by
-    `npm run validate` for the reason given in the Decision. This is not filed
-    here as an accepted cost. It is precondition 2 above, to be closed in #146
-    before first enablement.
+    `lineage-invariants`, and `source-approval`, and the skill set named no
+    `source-approval` equivalent. This document then described that gap as the
+    skill set relocating the function to the scout. That description was wrong,
+    and #167 corrected it before building anything: new sources **do** go through
+    the review panel as `sources` claims. What was missing was the second,
+    deterministic layer. `review.py`'s `approve_source` is a *vote*, which the
+    skill set had; `gates.py`'s `_claim_source_approval_issues` is a *refusal* of
+    any claim whose cited source is not in the approved set, which it did not. The
+    second is not a duplicate of the first — it is the binding that makes the vote
+    load-bearing, since without it a panel can approve one source while a claim
+    cites another and nothing checks the two ever met.
+
+    #167 added that binding as `gate-source-approval.mjs`. It is deliberately
+    **stricter** than `gates.py` in one respect and equivalent in the rest.
+    `gates.py` approves a newly discovered source on an unknown origin once the
+    panel votes for it, which is sound where a human sees the proposal; under this
+    ADR nobody does, so a run's own panel approving a source that same run
+    introduced is the run approving itself. The skill set therefore refuses it
+    outright, and extending the trust boundary to a new host stays a human act.
+    Per the directional rule below that is a finding raised against
+    `tools/updater/`, not a reason to stop.
   - *Stricter, and therefore a finding rather than a stop.* The skill set gates
     any attempt to introduce a composite or universal score. `gates.py` has no
     equivalent; #67 is held by review and by ADR 0001's guardrail rather than by
@@ -288,10 +324,11 @@ owning the rules, the required check, and the revert.
   one, and says nothing in its favour.
 - **If the skill set's gates are more permissive than `tools/updater/`'s at any
   point, the automation does not run until the skill set is corrected.** That
-  applies to the `source-approval` gap that exists today — which is why the
-  Decision makes closing it a precondition of first enablement — and to anything
-  discovered later; there is no grandfathering and no carve-out for a divergence
-  that predates adoption. A skill-set gate that is *stricter* than its
+  applied to the `source-approval` gap, which is why the Decision made closing it
+  a precondition of first enablement, and it applies to anything discovered later;
+  there is no grandfathering and no carve-out for a divergence that predates
+  adoption. Closing that one discharges nothing: the guardrail binds
+  continuously, not once. A skill-set gate that is *stricter* than its
   counterpart is a finding raised against `tools/updater/`, not a reason to stop.
   Compare the rules enforced, not the gate names: the names partition the same
   work differently, so a name-level comparison reports drift that is not there
