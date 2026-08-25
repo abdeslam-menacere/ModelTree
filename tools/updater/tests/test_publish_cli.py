@@ -14,6 +14,7 @@ import pytest
 
 from modeltree_updater import cli
 from modeltree_updater.cli import EXIT_OK, EXIT_PUBLISH_FAILED, EXIT_USAGE, main
+from modeltree_updater.github_issues import GitHubError, split_repository
 from modeltree_updater.parsing import proposal_from_dict
 from modeltree_updater.publisher import identity_marker, issue_title, render_body
 
@@ -294,3 +295,176 @@ def test_repo_still_wins_over_the_environment_when_publishing_for_real(
 
     assert code == EXIT_OK
     assert built["repository"] == "octo/other-repo"
+
+
+# -- a malformed --repo is refused offline, not once a token is in hand ----------
+#
+# `split_repository` is pure, so the shape of a destination is knowable with no
+# credentials and no network. These four go together: two values that must now
+# be refused, one valid value that must be completely unaffected, and the
+# no-destination case that must stay the ordinary, succeeding invocation it is.
+
+MALFORMED_NO_SLASH = "octo-modeltree"
+MALFORMED_PASTED_URL = "https://github.com/octo/modeltree"
+
+
+def test_a_dry_run_refuses_a_repo_with_no_slash(artefact, monkeypatch) -> None:
+    """The typo a dry run exists to catch, caught before a token is handed over.
+
+    On `main` this returned EXIT_OK and rendered the payload, and the value was
+    rejected only by `RestIssuesClient.__init__` on a real publication.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    code, output = _run(
+        [
+            "publish",
+            "--report",
+            str(artefact(MATERIAL)),
+            "--repo",
+            MALFORMED_NO_SLASH,
+            "--dry-run",
+        ]
+    )
+
+    assert code == EXIT_USAGE
+    # The value received and the shape expected, so the typo is visible.
+    assert MALFORMED_NO_SLASH in output
+    assert "owner/name" in output
+    # Refused instead of rendered: nothing downstream ran.
+    assert f"title: {issue_title(MATERIAL)}" not in output
+
+
+def test_a_dry_run_refuses_a_pasted_repository_url(artefact, monkeypatch) -> None:
+    """The other way this is got wrong: a URL pasted where owner/name belongs."""
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    code, output = _run(
+        [
+            "publish",
+            "--report",
+            str(artefact(MATERIAL)),
+            "--repo",
+            MALFORMED_PASTED_URL,
+            "--dry-run",
+        ]
+    )
+
+    assert code == EXIT_USAGE
+    assert MALFORMED_PASTED_URL in output
+    assert "owner/name" in output
+    assert f"title: {issue_title(MATERIAL)}" not in output
+
+
+def test_the_refusal_is_about_shape_and_says_nothing_about_existence(
+    artefact, monkeypatch
+) -> None:
+    """Offline, only the shape is knowable, so only the shape may be claimed.
+
+    A message that read as "no such repository" would be asserting something
+    this run cannot know, and would be wrong for the opposite reason too: a
+    well-shaped value is not looked up either.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    _, output = _run(
+        [
+            "publish",
+            "--report",
+            str(artefact(MATERIAL)),
+            "--repo",
+            MALFORMED_NO_SLASH,
+            "--dry-run",
+        ]
+    )
+
+    refusal = output.splitlines()[0]
+    assert "shape" in refusal
+    assert "not a claim that any repository does or does not exist" in refusal
+    # Nothing that would only be knowable by looking the repository up.
+    lowered = refusal.lower()
+    for lookup_claim in ("not found", "no such", "unreachable", "404", "does not exist."):
+        assert lookup_claim not in lowered, lookup_claim
+
+
+def test_the_dry_run_refuses_exactly_what_a_real_publication_refuses(
+    artefact, monkeypatch
+) -> None:
+    """No second, divergent parser: `split_repository` decides in both places.
+
+    Asserted as agreement rather than by naming the validator, so a
+    reimplementation that happened to be correct today but drifted tomorrow
+    would still be caught.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+    report_path = artefact(MATERIAL)
+    candidates = [
+        MALFORMED_NO_SLASH,
+        MALFORMED_PASTED_URL,
+        "octo/modeltree",
+        "octo/model.tree",
+        "octo/",
+        "/modeltree",
+        "octo/modeltree?x=1",
+        "octo/../evil",
+        "octo_name/modeltree",
+        "octo/modeltree/extra",
+    ]
+
+    for value in candidates:
+        code, _ = _run(
+            ["publish", "--report", str(report_path), "--repo", value, "--dry-run"]
+        )
+        try:
+            split_repository(value)
+        except GitHubError:
+            assert code == EXIT_USAGE, f"{value!r} should have been refused"
+        else:
+            assert code == EXIT_OK, f"{value!r} should have been accepted"
+
+
+def test_a_valid_repo_under_dry_run_is_completely_unaffected(
+    artefact, monkeypatch
+) -> None:
+    """The regression pin for the destination line added by #129.
+
+    This passes on `main`; it is here so that adding the refusal cannot be
+    mistaken for licence to disturb the case that already worked.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    code, output = _run(
+        [
+            "publish",
+            "--report",
+            str(artefact(MATERIAL)),
+            "--repo",
+            "octo/modeltree",
+            "--dry-run",
+        ]
+    )
+
+    assert code == EXIT_OK
+    assert "dry run: would publish to octo/modeltree (from --repo)" in output
+    assert f"title: {issue_title(MATERIAL)}" in output
+    assert "error:" not in output
+
+
+def test_a_dry_run_with_no_destination_is_still_not_a_refusal(
+    artefact, monkeypatch
+) -> None:
+    """The counterweight, and the ordinary invocation.
+
+    `--dry-run` promises it needs no repository. Unset is not malformed, and
+    turning the most common call into a usage error would be a worse defect
+    than the one being fixed. This passes on `main` and must keep passing.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    code, output = _run(["publish", "--report", str(artefact(MATERIAL)), "--dry-run"])
+
+    assert code == EXIT_OK
+    assert "dry run: no destination named" in output
+    assert f"title: {issue_title(MATERIAL)}" in output
+    assert "error:" not in output
+    assert "owner/name" not in output
