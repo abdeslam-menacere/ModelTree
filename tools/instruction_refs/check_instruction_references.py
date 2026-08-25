@@ -129,6 +129,10 @@ ABSENCE_CUE = r"(?:\bno|\bnot|\bwithout|\bnever)\s+(?:an?\s+|the\s+)?"
 # How far back from a section marker to look for the document it points into.
 SECTION_LOOKBEHIND = 120
 
+# A name asked of `git check-ignore` to find out whether a directory-only
+# pattern covers a directory that is not on disk to be recognised as one.
+IGNORE_PROBE = ".gitignore-probe"
+
 
 @dataclass(frozen=True)
 class Finding:
@@ -230,29 +234,38 @@ def absence_statement(text: str, token: str) -> tuple[str, int] | None:
     return match.group(0), line_of(text, offsets[match.start()])
 
 
-def is_git_ignored(repo_root: Path, relative: str) -> bool:
+def is_git_ignored(repo_root: Path, token: str) -> bool:
     """Ask git, the authority on what is repository content and what is not.
 
-    The trailing slash is passed through deliberately. `.gitignore` line 17 is
-    `.docks/`, a directory-only pattern, and git will not match it against a
-    bare `.docks` that is not present on disk to be recognised as a directory.
+    Never ask about a path that ends in "/". A blank line in `.gitignore` is
+    reported as a match for any such path, so `docs/nowhere/` would come back
+    "ignored" and a genuinely broken directory reference would be exempted --
+    the exact class of silent pass this checker exists to remove.
+
+    A directory-only pattern like `.docks/` will not match the bare name either,
+    because a directory that is not on disk cannot be recognised as one. So ask
+    twice: about the name, and about a child of it.
 
     Failing to ask -- no git on PATH, not a work tree -- returns False, so the
     reference is reported rather than silently passed.
     """
+    relative = token.strip("/")
     if not relative:
         return False
-    try:
-        completed = subprocess.run(
-            ["git", "check-ignore", "--quiet", "--", relative],
-            cwd=repo_root,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            check=False,
-        )
-    except (OSError, ValueError):
-        return False
-    return completed.returncode == 0
+    for probe in (relative, f"{relative}/{IGNORE_PROBE}"):
+        try:
+            completed = subprocess.run(
+                ["git", "check-ignore", "--quiet", "--", probe],
+                cwd=repo_root,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
+        except (OSError, ValueError):
+            return False
+        if completed.returncode == 0:
+            return True
+    return False
 
 
 def resolve_path(repo_root: Path, token: str) -> bool:
@@ -305,7 +318,7 @@ def check_paths(text: str, repo_root: Path, report: Report) -> None:
                 )
             )
             continue
-        if is_git_ignored(repo_root, token.lstrip("/")):
+        if is_git_ignored(repo_root, token):
             report.exempt.append(
                 Finding(
                     line,
@@ -412,8 +425,10 @@ def check(document: Path, repo_root: Path = REPO_ROOT) -> Report:
 def main(argv: list[str] | None = None) -> int:
     # A section marker is U+00A7, which a Windows console's default code page
     # cannot encode. Reporting a failure must not itself fail.
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+    except (AttributeError, OSError, ValueError):
+        pass
     args = list(sys.argv[1:] if argv is None else argv)
     if len(args) > 1:
         print("usage: check_instruction_references.py [document]", file=sys.stderr)
