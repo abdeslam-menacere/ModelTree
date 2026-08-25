@@ -10,7 +10,15 @@ from __future__ import annotations
 import traceback
 from typing import Any, Sequence
 
-from .checkpoints import recorded_profile_id, recorded_providers
+from .checkpoints import (
+    CHECKPOINT_SCHEMA_VERSION,
+    TOOL_VERSION,
+    CheckpointVersion,
+    current_version_marker,
+    recorded_profile_id,
+    recorded_providers,
+    recorded_version_marker,
+)
 from .contracts import (
     BudgetUsage,
     CreatorProposal,
@@ -28,6 +36,7 @@ from .providers.base import ProviderError
 from .workflow import ProfileMismatch, RunSettings, build_creator_workflow
 
 __all__ = [
+    "CheckpointVersionMismatch",
     "ProfileMismatch",
     "ProviderMismatch",
     "run_creator",
@@ -49,6 +58,82 @@ class ProviderMismatch(ProviderError):
         )
         self.recorded = recorded
         self.requested = requested
+
+
+class CheckpointVersionMismatch(ProviderError):
+    """A resume was asked to reinterpret state a different build wrote.
+
+    The refusal, not a warning. A run's supersteps are adjudicated one at a time and
+    the checkpoint is what carries the decision between them, so a build change
+    across a resume means the earlier half of a proposal was decided by code the
+    later half is not. Logging that and continuing produces exactly the artefact this
+    tool exists not to produce: one proposal presented as a single judgement that was
+    made under two sets of rules, with nothing on its face saying so. There is no
+    partially-correct outcome to salvage, so there is nothing for a warning to be
+    useful *for*.
+
+    **An unmarked checkpoint is refused too, and that is the deliberate choice rather
+    than the accident.** A checkpoint written before this marker existed says nothing
+    about the build that wrote it, so it cannot be shown to match — and "cannot be
+    shown to match" must not resolve to the permissive branch merely because the
+    evidence is missing. #146 was failed at review for the mirror image of this
+    (`bundle.policy ?? 'pilot'` read an absent field as licence to apply the weaker
+    bar), and while an unmarked checkpoint is genuinely a different thing — state
+    predating a feature, not a field a peer omitted — the *conclusion* is the same
+    and for a stronger reason here. The unmarked checkpoints that exist are precisely
+    the ones ADR 0002 names in its residual: written when `--long-tail-profile` still
+    took a path, carrying an id from a document the reviewed set never saw. Accepting
+    them as legacy would keep that hole open and leave the ADR unable to drop its
+    qualification, which is the whole point of closing this. Issue #140 settles the
+    cost directly — there is no checkpoint corpus to migrate, and refusing an old
+    checkpoint is the correct conservative behaviour.
+
+    ``retryable=False``: resuming again changes nothing. The message names the build
+    that wrote the checkpoint, the build reading it, which of the two numbers differ,
+    and the two things an operator can actually do.
+    """
+
+    def __init__(self, recorded: CheckpointVersion, reading: CheckpointVersion) -> None:
+        if not recorded.is_marked:
+            opening = "this checkpoint records no tool or checkpoint schema version"
+            differs = (
+                "It predates the version marker, so the build that wrote it cannot be "
+                "identified at all"
+            )
+            remedy = (
+                "Start this creator again from the beginning with the current build. "
+                "An unmarked checkpoint cannot be shown to match, and a resume that "
+                "cannot be shown to match is not one this tool will make."
+            )
+        else:
+            opening = f"this checkpoint was written by {recorded.describe()}"
+            names = []
+            if recorded.tool_version != reading.tool_version:
+                names.append(
+                    f"the tool version differs ({recorded.tool_version!r} wrote it, "
+                    f"{reading.tool_version!r} is reading it)"
+                )
+            if recorded.schema_version != reading.schema_version:
+                names.append(
+                    f"the checkpoint schema version differs ({recorded.schema_version!r} "
+                    f"wrote it, {reading.schema_version!r} is reading it)"
+                )
+            joined = "; ".join(names)
+            differs = joined[:1].upper() + joined[1:]
+            remedy = (
+                f"Resume with modeltree-updater {recorded.tool_version}, or start this "
+                "creator again from the beginning with the current build. Do not "
+                "resume it with this one."
+            )
+        super().__init__(
+            f"refusing to resume: {opening}, but this is {reading.describe()}. "
+            f"{differs}. A proposal must be decided under one set of rules from end "
+            f"to end. {remedy}",
+            provider="modeltree-updater",
+            retryable=False,
+        )
+        self.recorded = recorded
+        self.reading = reading
 
 
 def _empty_budget(settings: RunSettings) -> BudgetUsage:
@@ -123,6 +208,11 @@ async def run_creator(
             # checkpoint rather than re-decided later.
             review_policy=settings.review_policy,
             profile_id=settings.profile_id,
+            # Stamped here for the same reason and at the same moment: this is the
+            # build adjudicating the run, so it is the build every checkpoint the
+            # run writes has to name.
+            tool_version=TOOL_VERSION,
+            checkpoint_schema_version=CHECKPOINT_SCHEMA_VERSION,
         )
     )
     return _single_proposal(result.get_outputs())
@@ -139,6 +229,13 @@ async def resume_creator_run(
     A resume must not quietly change where the evidence came from, so the
     providers recorded in the checkpoint have to match the ones supplied here.
 
+    It must not quietly change the *code* either. The checkpoint records the tool
+    version and the checkpoint schema version of the build that wrote it, and a
+    resume by any other build — or by any build at all, where the checkpoint predates
+    the marker and names none — stops with ``CheckpointVersionMismatch`` before the
+    providers or the profile are looked at. See that class for why refusing an
+    unmarked checkpoint is the deliberate reading of absence rather than an oversight.
+
     It must not quietly change the *bar* either. The review policy travels in the
     checkpointed messages, so it is restored rather than re-decided — the resuming
     command's ``--long-tail`` flag is not consulted for it. The profile behind that
@@ -153,19 +250,32 @@ async def resume_creator_run(
 
     Two limits, so this does not read as more than it is. A profile built in-process
     from an arbitrary path — which no newly started CLI run can do, though the loader
-    still allows it, and a checkpoint written by an older build that accepted paths
-    can still bring one back through this function, since checkpoints carry no schema
-    or tool-version marker — may declare an id the reviewed set does contain, and that
+    still allows it — may declare an id the reviewed set does contain, and that
     resume gets the reviewed document rather than the one the run started with. That
     resolves towards a reviewed document, which is safe for *provenance*; it is not
     necessarily the stricter document, and strictness is not ordered between the
     two — the substituted promotion criteria can be looser on one criterion and
-    stricter on another than the ones the run started under. See ADR 0002. And a
+    stricter on another than the ones the run started under. See ADR 0002. Reaching
+    that case *through the CLI* required a checkpoint written by an older build, back
+    when ``--long-tail-profile`` still took a path; the version check above refuses
+    such a checkpoint outright, so what remains of that route is in-process on the
+    Python API. And a
     reviewed set that cannot be loaded at all, because the directory is missing or
     empty, surfaces as ``FileNotFoundError`` rather than ``ProfileMismatch``: that
     is a broken installation, not a disagreement about which profile applies. The
     CLI maps both to exit 2.
     """
+    # First, and before any work. If this build cannot be shown to be the one that
+    # wrote the state, nothing else read out of that state means what it appears to:
+    # comparing providers or a profile id across a schema whose field meanings may
+    # have moved would be reporting a comparison this code is not entitled to make.
+    # A checkpoint that cannot be loaded at all is not a version disagreement, so it
+    # is left to the framework to report as it does today.
+    recorded_version = await recorded_version_marker(checkpoint_storage, checkpoint_id)
+    reading_version = current_version_marker()
+    if recorded_version is not None and recorded_version != reading_version:
+        raise CheckpointVersionMismatch(recorded_version, reading_version)
+
     recorded = await recorded_providers(checkpoint_storage, checkpoint_id)
     requested = dict(settings.providers.descriptor)
     if recorded is not None and recorded != requested:

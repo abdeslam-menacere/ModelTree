@@ -305,6 +305,8 @@ class DiscoverSourcesExecutor(Executor):
                 providers=message.providers,
                 review_policy=message.review_policy,
                 profile_id=message.profile_id,
+                tool_version=message.tool_version,
+                checkpoint_schema_version=message.checkpoint_schema_version,
             )
         )
 
@@ -374,6 +376,8 @@ class ExtractClaimsExecutor(Executor):
                 providers=message.providers,
                 review_policy=message.review_policy,
                 profile_id=message.profile_id,
+                tool_version=message.tool_version,
+                checkpoint_schema_version=message.checkpoint_schema_version,
             )
         )
 
@@ -422,6 +426,8 @@ class ReviewClaimsExecutor(Executor):
                 providers=message.providers,
                 review_policy=message.review_policy,
                 profile_id=message.profile_id,
+                tool_version=message.tool_version,
+                checkpoint_schema_version=message.checkpoint_schema_version,
                 source_verdicts=tuple(source_verdicts),
                 newly_discovered_source_ids=newly_discovered,
             )

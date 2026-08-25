@@ -7,15 +7,22 @@ import inspect
 
 import pytest
 
+from modeltree_updater import checkpoints as checkpoints_module
+from modeltree_updater import runner as runner_module
 from modeltree_updater.checkpoints import (
     ALLOWED_CHECKPOINT_TYPES,
+    CHECKPOINT_SCHEMA_VERSION,
+    TOOL_VERSION,
+    CheckpointVersion,
     create_checkpoint_storage,
     list_checkpoint_summaries,
     load_checkpoint,
     recorded_providers,
+    recorded_version_marker,
 )
 from modeltree_updater.contracts import ProposalStatus
 from modeltree_updater.runner import (
+    CheckpointVersionMismatch,
     ProviderMismatch,
     resume_creator_run,
     run_creator,
@@ -83,6 +90,33 @@ def _records_spend(state) -> bool:
     if not state:
         return False
     return state.get("pages_fetched", 0) > 0 or state.get("tokens_used", 0) > 0
+
+
+async def _stored_version_marker(storage, checkpoint_id):
+    """The version marker a checkpoint's stored messages carry, read independently.
+
+    A second reading of the same payload, like `_stored_creator_id` above, so the
+    assertions below cannot pass merely by agreeing with
+    `checkpoints.recorded_version_marker` — the reader under test would otherwise be
+    checked against itself.
+
+    `(tool_version, schema_version)` from the first stored message that names either;
+    `(None, None)` for a checkpoint that stores messages and no marker; `None` where
+    there is nothing to read a marker from at all.
+    """
+    checkpoint = await load_checkpoint(storage, checkpoint_id)
+    if checkpoint is None:
+        return None
+    stored_a_message = False
+    for envelopes in (getattr(checkpoint, "messages", None) or {}).values():
+        for envelope in envelopes:
+            stored_a_message = True
+            data = getattr(envelope, "data", None)
+            tool = getattr(data, "tool_version", None)
+            schema = getattr(data, "checkpoint_schema_version", None)
+            if tool is not None or schema is not None:
+                return (tool, schema)
+    return (None, None) if stored_a_message else None
 
 
 def _with_sources(settings, sources):
@@ -563,3 +597,290 @@ def test_a_checkpoint_with_no_creator_identity_lists_as_unknown() -> None:
     ]
     # Unknown, not absent: the key is there to be read either way.
     assert all("creator_id" in summary for summary in summaries)
+
+
+def test_every_checkpoint_a_run_writes_names_the_build_that_wrote_it(
+    tmp_path, library, settings
+) -> None:
+    """The marker reaches every checkpoint, not just the entry one.
+
+    The entry checkpoint holds the `CreatorTask` the runner stamps directly, so it
+    would carry the marker even if no stage forwarded it. The mid-run checkpoints are
+    the ones that would go unmarked if `DiscoveredSources`, `ExtractedClaims` or
+    `ReviewedClaims` dropped the fields — and those are exactly the checkpoints worth
+    resuming, so a marker that only reached the entry one would leave the resumes
+    that matter refusing themselves as legacy.
+
+    Each checkpoint is read twice: once through `recorded_version_marker`, and once
+    through a separate walk of the same stored payload, so this cannot pass by the
+    reader agreeing with itself. Checkpoints that store no message at all are
+    excluded rather than asserted about — the runner writes one after the final
+    superstep, it has nothing left to deliver, and there is no message in it to carry
+    a marker.
+    """
+    storage = create_checkpoint_storage(tmp_path / "checkpoints")
+
+    async def scenario():
+        await run_creator(
+            library.creators["contoso-ai"],
+            settings,
+            run_id="run-test",
+            checkpoint_storage=storage,
+        )
+        rows = []
+        for checkpoint in await _list(storage):
+            rows.append(
+                (
+                    checkpoint.checkpoint_id,
+                    await _stored_version_marker(storage, checkpoint.checkpoint_id),
+                    await recorded_version_marker(storage, checkpoint.checkpoint_id),
+                )
+            )
+        return rows
+
+    rows = asyncio.run(scenario())
+
+    assert rows, "the run wrote no checkpoints, so there is nothing to check"
+
+    with_messages = [row for row in rows if row[1] is not None]
+    assert len(with_messages) > 1, (
+        "only one checkpoint stores a message, so this cannot tell a marker that was "
+        f"forwarded through the stages from one that was only stamped at the start: {rows}"
+    )
+
+    unmarked = [
+        (checkpoint_id, stored) for checkpoint_id, stored, _ in with_messages if stored == (None, None)
+    ]
+    assert not unmarked, (
+        "these checkpoints store a message that names no tool or schema version, so "
+        f"resuming them would be refused as legacy state: {unmarked}"
+    )
+
+    # The stored value is the build's own, and the production reader agrees with the
+    # independent walk on every row.
+    for checkpoint_id, stored, read in with_messages:
+        assert stored == (TOOL_VERSION, CHECKPOINT_SCHEMA_VERSION), (
+            f"{checkpoint_id} records {stored}, not this build's "
+            f"{(TOOL_VERSION, CHECKPOINT_SCHEMA_VERSION)}"
+        )
+        assert read == CheckpointVersion(TOOL_VERSION, CHECKPOINT_SCHEMA_VERSION), (
+            f"{checkpoint_id}: the reader returned {read} where the stored payload "
+            f"says {stored}"
+        )
+
+
+def test_resuming_a_checkpoint_this_build_wrote_is_unaffected(
+    tmp_path, library, settings
+) -> None:
+    """Regression pin, not new coverage: the normal path gains no friction.
+
+    This passes against the code before the version check existed as well as after,
+    because resuming a checkpoint you just wrote has always worked. It is here to
+    catch the version check turning into a refusal on the path it is supposed to
+    leave alone — a marker compared against the wrong thing, or an equality that is
+    never satisfiable, would make every resume fail and every other test in this file
+    would still be able to pass.
+    """
+    storage = create_checkpoint_storage(tmp_path / "checkpoints")
+
+    async def scenario():
+        original = await run_creator(
+            library.creators["contoso-ai"],
+            settings,
+            run_id="run-test",
+            checkpoint_storage=storage,
+        )
+        checkpoints = await _list(storage)
+        resumed = await resume_creator_run(
+            settings,
+            checkpoint_id=checkpoints[0].checkpoint_id,
+            checkpoint_storage=storage,
+        )
+        return original, resumed
+
+    original, resumed = asyncio.run(scenario())
+
+    assert resumed.status is ProposalStatus.COMPLETE
+    assert resumed.claims == original.claims
+
+
+def test_resuming_a_checkpoint_written_by_a_different_tool_version_is_refused(
+    tmp_path, library, settings, monkeypatch
+) -> None:
+    """A build change across a resume stops the run; it does not warn and continue.
+
+    The checkpoint is written by this build and then read by a *different* one, which
+    is simulated by moving the reading build's version rather than by editing stored
+    state: rewriting the checkpoint would test the edit, not the check.
+    """
+    storage = create_checkpoint_storage(tmp_path / "checkpoints")
+
+    async def write():
+        await run_creator(
+            library.creators["contoso-ai"],
+            settings,
+            run_id="run-test",
+            checkpoint_storage=storage,
+        )
+        return (await _list(storage))[0].checkpoint_id
+
+    checkpoint_id = asyncio.run(write())
+
+    monkeypatch.setattr(checkpoints_module, "TOOL_VERSION", "99.0.0")
+
+    with pytest.raises(CheckpointVersionMismatch) as error:
+        asyncio.run(
+            resume_creator_run(
+                settings, checkpoint_id=checkpoint_id, checkpoint_storage=storage
+            )
+        )
+
+    message = str(error.value)
+    assert error.value.recorded == CheckpointVersion(TOOL_VERSION, CHECKPOINT_SCHEMA_VERSION)
+    assert error.value.reading == CheckpointVersion("99.0.0", CHECKPOINT_SCHEMA_VERSION)
+    assert error.value.retryable is False
+    # Actionable means an operator can tell from the message alone what wrote the
+    # checkpoint, what is reading it, which number moved, and what to do next.
+    assert TOOL_VERSION in message and "99.0.0" in message
+    assert "tool version differs" in message
+    assert "schema version differs" not in message
+    assert "start this creator again" in message.lower()
+
+
+def test_resuming_a_checkpoint_written_under_a_different_schema_version_is_refused(
+    tmp_path, library, settings, monkeypatch
+) -> None:
+    """The schema version refuses on its own, with the tool version identical.
+
+    Two numbers are recorded because they answer different questions, and this is the
+    half a single combined marker would lose: the same release can change the shape
+    of the checkpointed state, and a check that only compared tool versions would
+    resume straight into it.
+    """
+    storage = create_checkpoint_storage(tmp_path / "checkpoints")
+
+    async def write():
+        await run_creator(
+            library.creators["contoso-ai"],
+            settings,
+            run_id="run-test",
+            checkpoint_storage=storage,
+        )
+        return (await _list(storage))[0].checkpoint_id
+
+    checkpoint_id = asyncio.run(write())
+
+    monkeypatch.setattr(
+        checkpoints_module, "CHECKPOINT_SCHEMA_VERSION", CHECKPOINT_SCHEMA_VERSION + 1
+    )
+
+    with pytest.raises(CheckpointVersionMismatch) as error:
+        asyncio.run(
+            resume_creator_run(
+                settings, checkpoint_id=checkpoint_id, checkpoint_storage=storage
+            )
+        )
+
+    message = str(error.value)
+    assert error.value.recorded.schema_version == CHECKPOINT_SCHEMA_VERSION
+    assert error.value.reading.schema_version == CHECKPOINT_SCHEMA_VERSION + 1
+    assert error.value.recorded.tool_version == error.value.reading.tool_version
+    assert "schema version differs" in message
+    assert "tool version differs" not in message
+
+
+def test_a_refusal_names_both_versions_when_both_moved(
+    tmp_path, library, settings, monkeypatch
+) -> None:
+    """Both numbers moving is reported as both, not as whichever was checked first.
+
+    The two mismatches above each leave the other number equal, so either could pass
+    against a refusal that stopped at the first difference it found and named only
+    that one. An operator reading such a message would upgrade or downgrade one
+    version and get the same refusal again for a reason nobody had mentioned.
+    """
+    storage = create_checkpoint_storage(tmp_path / "checkpoints")
+
+    async def write():
+        await run_creator(
+            library.creators["contoso-ai"],
+            settings,
+            run_id="run-test",
+            checkpoint_storage=storage,
+        )
+        return (await _list(storage))[0].checkpoint_id
+
+    checkpoint_id = asyncio.run(write())
+
+    monkeypatch.setattr(checkpoints_module, "TOOL_VERSION", "99.0.0")
+    monkeypatch.setattr(
+        checkpoints_module, "CHECKPOINT_SCHEMA_VERSION", CHECKPOINT_SCHEMA_VERSION + 1
+    )
+
+    with pytest.raises(CheckpointVersionMismatch) as error:
+        asyncio.run(
+            resume_creator_run(
+                settings, checkpoint_id=checkpoint_id, checkpoint_storage=storage
+            )
+        )
+
+    message = str(error.value)
+    assert "tool version differs" in message
+    assert "schema version differs" in message
+
+
+def test_resuming_a_checkpoint_that_records_no_version_is_refused(
+    tmp_path, library, settings, monkeypatch
+) -> None:
+    """An unmarked checkpoint is refused. Absence is not the permissive branch.
+
+    This is the decision the change had to make explicitly rather than fall into.
+    State written before the marker existed cannot be *shown* to have been written by
+    the build now reading it, and "cannot be shown to match" must not resolve to
+    "proceed" merely because the evidence is missing. The unmarked checkpoints that
+    can exist are the ones ADR 0002 names in its residual — written when
+    `--long-tail-profile` still took a filesystem path, so they carry an id from a
+    document the reviewed set never saw. Admitting them as legacy would keep open the
+    hole this change exists to close.
+
+    The pre-marker build is simulated at the point it differs: it stamped nothing.
+    """
+    storage = create_checkpoint_storage(tmp_path / "checkpoints")
+
+    monkeypatch.setattr(runner_module, "TOOL_VERSION", None)
+    monkeypatch.setattr(runner_module, "CHECKPOINT_SCHEMA_VERSION", None)
+
+    async def write_unmarked():
+        await run_creator(
+            library.creators["contoso-ai"],
+            settings,
+            run_id="run-test",
+            checkpoint_storage=storage,
+        )
+        checkpoint_id = (await _list(storage))[0].checkpoint_id
+        return checkpoint_id, await _stored_version_marker(storage, checkpoint_id)
+
+    checkpoint_id, stored = asyncio.run(write_unmarked())
+
+    # The scenario is what it claims to be: this checkpoint really carries no marker.
+    assert stored == (None, None), (
+        f"the simulated pre-marker run still stamped {stored}, so this test would be "
+        "exercising a mismatch rather than an absence"
+    )
+
+    monkeypatch.undo()
+
+    with pytest.raises(CheckpointVersionMismatch) as error:
+        asyncio.run(
+            resume_creator_run(
+                settings, checkpoint_id=checkpoint_id, checkpoint_storage=storage
+            )
+        )
+
+    message = str(error.value)
+    assert error.value.recorded == CheckpointVersion(None, None)
+    assert error.value.recorded.is_marked is False
+    assert error.value.retryable is False
+    assert "no tool or checkpoint schema version" in message
+    assert "predates the version marker" in message
+    assert "start this creator again" in message.lower()
