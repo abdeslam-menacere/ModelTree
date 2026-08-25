@@ -14,7 +14,7 @@ scheduled automation.
 |---|---|
 | [`modeltree-refresh`](modeltree-refresh/SKILL.md) | Orchestrates the whole loop and owns what happens between stages |
 | [`modeltree-scout`](modeltree-scout/SKILL.md) | Researches creators from primary sources and produces claims with quoted evidence |
-| [`modeltree-review`](modeltree-review/SKILL.md) | Judges each claim with three independent rubrics and a majority threshold |
+| [`modeltree-review`](modeltree-review/SKILL.md) | Judges each claim with three independent rubrics — 2-of-3 for a reviewed creator, unanimous for a long-tail one |
 | [`modeltree-gates`](modeltree-gates/SKILL.md) | Deterministic checks that no majority can outvote |
 | [`modeltree-publish`](modeltree-publish/SKILL.md) | Applies what survived, opens the pull request, merges, deploys, and reports |
 
@@ -68,7 +68,7 @@ is what refuses to merge a red pull request.
 
 ## Changing a gate
 
-The gates have 41 self-tests. Run them:
+The gates have 43 self-tests. Run them:
 
 ```bash
 node --test .github/skills/modeltree-gates/scripts/gates.test.mjs
