@@ -14,6 +14,9 @@ on:
       # The suite asserts this workflow's permission model, so a change to it
       # has to re-run the suite.
       - '.github/workflows/publish-updater-proposals.yml'
+      # And it asserts the behaviour of the instruction-reference checker, which
+      # lives outside tools/updater because it is not an updater concern.
+      - 'tools/instruction_refs/**'
   push:
     branches:
       - main
@@ -21,6 +24,7 @@ on:
       - 'tools/updater/**'
       - '.github/workflows/updater-tests.yml'
       - '.github/workflows/publish-updater-proposals.yml'
+      - 'tools/instruction_refs/**'
   workflow_dispatch:
 
 permissions:

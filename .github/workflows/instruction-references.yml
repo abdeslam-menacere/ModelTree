@@ -1,0 +1,54 @@
+name: Instruction references
+
+# Resolves every path, issue citation, and section marker in
+# .github/copilot-instructions.md -- the file every agent is required to read
+# first. A pointer in it that resolves to nothing is how `SPEC.md` survived, and
+# an agent that follows one has no signal about what to do next, so it guesses.
+#
+# The checker is standard library only, so this job installs nothing and reaches
+# no network. It is path-filtered, and therefore reports no check at all on a
+# pull request that does not touch the file: it must not be added to branch
+# protection, because a required check that never reports leaves a pull request
+# pending forever. See .github/workflows/README.md.
+
+on:
+  pull_request:
+    paths:
+      - '.github/copilot-instructions.md'
+      - 'tools/instruction_refs/**'
+      - '.github/workflows/instruction-references.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/copilot-instructions.md'
+      - 'tools/instruction_refs/**'
+      - '.github/workflows/instruction-references.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  instruction-references:
+    name: instruction-references
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # No arguments: the default target is the governing file, so the job
+      # cannot be pointed at something easier.
+      - name: Resolve the references in copilot-instructions.md
+        run: python tools/instruction_refs/check_instruction_references.py
