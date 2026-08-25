@@ -261,6 +261,16 @@ which mappings stay explicit, so it is a reviewed artefact of this repository ra
 a file handed in at run time. The set also refuses two documents answering to one id,
 which is what makes the next paragraph sound.
 
+`--long-tail-profile` **requires `--long-tail`**, and on its own is refused with exit 2
+rather than ignored. It names the profile the long-tail path applies; it does not select
+that path. Accepting it alone would run the creator at the ordinary 2-of-3 majority bar
+while the operator had named the profile carrying the unanimous 3-of-3 one, with nothing
+in stdout, the proposal, or the checkpoint saying so. The other reading — treating the
+profile flag as an implied `--long-tail` — was weighed and rejected: `--long-tail` is
+opt-in precisely because the threshold a proposal was decided under must be a choice, and
+inferring it from a sibling flag would make it a guess. Omit the flag and `--long-tail`
+applies `long-tail-generic`.
+
 `resume` deliberately has **no** such flag: the policy and the profile id are recorded in
 the checkpoint, so a resumed run takes its bar from the checkpoint rather than re-deciding
 it from whatever the resuming command passed. The profile itself is rebuilt by looking the

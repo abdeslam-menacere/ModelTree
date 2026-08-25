@@ -122,12 +122,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--long-tail-profile",
         dest="long_tail_profile",
         metavar="ID",
-        default=DEFAULT_LONG_TAIL_PROFILE_ID,
+        default=None,
         help=(
-            "id of the reviewed generic profile to apply with --long-tail. Only the "
-            "profiles reviewed into profiles/generic/ can be named: a profile decides "
-            "the promotion criteria and which mappings stay explicit, so it is a "
-            "reviewed artefact of this repository, not a file handed in at run time."
+            "id of the reviewed generic profile --long-tail applies; omitted, "
+            f"--long-tail applies {DEFAULT_LONG_TAIL_PROFILE_ID}. Requires "
+            "--long-tail, and without it the command is refused rather than "
+            "ignored, so naming a profile cannot leave a run at the ordinary "
+            "majority bar. Only the profiles reviewed into profiles/generic/ can "
+            "be named: a profile decides the promotion criteria and which mappings "
+            "stay explicit, so it is a reviewed artefact of this repository, not a "
+            "file handed in at run time."
         ),
     )
     run.add_argument("--checkpoint-dir", type=Path, help="directory for durable checkpoints")
@@ -332,10 +336,31 @@ def _long_tail_profile(args: argparse.Namespace):
     an unreviewed document would decide this run's promotion criteria and its
     unresolved-mapping topics, and a checkpoint records only the profile *id*, so a
     file that is not in the reviewed set could not be reattached on resume anyway.
+
+    ``--long-tail-profile`` without ``--long-tail`` is refused rather than either
+    ignored or read as an implied opt-in. Ignoring it was the defect: the run went
+    ahead under the ordinary majority policy while the operator had named the
+    profile carrying the unanimous one, and nothing said so. Inferring the opt-in
+    would fix the silence but decide the review threshold on the operator's behalf,
+    which is what ``--long-tail``'s own help refuses ("it is not a fallback, because
+    the threshold a proposal was decided under must be a choice"). Refusing states
+    the mismatch and makes the operator name the bar; it also stays reversible,
+    since the only invocation that changes behaviour is the one that was silently
+    mis-running, and a later decision could still relax this to an implied opt-in.
     """
+    requested = getattr(args, "long_tail_profile", None)
     if not getattr(args, "long_tail", False):
+        if requested is not None:
+            raise ProfileError(
+                f"--long-tail-profile ({requested!r}) needs --long-tail: the named "
+                "profile is applied only by the long-tail path, so on its own this "
+                "flag would leave the run at the ordinary 2-of-3 majority bar. Pass "
+                "--long-tail as well to run under it, or drop --long-tail-profile."
+            )
         return None
-    requested = str(args.long_tail_profile)
+    if requested is None:
+        return reviewed_long_tail_profile(DEFAULT_LONG_TAIL_PROFILE_ID)
+    requested = str(requested)
     if requested.endswith(".json") or "/" in requested or "\\" in requested:
         raise ProfileError(
             f"--long-tail-profile takes the id of a reviewed profile, not a path "
@@ -352,6 +377,10 @@ def _run(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
         stream.write(f"unknown creator id(s): {', '.join(sorted(unknown))}\n")
         return EXIT_USAGE
 
+    # Resolved before any provider is built, so a refused flag pair is reported as
+    # itself rather than behind whatever a half-configured provider complains about.
+    long_tail = _long_tail_profile(args)
+
     timestamp = args.timestamp or _default_timestamp()
     run_id = args.run_id or "run-" + re.sub(r"[^a-z0-9]+", "", timestamp.lower())
     providers = _build_providers(
@@ -365,7 +394,7 @@ def _run(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
         providers,
         budget=_budget(args, env),
         timestamp=timestamp,
-        long_tail=_long_tail_profile(args),
+        long_tail=long_tail,
     )
 
     storage = (
