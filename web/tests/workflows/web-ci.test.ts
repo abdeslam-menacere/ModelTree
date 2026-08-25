@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { parseYaml, readWorkflow } from './read-workflow';
-import type { YamlMapping, YamlValue } from './read-workflow';
+import { parse } from 'yaml';
+
+type YamlValue = string | number | boolean | null | YamlValue[] | YamlMapping;
+
+interface YamlMapping {
+  [key: string]: YamlValue;
+}
 
 function mapping(value: YamlValue, label: string): YamlMapping {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -68,6 +73,18 @@ function permissionBlocks(document: YamlMapping): YamlMapping[] {
   }
 
   return blocks;
+}
+
+/**
+ * A workflow file as committed, alongside the document `yaml` parses out of it.
+ * The source is kept because some assertions are about the bytes rather than the
+ * structure: counting how many times a string appears in the file, for one.
+ */
+function readWorkflow(fileName: string): { source: string; document: YamlMapping } {
+  const path = new URL(`../../../.github/workflows/${fileName}`, import.meta.url);
+  const source = readFileSync(path, 'utf8');
+
+  return { source, document: mapping(parse(source), fileName) };
 }
 
 const webCi = readWorkflow('web-ci.yml');
@@ -405,13 +422,13 @@ describe('pages.yml permissions', () => {
   });
 });
 
-describe('the workflow reader', () => {
+describe('the YAML parser these assertions rest on', () => {
   it('keeps on as a key rather than the boolean a YAML 1.1 parser would produce', () => {
-    expect(parseYaml('on:\n  pull_request:\n')).toEqual({ on: { pull_request: null } });
+    expect(parse('on:\n  pull_request:\n')).toEqual({ on: { pull_request: null } });
   });
 
   it('reads sequences of scalars and sequences of mappings', () => {
-    const document = parseYaml(
+    const document = parse(
       ['paths:', "  - 'web/**'", 'steps:', '  - name: One', '    run: go', '  - name: Two'].join('\n'),
     );
 
@@ -420,7 +437,7 @@ describe('the workflow reader', () => {
   });
 
   it('preserves a block scalar verbatim and drops comments outside it', () => {
-    const document = parseYaml(
+    const document = parse(
       ['# dropped', 'run: |', '  set -eu', '  # kept', 'after: 1  # dropped'].join('\n'),
     );
 
