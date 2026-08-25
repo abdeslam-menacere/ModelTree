@@ -9,7 +9,8 @@ the right ones.
 | Workflow | Triggers | Covers |
 |---|---|---|
 | [`web-ci.yml`](web-ci.yml) | `pull_request` (every one), `workflow_dispatch` | Validates and builds the Astro site under `web/` |
-| [`updater-tests.yml`](updater-tests.yml) | `pull_request` and `push` to `main`, path-filtered to `tools/updater/**` | The updater's pytest suite |
+| [`updater-tests.yml`](updater-tests.yml) | `pull_request` and `push` to `main`, path-filtered to `tools/updater/**` and `tools/instruction_refs/**` | The updater's pytest suite, which is also where this repository's stdlib-Python invariants are asserted |
+| [`instruction-references.yml`](instruction-references.yml) | `pull_request` and `push` to `main`, path-filtered to `.github/copilot-instructions.md` and `tools/instruction_refs/**`, `workflow_dispatch` | Resolves every path, issue citation, and section marker in the instructions file |
 | [`pages.yml`](pages.yml) | `push` to `main`, `workflow_dispatch` | Builds and deploys the site, reports a failed deploy, and resolves that report when the deploy recovers |
 | [`publish-updater-proposals.yml`](publish-updater-proposals.yml) | `workflow_dispatch` only | Files creator proposals as issues |
 
@@ -25,6 +26,7 @@ satisfied, because GitHub waits for a check that no longer reports.
 | `web-ci` | `web-ci.yml` | **Yes** |
 | `pytest (Python 3.11)` | `updater-tests.yml` | No — see below |
 | `pytest (Python 3.13)` | `updater-tests.yml` | No — see below |
+| `instruction-references` | `instruction-references.yml` | No — see below |
 
 ### Why `web-ci` is safe to require
 
@@ -45,10 +47,25 @@ no `strategy.matrix`, so the reported name never varies per leg or per run.
 
 ### Why the `pytest` checks are not
 
-`updater-tests.yml` is path-filtered to `tools/updater/**`, so it reports nothing
-on a pull request confined to `web/`. Requiring either leg would block every web
-change indefinitely. Its names also carry the Python version, so adding or
-dropping a version changes them.
+`updater-tests.yml` is path-filtered to `tools/updater/**` (and to
+`tools/instruction_refs/**`, whose behaviour the suite asserts), so it reports
+nothing on a pull request confined to `web/`. Requiring either leg would block
+every web change indefinitely. Its names also carry the Python version, so adding
+or dropping a version changes them.
+
+### Nor is `instruction-references`
+
+Same trap, for the same reason: `instruction-references.yml` is path-filtered to
+`.github/copilot-instructions.md`, so it reports no check at all on the great
+majority of pull requests, and each of those would sit pending forever. Whether
+it is ever required is a branch-protection decision — issue #80 in this
+repository — not something this workflow decides.
+
+The job installs nothing and reaches no network: the checker is standard library
+only, so the whole job is a checkout, a Python, and one command. It takes no
+arguments, so it always resolves the governing file and cannot be pointed at
+something easier, and it has no `--skip` or `--force`. A genuine exception
+belongs in branch protection, where it is auditable.
 
 ### `drydock-gates` does not exist
 
@@ -68,8 +85,8 @@ start from a wider default. Write scopes are granted per job, never globally:
 | `pages.yml` → `report-recovery` | `issues: write` | Close the stale-site issue once a deploy succeeds |
 | `publish-updater-proposals.yml` → `publish` | `issues: write`, `id-token: write` | Write proposal issues; sign in with workload identity |
 
-`web-ci.yml` and `updater-tests.yml` hold no write scope at all. Nothing in this
-directory can write repository content.
+`web-ci.yml`, `updater-tests.yml` and `instruction-references.yml` hold no write
+scope at all. Nothing in this directory can write repository content.
 
 ## A failed deploy is not a broken site
 
