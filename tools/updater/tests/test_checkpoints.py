@@ -189,16 +189,17 @@ def test_resuming_a_mid_run_checkpoint_restores_spend_without_recharging_it(
     superstep, and that one has nothing left to deliver, so `checkpoints[-1]` would run
     no stage at all.
 
-    Three separate things are then asserted, because equality alone would not prove any
-    of them on its own:
+    Four separate things are then asserted, because no one of them would prove the others:
 
-    * the restored ledger is non-empty and strictly cheaper than the finished run, so
-      there is spend to restore *and* spend still to come — the comparison below has
-      something to catch;
+    * the restored ledger is non-empty, and the resumed run's bill is at least what that
+      checkpoint had already charged — measured against the checkpoint's own recorded
+      state, so it is the assertion that fires when a ledger comes back empty;
     * the resumed run re-read nothing. A resume that replayed the whole run with a reset
       ledger would report exactly the original totals, so the counting provider is what
       separates "continued" from "started over";
-    * the totals match the uninterrupted run rather than the sum of the two segments,
+    * the checkpoint is strictly cheaper than the finished run, so charging work genuinely
+      remains beyond the boundary and the totals below have something to catch;
+    * those totals match the uninterrupted run rather than the sum of the two segments,
       which is the failure that would let a run quietly exceed its limit while every
       counter still looked plausible.
     """
@@ -248,14 +249,26 @@ def test_resuming_a_mid_run_checkpoint_restores_spend_without_recharging_it(
     )
     assert chosen.checkpoint_id != entry.checkpoint_id
 
-    # Non-empty at the point of resume, and partway rather than finished: pages are only
-    # charged while extracting and the panel charges tokens after that, so a strictly
-    # cheaper ledger means charging work still remains beyond the resume boundary.
-    assert 0 < chosen_state["pages_fetched"] <= original.budget.pages_fetched
-    assert 0 < chosen_state["tokens_used"] < original.budget.tokens_used, (
-        f"the resumed checkpoint records {chosen_state['tokens_used']} of the run's "
-        f"{original.budget.tokens_used} token(s), so no charging work remains after it "
-        "and the comparison below could not tell a restored ledger from a reset one"
+    # Non-empty at the point of resume. Judged on its own terms, with no reference to the
+    # finished run, so this stands even if a regression has moved the live ledger.
+    assert chosen_state["pages_fetched"] > 0, (
+        f"the checkpoint at iteration {chosen.iteration_count} records "
+        f"{chosen_state}, which has paid for no pages"
+    )
+    assert chosen_state["tokens_used"] > 0
+
+    # The resume boundary itself: work the checkpoint had already paid for is still on
+    # the bill afterwards. Compared against the checkpoint's *own* recorded ledger rather
+    # than against the finished run, because that is the number a reset ledger loses and
+    # it cannot be moved by whatever the live ledger is doing.
+    assert resumed.budget.pages_fetched >= chosen_state["pages_fetched"], (
+        f"the resumed run reports {resumed.budget.pages_fetched} page(s) but the "
+        f"checkpoint it restored had already charged {chosen_state['pages_fetched']}: "
+        "the ledger came back empty, so pages already paid for can be spent again"
+    )
+    assert resumed.budget.tokens_used >= chosen_state["tokens_used"], (
+        f"the resumed run reports {resumed.budget.tokens_used} token(s) but the "
+        f"checkpoint it restored had already charged {chosen_state['tokens_used']}"
     )
 
     # Progress was restored, not replayed. Nothing was discovered or read a second time.
@@ -265,6 +278,16 @@ def test_resuming_a_mid_run_checkpoint_restores_spend_without_recharging_it(
     )
     assert counted.fetch_calls == 0, (
         f"the resumed run re-read {counted.fetch_calls} page(s) it had already paid for"
+    )
+
+    # Partway rather than finished: pages are only charged while extracting and the panel
+    # charges tokens after that, so a strictly cheaper ledger means charging work still
+    # remains beyond the resume boundary and the equalities below have something to catch.
+    assert chosen_state["pages_fetched"] <= original.budget.pages_fetched
+    assert chosen_state["tokens_used"] < original.budget.tokens_used, (
+        f"the resumed checkpoint records {chosen_state['tokens_used']} of the run's "
+        f"{original.budget.tokens_used} token(s), so no charging work remains after it "
+        "and the comparison below could not tell a restored ledger from a reset one"
     )
 
     # Spend crossed the boundary once. `elapsed_seconds` is wall-clock and excluded.
