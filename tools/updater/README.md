@@ -60,11 +60,15 @@ Useful `run` flags: `--creator` (repeatable), `--fixtures`, `--provider fixtures
 it has no `--long-tail` flag because the policy is restored from the checkpoint.
 
 Every directory flag goes through the same guard in `safety.py`: `--output` and
-`--checkpoint-dir` alike resolve `..` first and then refuse any path inside `web/`,
-whether what would land there is a proposal or workflow state. There is no flag or
-environment variable that turns this off. `tests/test_proposal_only.py` parses every
-module under `src/` and fails if a call creates a path that did not come back from the
-guard, so a new write site cannot be added without one.
+`--checkpoint-dir` alike refuse any path inside `web/`, whether what would land there
+is a proposal or workflow state. The path is read two ways — as it resolves on disk
+and as it reads lexically once `..` is collapsed — and a match under either refuses,
+because neither reading is safe alone: `out/../web/x` only reveals itself once
+resolved, while a `web/` that is a symlink or junction to a target outside the checkout
+only reveals itself unresolved. There is no flag or environment variable that turns
+this off. `tests/test_proposal_only.py` parses every module under `src/` and fails if a
+call creates a path that did not come back from the guard, so a new write site cannot
+be added without one.
 
 The guard finds the checkout it is protecting by looking for `.git`, then
 `drydock.config.json`, then `tools/updater/pyproject.toml`, then `web/src/data` — any
@@ -86,6 +90,16 @@ of `web/` brings that marker along and is detected one level up. What is left is
 `web/` directory carrying none of the four — one belonging to an unrelated project
 that is not a git checkout, or a partial copy of this repository's `web/` that did not
 bring `src/data` with it, such as an assets-only extract or a copy of the build output.
+
+A `web/` that is a symlink or junction to a target outside the checkout is *not* part
+of that gap: reading the path lexically as well as resolved keeps the checkout in
+view, so `--output <checkout>/web/proposals` is refused however `web/` was
+materialised, and an ordinary layout that puts a large `web/` on another volume is
+otherwise unaffected. One named residual remains for that shape: an output path aimed
+at the link's target directly rather than through the link. Such a path passes through
+the checkout in neither reading, so no marker is found and the fail-open above applies;
+connecting the two would mean searching the filesystem for links pointing at that
+target, which the guard does not do.
 
 Making `.git` a marker also widened the guard's reach, and that is intended rather than
 a bug. `--output` anywhere under any git repository's `web/` is refused, including
