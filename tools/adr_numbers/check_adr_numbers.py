@@ -204,7 +204,7 @@ def check(directory: Path, base: Path = REPO_ROOT) -> Report:
     # Both paths and the number, so the fix is obvious without opening either
     # file -- the whole point is that the two documents do not otherwise touch.
     for number, paths in report.duplicates.items():
-        listed = "\n".join(f"      {path}" for path in paths[:1])
+        listed = "\n".join(f"      {path}" for path in paths)
         report.problems.append(
             f"  DUPLICATE: ADR {number} is claimed by {len(paths)} files:\n"
             f"{listed}\n"
