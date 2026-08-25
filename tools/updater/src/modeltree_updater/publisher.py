@@ -38,6 +38,16 @@ duplicate issue numbers, and the run it supersedes, with no render-time clock an
 no local file paths, so a `--dry-run` prints byte-for-byte what a real publication
 would send. Re-rendering the *same* run carries the earlier supersession forward
 unchanged, so a repeated publication is byte-identical and adds no comment.
+
+Determinism covers *measured* time as well as render time. Elapsed seconds are
+still measured and still enforced — the ledger stops a run that overruns — but
+the measurement is not printed. Two surfaces carry it and both are rendered from
+structure rather than from a measured number: the budget table, and the failure a
+stopped run records, where `BudgetExhausted` puts the elapsed time in its message
+*and* in its detail. Elapsed time is a property of the run, and two executions of
+one run differ by a timer tick, so printing it would make every re-render a
+spurious edit whose diff says nothing about the data. The run artefact keeps the
+measurement; this body is the proposal.
 """
 
 from __future__ import annotations
@@ -53,7 +63,9 @@ from .contracts import (
     ClaimCandidate,
     ClaimDecision,
     CreatorProposal,
+    FailureKind,
     ProposalStatus,
+    RunFailure,
     RunReport,
 )
 from .github_issues import MAX_BODY_CHARS, Issue, IssuesClient
@@ -95,6 +107,17 @@ CREATOR_ID = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 # treatment. The character set excludes `>` and whitespace, so no value that
 # passes can terminate the comment it is written into.
 RUN_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+# What the body prints where a measured wall-clock value would otherwise go. The
+# emphasised form is for a table cell, where markdown emphasis renders; the plain
+# form is for the inside of a JSON string and of a sentence, where it does not.
+NOT_RENDERED_TEXT = "not rendered"
+NOT_RENDERED = f"_{NOT_RENDERED_TEXT}_"
+
+# The one budget whose "used" value is measured rather than counted, and so the
+# one whose value differs between two executions of the same run. Pages, tokens
+# and retries are counters and are rendered exactly.
+MEASURED_RESOURCE = "seconds"
 
 # Sentinels for the `supersedes=` field of the state marker. Neither can be a
 # valid run id, so neither can be confused with one.
@@ -750,7 +773,12 @@ def _budget_section(proposal: CreatorProposal) -> _Section:
         [
             ["pages", str(budget.pages_fetched), str(budget.max_pages)],
             ["tokens", str(budget.tokens_used), str(budget.max_tokens)],
-            ["seconds", f"{budget.elapsed_seconds:.2f}", f"{budget.max_seconds:g}"],
+            # Measured and enforced, deliberately not rendered. Elapsed time is
+            # the one budget whose "used" value differs between two executions of
+            # the same run, so printing it here would make every re-render an
+            # edit. The limit stays, because a run stopped by it has to be
+            # readable against something. The note below says so in the body.
+            ["seconds", NOT_RENDERED, f"{budget.max_seconds:g}"],
             ["retries", str(budget.retries_used), str(budget.max_retries)],
         ],
     )
@@ -764,6 +792,17 @@ def _budget_section(proposal: CreatorProposal) -> _Section:
         )
     else:
         lines.append("No budget was exhausted.")
+    lines += [
+        "",
+        "Elapsed time is measured and enforced — a run that reaches its seconds "
+        "limit is stopped, and the failures table below records the limit it "
+        "was stopped at — but the measurement itself is not printed, here or "
+        "there. It is a property of the run, not of the proposal, and two "
+        "executions of the same run differ by a timer tick, so a number would "
+        "make every re-render of this issue a spurious edit. The run artefact "
+        f"for run {_code(proposal.run_id)} "
+        f"({_code(proposal.creator_id + '.json')}) records the measured value.",
+    ]
     return _Section(
         key="budget",
         heading="Budget usage",
@@ -771,6 +810,68 @@ def _budget_section(proposal: CreatorProposal) -> _Section:
         drop_rank=None,
         entries=1,
     )
+
+
+def _failure_row(failure: RunFailure) -> list[str]:
+    """One row of the failures table, carrying no measured wall-clock value.
+
+    A run stopped by the seconds limit records the measured elapsed time twice —
+    `BudgetExhausted` puts it in its message *and* in its detail's `used` field —
+    so the failures table is a second way for the clock to reach the body, and it
+    churns for exactly the reason the budget table did: two executions of one
+    overrunning run stop a timer tick apart and print different numbers.
+
+    Such a failure is therefore rendered from its *structure*, not from its
+    recorded text. Editing the recorded message instead would be worse than it
+    looks: the measured value and the limit can be equal, and one is a substring
+    of the other besides, so removing the measurement by substring can silently
+    take the limit with it.
+
+    Both values in the rebuilt sentence come from the failure itself, never from
+    the proposal's budget. Those two disagree whenever a run is resumed: `resume`
+    takes no budget flags, so the resumed proposal carries the default limit
+    while the failure carries the one actually enforced when the run stopped. The
+    failure is the record of what happened, so it is the only truthful source —
+    and reading the limit from beside the measurement keeps this cell and the
+    JSON cell next to it from contradicting each other.
+
+    Only `seconds` is treated this way. Pages, tokens and retries are counters,
+    a reviewer needs their exact values, and they are rendered verbatim.
+
+    This happens here and not where the failure is built, because the run
+    artefact has to keep the measurement. The issue is what gets rendered, not
+    what gets measured.
+    """
+    message = failure.message
+    detail = dict(failure.detail)
+    if (
+        failure.kind is FailureKind.BUDGET_EXHAUSTED
+        and detail.get("resource") == MEASURED_RESOURCE
+    ):
+        limit = detail.get("limit")
+        stated = (
+            f"its {limit:g} second limit"
+            if isinstance(limit, (int, float)) and not isinstance(limit, bool)
+            else "its seconds budget"
+        )
+        # "reached", not "passed": `check_time` exhausts on `>=`, so a run that
+        # lands exactly on its limit is stopped without ever exceeding it.
+        message = (
+            f"{MEASURED_RESOURCE} budget exhausted: this run reached {stated} "
+            f"and was stopped. The measured elapsed time is "
+            f"{NOT_RENDERED_TEXT} here."
+        )
+        if "used" in detail:
+            detail["used"] = NOT_RENDERED_TEXT
+    return [
+        _code(failure.stage.value),
+        _code(failure.kind.value),
+        "yes" if failure.retryable else "no",
+        _cell(message),
+        _cell(
+            json.dumps(detail, sort_keys=True, ensure_ascii=False) if detail else "—"
+        ),
+    ]
 
 
 def _completion_section(proposal: CreatorProposal) -> _Section:
@@ -786,20 +887,7 @@ def _completion_section(proposal: CreatorProposal) -> _Section:
         lines += ["", "### Failures", ""]
         lines += _table(
             ["Stage", "Kind", "Retryable", "Message", "Detail"],
-            [
-                [
-                    _code(failure.stage.value),
-                    _code(failure.kind.value),
-                    "yes" if failure.retryable else "no",
-                    _cell(failure.message),
-                    _cell(
-                        json.dumps(dict(failure.detail), sort_keys=True, ensure_ascii=False)
-                        if failure.detail
-                        else "—"
-                    ),
-                ]
-                for failure in proposal.failures
-            ],
+            [_failure_row(failure) for failure in proposal.failures],
         )
     if proposal.notes:
         lines += ["", "### Notes", ""]
