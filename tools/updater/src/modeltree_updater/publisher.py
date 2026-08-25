@@ -794,10 +794,10 @@ def _budget_section(proposal: CreatorProposal) -> _Section:
         lines.append("No budget was exhausted.")
     lines += [
         "",
-        "Elapsed time is measured and enforced — a run that overruns the limit "
-        "in the seconds row above is stopped, and the failures table below "
-        "records that it was — but the measurement itself is not printed, here "
-        "or there. It is a property of the run, not of the proposal, and two "
+        "Elapsed time is measured and enforced — a run that reaches its seconds "
+        "limit is stopped, and the failures table below records the limit it "
+        "was stopped at — but the measurement itself is not printed, here or "
+        "there. It is a property of the run, not of the proposal, and two "
         "executions of the same run differ by a timer tick, so a number would "
         "make every re-render of this issue a spurious edit. The run artefact "
         f"for run {_code(proposal.run_id)} "
@@ -812,7 +812,7 @@ def _budget_section(proposal: CreatorProposal) -> _Section:
     )
 
 
-def _failure_row(failure: RunFailure, proposal: CreatorProposal) -> list[str]:
+def _failure_row(failure: RunFailure) -> list[str]:
     """One row of the failures table, carrying no measured wall-clock value.
 
     A run stopped by the seconds limit records the measured elapsed time twice —
@@ -827,6 +827,14 @@ def _failure_row(failure: RunFailure, proposal: CreatorProposal) -> list[str]:
     of the other besides, so removing the measurement by substring can silently
     take the limit with it.
 
+    Both values in the rebuilt sentence come from the failure itself, never from
+    the proposal's budget. Those two disagree whenever a run is resumed: `resume`
+    takes no budget flags, so the resumed proposal carries the default limit
+    while the failure carries the one actually enforced when the run stopped. The
+    failure is the record of what happened, so it is the only truthful source —
+    and reading the limit from beside the measurement keeps this cell and the
+    JSON cell next to it from contradicting each other.
+
     Only `seconds` is treated this way. Pages, tokens and retries are counters,
     a reviewer needs their exact values, and they are rendered verbatim.
 
@@ -840,10 +848,18 @@ def _failure_row(failure: RunFailure, proposal: CreatorProposal) -> list[str]:
         failure.kind is FailureKind.BUDGET_EXHAUSTED
         and detail.get("resource") == MEASURED_RESOURCE
     ):
+        limit = detail.get("limit")
+        stated = (
+            f"its {limit:g} second limit"
+            if isinstance(limit, (int, float)) and not isinstance(limit, bool)
+            else "its seconds budget"
+        )
+        # "reached", not "passed": `check_time` exhausts on `>=`, so a run that
+        # lands exactly on its limit is stopped without ever exceeding it.
         message = (
-            f"{MEASURED_RESOURCE} budget exhausted: this run passed its "
-            f"{proposal.budget.max_seconds:g} second limit and was stopped. The "
-            f"elapsed time it reached is {NOT_RENDERED_TEXT} here."
+            f"{MEASURED_RESOURCE} budget exhausted: this run reached {stated} "
+            f"and was stopped. The measured elapsed time is "
+            f"{NOT_RENDERED_TEXT} here."
         )
         if "used" in detail:
             detail["used"] = NOT_RENDERED_TEXT
@@ -871,7 +887,7 @@ def _completion_section(proposal: CreatorProposal) -> _Section:
         lines += ["", "### Failures", ""]
         lines += _table(
             ["Stage", "Kind", "Retryable", "Message", "Detail"],
-            [_failure_row(failure, proposal) for failure in proposal.failures],
+            [_failure_row(failure) for failure in proposal.failures],
         )
     if proposal.notes:
         lines += ["", "### Notes", ""]
