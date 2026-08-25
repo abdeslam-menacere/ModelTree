@@ -19,7 +19,7 @@ import pytest
 
 from modeltree_updater.budgets import CreatorBudget
 from modeltree_updater.checkpoints import create_checkpoint_storage, recorded_profile_id
-from modeltree_updater.cli import EXIT_USAGE, build_parser, main
+from modeltree_updater.cli import EXIT_USAGE, _long_tail_profile, build_parser, main
 from modeltree_updater.contracts import (
     ClaimDecision,
     ConflictKind,
@@ -905,3 +905,122 @@ def test_resume_still_takes_no_profile_flag_of_any_kind() -> None:
     for flag in (["--long-tail"], ["--long-tail-profile", DEFAULT_LONG_TAIL_PROFILE_ID]):
         with pytest.raises(SystemExit):
             parser.parse_args(base + flag)
+
+
+# --------------------------------------------------------------------------
+# Naming a profile is not the same as choosing the bar it carries
+# --------------------------------------------------------------------------
+# `--long-tail-profile` used to be parsed and then dropped whenever `--long-tail`
+# was absent. The run went ahead under the ordinary 2-of-3 majority policy while
+# the operator had named the profile that carries the unanimous one, and nothing
+# on stdout, in the proposal, or in the checkpoint said so.
+#
+# It is now refused with exit 2. Refusal rather than an implied `--long-tail` is
+# the decision: inferring the opt-in would decide the review threshold on the
+# operator's behalf, which is what `--long-tail`'s own help disclaims ("it is not
+# a fallback, because the threshold a proposal was decided under must be a
+# choice"), and refusal stays reversible where inference would not.
+
+
+def _parsed_run(argv):
+    return build_parser().parse_args(["run", *argv])
+
+
+@pytest.mark.parametrize(
+    "profile_id",
+    [DEFAULT_LONG_TAIL_PROFILE_ID, "long-tail-experimental"],
+    ids=["the-default-id", "another-id"],
+)
+def test_a_profile_named_without_the_long_tail_flag_is_refused(
+    profile_id, tmp_path, fixture_dir
+) -> None:
+    """The silent downgrade, stated at the moment the two flags disagree.
+
+    The default id is the case that carries the test: `--long-tail-profile`'s
+    argparse default *was* that exact string, so a check comparing the parsed value
+    against the default would wave `--long-tail-profile long-tail-generic` through
+    while appearing to fix the defect. The other id is the ordinary case.
+
+    The assertions are on the message rather than only the exit code — an operator
+    who got a flag pair wrong has to be told which two flags, which id they named,
+    and what the run would otherwise have been judged by.
+    """
+    output_dir = tmp_path / "proposals"
+
+    code, output = _cli(
+        [
+            "run",
+            "--creator",
+            THIN,
+            "--fixtures",
+            str(fixture_dir),
+            "--long-tail-profile",
+            profile_id,
+            "--output",
+            str(output_dir),
+            "--timestamp",
+            TIMESTAMP,
+        ]
+    )
+
+    assert code == EXIT_USAGE
+    # "needs --long-tail" rather than "--long-tail", which is a substring of the
+    # flag that was supplied and so would assert nothing.
+    assert "needs --long-tail" in output
+    assert "--long-tail-profile" in output
+    assert profile_id in output
+    assert "2-of-3 majority" in output
+    # Refused rather than run: no proposal, and nothing to resume later.
+    assert not output_dir.exists()
+
+
+def test_the_refusal_precedes_building_any_provider(fixture_dir) -> None:
+    """The refusal is reported as itself, not from behind a provider that failed.
+
+    `--provider foundry` with no Foundry environment fails on its own — and in CI,
+    where the optional Azure packages are deliberately not installed, it fails at
+    import. Were the flag pair checked after the providers were built, that
+    unrelated failure is what the operator would be shown for a mistyped flag.
+    """
+    code, output = _cli(
+        [
+            "run",
+            "--creator",
+            THIN,
+            "--fixtures",
+            str(fixture_dir),
+            "--provider",
+            "foundry",
+            "--long-tail-profile",
+            DEFAULT_LONG_TAIL_PROFILE_ID,
+            "--timestamp",
+            TIMESTAMP,
+        ]
+    )
+
+    assert code == EXIT_USAGE
+    assert "needs --long-tail" in output
+
+
+def test_the_long_tail_flag_alone_still_resolves_the_default_reviewed_profile() -> None:
+    """The default the refusal had to be built without breaking.
+
+    Telling "supplied" from "defaulted" meant dropping the flag's argparse default,
+    so the default profile is now resolved here instead. Asserted at this level
+    because that resolution *is* the unit that changed, and it is driven through the
+    real parser so the argparse defaults are the ones under test.
+    """
+    reviewed = reviewed_long_tail_profile(DEFAULT_LONG_TAIL_PROFILE_ID)
+
+    assert _long_tail_profile(_parsed_run(["--long-tail"])) == reviewed
+    assert (
+        _long_tail_profile(
+            _parsed_run(["--long-tail", "--long-tail-profile", DEFAULT_LONG_TAIL_PROFILE_ID])
+        )
+        == reviewed
+    )
+
+
+def test_neither_flag_still_leaves_a_run_with_no_long_tail_profile() -> None:
+    """The ordinary path is untouched: no profile, and so the majority policy."""
+    assert _long_tail_profile(_parsed_run([])) is None
