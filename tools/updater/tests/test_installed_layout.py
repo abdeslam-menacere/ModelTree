@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -90,6 +91,39 @@ def _python(site_packages: Path, *args: str) -> subprocess.CompletedProcess:
     )
 
 
+# Every subcommand that loads the fixture library, so no single call site can
+# regress on its own. `run` is first because `run` is what actually failed in
+# production: the message the two tests below assert is the message that would
+# have replaced the prefix path in run 32808297418. A subcommand added here
+# without routing through the shared loader fails both.
+FIXTURE_COMMANDS = ("run", "resume", "creators")
+
+
+def _command(name: str, tmp_path: Path) -> list[str]:
+    """Minimal argv for one fixture-loading subcommand.
+
+    Each is filled out only as far as argparse requires. Nothing here is
+    reachable — the library is loaded before any checkpoint is opened, so
+    `resume` fails on the fixtures, not on the checkpoint id.
+    """
+    if name == "run":
+        return ["run", "--creator", "contoso-ai"]
+    if name == "resume":
+        return [
+            "resume",
+            "--checkpoint-id",
+            "any",
+            "--checkpoint-dir",
+            str(tmp_path / "checkpoints"),
+        ]
+    return ["creators"]
+
+
+@pytest.fixture(params=FIXTURE_COMMANDS)
+def command(request) -> str:
+    return request.param
+
+
 def test_a_source_checkout_still_defaults_to_the_bundled_fixtures() -> None:
     """The working case has to keep working: `run` with no flags, in a checkout."""
     assert cli.DEFAULT_FIXTURES == PROJECT_DIR / "fixtures" / "creators"
@@ -116,12 +150,12 @@ def test_the_default_is_not_guessed_from_an_arbitrary_install_prefix(tmp_path) -
 
 
 def test_no_default_is_a_usage_error_that_names_the_flag_and_the_path(
-    monkeypatch, capsys
+    monkeypatch, capsys, command, tmp_path
 ) -> None:
     """What the installed console entry point says when it has nothing to read."""
     monkeypatch.setattr(cli, "DEFAULT_FIXTURES", None)
 
-    code = main(["creators"], env={})
+    code = main(_command(command, tmp_path), env={})
     output = capsys.readouterr().out
 
     assert code == EXIT_USAGE
@@ -131,11 +165,13 @@ def test_no_default_is_a_usage_error_that_names_the_flag_and_the_path(
     assert "Traceback" not in output
 
 
-def test_a_missing_fixtures_directory_is_more_than_a_bare_path(tmp_path, capsys) -> None:
+def test_a_missing_fixtures_directory_is_more_than_a_bare_path(
+    tmp_path, capsys, command
+) -> None:
     """The path is still named — it just is not the whole message any more."""
     missing = tmp_path / "not-here"
 
-    code = main(["creators", "--fixtures", str(missing)], env={})
+    code = main([*_command(command, tmp_path), "--fixtures", str(missing)], env={})
     output = capsys.readouterr().out
 
     assert code == EXIT_USAGE
@@ -160,10 +196,10 @@ def test_the_installed_copy_is_the_one_being_tested(installed_package) -> None:
 
 
 def test_the_installed_entry_point_refuses_with_an_actionable_message(
-    installed_package,
+    installed_package, tmp_path, command
 ) -> None:
     """End to end, as a subprocess: the failure in #139, now answered."""
-    result = _python(installed_package, "-m", "modeltree_updater", "creators")
+    result = _python(installed_package, "-m", "modeltree_updater", *_command(command, tmp_path))
     output = result.stdout + result.stderr
 
     assert result.returncode == EXIT_USAGE, output
@@ -171,6 +207,43 @@ def test_the_installed_entry_point_refuses_with_an_actionable_message(
     assert "tools/updater/fixtures/creators" in output
     assert "lib/python3.13/fixtures/creators" not in output
     assert "Traceback" not in output
+
+
+def test_the_production_run_invocation_no_longer_reports_a_path_nobody_wrote(
+    installed_package, tmp_path
+) -> None:
+    """The exact command that failed, in the exact shape the workflow sends it.
+
+    `run` is what run 32808297418 executed, and `run` is what the other tests
+    here did not cover: with the shared loader reverted on this one call site,
+    every other assertion in this file still passed. So this pins the command
+    rather than the code path — same subcommand, same flags, same installed
+    layout, with only `--fixtures` removed, which is precisely the difference
+    between the failing run and the fixed one.
+    """
+    result = _python(
+        installed_package,
+        "-m",
+        "modeltree_updater",
+        "run",
+        "--creator",
+        "openai",
+        "--creator",
+        "anthropic",
+        "--run-id",
+        "run-139-1",
+        "--output",
+        str(tmp_path / "proposals"),
+    )
+    output = result.stdout + result.stderr
+
+    assert result.returncode == EXIT_USAGE, output
+    # The shape of the reported failure: a prefix path was the whole message.
+    assert not re.search(r"fixture directory not found: \S*python3\.\d+/fixtures", output)
+    assert "--fixtures" in output
+    assert "tools/updater/fixtures/creators" in output
+    assert "Traceback" not in output
+    assert not (tmp_path / "proposals").exists(), "a refused run writes nothing"
 
 
 def test_the_installed_entry_point_runs_when_given_the_checkout_fixtures(
@@ -207,17 +280,26 @@ def test_the_installed_entry_point_runs_when_given_the_checkout_fixtures(
 def test_the_distribution_ships_the_package_and_nothing_else() -> None:
     """The other half of the decision: turning packaging on has to be deliberate.
 
-    `force-include`, `artifacts` and `shared-data` are the three ways fixtures
-    could re-enter the wheel. None of them is a bad idea by accident — but each
-    would silently reverse the choice recorded in this file, so each fails here.
+    Asserted as the whole configuration rather than as a list of forbidden keys.
+    An earlier version of this test named `force-include`, `artifacts` and
+    `shared-data` and called them "the three ways" — which was simply untrue:
+    `include = ["fixtures"]` on the wheel target ships them, and so does
+    `only-include` on `[tool.hatch.build]`, and both left that test green.
+    Enumerating is what got it wrong, and it would go stale again the next time
+    hatchling gains an option, so the pin is the positive one: this is the
+    entire build configuration, and anything added to it — any of the five keys
+    above, a build hook, an sdist target — fails here and has to be argued for.
     """
     config = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
-    build = config["tool"]["hatch"]["build"]
+    hatch = config["tool"]["hatch"]
 
-    assert build["targets"]["wheel"]["packages"] == ["src/modeltree_updater"]
-    for target in (build, *build["targets"].values()):
-        for key in ("force-include", "artifacts", "shared-data"):
-            assert key not in target, f"{key} would ship fixtures as distribution data"
+    assert set(hatch) == {"build"}, f"unreviewed hatch configuration: {sorted(hatch)}"
+    assert set(hatch["build"]) == {"targets"}, (
+        "keys directly under [tool.hatch.build] apply to every target, so an "
+        f"include rule here reaches the wheel: {sorted(hatch['build'])}"
+    )
+    assert set(hatch["build"]["targets"]) == {"wheel"}
+    assert hatch["build"]["targets"]["wheel"] == {"packages": ["src/modeltree_updater"]}
 
 
 def test_the_fixtures_are_not_inside_the_package() -> None:

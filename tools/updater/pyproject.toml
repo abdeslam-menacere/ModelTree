@@ -35,9 +35,11 @@ packages = ["src/modeltree_updater"]
 # fixtures are synthetic pages that exist to exercise the pipeline offline, so
 # they are test data rather than distribution data and a production artefact
 # must not be able to run against fabricated sources by accident. Callers that
-# want them pass `--fixtures` at a checkout. Adding `force-include`, `artifacts`
-# or `shared-data` here would reverse that decision, so
-# `tests/test_installed_layout.py` asserts they are not here. See #139.
+# want them pass `--fixtures` at a checkout. Any hatch build option that adds
+# files — `include`, `only-include`, `force-include`, `artifacts`,
+# `shared-data`, a build hook — would reverse that decision, so
+# `tests/test_installed_layout.py` pins this whole table rather than a list of
+# forbidden keys. See #139.
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
