@@ -1,15 +1,23 @@
 """The network source provider fetches real pages honestly — proven offline.
 
-Every test here runs with an injected opener and no sockets, so the default suite
-stays genuinely offline. The single live test is marked ``network`` and is
-excluded from the default run by ``addopts`` in ``pyproject.toml``.
+No test here opens a socket or consults DNS. Most run with an injected opener;
+the resolved-address tests run the *real* transport with the resolver and the
+connector injected, so the code that resolves, validates and pins an address is
+itself under test rather than stubbed past. The single live test is marked
+``network`` and is excluded from the default run by ``addopts`` in
+``pyproject.toml``.
 """
 
 from __future__ import annotations
 
 import asyncio
 import inspect
+import io
+import ipaddress
+import socket
+import ssl
 from datetime import datetime, timezone
+from typing import Sequence
 from urllib import error as urllib_error
 
 import pytest
@@ -25,6 +33,11 @@ from modeltree_updater.providers.network import (
     DEFAULT_USER_AGENT,
     HttpResponse,
     NetworkSourceProvider,
+    UnsafeAddressError,
+    _default_ssl_context,
+    _pinned_endpoints,
+    address_safety_issue,
+    build_default_opener,
 )
 
 FIXED_NOW = datetime(2026, 6, 1, 12, 30, 0, tzinfo=timezone.utc)
@@ -224,6 +237,302 @@ def test_unsafe_urls_are_refused_without_a_request(url: str) -> None:
         _run(provider.fetch(_candidate(url)))
     assert excinfo.value.retryable is False
     assert http.calls == []  # nothing was fetched
+
+
+# -- resolved-address safety (DNS rebinding) ------------------------------------
+#
+# A URL is only a name, so the tests above prove nothing about where a *public*
+# hostname actually points. These exercise the real transport — the one built by
+# `build_default_opener` and used in production — with DNS and the socket
+# injected, so the resolve/validate/pin path itself is under test with no network.
+
+
+class FakeResolver:
+    """A ``socket.getaddrinfo`` stand-in: the records DNS would hand back."""
+
+    def __init__(self, records: dict[str, list[str]]) -> None:
+        self.records = records
+        self.calls: list[tuple[str, int]] = []
+
+    def __call__(self, host, port, *args, **kwargs):  # noqa: ANN001, ANN204
+        self.calls.append((host, port))
+        addresses = self.records.get(host)
+        if addresses is None:
+            raise socket.gaierror(f"no records for {host}")
+        infos = []
+        for text in addresses:
+            parsed = ipaddress.ip_address(text)
+            if parsed.version == 6:
+                infos.append((socket.AF_INET6, socket.SOCK_STREAM, 6, "", (text, port, 0, 0)))
+            else:
+                infos.append((socket.AF_INET, socket.SOCK_STREAM, 6, "", (text, port)))
+        return infos
+
+
+class FakeSocket:
+    """Replays one canned HTTP response and records what was written to it."""
+
+    def __init__(self, response: bytes) -> None:
+        self.response = response
+        self.sent = b""
+
+    def setsockopt(self, *args: object) -> None:
+        return None
+
+    def sendall(self, data: object) -> None:
+        self.sent += bytes(data)  # type: ignore[arg-type]
+
+    def makefile(self, mode: str = "rb", *args: object, **kwargs: object) -> io.BytesIO:
+        return io.BytesIO(self.response)
+
+    def close(self) -> None:
+        return None
+
+
+class RecordingConnector:
+    """A ``socket.create_connection`` stand-in that records every dial attempt.
+
+    Recording the *address* is what makes "refused before any connection" an
+    assertion about behaviour rather than about the error message: an empty
+    ``calls`` list means no socket was ever opened.
+    """
+
+    def __init__(self, responses: Sequence[bytes] = ()) -> None:
+        self.responses = list(responses)
+        self.calls: list[tuple[str, int]] = []
+        self.sockets: list[FakeSocket] = []
+
+    def __call__(self, address, timeout=None, source_address=None):  # noqa: ANN001, ANN204
+        self.calls.append(address)
+        if not self.responses:
+            raise OSError(f"no scripted response for {address}")
+        sock = FakeSocket(self.responses.pop(0))
+        self.sockets.append(sock)
+        return sock
+
+
+class RecordingTLS:
+    """Stands in for an ``ssl.SSLContext``, recording the SNI name it was given.
+
+    It verifies nothing — it cannot, against a fake socket — but it records the
+    ``server_hostname`` so the tests can prove the *name* is still what TLS is
+    asked to authenticate, even though the *address* is pinned.
+    """
+
+    check_hostname = True
+    verify_mode = ssl.CERT_REQUIRED
+
+    def __init__(self) -> None:
+        self.server_hostnames: list[str | None] = []
+
+    def wrap_socket(self, sock: FakeSocket, *, server_hostname: str | None = None) -> FakeSocket:
+        self.server_hostnames.append(server_hostname)
+        return sock
+
+
+def _raw(status: str, headers: dict[str, str] | None = None, body: bytes = b"") -> bytes:
+    head = f"HTTP/1.1 {status}\r\n"
+    head += "".join(f"{key}: {value}\r\n" for key, value in (headers or {}).items())
+    head += f"Content-Length: {len(body)}\r\n\r\n"
+    return head.encode("ascii") + body
+
+
+def _pinned_provider(
+    records: dict[str, list[str]], responses: Sequence[bytes] = (), **kwargs: object
+) -> tuple[NetworkSourceProvider, FakeResolver, RecordingConnector, RecordingTLS]:
+    resolver = FakeResolver(records)
+    connector = RecordingConnector(responses)
+    tls = RecordingTLS()
+    provider = NetworkSourceProvider(
+        opener=build_default_opener(resolver=resolver, connector=connector, ssl_context=tls),
+        now=lambda: FIXED_NOW,
+        min_host_interval=0.0,
+        respect_robots=bool(kwargs.pop("respect_robots", False)),
+        **kwargs,  # type: ignore[arg-type]
+    )
+    return provider, resolver, connector, tls
+
+
+@pytest.mark.parametrize(
+    "address",
+    [
+        "127.0.0.1",  # loopback
+        "169.254.169.254",  # link-local: the cloud metadata endpoint
+        "10.0.0.5",  # RFC1918
+        "172.16.0.1",  # RFC1918
+        "192.168.1.1",  # RFC1918
+        "100.64.0.1",  # CGNAT
+        "0.0.0.0",  # unspecified
+        "224.0.0.1",  # multicast
+        "255.255.255.255",  # broadcast/reserved
+        "::1",  # IPv6 loopback
+        "::",  # IPv6 unspecified
+        "fe80::1",  # IPv6 link-local
+        "fc00::1",  # IPv6 unique-local
+        "ff02::1",  # IPv6 multicast
+        "::ffff:127.0.0.1",  # IPv4-mapped loopback
+        "2002:7f00:1::1",  # 6to4-encoded loopback
+        "64:ff9b::a00:1",  # NAT64-encoded RFC1918
+    ],
+)
+def test_addresses_off_the_public_internet_are_refused(address: str) -> None:
+    assert address_safety_issue(address) is not None
+
+
+@pytest.mark.parametrize(
+    "address",
+    ["93.184.216.34", "8.8.8.8", "2606:2800:220:1:248:1893:25c8:1946"],
+)
+def test_genuinely_public_addresses_are_allowed(address: str) -> None:
+    assert address_safety_issue(address) is None
+
+
+@pytest.mark.parametrize(
+    "address",
+    ["127.0.0.1", "169.254.169.254", "10.0.0.5"],
+)
+def test_a_name_resolving_off_the_public_internet_is_refused_before_connecting(
+    address: str,
+) -> None:
+    provider, resolver, connector, _ = _pinned_provider({"rebind.example": [address]})
+
+    with pytest.raises(ProviderError) as excinfo:
+        _run(provider.fetch(_candidate("https://rebind.example/page")))
+
+    assert excinfo.value.retryable is False  # deterministic, not worth a retry
+    assert excinfo.value.provider == "network:sources"
+    assert address in str(excinfo.value)
+    assert resolver.calls == [("rebind.example", 443)]  # the name was looked up
+    assert connector.calls == []  # and no socket was ever opened
+
+
+def test_every_resolved_record_is_validated_not_only_the_first() -> None:
+    """A name answering with one public and one private record is refused whole."""
+    provider, _, connector, _ = _pinned_provider(
+        {"mixed.example": ["93.184.216.34", "10.0.0.7"]},
+        [_raw("200 OK", {"Content-Type": "text/html"}, b"<p>reachable</p>")],
+    )
+
+    with pytest.raises(ProviderError) as excinfo:
+        _run(provider.fetch(_candidate("https://mixed.example/page")))
+
+    assert excinfo.value.retryable is False
+    assert "10.0.0.7" in str(excinfo.value)
+    assert connector.calls == []  # not even the public record was dialled
+
+
+def test_a_public_host_still_fetches_over_the_pinned_transport() -> None:
+    body = b"<html><body><h1>Title</h1><p>Body</p></body></html>"
+    provider, _, _, _ = _pinned_provider(
+        {"example.com": ["93.184.216.34"]},
+        [_raw("200 OK", {"Content-Type": "text/html; charset=utf-8"}, body)],
+    )
+
+    page = _run(provider.fetch(_candidate("https://example.com/page")))
+
+    assert page.content_hash == content_hash_bytes(body)
+    assert "Title" in page.text and "Body" in page.text
+
+
+def test_the_connection_dials_the_validated_address_not_the_name() -> None:
+    """The TOCTOU close: one lookup, and the socket goes to what was checked.
+
+    If the hostname were handed to the socket layer it would be resolved a second
+    time, and a low-TTL record could answer differently at connect than it did at
+    check. The connector therefore sees an address, never a name.
+    """
+    body = b"<html>ok</html>"
+    provider, resolver, connector, tls = _pinned_provider(
+        {"example.com": ["93.184.216.34"]},
+        [_raw("200 OK", {"Content-Type": "text/html"}, body)],
+    )
+
+    _run(provider.fetch(_candidate("https://example.com/page")))
+
+    assert connector.calls == [("93.184.216.34", 443)]
+    assert resolver.calls == [("example.com", 443)]  # resolved exactly once
+    # Pinning the address costs nothing in authentication: TLS is still asked to
+    # verify the certificate against the hostname, and the server still sees it.
+    assert tls.server_hostnames == ["example.com"]
+    assert b"Host: example.com\r\n" in connector.sockets[0].sent
+
+
+def test_a_redirect_to_a_privately_resolving_host_is_refused() -> None:
+    provider, _, connector, _ = _pinned_provider(
+        {"example.com": ["93.184.216.34"], "internal.example": ["192.168.0.10"]},
+        [_raw("302 Found", {"Location": "https://internal.example/admin"})],
+    )
+
+    with pytest.raises(ProviderError) as excinfo:
+        _run(provider.fetch(_candidate("https://example.com/old")))
+
+    assert excinfo.value.retryable is False
+    assert "192.168.0.10" in str(excinfo.value)
+    # The public first hop happened; the private second hop never opened a socket.
+    assert connector.calls == [("93.184.216.34", 443)]
+
+
+def test_the_robots_fetch_is_address_checked_too() -> None:
+    provider, _, connector, _ = _pinned_provider(
+        {"rebind.example": ["169.254.169.254"]}, respect_robots=True
+    )
+
+    with pytest.raises(ProviderError) as excinfo:
+        _run(provider.fetch(_candidate("https://rebind.example/page")))
+
+    assert excinfo.value.retryable is False
+    assert "robots.txt" in str(excinfo.value)  # refused on the very first request
+    assert connector.calls == []
+
+
+def test_the_lexical_checks_still_run_and_precede_any_resolution() -> None:
+    """The address check is added to the lexical checks, not swapped in for them."""
+    provider, resolver, connector, _ = _pinned_provider({"example.com": ["93.184.216.34"]})
+
+    with pytest.raises(ProviderError) as excinfo:
+        _run(provider.fetch(_candidate("http://example.com/page")))  # not https
+
+    assert excinfo.value.retryable is False
+    assert "https" in str(excinfo.value)
+    assert resolver.calls == []  # refused on the URL alone
+    assert connector.calls == []
+
+
+@pytest.mark.parametrize(
+    ("host", "refused"),
+    [("127.0.0.1", True), ("93.184.216.34", False)],
+)
+def test_an_ip_literal_host_is_checked_without_being_resolved(host: str, refused: bool) -> None:
+    """Tested directly: the lexical checks refuse bare-IP URLs before this runs."""
+    resolver = FakeResolver({})  # any lookup at all raises
+
+    if refused:
+        with pytest.raises(UnsafeAddressError):
+            _pinned_endpoints(host, 443, resolver=resolver)
+    else:
+        assert _pinned_endpoints(host, 443, resolver=resolver) == (
+            (socket.AF_INET, host),
+        )
+    assert resolver.calls == []
+
+
+def test_a_resolution_failure_stays_a_retryable_failure() -> None:
+    """DNS falling over is transient; it must not be reported as an unsafe host."""
+    provider, _, connector, _ = _pinned_provider({})
+
+    with pytest.raises(ProviderError) as excinfo:
+        _run(provider.fetch(_candidate("https://nowhere.example/page")))
+
+    assert excinfo.value.retryable is True
+    assert connector.calls == []
+
+
+def test_the_default_transport_verifies_certificates_and_hostnames() -> None:
+    """Guards the trade this fix must not make: SSRF closed, MITM opened."""
+    context = _default_ssl_context()
+
+    assert context.check_hostname is True
+    assert context.verify_mode is ssl.CERT_REQUIRED
 
 
 # -- redirects ------------------------------------------------------------------
