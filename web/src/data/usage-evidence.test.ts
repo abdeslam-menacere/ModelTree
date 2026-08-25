@@ -126,7 +126,14 @@ const independentPair = [
 
 describe('usage observation schema and provenance', () => {
   it('defaults to no usage evidence when the dataset omits it', () => {
-    const parsed = validateDataset(structuredClone(rawDataset));
+    // The seed now carries a usage observation, so the defaults are exercised
+    // against a dataset that genuinely omits the keys rather than one that
+    // happens to be empty.
+    const withoutUsage = structuredClone(rawDataset) as Record<string, unknown>;
+    delete withoutUsage.usageObservations;
+    delete withoutUsage.usageSyntheses;
+
+    const parsed = validateDataset(withoutUsage);
 
     expect(parsed.usageObservations).toEqual([]);
     expect(parsed.usageSyntheses).toEqual([]);

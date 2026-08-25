@@ -258,13 +258,17 @@ describe('buildUsageEvidence', () => {
     ]);
   });
 
-  it('records no usage evidence for the seed dataset', () => {
+  it('renders evidence only for the releases the seed actually observes', () => {
     const seed = validateDataset(structuredClone(rawDataset));
+    const observed = new Set(seed.usageObservations.map((observation) => observation.releaseId));
 
-    expect(seed.usageObservations).toEqual([]);
-    expect(seed.usageSyntheses).toEqual([]);
+    // The no-data state is a supported state, not a placeholder: every release
+    // without a qualifying observation must still resolve to it.
+    expect(observed.size).toBeGreaterThan(0);
     for (const release of seed.releases) {
-      expect(buildUsageEvidence(seed, release.id, TODAY).state).toBe('no-data');
+      expect(buildUsageEvidence(seed, release.id, TODAY).state).toBe(
+        observed.has(release.id) ? 'evidence' : 'no-data',
+      );
     }
   });
 });

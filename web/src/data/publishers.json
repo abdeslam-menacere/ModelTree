@@ -15,6 +15,10 @@
     "organizationId": "meta"
   },
   {
+    "id": "hugging-face",
+    "name": "Hugging Face"
+  },
+  {
     "id": "alphabet",
     "name": "Alphabet"
   },
