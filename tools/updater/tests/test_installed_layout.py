@@ -14,6 +14,16 @@ premise is that every fact is traceable to a primary source, that is the wrong
 thing to ship. So the wheel does not carry them, an installed copy has no
 default, and the CLI says which flag to pass and where the directory is.
 
+The reviewed creator profiles and the reviewed long-tail profiles stay out of
+the wheel for a neighbouring reason (#147): a profile decides which sources are
+trusted and what may be extracted from them, so a packaged copy could drift from
+the reviewed set in the repository with nothing to say which one a run had used.
+Their defaults carried the original `parents[2]` guess after #139 fixed the
+fixtures one, because the rule lived at each call site with nothing relating the
+copies. It lives in `modeltree_updater.layout` now, and the tests below check the
+three defaults against one another as well as against the installed layout, so a
+fourth call site cannot quietly grow a fourth answer.
+
 Both halves of that decision are pinned below, because either one alone would
 let the workflow break again: packaging could be turned on by a stray
 `force-include`, and the default could quietly go back to guessing.
@@ -38,7 +48,7 @@ from pathlib import Path
 
 import pytest
 
-from modeltree_updater import cli
+from modeltree_updater import cli, layout, longtail, profiles
 from modeltree_updater.cli import EXIT_OK, EXIT_USAGE, main
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
@@ -50,6 +60,26 @@ PYPROJECT = PROJECT_DIR / "pyproject.toml"
 # of on this repository. This is the literal shape from the failing run.
 INSTALLED_CLI = Path("/opt/hostedtoolcache/Python/3.13.15/x64/lib/python3.13")
 INSTALLED_CLI = INSTALLED_CLI / "site-packages" / "modeltree_updater" / "cli.py"
+INSTALLED_PROFILES = INSTALLED_CLI.with_name("profiles.py")
+INSTALLED_LONGTAIL = INSTALLED_CLI.with_name("longtail.py")
+
+# Every default that points at data this repository deliberately keeps out of the
+# wheel, as (name, resolver, subpath below `tools/updater`). Held in one list so a
+# new one is added here rather than tested on its own terms.
+CHECKOUT_DEFAULTS = (
+    ("fixtures", cli.source_checkout_fixtures, ("fixtures", "creators")),
+    ("profiles", profiles.source_checkout_profiles, ("profiles",)),
+    (
+        "long-tail profiles",
+        longtail.source_checkout_long_tail_profiles,
+        ("profiles", "generic"),
+    ),
+)
+
+
+@pytest.fixture(params=CHECKOUT_DEFAULTS, ids=[item[0] for item in CHECKOUT_DEFAULTS])
+def checkout_default(request):
+    return request.param
 
 
 @pytest.fixture(scope="module")
@@ -147,6 +177,94 @@ def test_the_default_is_not_guessed_from_an_arbitrary_install_prefix(tmp_path) -
     (package.parents[1] / "fixtures" / "creators").mkdir(parents=True)
 
     assert cli.source_checkout_fixtures(package / "cli.py") is None
+
+
+# --------------------------------------------------------------------------
+# The same question, asked once (#147)
+# --------------------------------------------------------------------------
+# #139 fixed the fixtures default and left the identical guess at
+# `profiles.DEFAULT_PROFILES_DIR` and `longtail.REVIEWED_LONG_TAIL_DIR`, which is
+# what a rule written out at each call site buys: nothing relates the copies, so
+# fixing one says nothing about the others. These check the three defaults
+# against each other, not just each against the installed layout — a fourth
+# answer to "where is the repository?" fails here rather than in a workflow run.
+
+
+def test_every_repository_default_resolves_through_the_one_layout_check(
+    tmp_path, checkout_default
+) -> None:
+    """One resolver, three defaults: each is its own subpath of the same root."""
+    name, resolve, subpath = checkout_default
+    package = tmp_path / "tools" / "updater" / "src" / "modeltree_updater"
+    package.mkdir(parents=True)
+    module_file = package / "anything.py"
+
+    root = layout.source_checkout_dir(module_file)
+
+    assert root == tmp_path / "tools" / "updater"
+    assert resolve(module_file) == root.joinpath(*subpath), name
+
+
+def test_no_repository_default_is_guessed_from_an_install_prefix(checkout_default) -> None:
+    """The root cause of #139 and #147, stated as the thing that must stay false.
+
+    The old expression returned a path for every one of these — a directory under
+    the Python prefix that exists nowhere — and a path that exists nowhere is
+    worse than no path at all, because it is reported as if someone had asked
+    for it.
+    """
+    name, resolve, _ = checkout_default
+
+    assert resolve(INSTALLED_CLI) is None, name
+    assert resolve(INSTALLED_PROFILES) is None, name
+    assert resolve(INSTALLED_LONGTAIL) is None, name
+
+
+def test_no_repository_default_is_guessed_from_a_prefix_that_happens_to_match(
+    tmp_path, checkout_default
+) -> None:
+    """Not even when the directory it wants sits at exactly the old offset."""
+    name, resolve, subpath = checkout_default
+    package = tmp_path / "lib" / "python3.13" / "site-packages" / "modeltree_updater"
+    package.mkdir(parents=True)
+    package.parents[1].joinpath(*subpath).mkdir(parents=True)
+
+    assert resolve(package / "profiles.py") is None, name
+
+
+def test_a_source_checkout_still_defaults_to_the_reviewed_profiles() -> None:
+    """The working case has to keep working: the checkout's own reviewed sets."""
+    assert profiles.DEFAULT_PROFILES_DIR == PROJECT_DIR / "profiles"
+    assert profiles.DEFAULT_PROFILES_DIR.is_dir()
+    assert longtail.REVIEWED_LONG_TAIL_DIR == PROJECT_DIR / "profiles" / "generic"
+    assert longtail.REVIEWED_LONG_TAIL_DIR.is_dir()
+    assert longtail.DEFAULT_LONG_TAIL_PROFILE == (
+        PROJECT_DIR / "profiles" / "generic" / "long-tail.json"
+    )
+    assert longtail.DEFAULT_LONG_TAIL_PROFILE.is_file()
+
+
+def test_no_module_walks_out_to_the_repository_on_its_own() -> None:
+    """The guess, as a shape, confined to the module that checks it.
+
+    `Path(__file__).resolve().parents[2]` is the expression #139 named and #147
+    found two more of. A new one would be a second answer to a question that has
+    one, and it would be invisible to the tests above, which can only compare the
+    resolvers they already know about. `layout.py` is excluded because quoting the
+    expression it replaces is what that module is for.
+    """
+    offenders = sorted(
+        path.relative_to(PACKAGE_DIR).as_posix()
+        for path in PACKAGE_DIR.rglob("*.py")
+        if path.name != "layout.py"
+        and "parents[2]" in path.read_text(encoding="utf-8")
+    )
+
+    assert not offenders, (
+        f"{', '.join(offenders)} walks out of the package to guess a repository "
+        "path; derive it from modeltree_updater.layout.source_checkout_dir "
+        "instead, which checks the layout rather than assuming it"
+    )
 
 
 def test_no_default_is_a_usage_error_that_names_the_flag_and_the_path(
@@ -277,6 +395,184 @@ def test_the_installed_entry_point_runs_when_given_the_checkout_fixtures(
     assert report["settings"]["mode"] == "proposal-only"
 
 
+def test_the_installed_copy_has_no_reviewed_profiles_default_either(
+    installed_package,
+) -> None:
+    """The #147 constants, read out of a real installed layout in a child process.
+
+    In process these resolve from the working tree no matter what, which is why
+    the suite stayed green at 486 while the installed path was broken. Here the
+    only copy on the path is the one under a directory shaped like site-packages,
+    so what is printed is what the publisher workflow's interpreter would see.
+    """
+    result = _python(
+        installed_package,
+        "-c",
+        "import json; "
+        "from modeltree_updater import longtail, profiles; "
+        "print(json.dumps([profiles.__file__, "
+        "str(profiles.DEFAULT_PROFILES_DIR), "
+        "str(longtail.REVIEWED_LONG_TAIL_DIR), "
+        "str(longtail.DEFAULT_LONG_TAIL_PROFILE)]))",
+    )
+
+    assert result.returncode == 0, result.stderr
+    module_file, profiles_dir, long_tail_dir, long_tail_profile = json.loads(result.stdout)
+    assert Path(module_file).is_relative_to(installed_package)
+    assert [profiles_dir, long_tail_dir, long_tail_profile] == ["None", "None", "None"]
+
+
+def test_the_installed_profiles_command_refuses_with_an_actionable_message(
+    installed_package,
+) -> None:
+    """`profiles` from an installed distribution: the flag and the repository path."""
+    result = _python(installed_package, "-m", "modeltree_updater", "profiles")
+    output = result.stdout + result.stderr
+
+    assert result.returncode == EXIT_USAGE, output
+    assert "--profiles" in output
+    assert "tools/updater/profiles" in output
+    assert "not packaged" in output
+    # The failure mode being replaced: the prefix path the old default produced.
+    assert not re.search(r"python3\.\d+[/\\]profiles", output)
+    assert "Traceback" not in output
+
+
+# Both branches of `_long_tail_profile`: the default id, and one named explicitly.
+LONG_TAIL_INVOCATIONS = (
+    ("default id", ("--long-tail",)),
+    ("named id", ("--long-tail", "--long-tail-profile", "long-tail-generic")),
+)
+
+
+@pytest.mark.parametrize(
+    "long_tail_flags",
+    [flags for _, flags in LONG_TAIL_INVOCATIONS],
+    ids=[name for name, _ in LONG_TAIL_INVOCATIONS],
+)
+def test_an_installed_long_tail_run_refuses_with_an_actionable_message(
+    installed_package, tmp_path, fixture_dir, long_tail_flags
+) -> None:
+    """`run --long-tail` installed: refused for the reviewed set, not the fixtures.
+
+    `--fixtures` is supplied so the run gets past #139's failure and reaches the
+    one under test. Both ways of asking for a generic profile are covered because
+    they take different branches to the same reviewed set, and only one of them
+    would have been exercised by testing the default alone.
+    """
+    output_dir = tmp_path / "proposals"
+    result = _python(
+        installed_package,
+        "-m",
+        "modeltree_updater",
+        "run",
+        "--creator",
+        "contoso-ai",
+        "--fixtures",
+        str(fixture_dir),
+        *long_tail_flags,
+        "--output",
+        str(output_dir),
+        "--run-id",
+        "run-147-1",
+    )
+    output = result.stdout + result.stderr
+
+    assert result.returncode == EXIT_USAGE, output
+    assert "--long-tail" in output
+    assert "tools/updater/profiles/generic" in output
+    assert "not packaged" in output
+    assert not re.search(r"python3\.\d+[/\\]profiles", output)
+    assert "Traceback" not in output
+    assert not output_dir.exists(), "a refused run writes nothing"
+
+
+def test_the_installed_profiles_command_runs_when_given_the_checkout_profiles(
+    installed_package,
+) -> None:
+    """The other half of failing closed: pointing it at the repository works."""
+    result = _python(
+        installed_package,
+        "-m",
+        "modeltree_updater",
+        "profiles",
+        "--profiles",
+        str(PROJECT_DIR / "profiles"),
+    )
+    output = result.stdout + result.stderr
+
+    assert result.returncode == EXIT_OK, output
+    assert "openai" in output
+
+
+def test_a_pth_based_editable_install_still_resolves_the_checkout(tmp_path) -> None:
+    """The case a stricter check would have broken, and #139's review called out.
+
+    An editable install puts a `.pth` naming this repository's `src` on the path,
+    so the imported module file *is* the working tree's own and the layout check
+    passes for the honest reason — not because "editable" was recognised. Run
+    with `-S` and an explicit `site.addsitedir`, so the `.pth` is processed and
+    nothing else on the path can answer instead: whichever copy CI has installed,
+    this asserts about the one the `.pth` points at.
+    """
+    site_dir = tmp_path / "site-packages"
+    site_dir.mkdir()
+    # The name and the content hatchling actually writes for `pip install -e .`:
+    # one line naming this project's `src`, no import hook.
+    (site_dir / "_editable_impl_modeltree_updater.pth").write_text(
+        f"{PROJECT_DIR / 'src'}\n", encoding="utf-8"
+    )
+    env = dict(os.environ)
+    env.pop("PYTHONPATH", None)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-S",
+            "-c",
+            "import json, site; "
+            f"site.addsitedir({str(site_dir)!r}); "
+            "from modeltree_updater import longtail, profiles; "
+            "print(json.dumps([profiles.__file__, "
+            "str(profiles.DEFAULT_PROFILES_DIR), "
+            "str(longtail.REVIEWED_LONG_TAIL_DIR)]))",
+        ],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    module_file, profiles_dir, long_tail_dir = json.loads(result.stdout)
+    assert Path(module_file) == PACKAGE_DIR / "profiles.py"
+    assert Path(profiles_dir) == PROJECT_DIR / "profiles"
+    assert Path(long_tail_dir) == PROJECT_DIR / "profiles" / "generic"
+
+
+def test_every_refusal_is_printable_wherever_the_updater_runs() -> None:
+    """A hint that cannot be encoded is not a hint.
+
+    These strings are written to stdout by a console entry point, which on a
+    Windows console encodes to the active code page rather than UTF-8, so a
+    stray dash could turn an actionable refusal into a UnicodeEncodeError with
+    the path still unsaid. `FIXTURES_ARE_TEST_DATA` was already ASCII; it is
+    included so the shape being matched is the thing asserted.
+    """
+    hints = {
+        "FIXTURES_ARE_TEST_DATA": cli.FIXTURES_ARE_TEST_DATA,
+        "PROFILES_ARE_REPOSITORY_DATA": profiles.PROFILES_ARE_REPOSITORY_DATA,
+        "LONG_TAIL_PROFILES_ARE_REPOSITORY_DATA": (
+            longtail.LONG_TAIL_PROFILES_ARE_REPOSITORY_DATA
+        ),
+    }
+
+    for name, hint in hints.items():
+        assert hint.isascii(), f"{name} is not printable on every console"
+        assert "hint: " in hint, name
+
+
 def test_the_distribution_ships_the_package_and_nothing_else() -> None:
     """The other half of the decision: turning packaging on has to be deliberate.
 
@@ -323,3 +619,15 @@ def test_the_distribution_ships_the_package_and_nothing_else() -> None:
 def test_the_fixtures_are_not_inside_the_package() -> None:
     """A fixtures directory under `src/` would be packaged by `packages =`."""
     assert not (PACKAGE_DIR / "fixtures").exists()
+
+
+def test_the_reviewed_profiles_are_not_inside_the_package() -> None:
+    """Nor a profiles directory, for the same reason and by the same mechanism.
+
+    `packages = ["src/modeltree_updater"]` ships everything under that directory,
+    so moving the reviewed sets inside the package is the one way to package them
+    that the table assertion above cannot see. Both reviewed sets are checked:
+    the dedicated creator profiles and the generic long-tail ones (#147).
+    """
+    assert not (PACKAGE_DIR / "profiles").exists()
+    assert (PROJECT_DIR / "profiles" / "generic").is_dir()
