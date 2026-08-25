@@ -38,6 +38,13 @@ duplicate issue numbers, and the run it supersedes, with no render-time clock an
 no local file paths, so a `--dry-run` prints byte-for-byte what a real publication
 would send. Re-rendering the *same* run carries the earlier supersession forward
 unchanged, so a repeated publication is byte-identical and adds no comment.
+
+Determinism extends to *measured* time as well as render time: no wall-clock
+value reaches the body at all. Elapsed seconds are still measured and still
+enforced — the budget ledger stops a run that overruns — but two executions of
+the same run differ in elapsed time by a timer tick, and rendering that would
+make every re-render a spurious edit whose diff says nothing about the data.
+Elapsed time is a property of the run; this body is the proposal.
 """
 
 from __future__ import annotations
@@ -750,7 +757,12 @@ def _budget_section(proposal: CreatorProposal) -> _Section:
         [
             ["pages", str(budget.pages_fetched), str(budget.max_pages)],
             ["tokens", str(budget.tokens_used), str(budget.max_tokens)],
-            ["seconds", f"{budget.elapsed_seconds:.2f}", f"{budget.max_seconds:g}"],
+            # Measured and enforced, deliberately not rendered. Elapsed time is
+            # the one budget whose "used" value differs between two executions of
+            # the same run, so printing it here would make every re-render an
+            # edit. The limit stays, because a run stopped by it has to be
+            # readable against something. The note below says so in the body.
+            ["seconds", "_not rendered_", f"{budget.max_seconds:g}"],
             ["retries", str(budget.retries_used), str(budget.max_retries)],
         ],
     )
@@ -764,6 +776,16 @@ def _budget_section(proposal: CreatorProposal) -> _Section:
         )
     else:
         lines.append("No budget was exhausted.")
+    lines += [
+        "",
+        "Elapsed time is measured and enforced — a run that exceeds the second "
+        "limit above is stopped and says so — but the value is not printed here. "
+        "It is a property of the run, not of the proposal, and two executions of "
+        "the same run differ by a timer tick, so a number here would make every "
+        "re-render of this issue a spurious edit. The run artefact for run "
+        f"{_code(proposal.run_id)} ({_code(proposal.creator_id + '.json')}) "
+        "records it exactly.",
+    ]
     return _Section(
         key="budget",
         heading="Budget usage",
