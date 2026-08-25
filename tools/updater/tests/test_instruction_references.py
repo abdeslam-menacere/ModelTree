@@ -260,6 +260,73 @@ def test_a_glob_that_matches_nothing_fails(document):
     assert ".drydock/docks/*.yaml" in references(report)
 
 
+def test_a_bracketed_route_filename_resolves(document, tmp_path):
+    """`[slug].astro` is a real filename here, not a character class.
+
+    Resolution tries the literal name before treating the token as a pattern,
+    because glob would read those brackets as "one of s, l, u, g" and miss the
+    exact file the reference names.
+    """
+    routes = tmp_path / "pages"
+    routes.mkdir()
+    (routes / "[slug].astro").write_text("---\n---\n", encoding="utf-8")
+    path = document("Model pages are `pages/[slug].astro`.\n")
+
+    report = checker.check(path, tmp_path)
+
+    assert report.ok, report.render()
+
+
+# --- slash-bearing tokens that are not paths --------------------------------
+#
+# A slash alone used to be enough to make a token a path candidate, which meant
+# every one of these was reported as a dangling path. A guard that misfires on
+# plausible prose gets worked around rather than fixed.
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
+        "abdeslam-menacere/ModelTree",
+        "github/docs",
+        "@astrojs/react",
+        "@types/node",
+        "actions/checkout@v4",
+        "https://github.com/abdeslam-menacere/ModelTree/issues/80",
+        "http://example.com/a/b",
+        "and/or",
+        "3.11/3.13",
+    ],
+)
+def test_a_slash_does_not_make_a_token_a_path(document, token):
+    path = document(f"Prose mentioning `{token}` in passing.\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert report.ok, report.render()
+    assert token not in report.candidates
+
+
+def test_narrowing_did_not_stop_it_catching_a_real_broken_path(document):
+    """The counterweight: under a directory that exists, a bad path still fails.
+
+    Without this the narrowing could be over-broad and nothing would say so.
+    """
+    path = document("The rules are in `docs/nonexistent/guide.md`.\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert not report.ok
+    assert "docs/nonexistent/guide.md" in references(report)
+
+
+def test_a_broken_path_under_an_unknown_directory_still_fails(document):
+    """Caught through the extension, not the first segment."""
+    path = document("See `nowhere-at-all/guide.md` for it.\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert not report.ok
+    assert "nowhere-at-all/guide.md" in references(report)
+
+
 # --- issue citations --------------------------------------------------------
 
 
@@ -273,6 +340,39 @@ def test_a_bare_issue_citation_is_rejected(document):
 
 def test_a_qualified_issue_citation_is_accepted(document):
     path = document("See abdeslam-menacere/ModelTree#110 for the guard.\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert report.ok, report.render()
+
+
+def test_the_prescribed_remedy_is_accepted_when_backticked(document):
+    """The guard must not punish compliance with its own instruction.
+
+    Rule 2 rejects a bare #N and says to write owner/repo#N. This file backticks
+    such things by house style -- `agent:<role>`, `DRYDOCK_ACTOR`, `feat:` -- so
+    if the path rule read that as a dangling path, following the remedy would
+    trade one failure for another, and the message would not even hint that the
+    backticks were the problem.
+    """
+    path = document("See `abdeslam-menacere/ModelTree#131` for the rationale.\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert report.ok, report.render()
+
+
+def test_an_issue_url_link_is_not_a_bare_citation(document):
+    """A full URL says which repository it means more completely than #N does."""
+    path = document(
+        "Branch protection is "
+        "[#80](https://github.com/abdeslam-menacere/ModelTree/issues/80).\n"
+    )
+    report = checker.check(path, REPO_ROOT)
+
+    assert report.ok, report.render()
+
+
+def test_a_pull_request_url_link_is_not_a_bare_citation(document):
+    path = document("Landed in [#12](https://github.com/o/r/pull/12).\n")
     report = checker.check(path, REPO_ROOT)
 
     assert report.ok, report.render()
