@@ -20,6 +20,30 @@ Run commands from `web/`:
 | `npm run build` | Validate and generate the static site in `dist/` |
 | `npm run dev` | Start the local Astro development server |
 
+### The lockfile resolves through a mirror, with SHA-1 integrity
+
+Every `resolved` URL in `package-lock.json` points at an Azure DevOps
+`1es-public` mirror, and all 493 entries carry `sha1-` integrity rather than
+npm's default `sha512-`. This is a **known and accepted constraint, not an
+oversight**: the mirror publishes no `integrity` field at all, only a SHA-1
+`shasum`, so npm has no `sha512` to record. Regenerating the lockfile cannot
+change this.
+
+Two consequences to expect:
+
+- **`npm install` on a different registry rewrites the whole file.** If your npm
+  is not pointed at that mirror, expect a full-tree diff on any dependency
+  change. Keep it in its own commit so a real change is not lost in the noise.
+- **npm 11.9.0 strips `libc` selectors.** The lockfile carries 34 (22 `glibc`,
+  12 `musl`) that drive binary selection on glibc versus musl runners. After any
+  command that rewrites the lockfile, diff for dropped
+  `"libc": ["glibc"]` / `["musl"]` entries and restore any that were lost.
+
+Do not hand-write `integrity` values, and do not change the registry as a
+side-effect of a dependency bump. The reasoning, the evidence, and the full
+guardrails are in
+[ADR 0004](../docs/adr/0004-sha-1-lockfile-integrity-is-a-mirror-constraint.md).
+
 ## Data
 
 Editable source records live in `src/data/*.json`. `src/data/schema.ts` defines
