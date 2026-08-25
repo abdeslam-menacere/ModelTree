@@ -48,6 +48,18 @@ given one. That workflow passes
 CLI reports which flag to pass and where the directory is rather than a path nobody
 wrote. Getting this wrong is what #139 fixed.
 
+The reviewed creator profiles under `profiles/` and the generic long-tail profiles under
+`profiles/generic/` are unpackaged for a neighbouring reason (#147): a profile decides
+which sources are trusted and what may be extracted from them, so a copy inside a wheel
+could drift from the reviewed set in this repository with nothing to say which one a run
+had used. `--profiles` therefore defaults to `profiles/` only from a checkout, an
+installed copy is told which flag to pass and where the directory is, and the long-tail
+path needs a checkout because `--long-tail-profile` names a reviewed *id* rather than a
+directory. All three defaults — fixtures, profiles, long-tail profiles — resolve through
+the one layout check in `src/modeltree_updater/layout.py`, which returns nothing unless
+the package really is being imported out of this project's `src/`; a `.pth`-based
+editable install still resolves, because there the layout genuinely says so.
+
 ## Commands
 
 | Command | Action |

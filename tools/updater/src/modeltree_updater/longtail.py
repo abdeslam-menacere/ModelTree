@@ -65,6 +65,7 @@ from .profiles import (
     _duplicate_key,
     _reviewed_profile_paths,
     origin_of,
+    source_checkout_profiles,
 )
 from .review import PANEL_SIZE, REVIEW_POLICIES
 
@@ -72,6 +73,7 @@ __all__ = [
     "DEFAULT_LONG_TAIL_PROFILE",
     "DEFAULT_LONG_TAIL_PROFILE_ID",
     "KNOWN_PROMOTION_CRITERIA",
+    "LONG_TAIL_PROFILES_ARE_REPOSITORY_DATA",
     "REVIEWED_LONG_TAIL_DIR",
     "LongTailLibrary",
     "LongTailProfile",
@@ -82,15 +84,52 @@ __all__ = [
     "load_long_tail_library",
     "load_long_tail_profile",
     "reviewed_long_tail_profile",
+    "source_checkout_long_tail_profiles",
     "unresolved_mapping_conflicts",
 ]
+
+# Unpackaged for the same reason the dedicated profiles are, and answered the same
+# way when there is no checkout to read them from. There is no directory flag here
+# on purpose: `--long-tail-profile` names a reviewed *id*, because the profile
+# decides the promotion criteria and which mappings stay explicit and a checkpoint
+# records only that id, so a directory handed in at run time is precisely what this
+# set is not. An installed distribution therefore has no way to reach the reviewed
+# set, and says so — with the flags involved and the path in the repository, never
+# with the prefix path the old guess produced. #147.
+LONG_TAIL_PROFILES_ARE_REPOSITORY_DATA = (
+    "hint: the generic long-tail profiles are reviewed, version-controlled "
+    "repository data, so they are deliberately not packaged into the "
+    "modeltree-updater distribution, because a packaged copy could drift from the "
+    "reviewed set and --long-tail-profile names a reviewed id rather than a "
+    "directory handed in at run time. They live in the repository at "
+    "tools/updater/profiles/generic, so --long-tail has to be run from a checkout "
+    "(from tools/updater: python -m modeltree_updater run --long-tail)."
+)
+
+
+def source_checkout_long_tail_profiles(module_file: Path | str = __file__) -> Path | None:
+    """The reviewed generic profiles directory, or ``None`` when there is not one.
+
+    Derived from :func:`~modeltree_updater.profiles.source_checkout_profiles` rather
+    than walked out to ``tools/updater`` again, so the two reviewed sets cannot come
+    to disagree about where the repository is — the same reason they already share
+    :func:`~modeltree_updater.profiles._reviewed_profile_paths` for what counts as a
+    profile file.
+    """
+    profiles_dir = source_checkout_profiles(module_file)
+    if profiles_dir is None:
+        return None
+    return profiles_dir / "generic"
+
 
 # The generic profiles live in their own directory: `profiles/*.json` is the set of
 # reviewed *per-creator* profiles, and these are templates applied to many creators,
 # not extra creators. `load_profile_library` therefore never picks them up.
-REVIEWED_LONG_TAIL_DIR = Path(__file__).resolve().parents[2] / "profiles" / "generic"
+REVIEWED_LONG_TAIL_DIR = source_checkout_long_tail_profiles()
 
-DEFAULT_LONG_TAIL_PROFILE = REVIEWED_LONG_TAIL_DIR / "long-tail.json"
+DEFAULT_LONG_TAIL_PROFILE = (
+    REVIEWED_LONG_TAIL_DIR / "long-tail.json" if REVIEWED_LONG_TAIL_DIR else None
+)
 
 # The profile a `--long-tail` run applies unless another reviewed one is named.
 DEFAULT_LONG_TAIL_PROFILE_ID = "long-tail-generic"
@@ -360,8 +399,20 @@ def _unresolved_topic(raw: Mapping[str, Any], *, path: Path) -> UnresolvedTopic:
     )
 
 
-def load_long_tail_profile(path: Path | str = DEFAULT_LONG_TAIL_PROFILE) -> LongTailProfile:
-    """Load the generic profile from JSON, failing loudly on a malformed file."""
+def load_long_tail_profile(
+    path: Path | str | None = DEFAULT_LONG_TAIL_PROFILE,
+) -> LongTailProfile:
+    """Load the generic profile from JSON, failing loudly on a malformed file.
+
+    ``None`` is the installed distribution, where there is no default document
+    because the reviewed set is not in the wheel. Refused with the flags involved
+    and the path in the repository, rather than with a prefix path (#147).
+    """
+    if path is None:
+        raise FileNotFoundError(
+            "no long-tail profile: this updater is running from an installed "
+            f"distribution, which has no default.\n{LONG_TAIL_PROFILES_ARE_REPOSITORY_DATA}"
+        )
     path = Path(path)
     try:
         document = json.loads(path.read_text(encoding="utf-8"))
@@ -427,7 +478,7 @@ def load_long_tail_profile(path: Path | str = DEFAULT_LONG_TAIL_PROFILE) -> Long
 
 
 def load_long_tail_library(
-    directory: Path | str = REVIEWED_LONG_TAIL_DIR,
+    directory: Path | str | None = REVIEWED_LONG_TAIL_DIR,
 ) -> LongTailLibrary:
     """Load every reviewed generic profile in a directory, keyed by declared id.
 
@@ -442,10 +493,23 @@ def load_long_tail_library(
     :func:`~modeltree_updater.profiles._reviewed_profile_paths`' decision — the same
     decision, made by the same code, that the dedicated profiles are discovered by —
     and it is the same decision on every operating system.
+
+    ``None`` is the installed distribution, and is refused the way its sibling is:
+    with the flags involved and the directory in the repository, never with the
+    prefix path the old guess produced (#147).
     """
+    if directory is None:
+        raise FileNotFoundError(
+            "no long-tail profiles directory: this updater is running from an "
+            f"installed distribution, which has no default.\n"
+            f"{LONG_TAIL_PROFILES_ARE_REPOSITORY_DATA}"
+        )
     directory = Path(directory)
     if not directory.is_dir():
-        raise FileNotFoundError(f"long-tail profiles directory not found: {directory}")
+        raise FileNotFoundError(
+            f"long-tail profiles directory not found: {directory}\n"
+            f"{LONG_TAIL_PROFILES_ARE_REPOSITORY_DATA}"
+        )
 
     profiles: dict[str, LongTailProfile] = {}
     sources: dict[Any, tuple[str, Path]] = {}
@@ -473,12 +537,15 @@ def load_long_tail_library(
         # found through either key space.
         sources[profile.id] = (profile.id, path)
     if not profiles:
-        raise FileNotFoundError(f"no long-tail profiles found in {directory}")
+        raise FileNotFoundError(
+            f"no long-tail profiles found in {directory}\n"
+            f"{LONG_TAIL_PROFILES_ARE_REPOSITORY_DATA}"
+        )
     return LongTailLibrary(profiles=profiles)
 
 
 def reviewed_long_tail_profile(
-    profile_id: str, *, directory: Path | str = REVIEWED_LONG_TAIL_DIR
+    profile_id: str, *, directory: Path | str | None = REVIEWED_LONG_TAIL_DIR
 ) -> LongTailProfile:
     """The reviewed profile answering to ``profile_id``, or a loud refusal.
 
