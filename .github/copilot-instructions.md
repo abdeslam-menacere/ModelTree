@@ -4,9 +4,9 @@ This project uses **Drydock**: every GitHub issue gets its own branch, its own
 git worktree, and its own agent session, and nothing opens a pull request until
 review and QA have both passed against the current commit.
 
-Read this before doing anything. If you are inside a dock worktree and the CLI
-generated a `DOCK.md`, read it first — it is your complete brief and it wins on
-scope. If there is no `DOCK.md`, read the next paragraph.
+Read this before doing anything. If this worktree has a `DOCK.md` at its root,
+read it first — it is your complete brief and it wins on scope. If there is no
+`DOCK.md`, read the next paragraph.
 
 **The Drydock CLI is not installed in the environments these docks currently run
 in.** Check with `drydock --version`. If it is not on your PATH, then no
@@ -48,8 +48,8 @@ the first row that matches.
 |---|---|---|
 | `DOCK.md` at the root | a dock worktree | Work only on that one issue |
 | no `DOCK.md`, and `git branch --show-current` reports the branch for the issue you were given | a dock worktree, no generated brief | Work only on that one issue; your brief is the issue plus whatever kicked off your session |
-| no `DOCK.md`, and `git branch --show-current` reports `main` | the main repo | Coordinate; don't implement features here |
-| no `DOCK.md`, and `git branch --show-current` reports nothing (detached HEAD) or a branch you can't tie to an issue | the table can't tell | Don't guess. Treat whatever kicked off your session as authoritative, and record which you assumed (rule 3 below) |
+| no `DOCK.md`, and `git branch --show-current` reports the repository's default branch | the main repo | Coordinate; don't implement features here |
+| no `DOCK.md`, and `git branch --show-current` reports nothing (detached HEAD) or a branch you can't tie to the issue you were given | the table can't tell | Don't guess. Treat whatever kicked off your session as authoritative, and record which you assumed (rule 3 below) |
 
 Do not use `drydock.config.json` as the test. It is tracked, so it is checked
 out into every worktree including every dock, and a row keyed on it matches
@@ -70,10 +70,12 @@ applies.
    agents actively working. Never read or modify anything outside your root.
 3. **Record assumptions.** Ambiguity gets written into `## Assumptions` in
    `DOCK.md` if this worktree has one, and otherwise into the summary you post to
-   the issue; then you proceed. Silent guessing is the failure mode this entire
-   system exists to prevent.
+   the issue; never into this file, where it would read to the next agent as
+   sanctioned practice. Then you proceed. Silent guessing is the failure mode
+   this entire system exists to prevent.
 4. **Never switch branches, rebase, or merge by hand.** Landing is `drydock land`
-   after the gates pass, and merging is GitHub's once CI is green. Your work ends
+   after the gates pass if that command is on your PATH, and otherwise is not a
+   step you perform at all; merging is GitHub's once CI is green. Your work ends
    at a reviewable commit.
 5. **Small, atomic commits.** Conventional messages (`feat:`, `fix:`, `test:`).
 6. **Run the tests and report real output.** Never claim tests pass without
