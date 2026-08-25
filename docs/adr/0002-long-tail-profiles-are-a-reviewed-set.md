@@ -70,21 +70,21 @@ topics silently became the default's.
   because the loader's own failure modes are tested against temporary files. A test —
   or anything else running in-process — can therefore still build a profile the
   reviewed set does not contain. No **newly started** run reaches it through the CLI;
-  that is exactly what taking an id buys. Resume is the qualification: a checkpoint
-  records no schema or tool-version marker, so one written by an older build — when
-  `--long-tail-profile` still took a path — carries whatever id that unreviewed
-  document declared, and resuming it with today's CLI reaches the colliding case below
-  *through the CLI*. That is pre-#94 behaviour rather than a new hole, and the window
-  is narrow while the updater has never run end-to-end (#93), but it is not closed.
+  that is exactly what taking an id buys. Resume **was** the qualification, and #140
+  closed it: a checkpoint now records the tool version and the checkpoint schema version
+  that wrote it, and one that records neither — which is precisely what a build from when
+  `--long-tail-profile` still took a path wrote — is refused outright rather than resumed.
+  So a pre-#94 checkpoint carrying whatever id that unreviewed document declared no longer
+  reaches the colliding case below *through the CLI*; it does not reach a resume at all.
   Resuming such a run does not restore the unreviewed document either way, and the two
   cases differ: an id outside the reviewed set stops the resume with `ProfileMismatch`,
   while an id that **collides** with a reviewed one resumes silently under the
-  *reviewed* document — #94's substitution, reachable in-process on the Python API and,
-  through a pre-#94 checkpoint, on resume through the CLI as well. That is accepted
-  rather than chased — but not on the grounds that the operator boundary is the
-  enforcement point, because resume is precisely the case where that boundary does not
-  hold. It is accepted on what the substitution can reach, which the rest of this bullet
-  sets out: a recommendation, never acceptance. Resolving towards the reviewed document
+  *reviewed* document — #94's substitution, which remains reachable in-process on the
+  Python API, where the loader still accepts a path and a checkpoint written by the
+  current build satisfies the version gate like any other. That is accepted rather than
+  chased. The operator boundary is now the enforcement point on every CLI route, resume
+  included; what is accepted is what the in-process substitution can reach, which the rest
+  of this bullet sets out: a recommendation, never acceptance. Resolving towards the reviewed document
   is separately the safe direction for **provenance** — you land on a document this
   repository reviewed. It is not necessarily the *stricter* document, and the pinning
   test's own fixture is the counter-example: it declares a single `accepted-claims`

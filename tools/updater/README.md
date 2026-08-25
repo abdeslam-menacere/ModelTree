@@ -154,8 +154,11 @@ So does the identity of the code. Every checkpoint records the **tool version** 
 wrote it and a **checkpoint schema version**, and `resume` refuses — before it looks at
 the providers, the profile, or anything else in the state — unless both match the build
 reading it. The two answer different questions: which code adjudicated the run, and which
-shape the state is in. They move independently, so a release that does not change the
-state's shape does not invalidate work in flight.
+shape the state is in. They move independently — a release need not bump the schema
+version — but the gate compares both, so a release that leaves the state's shape untouched
+still invalidates work in flight: a checkpoint written by `0.0.9` is refused by `0.1.0`
+with the schema version identical on either side. Finish a run before upgrading the tool,
+or start it again afterwards.
 
 This is a version marker, not a content hash of the profile set. A hash would make every
 benign profile edit invalidate every outstanding checkpoint, and ADR 0002 considered and
