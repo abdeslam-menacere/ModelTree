@@ -468,3 +468,154 @@ def test_a_dry_run_with_no_destination_is_still_not_a_refusal(
     assert f"title: {issue_title(MATERIAL)}" in output
     assert "error:" not in output
     assert "owner/name" not in output
+
+
+# -- the artefact is loaded before the dry-run path writes anything -------------
+#
+# `_publish` calls `load_run_report` before the `--dry-run` branch runs at all,
+# so both of the things that branch can emit early -- the destination line from
+# #129 and the malformed-`--repo` refusal from #155 -- come after the artefact
+# has been read. An artefact that cannot be loaded is therefore reported as
+# itself, rather than behind a line describing a run that cannot happen.
+#
+# Until now a comment in `_publish` was the only thing saying so, and a comment
+# stops nothing: hoisting the dry-run block above the load looks like a tidy-up
+# and the whole suite stayed green. These are what make it fail instead.
+#
+# They assert the *absence* of the earlier output, not merely the presence of
+# the error. Printing both is the exact regression, so a test that only looked
+# for the error would pass straight through it.
+
+UNLOADABLE_ARTEFACTS = {
+    # Nothing at the path at all: an `OSError` inside `load_run_report`.
+    "missing": None,
+    # Present but not parseable, and the empty file that #129 called out
+    # separately because it is what a half-written artefact looks like.
+    "malformed-json": "{ not json",
+    "empty": "",
+    # Parseable JSON that is not a report: the failure furthest down
+    # `load_run_report`, and so the one with the most code above it to reorder.
+    "not-a-report": "{}",
+}
+
+
+@pytest.fixture()
+def unloadable_artefact(tmp_path):
+    """A `--report` path `load_run_report` refuses, one per way it can fail."""
+
+    def factory(kind: str):
+        body = UNLOADABLE_ARTEFACTS[kind]
+        if body is None:
+            return tmp_path / "gone.json"
+        path = tmp_path / f"{kind}.json"
+        path.write_text(body, encoding="utf-8")
+        return path
+
+    return factory
+
+
+def _sole_line(output: str) -> str:
+    """The one line written, or a failure naming everything that was."""
+    lines = output.splitlines()
+    assert len(lines) == 1, f"expected a single line, got {lines!r}"
+    return lines[0]
+
+
+@pytest.mark.parametrize("kind", sorted(UNLOADABLE_ARTEFACTS))
+def test_an_unloadable_artefact_under_dry_run_reports_only_itself(
+    kind, unloadable_artefact, monkeypatch
+) -> None:
+    """The artefact problem is the whole output, not the second half of it."""
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+    report_path = unloadable_artefact(kind)
+
+    # A well-shaped `--repo` and a `GITHUB_REPOSITORY` are both set, so if the
+    # destination line were reached at all it would certainly be written, and
+    # `--repo` winning over the environment makes it obvious which line it was.
+    code, output = _run(
+        [
+            "publish",
+            "--report",
+            str(report_path),
+            "--repo",
+            "octo/other-repo",
+            "--dry-run",
+        ],
+        env={"GITHUB_REPOSITORY": "octo/modeltree"},
+    )
+
+    assert code == EXIT_USAGE
+    line = _sole_line(output)
+    assert line.startswith("error: ")
+    assert report_path.name in line
+    # No destination line, in any of the three forms `_dry_run_destination`
+    # takes -- each would have had to be written before the error to appear.
+    assert "dry run:" not in output
+    assert "octo/other-repo" not in output
+    assert "octo/modeltree" not in output
+    # And nothing downstream of the load ran either.
+    assert f"title: {issue_title(MATERIAL)}" not in output
+
+
+def test_an_unloadable_artefact_is_reported_ahead_of_a_malformed_repo(
+    unloadable_artefact, monkeypatch
+) -> None:
+    """Two things are wrong at once, and the artefact is the one reported.
+
+    #155 added a second early exit to the dry-run path, so the ordering this
+    pins is no longer "the load before one `stream.write`" -- it is the load
+    before *everything* the branch can emit. The refusal answers "where would
+    this go?", which is not the operator's problem when there is no run to send.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+    report_path = unloadable_artefact("missing")
+
+    code, output = _run(
+        [
+            "publish",
+            "--report",
+            str(report_path),
+            "--repo",
+            MALFORMED_NO_SLASH,
+            "--dry-run",
+        ]
+    )
+
+    assert code == EXIT_USAGE
+    line = _sole_line(output)
+    assert line.startswith("error: ")
+    assert report_path.name in line
+    # Not the #155 refusal: it would have had to run first to be seen at all.
+    assert MALFORMED_NO_SLASH not in output
+    assert "owner/name" not in output
+
+
+def test_a_loadable_artefact_still_gets_its_destination_line_first(
+    artefact, monkeypatch
+) -> None:
+    """The counterweight, without which the pins above are satisfiable by silence.
+
+    Every assertion in the two tests above is an absence, so deleting the
+    destination line entirely would satisfy all of them. #129 shipped that line
+    and it is still the first thing a loadable dry run writes -- which is also
+    the positive half of the ordering: after the load, and before the payload.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    code, output = _run(
+        [
+            "publish",
+            "--report",
+            str(artefact(MATERIAL)),
+            "--repo",
+            "octo/other-repo",
+            "--dry-run",
+        ],
+        env={"GITHUB_REPOSITORY": "octo/modeltree"},
+    )
+
+    lines = output.splitlines()
+    assert code == EXIT_OK
+    assert lines[0] == "dry run: would publish to octo/other-repo (from --repo)"
+    assert f"title: {issue_title(MATERIAL)}" in output
+    assert "error:" not in output
