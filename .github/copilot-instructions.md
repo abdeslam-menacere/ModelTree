@@ -133,3 +133,9 @@ The site is a static Astro build; everything lives under `web/`.
 The Drydock CLI is a tool, not a dependency of this project. Its source is not
 in this repository, and — as noted at the top — it is not installed in the
 environments these docks currently run in.
+
+## Deliberate defect (temporary proof that this guard can fail CI)
+
+This paragraph exists only to prove the guard goes red. It cites `SPEC.md` §10, a document
+that does not exist in this repository, and a bare issue citation #42. This branch is a
+throwaway and must never be merged.
