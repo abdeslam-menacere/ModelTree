@@ -15,7 +15,12 @@ from modeltree_updater.checkpoints import (
     recorded_providers,
 )
 from modeltree_updater.contracts import ProposalStatus
-from modeltree_updater.runner import ProviderMismatch, resume_creator_run, run_creator
+from modeltree_updater.runner import (
+    ProviderMismatch,
+    resume_creator_run,
+    run_creator,
+    run_creators,
+)
 from modeltree_updater.safety import ProposalOnlyViolation
 from modeltree_updater.workflow import WORKFLOW_NAME
 
@@ -25,6 +30,25 @@ async def _list(storage):
     if inspect.isawaitable(checkpoints):
         checkpoints = await checkpoints
     return sorted(checkpoints, key=lambda item: item.iteration_count)
+
+
+async def _stored_creator_id(storage, checkpoint_id):
+    """The creator named by a checkpoint's stored messages, read independently.
+
+    This is the test-local reader #125 had to write to tell one checkpoint from
+    another. It is kept here deliberately: the summary is checked against a separate
+    reading of the same payload, so the multi-creator assertions below cannot pass by
+    agreeing with themselves.
+    """
+    checkpoint = await load_checkpoint(storage, checkpoint_id)
+    if checkpoint is None:
+        return None
+    for envelopes in (getattr(checkpoint, "messages", None) or {}).values():
+        for envelope in envelopes:
+            creator = getattr(getattr(envelope, "data", None), "creator", None)
+            if creator is not None:
+                return creator.creator_id
+    return None
 
 
 async def _pending_budget_state(storage, checkpoint_id):
@@ -403,3 +427,139 @@ def test_resuming_with_different_providers_is_refused(tmp_path, library, setting
 
     assert "impostor:sources" in str(error.value)
     assert error.value.recorded == settings.providers.descriptor
+
+
+def test_a_multi_creator_run_names_the_creator_on_every_checkpoint_row(
+    tmp_path, library, settings
+) -> None:
+    """The listing has to tell four creators apart, because one run produces all four.
+
+    `run_creators` writes every creator's checkpoints into the same storage, so this is
+    the case the summary exists to serve and the single-creator run cannot catch: with
+    one creator every row trivially names the only creator there is, and a reader that
+    returned a constant, the first creator it ever saw, or the wrong message's creator
+    would still pass.
+
+    Each row is checked against a *separate* reading of the same stored payload rather
+    than against the creator list, so a row is wrong if it names a creator other than
+    the one its own checkpoint recorded — not merely if it names one that was not in
+    the run.
+    """
+    creator_ids = ["contoso-ai", "fabrikam-ai", "northwind-ai", "litware-ai"]
+    storage = create_checkpoint_storage(tmp_path / "checkpoints")
+
+    async def scenario():
+        report = await run_creators(
+            [library.creators[creator_id] for creator_id in creator_ids],
+            settings,
+            run_id="run-multi",
+            checkpoint_storage=storage,
+        )
+        summaries = await list_checkpoint_summaries(storage, workflow_name=WORKFLOW_NAME)
+        stored = [
+            await _stored_creator_id(storage, summary["checkpoint_id"])
+            for summary in summaries
+        ]
+        return report, summaries, stored
+
+    report, summaries, stored = asyncio.run(scenario())
+
+    assert [proposal.creator_id for proposal in report.proposals] == creator_ids
+    assert summaries
+
+    # Row by row: the summary names the creator that row's own checkpoint recorded.
+    mismatched = [
+        (summary["checkpoint_id"], summary["creator_id"], recorded)
+        for summary, recorded in zip(summaries, stored)
+        if summary["creator_id"] != recorded
+    ]
+    assert not mismatched, (
+        "these rows name a creator other than the one their checkpoint stored "
+        f"(checkpoint_id, summary, stored): {mismatched}"
+    )
+
+    named = [summary["creator_id"] for summary in summaries if summary["creator_id"]]
+    assert set(named) == set(creator_ids), (
+        f"the listing names {sorted(set(named))} after a run of {sorted(creator_ids)}: "
+        "an operator cannot map every row back to the creator it belongs to"
+    )
+    # Distinguishable in both directions: every creator is reachable, and no creator
+    # has swallowed the listing.
+    assert all(named.count(creator_id) > 0 for creator_id in creator_ids)
+    assert len(set(named)) == len(creator_ids)
+
+    # Additive, and the order the command promises is untouched.
+    expected_keys = {
+        "checkpoint_id",
+        "creator_id",
+        "workflow_id",
+        "iteration",
+        "timestamp",
+    }
+    assert all(set(summary) == expected_keys for summary in summaries)
+    assert [summary["iteration"] for summary in summaries] == sorted(
+        summary["iteration"] for summary in summaries
+    )
+
+
+def test_a_checkpoint_with_no_creator_identity_lists_as_unknown() -> None:
+    """A checkpoint that names no creator degrades to `None`; it never breaks the list.
+
+    Three shapes that carry no creator, listed alongside one that does. The first is
+    what an older checkpoint looks like to this reader — a stored message whose data
+    has no creator on it at all — and it must not take the listing down with it. The
+    second is the checkpoint the runner writes after the final superstep, which has
+    nothing left to deliver and so records no message to read. The third is a payload
+    this reader cannot make sense of.
+
+    The row that *can* be named is in the same listing on purpose: it fails if the
+    unreadable neighbours have been made safe by giving up on all of them.
+    """
+
+    class _Envelope:
+        def __init__(self, data):
+            self.data = data
+
+    class _NoCreator:
+        budget_state = {}
+
+    class _Creator:
+        creator_id = "contoso-ai"
+
+    class _WithCreator:
+        creator = _Creator()
+
+    class _Checkpoint:
+        def __init__(self, checkpoint_id, iteration_count, messages):
+            self.checkpoint_id = checkpoint_id
+            self.iteration_count = iteration_count
+            self.messages = messages
+            self.timestamp = "2026-06-01T00:00:00+00:00"
+
+    class _Storage:
+        def list_checkpoints(self, *, workflow_name):
+            return [
+                _Checkpoint("legacy", 0, {"discover-sources": [_Envelope(_NoCreator())]}),
+                _Checkpoint("terminal", 1, {}),
+                _Checkpoint("unreadable", 2, ["not-a-mapping"]),
+                _Checkpoint("named", 3, {"extract-claims": [_Envelope(_WithCreator())]}),
+            ]
+
+    summaries = asyncio.run(
+        list_checkpoint_summaries(_Storage(), workflow_name=WORKFLOW_NAME)
+    )
+
+    assert [summary["checkpoint_id"] for summary in summaries] == [
+        "legacy",
+        "terminal",
+        "unreadable",
+        "named",
+    ]
+    assert [summary["creator_id"] for summary in summaries] == [
+        None,
+        None,
+        None,
+        "contoso-ai",
+    ]
+    # Unknown, not absent: the key is there to be read either way.
+    assert all("creator_id" in summary for summary in summaries)

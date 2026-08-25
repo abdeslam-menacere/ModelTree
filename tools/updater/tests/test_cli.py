@@ -194,6 +194,43 @@ def test_checkpoints_command_lists_stored_checkpoints(tmp_path, fixture_dir) -> 
     assert summaries[0]["checkpoint_id"]
 
 
+def test_checkpoints_command_names_the_creator_after_a_multi_creator_run(
+    tmp_path, fixture_dir
+) -> None:
+    """The printed rows are what an operator picks a `--checkpoint-id` from.
+
+    Two creators share one checkpoint directory, so the command's own output has to
+    say which is which — otherwise choosing between the rows is guesswork, and a wrong
+    choice resumes the other creator without saying so.
+    """
+    checkpoint_dir = tmp_path / "checkpoints"
+    _run(
+        [
+            "run",
+            "--creator",
+            "contoso-ai",
+            "--creator",
+            "northwind-ai",
+            "--fixtures",
+            str(fixture_dir),
+            "--checkpoint-dir",
+            str(checkpoint_dir),
+            "--run-id",
+            "run-ckpt-multi",
+        ]
+    )
+    code, output = _run(["checkpoints", "--checkpoint-dir", str(checkpoint_dir)])
+    summaries = json.loads(output)
+
+    assert code == EXIT_OK
+    assert {summary["creator_id"] for summary in summaries if summary["creator_id"]} == {
+        "contoso-ai",
+        "northwind-ai",
+    }
+    # Visible in the text the operator actually reads, not only after re-parsing it.
+    assert '"creator_id": "contoso-ai"' in output
+
+
 def test_resume_command_finishes_a_checkpointed_run(tmp_path, fixture_dir) -> None:
     checkpoint_dir = tmp_path / "checkpoints"
     _run(
