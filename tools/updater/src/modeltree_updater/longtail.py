@@ -6,11 +6,13 @@ it into the same :class:`~modeltree_updater.profiles.CreatorProfile` the pilot c
 use, so a long-tail run travels through exactly the same executors, the same three
 lenses, the same deterministic hard gates, and the same proposal-only boundary.
 
-Those documents are a **reviewed set**, not operator input: ``profiles/generic/*.json``,
-each identified by the ``id`` it declares, loaded by :func:`load_long_tail_library`,
-which refuses two documents answering to one id. A run names the profile it wants by
-id, and a resumed run rebuilds its profile from the id its checkpoint recorded — so
-the set has to make an id name exactly one file.
+Those documents are a **reviewed set**, not operator input: the files in
+``profiles/generic/`` whose name ends in ``.json`` exactly and does not begin with a
+dot, each identified by the ``id`` it declares, loaded by
+:func:`load_long_tail_library`, which refuses two documents answering to one id. A run
+names the profile it wants by id, and a resumed run rebuilds its profile from the id
+its checkpoint recorded — so the set has to make an id name exactly one file, and which
+files are in it cannot depend on which operating system is asking.
 
 Three things differ, and all three are consequences of one fact — nobody has reviewed
 this creator:
@@ -257,6 +259,26 @@ def _entity_kind(value: Any, *, path: Path) -> EntityKind:
         raise ProfileError(f"{path.name}: unknown entity kind {value!r}") from error
 
 
+def _profile_id(raw: Mapping[str, Any], *, path: Path) -> Any:
+    """The declared id, refused rather than tidied when it is padded.
+
+    An id is looked up by the exact string a checkpoint recorded, so a document
+    declaring ``" long-tail-generic "`` answers to a name nobody would type. Stripping
+    it would be worse than refusing: the profile would register under a string the
+    document does not contain, and a reader of the JSON could no longer tell which
+    string resolves. Refusing says exactly what is wrong and cannot change which
+    document any well-formed id resolves to.
+    """
+    declared = _require(raw, "id", path=path)
+    if isinstance(declared, str) and declared != declared.strip():
+        raise ProfileError(
+            f"{path.name}: profile id {declared!r} has leading or trailing whitespace; "
+            "an id is matched exactly, so declare it without padding rather than "
+            "relying on it being trimmed"
+        )
+    return declared
+
+
 def _review_policy(raw: Mapping[str, Any], *, path: Path) -> ReviewPolicy:
     """Resolve the declared policy against the ones the code actually implements.
 
@@ -363,7 +385,7 @@ def load_long_tail_profile(path: Path | str = DEFAULT_LONG_TAIL_PROFILE) -> Long
         raise ProfileError(f"{path.name}: unknown seed source kind {seed.get('kind')!r}") from error
 
     return LongTailProfile(
-        id=_require(profile, "id", path=path),
+        id=_profile_id(profile, path=path),
         kind=profile.get("kind", "long-tail"),
         name=_require(profile, "name", path=path),
         applies_to=_require(profile, "applies_to", path=path),
@@ -402,6 +424,62 @@ def load_long_tail_profile(path: Path | str = DEFAULT_LONG_TAIL_PROFILE) -> Long
     )
 
 
+def _reviewed_profile_paths(directory: Path) -> list[Path]:
+    """The documents in the reviewed set, decided the same way on every platform.
+
+    ``glob("*.json")`` is case-insensitive on Windows and case-sensitive on Linux, so
+    a file named ``long-tail.JSON`` was a reviewed profile on one and did not exist on
+    the other. A contributor could add a profile, watch it work locally, and have it
+    silently absent from CI. Discovery here matches the suffix ``.json`` exactly, which
+    is the same answer everywhere because a directory listing preserves the name's case.
+
+    A file whose extension differs from ``.json`` only by case is **refused**, not
+    skipped. Matching lowercase alone would make the platforms agree, but it would agree
+    on silence: the contributor still gets a file that is not a profile and no reason
+    why. The refusal is narrow — a ``.txt`` or ``.md`` neighbour is ignored as before,
+    so only a file plainly meant to be a profile trips it.
+
+    A name beginning with a dot is skipped, and skipped *first*. That is the deliberate
+    asymmetry: a leading dot is the author saying "not part of the working set", so
+    honouring it is honouring a stated intent, whereas an uppercased extension is a file
+    someone meant as a profile where only the case was incidental.
+    """
+    paths: list[Path] = []
+    for path in sorted(directory.iterdir()):
+        # A directory is not a candidate under either rule: refusing `archive.JSON`
+        # for its extension, and handing `archive.json` to the parser, are both the
+        # wrong answer to something that was never a document.
+        if path.name.startswith(".") or not path.is_file():
+            continue
+        if path.suffix == ".json":
+            paths.append(path)
+        elif path.suffix.casefold() == ".json":
+            raise ProfileError(
+                f"{path.name}: a reviewed long-tail profile must end in '.json' exactly, "
+                f"not {path.suffix!r}; keeping it would leave the reviewed set to depend "
+                "on whether the filesystem reading it is case-sensitive, so rename the file"
+            )
+    return paths
+
+
+def _duplicate_key(profile_id: str) -> str:
+    """The key two documents collide on, which is broader than the key they load under.
+
+    Two ids differing only in case are one id to the reader the duplicate check exists
+    for: it is there so that nobody has to work out which of two similar documents won.
+    Folding is not a *superset* of comparing declared ids, though, and does not replace
+    it: ``True`` and ``1`` fold to different strings while being one dict key, so
+    :func:`load_long_tail_library` guards on both key spaces. What folding cannot do is
+    widen what an id *matches*, because the mapping a run reads is still keyed by the
+    exact declared string — the resume path must keep matching the exact id a checkpoint
+    recorded.
+
+    ``str()`` because a document can declare a non-string id, and refusing that is a
+    different question from this one.
+    """
+    return str(profile_id).casefold()
+
+
 def load_long_tail_library(
     directory: Path | str = REVIEWED_LONG_TAIL_DIR,
 ) -> LongTailLibrary:
@@ -413,24 +491,39 @@ def load_long_tail_library(
     reviewed documents could answer to one id, that rebuild would be a guess — which
     is the defect this set exists to remove. One id, one file, or the set does not
     load at all.
+
+    Which files are candidates is :func:`_reviewed_profile_paths`' decision, and it is
+    the same decision on every operating system.
     """
     directory = Path(directory)
     if not directory.is_dir():
         raise FileNotFoundError(f"long-tail profiles directory not found: {directory}")
 
     profiles: dict[str, LongTailProfile] = {}
-    sources: dict[str, Path] = {}
-    for path in sorted(directory.glob("*.json")):
+    sources: dict[Any, tuple[str, Path]] = {}
+    for path in _reviewed_profile_paths(directory):
         profile = load_long_tail_profile(path)
-        if profile.id in profiles:
+        key = _duplicate_key(profile.id)
+        # Neither key space contains the other. Folding catches 'x' against 'X'; the
+        # declared id catches ids that fold apart but are one dict key, such as True
+        # and 1, where `profiles` would otherwise overwrite and say nothing.
+        if key in sources or profile.id in profiles:
+            twin_id, twin_path = sources.get(key) or sources[profile.id]
+            reason = (
+                "an id has to name exactly one reviewed document, because a resumed "
+                "run rebuilds its profile from the id the checkpoint recorded"
+            )
+            if twin_id != profile.id:
+                reason = f"ids differing only in case are one id here, and {reason}"
             raise ProfileError(
                 f"duplicate long-tail profile id {profile.id!r} in {path.name} and "
-                f"{sources[profile.id].name}: an id has to name exactly one reviewed "
-                "document, because a resumed run rebuilds its profile from the id the "
-                "checkpoint recorded"
+                f"{twin_id!r} in {twin_path.name}: {reason}"
             )
         profiles[profile.id] = profile
-        sources[profile.id] = path
+        sources[key] = (profile.id, path)
+        # Recorded under the declared id too, so the guard above can name the twin it
+        # found through either key space.
+        sources[profile.id] = (profile.id, path)
     if not profiles:
         raise FileNotFoundError(f"no long-tail profiles found in {directory}")
     return LongTailLibrary(profiles=profiles)
@@ -445,6 +538,11 @@ def reviewed_long_tail_profile(
     profile shapes the promotion criteria and the mappings that stay explicit, so it
     is a reviewed artefact of this repository rather than something an operator hands
     in on the command line.
+
+    The lookup is **exact**, and deliberately so. The set refuses two ids differing only
+    in case, but that is the duplicate check, not this one: a checkpoint records a
+    literal string, and resolving it to anything but the document declaring that same
+    string is how #94 substituted one profile for another. Do not fold case here.
     """
     library = load_long_tail_library(directory)
     profile = library.profiles.get(profile_id)

@@ -275,6 +275,26 @@ which mappings stay explicit, so it is a reviewed artefact of this repository ra
 a file handed in at run time. The set also refuses two documents answering to one id,
 which is what makes the next paragraph sound.
 
+**Which files are the reviewed set** is decided identically on every operating system,
+because a rule that holds only on one is not a rule. A file in `profiles/generic/` is a
+reviewed profile when its name ends in `.json` **exactly** and does not begin with a dot:
+
+- An extension differing from `.json` only in case — `long-tail.JSON` — is **refused by
+  name**, not skipped. `glob("*.json")` is case-insensitive on Windows and case-sensitive
+  on Linux, so such a file used to be a profile locally and absent in CI. Matching
+  lowercase alone would make the platforms agree, but agree on silence; the file was
+  plainly meant as a profile, so the loader says so and asks for a rename.
+- A **dotfile** is left out, quietly. A leading dot is the author saying the file is not
+  part of the working set, and honouring that is different from dropping a file whose
+  author said the opposite. The dot is judged first, so `.hidden.JSON` is skipped rather
+  than refused.
+- Two ids **differing only in case** are one id for the purpose of the duplicate refusal:
+  the check exists so nobody has to work out which of two similar documents won. Looking
+  an id **up** stays exact — a checkpoint records a literal string, and resolving it to
+  anything else is the substitution ADR 0002 closes.
+- A declared id padded with whitespace is **refused rather than trimmed**, so a profile
+  never answers to a string its own document does not contain.
+
 `--long-tail-profile` **requires `--long-tail`**, and on its own is refused with exit 2
 rather than ignored. It names the profile the long-tail path applies; it does not select
 that path. Accepting it alone would run the creator at the ordinary 2-of-3 majority bar
