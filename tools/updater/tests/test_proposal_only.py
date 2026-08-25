@@ -725,6 +725,105 @@ def test_a_repository_nested_inside_the_web_app_cannot_shrink_the_boundary(tmp_p
         assert_proposal_output_path(nested / "out" / "proposals")
 
 
+def _linked_directory(link: Path, target: Path) -> None:
+    """Materialise `link` as a directory link to `target`, or skip the test.
+
+    POSIX makes one unconditionally. Windows needs administrator rights or
+    Developer Mode for a directory symlink, and a junction — which needs
+    neither — has no portable spelling, so the shape is simply unreachable on an
+    unprivileged Windows box. The mechanism under test is the same either way:
+    resolution follows the link and lands outside the checkout.
+    """
+    try:
+        link.symlink_to(target, target_is_directory=True)
+    except (OSError, NotImplementedError) as unavailable:  # pragma: no cover
+        pytest.skip(f"cannot create a directory link here: {unavailable}")
+
+
+WEB_APP_SHAPES = ("a real directory", "a link to a target outside the checkout")
+
+
+@pytest.mark.parametrize("shape", WEB_APP_SHAPES, ids=WEB_APP_SHAPES)
+def test_the_web_app_is_refused_whether_or_not_it_is_a_link(tmp_path, shape) -> None:
+    """The fail-open from #120, pinned against its control.
+
+    Resolving the output path before searching upward for markers moved the
+    search origin to the link target, which encloses none of them. No root was
+    found, the deliberate fail-open for "no checkout here" applied, and the
+    write was allowed — into reviewed data, because the link target is where
+    `web/` actually lives. Both shapes are asserted together so the verdict can
+    never come to depend on how `web/` was materialised.
+
+    The allowed half is the control that keeps this from being satisfied by a
+    blanket refusal. Putting a large `web/` on another volume behind a link is
+    an ordinary layout, and refusing on link-shape alone would break it while
+    still passing the refused half.
+    """
+    repo_root = tmp_path / "repo"
+    (repo_root / ".git").mkdir(parents=True)
+    if shape == "a real directory":
+        (repo_root / "web" / "src" / "data").mkdir(parents=True)
+    else:
+        elsewhere = tmp_path / "elsewhere"
+        (elsewhere / "src" / "data").mkdir(parents=True)
+        _linked_directory(repo_root / "web", elsewhere)
+        # The shape is real, not a fixture artefact: it genuinely redirects.
+        assert (repo_root / "web").resolve() == elsewhere.resolve()
+
+    for refused in (
+        repo_root / "web" / "proposals",
+        repo_root / "web" / "src" / "data",
+        repo_root / "out" / ".." / "web" / "checkpoints",
+    ):
+        with pytest.raises(ProposalOnlyViolation):
+            assert_proposal_output_path(refused)
+
+    for allowed in (repo_root / "out", repo_root / "web-assets", tmp_path / "proposals"):
+        assert assert_proposal_output_path(allowed) == allowed.resolve()
+
+
+def test_a_traversal_shaped_output_path_still_cannot_reach_the_web_app(tmp_path) -> None:
+    """The hole resolution exists to close, pinned because #120's fix could reopen it.
+
+    Searching from the unresolved path instead of the resolved one would close
+    the link case and open this one, which is not a fix but a swap: `..` has to
+    be collapsed before the path reads as being inside `web/`. Both spellings
+    are consulted, so neither direction can be traded away without a failure
+    here.
+    """
+    repo_root = tmp_path / "repo"
+    (repo_root / "web" / "src" / "data").mkdir(parents=True)
+    (repo_root / "notweb").mkdir()
+
+    with pytest.raises(ProposalOnlyViolation):
+        assert_proposal_output_path(repo_root / "notweb" / ".." / "web" / "out")
+
+
+def test_a_link_target_addressed_directly_is_the_documented_residual(tmp_path) -> None:
+    """The half of #120 documented rather than closed, verified rather than asserted.
+
+    An output path aimed at the link's target instead of through the link passes
+    through no checkout in either spelling, so no marker is found and the
+    deliberate fail-open applies. Only searching the filesystem for links
+    pointing at that target could connect the two, and this guard looks nowhere
+    but at the path it was given. Pinned so `safety.py`'s docstring and
+    `tools/updater/README.md` cannot outlive the behaviour they describe.
+    """
+    repo_root = tmp_path / "repo"
+    (repo_root / ".git").mkdir(parents=True)
+    elsewhere = tmp_path / "elsewhere"
+    (elsewhere / "src" / "data").mkdir(parents=True)
+    _linked_directory(repo_root / "web", elsewhere)
+
+    with pytest.raises(ProposalOnlyViolation):
+        assert_proposal_output_path(repo_root / "web" / "proposals")
+
+    assert find_repository_root(elsewhere) is None
+    assert (
+        assert_proposal_output_path(elsewhere / "proposals") == (elsewhere / "proposals").resolve()
+    )
+
+
 def test_the_cli_refuses_output_inside_a_checkout_missing_its_dataset(
     tmp_path, fixture_dir
 ) -> None:
