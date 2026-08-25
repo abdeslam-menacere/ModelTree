@@ -68,12 +68,23 @@ satisfy any one of them does not merge:
   editorial correctness and entity-boundary discipline. Each sees the claim and
   its fetched evidence only: not the scout's rationale, and not another
   reviewer's verdict. Acceptance is **2-of-3 for a creator with a reviewed
-  profile and unanimous 3-of-3 for a long-tail creator**, which is ADR 0002's
-  threshold and ADR 0002's reasoning: far less is known about a creator nobody
-  has reviewed, so a single dissent should be enough to hold a claim back. The
-  publishing path does not get a lower bar than the proposal-only path. Every
-  verdict and rationale is carried into the pull request body, so the reasoning
-  is reviewable after the fact even though nobody reviewed it before.
+  profile and unanimous 3-of-3 for a long-tail creator** — the proposal-only
+  path's thresholds. Where each actually comes from, precisely: both are
+  implemented in `tools/updater/src/modeltree_updater/review.py`, as
+  `MAJORITY = 2` and `PANEL_SIZE = 3` carried by `MAJORITY_POLICY` and
+  `UNANIMOUS_POLICY`; the two-policy design and its rationale are documented on
+  `ReviewPolicy` in `contracts.py`; and
+  `tools/updater/profiles/generic/long-tail.json` restates the unanimous one for
+  the long-tail profile — `"id": "unanimous-3-of-3"`, `"required_accepts": 3` —
+  carrying the reasoning verbatim: *"a single dissent or abstention leaves it for
+  a human. The reject bar stays at two — refusing a thinly-evidenced candidate
+  must not get harder than accepting one."* That file states of itself that it is
+  a restatement rather than a definition, and ADR 0002 is the document requiring
+  the restatement be exact. **ADR 0002 sets neither number**, and this ADR does
+  not cite it as though it did. The publishing path does not get a lower bar than
+  the proposal-only path. Every verdict and rationale is carried into the pull
+  request body, so the reasoning is reviewable after the fact even though nobody
+  reviewed it before.
 - **Deterministic gates, which cannot be outvoted.** They run *after* review and
   no number of accepts overrides one failure: unsafe URLs, malformed records,
   impossible or future dates, broken entity references, lineage violations,
@@ -193,8 +204,9 @@ owning the rules, the required check, and the revert.
     principle, a shared name enforcing different things.
 
   The review thresholds do **not** diverge: both are 2-of-3 for a creator with a
-  reviewed profile and unanimous 3-of-3 for a long-tail creator, on ADR 0002's
-  reasoning. That is stated as a requirement in the Decision so it stays true.
+  reviewed profile and unanimous 3-of-3 for a long-tail creator, on the reasoning
+  cited in the Decision. That is stated as a requirement in the Decision so it
+  stays true.
 
   What remains an accepted cost is the structural fact underneath all of this:
   two implementations exist, neither reads the other, and **no test compares
@@ -283,5 +295,12 @@ owning the rules, the required check, and the revert.
   counterpart is a finding raised against `tools/updater/`, not a reason to stop.
   Compare the rules enforced, not the gate names: the names partition the same
   work differently, so a name-level comparison reports drift that is not there
-  and can miss drift that is. Do not pick whichever answer lets the run continue.
+  and can miss drift that is. Compare **per rule, not per gate**, for that reason
+  and one more: strictness is not ordered between two implementations. ADR 0002
+  records exactly this trap — a substitution "can loosen one axis and tighten
+  another in the same move" — so a single gate can be stricter on one rule and
+  looser on another. A divergence that is more permissive in **any** respect stops
+  the automation, even where the same gate is stricter in others. There is no
+  netting off, and a gate is not "safe on balance". Do not pick whichever answer
+  lets the run continue.
 - **No run skips its summary issue**, including a run that changed nothing.
