@@ -977,10 +977,22 @@ def test_a_profile_named_without_the_long_tail_flag_is_refused(
 def test_the_refusal_precedes_building_any_provider(fixture_dir) -> None:
     """The refusal is reported as itself, not from behind a provider that failed.
 
-    `--provider foundry` with no Foundry environment fails on its own — and in CI,
-    where the optional Azure packages are deliberately not installed, it fails at
-    import. Were the flag pair checked after the providers were built, that
-    unrelated failure is what the operator would be shown for a mistyped flag.
+    `_cli` passes `env={}`, so `--provider foundry` reaches
+    `FoundryConfig.from_env({})`, which raises `ProviderError: missing Foundry
+    configuration` — unconditionally, in any environment, and before any provider
+    object exists. Nothing here depends on the Azure packages being absent: they are
+    imported lazily inside `build_credential` and `build_chat_client`, and
+    `_build_providers` resolves the config on the line before it builds the client,
+    so that lazy import is never reached either way. Installing the extras in CI
+    would not weaken this test.
+
+    Were the flag pair checked after the providers were built, that unrelated
+    configuration failure is what the operator would be shown for a mistyped flag.
+
+    `assert code == EXIT_USAGE` does **not** pin that ordering: `ProviderError` is
+    caught by the same handler as `ProfileError` and also returns `EXIT_USAGE`, so
+    the exit code is 2 both before and after the fix. **The message assertion is the
+    whole test.** Do not trim it as redundant with the case above.
     """
     code, output = _cli(
         [

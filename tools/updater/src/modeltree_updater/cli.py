@@ -345,8 +345,8 @@ def _long_tail_profile(args: argparse.Namespace):
     which is what ``--long-tail``'s own help refuses ("it is not a fallback, because
     the threshold a proposal was decided under must be a choice"). Refusing states
     the mismatch and makes the operator name the bar; it also stays reversible,
-    since nothing that works today stops working and a later decision could still
-    relax it to an implied opt-in.
+    since the only invocation that changes behaviour is the one that was silently
+    mis-running, and a later decision could still relax this to an implied opt-in.
     """
     requested = getattr(args, "long_tail_profile", None)
     if not getattr(args, "long_tail", False):
