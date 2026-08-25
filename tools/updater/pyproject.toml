@@ -31,6 +31,13 @@ modeltree-updater = "modeltree_updater.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/modeltree_updater"]
+# Only the package. `fixtures/` and `profiles/` are deliberately absent: the
+# fixtures are synthetic pages that exist to exercise the pipeline offline, so
+# they are test data rather than distribution data and a production artefact
+# must not be able to run against fabricated sources by accident. Callers that
+# want them pass `--fixtures` at a checkout. Adding `force-include`, `artifacts`
+# or `shared-data` here would reverse that decision, so
+# `tests/test_installed_layout.py` asserts they are not here. See #139.
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

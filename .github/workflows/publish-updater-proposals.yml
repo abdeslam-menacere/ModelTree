@@ -106,7 +106,14 @@ jobs:
           if [ "$MODE" = "live" ]; then
             args+=(--provider foundry --sources network)
           fi
+          # The updater is installed, and fixtures are test data that the wheel
+          # deliberately does not carry, so the checkout supplies them. Anchored
+          # at the workspace rather than relative to this step's directory, so
+          # the invocation cannot be broken by an unrelated change to
+          # `defaults.run.working-directory`. Creator definitions come from this
+          # library in live mode too, so it is passed in both modes. #139.
           python -m modeltree_updater run "${args[@]}" \
+            --fixtures "$GITHUB_WORKSPACE/tools/updater/fixtures/creators" \
             --run-id "$RUN_ID" \
             --output "$RUNNER_TEMP/proposals"
 

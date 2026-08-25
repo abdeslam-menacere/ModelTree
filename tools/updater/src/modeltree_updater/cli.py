@@ -35,6 +35,7 @@ from .parsing import ArtifactError, load_run_report
 from .providers.base import ProviderBundle, ProviderError
 from .providers.fixtures import (
     FixtureClaimExtractor,
+    FixtureLibrary,
     FixtureSourceProvider,
     build_fixture_panel,
     load_fixture_library,
@@ -52,9 +53,43 @@ from .safety import ProposalOnlyViolation, assert_proposal_output_path
 from .profiles import DEFAULT_PROFILES_DIR, ProfileError, load_profile_library
 from .workflow import WORKFLOW_NAME, RunSettings
 
-__all__ = ["main", "build_parser"]
+__all__ = ["main", "build_parser", "source_checkout_fixtures"]
 
-DEFAULT_FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "creators"
+# Creator fixtures are synthetic pages (`example.com`, invented creators) that
+# exist to exercise the pipeline offline. They are test data, so they are
+# deliberately not packaged into the distribution: a wheel that carried
+# fabricated source pages could be run against them by accident, and this
+# project's whole premise is that every fact is traceable to a primary source.
+# The consequence is that a default fixtures directory only exists when the CLI
+# runs out of a checkout. #139.
+FIXTURES_ARE_TEST_DATA = (
+    "hint: creator fixtures are synthetic test pages, so they are deliberately "
+    "not packaged into the modeltree-updater distribution. They live in the "
+    "repository at tools/updater/fixtures/creators. Pass --fixtures with a path "
+    "to that directory (from tools/updater in a checkout: "
+    "--fixtures fixtures/creators)."
+)
+
+
+def source_checkout_fixtures(module_file: Path | str = __file__) -> Path | None:
+    """The bundled fixtures directory, or ``None`` when there is not one.
+
+    In a checkout the package sits at ``tools/updater/src/modeltree_updater``, so
+    its grandparent is the project directory that holds ``fixtures/``. In an
+    installed distribution the same relative walk lands on whatever encloses
+    ``site-packages`` — ``…/lib/python3.13`` — which has nothing to do with this
+    repository. That silent second reading is what made the publisher workflow
+    fail with a path no human wrote (#139), so the layout is checked rather than
+    assumed: only a package whose parent directory is the ``src`` of this
+    project has a default, and everywhere else ``--fixtures`` is required.
+    """
+    package_dir = Path(module_file).resolve().parent
+    if package_dir.parent.name != "src":
+        return None
+    return package_dir.parents[1] / "fixtures" / "creators"
+
+
+DEFAULT_FIXTURES = source_checkout_fixtures()
 
 EXIT_OK = 0
 EXIT_USAGE = 2
@@ -88,7 +123,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--fixtures",
         type=Path,
         default=DEFAULT_FIXTURES,
-        help="directory of creator fixture files",
+        help=(
+            "directory of creator fixture files. Defaults to the repository's "
+            "tools/updater/fixtures/creators when the CLI runs from a checkout, "
+            "and is required otherwise because fixtures are test data and are "
+            "not shipped in the installed distribution."
+        ),
     )
     run.add_argument(
         "--provider",
@@ -374,8 +414,28 @@ def _long_tail_profile(args: argparse.Namespace):
     return reviewed_long_tail_profile(requested)
 
 
+def _fixture_library(args: argparse.Namespace) -> FixtureLibrary:
+    """Load the fixture library, or explain what to pass instead.
+
+    Both failures — no default at all, and a default or flag that names a
+    directory which is not there — are answered with the flag to use and the
+    path in the repository to point it at. A bare path is not an answer when the
+    path was never written by the person reading it (#139).
+    """
+    directory = getattr(args, "fixtures", None)
+    if directory is None:
+        raise FileNotFoundError(
+            "no fixture directory: this updater is running from an installed "
+            f"distribution, which has no default.\n{FIXTURES_ARE_TEST_DATA}"
+        )
+    try:
+        return load_fixture_library(directory)
+    except FileNotFoundError as error:
+        raise FileNotFoundError(f"{error}\n{FIXTURES_ARE_TEST_DATA}") from error
+
+
 def _run(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
-    library = load_fixture_library(args.fixtures)
+    library = _fixture_library(args)
     creator_ids = args.creators or list(library.creator_ids)
     unknown = [creator_id for creator_id in creator_ids if creator_id not in library.creators]
     if unknown:
@@ -418,7 +478,7 @@ def _run(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
 
 
 def _resume(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
-    library = load_fixture_library(args.fixtures)
+    library = _fixture_library(args)
     timestamp = args.timestamp or _default_timestamp()
     providers = _build_providers(
         args.provider,
@@ -590,7 +650,7 @@ def _checkpoints(args: argparse.Namespace, stream) -> int:
 
 
 def _creators(args: argparse.Namespace, stream) -> int:
-    library = load_fixture_library(args.fixtures)
+    library = _fixture_library(args)
     for creator_id in library.creator_ids:
         creator = library.creators[creator_id]
         stream.write(f"{creator.creator_id}\t{creator.creator_name}\n")

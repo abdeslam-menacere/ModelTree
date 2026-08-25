@@ -38,6 +38,16 @@ creators). They exercise the pipeline; they are not ModelTree data and must neve
 copied into `web/src/data`. `quiet-ai` is deliberately empty: it is the no-change case
 that must produce no GitHub issue.
 
+Because they are test data, the fixtures are **not packaged into the distribution**: a
+production artefact that carried fabricated source pages could be run against them by
+accident. So `--fixtures` defaults to `fixtures/creators` only when the CLI is running
+from a checkout, and an installed copy — which is what
+`.github/workflows/publish-updater-proposals.yml` runs — has no default and must be
+given one. That workflow passes
+`--fixtures "$GITHUB_WORKSPACE/tools/updater/fixtures/creators"`, and anywhere else the
+CLI reports which flag to pass and where the directory is rather than a path nobody
+wrote. Getting this wrong is what #139 fixed.
+
 ## Commands
 
 | Command | Action |
