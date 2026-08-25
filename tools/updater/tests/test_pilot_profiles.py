@@ -10,10 +10,12 @@ The tests above the divider run each pilot on its own. The ones below drive all 
 through `run_creators` — the *multi-creator* path — in a single invocation, because
 "processes the four pilot creators independently and resumes from checkpoints" is a
 statement about the orchestration, and a `for` loop over four separate single-creator
-runs does not exercise it. Independence has three parts and each is asserted rather
-than implied: each creator gets its own budget, one creator crashing leaves the others
-byte-identical, and a creator's checkpoint can be resumed out of a storage that four
-creators share.
+runs does not exercise it. Independence has four parts and each is asserted rather
+than implied: each creator gets its own budget, one creator crashing outside the
+provider contract leaves the others byte-identical, one creator being refused *inside*
+the contract ends that creator partial rather than failed and likewise leaves the
+others byte-identical, and a creator's checkpoint can be resumed out of a storage that
+four creators share.
 """
 
 from __future__ import annotations
@@ -22,8 +24,14 @@ import asyncio
 import inspect
 
 from modeltree_updater.checkpoints import create_checkpoint_storage, load_checkpoint
-from modeltree_updater.contracts import ClaimDecision, FailureKind, ProposalStatus
+from modeltree_updater.contracts import (
+    ClaimDecision,
+    FailureKind,
+    ProposalStatus,
+    WorkflowStage,
+)
 from modeltree_updater.profiles import load_profile_library
+from modeltree_updater.providers.base import ProviderError
 from modeltree_updater.review import MAJORITY
 from modeltree_updater.runner import resume_creator_run, run_creator, run_creators
 from modeltree_updater.workflow import WORKFLOW_NAME
@@ -32,6 +40,10 @@ PILOT_CREATORS = ("openai", "anthropic", "google-deepmind", "meta")
 
 # A middle creator, so both a creator before it and creators after it are covered.
 FAILING_PILOT = "google-deepmind"
+# One configured source of that same pilot, refused rather than crashed. Not the
+# newly discovered one: the discovery is what the recorded 2-of-3 path above the
+# divider exercises, and refusing it would change two things at once.
+REFUSED_SOURCE = "google-deepmind-fixture-unknown-max-output"
 # Deliberately not the first creator in the run: resuming the first one would not
 # show that the checkpoint was located by whose it is rather than by ordering.
 RESUMED_PILOT = "anthropic"
@@ -149,6 +161,43 @@ class _ExplodesForOnePilot:
         return await self._inner.discover(creator, limit=limit)
 
     async def fetch(self, candidate):
+        return await self._inner.fetch(candidate)
+
+
+class _RefusesOneSourceForOnePilot:
+    """Refuses one source of one creator *inside* the provider contract.
+
+    The sibling of `_ExplodesForOnePilot`, and deliberately the opposite shape: a
+    retryable `ProviderError` is what an unreachable source, a rate limit, or a
+    refused fetch actually looks like, so the retry path handles it and the creator
+    keeps the sources it did read. Only one of this pilot's three sources is refused,
+    which is what makes the outcome partial rather than empty — a creator that lost
+    everything would end `FAILED` for a different reason and prove nothing about the
+    in-contract path.
+
+    Counts its own calls so the test can check the provider was really reached the
+    number of times the retry budget allows, independently of the ledger.
+    """
+
+    name = "refuses-one-source-for-one-pilot:sources"
+
+    def __init__(self, inner, creator_id: str, source_id: str) -> None:
+        self._inner = inner
+        self._creator_id = creator_id
+        self._source_id = source_id
+        self.attempts = 0
+
+    async def discover(self, creator, *, limit):
+        return await self._inner.discover(creator, limit=limit)
+
+    async def fetch(self, candidate):
+        if candidate.creator_id == self._creator_id and candidate.id == self._source_id:
+            self.attempts += 1
+            raise ProviderError(
+                f"{self._source_id} is unreachable",
+                provider=self.name,
+                retryable=True,
+            )
         return await self._inner.fetch(candidate)
 
 
@@ -274,6 +323,90 @@ def test_one_failing_pilot_leaves_the_other_three_untouched(
     assert proposals[FAILING_PILOT].claims == ()
     assert proposals[FAILING_PILOT].failures[0].kind is FailureKind.INTERNAL_ERROR
 
+    for creator_id in PILOT_CREATORS:
+        if creator_id == FAILING_PILOT:
+            continue
+        survivor = proposals[creator_id]
+        assert survivor.status is healthy[creator_id].status
+        assert survivor.claims == healthy[creator_id].claims
+        assert survivor.verdicts == healthy[creator_id].verdicts
+        assert survivor.adjudications == healthy[creator_id].adjudications
+        assert _spend(survivor.budget) == _spend(healthy[creator_id].budget)
+
+
+def test_a_pilot_refused_in_contract_ends_incomplete_and_spares_the_other_three(
+    library, settings_factory
+) -> None:
+    """The in-contract sibling of the crash above: refused, retried, partial.
+
+    `MemoryError` proves what happens when a provider breaks its contract. This
+    proves the commoner case where it keeps it — a source is unreachable, the retry
+    budget is spent on it, and the creator ends `INCOMPLETE` with the sources it did
+    read rather than `FAILED` with nothing. `contracts.py` branches on that status,
+    so calling partial progress a failure would lose the claims the run did make.
+
+    Status alone would not establish this: a run that never retried at all also ends
+    `INCOMPLETE`, and so does a healthy pilot with an open conflict. The retry
+    counter in the budget ledger is the assertion that moves only if the retry path
+    genuinely ran — it is 0 for this same pilot in the healthy baseline below.
+    """
+    healthy = _by_creator(_run_pilots(library, settings_factory()))
+    baseline = healthy[FAILING_PILOT]
+    max_retries = settings_factory().budget.max_retries
+
+    # The premise: the refused source is one this pilot actually reads. Without it a
+    # renamed fixture would leave nothing to refuse and every assertion below would
+    # be measuring an ordinary healthy run.
+    assert REFUSED_SOURCE in [source.id for source in baseline.sources]
+    assert baseline.budget.retries_used == 0
+    assert max_retries > 0
+
+    working = settings_factory()
+    refusing = _RefusesOneSourceForOnePilot(
+        working.providers.sources, FAILING_PILOT, REFUSED_SOURCE
+    )
+    report = _run_pilots(library, _with_sources(working, refusing))
+    proposals = _by_creator(report)
+    refused = proposals[FAILING_PILOT]
+
+    # The retry path ran and then gave up, rather than never running: the provider
+    # was called once more than the retry budget allows, the ledger charged every
+    # retry, and the run stopped because retries — not pages or tokens — ran out.
+    assert refusing.attempts == max_retries + 1
+    assert refused.budget.retries_used == max_retries
+    assert "retries" in refused.budget.exhausted_by
+    assert any(
+        failure.kind is FailureKind.BUDGET_EXHAUSTED
+        and failure.detail.get("resource") == "retries"
+        for failure in refused.failures
+    ), "the run did not stop because it ran out of retries"
+
+    # Every refusal is recorded as a retryable provider failure at the stage that
+    # read the page — not swallowed, and not the internal error a crash produces.
+    refusals = [
+        failure
+        for failure in refused.failures
+        if failure.detail.get("provider") == refusing.name
+    ]
+    assert len(refusals) == max_retries + 1
+    assert all(failure.kind is FailureKind.PROVIDER_FAILURE for failure in refusals)
+    assert all(failure.retryable for failure in refusals)
+    assert all(failure.stage is WorkflowStage.EXTRACT for failure in refusals)
+    assert all(
+        failure.kind is not FailureKind.INTERNAL_ERROR for failure in refused.failures
+    )
+
+    # Partial, and explicitly so: the refused source is gone, the ones around it are
+    # not, and the claims they carried survived.
+    assert refused.status is ProposalStatus.INCOMPLETE
+    assert report.failed_creator_ids == ()
+    assert FAILING_PILOT in report.incomplete_creator_ids
+    assert [source.id for source in refused.sources] == [
+        source.id for source in baseline.sources if source.id != REFUSED_SOURCE
+    ]
+    assert 0 < len(refused.claims) < len(baseline.claims)
+
+    # And the other three pilots are untouched, exactly as for the crash.
     for creator_id in PILOT_CREATORS:
         if creator_id == FAILING_PILOT:
             continue
