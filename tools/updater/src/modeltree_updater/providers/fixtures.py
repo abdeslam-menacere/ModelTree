@@ -26,6 +26,7 @@ from ..contracts import (
     SourceVerdict,
     content_hash,
 )
+from ..profiles import ProfileError, _duplicate_key, _reviewed_profile_paths
 from ..review import ClaimReviewRequest, SourceReviewRequest
 from .base import (
     ExtractionResult,
@@ -72,13 +73,58 @@ class FixtureLibrary:
 
 
 def load_fixture_library(directory: Path) -> FixtureLibrary:
+    """Load every creator fixture in a directory, keyed by declared id.
+
+    Which files are candidates is
+    :func:`~modeltree_updater.profiles._reviewed_profile_paths`' decision — the same
+    decision, made by the same code, that discovers the reviewed creator profiles and
+    the reviewed long-tail profiles. This loader is the third and last place that
+    decided it for itself: it globbed ``*.json``, which is case-insensitive on Windows
+    and case-sensitive on Linux, matches a dot-prefixed name, and matches a *directory*
+    called ``archive.json`` that is then handed to the parser. Sharing the rule rather
+    than restating it is the point — two copies are what let the reviewed sets drift
+    into disagreeing about what a document is (#108, #151).
+
+    A duplicate creator id is **refused**, naming both files and both declared ids,
+    where before the second document silently overwrote the first. That these are test
+    doubles sharpens the argument rather than softening it. ``mode=fixtures`` is the
+    mode the publisher workflow dispatches, so a dropped fixture creator does not fail:
+    it produces a green run carrying fewer proposals than the author wrote, which is
+    the "smoothed-over" outcome this repository exists to refuse and is invisible in a
+    way a red run never is.
+
+    Two deliberate points about the shared rule, neither of them re-decided here:
+
+    * The collision key folds case; the **lookup does not**. ``self.documents`` and
+      ``self.creators`` stay keyed by the exact declared string, so ``document()`` keeps
+      answering only to the id it was given. Folding widens what is *refused*, never
+      what an id matches.
+    * A leading dot is judged before the extension, so ``.draft.JSON`` is skipped as
+      the author's stated "not part of the working set" rather than refused for its
+      case.
+
+    One wording divergence is inherited, not chosen: the shared refusal for a
+    case-variant extension says "the reviewed set", which here names the set of
+    fixtures being discovered. Fixtures are not a reviewed set, but the reason the
+    sentence gives — that keeping the file would make discovery depend on whether the
+    filesystem is case-sensitive — is true unchanged, and re-wording it would mean
+    forking a message that is pinned byte-for-byte by its own tests.
+
+    The refusal type is :class:`~modeltree_updater.profiles.ProfileError` for the same
+    reason the rule is shared: a caller catching one of these refusals catches both,
+    and the shared helper already raises it for the extension case. It is also already
+    in the CLI's handled set, so a bad fixture directory exits as a usage error rather
+    than a traceback. Loading is not provider I/O, so ``ProviderError`` — which carries
+    a provider name and a retry decision — would be describing the wrong thing.
+    """
     directory = Path(directory)
     if not directory.is_dir():
         raise FileNotFoundError(f"fixture directory not found: {directory}")
 
     creators: dict[str, CreatorRequest] = {}
     documents: dict[str, Mapping[str, Any]] = {}
-    for path in sorted(directory.glob("*.json")):
+    sources: dict[Any, tuple[str, Path]] = {}
+    for path in _reviewed_profile_paths(directory, kind="a creator fixture"):
         document = json.loads(path.read_text(encoding="utf-8"))
         creator = document["creator"]
         request = CreatorRequest(
@@ -87,8 +133,29 @@ def load_fixture_library(directory: Path) -> FixtureLibrary:
             entry_urls=tuple(creator.get("entry_urls", ())),
             notes=creator.get("notes"),
         )
+        key = _duplicate_key(request.creator_id)
+        # Neither key space contains the other. Folding catches 'x' against 'X'; the
+        # declared id catches ids that fold apart but are one dict key, such as True
+        # and 1, which the plain assignment below would overwrite in silence.
+        if key in sources or request.creator_id in creators:
+            twin_id, twin_path = sources.get(key) or sources[request.creator_id]
+            reason = (
+                "an id has to name exactly one fixture, because a run resolves each "
+                "creator through this library and a silently dropped fixture is a "
+                "green run that quietly did less than it was asked"
+            )
+            if twin_id != request.creator_id:
+                reason = f"ids differing only in case are one id here, and {reason}"
+            raise ProfileError(
+                f"duplicate creator id {request.creator_id!r} in {path.name} and "
+                f"{twin_id!r} in {twin_path.name}: {reason}"
+            )
         creators[request.creator_id] = request
         documents[request.creator_id] = document
+        sources[key] = (request.creator_id, path)
+        # Recorded under the declared id too, so the guard above can name the twin it
+        # found through either key space.
+        sources[request.creator_id] = (request.creator_id, path)
     if not creators:
         raise FileNotFoundError(f"no creator fixtures found in {directory}")
     return FixtureLibrary(creators=creators, documents=documents)
