@@ -668,8 +668,9 @@ def _publish(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
     report = load_run_report(args.report)
 
     if args.dry_run:
-        # After the artefact is loaded, so a missing report is still reported as
-        # itself rather than behind a destination for a run that cannot happen.
+        # Both of these come after the artefact is loaded, so a missing report is
+        # still reported as itself rather than behind a destination — or a
+        # refusal — for a run that cannot happen.
         refusal = _malformed_repo_refusal(args)
         if refusal is not None:
             stream.write(refusal + "\n")
