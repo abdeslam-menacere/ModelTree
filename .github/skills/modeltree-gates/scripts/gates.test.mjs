@@ -448,6 +448,38 @@ describe('gate-evidence', () => {
     const result = gateBundle({ policy: 'whatever', claims: [claim()] });
     assert.equal(result.code, 2, result.stdout);
   });
+
+  // The sibling of the test above, and the more dangerous half. An unknown
+  // policy is a typo; a *missing* one is the field simply not being reported by
+  // the agent whose work this gate exists to check. Defaulting it picks the
+  // looser threshold from silence, so a long-tail claim that never reached
+  // unanimity would publish under the pilot bar. `tools/updater` refuses the
+  // same way -- naming a long-tail profile without choosing its threshold exits
+  // 2 -- because the threshold a change was decided under must be a choice.
+  test('a missing policy exits 2 rather than defaulting to the loose one', () => {
+    const bundle = { runId: 'r1', creator: 'some-long-tail-creator', claims: [claim()] };
+    assert.ok(!Object.hasOwn(bundle, 'policy'), 'the fixture must not carry a policy');
+    const result = gateBundle(bundle);
+    assert.equal(result.code, 2, result.stdout);
+  });
+
+  // The failure this protects against, stated as the scenario rather than as a
+  // property: a long-tail creator, a 2-accept/1-reject panel, and no policy.
+  // That is 2 of the 3 accepts unanimity requires, and it must not pass.
+  test('a 2-of-3 panel with no policy cannot publish by defaulting to pilot', () => {
+    const result = gateBundle({
+      runId: 'r1',
+      creator: 'some-long-tail-creator',
+      claims: [claim({
+        verdicts: [
+          { reviewer: 'provenance', vote: 'accept', rationale: 'stated directly' },
+          { reviewer: 'consistency', vote: 'accept', rationale: 'consistent' },
+          { reviewer: 'editorial', vote: 'reject', rationale: 'phrasing' },
+        ],
+      })],
+    });
+    assert.notEqual(result.code, 0, `a claim that never chose a threshold must not pass: ${result.stdout}`);
+  });
 });
 
 // ---------------------------------------------------------------------------

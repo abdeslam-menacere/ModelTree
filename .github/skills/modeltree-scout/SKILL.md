@@ -70,7 +70,9 @@ For each creator, in this order:
    `web/src/data/organizations.json`, plus any long-tail creator you were asked
    for. Set `policy` to `pilot` when a reviewed profile exists for that creator
    and `long-tail` when it does not — that choice sets the review threshold, so
-   get it right.
+   get it right. Always write the field: the gate refuses a bundle that omits it
+   rather than picking a default, so leaving it out fails the run instead of
+   quietly selecting the looser bar.
 2. Load the profile and the current dataset for that creator.
 3. Fetch each catalogued source. Record `sourceId`, `url`, `contentHash`,
    `fetchedAt`, and `status` in `sourcesConsulted` — including failures, which

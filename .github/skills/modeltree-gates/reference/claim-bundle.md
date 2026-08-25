@@ -29,7 +29,9 @@ committed.
 `policy` is `pilot` for a creator with a reviewed profile under
 `tools/updater/profiles/`, and `long-tail` for one without. It sets the review
 threshold and is not a stylistic choice: `pilot` accepts on 2-of-3,
-`long-tail` requires unanimity.
+`long-tail` requires unanimity. It is **required, and never defaulted** — a
+bundle that omits it is refused with exit 2, exactly as one naming an unknown
+policy is. Silence must not select the looser bar.
 
 `incomplete` records what the run could not finish — a source that would not
 load, a budget that ran out — as strings. It is published rather than hidden. A

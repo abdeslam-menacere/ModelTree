@@ -267,7 +267,16 @@ function main() {
     return 2;
   }
 
-  const policy = bundle.policy ?? 'pilot';
+  // Required, never defaulted. An absent policy is refused exactly as an
+  // unknown one is: the field is self-reported by the agent this gate exists to
+  // check, so treating silence as the *looser* threshold would let a long-tail
+  // claim publish on a pilot majority it never had to reach. Do not infer it
+  // from `creator` either -- inference is the same defect wearing a heuristic.
+  if (!Object.hasOwn(bundle, 'policy')) {
+    process.stderr.write('gate-evidence: bundle has no policy; expected pilot or long-tail (it is never defaulted)\n');
+    return 2;
+  }
+  const policy = bundle.policy;
   if (!Object.hasOwn(THRESHOLDS, policy)) {
     process.stderr.write(`gate-evidence: unknown policy "${policy}"; expected pilot or long-tail\n`);
     return 2;
