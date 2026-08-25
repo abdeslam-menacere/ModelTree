@@ -31,14 +31,30 @@ decisions — explicitly including "nothing" when it replaces none),
 then `## Context`, `## Decision`, `## Consequences` split into `### Positive`
 and `### Costs`, `## Alternatives Considered`, and `## Guardrails`.
 
-No ADR records how much of the loop runs unattended. `drydock.config.json` does
-set `autonomy.level` to `full`, with `merge.enabled` true and
-`retriesOnGateFail` 2. That is the policy an installed Drydock would enforce,
-not permission to act on it yourself: where `drydock` is not on your PATH,
-nothing is merging or retrying on your behalf. Gating still happens either way —
-reviewer and QA agents run the gates and record their verdicts on the issue — so
-it is never you who gates your own work. The posture described in this file is
-the one in force.
+Whether an ADR narrows the invariant for the change in front of you is a question
+you answer by reading `docs/adr/`, not one this file can answer on your behalf.
+Check for `docs/adr/0003-*.md` in particular. Where it is present, it scopes
+itself to one bounded class of change and to nothing else: a source-backed
+dataset refresh under `web/src/data/`, produced by the `modeltree-refresh` skill
+set, may reach `main` without a human approving it. The ADR pairs that grant with
+its own limit — every other change in this repository keeps the unmodified
+invariant, human merge included — and that limit is the part that applies to you.
+Read the file rather than this paragraph before deciding otherwise, and note what
+is easy to overstate about it: adoption enables nothing on its own, because the
+ADR sets preconditions and states that until they hold it authorises nothing to
+merge; and what it drops once they do hold is the *human* reviewer, not review —
+its agent reviewers and deterministic gates still run, and GitHub performs the
+merge rather than the agent. So unless your change is that refresh, on that ADR's
+terms, it takes the ordinary path, and the merge at the end of it is not yours to
+make.
+
+`drydock.config.json` does set `autonomy.level` to `full`, with `merge.enabled`
+true and `retriesOnGateFail` 2. That is the policy an installed Drydock would
+enforce, not permission to act on it yourself: where `drydock` is not on your
+PATH, nothing is merging or retrying on your behalf. Gating still happens either
+way — reviewer and QA agents run the gates and record their verdicts on the
+issue — so it is never you who gates your own work. The posture described in
+this file is the one in force.
 
 ## Where am I
 
