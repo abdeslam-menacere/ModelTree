@@ -6,11 +6,16 @@ Every test here runs offline against a fake issues client.
 
 from __future__ import annotations
 
+import asyncio
 import dataclasses
 
 import pytest
 
 from modeltree_updater.budgets import CreatorBudget
+from modeltree_updater.checkpoints import (
+    create_checkpoint_storage,
+    list_checkpoint_summaries,
+)
 from modeltree_updater.contracts import FailureKind, ProposalStatus
 from modeltree_updater.github_issues import MAX_BODY_CHARS, Issue
 from modeltree_updater.parsing import proposal_from_dict
@@ -30,6 +35,8 @@ from modeltree_updater.publisher import (
     render_issue,
     state_marker,
 )
+from modeltree_updater.runner import resume_creator_run, run_creator
+from modeltree_updater.workflow import WORKFLOW_NAME
 
 MATERIAL = "contoso-ai"
 INCOMPLETE = "fabrikam-ai"
@@ -293,6 +300,11 @@ def _ticking_clock(step: float = WINDOWS_TIMER_TICK, start: float = 1000.0):
 OVERRUN_STEP = 130.0
 OVERRUN_LIMIT = 120.0
 
+# The limit the *original* run is stopped by, before it is resumed. Deliberately
+# not the 120.0 default, because a resume falls back to that default and the two
+# have to disagree for the test to prove anything.
+RESUME_LIMIT = 5.0
+
 
 def _measured_values(proposal) -> list[float]:
     """Every wall-clock measurement the run recorded, ledger and failures alike."""
@@ -304,18 +316,20 @@ def _measured_values(proposal) -> list[float]:
     ]
 
 
-def _overrunning(proposal_factory, *, step: float = OVERRUN_STEP):
+def _overrunning(
+    proposal_factory, *, step: float = OVERRUN_STEP, limit: float = OVERRUN_LIMIT
+):
     """A run genuinely stopped by the seconds limit, not a hand-edited budget."""
     proposal = proposal_factory(
         MATERIAL,
-        budget=CreatorBudget(max_seconds=OVERRUN_LIMIT),
+        budget=CreatorBudget(max_seconds=limit),
         clock=_ticking_clock(step=step),
     )
     # Anti-vacuity. Without these, a run that quietly never overran would satisfy
     # every "the measurement is absent" assertion below for the wrong reason.
     assert proposal.status is not ProposalStatus.COMPLETE
     assert proposal.budget.exhausted_by == ("seconds",)
-    assert proposal.budget.elapsed_seconds > OVERRUN_LIMIT
+    assert proposal.budget.elapsed_seconds >= limit
     assert len(_measured_values(proposal)) > 1
     return proposal
 
@@ -386,11 +400,139 @@ def test_a_run_stopped_by_the_time_limit_says_so_without_the_measurement(
     assert f"| seconds | _not rendered_ | {proposal.budget.max_seconds:g} |" in body
     assert "`budget-exhausted`" in body
     assert "seconds budget exhausted" in body
-    assert f"passed its {proposal.budget.max_seconds:g} second limit" in body
+    assert f"reached its {OVERRUN_LIMIT:g} second limit" in body
     # ... and every measured value the run recorded is absent from it.
     for measured in _measured_values(proposal):
         assert str(measured) not in body
+    # Absence alone is not enough: a *bucketed* measurement ("4m") would satisfy
+    # the loop above while still being derived from the clock, and would still
+    # churn whenever two executions straddle a bucket boundary. So the detail
+    # cell is pinned positively — the field is present and is exactly the
+    # sentinel, once per failure that carries one.
+    stopped_by_seconds = [
+        f for f in proposal.failures if f.detail.get("resource") == "seconds"
+    ]
+    assert stopped_by_seconds
+    assert body.count('"used": "not rendered"') == len(stopped_by_seconds)
     assert render_body(proposal_from_dict(proposal.to_dict())) == body
+
+
+def test_the_stated_limit_is_the_one_that_stopped_the_run_not_the_proposals(
+    tmp_path, library, settings_factory
+) -> None:
+    """A resumed run's proposal carries a different limit than its failures do.
+
+    `resume` takes no budget flags at all, so `cli._resume` falls through to
+    `CreatorBudget.from_env` and the 120.0 default. A run started under a tighter
+    limit and then resumed therefore ends up with a proposal whose budget says
+    120.0 while the failure that actually stopped it says 5.0, and the two can
+    only agree by coincidence.
+
+    Rendering that sentence from the proposal's budget stated a limit the run was
+    never judged against, contradicted the JSON cell beside it and the artefact on
+    disk, and — being stable — read as trustworthy. The limit is therefore taken
+    from the failure, which is the record of what was actually enforced.
+    """
+    storage = create_checkpoint_storage(tmp_path / "checkpoints")
+
+    async def scenario():
+        await run_creator(
+            library.creators[MATERIAL],
+            settings_factory(
+                CreatorBudget(max_seconds=RESUME_LIMIT),
+                clock=_ticking_clock(step=RESUME_LIMIT + 1.0),
+            ),
+            run_id="run-resume",
+            checkpoint_storage=storage,
+        )
+        summaries = await list_checkpoint_summaries(storage, workflow_name=WORKFLOW_NAME)
+        for summary in reversed(summaries):
+            try:
+                # No budget argument: exactly what `cli._resume` builds.
+                resumed = await resume_creator_run(
+                    settings_factory(),
+                    checkpoint_id=summary["checkpoint_id"],
+                    checkpoint_storage=storage,
+                )
+            except RuntimeError:
+                continue  # a terminal checkpoint has nothing left to finish
+            if any(f.detail.get("resource") == "seconds" for f in resumed.failures):
+                return resumed
+        return None
+
+    resumed = asyncio.run(scenario())
+
+    # Anti-vacuity: the two limits must genuinely disagree, or this proves nothing.
+    assert resumed is not None, "no checkpoint carried a seconds failure forward"
+    enforced = {
+        f.detail["limit"] for f in resumed.failures if f.detail.get("resource") == "seconds"
+    }
+    assert enforced == {RESUME_LIMIT}
+    assert resumed.budget.max_seconds != RESUME_LIMIT
+
+    body = render_body(resumed)
+
+    assert f"reached its {RESUME_LIMIT:g} second limit" in body
+    assert f"reached its {resumed.budget.max_seconds:g} second limit" not in body
+    # The sentence and the JSON cell beside it must not contradict each other.
+    assert f'"limit": {RESUME_LIMIT}' in body
+
+
+def test_the_measurement_is_redacted_even_when_the_limit_is_not_recorded(
+    proposal_factory,
+) -> None:
+    """The redaction must not be conditional on the limit being renderable.
+
+    An artefact can reach the publisher with a seconds exhaustion whose detail
+    carries no numeric `limit` — details are a plain mapping and the publisher
+    reads artefacts it did not write. Gating the redaction on the limit would let
+    the recorded message, measurement and all, through on exactly that path. So
+    the redaction is unconditional and only the *phrasing* falls back.
+    """
+    real = _overrunning(proposal_factory)
+    stripped = tuple(
+        dataclasses.replace(
+            failure,
+            detail={k: v for k, v in failure.detail.items() if k != "limit"},
+        )
+        if failure.detail.get("resource") == "seconds"
+        else failure
+        for failure in real.failures
+    )
+    proposal = dataclasses.replace(real, failures=stripped)
+
+    # Anti-vacuity: the recorded messages still carry the measurement.
+    measured = _measured_values(real)
+    assert any(str(v) in f.message for v in measured for f in proposal.failures)
+
+    body = render_body(proposal)
+
+    assert "reached its seconds budget" in body
+    assert "second limit" not in body
+    for value in measured:
+        assert str(value) not in body
+
+
+def test_a_run_stopped_exactly_on_its_limit_says_reached_not_passed(
+    proposal_factory,
+) -> None:
+    """`check_time` exhausts on `>=`, so `used == limit` is a real stop.
+
+    Such a run never exceeded anything, and saying it "passed" its limit would be
+    false on the one boundary the enforcement is defined at.
+    """
+    proposal = _overrunning(
+        proposal_factory, step=OVERRUN_LIMIT / 2, limit=OVERRUN_LIMIT
+    )
+    exhausted = [f for f in proposal.failures if f.detail.get("resource") == "seconds"]
+
+    # Anti-vacuity: this is the boundary case only if the two are actually equal.
+    assert exhausted[0].detail["used"] == exhausted[0].detail["limit"] == OVERRUN_LIMIT
+
+    body = render_body(proposal)
+
+    assert f"reached its {OVERRUN_LIMIT:g} second limit" in body
+    assert "passed its" not in body
 
 
 def test_two_overrunning_executions_one_timer_tick_apart_render_identically(
