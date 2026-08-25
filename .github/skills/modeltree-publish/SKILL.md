@@ -1,0 +1,162 @@
+---
+name: modeltree-publish
+description: Turn a gated ModelTree claim bundle into a pull request that auto-merges and deploys - apply accepted claims, commit, open the PR with its full evidence trail, enable auto-merge, verify the GitHub Pages deploy, and file the run summary issue. Use only after modeltree-gates has passed.
+---
+
+# ModelTree publish
+
+The last stage. You apply what survived, publish it through a pull request that
+GitHub merges once CI is green, confirm the site actually deployed, and file the
+summary that makes the whole run auditable after the fact.
+
+ADR 0003 authorises this and bounds it. Read
+[`../../../docs/adr/0003-unattended-data-refresh-may-auto-merge.md`](../../../docs/adr/0003-unattended-data-refresh-may-auto-merge.md)
+before changing anything here.
+
+## Preconditions — all four, no exceptions
+
+Refuse to publish unless every one holds:
+
+1. `gate-evidence.mjs` exited 0 on the bundle.
+2. Accepted claims are applied and `gate-dataset.mjs` exited 0.
+3. `cd web && npm run validate` passed.
+4. `gate-scope.mjs` exited 0 — every changed path is a dataset document.
+
+If **3** fails, you have a claim that is valid on its own and invalid in context.
+Drop it, record why, and revalidate. Never edit a claim to make it pass; that is
+the run overruling its own gates.
+
+If **4** fails, the refresh needs a schema, component, or workflow change. That
+is not a failure — it is the run correctly finding work for a human. Stop, file
+an issue describing what it needed and why, and publish nothing.
+
+## Applying claims
+
+Only `add`, `change`, and `remove` claims that reached their threshold. Apply in
+dependency order so references resolve as they are created: sources and
+publishers, then organizations, then families, then releases, then usage
+observations, syntheses, fit statements, and evidence gaps.
+
+Move `verifiedAt` forward on any record whose facts were re-confirmed this run,
+including `unchanged` findings — that is the point of recording them. Keep JSON
+formatting exactly as the file already uses it, so the diff shows the change and
+not a reformat.
+
+## Publishing
+
+```bash
+git switch -c data/refresh-2026-08-25
+git add web/src/data
+git commit -m "feat(data): add GPT-5.7 and refresh four creator datasets"
+git push -u origin data/refresh-2026-08-25
+gh pr create --title "..." --body-file .modeltree-refresh/runs/<run-id>/pr-body.md
+gh pr merge <number> --auto --squash --delete-branch
+```
+
+Conventional messages: `feat(data):` for new entities, `fix(data):` for
+corrections, `chore(data):` for verification dates moving with no fact changing.
+Separate commits per creator when a run covers several — a bad creator is then
+one revert, not all of them.
+
+`--auto` is not decoration. `main` requires the `web-ci` check, so GitHub itself
+refuses to merge a red pull request. Never poll CI and merge yourself: that moves
+the guarantee from the platform into this prompt, which is precisely what ADR
+0003 rejected.
+
+Never use `--admin`, never push to `main`, never force-push.
+
+## The pull request body
+
+The body is the audit trail. An unattended merge nobody read is defensible only
+if what merged is fully legible afterwards. Include:
+
+- **Summary** — one paragraph: which creators, what changed, how many claims.
+- **Every applied claim** — statement, `collection:targetId`, field,
+  before → after, source URL, content hash, fetch date, and the verbatim quote.
+- **Every verdict** — all three rubrics with their rationales, quoted, for every
+  claim including rejected ones. Rejections with reasons are the most useful
+  thing in the body.
+- **Rejected claims** and which gate or rubric refused them.
+- **Conflicts** — both sides quoted, left explicit and unresolved.
+- **Deterministic gate output** — including passes, so a missing gate is visible.
+- **Budgets and incompleteness** — pages fetched, budgets hit, sources that
+  failed to load.
+- **Provenance footer** — run id, skill versions, and that no human reviewed it.
+
+Write it to `.modeltree-refresh/runs/<run-id>/pr-body.md` and pass it with
+`--body-file`. Never inline a long body into the shell.
+
+## After the merge
+
+Auto-merge is asynchronous. Poll until the pull request reports merged or the
+check fails:
+
+```bash
+gh pr view <number> --json state,mergeStateStatus,statusCheckRollup
+```
+
+If `web-ci` fails, the pull request stays open and merges nothing. That is the
+system working. Report it in the summary issue and leave the pull request for a
+human — do not try to fix the data and re-push unattended, because a failing
+gate you then edit around is a bypass by another name.
+
+Once merged, `pages.yml` runs on `main`. Wait for it:
+
+```bash
+gh run list --workflow=pages.yml --branch main --limit 1 --json status,conclusion,databaseId
+```
+
+**If the deploy failed, revert.** A red `main` does not break the site, it
+freezes it on the previous build — stale content, healthy appearance, no signal
+anywhere. Because `main` is protected, a revert is itself a pull request:
+
+```bash
+git switch main && git pull
+git switch -c data/revert-refresh-2026-08-25
+git revert --no-edit <merge-sha>
+git push -u origin data/revert-refresh-2026-08-25
+gh pr create --title "revert(data): roll back the 2026-08-25 refresh" --body-file <path>
+gh pr merge <number> --auto --squash --delete-branch
+```
+
+Then say so, prominently, in the summary issue.
+
+## The summary issue
+
+**Every run files one, without exception** — including runs that changed nothing.
+The daily record has to be complete, or its gaps become unreadable: a missing day
+could mean nothing changed, or that the automation silently stopped.
+
+```bash
+gh issue create --title "Data refresh 2026-08-25" --label data --body-file <path>
+```
+
+A run that published nothing files its summary and **closes it immediately**
+(`gh issue close <n> --reason completed`), so the record exists without a year of
+silence accumulating in the open list. A run that published, was blocked by CI,
+reverted, or hit an out-of-class change leaves its issue **open**.
+
+The body carries: creators processed, claims by kind, accepted and rejected
+counts with reasons, conflicts, gate results, budget exhaustion, the pull request
+link and merge state, the Pages deployment result, and any follow-up worth its
+own issue.
+
+## Follow-ups
+
+A refresh that finds real work outside its class — a schema that cannot express a
+fact, a stale profile, a source that has moved — records it under `Follow-ups` in
+the summary issue as a **proposed** issue. Do not fix it, and do not widen the
+change to accommodate it. Out-of-scope changes are the most common review failure
+in this repository, and here they would also trip `gate-scope.mjs` and block the
+merge entirely.
+
+## Rules
+
+- **Never merge without `--auto`.** Let GitHub enforce the check.
+- **Never `--admin`, never push to `main`, never force-push, never disable a
+  required check** — not even to unblock a run.
+- **Never commit run state.** `.modeltree-refresh/` is git-ignored and stays that
+  way.
+- **Never publish a claim that did not reach its threshold**, and never publish
+  at all if any of the four preconditions failed.
+- **Never leave a failed deploy standing.** Revert, then report.
