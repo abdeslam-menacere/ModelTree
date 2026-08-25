@@ -74,6 +74,45 @@ def numbers(report) -> set[str]:
     return set(report.duplicates)
 
 
+# The advice line closing a DUPLICATE paragraph. Indented like the paths it
+# follows, so `paths_named` has to exclude it explicitly rather than by shape.
+DUPLICATE_ADVICE = "An ADR number must identify exactly one decision record."
+
+
+def duplicate_message(text: str, number: str) -> str:
+    """Cut the DUPLICATE paragraph for one number out of a rendered report.
+
+    Asserting a filename against the *whole* of `render()` proves almost
+    nothing, and this file used to do exactly that. `render()` prints an
+    inventory of every examined ADR by path above the problems block, so both
+    names are in the rendered text however few of them the DUPLICATE message
+    itself lists -- the assertion passes on a checker that says "claimed by 2
+    files" and then names one. Slicing to the paragraph first is what makes the
+    assertion mean what its name says.
+    """
+    lines = text.splitlines()
+    heading = f"  DUPLICATE: ADR {number} is claimed by"
+    starts = [index for index, line in enumerate(lines) if line.startswith(heading)]
+    assert len(starts) == 1, (
+        f"expected exactly one DUPLICATE paragraph for ADR {number}, "
+        f"found {len(starts)}:\n{text}"
+    )
+    start = starts[0]
+    end = start + 1
+    while end < len(lines) and lines[end].startswith("      "):
+        end += 1
+    return "\n".join(lines[start:end])
+
+
+def paths_named(message: str) -> list[str]:
+    """The paths a DUPLICATE paragraph actually names, advice line excluded."""
+    return [
+        line.strip()
+        for line in message.splitlines()[1:]
+        if not line.strip().startswith(DUPLICATE_ADVICE[:13])
+    ]
+
+
 # --- the guard itself -------------------------------------------------------
 
 
@@ -119,26 +158,57 @@ def test_the_145_and_146_collision_fails(adr_dir):
 
 def test_the_failure_names_both_paths_and_the_number(adr_dir):
     """Naming one path, or saying only "duplicate found", leaves the reader to
-    go and find the other file. Both names and the number, in the message."""
-    report = checker.check(adr_dir(MERGED_0003, COMPETING_0003), REPO_ROOT)
-    rendered = report.render()
+    go and find the other file. Both names and the number, in the message --
+    and asserted against the message, not against the whole rendered report.
 
-    assert "ADR 0003" in rendered
-    assert MERGED_0003 in rendered
-    assert COMPETING_0003 in rendered
+    The distinction is the entire value of this test. `render()` lists every
+    examined ADR by path above the problems block, so an assertion over the
+    rendered text finds both filenames whatever the DUPLICATE line says. Pinned
+    by mutation: `for path in paths[:1]` in check_adr_numbers.py produces a
+    report claiming "2 files" and naming one, which the rendered-text form of
+    this assertion passed and this form fails.
+
+    The expected paths are literals rather than anything derived from the
+    checker, so a mutation cannot move both sides of the comparison at once.
+    """
+    report = checker.check(adr_dir(MERGED_0003, COMPETING_0003), REPO_ROOT)
+    message = duplicate_message(report.render(), "0003")
+
+    assert paths_named(message) == [MERGED_0003, COMPETING_0003]
+    assert "claimed by 2 files" in message
+    assert DUPLICATE_ADVICE in message
 
 
 def test_every_file_on_a_contested_number_is_named(adr_dir):
-    """Three claimants report three paths, not the first two."""
+    """Three claimants report three paths in the message, not the first two."""
     report = checker.check(
         adr_dir("0007-one.md", "0007-two.md", "0007-three.md"), REPO_ROOT
     )
+    message = duplicate_message(report.render(), "0007")
 
     assert report.duplicates["0007"] == [
         "0007-one.md",
         "0007-three.md",
         "0007-two.md",
     ]
+    assert paths_named(message) == [
+        "0007-one.md",
+        "0007-three.md",
+        "0007-two.md",
+    ]
+
+
+def test_the_stated_count_matches_the_paths_the_message_lists(adr_dir):
+    """"claimed by N files" followed by fewer than N paths is a lie the reader
+    cannot detect without opening the directory, and is precisely what the
+    rendered-text assertion this test replaces could not see."""
+    for count in (2, 3, 4):
+        names = [f"0007-{index}.md" for index in range(count)]
+        report = checker.check(adr_dir(*names), REPO_ROOT)
+        message = duplicate_message(report.render(), "0007")
+
+        assert f"claimed by {count} files" in message
+        assert len(paths_named(message)) == count
 
 
 def test_two_separate_collisions_are_both_reported(adr_dir):
@@ -209,11 +279,26 @@ def test_a_non_markdown_file_is_ignored(adr_dir):
 
 
 def test_what_was_skipped_is_named_in_the_report(adr_dir):
-    """An exemption nobody can see is indistinguishable from a bypass."""
+    """An exemption nobody can see is indistinguishable from a bypass.
+
+    Sliced to the ignored line, so the reason is asserted to travel with the
+    name rather than merely to exist somewhere in the report. Unlike the
+    DUPLICATE assertions, this one was never satisfiable by the ADR inventory
+    above it -- an inventory line is "NNNN  path", so only the ignored list can
+    emit an "ignored: " prefix -- but a name without its reason is still half
+    the point.
+    """
     report = checker.check(adr_dir("0001-a.md", "README.md"), REPO_ROOT)
     rendered = report.render()
+    ignored_lines = [
+        line.strip()
+        for line in rendered.splitlines()
+        if line.strip().startswith("ignored: ")
+    ]
 
-    assert "ignored: README.md" in rendered
+    assert ignored_lines == [
+        "ignored: README.md -- a companion file, not a decision record"
+    ]
     assert "1 ADR files examined, 1 files ignored" in rendered
 
 
@@ -278,12 +363,17 @@ def test_the_cli_exits_zero_on_the_committed_adrs(capsys):
 
 
 def test_the_cli_exits_one_on_a_duplicate(adr_dir, capsys):
+    """The message reaching stdout is sliced the same way as in the report test.
+
+    The CLI prints `render()` verbatim, so asserting a filename against the
+    whole of stdout carried the identical defect: the inventory above the
+    problems block satisfied it regardless of what the DUPLICATE line named.
+    """
     directory = adr_dir(MERGED_0003, COMPETING_0003)
 
     assert checker.main([str(directory)]) == 1
-    output = capsys.readouterr().out
-    assert MERGED_0003 in output
-    assert COMPETING_0003 in output
+    message = duplicate_message(capsys.readouterr().out, "0003")
+    assert paths_named(message) == [MERGED_0003, COMPETING_0003]
 
 
 def test_the_cli_rejects_a_directory_that_is_not_there(tmp_path, capsys):
