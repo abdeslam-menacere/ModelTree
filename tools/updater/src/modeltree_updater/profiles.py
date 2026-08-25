@@ -291,20 +291,111 @@ def load_profile(path: Path | str) -> CreatorProfile:
     return profile
 
 
+def _reviewed_profile_paths(directory: Path, *, kind: str) -> list[Path]:
+    """The documents in a reviewed set, decided the same way on every platform.
+
+    ``glob("*.json")`` is case-insensitive on Windows and case-sensitive on Linux, so
+    a file named ``profile.JSON`` was a reviewed profile on one and did not exist on
+    the other. A contributor could add a profile, watch it work locally, and have it
+    silently absent from CI. Discovery here matches the suffix ``.json`` exactly, which
+    is the same answer everywhere because a directory listing preserves the name's case.
+
+    A file whose extension differs from ``.json`` only by case is **refused**, not
+    skipped. Matching lowercase alone would make the platforms agree, but it would agree
+    on silence: the contributor still gets a file that is not a profile and no reason
+    why. The refusal is narrow — a ``.txt`` or ``.md`` neighbour is ignored as before,
+    so only a file plainly meant to be a profile trips it.
+
+    A name beginning with a dot is skipped, and skipped *first*. That is the deliberate
+    asymmetry: a leading dot is the author saying "not part of the working set", so
+    honouring it is honouring a stated intent, whereas an uppercased extension is a file
+    someone meant as a profile where only the case was incidental.
+
+    ``kind`` names what the caller's set holds, so a refusal reads as a sentence about
+    the directory the reader is looking at. It is the *only* thing that differs between
+    the two reviewed sets. The reviewed creator profiles loaded here and the reviewed
+    long-tail profiles loaded by :mod:`~modeltree_updater.longtail` share one rule and
+    one implementation of it, because holding the rule in two copies is precisely what
+    let them drift into disagreeing about what a profile file is.
+    """
+    paths: list[Path] = []
+    for path in sorted(directory.iterdir()):
+        # A directory is not a candidate under either rule: refusing `archive.JSON`
+        # for its extension, and handing `archive.json` to the parser, are both the
+        # wrong answer to something that was never a document.
+        if path.name.startswith(".") or not path.is_file():
+            continue
+        if path.suffix == ".json":
+            paths.append(path)
+        elif path.suffix.casefold() == ".json":
+            raise ProfileError(
+                f"{path.name}: {kind} must end in '.json' exactly, "
+                f"not {path.suffix!r}; keeping it would leave the reviewed set to depend "
+                "on whether the filesystem reading it is case-sensitive, so rename the file"
+            )
+    return paths
+
+
+def _duplicate_key(profile_id: str) -> str:
+    """The key two documents collide on, which is broader than the key they load under.
+
+    Two ids differing only in case are one id to the reader the duplicate check exists
+    for: it is there so that nobody has to work out which of two similar documents won.
+    Folding is not a *superset* of comparing declared ids, though, and does not replace
+    it: ``True`` and ``1`` fold to different strings while being one dict key, so both
+    loaders guard on both key spaces. What folding cannot do is widen what an id
+    *matches*, because the mapping a run reads is still keyed by the exact declared
+    string — a lookup must keep answering to the exact id it was given.
+
+    ``str()`` because a document can declare a non-string id, and refusing that is a
+    different question from this one.
+    """
+    return str(profile_id).casefold()
+
+
 def load_profile_library(directory: Path | str = DEFAULT_PROFILES_DIR) -> ProfileLibrary:
-    """Load every ``*.json`` profile in a directory through the one shared path."""
+    """Load every reviewed creator profile in a directory, keyed by declared id.
+
+    Which files are candidates is :func:`_reviewed_profile_paths`' decision, and it is
+    the same decision on every operating system — the reviewed set of *dedicated*
+    profiles is what distinguishes a reviewed creator from a long-tail one, so a
+    profile that is present locally and absent in CI silently downgrades a creator.
+
+    A duplicate id is refused for the same reason it is in
+    :func:`~modeltree_updater.longtail.load_long_tail_library`: a caller asks for a
+    creator by id and :class:`ProfileLibrary` answers exactly, so two documents
+    answering to one id would make that answer depend on how the asker spelled it.
+    """
     directory = Path(directory)
     if not directory.is_dir():
         raise FileNotFoundError(f"profiles directory not found: {directory}")
 
     profiles: dict[str, CreatorProfile] = {}
-    for path in sorted(directory.glob("*.json")):
+    sources: dict[Any, tuple[str, Path]] = {}
+    for path in _reviewed_profile_paths(directory, kind="a reviewed creator profile"):
         profile = load_profile(path)
-        if profile.creator_id in profiles:
+        key = _duplicate_key(profile.creator_id)
+        # Neither key space contains the other. Folding catches 'x' against 'X'; the
+        # declared id catches ids that fold apart but are one dict key, such as True
+        # and 1, which plain dict equality already refused and which folding alone
+        # would let overwrite in silence.
+        if key in sources or profile.creator_id in profiles:
+            twin_id, twin_path = sources.get(key) or sources[profile.creator_id]
+            reason = (
+                "an id has to name exactly one reviewed profile, because a caller asks "
+                "for a creator by id and the library answers to that exact string"
+            )
+            if twin_id != profile.creator_id:
+                reason = f"ids differing only in case are one id here, and {reason}"
             raise ProfileError(
-                f"duplicate creator id {profile.creator_id!r} in {path.name}"
+                f"duplicate creator id {profile.creator_id!r} in {path.name} and "
+                f"{twin_id!r} in {twin_path.name}: {reason}"
             )
         profiles[profile.creator_id] = profile
+        sources[key] = (profile.creator_id, path)
+        # Recorded under the declared id too, so the guard above can name the twin it
+        # found through either key space.
+        sources[profile.creator_id] = (profile.creator_id, path)
     if not profiles:
         raise FileNotFoundError(f"no creator profiles found in {directory}")
     return ProfileLibrary(profiles=profiles)
