@@ -89,7 +89,9 @@ if what merged is fully legible afterwards. Include:
 - **Conflicts** — both sides quoted, left explicit and unresolved.
 - **Deterministic gate output** — including passes, so a missing gate is visible.
 - **The approved-source decision** — its own section, not a line in the gate
-  output dump. Give `gate-source-approval.mjs`'s exit status, the number of
+  output dump. Give `gate-source-approval.mjs`'s exit status, **the anchor
+  commit and how it was chosen** (`anchor.commit` and `anchor.selectedBy` — for
+  a normal run, the merge base with `refs/remotes/origin/main`), the number of
   approved origins it anchored on and where they came from
   (`anchors.datasetSources` / `anchors.profileCatalogues`), every source cited
   split into **inherited** (already in the dataset) and **proposed** (added by
@@ -97,7 +99,8 @@ if what merged is fully legible afterwards. Include:
   is the one part of the body that says which sources the run was *allowed* to
   trust, as opposed to which ones it used. Without it a reader can see every
   quote and still not know whether anybody had ever vouched for the page it came
-  from.
+  from. The anchor line matters as much as the rest: it is what shows the run was
+  judged against reviewed history rather than against its own commit.
 - **Budgets and incompleteness** — pages fetched, budgets hit, sources that
   failed to load.
 - **Provenance footer** — run id, skill versions, and that no human reviewed it.

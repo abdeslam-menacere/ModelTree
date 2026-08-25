@@ -43,9 +43,10 @@ node .github/skills/modeltree-gates/scripts/gate-dataset.mjs --json
 node .github/skills/modeltree-gates/scripts/gate-scope.mjs --json
 ```
 
-Keep the JSON from step 2. Its `anchors`, `inheritedSources`, and
+Keep the JSON from step 2. Its `anchor`, `anchors`, `inheritedSources`, and
 `proposedSources` are what the pull request body has to carry, and they are the
-only place a later reader can see which origins the run was allowed to trust.
+only place a later reader can see which origins the run was allowed to trust —
+and, in `anchor.selectedBy`, that the run did not pick that anchor for itself.
 
 Then the final hard gate, which is not in this skill because it belongs to the
 site and always has:
@@ -88,7 +89,13 @@ It reads the same bundle and refuses:
   profile catalogue and no source already in the dataset stands behind — whatever
   the panel voted;
 - an existing source repointed at such an origin;
-- evidence read from one origin and filed under a source that is another.
+- evidence read from one origin and filed under a source that is another;
+- a bundle whose shape hides the answer: a claim that is not an object, a claim
+  with no `evidence` array, or an evidence entry that is not an object. A missing
+  `sourceId` already refuses, so silently skipping a missing `evidence` would
+  make absence the most permissive input in a gate about what a run leaves out.
+  An explicitly empty `evidence: []` is a different thing and is
+  `gate-evidence.mjs`'s to judge.
 
 Why it exists at all, given `gate-dataset.mjs` and `npm run validate` both check
 citations: they check them *referentially*, and `sources.json` is a document the
@@ -97,12 +104,25 @@ satisfies referential integrity perfectly while citing something nobody approved
 Referential integrity proves the citation resolves; it cannot prove the thing
 cited was ever trusted.
 
-Both of its anchors are things the run cannot write. The dataset anchor is read
-from git at `--base` (default `HEAD`), never from the working tree — the working
-tree is what the run is about to write, so reading the file on disk would let a
-run apply its own patch and then be approved by it. The catalogue anchor is
-`tools/updater/profiles/**/*.json`, which `gate-scope.mjs` forbids a refresh to
-touch at all.
+Both of its anchors are things the run cannot write, and **which commit they are
+read at is not the run's choice either**. The dataset anchor is read from git,
+never from the working tree — the working tree is what the run is about to write,
+so reading the file on disk would let a run apply its own patch and then be
+approved by it. But `sources.json` is a file the refresh *is* allowed to patch,
+so reading it from git is only safe at a commit the run did not author: the gate
+computes that itself as `git merge-base HEAD refs/remotes/origin/main`, the point
+this branch left published history. Committing a source and then invoking the
+gate moves `HEAD` but not the merge base, so commit-then-gate is refused exactly
+as patch-then-gate is. The catalogue anchor is `tools/updater/profiles/**/*.json`,
+which `gate-scope.mjs` forbids a refresh to touch at all.
+
+`--base` is optional and can only **narrow**. It has to name an ancestor of that
+merge base, so it can pin something older and reviewed — useful for re-gating an
+older bundle — but can never select a commit this branch authored. Anything else,
+`HEAD` included, exits 2. Do not reach for it in a normal run: the gate is
+already anchored correctly without it. If `refs/remotes/origin/main` is missing,
+as in a shallow or single-branch clone, the gate exits 2 rather than guessing;
+fetch `main` first.
 
 Trust attaches to an origin, not to a URL, exactly as `is_newly_discovered` does
 on the Python side. `sources.json` holds one record per page, so a new
@@ -152,10 +172,14 @@ for a human: stop, and file an issue describing what it needed and why.
 node --test .github/skills/modeltree-gates/scripts/gates.test.mjs
 ```
 
-53 tests. Every rule is proved to fire by breaking the data in exactly the way
+63 tests. Every rule is proved to fire by breaking the data in exactly the way
 that rule exists to catch, and the live repository dataset is asserted to pass —
 so the suite fails both when a gate goes blind and when a gate goes paranoid.
-Run it after any change to these scripts.
+The `gate-source-approval` cases build a throwaway git repository with its own
+published `refs/remotes/origin/main`, because the anchor is defined against
+published history and a CI checkout does not always have that ref; the dataset
+they anchor on is the real one, copied in. Run it after any change to these
+scripts.
 
 ## Rules
 

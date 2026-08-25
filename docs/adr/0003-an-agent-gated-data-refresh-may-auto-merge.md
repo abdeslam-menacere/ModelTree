@@ -125,16 +125,27 @@ which this document can apply to itself:
    policy-lives-outside-the-repository cost below.
 2. The skill set's deterministic gates enforce the approved-source binding above.
    **Satisfied** by #167, which added
-   `.github/skills/modeltree-gates/scripts/gate-source-approval.mjs` and ten
+   `.github/skills/modeltree-gates/scripts/gate-source-approval.mjs` and twenty
    self-tests, including the probe that found the hole: a fabricated source on an
    unrelated domain, cited from a real release, which used to pass every gate and
    is now refused. What closed it, precisely, is that the gate's two trust anchors
-   are things a run cannot write — the committed `web/src/data/sources.json` read
-   from git at the base ref, and the `source_catalog` entries in
-   `tools/updater/profiles/`, which the qualifying class forbids a refresh to
-   touch. Reading `sources.json` from the working tree instead would have moved
-   the circularity rather than closing it, since the working tree is what the run
-   is about to write; a self-test asserts the committed blob is what counts.
+   are things a run cannot write — the committed `web/src/data/sources.json`, and
+   the `source_catalog` entries in `tools/updater/profiles/`, which the qualifying
+   class forbids a refresh to touch. Reading `sources.json` from the working tree
+   instead would have moved the circularity rather than closing it, since the
+   working tree is what the run is about to write; a self-test asserts the
+   committed blob is what counts.
+
+   **Which** commit it is read at is the same question a second time, and #167's
+   review caught the gate getting it wrong: reading the committed blob at a ref
+   the *caller* names, defaulting to `HEAD`, left a run able to commit its source
+   first and then be approved by its own commit — the gate reported it as
+   inherited trust. The anchor is now computed rather than supplied, as the merge
+   base with `refs/remotes/origin/main`, which a commit on the run's branch cannot
+   move. The lesson generalises beyond this gate: an anchor is only as
+   unforgeable as the weakest step in selecting it, and a default is a selection.
+   Where a gate reads is as load-bearing as what it reads, and neither may be the
+   run's to choose.
 3. Review thresholds are per-profile as stated above, not flat. **Satisfied** —
    `gate-evidence.mjs` carries `THRESHOLDS = { pilot: 2, 'long-tail': 3 }`,
    refuses a bundle that omits `policy` rather than defaulting to the looser bar,
