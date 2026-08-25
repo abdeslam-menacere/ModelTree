@@ -30,6 +30,7 @@ from .checkpoints import (
 )
 from .contracts import ProposalStatus, RunReport
 from .github_issues import DEFAULT_API_URL, GitHubError, RestIssuesClient
+from .layout import source_checkout_dir
 from .longtail import DEFAULT_LONG_TAIL_PROFILE_ID, reviewed_long_tail_profile
 from .parsing import ArtifactError, load_run_report
 from .providers.base import ProviderBundle, ProviderError
@@ -82,11 +83,17 @@ def source_checkout_fixtures(module_file: Path | str = __file__) -> Path | None:
     fail with a path no human wrote (#139), so the layout is checked rather than
     assumed: only a package whose parent directory is the ``src`` of this
     project has a default, and everywhere else ``--fixtures`` is required.
+
+    The check itself is :func:`~modeltree_updater.layout.source_checkout_dir`,
+    which is also what the profiles defaults resolve through. Same behaviour as
+    when it was written out here, and now one implementation: the reason those
+    two constants still carried the original guess after #139 is that the rule
+    lived at its call site, where nothing related the copies (#147).
     """
-    package_dir = Path(module_file).resolve().parent
-    if package_dir.parent.name != "src":
+    project_dir = source_checkout_dir(module_file)
+    if project_dir is None:
         return None
-    return package_dir.parents[1] / "fixtures" / "creators"
+    return project_dir / "fixtures" / "creators"
 
 
 DEFAULT_FIXTURES = source_checkout_fixtures()
@@ -229,7 +236,12 @@ def build_parser() -> argparse.ArgumentParser:
         dest="profiles_dir",
         type=Path,
         default=DEFAULT_PROFILES_DIR,
-        help="directory of creator profile files",
+        help=(
+            "directory of creator profile files. Defaults to the repository's "
+            "tools/updater/profiles when the CLI runs from a checkout, and is "
+            "required otherwise because the reviewed profiles are repository data "
+            "and are not shipped in the installed distribution."
+        ),
     )
     profiles.add_argument(
         "--json",

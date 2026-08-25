@@ -24,9 +24,11 @@ from typing import Any, Mapping, Sequence
 from urllib.parse import urlsplit
 
 from .contracts import CreatorRequest, SourceKind, _Serialisable
+from .layout import source_checkout_dir
 
 __all__ = [
     "DEFAULT_PROFILES_DIR",
+    "PROFILES_ARE_REPOSITORY_DATA",
     "CreatorProfile",
     "ExtractionRules",
     "NamingRule",
@@ -37,11 +39,41 @@ __all__ = [
     "load_profile",
     "load_profile_library",
     "origin_of",
+    "source_checkout_profiles",
 ]
 
 # Profiles live beside the offline fixtures: reviewable, version-controlled data that
-# the tool reads, never bytes it writes.
-DEFAULT_PROFILES_DIR = Path(__file__).resolve().parents[2] / "profiles"
+# the tool reads, never bytes it writes. They are deliberately not packaged, for a
+# reason of this project's own rather than a packaging preference — a profile decides
+# which sources are trusted and what may be extracted from them, so a copy inside a
+# wheel could disagree with the reviewed set in the repository and nothing would say
+# which one a run had used. The consequence is that a default only exists when the
+# updater runs out of a checkout, and an installed distribution must be told where the
+# repository is. #147.
+PROFILES_ARE_REPOSITORY_DATA = (
+    "hint: creator profiles are reviewed, version-controlled repository data, so "
+    "they are deliberately not packaged into the modeltree-updater distribution, "
+    "because a packaged copy could drift from the reviewed set. They live in the "
+    "repository at tools/updater/profiles. Pass --profiles with a path to that "
+    "directory (from tools/updater in a checkout: --profiles profiles)."
+)
+
+
+def source_checkout_profiles(module_file: Path | str = __file__) -> Path | None:
+    """The reviewed creator profiles directory, or ``None`` when there is not one.
+
+    The same layout check the fixtures default resolves through, applied to the
+    other directory this repository keeps outside the wheel — see
+    :func:`~modeltree_updater.layout.source_checkout_dir` for why the walk to
+    ``tools/updater`` is a question rather than an answer.
+    """
+    project_dir = source_checkout_dir(module_file)
+    if project_dir is None:
+        return None
+    return project_dir / "profiles"
+
+
+DEFAULT_PROFILES_DIR = source_checkout_profiles()
 
 
 class ProfileError(ValueError):
@@ -353,7 +385,9 @@ def _duplicate_key(profile_id: str) -> str:
     return str(profile_id).casefold()
 
 
-def load_profile_library(directory: Path | str = DEFAULT_PROFILES_DIR) -> ProfileLibrary:
+def load_profile_library(
+    directory: Path | str | None = DEFAULT_PROFILES_DIR,
+) -> ProfileLibrary:
     """Load every reviewed creator profile in a directory, keyed by declared id.
 
     Which files are candidates is :func:`_reviewed_profile_paths`' decision, and it is
@@ -365,10 +399,22 @@ def load_profile_library(directory: Path | str = DEFAULT_PROFILES_DIR) -> Profil
     :func:`~modeltree_updater.longtail.load_long_tail_library`: a caller asks for a
     creator by id and :class:`ProfileLibrary` answers exactly, so two documents
     answering to one id would make that answer depend on how the asker spelled it.
+
+    ``None`` is the installed distribution, which has no default because the profiles
+    are not in the wheel. It is refused with the flag to pass and the directory in the
+    repository to point it at, never with the path the old guess would have produced:
+    a prefix path nobody wrote is reported as if someone had asked for it (#147).
     """
+    if directory is None:
+        raise FileNotFoundError(
+            "no creator profiles directory: this updater is running from an "
+            f"installed distribution, which has no default.\n{PROFILES_ARE_REPOSITORY_DATA}"
+        )
     directory = Path(directory)
     if not directory.is_dir():
-        raise FileNotFoundError(f"profiles directory not found: {directory}")
+        raise FileNotFoundError(
+            f"profiles directory not found: {directory}\n{PROFILES_ARE_REPOSITORY_DATA}"
+        )
 
     profiles: dict[str, CreatorProfile] = {}
     sources: dict[Any, tuple[str, Path]] = {}
@@ -397,5 +443,7 @@ def load_profile_library(directory: Path | str = DEFAULT_PROFILES_DIR) -> Profil
         # found through either key space.
         sources[profile.creator_id] = (profile.creator_id, path)
     if not profiles:
-        raise FileNotFoundError(f"no creator profiles found in {directory}")
+        raise FileNotFoundError(
+            f"no creator profiles found in {directory}\n{PROFILES_ARE_REPOSITORY_DATA}"
+        )
     return ProfileLibrary(profiles=profiles)
