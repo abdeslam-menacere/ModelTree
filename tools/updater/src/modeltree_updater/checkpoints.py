@@ -58,10 +58,13 @@ Increment it whenever a checkpoint written by the current build would be
 misread by an older one, or the reverse — a message field added, removed, or
 given a new meaning; a type added to `ALLOWED_CHECKPOINT_TYPES`; a change to
 what a stage puts in `budget_state`. It is deliberately not tied to
-`TOOL_VERSION`: the tool can be released without the checkpointed state changing
-shape, and that release should not invalidate work in flight for no reason. Both
-are recorded because they answer different questions — *which code* wrote this,
-and *which shape* it wrote.
+`TOOL_VERSION`, which moves on every release whether the shape changed or not.
+Keeping them apart does **not** spare work in flight: `resume` compares both and
+refuses if either differs, so a resume across a release that left the shape
+untouched is still refused, with this number identical on either side. What it
+buys is that the refusal can say *which* fact moved — the code that adjudicated
+the run, or the shape of the state itself — and that a migration, if one is ever
+written, has a number to key on that does not move on an unrelated release.
 """
 
 
