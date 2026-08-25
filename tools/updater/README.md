@@ -452,7 +452,20 @@ GITHUB_TOKEN=<token with issues:write> \
 ```
 
 `--repo` defaults to `$GITHUB_REPOSITORY`. The dry run prints the title and the byte-exact
-body that a real publication would send.
+body that a real publication would send, preceded by one line naming the repository it
+*would* have published to and where that name came from:
+
+```
+dry run: would publish to owner/name (from --repo)
+dry run: would publish to owner/name (from GITHUB_REPOSITORY)
+dry run: no destination named; a real publication would need --repo or GITHUB_REPOSITORY
+```
+
+A dry run still needs no repository — the third line is not an error, and the payload is
+rendered either way. The destination is reported as given: it is neither validated nor
+contacted, because a dry run holds no credentials and reaches no network to check it
+against. It sits outside the `=== <creator>: dry run, nothing was sent ===` block, so
+naming a repository adds a line and changes nothing about the payload itself.
 
 ### One issue per creator
 
