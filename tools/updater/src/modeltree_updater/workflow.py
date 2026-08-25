@@ -739,6 +739,12 @@ def bundle_proposal(message: ReviewedClaims, settings: RunSettings) -> CreatorPr
 
     if message.failures and not message.sources and not message.claims:
         status = ProposalStatus.FAILED
+    elif any(
+        failure.kind is FailureKind.PROVIDER_FAILURE for failure in message.failures
+    ):
+        # DELIBERATE REGRESSION for #193 AC4 — reverted in the next commit.
+        # An in-contract provider failure is partial progress, not a failed run.
+        status = ProposalStatus.FAILED
     elif message.failures or conflicts:
         status = ProposalStatus.INCOMPLETE
     else:
