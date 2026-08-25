@@ -294,6 +294,13 @@ def test_a_pilot_is_checkpointed_and_resumed_inside_a_multi_creator_run(
     the resumed proposal reproduces the original's claims and verdicts — but from a
     storage four creators wrote to, which is the shape a real multi-creator run
     leaves behind.
+
+    That "four creators wrote to it" is the premise the rest of the test rests on,
+    so it is asserted rather than left true by construction. Nothing downstream can
+    see it: `owned` is the *filtered* view, so a regression that stopped
+    checkpointing the other three creators would leave `resumed.creator_id`,
+    `.status`, `.claims` and `.verdicts` all still true while this test quietly
+    became indistinguishable from a single-creator one.
     """
     storage = create_checkpoint_storage(tmp_path / "checkpoints")
 
@@ -305,20 +312,45 @@ def test_a_pilot_is_checkpointed_and_resumed_inside_a_multi_creator_run(
             checkpoint_storage=storage,
         )
         owned = []
+        # Every creator the shared storage can be shown to hold a checkpoint for,
+        # collected from the same unfiltered walk that `owned` is narrowed out of.
+        # `None` is the checkpoint written after the final superstep, which has no
+        # message left to name a creator — see `checkpoints._recorded_creator_id`.
+        attributed = set()
         for checkpoint in await _checkpoints(storage):
             creator_id = await _checkpoint_creator_id(storage, checkpoint.checkpoint_id)
+            if creator_id is not None:
+                attributed.add(creator_id)
             if creator_id == RESUMED_PILOT:
                 owned.append(checkpoint)
         if not owned:
-            return report, owned, None
+            return report, owned, attributed, None
         resumed = await resume_creator_run(
             settings,
             checkpoint_id=owned[0].checkpoint_id,
             checkpoint_storage=storage,
         )
-        return report, owned, resumed
+        return report, owned, attributed, resumed
 
-    report, owned, resumed = asyncio.run(scenario())
+    report, owned, attributed, resumed = asyncio.run(scenario())
+
+    # The premise, asserted against the unfiltered storage before the filtered
+    # `owned` is relied on for anything.
+    #
+    # All four rather than "at least two", because all four completing is what this
+    # run actually establishes — `test_all_four_pilots_go_through_the_multi_creator_path_in_one_run`
+    # asserts `failed_creator_ids == ()` over the same call — so "at least two" would
+    # still pass a regression that stopped checkpointing two of the four.
+    #
+    # The *set* rather than a count: four checkpoints belonging to one creator
+    # satisfy a count, which is this same weakness one level down.
+    assert attributed == set(PILOT_CREATORS), (
+        f"the shared storage holds checkpoints for {sorted(attributed)}, not for all "
+        f"four pilots {sorted(PILOT_CREATORS)}, so this is not the multi-creator run "
+        f"the rest of this test reads it as — and {len(owned)} checkpoint(s) for "
+        f"{RESUMED_PILOT} were still found, which is exactly why no assertion below "
+        "can catch it"
+    )
 
     assert owned, f"the multi-creator run wrote no checkpoint for {RESUMED_PILOT}"
     original = _by_creator(report)[RESUMED_PILOT]
