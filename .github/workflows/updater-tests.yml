@@ -17,6 +17,14 @@ on:
       # And it asserts the behaviour of the instruction-reference checker, which
       # lives outside tools/updater because it is not an updater concern.
       - 'tools/instruction_refs/**'
+      # Same arrangement for the ADR number checker and the workflow that runs
+      # it, whose structure the suite also asserts. `docs/adr/**` is here
+      # because the suite checks the committed decision records themselves: a
+      # pull request that lands a colliding number must turn this red too, not
+      # only the dedicated workflow.
+      - 'tools/adr_numbers/**'
+      - '.github/workflows/adr-numbers.yml'
+      - 'docs/adr/**'
   push:
     branches:
       - main
@@ -25,6 +33,9 @@ on:
       - '.github/workflows/updater-tests.yml'
       - '.github/workflows/publish-updater-proposals.yml'
       - 'tools/instruction_refs/**'
+      - 'tools/adr_numbers/**'
+      - '.github/workflows/adr-numbers.yml'
+      - 'docs/adr/**'
   workflow_dispatch:
 
 permissions:
