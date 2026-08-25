@@ -80,9 +80,12 @@ take the real `web/` out of scope. Outside any checkout — `--output ~/proposal
 data there to protect. An export that kept the source layout is not part of that gap:
 `drydock.config.json`, `tools/updater/pyproject.toml` and `web/src/data` are tracked
 files, so a `git archive` or a source zip carries three of the four markers and is
-detected even with no `.git`. The residual is narrower — a tree holding a `web/`
-directory while carrying none of the four markers: a hand-assembled copy, a partial
-extract that took only `web/`, or a `web/` directory belonging to an unrelated project.
+detected even with no `.git`. The residual is narrower still than "a stray copy of
+`web/`" suggests, because `web/src/data` is itself one of the markers: a faithful copy
+of `web/` brings that marker along and is detected one level up. What is left is a
+`web/` directory carrying none of the four — one belonging to an unrelated project
+that is not a git checkout, or a partial copy of this repository's `web/` that did not
+bring `src/data` with it, such as an assets-only extract or a copy of the build output.
 
 Making `.git` a marker also widened the guard's reach, and that is intended rather than
 a bug. `--output` anywhere under any git repository's `web/` is refused, including
