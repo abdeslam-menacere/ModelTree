@@ -119,10 +119,9 @@ core of the product.
 - Do not edit `.drydock/docks/*.json` by hand. Do not hand-write a gate receipt
   into a PR body.
 - A verdict may be recorded by an agent, attributed `agent:<role>` via the
-  `DRYDOCK_ACTOR` environment variable. (Set that variable; do not substitute
-  a `drydock gate` flag such as `--as` for it. What flags that command accepts
-  is what `drydock gate --help` reports, and where the CLI is absent nothing
-  does, so do not assume an unrecognised flag is harmless.) It is only worth
+  `DRYDOCK_ACTOR` environment variable. (Set that variable. Whether a flag
+  such as `--as` is also accepted is what `drydock gate --help` reports, so do
+  not assume an unrecognised flag is harmless.) It is only worth
   something if the reviewer and QA agents never saw the developer's summary or
   session — issue text and `git diff` only. Do not review your own work.
 
