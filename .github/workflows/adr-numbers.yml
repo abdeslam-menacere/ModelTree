@@ -24,6 +24,7 @@ on:
   push:
     branches:
       - main
+      - abdeslam-menacere-adr-number-collision-check
     paths:
       - 'docs/adr/**'
       - 'tools/adr_numbers/**'
