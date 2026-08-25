@@ -38,7 +38,7 @@ truth.
 
 Complete historical coverage at launch · live API monitoring · original
 large-scale benchmark runs · a proprietary universal score · user accounts ·
-unreviewed automatic ingestion.
+ingestion without sources, review, and gates.
 
 ## Quick start
 
@@ -67,6 +67,7 @@ web/               the Astro site
   src/pages/       routes, including generated Model Passport pages
   src/lib/         data loading, validation, URL state
 tools/updater/     proposal-only data updater (Python, run separately)
+.github/skills/    the agent skills that refresh the data end to end
 docs/product/      product brief, information architecture, backlog
 docs/adr/          architecture decision records
 .github/           agent contracts, issue forms, workflows
@@ -78,8 +79,23 @@ the point of principle 8.
 
 [`tools/updater/`](tools/updater/README.md) is a separate Python tool that only
 *proposes* sourced updates for a human to review. It cannot write dataset JSON,
-create a branch, or open a pull request, which keeps principle 8 and the "no
-unreviewed automatic ingestion" not-goal intact.
+create a branch, or open a pull request.
+
+### Keeping the data current
+
+`refresh ModelTree data`, said once, runs the whole loop:
+[`.github/skills/`](.github/skills/README.md) researches every creator from
+primary sources, has three independent reviewers judge each claim, applies
+deterministic gates that no majority can outvote, and opens a pull request that
+merges itself once CI is green — after which the site deploys. It also runs on a
+daily schedule.
+
+That is genuinely automatic ingestion, and it narrows principle 8: a data change
+is still a reviewable pull request carrying every quote, hash, and verdict, but
+no human approves it before it merges. Only the nine dataset JSON documents may
+change that way; anything else stops the run and files an issue.
+[ADR 0003](docs/adr/0003-unattended-data-refresh-may-auto-merge.md) records the
+decision and is honest about what it costs.
 
 ## Contributing
 
