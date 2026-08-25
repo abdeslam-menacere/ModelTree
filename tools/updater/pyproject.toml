@@ -31,6 +31,18 @@ modeltree-updater = "modeltree_updater.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/modeltree_updater"]
+# Only the package. `fixtures/` and `profiles/` are deliberately absent: the
+# fixtures are synthetic pages that exist to exercise the pipeline offline, so
+# they are test data rather than distribution data and a production artefact
+# must not be able to run against fabricated sources by accident. Callers that
+# want them pass `--fixtures` at a checkout. Checked by building wheels: while
+# `packages` is set, the options that would ship the fixtures are
+# `only-include`, `force-include`, `shared-data` and widening `packages`
+# itself — 12 fixture files each — whereas `include` and `artifacts` ship none,
+# because `packages` has already narrowed what they select from. Widening a key
+# that is already permitted adds no key to notice, so
+# `tests/test_installed_layout.py` pins this whole table by equality rather
+# than by a list of forbidden names. See #139.
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

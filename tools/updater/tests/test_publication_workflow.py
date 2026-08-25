@@ -147,6 +147,49 @@ def test_the_workflow_runs_the_publisher_through_the_cli(job) -> None:
     assert "modeltree_updater publish" in scripts
 
 
+def test_the_run_step_points_the_installed_updater_at_the_checkout_fixtures(
+    workflow, job
+) -> None:
+    """#139: the wheel does not carry fixtures, so the checkout has to supply them.
+
+    The path is resolved rather than merely matched. A `--fixtures` flag naming a
+    directory that is not in the repository is the same failure this fixes, just
+    with a different string in the log.
+    """
+    steps = [step for step in job["steps"] if "modeltree_updater run" in step.get("run", "")]
+    assert len(steps) == 1, "one place decides how the updater is invoked"
+
+    match = re.search(r'--fixtures\s+"?([^"\s\\]+)"?', steps[0]["run"])
+    assert match, "the run step passes --fixtures explicitly"
+
+    declared = match.group(1).replace("$GITHUB_WORKSPACE", str(REPO_ROOT))
+    resolved = Path(declared)
+    if not resolved.is_absolute():
+        working_directory = workflow.get("defaults", {}).get("run", {}).get(
+            "working-directory", ""
+        )
+        resolved = REPO_ROOT / working_directory / declared
+
+    assert resolved.is_dir(), f"{declared} is not a directory in this repository"
+    assert list(resolved.glob("*.json")), "the fixtures directory has creator fixtures"
+
+
+def test_the_run_step_supplies_fixtures_in_live_mode_too(job) -> None:
+    """Creator definitions come from the fixture library whatever the sources are.
+
+    `--sources network` changes where pages are fetched from, not where the list
+    of creators comes from, so a `--fixtures` that were conditional on the mode
+    would leave live runs failing exactly the way #139 failed.
+    """
+    step = next(step for step in job["steps"] if "modeltree_updater run" in step.get("run", ""))
+    script = step["run"]
+    conditional = re.search(r'if \[ "\$MODE" = "live" \].*?\nfi', script, re.S)
+
+    assert conditional, "the run step branches on the mode"
+    assert "--fixtures" not in conditional.group(0)
+    assert "--fixtures" in script
+
+
 def test_the_offline_test_workflow_still_needs_no_credentials() -> None:
     """CI must keep passing with no network and no cloud credentials."""
     raw = TESTS_WORKFLOW_PATH.read_text(encoding="utf-8")
