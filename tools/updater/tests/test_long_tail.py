@@ -803,6 +803,26 @@ def test_two_ids_differing_by_more_than_case_are_two_profiles(tmp_path) -> None:
     assert library.ids == ("long-tail-experimental", DEFAULT_LONG_TAIL_PROFILE_ID)
 
 
+def test_two_documents_whose_ids_are_one_dict_key_are_refused(tmp_path) -> None:
+    """Folding does not replace comparing the declared ids, so both are guarded.
+
+    `True` and `1` fold to different strings while being the same dict key. Guarding
+    on the folded key alone would miss the collision and then let the second document
+    overwrite the first, leaving one entry in the library for two documents on disk
+    with nothing said — a silent acceptance, in a change whose whole thesis is that
+    agreeing quietly is the trap. The merge-base refused this pair through plain dict
+    equality; this is the guard that keeps it refused.
+    """
+    _reviewed_profile_file(tmp_path / "first.json", profile_id=True)
+    _reviewed_profile_file(tmp_path / "second.json", profile_id=1)
+
+    with pytest.raises(ProfileError) as error:
+        load_long_tail_library(tmp_path)
+
+    assert "duplicate" in str(error.value)
+    assert "first.json" in str(error.value)
+
+
 def test_resolution_still_matches_the_recorded_id_exactly(tmp_path) -> None:
     """The narrow question is the duplicate check. The lookup must stay exact.
 
