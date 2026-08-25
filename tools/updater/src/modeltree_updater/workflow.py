@@ -145,7 +145,7 @@ class RunSettings:
 
     def ledger(self, state: Any) -> BudgetLedger:
         if self.clock is None:
-            return BudgetLedger.from_state(self.budget, state or {})
+            return BudgetLedger.from_state(self.budget, {})
         return BudgetLedger.from_state(self.budget, state or {}, clock=self.clock)
 
 
