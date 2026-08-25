@@ -240,6 +240,116 @@ def test_rendering_the_same_artefact_twice_is_byte_identical(
     assert render_body(proposal) == render_body(proposal)
 
 
+# ---------------------------------------------------------------------------
+# measured time never reaches the body
+#
+# Rendering the same *object* twice, above, cannot catch a wall-clock value: the
+# measurement is frozen into the proposal before rendering starts. What has to be
+# pinned is that two executions of one run, whose measured elapsed times differ,
+# still produce the same bytes. These force that difference rather than racing
+# for it.
+# ---------------------------------------------------------------------------
+
+
+# Windows' monotonic clock ticks at ~15.6 ms, so two executions of one run land
+# on adjacent ticks. That is the granularity that surfaced this.
+WINDOWS_TIMER_TICK = 0.015625
+
+# Elapsed values chosen to fall in different buckets under every plausible way of
+# printing measured time: raw, two decimal places, whole seconds, whole minutes.
+ELAPSED_SPREAD = (0.0, WINDOWS_TIMER_TICK, 0.9, 1.0, 59.4, 119.999)
+
+
+def _with_elapsed(proposal, seconds: float):
+    """The same proposal with only its measured elapsed time changed."""
+    return dataclasses.replace(
+        proposal,
+        budget=dataclasses.replace(proposal.budget, elapsed_seconds=seconds),
+    )
+
+
+def _stopped_clock(at: float = 1000.0):
+    return lambda: at
+
+
+def _ticking_clock(step: float = WINDOWS_TIMER_TICK, start: float = 1000.0):
+    """A `time.monotonic` stand-in that advances one timer tick per read."""
+    state = {"now": start}
+
+    def clock() -> float:
+        now = state["now"]
+        state["now"] = now + step
+        return now
+
+    return clock
+
+
+def test_the_budget_section_prints_the_time_limit_and_no_measured_time(
+    proposal_factory,
+) -> None:
+    """Pinned as an exact row, so a timing value cannot be slipped back into it.
+
+    The limit stays: a run stopped by it has to be readable against something.
+    """
+    proposal = proposal_factory(MATERIAL)
+    body = render_body(_with_elapsed(proposal, 47.31597))
+
+    assert f"| seconds | _not rendered_ | {proposal.budget.max_seconds:g} |" in body
+    assert "47.31597" not in body
+    assert "47.32" not in body
+    assert "47.3" not in body
+
+
+def test_the_body_is_identical_however_long_the_run_took(proposal_factory) -> None:
+    """The property the existing no-churn test could only sample.
+
+    Every value here would print differently under any scheme that renders or
+    quantises measured time, so this fails if a timing-derived value is
+    reintroduced in any form — including a bucketed one.
+    """
+    proposal = proposal_factory(MATERIAL)
+
+    bodies = {render_body(_with_elapsed(proposal, s)) for s in ELAPSED_SPREAD}
+
+    assert len(bodies) == 1
+
+
+def test_two_renders_one_windows_timer_tick_apart_are_byte_identical(
+    proposal_factory,
+) -> None:
+    """The reported case exactly: `0.00` against `0.02` at two decimal places.
+
+    Linux's clock is fine-grained enough to hide this most of the time, which is
+    why it is asserted here rather than left to be observed.
+    """
+    proposal = proposal_factory(MATERIAL)
+
+    assert render_body(_with_elapsed(proposal, 0.0)) == render_body(
+        _with_elapsed(proposal, WINDOWS_TIMER_TICK)
+    )
+
+
+def test_a_run_stopped_by_the_time_limit_still_says_so(proposal_factory) -> None:
+    """Not printing the measurement must not hide the enforcement.
+
+    The ledger keeps measuring elapsed time and keeps stopping a run that
+    overruns; the body has to keep reporting that it did.
+    """
+    proposal = proposal_factory(MATERIAL)
+    overrun = dataclasses.replace(
+        proposal,
+        budget=dataclasses.replace(
+            proposal.budget, elapsed_seconds=120.5, exhausted_by=("seconds",)
+        ),
+    )
+
+    body = render_body(overrun)
+
+    assert "**Exhausted:** `seconds`" in body
+    assert f"| seconds | _not rendered_ | {proposal.budget.max_seconds:g} |" in body
+    assert "120.5" not in body
+
+
 def test_rendering_survives_a_json_round_trip_unchanged(proposal_factory) -> None:
     proposal = proposal_factory(MATERIAL)
     restored = proposal_from_dict(proposal.to_dict())
@@ -596,6 +706,34 @@ def test_re_rendering_the_same_run_adds_no_comment_and_no_churn(
 
     outcome = publish_proposal(proposal_factory(MATERIAL, run_id="run-b"), client)
 
+    assert outcome.superseded_run is None
+    assert len(client.comments) == 1
+    assert client.issues[0].body == after_replacement
+    assert "| Supersedes run | `run-a` |" in client.issues[0].body
+
+
+def test_re_publishing_a_run_that_took_longer_adds_no_comment_and_no_churn(
+    proposal_factory, fake_issues_client
+) -> None:
+    """The test above, with the clock controlled instead of raced.
+
+    Two executions of run `run-b`: one against a stopped clock, one against a
+    clock that advances a Windows timer tick per read. Their measured elapsed
+    times genuinely differ — asserted, not assumed — and the published issue must
+    still be byte-identical with no second supersession comment. This is what the
+    test above can only get by luck, and got wrong a few percent of the time.
+    """
+    client = fake_issues_client()
+    publish_proposal(proposal_factory(MATERIAL, run_id="run-a"), client)
+
+    instant = proposal_factory(MATERIAL, run_id="run-b", clock=_stopped_clock())
+    publish_proposal(instant, client)
+    after_replacement = client.issues[0].body
+
+    slow = proposal_factory(MATERIAL, run_id="run-b", clock=_ticking_clock())
+    outcome = publish_proposal(slow, client)
+
+    assert instant.budget.elapsed_seconds != slow.budget.elapsed_seconds
     assert outcome.superseded_run is None
     assert len(client.comments) == 1
     assert client.issues[0].body == after_replacement
