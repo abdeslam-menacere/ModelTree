@@ -1,0 +1,217 @@
+# ADR 0003: An Agent-Gated Data Refresh May Auto-Merge and Publish
+
+- Status: Accepted
+- Date: 2026-08-25
+- Decision owners: ModelTree maintainers
+- Supersedes: nothing. It narrows the invariant stated in
+  `.github/copilot-instructions.md` §"The invariant" for one class of change, and
+  it reads ADR 0001's guardrail "Do not publish unreviewed facts from automation"
+  as a rule about *review*, not about *humans*. ADR 0001's other guardrail — that
+  branch protection and Pages settings "remain explicit owner actions" — is
+  untouched and is load-bearing here: this decision **requires** settings it
+  deliberately does not apply.
+
+## Context
+
+Every change in this repository lands the same way:
+
+> One issue → one branch → one worktree → one agent → policy-gated merge.
+
+The policy gate at the end of that line is a person. An agent implements, gates
+run, and a maintainer presses merge. Because `pages.yml` deploys on every push to
+`main`, that press is also the publish button: the human merge is the last point
+at which anything reaches the public site.
+
+The requirement decided with the maintainer is a source-backed dataset refresh
+that runs **fully unattended end to end, including deployment** — daily, over the
+widest scope including the long tail, with no per-run claim budget. So this is a
+decision about unattended *publication*, not merely unattended committing.
+
+The obvious candidate is the updater built in #59, and it does not satisfy the
+requirement — for two independent reasons, either of which is sufficient.
+
+- **It refuses to publish, on purpose.** `tools/updater/` proposes; it never
+  writes ModelTree JSON, creates a branch, or opens a pull request, and
+  `tools/updater/tests/test_proposal_only.py` enforces that as a structural
+  property of the source tree rather than a convention. Its publisher workflow,
+  `publish-updater-proposals.yml`, is `workflow_dispatch` only and holds
+  `contents: read, issues: write`, so it cannot commit even if asked. That
+  constraint is deliberate and this ADR does not weaken it.
+- **It has never run end to end.** It is blocked on #93 — no Azure Foundry or
+  Entra configuration exists, and `gh variable list` and `gh secret list` are both
+  empty — and on #139. Fixing both would produce a working *proposal* pipeline,
+  which is the first reason again.
+
+So the requirement needs a different mechanism, not a loosened #59. #146 supplies
+one: a `modeltree-refresh` skill set using Copilot sub-agents as the agent
+runtime, which removes the Foundry dependency entirely. What it cannot supply is
+permission to merge without a human. That is what this ADR grants.
+
+## Decision
+
+**A source-backed dataset refresh produced by the `modeltree-refresh` skill set
+may open a pull request and auto-merge to `main` with no human approval, and
+therefore publish.** Every other change in this repository keeps the unmodified
+invariant, human merge included.
+
+The authorisation is bounded on all four of the following, and a run that cannot
+satisfy any one of them does not merge:
+
+- **Scope.** Only the dataset JSON under `web/src/data/` that `raw.ts` composes.
+  Not `schema.ts`, not `validate.ts`, not components, pages, workflows, repository
+  settings, or `tools/updater/`. A refresh pull request touching anything else is
+  an ordinary change and takes the ordinary path.
+- **Semantic review.** Three reviewer sub-agents with distinct rubrics —
+  provenance and direct source support; cross-source and lineage consistency;
+  editorial correctness and entity-boundary discipline. Each sees the claim and
+  its fetched evidence only: not the scout's rationale, and not another
+  reviewer's verdict. Acceptance is 2-of-3. Every verdict and rationale is carried
+  into the pull request body, so the reasoning is reviewable after the fact even
+  though nobody reviewed it before.
+- **Deterministic gates, which cannot be outvoted.** They run *after* review and
+  no number of accepts overrides one failure: unsafe URLs, malformed records,
+  impossible or future dates, broken entity references, lineage violations,
+  entity-boundary violations, and any attempt to introduce a composite or
+  universal score. The final hard gate is `npm run validate` from `web/` against
+  the patched dataset. A rejected claim is dropped and the remainder re-validated,
+  so a bad claim costs itself and not the run.
+- **GitHub, not the agent, performs the merge.** `gh pr merge --auto --squash`
+  hands the decision to the repository: the merge happens when `web-ci` is green
+  and not before. The skill does not poll and then merge, and it never pushes to
+  `main`. After merge it confirms the Pages deployment and reverts the merge
+  commit if the deploy failed. Every run files a summary issue; a run that changed
+  nothing files one and closes it immediately.
+
+The human is not removed from the loop. They move from approving each claim to
+owning the rules, the required check, and the revert.
+
+## Consequences
+
+### Positive
+
+- The dataset can be as fresh as its sources without anyone being awake, which is
+  the product's entire premise and something a human-merge queue has never
+  actually delivered.
+- Auto-merge *via a pull request* rather than direct commits keeps every change a
+  reviewable diff with an evidence trail attached to it, and a squash merge makes
+  a bad run exactly one commit to revert.
+- Using Copilot sub-agents as the runtime means the mechanism has no credential,
+  no Azure dependency, and no #93.
+- `tools/updater/` is untouched. Its proposal-only guarantee remains true and
+  remains tested; this decision runs alongside it rather than through it.
+
+### Costs
+
+- **The blast radius is the whole dataset, daily, unattended.** The refresh runs
+  every day, over the widest scope, with no per-run claim budget, and merging
+  `main` deploys Pages. So a single wrongly-accepted claim can overwrite a fact a
+  human already verified and publish it to the public site, and the first person
+  who could notice is whoever reads the summary issue afterwards — which, by the
+  design of an unattended system, may be nobody for a long time.
+- **The brakes are real but narrow.** They are: the deterministic gates, which
+  cannot be outvoted; `web-ci` as a required status check, which for these pull
+  requests runs the full build because they touch `web/` by definition; and the
+  revert path. What they cover is *shape*: malformed records, unsafe URLs,
+  impossible dates, dangling references, lineage and entity-boundary violations, a
+  dataset that no longer validates. What they do not cover is *truth*. A claim
+  that is well-formed, carries a real fetched page, a verbatim quote, a
+  plausible-looking source URL, and today's date passes every gate and can still
+  be wrong — misread, superseded, or correct about a different entity. `npm run
+  validate` proves the dataset is internally consistent; it cannot prove it is
+  true. The failure this decision accepts is precisely the one nobody notices:
+  plausible, well-cited, false, and live.
+- **The gates do not distinguish adding a fact from overwriting one.** An
+  agent-accepted value replacing a human-verified one leaves the record
+  structurally identical — `sourceIds` and `verifiedAt` are still present, and now
+  they point at the agent's run. Nothing in the schema records that the previous
+  value had been reviewed by a person.
+- **Two implementations of the same rules will drift, and nothing measures it.**
+  #146 reimplements the deterministic gates inside the skill set rather than
+  sharing one implementation with `tools/updater/`, specifically so that
+  subsystem is not touched. They have already diverged at the moment of writing:
+  `tools/updater/src/modeltree_updater/gates.py` defines `url-safety`,
+  `typed-contract`, `schema-validation`, `date-sanity`, `reference-integrity`,
+  `lineage-invariants`, and `source-approval`, while the skill set's list adds
+  entity-boundary and composite-score checks and names no `source-approval`
+  equivalent. The review thresholds diverge too, and in the direction that
+  matters: #59 carries the threshold as a `ReviewPolicy` and its generic long-tail
+  profile raises acceptance to a unanimous 3-of-3 because far less is known about
+  a creator nobody has reviewed (ADR 0002;
+  `tools/updater/profiles/generic/long-tail.json`), whereas the skill set accepts
+  2-of-3 for every claim — including the long-tail claims the reviewed
+  proposal-only path decided needed unanimity, and these are the ones that
+  auto-merge. Stated plainly rather than smoothed over: the publishing path is
+  the more permissive of the two.
+- **Which is authoritative:** `tools/updater/` is the reviewed statement of these
+  rules, and the skill set's copy is the one that must move when they disagree. A
+  divergence is a bug in the skill set, never a licence to prefer its answer. But
+  the skill set is what actually gates a merge, so until it moves, the divergence
+  is what runs — which is why a disagreement discovered is grounds to disable the
+  automation rather than to open a debate. No test compares the two today.
+- **Policy that governs this repository now lives outside it.** `allow_auto_merge`
+  and `web-ci` as a required check are settings, not files, so they appear in no
+  diff and no gate verifies them. If `web-ci` is ever dropped from branch
+  protection, `--auto` degrades to merge-on-open and nothing in the repository
+  notices. ADR 0001 keeps those as explicit owner actions, so this ADR can require
+  them and cannot enforce them.
+- **A summary issue every run, with no budget, is a stream nobody reads.** The
+  audit trail is only oversight if it is read, and an unattended system is one
+  whose output is by definition unattended.
+- **`web-ci` skips the build when no `web/` file changed.** That is safe here only
+  because the scope restriction above guarantees these pull requests touch
+  `web/src/data/`. It is a restriction, not a mechanism: widen the scope and the
+  required check can report green having verified nothing.
+
+## Alternatives Considered
+
+- **Keep the human merge — file a proposal issue, or open a pull request and wait
+  for approval.** Rejected by the maintainer, who decided the requirement is
+  unattended end to end *including deployment*. A refresh that waits reintroduces
+  exactly the latency the freshness goal exists to remove, and the honest version
+  of "a human approves each claim" in a daily, widest-scope pipeline is a backlog
+  of unread proposals — which is not review, only delay with paperwork.
+- **Auto-merge inside a per-run claim budget, with overflow waiting for a human.**
+  Rejected deliberately, not overlooked. A budget makes *volume* the trigger for
+  human attention when the failure mode that matters is a *single* wrong claim: it
+  sails under any budget, while a large and entirely correct run is held. It also
+  introduces a partially-applied run — some claims merged, the rest queued — whose
+  state must be carried across days. #59 already has a budgets module; this is not
+  the problem it solves.
+- **Fix #93 so `tools/updater` becomes the engine.** Rejected. It requires
+  provisioning Azure Foundry and Entra credentials this repository does not have
+  and does not want to depend on, plus #139 on top, and the result would still be
+  a proposal pipeline: refusing to publish is the tool's point and
+  `test_proposal_only.py` is what makes the refusal true. Making it the publisher
+  means deleting that constraint — a strictly larger and more damaging change to a
+  subsystem that is working exactly as designed.
+- **Let the skills commit to `main` directly and skip the pull request.**
+  Rejected. It is simpler and it removes every brake at once: no required check
+  before publication, no single object to revert, and no place to attach the
+  evidence trail. The pull request is not ceremony here; it is the mechanism.
+
+## Guardrails
+
+- **No escape hatch.** Do not add `--force`, `--skip-gates`, `--yes`, or an
+  environment variable that lets a claim reach a pull request without passing
+  review and every deterministic gate. If a bypass is genuinely needed it belongs
+  in branch protection, where it is auditable.
+- **Do not remove `web-ci` from `main`'s required status checks** while this
+  automation is enabled, and do not add a `paths:` filter to it. It reports on
+  every pull request precisely so it is safe to require; auto-merge without a
+  required check is merge-on-open.
+- **The skills write to `main` by exactly one path: an auto-merged pull request.**
+  No direct push, no contents-API write, no force-push, and no committing to
+  `main` on the grounds that a pull request would obviously have passed.
+- **Gates run after review and cannot be outvoted.** Do not reorder them, and do
+  not let any number of reviewer accepts override a single gate failure.
+- **Do not widen the authorisation beyond dataset JSON under `web/src/data/`.**
+  Schema, validation code, components, workflows, and `tools/updater/` keep the
+  unmodified invariant. Widening this needs a new ADR; turning it off needs
+  nothing.
+- **Do not weaken `tools/updater/`'s proposal-only constraint or its tests on the
+  strength of this decision.** It authorises a different mechanism alongside that
+  one, and says nothing in its favour.
+- **If the skill set's gates and `tools/updater/`'s gates disagree, stop the
+  automation and correct the skill set.** Do not pick whichever answer lets the
+  run continue.
+- **No run skips its summary issue**, including a run that changed nothing.
