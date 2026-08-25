@@ -43,6 +43,11 @@ describe('validateDataset', () => {
     for (const publisher of dataset.publishers) {
       for (const sourceId of publisher.control?.sourceIds ?? []) cited.add(sourceId);
     }
+    // A usage observation is the only citation its sources have when the figure
+    // comes from a platform operator rather than the creator.
+    for (const observation of dataset.usageObservations) {
+      for (const sourceId of observation.sourceIds) cited.add(sourceId);
+    }
     const orphaned = dataset.sources
       .map((source) => source.id)
       .filter((id) => !cited.has(id));

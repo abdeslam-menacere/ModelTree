@@ -366,6 +366,33 @@
     "notes": "Groups Llama 4 under Current and every Llama 3.x release under History."
   },
   {
+    "id": "hugging-face-download-stats-docs",
+    "url": "https://huggingface.co/docs/hub/models-download-stats",
+    "title": "Models Download Stats",
+    "type": "official-docs",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-08-24",
+    "notes": "Hugging Face's own account of what the Hub counts as a download: every GET or HEAD request to a repository's query files, counted server-side, with no deduplication of downloaders and no exclusion of CI/CD traffic by default."
+  },
+  {
+    "id": "hugging-face-llama-4-scout-hub-record",
+    "url": "https://huggingface.co/api/models/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+    "title": "Hugging Face Hub record for meta-llama/Llama-4-Scout-17B-16E-Instruct",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-08-24",
+    "notes": "The Hub's machine-readable record for the repository, carrying the download counter Hugging Face itself measures. The model card prose at the human-readable URL is Meta's and is recorded separately as meta-llama-4-scout-model-card; only the Hub-measured counter is cited from here."
+  },
+  {
+    "id": "hugging-face-llama-4-scout-base-hub-record",
+    "url": "https://huggingface.co/api/models/meta-llama/Llama-4-Scout-17B-16E",
+    "title": "Hugging Face Hub record for meta-llama/Llama-4-Scout-17B-16E",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-08-24",
+    "notes": "The Hub's record for the base (non-instruction-tuned) repository of the same release. It carries its own download counter, separate from the Instruct repository's."
+  },
+  {
     "id": "alphabet-about",
     "url": "https://abc.xyz/",
     "title": "Alphabet Inc.",
