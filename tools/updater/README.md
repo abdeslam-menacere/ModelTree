@@ -365,14 +365,24 @@ What it guarantees, and how it behaves as an honest citizen:
   *before* the request (the `url-safety` gate runs later, after the fetch) and
   re-checked on every redirect hop so a redirect cannot smuggle a fetch to a
   private host.
+* **The resolved address is checked, not just the name.** Each host is resolved
+  once and the name is refused unless *every* record it returns is on the public
+  internet — loopback, link-local (including cloud metadata at `169.254.169.254`),
+  RFC1918, CGNAT, unique-local, unspecified and multicast are all refused, IPv6
+  included, and so are the IPv4 addresses embedded in IPv4-mapped, 6to4 and NAT64
+  forms. The connection then dials one of those validated addresses directly, so a
+  low-TTL record cannot answer with a public address to the check and a private one
+  to the socket. Certificate verification is unchanged: TLS is still verified
+  against the hostname.
 * **`robots.txt` is respected** per host (an absent/4xx robots means no
   restriction; an unavailable 429/5xx robots is a transient, retryable failure —
   never a guess), requests are **rate-limited per host**, and the client
   **identifies itself** truthfully in `User-Agent`.
 * **Every failure is a typed `ProviderError`.** Transient causes (connection
   errors, timeouts, HTTP 429/5xx, unverifiable robots) are retryable and spend the
-  retry budget; deterministic ones (unsafe URL, robots disallow, unsupported
-  content type, oversized body, a 4xx) are not. No new silent failure mode.
+  retry budget; deterministic ones (unsafe URL or resolved address, robots
+  disallow, unsupported content type, oversized body, a 4xx) are not. No new
+  silent failure mode.
 
 > **Status: exercised against a real page.** `tests/test_network_provider.py`
 > covers the whole provider offline with an injected opener; one test

@@ -21,11 +21,20 @@ What it guarantees for a live page:
   runs after the fetch. Redirects are followed deliberately, one hop at a time,
   and every hop is re-validated so a redirect cannot smuggle a fetch to a
   private host.
+* **The address is checked, not just the name.** A URL is only a name, so a
+  public hostname whose A record points at loopback, a cloud metadata endpoint or
+  the LAN would pass every lexical check. The transport resolves each host once,
+  refuses the name unless *every* record it returns is on the public internet,
+  and then connects to one of those validated addresses directly — so there is no
+  window in which a second lookup could answer differently. TLS still verifies
+  the certificate against the hostname, so pinning the address costs nothing in
+  authentication.
 * **Failures are typed.** Every failure is a `ProviderError`. Transient ones
   (connection errors, timeouts, HTTP 429/5xx, an unverifiable `robots.txt`) are
-  ``retryable=True`` and spend the retry budget; deterministic ones (unsafe URL,
-  disallowed by robots, wrong content type, oversized body, a 4xx) are
-  ``retryable=False``. There is no new silent failure mode and no bare ``except``.
+  ``retryable=True`` and spend the retry budget; deterministic ones (an unsafe URL
+  or resolved address, disallowed by robots, wrong content type, oversized body, a
+  4xx) are ``retryable=False``. There is no new silent failure mode and no bare
+  ``except``.
 
 Network I/O is synchronous (`urllib`), so it runs in a worker thread via
 `asyncio.to_thread`; the provider methods are genuinely ``async`` as the protocol
@@ -36,6 +45,9 @@ from __future__ import annotations
 
 import asyncio
 import http.client
+import ipaddress
+import socket
+import ssl
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -57,7 +69,13 @@ from ..contracts import (
 from ..gates import url_safety_issues
 from .base import ProviderError
 
-__all__ = ["NetworkSourceProvider", "HttpResponse"]
+__all__ = [
+    "NetworkSourceProvider",
+    "HttpResponse",
+    "UnsafeAddressError",
+    "address_safety_issue",
+    "build_default_opener",
+]
 
 PROVIDER_NAME = "network:sources"
 
@@ -102,38 +120,222 @@ class HttpResponse:
 # the whole provider is exercisable offline with no sockets.
 Opener = Callable[..., HttpResponse]
 
+# ``socket.getaddrinfo``-shaped name resolution, and ``socket.create_connection``-
+# shaped dialling. Both are injectable so the pinned transport below can be
+# proven offline without opening a socket or consulting real DNS.
+Resolver = Callable[..., Sequence[tuple]]
+Connector = Callable[..., socket.socket]
+
 # Sentinel: a host whose robots.txt imposes no restriction (absent or 4xx).
 _ALLOW_ALL = "allow-all"
 
 
-def _default_opener(
-    url: str, *, headers: Mapping[str, str], timeout: float, max_bytes: int
-) -> HttpResponse:
-    """Real HTTP via ``urllib``, reading at most ``max_bytes`` + 1 bytes.
+# -- resolved-address safety ----------------------------------------------------
 
-    Redirects are not followed (the no-redirect opener returns the 3xx). HTTP
-    error statuses are returned as data too, so the caller — not ``urllib`` —
-    decides what a 404 or a 503 means.
+
+class UnsafeAddressError(Exception):
+    """A host resolved to an address that must not be connected to.
+
+    Deliberately *not* an ``OSError`` or ``ValueError``: a transport failure is
+    transient and worth retrying, whereas an address off the public internet is a
+    deterministic refusal. Keeping the types disjoint stops one being mistaken for
+    the other when the provider turns it into a typed ``ProviderError``.
     """
-    request = urllib_request.Request(url, method="GET", headers=dict(headers))
+
+
+# The ranges that are not the public internet. Spelled out rather than delegated
+# to ``ipaddress``'s ``is_private``, whose membership has shifted between releases
+# (3.11 does not count CGNAT as private), because what is refused here must not
+# depend on the interpreter's patch level.
+_IPAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
+_IPNetwork = ipaddress.IPv4Network | ipaddress.IPv6Network
+
+_BLOCKED_NETWORKS: tuple[tuple[_IPNetwork, str], ...] = tuple(
+    (ipaddress.ip_network(cidr), label)
+    for cidr, label in (
+        ("0.0.0.0/8", "unspecified/this-network"),
+        ("10.0.0.0/8", "RFC1918 private"),
+        ("100.64.0.0/10", "CGNAT"),
+        ("127.0.0.0/8", "loopback"),
+        ("169.254.0.0/16", "link-local"),
+        ("172.16.0.0/12", "RFC1918 private"),
+        ("192.0.0.0/24", "IETF protocol assignment"),
+        ("192.168.0.0/16", "RFC1918 private"),
+        ("198.18.0.0/15", "benchmarking"),
+        ("224.0.0.0/4", "multicast"),
+        ("240.0.0.0/4", "reserved"),
+        ("::/128", "unspecified"),
+        ("::1/128", "loopback"),
+        ("fc00::/7", "unique-local"),
+        ("fe80::/10", "link-local"),
+        ("fec0::/10", "site-local"),
+        ("ff00::/8", "multicast"),
+    )
+)
+
+# IPv6 forms that carry an IPv4 destination inside them.
+_NAT64_PREFIX = ipaddress.ip_network("64:ff9b::/96")
+
+
+def _embedded_addresses(address: _IPAddress) -> tuple[_IPAddress, ...]:
+    """The address itself plus any IPv4 address encoded inside an IPv6 one.
+
+    ``::ffff:127.0.0.1`` (IPv4-mapped), ``2002:7f00:1::`` (6to4) and
+    ``64:ff9b::7f00:1`` (NAT64) all reach 127.0.0.1 while matching no IPv4 range
+    textually, so the address they carry is judged as well as the outer form.
+    """
+    if not isinstance(address, ipaddress.IPv6Address):
+        return (address,)
+    embedded = address.ipv4_mapped or address.sixtofour
+    if embedded is None and address in _NAT64_PREFIX:
+        embedded = ipaddress.IPv4Address(int(address) & 0xFFFF_FFFF)
+    return (address,) if embedded is None else (address, embedded)
+
+
+def address_safety_issue(address: str) -> str | None:
+    """Why this literal address must not be fetched from, or ``None`` if it may be.
+
+    Objective and range-based: no reputation, no allow-list. It answers only
+    "is this on the public internet", which is what separates a real publisher
+    from the loopback interface, a cloud metadata endpoint, or the LAN.
+    """
     try:
-        with _NO_REDIRECT_OPENER.open(request, timeout=timeout) as response:
-            body = response.read(max_bytes + 1)
-            return HttpResponse(
-                url=response.geturl(),
-                status=int(getattr(response, "status", 200) or 200),
-                headers=dict(response.headers.items()),
-                body=body,
+        parsed = ipaddress.ip_address(address)
+    except ValueError:
+        return f"{address!r} is not a usable IP address"
+    candidates = _embedded_addresses(parsed)
+    for candidate in candidates:
+        for network, label in _BLOCKED_NETWORKS:
+            if candidate.version == network.version and candidate in network:
+                return f"{parsed} is in the {label} range {network}"
+    for candidate in candidates:
+        if not candidate.is_global:
+            # Whatever else this interpreter knows is not globally reachable.
+            return f"{parsed} is not a globally routable address"
+    return None
+
+
+def _as_ip_literal(host: str) -> _IPAddress | None:
+    try:
+        return ipaddress.ip_address(host.strip("[]"))
+    except ValueError:
+        return None
+
+
+def _pinned_endpoints(host: str, port: int, *, resolver: Resolver) -> tuple[tuple[int, str], ...]:
+    """Resolve ``host`` **once** and refuse it unless every record is public.
+
+    The addresses returned are the addresses the connection then dials, so the
+    name is never looked up a second time between the check and the connection —
+    which is the whole point: a low-TTL record cannot answer with a public address
+    to a check and a private one to the socket.
+
+    Every record is validated, not just the one that gets dialled. A name that
+    answers with a mix of public and private addresses is the signature of a
+    rebinding attempt, so the name is refused outright rather than reduced to its
+    "good" answers. A host that is already an IP literal is checked as-is and
+    never resolved at all.
+    """
+    literal = _as_ip_literal(host)
+    if literal is not None:
+        family = socket.AF_INET6 if literal.version == 6 else socket.AF_INET
+        endpoints: tuple[tuple[int, str], ...] = ((family, str(literal)),)
+    else:
+        seen: dict[tuple[int, str], None] = {}
+        for info in resolver(host, port, 0, socket.SOCK_STREAM):
+            seen.setdefault((info[0], info[4][0]), None)
+        endpoints = tuple(seen)
+    if not endpoints:
+        raise OSError(f"{host} resolved to no addresses")
+    for _family, address in endpoints:
+        issue = address_safety_issue(address)
+        if issue is not None:
+            raise UnsafeAddressError(
+                f"{host} resolves to an address that must not be reached: {issue}"
             )
-    except urllib_error.HTTPError as http_error:
-        body = http_error.read(max_bytes + 1) if hasattr(http_error, "read") else b""
-        headers = dict(http_error.headers.items()) if http_error.headers else {}
-        return HttpResponse(
-            url=http_error.geturl() or url,
-            status=int(http_error.code),
-            headers=headers,
-            body=body,
+    return endpoints
+
+
+# -- the real transport ---------------------------------------------------------
+
+
+def _default_ssl_context() -> ssl.SSLContext:
+    """A fully verifying TLS context: certificate chain *and* hostname checked.
+
+    Pinning the address must not be paid for in authentication. Nothing here
+    relaxes verification, and the certificate is matched against the hostname
+    from the URL rather than the address dialled — trading SSRF for a
+    machine-in-the-middle would be no trade at all.
+    """
+    context = ssl.create_default_context()
+    context.set_alpn_protocols(["http/1.1"])
+    return context
+
+
+class _PinnedHTTPSConnection(http.client.HTTPSConnection):
+    """An HTTPS connection that dials a pre-validated address, not a name.
+
+    ``connect`` resolves nothing: it dials one of the addresses already checked by
+    `_pinned_endpoints`, so the address that was verified is the address reached.
+    TLS still verifies the *name* — SNI and the certificate check both use the
+    hostname from the URL — and the ``Host`` header is the hostname too, so
+    pinning is invisible to the server and to certificate validation.
+    """
+
+    def __init__(self, host: str, *, connector: Connector, **kwargs: object) -> None:
+        super().__init__(host, **kwargs)  # type: ignore[arg-type]
+        self._connector = connector
+        self._endpoints: tuple[tuple[int, str], ...] = ()
+
+    def pin_to(self, endpoints: tuple[tuple[int, str], ...]) -> None:
+        self._endpoints = endpoints
+
+    def connect(self) -> None:
+        self.sock = self._dial()
+        self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
+        if self._tunnel_host:
+            self._tunnel()
+            server_hostname = self._tunnel_host
+        else:
+            server_hostname = self.host
+        self.sock = self._context.wrap_socket(self.sock, server_hostname=server_hostname)
+
+    def _dial(self) -> socket.socket:
+        """Try each validated address in turn; never anything else."""
+        failures: list[str] = []
+        for _family, address in self._endpoints:
+            try:
+                # A numeric address is never a DNS lookup, so the pin holds.
+                return self._connector((address, self.port), self.timeout, self.source_address)
+            except OSError as error:
+                failures.append(f"{address}: {error}")
+        raise OSError(
+            f"could not connect to any validated address for {self.host}: "
+            f"{'; '.join(failures) or 'no validated address'}"
         )
+
+
+class _PinnedHTTPSHandler(urllib_request.HTTPSHandler):
+    """Makes ``urllib`` open every HTTPS connection through the pinned path."""
+
+    def __init__(
+        self, *, resolver: Resolver, connector: Connector, ssl_context: ssl.SSLContext
+    ) -> None:
+        super().__init__(context=ssl_context)
+        self._resolver = resolver
+        self._connector = connector
+
+    def https_open(self, req):  # noqa: ANN001, D102
+        return self.do_open(self._new_connection, req, context=self._context)
+
+    def _new_connection(self, host: str, **kwargs: object) -> _PinnedHTTPSConnection:
+        connection = _PinnedHTTPSConnection(host, connector=self._connector, **kwargs)
+        # Resolve and validate here, before the connection is used: an unsafe
+        # address raises without a socket ever being opened.
+        connection.pin_to(
+            _pinned_endpoints(connection.host, connection.port, resolver=self._resolver)
+        )
+        return connection
 
 
 class _NoRedirect(urllib_request.HTTPRedirectHandler):
@@ -143,7 +345,62 @@ class _NoRedirect(urllib_request.HTTPRedirectHandler):
         return None
 
 
-_NO_REDIRECT_OPENER = urllib_request.build_opener(_NoRedirect)
+def build_default_opener(
+    *,
+    resolver: Resolver | None = None,
+    connector: Connector | None = None,
+    ssl_context: ssl.SSLContext | None = None,
+) -> Opener:
+    """Build the real transport: HTTPS to a resolved, validated, pinned address.
+
+    Address safety is enforced *here*, at the connection, rather than in the
+    provider: that is the only place the address checked can be guaranteed to be
+    the address dialled. It therefore applies to every request the provider makes
+    — each redirect hop and each robots.txt fetch is a separate open, so each one
+    resolves and validates again.
+
+    ``resolver`` and ``connector`` exist so this path is testable with no DNS and
+    no socket; both default to the stdlib.
+    """
+    opener = urllib_request.build_opener(
+        _NoRedirect,
+        _PinnedHTTPSHandler(
+            resolver=resolver or socket.getaddrinfo,
+            connector=connector or socket.create_connection,
+            ssl_context=ssl_context or _default_ssl_context(),
+        ),
+    )
+
+    def open_url(
+        url: str, *, headers: Mapping[str, str], timeout: float, max_bytes: int
+    ) -> HttpResponse:
+        """Real HTTP via ``urllib``, reading at most ``max_bytes`` + 1 bytes.
+
+        Redirects are not followed (the no-redirect opener returns the 3xx). HTTP
+        error statuses are returned as data too, so the caller — not ``urllib`` —
+        decides what a 404 or a 503 means.
+        """
+        request = urllib_request.Request(url, method="GET", headers=dict(headers))
+        try:
+            with opener.open(request, timeout=timeout) as response:
+                body = response.read(max_bytes + 1)
+                return HttpResponse(
+                    url=response.geturl(),
+                    status=int(getattr(response, "status", 200) or 200),
+                    headers=dict(response.headers.items()),
+                    body=body,
+                )
+        except urllib_error.HTTPError as http_error:
+            body = http_error.read(max_bytes + 1) if hasattr(http_error, "read") else b""
+            error_headers = dict(http_error.headers.items()) if http_error.headers else {}
+            return HttpResponse(
+                url=http_error.geturl() or url,
+                status=int(http_error.code),
+                headers=error_headers,
+                body=body,
+            )
+
+    return open_url
 
 
 class _TextExtractor(HTMLParser):
@@ -236,7 +493,7 @@ class NetworkSourceProvider:
         self._max_redirects = max_redirects
         self._allowed_content_types = allowed_content_types
         self._respect_robots = respect_robots
-        self._opener = opener or _default_opener
+        self._opener = opener or build_default_opener()
         self._clock = clock
         self._sleep = sleep
         self._now = now or (lambda: datetime.now(timezone.utc))
@@ -364,6 +621,14 @@ class NetworkSourceProvider:
                 timeout=self._timeout,
                 max_bytes=self._max_bytes,
             )
+        except UnsafeAddressError as error:
+            # The name resolved off the public internet. Deterministic, not
+            # transient: retrying would only repeat the same refusal.
+            raise ProviderError(
+                f"refusing to fetch {url}: {error}",
+                provider=self.name,
+                retryable=False,
+            ) from error
         except (
             urllib_error.URLError,
             http.client.HTTPException,
@@ -391,9 +656,10 @@ class NetworkSourceProvider:
                 provider=self.name,
                 retryable=False,
             )
-        # NOTE: these are the same lexical checks the `url-safety` gate applies. A
-        # host that *resolves* to a private or loopback address (DNS rebinding) is
-        # not caught here — see the network provider follow-up in the issue.
+        # These are the same lexical checks the `url-safety` gate applies, and they
+        # are retained in full. What a URL *says* is only half of it, though: the
+        # address a name resolves to is checked separately, at the connection, by
+        # the transport `build_default_opener` builds.
 
     async def _rate_limit(self, host: str) -> None:
         if self._min_host_interval <= 0:
