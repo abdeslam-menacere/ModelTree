@@ -14,6 +14,7 @@ it happens to be writing.
 from __future__ import annotations
 
 import inspect
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -87,10 +88,44 @@ def create_in_memory_checkpoint_storage() -> InMemoryCheckpointStorage:
     return InMemoryCheckpointStorage()
 
 
+def _recorded_creator_id(checkpoint: Any) -> str | None:
+    """The creator a checkpoint belongs to, read out of the messages it stored.
+
+    Every workflow message carries the `CreatorRequest` it is working on, so the
+    identity is already in the payload and this reads it there — the same way
+    `recorded_providers` reads provenance. It is deliberately not parsed out of
+    `workflow_id` or any other composite identifier: that would be a guess about a
+    string format rather than a fact the run recorded.
+
+    `None` where the checkpoint records no message naming a creator. The checkpoint
+    written after the final superstep is exactly that: it has nothing left to
+    deliver, so there is no message to read a creator from, and it is not a
+    resumable choice in the first place. Unknown is reported as unknown rather than
+    inferred, and a checkpoint whose messages cannot be read this way returns `None`
+    instead of taking the whole listing down with it.
+    """
+    messages = getattr(checkpoint, "messages", None)
+    if not isinstance(messages, Mapping):
+        return None
+    for envelopes in messages.values():
+        for envelope in envelopes or ():
+            creator = getattr(getattr(envelope, "data", None), "creator", None)
+            creator_id = getattr(creator, "creator_id", None)
+            if creator_id:
+                return str(creator_id)
+    return None
+
+
 async def list_checkpoint_summaries(
     storage: Any, *, workflow_name: str
 ) -> Sequence[dict[str, Any]]:
-    """Human-readable checkpoint list for `modeltree-updater checkpoints`."""
+    """Human-readable checkpoint list for `modeltree-updater checkpoints`.
+
+    `run_creators` writes every creator's checkpoints into one storage, so without a
+    creator on each row an operator choosing one for `resume --checkpoint-id` after a
+    multi-creator run is picking between opaque ids — and a wrong pick silently
+    resumes a different creator rather than failing.
+    """
     checkpoints = storage.list_checkpoints(workflow_name=workflow_name)
     if inspect.isawaitable(checkpoints):
         checkpoints = await checkpoints
@@ -101,6 +136,7 @@ async def list_checkpoint_summaries(
         summaries.append(
             {
                 "checkpoint_id": getattr(checkpoint, "checkpoint_id", None),
+                "creator_id": _recorded_creator_id(checkpoint),
                 "workflow_id": getattr(checkpoint, "workflow_id", None),
                 "iteration": getattr(checkpoint, "iteration_count", None),
                 "timestamp": getattr(checkpoint, "timestamp", None),

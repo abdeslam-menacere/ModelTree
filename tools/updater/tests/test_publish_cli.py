@@ -14,6 +14,7 @@ import pytest
 
 from modeltree_updater import cli
 from modeltree_updater.cli import EXIT_OK, EXIT_PUBLISH_FAILED, EXIT_USAGE, main
+from modeltree_updater.github_issues import GitHubError, split_repository
 from modeltree_updater.parsing import proposal_from_dict
 from modeltree_updater.publisher import identity_marker, issue_title, render_body
 
@@ -294,3 +295,327 @@ def test_repo_still_wins_over_the_environment_when_publishing_for_real(
 
     assert code == EXIT_OK
     assert built["repository"] == "octo/other-repo"
+
+
+# -- a malformed --repo is refused offline, not once a token is in hand ----------
+#
+# `split_repository` is pure, so the shape of a destination is knowable with no
+# credentials and no network. These four go together: two values that must now
+# be refused, one valid value that must be completely unaffected, and the
+# no-destination case that must stay the ordinary, succeeding invocation it is.
+
+MALFORMED_NO_SLASH = "octo-modeltree"
+MALFORMED_PASTED_URL = "https://github.com/octo/modeltree"
+
+
+def test_a_dry_run_refuses_a_repo_with_no_slash(artefact, monkeypatch) -> None:
+    """The typo a dry run exists to catch, caught before a token is handed over.
+
+    On `main` this returned EXIT_OK and rendered the payload, and the value was
+    rejected only by `RestIssuesClient.__init__` on a real publication.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    code, output = _run(
+        [
+            "publish",
+            "--report",
+            str(artefact(MATERIAL)),
+            "--repo",
+            MALFORMED_NO_SLASH,
+            "--dry-run",
+        ]
+    )
+
+    assert code == EXIT_USAGE
+    # The value received and the shape expected, so the typo is visible.
+    assert MALFORMED_NO_SLASH in output
+    assert "owner/name" in output
+    # Refused instead of rendered: nothing downstream ran.
+    assert f"title: {issue_title(MATERIAL)}" not in output
+
+
+def test_a_dry_run_refuses_a_pasted_repository_url(artefact, monkeypatch) -> None:
+    """The other way this is got wrong: a URL pasted where owner/name belongs."""
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    code, output = _run(
+        [
+            "publish",
+            "--report",
+            str(artefact(MATERIAL)),
+            "--repo",
+            MALFORMED_PASTED_URL,
+            "--dry-run",
+        ]
+    )
+
+    assert code == EXIT_USAGE
+    assert MALFORMED_PASTED_URL in output
+    assert "owner/name" in output
+    assert f"title: {issue_title(MATERIAL)}" not in output
+
+
+def test_the_refusal_is_about_shape_and_says_nothing_about_existence(
+    artefact, monkeypatch
+) -> None:
+    """Offline, only the shape is knowable, so only the shape may be claimed.
+
+    A message that read as "no such repository" would be asserting something
+    this run cannot know, and would be wrong for the opposite reason too: a
+    well-shaped value is not looked up either.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    _, output = _run(
+        [
+            "publish",
+            "--report",
+            str(artefact(MATERIAL)),
+            "--repo",
+            MALFORMED_NO_SLASH,
+            "--dry-run",
+        ]
+    )
+
+    refusal = output.splitlines()[0]
+    assert "shape" in refusal
+    assert "not a claim that any repository does or does not exist" in refusal
+    # Nothing that would only be knowable by looking the repository up.
+    lowered = refusal.lower()
+    for lookup_claim in ("not found", "no such", "unreachable", "404", "does not exist."):
+        assert lookup_claim not in lowered, lookup_claim
+
+
+def test_the_dry_run_refuses_exactly_what_a_real_publication_refuses(
+    artefact, monkeypatch
+) -> None:
+    """No second, divergent parser: `split_repository` decides in both places.
+
+    Asserted as agreement rather than by naming the validator, so a
+    reimplementation that happened to be correct today but drifted tomorrow
+    would still be caught.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+    report_path = artefact(MATERIAL)
+    candidates = [
+        MALFORMED_NO_SLASH,
+        MALFORMED_PASTED_URL,
+        "octo/modeltree",
+        "octo/model.tree",
+        "octo/",
+        "/modeltree",
+        "octo/modeltree?x=1",
+        "octo/../evil",
+        "octo_name/modeltree",
+        "octo/modeltree/extra",
+    ]
+
+    for value in candidates:
+        code, _ = _run(
+            ["publish", "--report", str(report_path), "--repo", value, "--dry-run"]
+        )
+        try:
+            split_repository(value)
+        except GitHubError:
+            assert code == EXIT_USAGE, f"{value!r} should have been refused"
+        else:
+            assert code == EXIT_OK, f"{value!r} should have been accepted"
+
+
+def test_a_valid_repo_under_dry_run_is_completely_unaffected(
+    artefact, monkeypatch
+) -> None:
+    """The regression pin for the destination line added by #129.
+
+    This passes on `main`; it is here so that adding the refusal cannot be
+    mistaken for licence to disturb the case that already worked.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    code, output = _run(
+        [
+            "publish",
+            "--report",
+            str(artefact(MATERIAL)),
+            "--repo",
+            "octo/modeltree",
+            "--dry-run",
+        ]
+    )
+
+    assert code == EXIT_OK
+    assert "dry run: would publish to octo/modeltree (from --repo)" in output
+    assert f"title: {issue_title(MATERIAL)}" in output
+    assert "error:" not in output
+
+
+def test_a_dry_run_with_no_destination_is_still_not_a_refusal(
+    artefact, monkeypatch
+) -> None:
+    """The counterweight, and the ordinary invocation.
+
+    `--dry-run` promises it needs no repository. Unset is not malformed, and
+    turning the most common call into a usage error would be a worse defect
+    than the one being fixed. This passes on `main` and must keep passing.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    code, output = _run(["publish", "--report", str(artefact(MATERIAL)), "--dry-run"])
+
+    assert code == EXIT_OK
+    assert "dry run: no destination named" in output
+    assert f"title: {issue_title(MATERIAL)}" in output
+    assert "error:" not in output
+    assert "owner/name" not in output
+
+
+# -- the artefact is loaded before the dry-run path writes anything -------------
+#
+# `_publish` calls `load_run_report` before the `--dry-run` branch runs at all,
+# so both of the things that branch can emit early -- the destination line from
+# #129 and the malformed-`--repo` refusal from #155 -- come after the artefact
+# has been read. An artefact that cannot be loaded is therefore reported as
+# itself, rather than behind a line describing a run that cannot happen.
+#
+# Until now a comment in `_publish` was the only thing saying so, and a comment
+# stops nothing: hoisting the dry-run block above the load looks like a tidy-up
+# and the whole suite stayed green. These are what make it fail instead.
+#
+# They assert the *absence* of the earlier output, not merely the presence of
+# the error. Printing both is the exact regression, so a test that only looked
+# for the error would pass straight through it.
+
+UNLOADABLE_ARTEFACTS = {
+    # Nothing at the path at all: an `OSError` inside `load_run_report`.
+    "missing": None,
+    # Present but not parseable, and the empty file that #129 called out
+    # separately because it is what a half-written artefact looks like.
+    "malformed-json": "{ not json",
+    "empty": "",
+    # Parseable JSON that is not a report: the failure furthest down
+    # `load_run_report`, and so the one with the most code above it to reorder.
+    "not-a-report": "{}",
+}
+
+
+@pytest.fixture()
+def unloadable_artefact(tmp_path):
+    """A `--report` path `load_run_report` refuses, one per way it can fail."""
+
+    def factory(kind: str):
+        body = UNLOADABLE_ARTEFACTS[kind]
+        if body is None:
+            return tmp_path / "gone.json"
+        path = tmp_path / f"{kind}.json"
+        path.write_text(body, encoding="utf-8")
+        return path
+
+    return factory
+
+
+def _sole_line(output: str) -> str:
+    """The one line written, or a failure naming everything that was."""
+    lines = output.splitlines()
+    assert len(lines) == 1, f"expected a single line, got {lines!r}"
+    return lines[0]
+
+
+@pytest.mark.parametrize("kind", sorted(UNLOADABLE_ARTEFACTS))
+def test_an_unloadable_artefact_under_dry_run_reports_only_itself(
+    kind, unloadable_artefact, monkeypatch
+) -> None:
+    """The artefact problem is the whole output, not the second half of it."""
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+    report_path = unloadable_artefact(kind)
+
+    # A well-shaped `--repo` and a `GITHUB_REPOSITORY` are both set, so if the
+    # destination line were reached at all it would certainly be written, and
+    # `--repo` winning over the environment makes it obvious which line it was.
+    code, output = _run(
+        [
+            "publish",
+            "--report",
+            str(report_path),
+            "--repo",
+            "octo/other-repo",
+            "--dry-run",
+        ],
+        env={"GITHUB_REPOSITORY": "octo/modeltree"},
+    )
+
+    assert code == EXIT_USAGE
+    line = _sole_line(output)
+    assert line.startswith("error: ")
+    assert report_path.name in line
+    # No destination line, in any of the three forms `_dry_run_destination`
+    # takes -- each would have had to be written before the error to appear.
+    assert "dry run:" not in output
+    assert "octo/other-repo" not in output
+    assert "octo/modeltree" not in output
+    # And nothing downstream of the load ran either.
+    assert f"title: {issue_title(MATERIAL)}" not in output
+
+
+def test_an_unloadable_artefact_is_reported_ahead_of_a_malformed_repo(
+    unloadable_artefact, monkeypatch
+) -> None:
+    """Two things are wrong at once, and the artefact is the one reported.
+
+    #155 added a second early exit to the dry-run path, so the ordering this
+    pins is no longer "the load before one `stream.write`" -- it is the load
+    before *everything* the branch can emit. The refusal answers "where would
+    this go?", which is not the operator's problem when there is no run to send.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+    report_path = unloadable_artefact("missing")
+
+    code, output = _run(
+        [
+            "publish",
+            "--report",
+            str(report_path),
+            "--repo",
+            MALFORMED_NO_SLASH,
+            "--dry-run",
+        ]
+    )
+
+    assert code == EXIT_USAGE
+    line = _sole_line(output)
+    assert line.startswith("error: ")
+    assert report_path.name in line
+    # Not the #155 refusal: it would have had to run first to be seen at all.
+    assert MALFORMED_NO_SLASH not in output
+    assert "owner/name" not in output
+
+
+def test_a_loadable_artefact_still_gets_its_destination_line_first(
+    artefact, monkeypatch
+) -> None:
+    """The counterweight, without which the pins above are satisfiable by silence.
+
+    Every assertion in the two tests above is an absence, so deleting the
+    destination line entirely would satisfy all of them. #129 shipped that line
+    and it is still the first thing a loadable dry run writes -- which is also
+    the positive half of the ordering: after the load, and before the payload.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    code, output = _run(
+        [
+            "publish",
+            "--report",
+            str(artefact(MATERIAL)),
+            "--repo",
+            "octo/other-repo",
+            "--dry-run",
+        ],
+        env={"GITHUB_REPOSITORY": "octo/modeltree"},
+    )
+
+    lines = output.splitlines()
+    assert code == EXIT_OK
+    assert lines[0] == "dry run: would publish to octo/other-repo (from --repo)"
+    assert f"title: {issue_title(MATERIAL)}" in output
+    assert "error:" not in output

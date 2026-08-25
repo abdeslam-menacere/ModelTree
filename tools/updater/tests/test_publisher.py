@@ -6,11 +6,17 @@ Every test here runs offline against a fake issues client.
 
 from __future__ import annotations
 
+import asyncio
 import dataclasses
 
 import pytest
 
-from modeltree_updater.contracts import ProposalStatus
+from modeltree_updater.budgets import CreatorBudget
+from modeltree_updater.checkpoints import (
+    create_checkpoint_storage,
+    list_checkpoint_summaries,
+)
+from modeltree_updater.contracts import FailureKind, ProposalStatus
 from modeltree_updater.github_issues import MAX_BODY_CHARS, Issue
 from modeltree_updater.parsing import proposal_from_dict
 from modeltree_updater.publisher import (
@@ -29,6 +35,8 @@ from modeltree_updater.publisher import (
     render_issue,
     state_marker,
 )
+from modeltree_updater.runner import resume_creator_run, run_creator
+from modeltree_updater.workflow import WORKFLOW_NAME
 
 MATERIAL = "contoso-ai"
 INCOMPLETE = "fabrikam-ai"
@@ -238,6 +246,335 @@ def test_rendering_the_same_artefact_twice_is_byte_identical(
     proposal = proposal_factory(MATERIAL)
 
     assert render_body(proposal) == render_body(proposal)
+
+
+# ---------------------------------------------------------------------------
+# measured time never reaches the body
+#
+# Rendering the same *object* twice, above, cannot catch a wall-clock value: the
+# measurement is frozen into the proposal before rendering starts. What has to be
+# pinned is that two executions of one run, whose measured elapsed times differ,
+# still produce the same bytes. These force that difference rather than racing
+# for it.
+# ---------------------------------------------------------------------------
+
+
+# Windows' monotonic clock ticks at ~15.6 ms, so two executions of one run land
+# on adjacent ticks. That is the granularity that surfaced this.
+WINDOWS_TIMER_TICK = 0.015625
+
+# Elapsed values chosen to fall in different buckets under every plausible way of
+# printing measured time: raw, two decimal places, whole seconds, whole minutes.
+ELAPSED_SPREAD = (0.0, WINDOWS_TIMER_TICK, 0.9, 1.0, 59.4, 119.999)
+
+
+def _with_elapsed(proposal, seconds: float):
+    """The same proposal with only its measured elapsed time changed."""
+    return dataclasses.replace(
+        proposal,
+        budget=dataclasses.replace(proposal.budget, elapsed_seconds=seconds),
+    )
+
+
+def _stopped_clock(at: float = 1000.0):
+    return lambda: at
+
+
+def _ticking_clock(step: float = WINDOWS_TIMER_TICK, start: float = 1000.0):
+    """A `time.monotonic` stand-in that advances one timer tick per read."""
+    state = {"now": start}
+
+    def clock() -> float:
+        now = state["now"]
+        state["now"] = now + step
+        return now
+
+    return clock
+
+
+# Seconds per clock read in an overrunning run. Larger than the limit below, so
+# the run's first budget check is already past it and the stop is not a race.
+# Two runs are separated by varying this *step*, not the clock's start: shifting
+# the start moves both reads equally and leaves elapsed time identical, which
+# would make a difference test pass vacuously.
+OVERRUN_STEP = 130.0
+OVERRUN_LIMIT = 120.0
+
+# The limit the *original* run is stopped by, before it is resumed. Deliberately
+# not the 120.0 default, because a resume falls back to that default and the two
+# have to disagree for the test to prove anything.
+RESUME_LIMIT = 5.0
+
+
+def _measured_values(proposal) -> list[float]:
+    """Every wall-clock measurement the run recorded, ledger and failures alike."""
+    return [proposal.budget.elapsed_seconds] + [
+        failure.detail["used"]
+        for failure in proposal.failures
+        if failure.kind is FailureKind.BUDGET_EXHAUSTED
+        and failure.detail.get("resource") == "seconds"
+    ]
+
+
+def _overrunning(
+    proposal_factory, *, step: float = OVERRUN_STEP, limit: float = OVERRUN_LIMIT
+):
+    """A run genuinely stopped by the seconds limit, not a hand-edited budget."""
+    proposal = proposal_factory(
+        MATERIAL,
+        budget=CreatorBudget(max_seconds=limit),
+        clock=_ticking_clock(step=step),
+    )
+    # Anti-vacuity. Without these, a run that quietly never overran would satisfy
+    # every "the measurement is absent" assertion below for the wrong reason.
+    assert proposal.status is not ProposalStatus.COMPLETE
+    assert proposal.budget.exhausted_by == ("seconds",)
+    assert proposal.budget.elapsed_seconds >= limit
+    assert len(_measured_values(proposal)) > 1
+    return proposal
+
+
+def test_the_budget_section_prints_the_time_limit_and_no_measured_time(
+    proposal_factory,
+) -> None:
+    """Pinned as an exact row, so a timing value cannot be slipped back into it.
+
+    The limit stays: a run stopped by it has to be readable against something.
+    """
+    proposal = proposal_factory(MATERIAL)
+    body = render_body(_with_elapsed(proposal, 47.31597))
+
+    assert f"| seconds | _not rendered_ | {proposal.budget.max_seconds:g} |" in body
+    assert "47.31597" not in body
+    assert "47.32" not in body
+    assert "47.3" not in body
+
+
+def test_the_body_is_identical_however_long_the_run_took(proposal_factory) -> None:
+    """The property the existing no-churn test could only sample.
+
+    Every value here would print differently under any scheme that renders or
+    quantises measured time, so this fails if a timing-derived value is
+    reintroduced in any form — including a bucketed one.
+    """
+    proposal = proposal_factory(MATERIAL)
+
+    bodies = {render_body(_with_elapsed(proposal, s)) for s in ELAPSED_SPREAD}
+
+    assert len(bodies) == 1
+
+
+def test_two_renders_one_windows_timer_tick_apart_are_byte_identical(
+    proposal_factory,
+) -> None:
+    """The reported case exactly: `0.00` against `0.02` at two decimal places.
+
+    Linux's clock is fine-grained enough to hide this most of the time, which is
+    why it is asserted here rather than left to be observed.
+    """
+    proposal = proposal_factory(MATERIAL)
+
+    assert render_body(_with_elapsed(proposal, 0.0)) == render_body(
+        _with_elapsed(proposal, WINDOWS_TIMER_TICK)
+    )
+
+
+def test_a_run_stopped_by_the_time_limit_says_so_without_the_measurement(
+    proposal_factory,
+) -> None:
+    """Not printing the measurement must not hide the enforcement.
+
+    Driven through the real `run_creator`, because the earlier version of this
+    test hand-edited two budget fields onto a *complete* proposal with no
+    failures — so its "the measurement is absent" assertion passed because there
+    was no failure record to carry it, not because anything was suppressed. A
+    genuine overrun records `BudgetExhausted`, which puts the measured elapsed
+    time in the failure's message *and* in its detail, and both reach the body.
+    """
+    proposal = _overrunning(proposal_factory)
+
+    body = render_body(proposal)
+
+    # The stop is reported, in the budget section and in the failures table ...
+    assert "**Exhausted:** `seconds`" in body
+    assert f"| seconds | _not rendered_ | {proposal.budget.max_seconds:g} |" in body
+    assert "`budget-exhausted`" in body
+    assert "seconds budget exhausted" in body
+    assert f"reached its {OVERRUN_LIMIT:g} second limit" in body
+    # ... and every measured value the run recorded is absent from it.
+    for measured in _measured_values(proposal):
+        assert str(measured) not in body
+    # Absence alone is not enough: a *bucketed* measurement ("4m") would satisfy
+    # the loop above while still being derived from the clock, and would still
+    # churn whenever two executions straddle a bucket boundary. So the detail
+    # cell is pinned positively — the field is present and is exactly the
+    # sentinel, once per failure that carries one.
+    stopped_by_seconds = [
+        f for f in proposal.failures if f.detail.get("resource") == "seconds"
+    ]
+    assert stopped_by_seconds
+    assert body.count('"used": "not rendered"') == len(stopped_by_seconds)
+    assert render_body(proposal_from_dict(proposal.to_dict())) == body
+
+
+def test_the_stated_limit_is_the_one_that_stopped_the_run_not_the_proposals(
+    tmp_path, library, settings_factory
+) -> None:
+    """A resumed run's proposal carries a different limit than its failures do.
+
+    `resume` takes no budget flags at all, so `cli._resume` falls through to
+    `CreatorBudget.from_env` and the 120.0 default. A run started under a tighter
+    limit and then resumed therefore ends up with a proposal whose budget says
+    120.0 while the failure that actually stopped it says 5.0, and the two can
+    only agree by coincidence.
+
+    Rendering that sentence from the proposal's budget stated a limit the run was
+    never judged against, contradicted the JSON cell beside it and the artefact on
+    disk, and — being stable — read as trustworthy. The limit is therefore taken
+    from the failure, which is the record of what was actually enforced.
+    """
+    storage = create_checkpoint_storage(tmp_path / "checkpoints")
+
+    async def scenario():
+        await run_creator(
+            library.creators[MATERIAL],
+            settings_factory(
+                CreatorBudget(max_seconds=RESUME_LIMIT),
+                clock=_ticking_clock(step=RESUME_LIMIT + 1.0),
+            ),
+            run_id="run-resume",
+            checkpoint_storage=storage,
+        )
+        summaries = await list_checkpoint_summaries(storage, workflow_name=WORKFLOW_NAME)
+        for summary in reversed(summaries):
+            try:
+                # No budget argument: exactly what `cli._resume` builds.
+                resumed = await resume_creator_run(
+                    settings_factory(),
+                    checkpoint_id=summary["checkpoint_id"],
+                    checkpoint_storage=storage,
+                )
+            except RuntimeError:
+                continue  # a terminal checkpoint has nothing left to finish
+            if any(f.detail.get("resource") == "seconds" for f in resumed.failures):
+                return resumed
+        return None
+
+    resumed = asyncio.run(scenario())
+
+    # Anti-vacuity: the two limits must genuinely disagree, or this proves nothing.
+    assert resumed is not None, "no checkpoint carried a seconds failure forward"
+    enforced = {
+        f.detail["limit"] for f in resumed.failures if f.detail.get("resource") == "seconds"
+    }
+    assert enforced == {RESUME_LIMIT}
+    assert resumed.budget.max_seconds != RESUME_LIMIT
+
+    body = render_body(resumed)
+
+    assert f"reached its {RESUME_LIMIT:g} second limit" in body
+    assert f"reached its {resumed.budget.max_seconds:g} second limit" not in body
+    # The sentence and the JSON cell beside it must not contradict each other.
+    assert f'"limit": {RESUME_LIMIT}' in body
+
+
+def test_the_measurement_is_redacted_even_when_the_limit_is_not_recorded(
+    proposal_factory,
+) -> None:
+    """The redaction must not be conditional on the limit being renderable.
+
+    An artefact can reach the publisher with a seconds exhaustion whose detail
+    carries no numeric `limit` — details are a plain mapping and the publisher
+    reads artefacts it did not write. Gating the redaction on the limit would let
+    the recorded message, measurement and all, through on exactly that path. So
+    the redaction is unconditional and only the *phrasing* falls back.
+    """
+    real = _overrunning(proposal_factory)
+    stripped = tuple(
+        dataclasses.replace(
+            failure,
+            detail={k: v for k, v in failure.detail.items() if k != "limit"},
+        )
+        if failure.detail.get("resource") == "seconds"
+        else failure
+        for failure in real.failures
+    )
+    proposal = dataclasses.replace(real, failures=stripped)
+
+    # Anti-vacuity: the recorded messages still carry the measurement.
+    measured = _measured_values(real)
+    assert any(str(v) in f.message for v in measured for f in proposal.failures)
+
+    body = render_body(proposal)
+
+    assert "reached its seconds budget" in body
+    assert "second limit" not in body
+    for value in measured:
+        assert str(value) not in body
+
+
+def test_a_run_stopped_exactly_on_its_limit_says_reached_not_passed(
+    proposal_factory,
+) -> None:
+    """`check_time` exhausts on `>=`, so `used == limit` is a real stop.
+
+    Such a run never exceeded anything, and saying it "passed" its limit would be
+    false on the one boundary the enforcement is defined at.
+    """
+    proposal = _overrunning(
+        proposal_factory, step=OVERRUN_LIMIT / 2, limit=OVERRUN_LIMIT
+    )
+    exhausted = [f for f in proposal.failures if f.detail.get("resource") == "seconds"]
+
+    # Anti-vacuity: this is the boundary case only if the two are actually equal.
+    assert exhausted[0].detail["used"] == exhausted[0].detail["limit"] == OVERRUN_LIMIT
+
+    body = render_body(proposal)
+
+    assert f"reached its {OVERRUN_LIMIT:g} second limit" in body
+    assert "passed its" not in body
+
+
+def test_two_overrunning_executions_one_timer_tick_apart_render_identically(
+    proposal_factory,
+) -> None:
+    """The whole-body property, on the path a stopped run takes.
+
+    Byte-identity across two executions is the catch-all: it fails if measured
+    time reaches the body by *any* route, not only the ones asserted by name
+    above. The measured values are asserted to differ first, so this cannot pass
+    by both runs happening to record the same numbers.
+    """
+    fast = _overrunning(proposal_factory)
+    slow = _overrunning(proposal_factory, step=OVERRUN_STEP + WINDOWS_TIMER_TICK)
+
+    assert _measured_values(fast) != _measured_values(slow)
+    assert render_body(fast) == render_body(slow)
+
+
+def test_a_run_stopped_by_the_token_limit_still_prints_its_count(
+    proposal_factory,
+) -> None:
+    """Only measured time is withheld — the guard against over-correcting.
+
+    Pages, tokens and retries are counters: identical across two executions of
+    one run, and a reviewer needs to see exactly how many were spent. Their
+    exhaustion records are rendered verbatim.
+    """
+    proposal = proposal_factory(MATERIAL, budget=CreatorBudget(max_tokens=40))
+    exhausted = [
+        failure
+        for failure in proposal.failures
+        if failure.kind is FailureKind.BUDGET_EXHAUSTED
+    ]
+    assert exhausted
+    assert exhausted[0].detail["used"] > 0
+
+    body = render_body(proposal)
+
+    assert exhausted[0].message in body
+    assert f'"used": {exhausted[0].detail["used"]}' in body
+    assert "not rendered" not in body.split("## Completion status")[1]
 
 
 def test_rendering_survives_a_json_round_trip_unchanged(proposal_factory) -> None:
@@ -596,6 +933,34 @@ def test_re_rendering_the_same_run_adds_no_comment_and_no_churn(
 
     outcome = publish_proposal(proposal_factory(MATERIAL, run_id="run-b"), client)
 
+    assert outcome.superseded_run is None
+    assert len(client.comments) == 1
+    assert client.issues[0].body == after_replacement
+    assert "| Supersedes run | `run-a` |" in client.issues[0].body
+
+
+def test_re_publishing_a_run_that_took_longer_adds_no_comment_and_no_churn(
+    proposal_factory, fake_issues_client
+) -> None:
+    """The test above, with the clock controlled instead of raced.
+
+    Two executions of run `run-b`: one against a stopped clock, one against a
+    clock that advances a Windows timer tick per read. Their measured elapsed
+    times genuinely differ — asserted, not assumed — and the published issue must
+    still be byte-identical with no second supersession comment. This is what the
+    test above can only get by luck, and got wrong a few percent of the time.
+    """
+    client = fake_issues_client()
+    publish_proposal(proposal_factory(MATERIAL, run_id="run-a"), client)
+
+    instant = proposal_factory(MATERIAL, run_id="run-b", clock=_stopped_clock())
+    publish_proposal(instant, client)
+    after_replacement = client.issues[0].body
+
+    slow = proposal_factory(MATERIAL, run_id="run-b", clock=_ticking_clock())
+    outcome = publish_proposal(slow, client)
+
+    assert instant.budget.elapsed_seconds != slow.budget.elapsed_seconds
     assert outcome.superseded_run is None
     assert len(client.comments) == 1
     assert client.issues[0].body == after_replacement

@@ -78,8 +78,15 @@ criteria and exceptions belong on `/methodology`.
 - Live API monitoring or a runtime database
 - Original large-scale benchmark execution
 - A proprietary universal score or universal winner
-- User accounts, subscriptions, or unreviewed automatic ingestion
+- User accounts, subscriptions, or ingestion without sources, review, and gates
 - Forcing unlike model categories into one specification or leaderboard
+
+> Automatic ingestion itself is no longer a non-goal. The daily refresh in
+> `.github/skills/` publishes without a human approving it, under
+> [ADR 0003](../adr/0003-an-agent-gated-data-refresh-may-auto-merge.md), and is bounded
+> to the dataset JSON documents. What remains a non-goal is ingestion that carries
+> no primary source, passes no adversarial review, and clears no deterministic
+> gate.
 
 ## Initial Success Signals
 

@@ -15,3 +15,6 @@ __pycache__/
 # Local tooling
 .claude/settings.local.json
 .docks/
+
+# Data refresh run state (evidence bundles, gate output, PR/issue bodies)
+.modeltree-refresh/

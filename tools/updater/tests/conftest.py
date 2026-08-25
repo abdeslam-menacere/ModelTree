@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import sys
 from pathlib import Path
-from typing import Sequence
+from typing import Callable, Sequence
 
 import pytest
 
@@ -46,11 +46,16 @@ def library():
 
 @pytest.fixture()
 def settings_factory(library):
-    def factory(budget: CreatorBudget | None = None) -> RunSettings:
+    def factory(
+        budget: CreatorBudget | None = None,
+        *,
+        clock: Callable[[], float] | None = None,
+    ) -> RunSettings:
         return RunSettings(
             build_fixture_bundle(library, timestamp=TIMESTAMP),
             budget=budget or CreatorBudget(),
             timestamp=TIMESTAMP,
+            clock=clock,
         )
 
     return factory
@@ -62,16 +67,32 @@ def settings(settings_factory) -> RunSettings:
 
 
 @pytest.fixture()
-def proposal_factory(library, settings):
+def proposal_factory(library, settings, settings_factory):
     """Real proposals from a real fixture run — not hand-built stand-ins.
 
     Publication is only worth testing against what the workflow actually produces,
     so these come out of `run_creator` exactly as `run --output` would write them.
+
+    `clock` injects a stand-in for `time.monotonic`, and `budget` a tighter
+    ledger, for tests that need two runs whose measured elapsed time genuinely
+    differs, or a run genuinely stopped by its limit, rather than ones that
+    happen to be. Without either, the shared settings are used exactly as before.
     """
 
-    def factory(creator_id: str, *, run_id: str = "run-test") -> CreatorProposal:
+    def factory(
+        creator_id: str,
+        *,
+        run_id: str = "run-test",
+        budget: CreatorBudget | None = None,
+        clock: Callable[[], float] | None = None,
+    ) -> CreatorProposal:
+        run_settings = (
+            settings
+            if budget is None and clock is None
+            else settings_factory(budget, clock=clock)
+        )
         return asyncio.run(
-            run_creator(library.creators[creator_id], settings, run_id=run_id)
+            run_creator(library.creators[creator_id], run_settings, run_id=run_id)
         )
 
     return factory
