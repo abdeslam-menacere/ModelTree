@@ -281,14 +281,32 @@ def test_the_distribution_ships_the_package_and_nothing_else() -> None:
     """The other half of the decision: turning packaging on has to be deliberate.
 
     Asserted as the whole configuration rather than as a list of forbidden keys.
-    An earlier version of this test named `force-include`, `artifacts` and
-    `shared-data` and called them "the three ways" — which was simply untrue:
-    `include = ["fixtures"]` on the wheel target ships them, and so does
-    `only-include` on `[tool.hatch.build]`, and both left that test green.
-    Enumerating is what got it wrong, and it would go stale again the next time
-    hatchling gains an option, so the pin is the positive one: this is the
-    entire build configuration, and anything added to it — any of the five keys
-    above, a build hook, an sdist target — fails here and has to be argued for.
+    An earlier version named `force-include`, `artifacts` and `shared-data` and
+    called them "the three ways", which was wrong twice over: the list was not
+    complete, and `artifacts` does not do what it claimed.
+
+    Measured by building real wheels under each configuration and counting the
+    fixture files that came out. Twelve exist on disk, and with `packages` set
+    as it is below:
+
+        only-include                          12
+        force-include                         12
+        shared-data                           12
+        packages widened to add "fixtures"    12
+        include                                0
+        artifacts                              0
+
+    `only-include` ships them from the wheel target and from `[tool.hatch.build]`
+    alike. `packages` acts as `only-include` plus `sources`, so while it is set
+    `include` and `artifacts` only select from what `packages` already narrowed
+    and cannot widen it. Drop `packages`, keep `include = ["fixtures"]`, and the
+    wheel carries 12 fixture files and no package at all — the control that
+    separates "not a vector in this configuration" from "the build was broken".
+
+    So the vectors are `only-include`, `force-include`, `shared-data` and the
+    value of `packages` itself. That last one is why this asserts equality over
+    the whole table rather than checking which keys are present: widening a key
+    that is already permitted adds no key to notice.
     """
     config = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
     hatch = config["tool"]["hatch"]
