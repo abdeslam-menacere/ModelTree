@@ -13,20 +13,29 @@ ADR 0003 authorises this and bounds it. Read
 [`../../../docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md`](../../../docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md)
 before changing anything here.
 
-## Preconditions — all four, no exceptions
+## Preconditions — all five, no exceptions
 
 Refuse to publish unless every one holds:
 
 1. `gate-evidence.mjs` exited 0 on the bundle.
-2. Accepted claims are applied and `gate-dataset.mjs` exited 0.
-3. `cd web && npm run validate` passed.
-4. `gate-scope.mjs` exited 0 — every changed path is a dataset document.
+2. `gate-source-approval.mjs` exited 0 on the bundle, run **before** any claim
+   was applied.
+3. Accepted claims are applied and `gate-dataset.mjs` exited 0.
+4. `cd web && npm run validate` passed.
+5. `gate-scope.mjs` exited 0 — every changed path is a dataset document.
 
-If **3** fails, you have a claim that is valid on its own and invalid in context.
+If **2** fails, a claim rests on a source nobody approved. Drop the claim and
+every claim citing that source, record why, and re-run the gate. Never add the
+source to `sources.json` to make the citation resolve — that is the exact move
+the gate exists to refuse, and it would pass `npm run validate` while passing
+nothing that matters. If the source is genuinely worth having, it is a follow-up
+issue for a human, not part of this run.
+
+If **4** fails, you have a claim that is valid on its own and invalid in context.
 Drop it, record why, and revalidate. Never edit a claim to make it pass; that is
 the run overruling its own gates.
 
-If **4** fails, the refresh needs a schema, component, or workflow change. That
+If **5** fails, the refresh needs a schema, component, or workflow change. That
 is not a failure — it is the run correctly finding work for a human. Stop, file
 an issue describing what it needed and why, and publish nothing.
 
@@ -79,6 +88,16 @@ if what merged is fully legible afterwards. Include:
 - **Rejected claims** and which gate or rubric refused them.
 - **Conflicts** — both sides quoted, left explicit and unresolved.
 - **Deterministic gate output** — including passes, so a missing gate is visible.
+- **The approved-source decision** — its own section, not a line in the gate
+  output dump. Give `gate-source-approval.mjs`'s exit status, the number of
+  approved origins it anchored on and where they came from
+  (`anchors.datasetSources` / `anchors.profileCatalogues`), every source cited
+  split into **inherited** (already in the dataset) and **proposed** (added by
+  this run) with the origin each sits on, and any source the gate refused. This
+  is the one part of the body that says which sources the run was *allowed* to
+  trust, as opposed to which ones it used. Without it a reader can see every
+  quote and still not know whether anybody had ever vouched for the page it came
+  from.
 - **Budgets and incompleteness** — pages fetched, budgets hit, sources that
   failed to load.
 - **Provenance footer** — run id, skill versions, and that no human reviewed it.
@@ -137,9 +156,9 @@ silence accumulating in the open list. A run that published, was blocked by CI,
 reverted, or hit an out-of-class change leaves its issue **open**.
 
 The body carries: creators processed, claims by kind, accepted and rejected
-counts with reasons, conflicts, gate results, budget exhaustion, the pull request
-link and merge state, the Pages deployment result, and any follow-up worth its
-own issue.
+counts with reasons, conflicts, gate results — including the approved-source
+decision and any source it refused — budget exhaustion, the pull request link and
+merge state, the Pages deployment result, and any follow-up worth its own issue.
 
 ## Follow-ups
 
@@ -158,5 +177,7 @@ merge entirely.
 - **Never commit run state.** `.modeltree-refresh/` is git-ignored and stays that
   way.
 - **Never publish a claim that did not reach its threshold**, and never publish
-  at all if any of the four preconditions failed.
+  at all if any of the five preconditions failed.
+- **Never approve a source to make a claim pass.** If
+  `gate-source-approval.mjs` refuses a citation, the claim goes, not the gate.
 - **Never leave a failed deploy standing.** Revert, then report.

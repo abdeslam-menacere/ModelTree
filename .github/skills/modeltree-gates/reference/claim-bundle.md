@@ -100,7 +100,11 @@ field is refusing a specific way of being wrong:
   enough to be a coincidence is not corroboration.
 - **`sourceId`** is the id this evidence will carry into `sources.json`. If the
   source is new, the run must also propose a `sources` claim adding it, or the
-  reference will not resolve when the dataset gate runs.
+  reference will not resolve when the dataset gate runs. That claim's url must sit
+  on an origin the committed dataset or a profile catalogue already stands behind:
+  `gate-source-approval.mjs` refuses a citation to any other origin, and refuses
+  it whatever the panel voted, because a source a run introduces and cites in the
+  same breath has been approved by nobody.
 
 ### Verdicts
 

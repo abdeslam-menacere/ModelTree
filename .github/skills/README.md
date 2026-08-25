@@ -47,6 +47,13 @@ the page as fetched, the fetch date, and a verbatim quote long enough to be
 checked. Search snippets are refused outright. This is the rule that separates
 this pipeline from a model writing down what it remembers about GPT-5.
 
+And the corollary that makes it worth anything: **a run never approves its own
+source.** `sources.json` is one of the documents a refresh may patch, so "cite a
+source" is not a constraint until something says which sources may be cited.
+`gate-source-approval.mjs` anchors that on the committed dataset and the reviewed
+profile catalogues — neither of which the run can write — so a source invented by
+a run and cited by the same run is refused however the panel voted.
+
 ## What it is allowed to change
 
 Only the nine JSON documents that `web/src/data/raw.ts` composes.
@@ -68,7 +75,7 @@ is what refuses to merge a red pull request.
 
 ## Changing a gate
 
-The gates have 43 self-tests. Run them:
+The gates have 53 self-tests. Run them:
 
 ```bash
 node --test .github/skills/modeltree-gates/scripts/gates.test.mjs
