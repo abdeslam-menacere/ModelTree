@@ -73,18 +73,24 @@ def proposal_factory(library, settings, settings_factory):
     Publication is only worth testing against what the workflow actually produces,
     so these come out of `run_creator` exactly as `run --output` would write them.
 
-    `clock` injects a stand-in for `time.monotonic`, for a test that needs two
-    runs whose measured elapsed time genuinely differs rather than one that
-    happens to. Without it the shared settings are used exactly as before.
+    `clock` injects a stand-in for `time.monotonic`, and `budget` a tighter
+    ledger, for tests that need two runs whose measured elapsed time genuinely
+    differs, or a run genuinely stopped by its limit, rather than ones that
+    happen to be. Without either, the shared settings are used exactly as before.
     """
 
     def factory(
         creator_id: str,
         *,
         run_id: str = "run-test",
+        budget: CreatorBudget | None = None,
         clock: Callable[[], float] | None = None,
     ) -> CreatorProposal:
-        run_settings = settings if clock is None else settings_factory(clock=clock)
+        run_settings = (
+            settings
+            if budget is None and clock is None
+            else settings_factory(budget, clock=clock)
+        )
         return asyncio.run(
             run_creator(library.creators[creator_id], run_settings, run_id=run_id)
         )

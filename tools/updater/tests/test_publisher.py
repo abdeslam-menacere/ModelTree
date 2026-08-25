@@ -10,7 +10,8 @@ import dataclasses
 
 import pytest
 
-from modeltree_updater.contracts import ProposalStatus
+from modeltree_updater.budgets import CreatorBudget
+from modeltree_updater.contracts import FailureKind, ProposalStatus
 from modeltree_updater.github_issues import MAX_BODY_CHARS, Issue
 from modeltree_updater.parsing import proposal_from_dict
 from modeltree_updater.publisher import (
@@ -284,6 +285,41 @@ def _ticking_clock(step: float = WINDOWS_TIMER_TICK, start: float = 1000.0):
     return clock
 
 
+# Seconds per clock read in an overrunning run. Larger than the limit below, so
+# the run's first budget check is already past it and the stop is not a race.
+# Two runs are separated by varying this *step*, not the clock's start: shifting
+# the start moves both reads equally and leaves elapsed time identical, which
+# would make a difference test pass vacuously.
+OVERRUN_STEP = 130.0
+OVERRUN_LIMIT = 120.0
+
+
+def _measured_values(proposal) -> list[float]:
+    """Every wall-clock measurement the run recorded, ledger and failures alike."""
+    return [proposal.budget.elapsed_seconds] + [
+        failure.detail["used"]
+        for failure in proposal.failures
+        if failure.kind is FailureKind.BUDGET_EXHAUSTED
+        and failure.detail.get("resource") == "seconds"
+    ]
+
+
+def _overrunning(proposal_factory, *, step: float = OVERRUN_STEP):
+    """A run genuinely stopped by the seconds limit, not a hand-edited budget."""
+    proposal = proposal_factory(
+        MATERIAL,
+        budget=CreatorBudget(max_seconds=OVERRUN_LIMIT),
+        clock=_ticking_clock(step=step),
+    )
+    # Anti-vacuity. Without these, a run that quietly never overran would satisfy
+    # every "the measurement is absent" assertion below for the wrong reason.
+    assert proposal.status is not ProposalStatus.COMPLETE
+    assert proposal.budget.exhausted_by == ("seconds",)
+    assert proposal.budget.elapsed_seconds > OVERRUN_LIMIT
+    assert len(_measured_values(proposal)) > 1
+    return proposal
+
+
 def test_the_budget_section_prints_the_time_limit_and_no_measured_time(
     proposal_factory,
 ) -> None:
@@ -329,25 +365,74 @@ def test_two_renders_one_windows_timer_tick_apart_are_byte_identical(
     )
 
 
-def test_a_run_stopped_by_the_time_limit_still_says_so(proposal_factory) -> None:
+def test_a_run_stopped_by_the_time_limit_says_so_without_the_measurement(
+    proposal_factory,
+) -> None:
     """Not printing the measurement must not hide the enforcement.
 
-    The ledger keeps measuring elapsed time and keeps stopping a run that
-    overruns; the body has to keep reporting that it did.
+    Driven through the real `run_creator`, because the earlier version of this
+    test hand-edited two budget fields onto a *complete* proposal with no
+    failures — so its "the measurement is absent" assertion passed because there
+    was no failure record to carry it, not because anything was suppressed. A
+    genuine overrun records `BudgetExhausted`, which puts the measured elapsed
+    time in the failure's message *and* in its detail, and both reach the body.
     """
-    proposal = proposal_factory(MATERIAL)
-    overrun = dataclasses.replace(
-        proposal,
-        budget=dataclasses.replace(
-            proposal.budget, elapsed_seconds=120.5, exhausted_by=("seconds",)
-        ),
-    )
+    proposal = _overrunning(proposal_factory)
 
-    body = render_body(overrun)
+    body = render_body(proposal)
 
+    # The stop is reported, in the budget section and in the failures table ...
     assert "**Exhausted:** `seconds`" in body
     assert f"| seconds | _not rendered_ | {proposal.budget.max_seconds:g} |" in body
-    assert "120.5" not in body
+    assert "`budget-exhausted`" in body
+    assert "seconds budget exhausted" in body
+    assert f"passed its {proposal.budget.max_seconds:g} second limit" in body
+    # ... and every measured value the run recorded is absent from it.
+    for measured in _measured_values(proposal):
+        assert str(measured) not in body
+    assert render_body(proposal_from_dict(proposal.to_dict())) == body
+
+
+def test_two_overrunning_executions_one_timer_tick_apart_render_identically(
+    proposal_factory,
+) -> None:
+    """The whole-body property, on the path a stopped run takes.
+
+    Byte-identity across two executions is the catch-all: it fails if measured
+    time reaches the body by *any* route, not only the ones asserted by name
+    above. The measured values are asserted to differ first, so this cannot pass
+    by both runs happening to record the same numbers.
+    """
+    fast = _overrunning(proposal_factory)
+    slow = _overrunning(proposal_factory, step=OVERRUN_STEP + WINDOWS_TIMER_TICK)
+
+    assert _measured_values(fast) != _measured_values(slow)
+    assert render_body(fast) == render_body(slow)
+
+
+def test_a_run_stopped_by_the_token_limit_still_prints_its_count(
+    proposal_factory,
+) -> None:
+    """Only measured time is withheld — the guard against over-correcting.
+
+    Pages, tokens and retries are counters: identical across two executions of
+    one run, and a reviewer needs to see exactly how many were spent. Their
+    exhaustion records are rendered verbatim.
+    """
+    proposal = proposal_factory(MATERIAL, budget=CreatorBudget(max_tokens=40))
+    exhausted = [
+        failure
+        for failure in proposal.failures
+        if failure.kind is FailureKind.BUDGET_EXHAUSTED
+    ]
+    assert exhausted
+    assert exhausted[0].detail["used"] > 0
+
+    body = render_body(proposal)
+
+    assert exhausted[0].message in body
+    assert f'"used": {exhausted[0].detail["used"]}' in body
+    assert "not rendered" not in body.split("## Completion status")[1]
 
 
 def test_rendering_survives_a_json_round_trip_unchanged(proposal_factory) -> None:
