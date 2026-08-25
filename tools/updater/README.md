@@ -63,6 +63,15 @@ wrote. Getting this wrong is what #139 fixed.
 number of catalogued sources); `profiles --json` emits the loaded library for scripting.
 It only reads profile data — it never runs the workflow or reaches a source.
 
+`checkpoints` prints one row per stored checkpoint — `checkpoint_id`, `creator_id`,
+`workflow_id`, `iteration`, `timestamp` — ordered by iteration. A multi-creator run puts
+every creator's checkpoints in the same directory, so the creator is what makes a
+`resume --checkpoint-id` a deliberate choice rather than a guess; it is read out of the
+message the checkpoint stored, never parsed from an identifier string. `creator_id` is
+`null` where the checkpoint records no message that names one — the checkpoint written
+after the final superstep has nothing left to deliver, and is not a resumable choice
+anyway.
+
 Useful `run` flags: `--creator` (repeatable), `--fixtures`, `--provider fixtures|foundry`,
 `--sources fixtures|network`, `--long-tail`, `--long-tail-profile <id>`, `--output`,
 `--checkpoint-dir`, `--run-id`, `--timestamp`, and the budget flags below. `resume` takes
