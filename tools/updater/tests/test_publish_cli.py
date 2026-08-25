@@ -196,3 +196,101 @@ def test_publishing_a_later_run_reports_what_it_superseded(
 
     assert "superseded run run-one, recorded in a comment" in output
     assert len(client.comments) == 1
+
+
+def test_a_dry_run_names_the_repository_it_would_publish_to(
+    artefact, monkeypatch
+) -> None:
+    """`--repo` under `--dry-run` used to be read nowhere at all.
+
+    The operator could not tell "my --repo was honoured" from "my --repo was
+    thrown away", because the output was identical either way.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    code, output = _run(
+        [
+            "publish",
+            "--report",
+            str(artefact(MATERIAL)),
+            "--repo",
+            "octo/other-repo",
+            "--dry-run",
+        ],
+        env={"GITHUB_REPOSITORY": "octo/modeltree"},
+    )
+
+    assert code == EXIT_OK
+    assert "octo/other-repo" in output
+    assert "--repo" in output
+    # Named, not contacted: `_blocked_client` fails the test if a client is built.
+    assert "octo/modeltree" not in output
+
+
+def test_a_dry_run_says_when_its_destination_came_from_the_environment(
+    artefact, monkeypatch
+) -> None:
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    code, output = _run(
+        ["publish", "--report", str(artefact(MATERIAL)), "--dry-run"],
+        env={"GITHUB_REPOSITORY": "octo/modeltree"},
+    )
+
+    assert code == EXIT_OK
+    assert "octo/modeltree" in output
+    assert "GITHUB_REPOSITORY" in output
+
+
+def test_a_dry_run_with_no_destination_says_so_and_still_renders(
+    artefact, monkeypatch
+) -> None:
+    """The invocation people actually use. It must not become an error."""
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    code, output = _run(["publish", "--report", str(artefact(MATERIAL)), "--dry-run"])
+
+    assert code == EXIT_OK
+    assert "no destination named" in output
+    assert f"title: {issue_title(MATERIAL)}" in output
+
+
+def test_naming_a_repository_does_not_change_what_a_dry_run_renders(
+    artefact, monkeypatch
+) -> None:
+    """The destination is reported alongside the payload, never inside it.
+
+    A dry run is only worth anything if it is the bytes a real publication would
+    send, so `--repo` must add a line and change nothing else.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+    report_path = artefact(MATERIAL)
+    argv = ["publish", "--report", str(report_path), "--dry-run"]
+
+    _, without = _run(argv)
+    _, with_repo = _run(argv + ["--repo", "octo/other-repo"])
+
+    marker = f"=== {MATERIAL}: dry run, nothing was sent ==="
+    assert without[without.index(marker) :] == with_repo[with_repo.index(marker) :]
+
+
+def test_repo_still_wins_over_the_environment_when_publishing_for_real(
+    artefact, fake_issues_client, monkeypatch
+) -> None:
+    """The real publication path is untouched by the dry-run change."""
+    built: dict[str, str] = {}
+    client = fake_issues_client()
+
+    def record(**kwargs):
+        built.update(kwargs)
+        return client
+
+    monkeypatch.setattr(cli, "RestIssuesClient", record, raising=True)
+
+    code, _ = _run(
+        ["publish", "--report", str(artefact(MATERIAL)), "--repo", "octo/other-repo"],
+        env={"GITHUB_TOKEN": "t0ken", "GITHUB_REPOSITORY": "octo/modeltree"},
+    )
+
+    assert code == EXIT_OK
+    assert built["repository"] == "octo/other-repo"
