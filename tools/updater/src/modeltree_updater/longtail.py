@@ -446,7 +446,10 @@ def _reviewed_profile_paths(directory: Path) -> list[Path]:
     """
     paths: list[Path] = []
     for path in sorted(directory.iterdir()):
-        if path.name.startswith("."):
+        # A directory is not a candidate under either rule: refusing `archive.JSON`
+        # for its extension, and handing `archive.json` to the parser, are both the
+        # wrong answer to something that was never a document.
+        if path.name.startswith(".") or not path.is_file():
             continue
         if path.suffix == ".json":
             paths.append(path)
@@ -464,9 +467,12 @@ def _duplicate_key(profile_id: str) -> str:
 
     Two ids differing only in case are one id to the reader the duplicate check exists
     for: it is there so that nobody has to work out which of two similar documents won.
-    Folding case here only ever *refuses* more. It cannot change which document an id
-    resolves to, because the mapping a run reads is still keyed by the exact declared
-    string — the resume path must keep matching the exact id a checkpoint recorded.
+    Folding is not a *superset* of comparing declared ids, though, and does not replace
+    it: ``True`` and ``1`` fold to different strings while being one dict key, so
+    :func:`load_long_tail_library` guards on both key spaces. What folding cannot do is
+    widen what an id *matches*, because the mapping a run reads is still keyed by the
+    exact declared string — the resume path must keep matching the exact id a checkpoint
+    recorded.
 
     ``str()`` because a document can declare a non-string id, and refusing that is a
     different question from this one.
@@ -494,12 +500,15 @@ def load_long_tail_library(
         raise FileNotFoundError(f"long-tail profiles directory not found: {directory}")
 
     profiles: dict[str, LongTailProfile] = {}
-    sources: dict[str, tuple[str, Path]] = {}
+    sources: dict[Any, tuple[str, Path]] = {}
     for path in _reviewed_profile_paths(directory):
         profile = load_long_tail_profile(path)
         key = _duplicate_key(profile.id)
-        if key in sources:
-            twin_id, twin_path = sources[key]
+        # Neither key space contains the other. Folding catches 'x' against 'X'; the
+        # declared id catches ids that fold apart but are one dict key, such as True
+        # and 1, where `profiles` would otherwise overwrite and say nothing.
+        if key in sources or profile.id in profiles:
+            twin_id, twin_path = sources.get(key) or sources[profile.id]
             reason = (
                 "an id has to name exactly one reviewed document, because a resumed "
                 "run rebuilds its profile from the id the checkpoint recorded"
@@ -512,6 +521,9 @@ def load_long_tail_library(
             )
         profiles[profile.id] = profile
         sources[key] = (profile.id, path)
+        # Recorded under the declared id too, so the guard above can name the twin it
+        # found through either key space.
+        sources[profile.id] = (profile.id, path)
     if not profiles:
         raise FileNotFoundError(f"no long-tail profiles found in {directory}")
     return LongTailLibrary(profiles=profiles)
