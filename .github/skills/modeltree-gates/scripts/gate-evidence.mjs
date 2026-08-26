@@ -20,7 +20,7 @@
 //                   proposedValue, statement, evidence: [...], verdicts: [...] } ] }
 
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
-import { resolve, join, dirname } from 'node:path';
+import { resolve, join, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // The three rubrics from #59's review panel. A bundle must carry exactly these,
@@ -48,6 +48,34 @@ const VALID_COLLECTIONS = [
 const MINIMUM_QUOTE_LENGTH = 24;
 
 const FORBIDDEN_HOSTS = [/^localhost$/i, /^127\./, /^0\.0\.0\.0$/, /^\[?::1\]?$/i, /\.local$/i, /\.internal$/i];
+
+// What counts as whitespace inside a declared creator id. JS `trim()` and Python
+// `str.strip()` do not agree on it -- JS treats U+FEFF as whitespace and Python
+// does not; Python treats U+001C-U+001F and U+0085 as whitespace and JS does not
+// -- and the reviewed set is read by both. This is their union, so each side
+// refuses at least everything the other does. Widening what is *refused* is safe
+// in a way widening what is *matched* is not: a refusal exits 2.
+//
+// Not included, deliberately: U+200B and U+202E are whitespace to neither, and
+// guessing at invisible characters one at a time is how a fold starts shrinking
+// instead of growing. `tools/updater` makes the same call for the same reason.
+const ID_WHITESPACE = '\\s\\u0085\\u001c-\\u001f';
+const PADDED_ID = new RegExp(`^[${ID_WHITESPACE}]|[${ID_WHITESPACE}]$`);
+const ID_WHITESPACE_RUN = new RegExp(`[${ID_WHITESPACE}]+`, 'g');
+
+// JS has no `String.prototype.casefold`. Upper-then-lower is the nearest
+// equivalent and folds at least as much as `toLowerCase` alone: it maps U+00DF
+// to "ss" and U+017F to "s", as Python's `casefold` does.
+function foldCase(value) {
+  return value.toUpperCase().toLowerCase();
+}
+
+// Python's `str.split()`/`" ".join()` pair: drop the padding, collapse every
+// internal run to one space. `"acme labs"` and `"acme\u00a0labs"` are one id to
+// the eye and indistinguishable in any diff, so they are one id here.
+function collapseWhitespace(value) {
+  return value.replace(ID_WHITESPACE_RUN, ' ').trim();
+}
 
 const failures = [];
 
@@ -85,6 +113,13 @@ function repoRoot() {
 // bundle names. Throws rather than returning a partial set: an unreadable,
 // malformed, or empty reviewed set must fail the gate closed, never quietly
 // classify every creator as long-tail (or admit one as pilot) against nothing.
+//
+// It applies the same rules to the same directory that `tools/updater`'s
+// ProfileLibrary does, because two implementations of one rule that disagree
+// about what is valid will eventually disagree about something that matters
+// (#251, an instance of the drift #168 records). Every disagreement it closes is
+// closed by refusing more, never by admitting more: a refusal exits 2, so it can
+// only ever stop a run, never let one publish under the looser bar.
 function reviewedCreatorIds(repo) {
   const dir = resolve(repo, PROFILE_DIR);
   let entries;
@@ -94,12 +129,32 @@ function reviewedCreatorIds(repo) {
     throw new Error(`cannot read the reviewed-profile set at ${dir}: ${error.message}`);
   }
 
-  const ids = new Set();
+  // Keyed by the folded id so a collision is caught, but the set returned holds
+  // the ids as declared. Folding decides what *collides*; it must never widen
+  // what an id *matches*, because a bundle is classified by exact lookup.
+  const seen = new Map();
   for (const entry of entries) {
-    // Dotfiles are "not part of the working set", and the long-tail profiles live
-    // in a subdirectory; neither is a reviewed creator profile. A `.json` suffix
-    // is matched exactly, the same as tools/updater's own discovery.
-    if (entry.name.startsWith('.') || !entry.isFile() || !entry.name.endsWith('.json')) continue;
+    // Skipped first, and deliberately. A leading dot is the author saying "not
+    // part of the working set", and a directory -- the long-tail profiles live in
+    // one -- was never a document at all, so refusing `archive.JSON` below for its
+    // extension when it is a directory would answer a question nobody asked.
+    if (entry.name.startsWith('.') || !entry.isFile()) continue;
+
+    const suffix = extname(entry.name);
+    if (suffix !== '.json') {
+      // A neighbour nobody meant as a profile is ignored, exactly as before: a
+      // note, a README, a lockfile. Only a name plainly meant as a profile, where
+      // just the case of the extension is wrong, reaches the refusal.
+      if (foldCase(suffix) !== '.json') continue;
+      throw new Error(
+        `reviewed profile ${entry.name} must end in ".json" exactly, not "${suffix}". `
+        + 'Skipping it would leave the reviewed set to depend on whether the filesystem reading it is '
+        + 'case-sensitive: it is one file alongside its lowercase twin on Windows and two files on the '
+        + 'Linux that CI runs, so the same repository would classify the same creator differently on the '
+        + 'two platforms. Rename the file.',
+      );
+    }
+
     const file = join(dir, entry.name);
     let profile;
     try {
@@ -111,13 +166,37 @@ function reviewedCreatorIds(repo) {
     if (typeof id !== 'string' || id.length === 0) {
       throw new Error(`reviewed profile ${entry.name} declares no creator.id, so the reviewed set cannot be trusted`);
     }
-    ids.add(id);
+    // Refused, not trimmed. The set is keyed by the exact declared string, so a
+    // document declaring " acme-labs" answers only to " acme-labs" and never to
+    // the id its author meant -- it loads, classifies nobody, and quietly leaves
+    // that creator long-tail. Trimming instead would register the document under
+    // a string it does not contain, which is worse: a reader of the JSON could no
+    // longer tell which string resolves.
+    if (PADDED_ID.test(id)) {
+      throw new Error(
+        `reviewed profile ${entry.name} declares creator.id ${JSON.stringify(id)} with leading or trailing `
+        + 'whitespace; an id is matched exactly, so a padded one answers to no bundle and classifies '
+        + 'nobody. Declare it without padding rather than relying on it being trimmed.',
+      );
+    }
+
+    const key = foldCase(collapseWhitespace(id));
+    const twin = seen.get(key);
+    if (twin) {
+      throw new Error(
+        `duplicate creator id ${JSON.stringify(id)} in ${entry.name} and ${JSON.stringify(twin.id)} in `
+        + `${twin.file}: an id has to name exactly one reviewed profile, because the threshold a bundle is `
+        + 'held to is derived by asking this set about its creator, and two documents answering to one id '
+        + 'would make that answer depend on which was read last.',
+      );
+    }
+    seen.set(key, { id, file: entry.name });
   }
 
-  if (ids.size === 0) {
+  if (seen.size === 0) {
     throw new Error(`the reviewed-profile set at ${dir} holds no profiles; refusing to classify a creator against nothing`);
   }
-  return ids;
+  return new Set([...seen.values()].map((profile) => profile.id));
 }
 
 function isRealDate(value) {

@@ -284,6 +284,23 @@ function gateBundle(bundle, options = {}) {
   }
 }
 
+/**
+ * A scratch repository whose reviewed-profile set holds exactly `entries`, for
+ * the loader's own rules (#251). A string value is written verbatim, an object
+ * is written as JSON, and `null` makes a directory of that name -- which is how
+ * the "a directory is never a candidate" case is stated.
+ */
+function repoWithProfiles(entries) {
+  const repo = mkdtempSync(join(tmpdir(), 'modeltree-reviewed-set-'));
+  const dir = join(repo, 'tools', 'updater', 'profiles');
+  mkdirSync(dir, { recursive: true });
+  for (const [name, body] of Object.entries(entries)) {
+    if (body === null) mkdirSync(join(dir, name), { recursive: true });
+    else writeFileSync(join(dir, name), typeof body === 'string' ? body : JSON.stringify(body));
+  }
+  return repo;
+}
+
 describe('gate-evidence', () => {
   test('a fully evidenced, unanimously accepted claim passes', () => {
     const result = gateBundle({ runId: 'r1', creator: 'openai', policy: 'pilot', claims: [claim()] });
@@ -627,6 +644,197 @@ describe('gate-evidence', () => {
       );
     } finally {
       rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // The reviewed-set loader's own rules, brought level with the Python
+  // ProfileLibrary that reads the same directory (#251, a named instance of the
+  // drift #168 records). None of these lowers the bar for a genuinely long-tail
+  // creator and none is reachable from a claim bundle -- each needs a malformed
+  // profile committed to the repository. They are closed because two
+  // implementations of one rule that disagree about what is valid will
+  // eventually disagree about something that matters, and because a profile
+  // skipped rather than refused makes a creator vanish from the reviewed set
+  // without anyone being told.
+  // -------------------------------------------------------------------------
+
+  // A padded id is reachable by no lookup: the set is keyed by the exact declared
+  // string, so a document declaring " acme-labs" answers only to " acme-labs" and
+  // never to the id its author plainly meant. Admitting it loads a profile that
+  // classifies nobody, and the creator it was written for is quietly long-tail.
+  test('a reviewed profile whose creator.id is padded is refused, not admitted', () => {
+    const repo = repoWithProfiles({ 'acme.json': { creator: { id: ' acme-labs ' } } });
+    try {
+      const result = gateBundle(
+        { runId: 'r1', creator: 'acme-labs', policy: 'pilot', claims: [claim()] },
+        { repo },
+      );
+      assert.equal(result.code, 2, `a padded creator id must be refused: ${result.stdout}`);
+      assert.ok(
+        result.stdout.includes('whitespace'),
+        `the refusal must name the padding, not something else:\n${result.stdout}`,
+      );
+      assert.ok(
+        result.stdout.includes('acme.json'),
+        `the refusal must name the document:\n${result.stdout}`,
+      );
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  // Two documents answering to one id make the answer depend on which was read
+  // last. The loader deduped them into a Set and said nothing, so whichever
+  // profile lost was invisible. Ids differing only in case, or only in how they
+  // space themselves, are one id to the reader this rule exists for.
+  test('two reviewed profiles declaring one creator id are refused, not silently deduped', () => {
+    const pairs = [
+      ['acme-labs', 'acme-labs'],
+      ['acme-labs', 'Acme-Labs'],
+      ['acme labs', 'acme  labs'],
+      ['acme labs', 'acme\u00a0labs'],
+    ];
+    for (const [left, right] of pairs) {
+      for (const [first, second] of [[left, right], [right, left]]) {
+        const repo = repoWithProfiles({
+          'a.json': { creator: { id: first } },
+          'b.json': { creator: { id: second } },
+        });
+        try {
+          const result = gateBundle(
+            { runId: 'r1', creator: first, policy: 'pilot', claims: [claim()] },
+            { repo },
+          );
+          assert.equal(result.code, 2, `${first} / ${second}: a duplicate creator id must be refused: ${result.stdout}`);
+          assert.ok(
+            result.stdout.includes('duplicate'),
+            `the refusal must say what is wrong:\n${result.stdout}`,
+          );
+          assert.ok(
+            result.stdout.includes('a.json') && result.stdout.includes('b.json'),
+            `the refusal must name both documents:\n${result.stdout}`,
+          );
+        } finally {
+          rmSync(repo, { recursive: true, force: true });
+        }
+      }
+    }
+  });
+
+  // The platform-split case (#246). `.JSON` and `.json` are one file on Windows,
+  // where every gate agent here runs, and two files on the Linux that CI runs.
+  // Skipping the case-variant makes the two platforms disagree about what the
+  // reviewed set contains; refusing makes them agree, loudly, on both. The
+  // refusal is the rule `tools/updater` already applies to the same directory.
+  test('a filename differing from .json only in case is refused, not silently skipped', () => {
+    const repo = repoWithProfiles({
+      'acme.json': { creator: { id: 'acme-labs' } },
+      'other.JSON': { creator: { id: 'other-labs' } },
+    });
+    try {
+      const result = gateBundle(
+        { runId: 'r1', creator: 'acme-labs', policy: 'pilot', claims: [claim()] },
+        { repo },
+      );
+      assert.equal(result.code, 2, `a .JSON case-variant must be refused: ${result.stdout}`);
+      assert.ok(
+        result.stdout.includes('other.JSON'),
+        `the refusal must name the file to rename:\n${result.stdout}`,
+      );
+      assert.ok(
+        result.stdout.includes('case-sensitive'),
+        `the refusal must say why the case matters:\n${result.stdout}`,
+      );
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  // The refusal above has to stay narrow, or the suite only proves the gate went
+  // paranoid. A neighbour nobody meant as a profile is ignored exactly as before:
+  // a note, an extensionless file, a dotfile, and a directory -- including one
+  // named as though it were a case-variant, because a directory was never a
+  // document and refusing it would be the wrong answer to the wrong question.
+  test('a neighbour that was never meant as a profile is still ignored', () => {
+    const repo = repoWithProfiles({
+      'acme.json': { creator: { id: 'acme-labs' } },
+      'notes.md': '# not a profile\n',
+      'README': 'not a profile either\n',
+      '.hidden.json': { creator: { id: 'hidden-labs' } },
+      'generic': null,
+      'archive.JSON': null,
+    });
+    try {
+      const result = gateBundle(
+        { runId: 'r1', creator: 'acme-labs', policy: 'pilot', claims: [claim()] },
+        { repo },
+      );
+      assert.equal(result.code, 0, `only real profiles are candidates: ${result.stdout}`);
+      assert.equal(JSON.parse(result.stdout).threshold, 2, 'acme-labs is the reviewed creator there');
+
+      const hidden = gateBundle(
+        { runId: 'r1', creator: 'hidden-labs', policy: 'long-tail', claims: [claim()] },
+        { repo },
+      );
+      assert.equal(hidden.code, 0, `a dotfile is not part of the reviewed set: ${hidden.stdout}`);
+      assert.equal(JSON.parse(hidden.stdout).threshold, 3, 'a dotfile profile classifies nobody as a pilot');
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  // Fail-closed, stated as a property rather than as four anecdotes. These are
+  // the four id values this repository has met that no reader can tell from
+  // another: the empty string, and U+200B ZERO WIDTH SPACE, U+202E RIGHT-TO-LEFT
+  // OVERRIDE and U+FEFF ZERO WIDTH NO-BREAK SPACE. Whether each is refused at
+  // load or merely fails to classify differs -- JS `trim()` treats U+FEFF as
+  // whitespace and Python's `strip()` does not, and neither treats the other two
+  // as whitespace at all -- and the property deliberately does not care which.
+  // What it pins is the one thing that must never happen: none of them may end
+  // with the gate applying the looser pilot threshold to a creator the reviewed
+  // set does not plainly name.
+  test('an invisible or empty creator id never selects the pilot threshold', () => {
+    const INVISIBLE = ['', '\u200b', '\u202e', '\ufeff'];
+    const named = (id) => JSON.stringify(id);
+
+    // The control, so a passing property is not just a harness that cannot pass.
+    const clean = repoWithProfiles({ 'acme.json': { creator: { id: 'acme-labs' } } });
+    try {
+      const ok = gateBundle({ runId: 'r1', creator: 'acme-labs', policy: 'pilot', claims: [claim()] }, { repo: clean });
+      assert.equal(ok.code, 0, `the unmangled id is what a pilot looks like: ${ok.stdout}`);
+      assert.equal(JSON.parse(ok.stdout).threshold, 2);
+    } finally {
+      rmSync(clean, { recursive: true, force: true });
+    }
+
+    const mangled = [];
+    for (const ch of INVISIBLE) {
+      mangled.push(ch, `${ch}acme-labs`, `acme-labs${ch}`);
+    }
+    for (const id of mangled) {
+      if (id === 'acme-labs') continue;
+      const repo = repoWithProfiles({ 'acme.json': { creator: { id } } });
+      try {
+        const result = gateBundle(
+          { runId: 'r1', creator: 'acme-labs', policy: 'pilot', claims: [claim()] },
+          { repo },
+        );
+        assert.notEqual(
+          result.code,
+          0,
+          `a profile declaring ${named(id)} must not hand "acme-labs" the pilot bar: ${result.stdout}`,
+        );
+        if (result.code === 1) {
+          assert.notEqual(
+            JSON.parse(result.stdout).threshold,
+            2,
+            `a profile declaring ${named(id)} must not select the pilot threshold: ${result.stdout}`,
+          );
+        }
+      } finally {
+        rmSync(repo, { recursive: true, force: true });
+      }
     }
   });
 });
