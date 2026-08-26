@@ -34,6 +34,7 @@ __all__ = [
     "current_version_marker",
     "list_checkpoint_summaries",
     "load_checkpoint",
+    "recorded_creator_id",
     "recorded_profile_id",
     "recorded_providers",
     "recorded_version_marker",
@@ -159,7 +160,7 @@ def current_version_marker() -> CheckpointVersion:
     )
 
 
-def _recorded_creator_id(checkpoint: Any) -> str | None:
+def recorded_creator_id(checkpoint: Any) -> str | None:
     """The creator a checkpoint belongs to, read out of the messages it stored.
 
     Every workflow message carries the `CreatorRequest` it is working on, so the
@@ -207,7 +208,7 @@ async def list_checkpoint_summaries(
         summaries.append(
             {
                 "checkpoint_id": getattr(checkpoint, "checkpoint_id", None),
-                "creator_id": _recorded_creator_id(checkpoint),
+                "creator_id": recorded_creator_id(checkpoint),
                 "workflow_id": getattr(checkpoint, "workflow_id", None),
                 "iteration": getattr(checkpoint, "iteration_count", None),
                 "timestamp": getattr(checkpoint, "timestamp", None),
@@ -295,7 +296,7 @@ async def recorded_version_marker(storage: Any, checkpoint_id: str) -> Checkpoin
     `recorded_profile_id`): the declared `dict[str, list[WorkflowMessage]]` shape is
     enforced at the storage layer, and a reader that quietly returned `None` for a
     payload it could not parse would turn *unreadable* into *unmarked* — the one
-    confusion this marker exists to prevent. `_recorded_creator_id` is defensive for
+    confusion this marker exists to prevent. `recorded_creator_id` is defensive for
     the opposite reason: it feeds a listing where one bad row must not take down the
     other rows. This feeds a refusal, so it fails loudly instead.
     """

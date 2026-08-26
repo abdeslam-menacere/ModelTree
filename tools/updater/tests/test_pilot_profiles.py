@@ -23,7 +23,11 @@ from __future__ import annotations
 import asyncio
 import inspect
 
-from modeltree_updater.checkpoints import create_checkpoint_storage, load_checkpoint
+from modeltree_updater.checkpoints import (
+    create_checkpoint_storage,
+    load_checkpoint,
+    recorded_creator_id,
+)
 from modeltree_updater.contracts import (
     ClaimDecision,
     FailureKind,
@@ -211,19 +215,17 @@ async def _checkpoints(storage):
 async def _checkpoint_creator_id(storage, checkpoint_id):
     """Which creator a checkpoint belongs to, read out of the checkpoint itself.
 
-    Mirrors how `checkpoints.recorded_providers` reads provenance. A multi-creator
-    run puts every creator's checkpoints into one storage, so the creator has to
-    come from the stored message rather than from the order they were written in.
+    Delegates to production `checkpoints.recorded_creator_id` rather than restating
+    it: a multi-creator run puts every creator's checkpoints into one storage, and
+    the property these tests assert — that a checkpoint resolves to the creator it
+    recorded — is the production rule, so it must be checked through that rule and
+    not a hand-copied variant of it (issue #221). Production tolerates a malformed
+    payload by returning `None` instead of raising a bare `AttributeError`.
     """
     checkpoint = await load_checkpoint(storage, checkpoint_id)
     if checkpoint is None:
         return None
-    for envelopes in (getattr(checkpoint, "messages", None) or {}).values():
-        for envelope in envelopes:
-            creator = getattr(getattr(envelope, "data", None), "creator", None)
-            if creator is not None:
-                return creator.creator_id
-    return None
+    return recorded_creator_id(checkpoint)
 
 
 def test_all_four_pilots_go_through_the_multi_creator_path_in_one_run(
@@ -448,7 +450,7 @@ def test_a_pilot_is_checkpointed_and_resumed_inside_a_multi_creator_run(
         # Every creator the shared storage can be shown to hold a checkpoint for,
         # collected from the same unfiltered walk that `owned` is narrowed out of.
         # `None` is the checkpoint written after the final superstep, which has no
-        # message left to name a creator — see `checkpoints._recorded_creator_id`.
+        # message left to name a creator — see `checkpoints.recorded_creator_id`.
         attributed = set()
         for checkpoint in await _checkpoints(storage):
             creator_id = await _checkpoint_creator_id(storage, checkpoint.checkpoint_id)
