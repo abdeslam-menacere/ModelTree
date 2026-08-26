@@ -232,6 +232,63 @@ def test_no_repository_default_is_guessed_from_a_prefix_that_happens_to_match(
     assert resolve(package / "profiles.py") is None, name
 
 
+# --------------------------------------------------------------------------
+# `src` is the parent's *name*, not a substring of the path (#212)
+# --------------------------------------------------------------------------
+# Every install prefix used above happens to have no `src` anywhere in it, so a
+# check that merely looked for `src` *somewhere* in the path passed all of them
+# and nothing distinguished it from the rule this module actually states. That
+# is not a weaker test of the same behaviour, it is #139 again: with the
+# substring form, `source_checkout_dir` answers
+# `/home/src/venv/lib/python3.13` for a virtualenv made inside a directory
+# called `src` — a directory under the Python prefix, in this repository's name,
+# that nobody wrote. The prefixes below therefore carry `src` while the
+# immediate parent still is not it, one for each way a relaxed check finds it.
+
+SRC_IN_THE_PREFIX_BUT_NOT_THE_PARENT = (
+    # A virtualenv made inside a directory named `src`, which is where the
+    # substring form reproduces #139's failing shape exactly.
+    "/home/src/venv/lib/python3.13/site-packages/modeltree_updater/cli.py",
+    # The same, from a home or project directory named `src`.
+    "/Users/src/.venv/lib/python3.11/site-packages/modeltree_updater/cli.py",
+    # `src` does not have to be a whole path component to be found in the string.
+    "/build/mysrc/venv/lib/python3.13/site-packages/modeltree_updater/cli.py",
+    # `src` as a *suffix* of the immediate parent's name, which `endswith` takes.
+    "/build/mysrc/modeltree_updater/cli.py",
+    # `src` as a *prefix* of the immediate parent's name, which `startswith` takes.
+    "/build/srclib/modeltree_updater/cli.py",
+)
+
+
+@pytest.mark.parametrize("module_file", SRC_IN_THE_PREFIX_BUT_NOT_THE_PARENT)
+def test_src_elsewhere_in_the_path_is_not_a_source_checkout(module_file) -> None:
+    """An install prefix containing `src` is still an install prefix.
+
+    The rule is the package directory's parent being *named* `src`, and these
+    are the paths that tell that rule apart from every looser reading of it:
+    `"src" in str(package_dir)`, `.startswith("src")` and `.endswith("src")`
+    each accept at least one of them and hand back a directory under the
+    install prefix. No filesystem is involved — `module_file` is a parameter
+    precisely so a synthetic installed path can be handed in.
+    """
+    assert layout.source_checkout_dir(module_file) is None
+
+
+def test_a_checkout_below_a_directory_named_src_still_resolves() -> None:
+    """The other half, so the check cannot be tightened into a new bug.
+
+    A developer whose checkout lives under `~/src` has `src` in the prefix *and*
+    a real `src` as the package directory's parent. Rejecting the paths above by
+    refusing `src` anywhere in the path would take this with it, and it is the
+    ordinary case. Only the immediate parent decides, wherever the checkout sits.
+    """
+    module_file = "/home/src/ModelTree/tools/updater/src/modeltree_updater/cli.py"
+
+    assert layout.source_checkout_dir(module_file) == (
+        Path("/home/src/ModelTree/tools/updater").resolve()
+    )
+
+
 def test_a_source_checkout_still_defaults_to_the_reviewed_profiles() -> None:
     """The working case has to keep working: the checkout's own reviewed sets."""
     assert profiles.DEFAULT_PROFILES_DIR == PROJECT_DIR / "profiles"

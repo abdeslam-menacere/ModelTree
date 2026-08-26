@@ -133,6 +133,24 @@ def test_a_malformed_profile_fails_loudly(tmp_path) -> None:
 
 
 def test_default_profiles_directory_is_the_versioned_one() -> None:
+    """Which directory a *checkout* defaults to — when there is a checkout (#212).
+
+    `DEFAULT_PROFILES_DIR` has been `Path | None` since #147 and is `None` in an
+    installed distribution, which carries no reviewed profiles on purpose. The
+    contract chosen here is to skip rather than to assert the `None` case: this
+    test is about which directory a checkout picks, and an installed copy has no
+    answer to that question rather than a wrong one. The installed case is
+    already pinned on its own terms, against the layout check itself, in
+    `test_installed_layout.py`. Before the guard this raised
+    `AttributeError: 'NoneType' object has no attribute 'name'`, which named
+    neither the constant nor the reason.
+    """
+    if DEFAULT_PROFILES_DIR is None:
+        pytest.skip(
+            "DEFAULT_PROFILES_DIR is None: running from an installed "
+            "distribution, which ships no reviewed profiles (#147), so there is "
+            "no versioned profiles directory for this test to check"
+        )
     assert DEFAULT_PROFILES_DIR.name == "profiles"
     assert DEFAULT_PROFILES_DIR.is_dir()
 

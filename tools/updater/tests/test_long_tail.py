@@ -397,7 +397,22 @@ def test_promotion_is_not_recommended_for_a_thin_creator(library) -> None:
 
 
 def test_nothing_creates_a_dedicated_profile(tmp_path, library) -> None:
-    """Promotion recommends. Creating the profile stays a human act."""
+    """Promotion recommends. Creating the profile stays a human act.
+
+    Guarded for the same reason as the profiles default (#212):
+    `DEFAULT_LONG_TAIL_PROFILE` is `None` in an installed distribution (#147),
+    and the reviewed directory this test watches does not exist there to be
+    watched. Skipping says so; before the guard it raised
+    `AttributeError: 'NoneType' object has no attribute 'parent'` from the
+    middle of a promotion test, where it reads as a bug in the code under test
+    rather than as a run with no checkout.
+    """
+    if DEFAULT_LONG_TAIL_PROFILE is None:
+        pytest.skip(
+            "DEFAULT_LONG_TAIL_PROFILE is None: running from an installed "
+            "distribution, which ships no reviewed long-tail profiles (#147), "
+            "so there is no reviewed directory to watch for new profile files"
+        )
     before = {path.name for path in DEFAULT_LONG_TAIL_PROFILE.parent.parent.glob("*.json")}
 
     proposal = _run(RICH, library)
