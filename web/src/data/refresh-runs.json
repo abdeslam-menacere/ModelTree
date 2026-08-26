@@ -204,7 +204,7 @@
       "A scout proposing a status change must also propose the sourceIds change that carries its source. This cost three panel-accepted OpenAI claims.",
       "Fit-statement freshness blocks legitimate verification bumps on anthropic-claude-haiku-4-5, anthropic-claude-mythos-5, and meta-llama-4.",
       "www.llama.com now redirects to developer.meta.com, a new host that needs a human decision on the approved-origin list.",
-      "Consider making skills-ci a required check (#169), so a red non-required job can stop an unattended merge."
+      "Consider making skills-ci a required check, so a red non-required job can stop an unattended merge. Requiring a check is a branch-protection setting, so it is an owner action rather than a change this program can make."
     ],
     "references": [
       { "kind": "pull-request", "label": "PR #302 — chore(data): source-backed dataset refresh 2026-08-26", "url": "https://github.com/abdeslam-menacere/ModelTree/pull/302", "state": "merged" },
