@@ -748,21 +748,43 @@ decides whether a broken-looking path reference is really absent or just an
 ignored build artefact. The trap it defends against, recorded here so the next
 tool to ask the same question meets it before repeating the mistake:
 
-**A blank line in `.gitignore` -- and, on current git, a whitespace-only line or
-a lone `\r` left by CRLF -- is reported as matching any path that ends in `/`.**
-So `git check-ignore -- "docs/nowhere/"` exits 0 ("ignored") for a directory
-nothing ignores. A caller that reads "ignored" as "not repository content,
-absence is fine" then silently waves through every broken directory reference --
-a fail-open, the exact class of silent pass the instruction checker exists to
-remove.
+**Some blank-ish lines in `.gitignore` are reported as matching any path that
+ends in `/`.** So `git check-ignore -- "docs/nowhere/"` exits 0 ("ignored") for a
+directory nothing ignores. A caller that reads "ignored" as "not repository
+content, absence is fine" then silently waves through every broken directory
+reference -- a fail-open, the exact class of silent pass the instruction checker
+exists to remove.
 
-The fix is not to delete the blank lines (they are idiomatic section separators;
-see the comment at the top of `.gitignore`). It is to **never ask about a path
-that ends in `/`.** `is_git_ignored` strips the trailing slash and probes twice
--- the bare name and a `.gitignore-probe` child -- neither of which ends in `/`,
-so the blank-line match can never fire. The two probes are both load-bearing: a
-directory-only pattern like `.docks/` matches neither a truly-absent bare name
-nor a trailing-slash path, only the child.
+Which lines fire is **git-version-bound**. Verified on **git 2.53.0.windows.4**
+(observed 2026-08-26), one throwaway repo per variant, `.gitignore` body wrapping
+each line around a real pattern, probing a made-up `dir/`:
+
+| `.gitignore` line | reports `dir/` ignored? |
+|---|---|
+| truly blank (empty) line | no |
+| whitespace-only line (a lone space) | **yes -- fires** |
+| lone `\r` left by CRLF | **yes -- fires** |
+| tab-only line | no |
+| comment-only line (`# ...`) | no |
+| trailing whitespace after a pattern | no |
+| negation pattern (`!keep.log`) | no |
+| completely empty file | no |
+
+So on this git the live triggers are a **whitespace-only line** and a **lone `\r`
+left by CRLF** -- the latter a real concern on Windows checkouts. A *truly blank*
+line does **not** fire here, despite older lore to the contrary. This was checked
+only on 2.53.0.windows.4; behaviour on earlier git versions is **not established**,
+and git's handling of empty patterns has changed before, so treat the specific
+list above as version-bound rather than eternal.
+
+The fix does not depend on which lines fire, so it is robust to that drift: it is
+to **never ask about a path that ends in `/`.** `is_git_ignored` strips the
+trailing slash and probes twice -- the bare name and a `.gitignore-probe` child --
+neither of which ends in `/`, so the match can never fire whatever blank-ish line
+the file carries. The two probes are both load-bearing: a directory-only pattern
+like `.docks/` matches neither a truly-absent bare name nor a trailing-slash path,
+only the child. (Do not delete the blank separators to dodge the trap -- they are
+idiomatic; see the comment at the top of `.gitignore`.)
 
 `tools/updater/tests/test_instruction_references.py` pins this: the trailing-slash
 discipline is asserted against real trigger `.gitignore` files (whitespace-only

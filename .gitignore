@@ -1,14 +1,14 @@
-# HAZARD for anything that shells out to `git check-ignore`: a blank line here --
-# and, on current git, a whitespace-only line or a lone CR left by CRLF -- is
-# reported as a match for ANY path ending in "/". So a bare "docs/nowhere/" reads
-# back "ignored" whether or not anything ignores it. A tool that treats
-# "gitignored" as "not repository content, absence is fine" then waves through
-# every broken directory reference. Do NOT delete the blank separators below to
-# dodge this -- they are idiomatic. The fix is to never ask about a trailing-slash
-# path: strip the slash and probe a non-"/" child instead. The one existing
-# consumer, tools/instruction_refs/check_instruction_references.py:is_git_ignored,
-# already does this; any new consumer must go through the same discipline. See
-# tools/updater/README.md and issue #170.
+# HAZARD for anything that shells out to `git check-ignore`: some blank-ish lines
+# here make git report ANY path ending in "/" as ignored, so a bare "docs/nowhere/"
+# reads back "ignored" whether or not anything ignores it -- a fail-open for a tool
+# that treats "gitignored" as "absence is fine". The exact triggers are git-version-
+# bound (a whitespace-only line and a lone CR from CRLF fire on git 2.53; a truly
+# blank line does not), so the version-bound detail lives in one place rather than
+# two: see tools/updater/README.md, "Asking git what is repository content", and
+# issue #170. Do NOT delete the blank separators below to dodge this -- they are
+# idiomatic; the fix is to never ask about a trailing-slash path, which the one
+# consumer (tools/instruction_refs/check_instruction_references.py:is_git_ignored)
+# already does, and any new consumer must too.
 node_modules/
 *.log
 
