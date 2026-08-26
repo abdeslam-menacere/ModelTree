@@ -35,7 +35,7 @@ Whether an ADR narrows the invariant for the change in front of you is a questio
 you answer by reading `docs/adr/`, not one this file can answer on your behalf.
 Check for `docs/adr/0003-*.md` in particular. Where it is present, it scopes
 itself to one bounded class of change and to nothing else: a source-backed
-dataset refresh under `web/src/data/`, produced by the `modeltree-refresh` skill
+refresh of the dataset JSON that `web/src/data/raw.ts` composes, produced by the `modeltree-refresh` skill
 set, may reach `main` without a human approving it. The ADR pairs that grant with
 its own limit — every other change in this repository keeps the unmodified
 invariant, human merge included — and that limit is the part that applies to you.
