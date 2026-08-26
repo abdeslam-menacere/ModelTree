@@ -27,6 +27,29 @@ The governing file, plus every `.github/skills/**/*.md`. The set is globbed, not
 listed, so a skill added tomorrow is covered the day it lands rather than the day
 somebody remembers to extend a list.
 
+Globbing buys that at the price of a failure mode a list does not have: the glob
+can match nothing, and a set that is empty has no document that could fail. So a
+discovery run that finds no skill documents is refused outright, with exit 2,
+before anything is checked. Without that refusal the widened half of this check
+passed most readily when it had lost the most -- one skill carrying a bare
+citation was caught, every skill gone was not -- which is a fail-open in the very
+guard that exists to notice that the skills stopped being read. The sibling
+checker over the same directory settles this the same way and says so in the same
+words: a scan of nothing is not a pass (see
+`.github/scripts/check-skill-doc-test-counts.mjs`).
+
+The refusal states only that discovery returned no files and deliberately does not
+name a cause, because a renamed directory, a changed layout, a broken glob and the
+wrong working directory all produce this identical input and none of them is
+distinguishable in it. There is no --allow-empty: this repository always has skill
+documents, so the flag would ship with no user, and it would be a switch that
+restores exactly the fail-open being closed here. The run-level verdict is printed
+on every discovery run for the same reason, whatever the count. It used to be
+conditioned on there being more than one report, which meant the single run that
+most needed to state its count -- the one that had discovered nothing -- was the
+one run that printed none, leaving a run that examined nothing looking exactly
+like a healthy one.
+
 The skills earn coverage because of who reads them. They are the instructions
 an agent follows *while acting as a gate* -- deciding whether work is fit to
 merge. A misdirected pointer costs more there than in ordinary prose, because a
@@ -243,6 +266,52 @@ FULL = Coverage(resolves_paths=True)
 CITATIONS_ONLY = Coverage(resolves_paths=False)
 
 
+def skill_documents(repo_root: Path = REPO_ROOT) -> list[Path]:
+    """Every skill document on disk, in a stable sorted order.
+
+    Discovery is a function of its own rather than an expression inside
+    `covered_documents` so that "the glob matched nothing" is a state something
+    can be asserted about. Folded into the covered set it was unobservable: that
+    list always carries the governing file, so an empty discovery still returned
+    a non-empty set and read as an ordinary small run.
+    """
+    return [
+        document
+        for document in sorted(repo_root.glob(SKILL_DOCUMENTS_GLOB))
+        if document.is_file()
+    ]
+
+
+# Phrased to say only what the input supports. A renamed directory, a changed
+# layout, a broken glob and the wrong working directory all produce an empty
+# discovery and none of them is distinguishable in it, so naming any one of them
+# would be a guess printed as a diagnosis.
+ZERO_DISCOVERY_MESSAGE = (
+    f"discovery matched no skill documents under {SKILL_DOCUMENTS_GLOB}, so the "
+    "widened half of this check examined nothing. Every verdict this check "
+    "prints is a statement about the documents it found, and an empty set holds "
+    "no document that could carry a bad reference -- so the more completely the "
+    "skills went missing, the more readily this run passed. A scan of nothing "
+    "is not a pass. This states only that discovery returned no files; it does "
+    "not establish why, because a renamed directory, a changed layout, a broken "
+    "glob and the wrong working directory all produce this input and none of "
+    "them is distinguishable in it."
+)
+
+
+def discovery_problem(repo_root: Path = REPO_ROOT) -> str | None:
+    """Why a discovery run must not proceed, or None if it may.
+
+    Checked ahead of the per-document work rather than alongside it, because
+    this is the state that makes that work vacuous rather than one more way for
+    it to fail. Kept a pure function of the root so the refusal is an assertable
+    property rather than a branch reachable only by deleting a directory.
+    """
+    if skill_documents(repo_root):
+        return None
+    return ZERO_DISCOVERY_MESSAGE
+
+
 def covered_documents(repo_root: Path = REPO_ROOT) -> list[tuple[Path, Coverage]]:
     """Every document CI checks, with the rules that apply to each.
 
@@ -251,9 +320,7 @@ def covered_documents(repo_root: Path = REPO_ROOT) -> list[tuple[Path, Coverage]
     """
     covered: list[tuple[Path, Coverage]] = [(repo_root / DEFAULT_DOCUMENT, FULL)]
     covered.extend(
-        (document, CITATIONS_ONLY)
-        for document in sorted(repo_root.glob(SKILL_DOCUMENTS_GLOB))
-        if document.is_file()
+        (document, CITATIONS_ONLY) for document in skill_documents(repo_root)
     )
     return covered
 
@@ -313,13 +380,33 @@ class Report:
         except (OSError, ValueError):
             return str(self.document)
 
+    @property
+    def measurements(self) -> str:
+        """What was counted, saying plainly what was not counted at all.
+
+        `spans` is measured for every document, so it is always a number. Path
+        candidates are a product of the path rule, so where that rule did not
+        run there is no measurement to report -- and printing `0 path-like
+        references` there was worse than useless, because a zero reads as a
+        finding. That is what let a run over a document with 81 backticked spans
+        report the same counts as a run over nothing at all.
+        """
+        if self.coverage.resolves_paths:
+            return (
+                f"{self.spans} backticked spans, "
+                f"{len(self.candidates)} path-like references"
+            )
+        return (
+            f"{self.spans} backticked spans, path-like references not measured "
+            "(the path rule did not run on this document)"
+        )
+
     def render(self) -> str:
         lines = [
             f"Checking {self.display}",
             f"  repository root: {self.repo_root}",
             f"  rules applied: {self.coverage.label}",
-            f"  {self.spans} backticked spans, "
-            f"{len(self.candidates)} path-like references",
+            f"  {self.measurements}",
             f"  resolved ({len(self.resolved)}):",
         ]
         lines.extend(str(finding) for finding in self.resolved)
@@ -492,10 +579,21 @@ def numbered_heading(document: Path, number: str) -> bool:
     )
 
 
+def count_spans(text: str, report: Report) -> None:
+    """How much backticked markup the document carries.
+
+    Measured for every document, whatever rules apply to it. This counter used
+    to live inside `check_paths`, which made it a by-product of the path rule
+    rather than a fact about the document: under the narrowed coverage the rule
+    did not run, so the count stayed at its initial zero and was printed as
+    though it had been taken.
+    """
+    report.spans = sum(1 for _ in CODE_SPAN_RE.finditer(text))
+
+
 def check_paths(text: str, repo_root: Path, report: Report) -> None:
     for match in CODE_SPAN_RE.finditer(text):
         token = match.group(1)
-        report.spans += 1
         if not is_path_candidate(repo_root, token) or token in report.candidates:
             continue
         report.candidates.append(token)
@@ -626,6 +724,7 @@ def check(
 ) -> Report:
     text = document.read_text(encoding="utf-8")
     report = Report(document=document, repo_root=repo_root, coverage=coverage)
+    count_spans(text, report)
     if coverage.resolves_paths:
         check_paths(text, repo_root, report)
     check_issue_citations(text, report)
@@ -647,6 +746,10 @@ def main(argv: list[str] | None = None) -> int:
         print("usage: check_instruction_references.py [document]", file=sys.stderr)
         return 2
 
+    # Two modes, and the distinction matters below: a discovery run is the one
+    # CI makes, and it is the only one that can be wrong about *which* documents
+    # it read. A named document is exactly the document the caller asked for.
+    discovery_run = not args
     if args:
         document = Path(args[0])
         if not document.is_file():
@@ -660,25 +763,33 @@ def main(argv: list[str] | None = None) -> int:
             for document in missing:
                 print(f"no such document: {document}", file=sys.stderr)
             return 2
+        problem = discovery_problem(REPO_ROOT)
+        if problem is not None:
+            print(f"check_instruction_references: {problem}", file=sys.stderr)
+            return 2
 
     reports = [check(document, REPO_ROOT, coverage) for document, coverage in targets]
     print("\n\n".join(report.render() for report in reports))
 
     failed = [report for report in reports if not report.ok]
-    if len(reports) > 1:
-        # One verdict for the run, below the per-document ones, so a log read
-        # from the bottom cannot mistake the last document's OK for the run's.
+    if discovery_run:
+        # Stated on every discovery run, whatever the count, and below the
+        # per-document verdicts so a log read from the bottom cannot mistake the
+        # last document's OK for the run's. This was once conditioned on there
+        # being more than one report, which meant the run that most needed to
+        # state its count -- the one that had discovered nothing -- printed none
+        # and ended on a per-document OK, indistinguishable from a healthy run.
         print("")
+        counted = f"{len(reports)} covered document" + (
+            "" if len(reports) == 1 else "s"
+        )
         if failed:
             print(
-                f"FAIL: {len(failed)} of {len(reports)} covered documents make a "
-                "reference that points at nothing."
+                f"FAIL: {len(failed)} of {counted} make a reference that points "
+                "at nothing."
             )
         else:
-            print(
-                f"OK: {len(reports)} covered documents checked, every reference "
-                "resolves."
-            )
+            print(f"OK: {counted} checked, every reference resolves.")
     return 1 if failed else 0
 
 

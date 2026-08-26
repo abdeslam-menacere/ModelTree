@@ -18,6 +18,15 @@ defect it was widened for. The narrowing is a stated decision recorded in the
 checker's module docstring, not an exemption, and a test asserts it stays
 visible in the report rather than implied by silence.
 
+Globbing that set rather than listing it adds an axis none of those reach: the
+glob can match nothing, and an empty set has no document that could fail, so the
+widened half of the check passed most readily when it had lost the most. The
+"discovering nothing" section pins that refusal, along with the controls that
+keep it from swallowing a small healthy run. The section after it pins what the
+report claims to have measured, because a count printed as zero where nothing was
+counted is what let a run over 81 backticked spans and a run over nothing print
+the same line.
+
 The checker lives outside the updater package because it is not an updater
 concern, and is loaded by path for the same reason. Its tests live here because
 this is already where the repository's stdlib-Python invariants are asserted --
@@ -791,3 +800,249 @@ def test_the_workflow_runs_on_every_covered_document():
         assert ".github/copilot-instructions.md" in paths
         assert ".github/skills/**" in paths
         assert "tools/instruction_refs/**" in paths
+
+
+# --- discovering nothing is itself the failure -------------------------------
+#
+# The covered set is globbed rather than listed, which is what makes a new skill
+# covered the day it lands. It also buys a failure mode a list does not have: the
+# glob can match nothing, and an empty set holds no document that could fail. The
+# widened half of the check therefore passed most readily when it had lost the
+# most -- one skill carrying a bare citation was caught, every skill gone was not.
+#
+# These are the emptiness axis, and none of the tests above reaches it. The
+# section above varies *which* documents are in the covered set and what they
+# contain; every one of them runs against a set with something in it. An adjacent
+# negative test has more than once made a hole in this repository look covered, so
+# this says outright that those cases cannot cover this one.
+#
+# Three of the eight below are controls on innocent input rather than probes of
+# the defect: the smallest healthy run must still pass, a missing governing file
+# must still be reported as itself, and a named-document run must not start
+# printing a run verdict. A guard on emptiness is likeliest to go wrong by
+# swallowing exactly those.
+
+
+def fake_repo(root: Path, skills: dict[str, str]) -> Path:
+    """A minimal repository: the governing file, plus the named skill documents.
+
+    Built on disk rather than mocked because discovery is a glob against a real
+    tree, and the state under test -- that glob matching nothing -- is only
+    honestly reproduced by there being nothing for it to match.
+    """
+    governing = root / checker.DEFAULT_DOCUMENT
+    governing.parent.mkdir(parents=True, exist_ok=True)
+    governing.write_text("# Instructions\n\nNothing to resolve.\n", encoding="utf-8")
+    for relative, body in skills.items():
+        target = root / ".github" / "skills" / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(body, encoding="utf-8")
+    return root
+
+
+def test_a_run_that_discovers_no_skill_documents_is_refused(
+    tmp_path, monkeypatch, capsys
+):
+    """A scan of nothing is not a pass.
+
+    With the skills gone the run checked one document, skipped the run-level
+    verdict because only one report existed, and exited 0 -- so the state in
+    which this check had stopped checking was the state it reported success in.
+    """
+    monkeypatch.setattr(checker, "REPO_ROOT", fake_repo(tmp_path, {}))
+
+    assert checker.main([]) == 2
+    captured = capsys.readouterr()
+
+    assert checker.SKILL_DOCUMENTS_GLOB in captured.err
+    assert "A scan of nothing is not a pass." in captured.err
+
+
+def test_the_refusal_leaves_nothing_that_reads_as_a_pass(
+    tmp_path, monkeypatch, capsys
+):
+    """The exit code is not the only thing a reader goes on.
+
+    The defect was that a zero-discovery run was *indistinguishable* from a
+    healthy one, and it looked healthy because the last line it printed was an
+    `OK:`. So the refusal must not leave one behind on stdout.
+    """
+    monkeypatch.setattr(checker, "REPO_ROOT", fake_repo(tmp_path, {}))
+
+    assert checker.main([]) == 2
+    captured = capsys.readouterr()
+
+    assert "OK:" not in captured.out
+    assert "Checking " not in captured.out
+
+
+def test_the_refusal_does_not_claim_a_cause(tmp_path, monkeypatch, capsys):
+    """It says discovery returned nothing, not why.
+
+    A renamed directory, a changed layout, a broken glob and the wrong working
+    directory all produce this identical input, so naming one of them would be a
+    guess printed as a diagnosis. The message disclaims that explicitly.
+    """
+    monkeypatch.setattr(checker, "REPO_ROOT", fake_repo(tmp_path, {}))
+    checker.main([])
+
+    assert "does not establish why" in capsys.readouterr().err
+
+
+def test_the_smallest_healthy_run_is_not_swallowed_by_the_guard(
+    tmp_path, monkeypatch, capsys
+):
+    """Control. One clean skill document is a pass, not an emptiness.
+
+    The case an emptiness guard is likeliest to break: a set small enough to
+    look empty to a sloppy check.
+    """
+    root = fake_repo(tmp_path, {"newcomer/SKILL.md": "# N\n\nSee owner/repo#1.\n"})
+    monkeypatch.setattr(checker, "REPO_ROOT", root)
+
+    assert checker.main([]) == 0
+    out = capsys.readouterr().out
+
+    assert out.rstrip().splitlines()[-1] == (
+        "OK: 2 covered documents checked, every reference resolves."
+    )
+
+
+def test_a_missing_governing_file_is_still_reported_as_itself(
+    tmp_path, monkeypatch, capsys
+):
+    """Control. The emptiness guard must not absorb the neighbouring refusal.
+
+    An empty tree is missing the governing file *and* every skill. Both are
+    exit 2, so the guard could quietly take over the message without changing
+    any exit code, and the more specific diagnosis would be lost.
+    """
+    monkeypatch.setattr(checker, "REPO_ROOT", tmp_path)
+
+    assert checker.main([]) == 2
+
+    assert "no such document" in capsys.readouterr().err
+
+
+def test_discovery_finds_the_skill_documents_this_repository_has():
+    """The guard is only worth something if it is off in the healthy case.
+
+    Asserted against the real tree, so a glob that stops matching here turns
+    this red rather than turning the whole check into a silent pass.
+    """
+    assert checker.discovery_problem(REPO_ROOT) is None
+    assert checker.skill_documents(REPO_ROOT)
+
+
+def test_a_discovery_run_states_its_count_even_for_a_single_document(
+    tmp_path, monkeypatch, capsys
+):
+    """The run verdict is conditioned on the mode, not on the count.
+
+    It used to be printed only when more than one report existed, which meant
+    the single run that most needed to state its count -- the one that had
+    discovered nothing -- was the one run that stated none. The guard above now
+    refuses that run before it gets here, so this stubs the guard out to assert
+    the second half independently: even if emptiness were ever allowed through,
+    the log would say how many documents it read rather than ending on one
+    document's OK.
+    """
+    monkeypatch.setattr(checker, "REPO_ROOT", fake_repo(tmp_path, {}))
+    monkeypatch.setattr(checker, "discovery_problem", lambda *_, **__: None)
+
+    assert checker.main([]) == 0
+    out = capsys.readouterr().out
+
+    assert out.rstrip().splitlines()[-1] == (
+        "OK: 1 covered document checked, every reference resolves."
+    )
+
+
+def test_a_named_document_run_prints_no_run_verdict(document, capsys):
+    """Control. Naming a document is not a discovery run.
+
+    A run over exactly the document asked for cannot be wrong about which
+    documents it read, so it has no count to reconcile. Printing a run verdict
+    there would be noise, and would make the verdict stop meaning "this is what
+    the covered set did".
+    """
+    path = document("Body with no references.\n")
+
+    assert checker.main([str(path)]) == 0
+
+    assert "covered document" not in capsys.readouterr().out
+
+
+# --- what the report says it measured ----------------------------------------
+
+
+def test_backticked_spans_are_counted_under_the_narrowed_rules(document):
+    """The counter is a fact about the document, not a by-product of a rule.
+
+    It used to be incremented inside `check_paths`, so a document checked for
+    citations only reported zero spans -- not "not measured", a plain zero,
+    which reads as a measurement. Every skill document in this repository
+    reported `0 backticked spans, 0 path-like references` while one of them had
+    81, and that erased the single signal that would have shown a run over
+    nothing at a glance.
+    """
+    path = document("Run `npm run validate` from `web/`, per `tools/x.py`.\n")
+
+    narrow = checker.check(path, REPO_ROOT, checker.CITATIONS_ONLY)
+    full = checker.check(path, REPO_ROOT, checker.FULL)
+
+    assert narrow.spans == 3
+    assert narrow.spans == full.spans
+
+
+def test_an_unmeasured_path_count_is_not_printed_as_zero(document):
+    """Say it was not measured. Do not print a zero that reads as a finding."""
+    path = document("Run `npm run validate` from `web/`.\n")
+
+    rendered = checker.check(path, REPO_ROOT, checker.CITATIONS_ONLY).render()
+
+    assert "path-like references not measured" in rendered
+    assert "0 path-like references" not in rendered
+
+
+def test_the_live_skill_documents_report_the_spans_they_have():
+    """Against the real tree, because that is where the false zero was printed.
+
+    Reads the count off the document itself rather than restating a number here:
+    a hand-written total is correct only against one commit, and the point is
+    that the report agrees with the file, not that it agrees with this test.
+    """
+    for skill in checker.skill_documents(REPO_ROOT):
+        text = skill.read_text(encoding="utf-8")
+        expected = len(checker.CODE_SPAN_RE.findall(text))
+        report = checker.check(skill, REPO_ROOT, checker.CITATIONS_ONLY)
+
+        assert report.spans == expected, skill
+
+
+def test_the_suite_reruns_when_what_it_asserts_changes():
+    """A guard that cannot run is not a guard.
+
+    The covered set is derived from `.github/skills/**`, and the assertions that
+    the set is complete and that a zero-discovery run is refused both live in
+    this suite -- which runs under `updater-tests.yml`. While that workflow's
+    filter omitted the skills directory, a pull request that renamed or emptied
+    it was the one pull request that would never run the tests written to catch
+    exactly that. The same argument covers the instruction-reference workflow,
+    whose own path filter this suite asserts.
+    """
+    yaml = pytest.importorskip("yaml", reason="PyYAML is part of the dev extra")
+    workflow = yaml.safe_load(
+        (
+            REPO_ROOT / ".github" / "workflows" / "updater-tests.yml"
+        ).read_text(encoding="utf-8")
+    )
+    # YAML 1.1 reads a bare `on` key as the boolean True.
+    triggers = workflow.get("on", workflow.get(True))
+
+    for event in ("pull_request", "push"):
+        paths = triggers[event]["paths"]
+        assert "tools/instruction_refs/**" in paths
+        assert ".github/skills/**" in paths
+        assert ".github/workflows/instruction-references.yml" in paths
+
