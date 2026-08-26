@@ -20,6 +20,7 @@ running them in this suite needs no second pytest project.
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 import sys
 from pathlib import Path
 
@@ -176,6 +177,82 @@ def test_git_is_never_asked_about_a_trailing_slash():
     assert checker.is_git_ignored(REPO_ROOT, ".docks")
     assert not checker.is_git_ignored(REPO_ROOT, "docs/nonexistent/")
     assert not checker.is_git_ignored(REPO_ROOT, "drydock.config.json")
+
+
+def _repo_with_gitignore(root: Path, gitignore_bytes: bytes) -> Path:
+    """A throwaway git work tree whose `.gitignore` is written verbatim.
+
+    Bytes, not text, so a caller can plant a lone `\\r` or trailing space that a
+    text write on Windows would rewrite. The trailing-slash discipline in
+    `is_git_ignored` has to hold whatever the ignore file contains, so the test
+    controls the ignore file exactly rather than borrowing the repository's.
+    """
+    subprocess.run(
+        ["git", "init", "--quiet", str(root)],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    (root / ".gitignore").write_bytes(gitignore_bytes)
+    return root
+
+
+# The neighbours of a truly-blank line, and whether `git check-ignore` reports a
+# bare directory-shaped path as ignored when that line is the whole ignore file
+# body around a real pattern. The ones marked True are live traps: on git 2.53 a
+# whitespace-only line or a lone carriage return matches every path ending "/".
+# `is_git_ignored` must answer "not ignored" for a nonexistent directory through
+# all of them, because it never asks about a trailing-slash path.
+GITIGNORE_NEIGHBOURS = [
+    ("truly_empty_line", b"*.log\n\n.docks/\n"),
+    ("space_only_line", b"*.log\n \n.docks/\n"),
+    ("tab_only_line", b"*.log\n\t\n.docks/\n"),
+    ("comment_line", b"*.log\n# a comment\n.docks/\n"),
+    ("trailing_whitespace", b"*.log  \n.docks/\n"),
+    ("negation_pattern", b"*.log\n!keep.log\n.docks/\n"),
+    ("cr_left_by_crlf", b"*.log\r\n\r\n.docks/\r\n"),
+    ("lone_cr_blank_line", b"*.log\n\r\n.docks/\n"),
+    ("completely_empty_file", b""),
+]
+
+
+@pytest.mark.parametrize(
+    "label, body", GITIGNORE_NEIGHBOURS, ids=[n for n, _ in GITIGNORE_NEIGHBOURS]
+)
+def test_a_nonexistent_directory_is_never_ignored(tmp_path, label, body):
+    """Whatever blank-ish line the ignore file carries, a missing dir is reported.
+
+    This is the guarantee the trailing-slash probe exists to give. Several of
+    these bodies -- the whitespace-only line, the lone carriage return -- make
+    `git check-ignore` say "ignored" for any path ending "/", so passing the
+    reference through as written (`docs/nowhere/`) would exempt it. The two-probe
+    design asks about a child that does not end "/", so the answer stays "no".
+    """
+    repo = _repo_with_gitignore(tmp_path, body)
+
+    assert not checker.is_git_ignored(repo, "docs/nonexistent/")
+    assert not checker.is_git_ignored(repo, "docs/nonexistent")
+
+
+def test_the_whitespace_trap_would_fire_without_the_probe(tmp_path):
+    """Pins that the trap is real, so the test above is not vacuous.
+
+    A whitespace-only line makes git report a bare trailing-slash path as
+    ignored. If this ever stops being true the guard test above proves nothing,
+    and this failing is the signal to revisit it.
+    """
+    repo = _repo_with_gitignore(tmp_path, b"*.log\n \n.docks/\n")
+
+    naive = subprocess.run(
+        ["git", "check-ignore", "--quiet", "--", "docs/nonexistent/"],
+        cwd=repo,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+
+    assert naive.returncode == 0  # git: "ignored" -- the trap
+    assert not checker.is_git_ignored(repo, "docs/nonexistent/")  # checker: "no"
 
 
 def test_a_missing_directory_is_still_reported(document):
