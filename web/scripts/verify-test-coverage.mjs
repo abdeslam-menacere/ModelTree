@@ -20,6 +20,24 @@
 // discovered file that produced no result. That is why the derivation cannot
 // drift into the sixteen-times "documentation asserts a value the code owns"
 // defect class: no value is asserted here at all.
+//
+// Issue #245 closes the residue #218 left: set membership alone is blind to a
+// file that is *present in the report but holds zero test results*. That state
+// hides exactly as much as an absent file -- the tests did not run either way --
+// yet it slips past the missing/unexpected check because the file does have a
+// name in `testResults`. #218 only caught it incidentally, because the crash
+// that produced it also made vitest exit non-zero; the verifier on its own said
+// nothing. So a reported file whose per-file test count is zero is now a named
+// failure, with the same message quality as the missing-file branch.
+//
+// The decision on a *legitimately* empty test file (one matching the glob but
+// containing no it()/test()) is deliberate and strict: it is an error, not an
+// exemption. The report cannot tell a dropped/killed worker apart from a file
+// that simply had no tests -- both surface as "present, zero results" -- so
+// exempting the latter would reopen the exact hole this guard exists to close,
+// and would make the guard more permissive than #218's. Every discovered file
+// today carries tests, so there is nothing to exempt; an empty test file is
+// treated as the accident it almost always is and must be deleted or filled.
 
 import { readFile } from 'node:fs/promises';
 import { relative } from 'node:path';
@@ -36,19 +54,21 @@ export function normaliseFile(absolutePath, root) {
 
 /**
  * The heart of the check, kept pure so it can be unit tested without starting
- * vitest. Given the set of files vitest intended to run (`expected`) and the set
- * it actually reported results for (`reported`), plus the report's own totals,
- * decide whether the run is trustworthy.
+ * vitest. Given the set of files vitest intended to run (`expected`), the set it
+ * actually reported results for (`reported`), and the subset of those that held
+ * zero test results (`empty`), plus the report's own totals, decide whether the
+ * run is trustworthy.
  *
- * @param {{ expected: string[], reported: string[], report: object }} input
- * @returns {{ ok: boolean, problems: string[], missing: string[], unexpected: string[] }}
+ * @param {{ expected: string[], reported: string[], empty?: string[], report: object }} input
+ * @returns {{ ok: boolean, problems: string[], missing: string[], unexpected: string[], empty: string[] }}
  */
-export function compareCoverage({ expected, reported, report }) {
+export function compareCoverage({ expected, reported, empty = [], report }) {
   const expectedSet = new Set(expected);
   const reportedSet = new Set(reported);
 
   const missing = [...expectedSet].filter((file) => !reportedSet.has(file)).sort();
   const unexpected = [...reportedSet].filter((file) => !expectedSet.has(file)).sort();
+  const emptyReported = [...new Set(empty)].sort();
 
   const problems = [];
 
@@ -56,6 +76,14 @@ export function compareCoverage({ expected, reported, report }) {
     problems.push(
       `${missing.length} discovered test file(s) produced no result and were silently omitted ` +
         `from the reported count (a dropped file / fork-worker failure): ${missing.join(', ')}`,
+    );
+  }
+
+  if (emptyReported.length > 0) {
+    problems.push(
+      `${emptyReported.length} reported test file(s) held zero test results, so a discovered ` +
+        `file ran nothing while the run still looked green (a killed/dropped worker, or a file ` +
+        `with no it()/test()): ${emptyReported.join(', ')}`,
     );
   }
 
@@ -84,7 +112,41 @@ export function compareCoverage({ expected, reported, report }) {
     );
   }
 
-  return { ok: problems.length === 0, problems, missing, unexpected };
+  return { ok: problems.length === 0, problems, missing, unexpected, empty: emptyReported };
+}
+
+/**
+ * Count, per discovered file, how many individual test results the report holds
+ * for it. In vitest's JSON (jest-compatible) report each `testResults` entry is
+ * one file and its `assertionResults` array is that file's tests, so the length
+ * of that array is the per-file test count. Files are keyed by their normalised
+ * name and duplicate entries for the same file are summed.
+ *
+ * @returns {Map<string, number>}
+ */
+export function testCountsByFile(report, root) {
+  const results = Array.isArray(report && report.testResults) ? report.testResults : [];
+  const counts = new Map();
+  for (const result of results) {
+    if (!result || typeof result.name !== 'string' || result.name.length === 0) {
+      continue;
+    }
+    const key = normaliseFile(result.name, root);
+    const assertions = Array.isArray(result.assertionResults) ? result.assertionResults.length : 0;
+    counts.set(key, (counts.get(key) ?? 0) + assertions);
+  }
+  return counts;
+}
+
+/**
+ * The normalised names of files the report lists but for which it holds zero
+ * test results -- present-but-empty, the blind spot #245 closes.
+ */
+export function emptyReportedFiles(report, root) {
+  return [...testCountsByFile(report, root).entries()]
+    .filter(([, count]) => count === 0)
+    .map(([file]) => file)
+    .sort();
 }
 
 /**
@@ -141,7 +203,8 @@ async function main() {
   }
 
   const reported = [...new Set(reportedFilesFrom(report, root))];
-  const { ok, problems } = compareCoverage({ expected, reported, report });
+  const empty = emptyReportedFiles(report, root);
+  const { ok, problems } = compareCoverage({ expected, reported, empty, report });
 
   if (ok) {
     console.log(
