@@ -529,20 +529,28 @@ def test_a_non_breaking_space_does_not_hide_a_duplicate_id(tmp_path) -> None:
         assert "a.json" in message and "b.json" in message
 
 
-def test_a_zero_width_space_is_left_alone_as_a_real_difference(tmp_path) -> None:
-    """The stated limit of the fold, pinned so that widening it is a decision.
+def test_a_zero_width_space_is_left_alone_by_the_fold_but_refused_by_the_guard(
+    tmp_path,
+) -> None:
+    """The #199 fold pin, updated for the #260 refusal that now precedes it.
 
-    A zero-width space is not whitespace to Python and is not normalised here. Folding
-    may only ever grow what is refused, and guessing at invisible characters one at a
-    time is how that would start shrinking instead — so these stay two ids until
-    something says otherwise.
+    #199 pinned that `_duplicate_key` does not normalise a zero-width space -- it treats
+    U+200B as a real difference rather than guessing at invisible characters. That is
+    still true of the fold in isolation, and is asserted directly here. What changed is
+    that #260 refuses a format-character id at the guard, before the fold is ever
+    consulted, so a loader no longer loads two such ids as distinct: it refuses the one
+    that carries the character, naming the codepoint. Both facts are pinned -- the fold's
+    unchanged conservatism, and that a format-character id never reaches it through a
+    loader.
     """
+    assert _duplicate_key("acme\u200blabs") != _duplicate_key("acmelabs")
+
     _profile_file(tmp_path / "acme.json", creator_id="acme\u200blabs")
-    _profile_file(tmp_path / "other.json", creator_id="acmelabs")
 
-    library = load_profile_library(tmp_path)
+    with pytest.raises(ProfileError) as error:
+        load_profile_library(tmp_path)
 
-    assert library.creator_ids == ("acmelabs", "acme\u200blabs")
+    assert "U+200B" in str(error.value)
 
 
 def test_two_documents_declaring_the_very_same_id_claim_no_difference(tmp_path) -> None:
@@ -667,3 +675,162 @@ def test_a_difference_is_named_only_when_there_is_one() -> None:
     assert _id_difference(True, "true") == "type and case"
     assert _id_difference("acme labs", "acme  labs") == "whitespace"
     assert _id_difference("Acme Labs", "acme  labs") == "whitespace and case"
+
+
+# --------------------------------------------------------------------------
+# Empty, zero-width and bidi-override ids (#260)
+# --------------------------------------------------------------------------
+# `str.strip()` refuses only leading/trailing Python whitespace, which is narrower than
+# the exact-id contract this guard enforces. Three further content defects are refused,
+# each as its own named refusal because each is a different wrong:
+#   * `""` -- an id that names nothing (strips to itself, so padding never saw it).
+#   * any Unicode format character (category `Cf`) -- U+200B, U+200E/F, U+202A-U+202E,
+#     U+2066-U+2069, U+FEFF -- which render invisibly or reorder the line.
+# The check is category-based (`unicodedata.category(ch) == "Cf"`), not an explicit list,
+# so a future format character joins without a code change. Ids are *not* NFC-normalised:
+# this guard refuses an ambiguous id, it never rewrites one.
+#
+# Every test here drives a real loader and expects a refusal. On `main` these inputs load
+# silently, so each `pytest.raises(ProfileError)` fails behaviourally (DID NOT RAISE), not
+# at collection time -- the failure this issue requires on `main` is a missing refusal.
+
+# The format characters #260 names, each by codepoint, written as escapes so this test
+# for invisible characters contains no invisible characters.
+FORMAT_CHARACTERS = (
+    "\u200b",  # ZERO WIDTH SPACE
+    "\u200e",  # LEFT-TO-RIGHT MARK
+    "\u200f",  # RIGHT-TO-LEFT MARK
+    "\u202a",  # LEFT-TO-RIGHT EMBEDDING
+    "\u202d",  # LEFT-TO-RIGHT OVERRIDE
+    "\u202e",  # RIGHT-TO-LEFT OVERRIDE
+    "\u2066",  # LEFT-TO-RIGHT ISOLATE
+    "\u2069",  # POP DIRECTIONAL ISOLATE
+    "\ufeff",  # ZERO WIDTH NO-BREAK SPACE / BOM
+)
+
+
+def test_an_empty_creator_id_is_refused(tmp_path) -> None:
+    """`""` passes the padding check by stripping to itself, and names nothing.
+
+    An id names exactly one record, so an empty id makes every downstream lookup, sort
+    and join run on a key that cannot tell one record from another. The refusal names
+    the file and says the id is empty, at parse, as an exit-2 usage error not a
+    traceback. On `main` this directory loads a one-entry library keyed on `""`.
+    """
+    _profile_file(tmp_path / "acme.json", creator_id="")
+
+    with pytest.raises(ProfileError) as error:
+        load_profile_library(tmp_path)
+
+    message = str(error.value)
+    assert "empty" in message
+    assert "acme.json" in message
+
+
+@pytest.mark.parametrize("character", FORMAT_CHARACTERS)
+def test_a_format_character_in_a_creator_id_is_refused(tmp_path, character) -> None:
+    """Every category-`Cf` character the issue names, refused and named by codepoint.
+
+    These are not whitespace to `str.strip()`, so the padding check never saw them, yet
+    each renders invisibly (U+200B, U+FEFF) or reorders the line (U+202E) -- so an id
+    carrying one is a distinct dict key that looks identical to one without it, and its
+    rendered form disagrees with its bytes. The refusal prints the id via `repr`, which
+    escapes the character to `\\uXXXX`, and names the offending codepoint.
+    """
+    _profile_file(tmp_path / "acme.json", creator_id=f"contoso-ai{character}")
+
+    with pytest.raises(ProfileError) as error:
+        load_profile_library(tmp_path)
+
+    message = str(error.value)
+    assert "format character" in message
+    assert f"U+{ord(character):04X}" in message
+    assert "acme.json" in message
+
+
+def test_a_format_character_id_is_refused_rather_than_stripped(tmp_path) -> None:
+    """Refused, not silently cleaned: the same file loads once the character is gone.
+
+    Stripping the format character would register the document under a string the JSON
+    does not contain -- the trap that makes padding a refusal rather than a trim -- so
+    the id `"contoso-ai\\u200b"` is refused outright, and the plain `"contoso-ai"` loads.
+    """
+    padded = _profile_file(tmp_path / "acme.json", creator_id="contoso-ai\u200b")
+
+    with pytest.raises(ProfileError):
+        load_profile(padded)
+
+    _profile_file(padded, creator_id="contoso-ai")
+    assert load_profile(padded).creator_id == "contoso-ai"
+
+
+def test_a_bom_prefixed_id_that_str_strip_leaves_alone_is_refused(tmp_path) -> None:
+    """U+FEFF is category `Cf`, not `Zs`, so `str.strip()` does not remove it.
+
+    This is the exact accident of `str.strip()` the issue calls out: NBSP is refused
+    because Python happens to call it whitespace, while a BOM/ZWNBSP is not. The
+    category check closes that gap without touching the alphabet.
+    """
+    assert "\ufeff".strip() == "\ufeff"
+    _profile_file(tmp_path / "acme.json", creator_id="\ufeffcontoso-ai")
+
+    with pytest.raises(ProfileError) as error:
+        load_profile_library(tmp_path)
+
+    assert "U+FEFF" in str(error.value)
+
+
+def test_the_guard_narrows_nothing_that_already_loaded(tmp_path) -> None:
+    """Strictly more refusals, never fewer: a legitimate id still loads unchanged.
+
+    The rule refuses empty, padded and format-character ids and nothing else -- it does
+    not narrow the alphabet, so a non-Latin id (were one declared) would still load. The
+    shipped ids are plain kebab-case ASCII; this pins that the hardening leaves them be.
+    """
+    _profile_file(tmp_path / "acme.json", creator_id="google-deepmind")
+
+    library = load_profile_library(tmp_path)
+
+    assert library.creator_ids == ("google-deepmind",)
+
+
+def test_a_non_ascii_but_visible_id_is_not_refused_by_the_format_check(tmp_path) -> None:
+    """The alphabet is untouched: only empty, padded and `Cf` ids are refused.
+
+    `strasse` written with a sharp-s is a letter (category `Ll`), not a format
+    character, so it is not caught. This pins that the fix refuses the invisible and
+    reordering class, not everything outside ASCII.
+    """
+    _profile_file(tmp_path / "acme.json", creator_id="stra\u00dfe")
+
+    library = load_profile_library(tmp_path)
+
+    assert library.creator_ids == ("stra\u00dfe",)
+
+
+def test_the_twelve_shipped_fixture_ids_all_survive_the_hardened_guard() -> None:
+    """The real corpus, run through the guard by name, refuses none of its ids.
+
+    Every shipped creator id is plain kebab-case ASCII, so none is empty, padded or
+    carries a format character. Passing each real id back through the shared guard is the
+    execution-level proof that the hardening catches no legitimate existing id (#260 AC7).
+    """
+    shipped = (
+        "anthropic",
+        "contoso-ai",
+        "fabrikam-ai",
+        "google-deepmind",
+        "litware-ai",
+        "meta",
+        "northwind-ai",
+        "openai",
+        "proseware-ai",
+        "quiet-ai",
+        "tailspin-ai",
+        "wingtip-ai",
+    )
+    path = Path("fixtures") / "creators" / "unused.json"
+    for creator_id in shipped:
+        assert (
+            _refuse_padded_id(creator_id, path=path, subject="creator id") == creator_id
+        )

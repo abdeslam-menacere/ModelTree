@@ -456,3 +456,70 @@ def test_the_shipped_fixture_library_still_loads_every_document(fixture_dir) -> 
     } == on_disk
     for creator_id, request in library.creators.items():
         assert request.creator_id == creator_id
+
+
+# --- The empty string and format characters reach the third loader too (#260) ---
+# Fixtures are test doubles dispatched by `mode=fixtures`, so a fixture id that renders
+# differently from its bytes is a proposal a reviewer cannot vet. The rule is the shared
+# `_refuse_padded_id`, so these prove parity by execution: on `main` both ids load into
+# the library, so each `pytest.raises(ProfileError)` fails behaviourally, not at import.
+
+
+def test_an_empty_fixture_id_is_refused(tmp_path) -> None:
+    """`""` strips to itself and so slipped past the padding check, naming nothing.
+
+    A fixture id names exactly one creator; the empty string names none, so it is
+    refused at parse rather than loaded as a library keyed on nothing.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id="")
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    message = str(error.value)
+    assert "empty" in message
+    assert "acme.json" in message
+
+
+@pytest.mark.parametrize(
+    "character", ["\u200b", "\u202e", "\ufeff"], ids=["ZWSP", "RLO", "BOM"]
+)
+def test_a_format_character_fixture_id_is_refused(tmp_path, character) -> None:
+    """A zero-width space, a bidi override and a BOM, none of them `str.strip()` whitespace.
+
+    `contoso-ai\\u200b` renders identically to `contoso-ai` while being a distinct key,
+    and `\\u202e` reverses how the rest of the line reads. The shared guard refuses each
+    by its Unicode category and names the codepoint; the fixture prints via `repr`, which
+    escapes the character, so the refusal is readable on a cp1252 console.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id=f"contoso-ai{character}")
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    message = str(error.value)
+    assert "format character" in message
+    assert f"U+{ord(character):04X}" in message
+    assert "acme.json" in message
+
+
+def test_a_format_character_does_not_hide_a_fixture_duplicate(tmp_path) -> None:
+    """The review-integrity case: two ids identical to the eye, one carrying U+200B.
+
+    The duplicate fold normalises spacing, not format characters, so at the merge base
+    `contoso-ai` and `contoso-ai\\u200b` loaded as two distinct fixtures a reviewer could
+    not tell apart. Refusing the format character upstream stops the invisible twin from
+    ever being registered, in either file ordering.
+    """
+    for index, (first, second) in enumerate(
+        (("contoso-ai", "contoso-ai\u200b"), ("contoso-ai\u200b", "contoso-ai"))
+    ):
+        directory = tmp_path / f"order-{index}"
+        directory.mkdir()
+        _fixture_file(directory / "a.json", creator_id=first)
+        _fixture_file(directory / "b.json", creator_id=second)
+
+        with pytest.raises(ProfileError) as error:
+            load_fixture_library(directory)
+
+        assert "U+200B" in str(error.value)
