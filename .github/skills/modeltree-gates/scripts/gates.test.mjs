@@ -88,6 +88,49 @@ describe('gate-dataset', () => {
     assert.equal(result.code, 0, result.stdout);
   });
 
+  // A refresh that writes nine structurally valid but empty arrays wipes the
+  // dataset while every coherence gate stays green -- an empty set has no
+  // dangling references, no duplicate ids, nothing to fail. ADR 0003 lets an
+  // agent-gated refresh auto-merge, so this all-empty case must be refused
+  // outright with a named `non-empty` failure and exit 1 (#185). The literal
+  // `[]` written to every document is the expectation, computed from nothing
+  // the gate itself produces.
+  test('a wholesale-empty dataset is refused rather than reported as coherent', () => {
+    const result = gateMutatedDataset(({ write }) => {
+      for (const file of [
+        'sources.json', 'publishers.json', 'organizations.json', 'families.json',
+        'releases.json', 'usage-observations.json', 'usage-syntheses.json',
+        'model-fit-statements.json', 'model-fit-evidence-gaps.json',
+      ]) {
+        write(file, []);
+      }
+    });
+    assertFailed(result, 'non-empty', 'found 0');
+  });
+
+  // The floor is the all-empty case only: a tree with a single record anywhere
+  // is accepted, so this is a pure widening of refusal that leaves every
+  // non-empty tree exactly as it was. `usage-syntheses.json` is legitimately
+  // empty in the live data, which is why the rule cannot be "every document is
+  // non-empty".
+  test('a dataset emptied to a single record still passes, so the floor is not a per-document rule', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const sources = read('sources.json');
+      const keptSource = sources[0];
+      for (const file of [
+        'publishers.json', 'organizations.json', 'families.json',
+        'releases.json', 'usage-observations.json', 'usage-syntheses.json',
+        'model-fit-statements.json', 'model-fit-evidence-gaps.json',
+      ]) {
+        write(file, []);
+      }
+      write('sources.json', [keptSource]);
+    });
+    const report = JSON.parse(result.stdout);
+    const nonEmptyFailures = report.failures.filter((f) => f.gate === 'non-empty');
+    assert.deepEqual(nonEmptyFailures, [], 'a single surviving record must not trip the non-empty floor');
+  });
+
   test('a broken source reference is caught', () => {
     const result = gateMutatedDataset(({ read, write }) => {
       const releases = read('releases.json');
