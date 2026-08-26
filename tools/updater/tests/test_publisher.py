@@ -588,10 +588,27 @@ def test_two_overrunning_executions_one_timer_tick_apart_render_identically(
     assert render_body(fast) == render_body(slow)
 
 
-def test_the_published_body_carries_no_measured_value(
+def test_the_published_seconds_cells_hold_the_sentinel_rather_than_a_measurement(
     proposal_factory, fake_issues_client
 ) -> None:
-    """The invariant #149 established, asserted by name and on the sent body.
+    """The invariant #149 established, asserted by name on the cells that carry it.
+
+    Scope, stated because the name used to claim more than the body checks: what
+    is pinned here is the budget table's `seconds` `Used` cell and, per seconds
+    exhaustion, the failure row's `used` detail cell and its rebuilt message
+    cell. Those are the cells this run's measurements are rendered into, and they
+    are all this test speaks for.
+
+    It is *not* the whole-body property. A measured value that reaches the
+    published body somewhere other than those cells is not caught here. On the
+    send path `test_the_rendered_payload_is_what_gets_sent` catches it, by
+    pinning the sent body to the rendered payload byte for byte. On the render
+    path `test_two_overrunning_executions_one_timer_tick_apart_render_identically`
+    catches it whenever it varies between the two executions — which is any
+    faithful rendering of a measurement, though not one bucketed coarsely enough
+    to come out equal in both. This test was named
+    `test_the_published_body_carries_no_measured_value` until #309, which read as
+    that universal property; the name narrowed, the assertions did not change.
 
     This is what `test_re_rendering_the_same_run_adds_no_comment_and_no_churn`
     was reaching for and could only reach by luck. That test published one run
@@ -1214,7 +1231,7 @@ def test_re_publishing_a_run_that_took_longer_adds_no_comment_and_no_churn(
     this test and left that one in place beside it; #197 removed it, having
     established that all four of its assertions are made here. The invariant it
     was standing in for is asserted directly, and positively, by
-    `test_the_published_body_carries_no_measured_value`.
+    `test_the_published_seconds_cells_hold_the_sentinel_rather_than_a_measurement`.
     """
     client = fake_issues_client()
     publish_proposal(proposal_factory(MATERIAL, run_id="run-a"), client)
