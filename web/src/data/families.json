@@ -129,6 +129,18 @@
     "firstReleaseDate": "2024-07-23",
     "status": "legacy",
     "sourceIds": ["meta-llama-collection", "meta-llama-3-1-model-card"],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-26"
+  },
+  {
+    "id": "meta-muse",
+    "slug": "muse",
+    "organizationId": "meta",
+    "name": "Muse",
+    "description": "Muse is Meta Superintelligence Labs' family of proprietary, hosted models spanning multimodal reasoning (Muse Spark), image generation (Muse Image), and video generation (Muse Video).",
+    "categories": ["language-reasoning", "multimodal-generalist", "image", "video"],
+    "firstReleaseDate": "2026-04-08",
+    "status": "current",
+    "sourceIds": ["meta-muse-spark-announcement", "meta-muse-spark-1-1-announcement", "meta-muse-image-video-announcement"],
+    "verifiedAt": "2026-08-26"
   }
 ]

@@ -380,7 +380,7 @@
     "title": "Hugging Face Hub record for meta-llama/Llama-4-Scout-17B-16E-Instruct",
     "type": "repository",
     "publisherId": "hugging-face",
-    "lastCheckedDate": "2026-08-24",
+    "lastCheckedDate": "2026-08-26",
     "notes": "The Hub's machine-readable record for the repository, carrying the download counter Hugging Face itself measures. The model card prose at the human-readable URL is Meta's and is recorded separately as meta-llama-4-scout-model-card; only the Hub-measured counter is cited from here."
   },
   {
@@ -389,7 +389,7 @@
     "title": "Hugging Face Hub record for meta-llama/Llama-4-Scout-17B-16E",
     "type": "repository",
     "publisherId": "hugging-face",
-    "lastCheckedDate": "2026-08-24",
+    "lastCheckedDate": "2026-08-26",
     "notes": "The Hub's record for the base (non-instruction-tuned) repository of the same release. It carries its own download counter, separate from the Instruct repository's."
   },
   {
@@ -504,5 +504,32 @@
     "publisherId": "google",
     "lastCheckedDate": "2026-08-26",
     "notes": "The Gemini API model reference listing the models exposed through the API; used to confirm which Gemini 3 tiers are stable versus preview."
+  },
+  {
+    "id": "meta-muse-spark-announcement",
+    "url": "https://ai.meta.com/blog/introducing-muse-spark-msl/",
+    "title": "Introducing Muse Spark: Scaling Towards Personal Superintelligence",
+    "type": "official-announcement",
+    "publisherId": "meta",
+    "publishedDate": "2026-04-08",
+    "lastCheckedDate": "2026-08-26"
+  },
+  {
+    "id": "meta-muse-spark-1-1-announcement",
+    "url": "https://ai.meta.com/blog/introducing-muse-spark-meta-model-api/",
+    "title": "Introducing Muse Spark 1.1",
+    "type": "official-announcement",
+    "publisherId": "meta",
+    "publishedDate": "2026-07-09",
+    "lastCheckedDate": "2026-08-26"
+  },
+  {
+    "id": "meta-muse-image-video-announcement",
+    "url": "https://ai.meta.com/blog/introducing-muse-image-muse-video-msl/",
+    "title": "Introducing Muse Image and Muse Video",
+    "type": "official-announcement",
+    "publisherId": "meta",
+    "publishedDate": "2026-07-07",
+    "lastCheckedDate": "2026-08-26"
   }
 ]
