@@ -106,7 +106,9 @@ renamed, that reads the main-repo row as matching when it does not.
 4. **Never switch branches, rebase, or merge by hand.** Landing is `drydock land`
    after the gates pass if that command is on your PATH, and otherwise is not a
    step you perform at all; merging is GitHub's once CI is green. Your work ends
-   at a reviewable commit.
+   at a reviewable commit. Opening the pull request is the coordinating session's
+   step, taken only after both gates have passed against that commit — never the
+   step of the dock agent that wrote it, whether or not `drydock` is on your PATH.
 5. **Small, atomic commits.** Conventional messages (`feat:`, `fix:`, `test:`).
 6. **Run the tests and report real output.** Never claim tests pass without
    running them. A behavioural change with no test fails QA.
