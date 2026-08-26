@@ -56,6 +56,21 @@ Three classification decisions, made against what `docs/adr/` actually contains
    allowlisted by name; adding another is a one-line reviewable diff, which is
    the point -- the exception is recorded rather than assumed.
 
+A **directory** whose name matches the ADR pattern -- `0003-something.md/` -- is
+skipped like any other directory, because a directory is not a decision record
+and carries no number claim, and refusing it would be changing what the check
+*does* rather than what it says. But it is named in the ignored list with a
+reason that says "directory", not skipped in silence, so the examined-and-ignored
+tally accounts for it. An exemption nobody can see is indistinguishable from a
+bypass, and a clean report over a tree that holds a `0003-decision.md/` where a
+file was meant -- a botched `git mv`, a half-extracted archive -- is exactly
+that: the directory looks accounted for while contributing nothing, and both
+counts are silently wrong. Files *inside* such a directory are still walked, so
+one holding a second ADR 0003 is still a `DUPLICATE` at exit 1; collision
+detection is untouched. Plain container subdirectories stay unnamed, because
+their contents are examined and nothing under them was passed over -- naming
+them would be noise, not visibility.
+
 Finding **no ADRs at all** is likewise a failure. A duplicate check that passes
 because it never located the directory's contents is the vacuous-pass defect in
 its purest form, so an empty result is reported as one.
@@ -203,6 +218,32 @@ def check(directory: Path, base: Path = REPO_ROOT) -> Report:
     bases = (report.base, directory.resolve())
     for path in sorted(directory.rglob("*")):
         if not path.is_file():
+            # A directory whose name would make it an ADR file -- `.md` suffix,
+            # four ASCII digits and a hyphen -- is skipped, because a directory
+            # is not a decision record. Skipping it *silently* is the defect:
+            # `0003-something.md/` looks accounted for to an operator scanning
+            # the tree by eye while producing no ADR entry, so the
+            # examined/ignored tally is wrong in both numbers with no signal.
+            # It is named in the ignored list, with a reason that says
+            # "directory" so a reader can tell it from a file carrying an
+            # unparseable number -- the same visible-skip discipline the
+            # companion and non-Markdown branches already follow. It is reported
+            # as ignored rather than refused because a directory is not a number
+            # claim and never collided; any file it *contains* is still walked
+            # below, so a `0003-x.md/` holding a second ADR 0003 stays a
+            # DUPLICATE at exit 1. Plain container directories are left unnamed:
+            # their contents are examined, so nothing under them was passed over.
+            if (
+                path.is_dir()
+                and path.suffix.lower() == ".md"
+                and ADR_NAME_RE.match(path.stem) is not None
+            ):
+                report.ignored.append(
+                    (
+                        display(path, *bases),
+                        "a directory named like an ADR, not a decision record",
+                    )
+                )
             continue
         shown = display(path, *bases)
         name = path.name

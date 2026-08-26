@@ -362,6 +362,141 @@ def test_what_was_skipped_is_named_in_the_report(adr_dir):
     assert "1 ADR files examined, 1 files ignored" in rendered
 
 
+# --- classification: a directory that looks like an ADR ---------------------
+
+
+def _ignored_lines(rendered: str) -> list[str]:
+    """The ignored list, sliced out of a rendered report.
+
+    Asserting a reason against the whole of `render()` proves almost nothing:
+    `render()` prints an inventory of every examined ADR above the problems
+    block, and #161's review failed on exactly that whole-output substring
+    check. Only the ignored list emits an "ignored: " prefix, so slicing to it
+    ties the reason to the entry rather than to the report at large.
+    """
+    return [
+        line.strip()
+        for line in rendered.splitlines()
+        if line.strip().startswith("ignored: ")
+    ]
+
+
+def test_a_directory_named_like_an_adr_is_reported_as_ignored(adr_dir):
+    """The defect: a directory named `0003-something.md/` is skipped by the walk
+    and appears nowhere -- not examined, not ignored, not counted -- so a report
+    over a tree that holds one is silently wrong in both numbers.
+
+    An exemption nobody can see is indistinguishable from a bypass. The reason
+    has to say "directory" so a reader can tell it from a file carrying an
+    unparseable number, and it is asserted against the specific ignored line,
+    not the whole rendered report. Built from `tmp_path` with `pathlib` because
+    a directory whose name ends in `.md` behaves differently across filesystems
+    and a hard-coded absolute path would not survive the move to CI.
+    """
+    directory = adr_dir("0001-a.md")
+    (directory / "0003-something.md").mkdir()
+
+    report = checker.check(directory, REPO_ROOT)
+
+    assert _ignored_lines(report.render()) == [
+        "ignored: 0003-something.md -- a directory named like an ADR, "
+        "not a decision record"
+    ]
+
+
+def test_the_ignored_count_includes_an_adr_named_directory(adr_dir):
+    """The tally has to reconcile: examined + ignored accounts for the directory
+    instead of hiding it. On the unfixed checker this line reads "0 files
+    ignored" over a directory that is plainly there."""
+    directory = adr_dir("0001-a.md")
+    (directory / "0003-something.md").mkdir()
+
+    report = checker.check(directory, REPO_ROOT)
+
+    assert len(report.ignored) == 1
+    assert "1 ADR files examined, 1 files ignored" in report.render()
+
+
+def test_a_bare_adr_named_directory_still_exits_zero(adr_dir):
+    """Behaviour is unchanged: a directory is not a decision record and not a
+    collision, so a tree whose only oddity is one exits clean. This pins the
+    visibility fix against becoming a policy change -- the directory is named,
+    not refused. It fails on the unfixed checker only because the directory goes
+    unreported, never because the exit code moved."""
+    directory = adr_dir("0001-a.md")
+    (directory / "0003-something.md").mkdir()
+
+    report = checker.check(directory, REPO_ROOT)
+
+    assert report.ok, report.render()
+    assert any(
+        "a directory named like an ADR" in reason for _, reason in report.ignored
+    )
+
+
+def test_an_adr_named_directory_containing_a_collision_still_fails(adr_dir):
+    """The half the gate confirmed by execution: a directory named like an ADR
+    that *contains* a colliding file still produces DUPLICATE and exit 1,
+    because the walk descends into it and examines the file. The fix adds the
+    directory to the ignored list without touching that -- reported *and*
+    collided, not one instead of the other."""
+    directory = adr_dir("0003-real-decision.md")
+    decoy = directory / "0003-decoy.md"
+    decoy.mkdir()
+    (decoy / "0003-inside.md").write_text("# inside\n", encoding="utf-8")
+
+    report = checker.check(directory, REPO_ROOT)
+
+    assert not report.ok
+    assert numbers(report) == {"0003"}
+    assert any(
+        "a directory named like an ADR" in reason for _, reason in report.ignored
+    )
+
+
+def test_a_plain_container_subdirectory_is_not_named(adr_dir):
+    """The boundary of the decision. A namespace directory like `superseded/` is
+    walked and its contents examined, so nothing under it was passed over and
+    naming it would be noise rather than visibility. Only a directory that
+    *looks like an ADR file* is reported -- asserted alongside a real one so the
+    test still fails on the unfixed checker."""
+    directory = adr_dir("0001-a.md", "superseded/0002-b.md")
+    (directory / "0003-collision.md").mkdir()
+
+    report = checker.check(directory, REPO_ROOT)
+    ignored_paths = [path for path, _ in report.ignored]
+
+    assert "0003-collision.md" in ignored_paths
+    assert not any(Path(path).name == "superseded" for path in ignored_paths)
+
+
+def test_the_cli_exits_zero_on_a_bare_adr_named_directory(adr_dir, capsys):
+    """The degenerate table from #161's review, re-run: a bare directory named
+    like an ADR exits 0. The rendered output now names the directory, but the
+    exit code is what it always was."""
+    directory = adr_dir("0001-a.md")
+    (directory / "0003-something.md").mkdir()
+
+    assert checker.main([str(directory)]) == 0
+    assert "a directory named like an ADR" in capsys.readouterr().out
+
+
+def test_the_cli_exits_one_on_a_collision_inside_an_adr_named_directory(
+    adr_dir, capsys
+):
+    """The other row: a directory named like an ADR that holds a colliding file
+    exits 1 with DUPLICATE, unchanged. Visibility was added, policy was not."""
+    directory = adr_dir("0003-real-decision.md")
+    decoy = directory / "0003-decoy.md"
+    decoy.mkdir()
+    (decoy / "0003-inside.md").write_text("# inside\n", encoding="utf-8")
+
+    assert checker.main([str(directory)]) == 1
+    out = capsys.readouterr().out
+    assert "DUPLICATE" in out
+    assert "a directory named like an ADR" in out
+
+
 # --- classification: refused, not silently skipped --------------------------
 
 
