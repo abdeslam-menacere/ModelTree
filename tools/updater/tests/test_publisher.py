@@ -588,6 +588,75 @@ def test_two_overrunning_executions_one_timer_tick_apart_render_identically(
     assert render_body(fast) == render_body(slow)
 
 
+def test_the_published_body_carries_no_measured_value(
+    proposal_factory, fake_issues_client
+) -> None:
+    """The invariant #149 established, asserted by name and on the sent body.
+
+    This is what `test_re_rendering_the_same_run_adds_no_comment_and_no_churn`
+    was reaching for and could only reach by luck. That test published one run
+    twice on the real clock and compared bytes, so it depended on two executions
+    happening to record different elapsed times — and once #149 stopped
+    rendering measured time at all, byte-identity stopped distinguishing
+    "identical although the measurements differed" from "nothing time-varying is
+    rendered". Every one of its assertions is made deterministically by
+    `test_re_publishing_a_run_that_took_longer_adds_no_comment_and_no_churn`,
+    which forces the difference instead of racing for it, so it was removed
+    (#197) and the property it was standing in for is stated here directly.
+
+    Stated *positively*, cell by cell: each place a measured wall-clock value
+    would go holds the sentinel. Absence alone would not be enough. #149's QA
+    found that bucketing `used` to whole minutes escaped a check that only
+    looked for the measurement verbatim — `"4m"` is not the measured value, yet
+    it is still derived from the clock and still churns whenever two executions
+    straddle a bucket boundary. Pinning the cell's content rejects `"4m"` for
+    the same reason it rejects `"247.03125"`: it is not the sentinel. So this
+    fails deterministically on any rendering of a measurement, bucketed or
+    reformatted, rather than intermittently on some of them.
+
+    Run through `publish_proposal` rather than `render_body`, because the body
+    that reaches GitHub is the one this invariant is about and nothing else here
+    checks it on that path.
+    """
+    proposal = _overrunning(proposal_factory)
+    client = fake_issues_client()
+
+    publish_proposal(proposal, client)
+    body = client.issues[0].body
+
+    # Anti-vacuity: the run really did record several measurements, so the
+    # sentinels below stand in for something rather than for nothing.
+    measured = _measured_values(proposal)
+    assert len(measured) > 1
+
+    # The budget table. Only the `Used` cell is pinned: the `Limit` cell beside
+    # it is a different property, asserted by name in #263's tests above.
+    row = re.search(r"^\| seconds \| ([^|]*) \| [^|]* \|$", body, re.MULTILINE)
+    assert row is not None, body
+    assert row.group(1) == "_not rendered_"
+
+    # Only the clock is redacted. Without this, "render nothing at all" would
+    # satisfy every assertion here, and the counters are what a reviewer needs.
+    for resource, used in (
+        ("pages", proposal.budget.pages_fetched),
+        ("tokens", proposal.budget.tokens_used),
+        ("retries", proposal.budget.retries_used),
+    ):
+        assert f"| {resource} | {used} | " in body
+
+    # The failures table, the second surface a measurement reaches: the sentinel
+    # once in the `used` detail and once in the rebuilt sentence, per seconds
+    # exhaustion. Counted, so a redaction that silently stopped covering one of
+    # several failures is caught rather than masked by the others.
+    stopped_by_seconds = [
+        f for f in proposal.failures if f.detail.get("resource") == "seconds"
+    ]
+    assert stopped_by_seconds
+    assert body.count('"used": "not rendered"') == len(stopped_by_seconds)
+    sentence = "The measured elapsed time is not rendered here."
+    assert body.count(sentence) == len(stopped_by_seconds)
+
+
 # The seconds limit is printed twice — as prose in the failures table and, on the
 # same row, as a JSON `Detail` cell — and the two used different formatters: `:g`
 # for the sentence, `json.dumps` for the cell. `:g` keeps six significant figures
@@ -1115,33 +1184,23 @@ def test_a_first_publication_supersedes_nothing(
     assert "| Supersedes run | — |" in client.issues[0].body
 
 
-def test_re_rendering_the_same_run_adds_no_comment_and_no_churn(
-    proposal_factory, fake_issues_client
-) -> None:
-    """Byte-identical, and the earlier supersession is carried forward intact."""
-    client = fake_issues_client()
-    publish_proposal(proposal_factory(MATERIAL, run_id="run-a"), client)
-    publish_proposal(proposal_factory(MATERIAL, run_id="run-b"), client)
-    after_replacement = client.issues[0].body
-
-    outcome = publish_proposal(proposal_factory(MATERIAL, run_id="run-b"), client)
-
-    assert outcome.superseded_run is None
-    assert len(client.comments) == 1
-    assert client.issues[0].body == after_replacement
-    assert "| Supersedes run | `run-a` |" in client.issues[0].body
-
-
 def test_re_publishing_a_run_that_took_longer_adds_no_comment_and_no_churn(
     proposal_factory, fake_issues_client
 ) -> None:
-    """The test above, with the clock controlled instead of raced.
+    """Publication idempotency, with the clock controlled instead of raced.
 
     Two executions of run `run-b`: one against a stopped clock, one against a
     clock that advances a Windows timer tick per read. Their measured elapsed
     times genuinely differ — asserted, not assumed — and the published issue must
-    still be byte-identical with no second supersession comment. This is what the
-    test above can only get by luck, and got wrong a few percent of the time.
+    still be byte-identical with no second supersession comment.
+
+    This replaced `test_re_rendering_the_same_run_adds_no_comment_and_no_churn`,
+    which published `run-b` twice on the real clock and could only get that
+    difference by luck — it got it wrong a few percent of the time. #149 added
+    this test and left that one in place beside it; #197 removed it, having
+    established that all four of its assertions are made here. The invariant it
+    was standing in for is asserted directly, and positively, by
+    `test_the_published_body_carries_no_measured_value`.
     """
     client = fake_issues_client()
     publish_proposal(proposal_factory(MATERIAL, run_id="run-a"), client)
