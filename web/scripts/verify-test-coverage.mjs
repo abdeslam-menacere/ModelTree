@@ -122,6 +122,48 @@
 //     provider, which issue #270 puts out of scope. So "executed" here means
 //     "the body ran", never "the body checked something", and this guard is a
 //     floor under the coverage claim rather than a proof of it.
+//
+// -- Issue #337: discovering nothing is itself the failure --
+//
+// Every check above is a comparison against the discovered set, and a set
+// difference cannot see emptiness. With `expected` empty, `missing` is empty,
+// `unexpected` is empty, `empty` is empty and the report still says success, so
+// `compareCoverage` returned ok and the script exited 0. A run in which the
+// entire suite vanished therefore passed the check that exists to catch exactly
+// that disappearance -- and it passed more easily the more total the loss was:
+// one dropped file was refused, all of them was not. That is a fail-open in a
+// guard whose only value is that it refuses a run which looks green while the
+// tests went missing.
+//
+// The prose was never the problem. `formatCoverageSummary` already printed
+// "but no reported test executed" for this run, which is #307's fix working as
+// intended. Only the exit code disagreed with it. So what is added below is a
+// problem in `compareCoverage` and not a rewording anywhere: the conclusion the
+// tool already printed now reaches the exit code.
+//
+// `expected` has exactly one source and no floor -- `globTestSpecifications()`
+// in `main` -- so anything that makes vitest's own glob return nothing produces
+// this state. The guard is placed on the discovered set being empty rather than
+// on any cause of it, because the causes are not distinguishable from this
+// input and the message must not claim otherwise (issue #307, finding 2).
+//
+// An `--allow-empty` opt-out was considered and deliberately not added. In
+// order of weight: (1) this repository always has test files, so the flag would
+// ship with no user and no run exercising its true branch -- configuration that
+// does nothing and still has to be kept honest; (2) it is a switch that
+// restores the precise fail-open being closed here, and once it exists the
+// cheapest way past a red check is to pass it, which is how a guard that cannot
+// be talked out of a refusal stops being one; (3) the asymmetry favours
+// waiting, because adding the flag later for a project that genuinely has no
+// tests costs one argument, while removing it after some CI file has started
+// passing it costs a negotiation. Nobody is left stuck by the omission: the
+// refusal says plainly that discovery returned nothing, and a project with no
+// test files has no reason to run a test-coverage verifier over them.
+//
+// This is deliberately not the `unexecuted` case. A reported file that executed
+// no tests -- a file of `.todo` tests, say -- is #270's decision, reported and
+// never refused, and it is untouched here. The defect is discovering nothing,
+// which is not the same thing as running nothing.
 
 import { readFile } from 'node:fs/promises';
 import { relative } from 'node:path';
@@ -150,6 +192,11 @@ export function normaliseFile(absolutePath, root) {
  * not fail the run" is an assertable property of the pure function, not a
  * property of a script nobody can call.
  *
+ * An empty `expected` is a problem in its own right (issue #337) and not a
+ * vacuous pass. Everything else here is a set difference, and a set difference
+ * is blind to emptiness; the header records why that state is refused outright
+ * rather than made opt-outable.
+ *
  * @param {{ expected: string[], reported: string[], empty?: string[], unexecuted?: string[], report: object }} input
  * @returns {{ ok: boolean, problems: string[], missing: string[], unexpected: string[], empty: string[], unexecuted: string[] }}
  */
@@ -163,6 +210,22 @@ export function compareCoverage({ expected, reported, empty = [], unexecuted = [
   const unexecutedReported = [...new Set(unexecuted)].sort();
 
   const problems = [];
+
+  // Issue #337. Checked before the comparisons because it is the state that
+  // makes them vacuous rather than one more way for them to fail: with nothing
+  // discovered there is no file that could have gone missing, so the whole
+  // suite disappearing looked exactly like the whole suite being covered.
+  if (expectedSet.size === 0) {
+    problems.push(
+      'Zero test files were discovered, so the set this check measures the run against was ' +
+        'empty: a missing-file comparison against an empty discovered set can never name a ' +
+        'file, which is why a run whose entire suite vanished was indistinguishable, on that ' +
+        'comparison, from a fully covered one. This states only that discovery returned no ' +
+        'files; it does not establish why, because a broken include glob, a moved directory ' +
+        'and the wrong working directory all produce this input and none of them is ' +
+        'distinguishable in it.',
+    );
+  }
 
   if (missing.length > 0) {
     problems.push(
