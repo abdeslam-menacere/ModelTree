@@ -604,19 +604,33 @@ def test_the_published_body_carries_no_measured_value(
     which forces the difference instead of racing for it, so it was removed
     (#197) and the property it was standing in for is stated here directly.
 
-    Stated *positively*, cell by cell: each place a measured wall-clock value
-    would go holds the sentinel. Absence alone would not be enough. #149's QA
-    found that bucketing `used` to whole minutes escaped a check that only
-    looked for the measurement verbatim — `"4m"` is not the measured value, yet
-    it is still derived from the clock and still churns whenever two executions
-    straddle a bucket boundary. Pinning the cell's content rejects `"4m"` for
-    the same reason it rejects `"247.03125"`: it is not the sentinel. So this
-    fails deterministically on any rendering of a measurement, bucketed or
-    reformatted, rather than intermittently on some of them.
+    Stated *positively*, cell by cell: each cell pinned below holds the sentinel,
+    rather than merely not holding the measurement. Absence alone would not be
+    enough — `"4m"` is not the measured value, yet it is still derived from the
+    clock and still churns whenever two executions straddle a bucket boundary.
+    Pinning cell content rejects `"4m"` for the same reason it rejects
+    `"247.03125"`: it is not the sentinel. So this fails deterministically on any
+    rendering of a measurement, bucketed or reformatted, rather than
+    intermittently on some of them.
+
+    What that positive form is worth, measured rather than assumed. Bucketing was
+    not an open gap this test closed: #197's QA planted it and counted 12 catchers
+    at the merge-base against 13 with this test present, and across nine planted
+    faults this test adds a catcher six times and is never the sole catcher
+    suite-wide. The narrower claim is the one that holds. Within the idempotency
+    pair — this test and
+    `test_re_publishing_a_run_that_took_longer_adds_no_comment_and_no_churn` — it
+    is the only member that catches a bucketed measurement, because bucketing
+    puts both of the sibling's clocks in the same bucket and its byte-identity
+    check still passes. It is also the only place the invariant is stated by
+    name. That is what earns it its place, not a gap it closed.
 
     Run through `publish_proposal` rather than `render_body`, because the body
-    that reaches GitHub is the one this invariant is about and nothing else here
-    checks it on that path.
+    that reaches GitHub is the one this invariant is about. The send path is
+    itself already covered: `test_the_rendered_payload_is_what_gets_sent` pins
+    the sent body to the rendered payload. So what this adds is not coverage of
+    that path but of these cells, checked on the bytes GitHub is handed rather
+    than one render call upstream of them.
     """
     proposal = _overrunning(proposal_factory)
     client = fake_issues_client()
