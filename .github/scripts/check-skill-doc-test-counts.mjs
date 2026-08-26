@@ -49,7 +49,7 @@ const SKILLS_DIR = join(REPO_ROOT, ".github", "skills");
 
 // A digit that counts tests, in either order: the number before the noun
 // ("103 tests", "**103** self-tests") or the noun before the number, which is
-// how a table row or a label states it ("| tests | 103 |", "tests: 103").
+// how a label states it ("tests: 103", "self-tests -- 103").
 //
 // Markdown emphasis is tolerated around the numeral, because prose that quotes
 // a count usually emphasises it -- #276's own issue body writes `**95**` and
@@ -57,6 +57,22 @@ const SKILLS_DIR = join(REPO_ROOT, ".github", "skills");
 // most likely way an author restates the count would be the one way the guard
 // missed. `*`, `_` and backticks are therefore allowed to wrap the number and to
 // sit between it and the noun.
+//
+// ## Two rules that keep it off honest prose
+//
+// - **The noun-first form needs a real separator.** "tests" is also a verb, and
+//   allowing bare whitespace after it flagged ordinary sentences: "gate-dataset
+//   tests 4 kinds of emptiness", "This gate tests 2 independent properties",
+//   "Run the tests 3 times if the network is flaky". None states a count, and
+//   the remediation this check prints would be nonsense advice for them. A label
+//   or a table cell always puts something non-space between the noun and the
+//   number -- a colon, a pipe, or a dash -- so requiring at least one of those
+//   deletes the whole verb class. Measured against every form this check claims
+//   to catch, it costs nothing.
+// - **A year is not a quantity.** "In 2024 tests were added for the loader"
+//   reads as number-first, but the numeral is the object of a time preposition,
+//   not a count of anything. A numeral directly after `in`, `since`, `by`,
+//   `during`, `before`, `after`, `from` or `until` is therefore not a count.
 //
 // ## What is deliberately not matched, so the promise stays honest
 //
@@ -69,27 +85,100 @@ const SKILLS_DIR = join(REPO_ROOT, ".github", "skills");
 //   check -- `.github/workflows/README.md` is largely about which ones are safe
 //   to require -- so "3 checks" is far more likely to be a true statement about
 //   CI than a test count. It is excluded on purpose and pinned as a
-//   must-not-flag sample below. This is the one evasion left open, and it is
-//   left open knowingly: an honest narrow promise beats an ambitious false one.
+//   must-not-flag sample below: an honest narrow promise beats an ambitious
+//   false one.
+// - **A count split across two lines of prose.** This scans line by line, so a
+//   noun ending one line and a numeral starting the next is not seen. The one
+//   split form that is worth the cost of state is the markdown table, handled
+//   separately below.
 //
-// Where it errs, it errs toward over-matching: "test cases 1 and 2" would be
-// flagged. That is the safer error. A false positive is a red check with a
-// message telling the author exactly what to do, while a false negative is the
-// silent drift this whole check exists to end.
+// Where it errs, it errs toward over-matching in one known way: a numeral
+// directly before a count noun reads as a count even when the sentence is about
+// a change rather than the suite, so "adds 3 tests" is flagged. That is the
+// safer error. A false positive is a red check with a message telling the author
+// exactly what to do, while a false negative is the silent drift this whole
+// check exists to end.
 const COUNT_NOUN = String.raw`(?:self-)?(?:tests|test\s+cases?|assertions)`;
-// Emphasis, code marks, and the separators a table or label puts between the
-// two. `#` is excluded so an issue reference like "tests #103" is not a count.
+// Emphasis and code marks. `#` is excluded from what may precede a numeral so an
+// issue reference like "tests #103" is not read as a count.
 const WRAP = String.raw`[\s*_\`]*`;
-const LABEL_SEP = String.raw`[\s*_\`:|\u2014\u2013-]*`;
+// At least one non-space separator, which is what a label or a table cell always
+// supplies and what a verb never does. Emphasis may sit on either side of it.
+const LABEL_SEP = String.raw`[\s*_\`]*[:|\u2014\u2013-]+[\s*_\`]*`;
 // Not `\b`: `_` is a word character, so `\b\d` never fires inside `_103_`. This
 // spells out what may sit immediately before the numeral instead -- anything
 // except a letter, another digit, or the `#` of an issue reference. That also
 // stops "H100 tests" being read as a count of 100.
 const NUMBER_START = String.raw`(?<![#0-9A-Za-z])`;
-const NUMBER_FIRST = new RegExp(String.raw`${NUMBER_START}\d+${WRAP}${COUNT_NOUN}\b`, "i");
+// A numeral governed by a time preposition is a date, not a quantity.
+const NOT_A_YEAR = String.raw`(?<!\b(?:in|on|since|by|during|before|after|from|until)\s)`;
+const NUMBER_FIRST = new RegExp(
+  String.raw`${NOT_A_YEAR}${NUMBER_START}\d+${WRAP}${COUNT_NOUN}\b`,
+  "i",
+);
 const NOUN_FIRST = new RegExp(String.raw`\b${COUNT_NOUN}\b${LABEL_SEP}${NUMBER_START}\d+`, "i");
 
 const statesATestCount = (line) => NUMBER_FIRST.test(line) || NOUN_FIRST.test(line);
+
+// ## The markdown table, which no single line of which states a count
+//
+// A real table splits the claim across rows: the count noun is a header cell and
+// the number is a body cell under it.
+//
+//     | Suite | tests |
+//     |---|---|
+//     | gates | 103   |
+//
+// Scanned a line at a time nothing there is a count, so the construct walked
+// straight through an earlier version of this check while the one-line form
+// `| tests | 103 |` was flagged -- the pin fitted the regex rather than the way
+// tables are written. This correlates the two instead, and stays narrow to keep
+// the false-positive surface small: the header cell must be a count noun and
+// nothing else, the body cell must be a numeral and nothing else, and only the
+// plural nouns count, so a `| test case | 3 |` row identifying a case by number
+// is not a size claim.
+const CELL_NOUN = /^(?:self-)?(?:tests|test\s+cases|assertions)$/i;
+const CELL_NUMBER = /^[*_`]*\d+[*_`]*$/;
+const DELIMITER_ROW = /^\|[\s|:-]+\|?$/;
+
+function tableCells(line) {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith("|")) return null;
+  let body = trimmed.slice(1);
+  if (body.endsWith("|")) body = body.slice(0, -1);
+  return body.split("|").map((cell) => cell.trim());
+}
+
+const stripMarks = (cell) => cell.replace(/[*_`]/g, "").trim();
+
+// Zero-based indices of the body rows that put a numeral under a count-noun
+// heading.
+function tableCountRows(lines) {
+  const flagged = new Set();
+  let countColumns = null;
+  for (let i = 0; i < lines.length; i += 1) {
+    const cells = tableCells(lines[i]);
+    if (cells === null) {
+      countColumns = null;
+      continue;
+    }
+    if (countColumns === null) {
+      countColumns = new Set();
+      cells.forEach((cell, column) => {
+        if (CELL_NOUN.test(stripMarks(cell))) countColumns.add(column);
+      });
+      continue;
+    }
+    if (DELIMITER_ROW.test(lines[i].trim())) continue;
+    for (const column of countColumns) {
+      if (column < cells.length && CELL_NUMBER.test(cells[column])) {
+        flagged.add(i);
+        break;
+      }
+    }
+  }
+  return flagged;
+}
 
 // Proof, re-run on every invocation, that the patterns above still do the job
 // they are here to do. If a future edit breaks one, this fails loudly instead of
@@ -107,7 +196,8 @@ const MUST_FLAG = [
   "There are __103__ test cases.",
   "There are `103` tests.",
   "The gates have **110 self-tests** today.",
-  // The noun-first forms a table or a label produces.
+  // The noun-first forms a label or a one-line row produces. A real multi-line
+  // table is a different construct and is proved separately, below.
   "| tests | 103 |",
   "tests: 103",
   "self-tests — 103",
@@ -120,12 +210,41 @@ const MUST_NOT_FLAG = [
   "Run the 2 test files in that directory",
   "ADR 0003 authorises the refresh",
   "Every rule is proved to fire by breaking real data in exactly the way",
+  // "tests" as a verb. Ordinary sentences that happen to hold a count noun and a
+  // digit, of the shape this repository's own gate documentation is written in.
+  "gate-dataset tests 4 kinds of emptiness",
+  "This gate tests 2 independent properties",
+  "Run the tests 3 times if the network is flaky",
+  "The gate tests 1 property per rule",
+  "Each run tests 12 documents in web/src/data",
+  "The suite tests 5 gates end to end",
+  "This step tests 3 things at once",
+  // A numeral governed by a time preposition is a date, not a quantity.
+  "In 2024 tests were added for the loader",
+  "In 2019 test cases were rewritten",
   // Deliberate exclusions, pinned so that narrowing the promise stays a decision
   // rather than an accident.
   "103 checks reported on the pull request",
   "the gate checks the form of a citation, not its remote content",
   "The `gate-source-approval` cases build a throwaway git repository",
   "see the tests #103 for the reasoning",
+];
+
+// The table construct, proved as blocks rather than lines because that is what
+// it is. Each sample is a whole table; the flagged row is named so a narrowing
+// edit cannot pass by flagging the wrong line.
+const TABLE_MUST_FLAG = [
+  { rows: ["| Suite | tests |", "|---|---|", "| gates | 103   |"], flags: [2] },
+  { rows: ["| Gate | test cases |", "|---|---|", "| gate-scope | 12 |"], flags: [2] },
+  { rows: ["| Suite | **tests** |", "|---|---|", "| gates | `103` |"], flags: [2] },
+];
+const TABLE_MUST_NOT_FLAG = [
+  // A column of gate names and a column of numbers that count something else.
+  ["| Gate | properties |", "|---|---|", "| gate-scope | 12 |"],
+  // A count noun in a heading with no numeral beneath it.
+  ["| Suite | tests |", "|---|---|", "| gates | all of them |"],
+  // A singular heading identifying a case by number, not sizing a suite.
+  ["| Gate | test case |", "|---|---|", "| gate-scope | 3 |"],
 ];
 
 function selfCheck() {
@@ -138,6 +257,22 @@ function selfCheck() {
   for (const sample of MUST_NOT_FLAG) {
     if (statesATestCount(sample)) {
       broken.push(`should not have been flagged but was: ${JSON.stringify(sample)}`);
+    }
+  }
+  for (const { rows, flags } of TABLE_MUST_FLAG) {
+    const got = [...tableCountRows(rows)].sort((a, b) => a - b);
+    if (got.join(",") !== flags.join(",")) {
+      broken.push(
+        `table should have flagged row(s) ${flags.join(",")} but flagged ${
+          got.length === 0 ? "none" : got.join(",")
+        }: ${JSON.stringify(rows)}`,
+      );
+    }
+  }
+  for (const rows of TABLE_MUST_NOT_FLAG) {
+    const got = [...tableCountRows(rows)];
+    if (got.length > 0) {
+      broken.push(`table should not have been flagged but was: ${JSON.stringify(rows)}`);
     }
   }
   if (broken.length > 0) {
@@ -188,8 +323,9 @@ if (files.length === 0) {
 const findings = [];
 for (const file of files) {
   const lines = readFileSync(file, "utf8").split(/\r?\n/);
+  const tableRows = tableCountRows(lines);
   lines.forEach((text, index) => {
-    if (statesATestCount(text)) {
+    if (statesATestCount(text) || tableRows.has(index)) {
       findings.push({ path: posix(relative(REPO_ROOT, file)), line: index + 1, text: text.trim() });
     }
   });
