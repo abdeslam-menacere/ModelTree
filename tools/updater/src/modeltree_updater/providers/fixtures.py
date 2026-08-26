@@ -29,6 +29,7 @@ from ..contracts import (
 from ..profiles import (
     _DuplicateIdGuard,
     _refuse_padded_id,
+    _require,
     _reviewed_profile_paths,
 )
 from ..review import ClaimReviewRequest, SourceReviewRequest
@@ -112,6 +113,29 @@ def load_fixture_library(directory: Path) -> FixtureLibrary:
     which is this loader adopting a rule the long-tail set already had rather than a
     rule invented for it (#199).
 
+    A **non-string** creator id is refused by the same helper, at parse time (#204). A
+    fixture declaring ``true`` or ``42`` as an id loads keyed under a value no string
+    lookup can reach, and :attr:`FixtureLibrary.creator_ids` then sorts that id set — so
+    a library holding both a string id and a bool one, which the folding guard correctly
+    accepts as two *distinct* ids, crashed ``sorted`` with a ``TypeError`` the moment the
+    accessor was read. That crash sits precisely in the gap the duplicate guard leaves
+    open by design. Requiring a string closes it by construction rather than by the
+    shipped fixtures happening to be homogeneous: the decision is that a fixture id *is* a
+    string, made deliberately and not left to fall out of a ``sorted()`` call. It is the
+    same rule the two reviewed sets reached independently (#136), so requiring it here
+    narrows the difference between the three loaders rather than widening it. The helper
+    now defaults to that requirement, so this loader inherits it by omission rather than
+    by opting in — see :func:`~modeltree_updater.profiles._refuse_padded_id` for why the
+    safe mode is the default.
+
+    A document missing its ``creator`` block, or a creator block missing ``creator_id``
+    or ``creator_name``, is refused by :func:`~modeltree_updater.profiles._require`
+    naming the file and the missing field, where before a bare ``KeyError`` named the
+    key but not which of a dozen documents on disk carried it (#204). This is the same
+    exit-2 usage error the missing-fixtures and malformed-id cases already produce, so a
+    hand-edited fixture that drops a required field fails as a named refusal rather than
+    a traceback, and nothing is written.
+
     One wording divergence is inherited, not chosen: the shared refusal for a
     case-variant extension says "the reviewed set", which here names the set of
     fixtures being discovered. Fixtures are not a reviewed set, but the reason the
@@ -142,12 +166,12 @@ def load_fixture_library(directory: Path) -> FixtureLibrary:
     )
     for path in _reviewed_profile_paths(directory, kind="a creator fixture"):
         document = json.loads(path.read_text(encoding="utf-8"))
-        creator = document["creator"]
+        creator = _require(document, "creator", path=path)
         request = CreatorRequest(
             creator_id=_refuse_padded_id(
-                creator["creator_id"], path=path, subject="creator id"
+                _require(creator, "creator_id", path=path), path=path, subject="creator id"
             ),
-            creator_name=creator["creator_name"],
+            creator_name=_require(creator, "creator_name", path=path),
             entry_urls=tuple(creator.get("entry_urls", ())),
             notes=creator.get("notes"),
         )
