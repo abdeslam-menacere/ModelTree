@@ -339,6 +339,40 @@ describe('gate-evidence', () => {
     assertFailed(result, 'evidence', 'shorter than');
   });
 
+  // ADR 0005: the evidence gate verifies the FORM of contentHash and quote, never
+  // that they correspond to the remote page. It fetches nothing, so a fabricated
+  // digest and an invented quote pass provided both are well-formed. This test
+  // pins that accepted limit as executable characterisation (#240 AC1). The digest
+  // is a literal, deliberately not the fixture's default and not computed by any
+  // hashing helper, so the test cannot silently become a tautology against a hash
+  // function. It is capable of failing: were the gate to gain real content
+  // verification, or were the shape/length checks tightened to reject these
+  // well-formed values, this claim would stop passing.
+  test('a fabricated content hash and an invented quote still pass, because the gate checks only form (ADR 0005)', () => {
+    const fabricated = `sha256:${'0123456789abcdef'.repeat(4)}`;
+    const fixtureHash = claim().evidence[0].contentHash;
+    assert.notEqual(fabricated, fixtureHash, 'the fabricated hash must differ from the fixture default');
+    const result = gateBundle({
+      policy: 'pilot',
+      claims: [claim({
+        evidence: [{
+          ...claim().evidence[0],
+          contentHash: fabricated,
+          quote: 'This sentence never appeared on the cited page and was invented wholesale.',
+        }],
+      })],
+    });
+    assert.equal(result.code, 0, result.stdout);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.passed, true);
+    assert.equal(report.applicable, 1);
+    assert.equal(
+      report.failures.filter((f) => f.gate === 'evidence').length,
+      0,
+      'the gate raises no evidence failure for a well-formed but fabricated citation',
+    );
+  });
+
   test('a claim with no evidence at all is refused', () => {
     const result = gateBundle({ policy: 'pilot', claims: [claim({ evidence: [] })] });
     assertFailed(result, 'evidence', 'no evidence at all');
