@@ -351,4 +351,36 @@ owning the rules, the required check, and the revert.
   the automation, even where the same gate is stricter in others. There is no
   netting off, and a gate is not "safe on balance". Do not pick whichever answer
   lets the run continue.
+- **No gate input self-reported by the subject of the gate may have a default,
+  and no such input's absence may select the more permissive option.** This
+  sharpens the guardrail immediately above — "If the skill set's gates are more
+  permissive than `tools/updater/`'s at any point, the automation does not run" —
+  into a construction-time rule about one recurring shape, because that shape
+  produces a divergence that is invisible to the per-rule comparison until a
+  malformed or omitted input triggers it. A gate exists to distrust the party
+  supplying its input; a value that party can *omit* is one it supplies, so
+  absence must be refused explicitly, **with the same exit status as an
+  unrecognised value** (exit 2), and never resolve to the looser threshold or the
+  weaker anchor. Two independent instances established the shape: `gate-evidence`'s
+  `bundle.policy ?? 'pilot'`, where an omitted `policy` let a long-tail claim
+  publish on a 2-of-3 panel it never had to reach unanimity on, and
+  `gate-source-approval`'s `--base` defaulting to `HEAD`, where a run that
+  committed before gating had its own fabricated source read back as trusted.
+  - **Making the input required is not enough, and where the value is derivable
+    the gate must derive it.** A required flag is still a value the agent under
+    test supplies; it moves the decision rather than removing it. Where the
+    correct value is computable the gate computes it — `gate-scope` and
+    `gate-source-approval` both anchor on `git merge-base HEAD
+    refs/remotes/origin/main`, a commit the run cannot author, rather than accept
+    an anchor from the run at all.
+  - **What this does not forbid.** A default that is an environment fact rather
+    than a self-report is untouched: `--today` resolving to the wall clock, and
+    `--data`/`--repo` resolving to the canonical committed location, all yield the
+    *stricter* value on absence and are not chosen by the subject to its own
+    advantage. So does a default that resolves to a derived stricter value — an
+    absent `--base` resolving to the computed merge base, which an explicit
+    `--base` may only *narrow* to an older reviewed ancestor. The rule is about a
+    self-reported input whose absence is more permissive than any value, not about
+    every input that happens to have a default; a guardrail that had to be
+    routinely excepted would be worse than none.
 - **No run skips its summary issue**, including a run that changed nothing.
