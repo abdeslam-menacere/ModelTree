@@ -80,9 +80,14 @@ belongs in branch protection, where it is auditable.
 The same trap again: `adr-numbers.yml` is path-filtered to `docs/adr/**` among
 other paths (see the table above), and
 decision records change rarely, so it reports no check on almost every pull
-request. Making it required is issue #169 and needs the repository owner, because
-requiring a check that does not report is what deadlocks a pull request — not
-something this workflow can decide for itself.
+request. Making it required is a branch-protection change and needs the
+repository owner, because requiring a check that does not report is what
+deadlocks a pull request — not something this workflow can decide for itself.
+
+It is **not** part of #169, whose scope is stated once below under **What
+issue #169 covers**. Nothing in this repository files the question of whether
+`adr-numbers` should become required, so it is recorded here as unfiled rather
+than settled with an issue number a reader cannot check.
 
 It is built to the same shape as `instruction-references`: standard library only,
 so the job is a checkout, a Python, and one command; no arguments, so it always
@@ -102,11 +107,10 @@ at all on a pull request that touches none of them — a documentation-only or
 forever if the check were required. Making it required is a branch-protection
 change, and branch protection is an owner action.
 
-It is **not** covered by #169, despite being the same family of problem. That
-issue is two specific gaps: `pytest` is not a required context, and `strict:
-false` lets two individually-green pull requests merge into a combination neither
-was tested in. #169 places `skills-ci` expressly outside its own scope, as a
-related decision to be settled alongside it rather than inside it.
+It is **not** covered by #169, despite being the same family of problem: #169
+places `skills-ci` expressly outside its own scope, as a related decision to be
+settled alongside it rather than inside it. What #169 *does* cover is stated
+once below, under **What issue #169 covers**.
 
 The consequence is worth stating plainly rather than leaving implied: because
 `skills-ci` is **not** required and `web-ci` is the only required context, a red
@@ -118,6 +122,39 @@ decides whether the real work is needed, so the check always reports and is
 therefore safe to require. Restructuring `skills-ci` the same way would make it
 requirable without the deadlock. That is a proposal recorded here, not something
 this file enacts.
+
+### What issue #169 covers
+
+This is the only place in this file that states #169's scope. The `adr-numbers`
+and `skills-ci` sections above defer to it, so the question has one answer here
+rather than two that can drift apart.
+
+Issue #169 is **two specific gaps** in branch protection on `main`:
+
+1. the `pytest` legs are not required contexts, so a pull request that breaks
+   the Python suite while leaving `web-ci` green still satisfies protection; and
+2. `strict: false` lets two individually-green pull requests merge into a
+   combination neither was tested in.
+
+Both gaps were still open when the live settings were read on 2026-08-26:
+`required_status_checks.contexts` was `["web-ci"]` and `strict` was `false`.
+
+**That scope is stated in a comment on #169, not in its body** — [comment
+5416970971](https://github.com/abdeslam-menacere/ModelTree/issues/169#issuecomment-5416970971),
+under a `### Not in scope here` heading, which is also where `skills-ci` is
+excluded by name. The body instead carries a differently-worded `## Out of
+scope` section about auto-merge behaviour and admin override. So a reader who
+checks the body alone will not find the exclusion and may conclude the two
+sections above are wrong. They are not. Read the comments before changing them.
+
+`adr-numbers`, `skills-ci` and `instruction-references` are named together once
+on #169, in [an earlier
+comment](https://github.com/abdeslam-menacere/ModelTree/issues/169#issuecomment-5409583217),
+and only as a caution: a path-filtered check that never reports blocks pull
+requests forever, so none of the three can simply be added to `contexts`. Being
+named in that caution is not being in scope, and that same sentence is the proof
+— `skills-ci` appears in it and is then excluded from #169 by name. Requiring
+any of the three is therefore a decision separate from the two gaps above.
 
 ### `drydock-gates` does not exist
 
