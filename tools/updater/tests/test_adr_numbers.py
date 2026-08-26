@@ -16,6 +16,23 @@ carries no readable number is refused rather than quietly skipped.
 that finds nothing to compare would otherwise report success, which is the exact
 defect class the issue warns about.
 
+Two of those classification decisions turned out to have a gap each, both found
+by running the shipped checker (#220), and the tests for them are written to be
+evidence rather than decoration. `\\d{4}` in a `str` pattern is the whole Unicode
+`Nd` category, so a `0003` in Arabic-Indic, Devanagari or fullwidth digits was
+admitted as an ADR under a number string no ASCII `0003` could be bucketed
+against, and the run ended `OK: 2 ADRs, every number claimed by exactly one
+file`. Separately, a case-sensitive `\\.md$` in the name pattern contradicted the
+case-*insensitive* `path.suffix.lower()` above it, so `0007-title.MD` was
+Markdown to one line and unnumbered to the next. Each of those tests asserts the
+refusal or the acceptance -- never that the ASCII, lowercase path still works,
+which passes against the defect as readily as against the fix.
+
+`numbers_reported` exists for the third gap in that issue: assertions on
+`report.duplicates` are assertions on a property recomputed from `report.adrs`,
+not on the problems list the script prints and exits on, and truncating the
+problems loop used to leave this whole file green.
+
 The checker lives outside the updater package because it is not an updater
 concern, and is loaded by path for the same reason -- the arrangement
 `test_instruction_references.py` already uses. Its tests live here because this is
@@ -26,6 +43,7 @@ this suite needs no second pytest project.
 from __future__ import annotations
 
 import importlib.util
+import re
 import sys
 from pathlib import Path
 
@@ -39,6 +57,18 @@ WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "adr-numbers.yml"
 # title, no path collision -- which is why git had nothing to say about them.
 MERGED_0003 = "0003-an-agent-gated-data-refresh-may-auto-merge.md"
 COMPETING_0003 = "0003-unattended-data-refresh-may-auto-merge.md"
+
+# `0003` written in digit scripts other than ASCII. Every one of these matches
+# `\d{4}` in a `str` pattern, because `\d` there is the whole Unicode `Nd`
+# category, and every one reads as ADR 3 under `int()` -- while comparing equal
+# to no ASCII "0003" and so landing in a duplicate bucket of its own. Spelled by
+# codepoint rather than pasted, because the fullwidth form is indistinguishable
+# from ASCII in most editors, which is the whole reason it is dangerous.
+NON_ASCII_0003 = {
+    "arabic-indic": "\u0660\u0660\u0660\u0663",
+    "devanagari": "\u0966\u0966\u0966\u0969",
+    "fullwidth": "\uff10\uff10\uff10\uff13",
+}
 
 
 def _load_checker():
@@ -72,6 +102,28 @@ def adr_dir(tmp_path):
 
 def numbers(report) -> set[str]:
     return set(report.duplicates)
+
+
+DUPLICATE_HEADING_RE = re.compile(r"^\s*DUPLICATE: ADR (\S+) is claimed by")
+
+
+def numbers_reported(report) -> set[str]:
+    """The contested numbers read back out of `report.problems`.
+
+    `numbers()` above reads `report.duplicates`, a property recomputed from
+    `report.adrs` -- so it answers "which numbers *are* contested", which is not
+    the same question as "which contested numbers does the script tell anyone
+    about". `report.problems` is the list `render()` prints and `ok` is derived
+    from, so it is the one a reader and CI actually see. Truncating the
+    problems loop to `list(report.duplicates.items())[:1]` leaves every
+    `numbers()` assertion green and turns the assertions using this red.
+    """
+    return {
+        match.group(1)
+        for problem in report.problems
+        for line in problem.splitlines()
+        if (match := DUPLICATE_HEADING_RE.match(line))
+    }
 
 
 # The advice line closing a DUPLICATE paragraph. Indented like the paths it
@@ -213,12 +265,20 @@ def test_the_stated_count_matches_the_paths_the_message_lists(adr_dir):
 
 def test_two_separate_collisions_are_both_reported(adr_dir):
     """Reporting only the first would hide the second behind a fix for the
-    first, so the same pull request would fail twice for different reasons."""
+    first, so the same pull request would fail twice for different reasons.
+
+    Asserted against `report.problems` as well as `report.duplicates`. The
+    latter is recomputed from `report.adrs`, so on its own it says the checker
+    *found* both collisions and says nothing about whether it *reports* both --
+    `list(report.duplicates.items())[:1]` in the problems loop ships a script
+    that prints one collision of two and left this test green.
+    """
     report = checker.check(
         adr_dir("0004-a.md", "0004-b.md", "0009-c.md", "0009-d.md"), REPO_ROOT
     )
 
     assert numbers(report) == {"0004", "0009"}
+    assert numbers_reported(report) == {"0004", "0009"}
 
 
 def test_a_number_claimed_in_a_subdirectory_still_collides(adr_dir):
@@ -330,6 +390,147 @@ def test_the_refusal_says_how_to_resolve_it(adr_dir):
     report = checker.check(adr_dir("0001-a.md", "notes.md"), REPO_ROOT)
 
     assert any("COMPANION_NAMES" in problem for problem in report.problems)
+
+
+# --- classification: four digits means four ASCII digits ---------------------
+
+
+@pytest.mark.parametrize("script", sorted(NON_ASCII_0003))
+def test_a_non_ascii_0003_is_not_admitted_beside_an_ascii_0003(adr_dir, script):
+    """The defect this section exists for, and the assertion has to be that the
+    impostor is *refused*.
+
+    An assertion that the ASCII path still works passes against the unfixed
+    checker as readily as against the fixed one, so it is not evidence of
+    anything. Under `\\d{4}` both files below were admitted, bucketed under two
+    different number strings, and the run ended `OK: 2 ADRs, every number
+    claimed by exactly one file` at exit 0 -- a success line that is false as
+    printed, since both files claim ADR 3.
+    """
+    impostor = f"{NON_ASCII_0003[script]}-impostor.md"
+    report = checker.check(adr_dir("0003-real-decision.md", impostor), REPO_ROOT)
+
+    assert not report.ok, report.render()
+    assert [adr.path for adr in report.adrs] == ["0003-real-decision.md"]
+
+
+@pytest.mark.parametrize("script", sorted(NON_ASCII_0003))
+def test_no_two_admitted_adrs_read_as_the_same_number(adr_dir, script):
+    """The acceptance criterion stated directly: the OK line cannot be printed
+    while two files claim one number under `int()`.
+
+    Comparing the admitted numbers as integers rather than as strings is the
+    point -- string comparison is exactly what the defect defeated, so a test
+    that compares them the same way the checker did could not see it.
+    """
+    impostor = f"{NON_ASCII_0003[script]}-impostor.md"
+    report = checker.check(adr_dir("0003-real-decision.md", impostor), REPO_ROOT)
+    rendered = report.render()
+    claimed = [int(adr.number) for adr in report.adrs]
+
+    assert len(claimed) == len(set(claimed)), rendered
+    assert "every number claimed by exactly one file" not in rendered
+
+
+@pytest.mark.parametrize("script", sorted(NON_ASCII_0003))
+def test_the_non_ascii_refusal_names_the_digits_rather_than_the_filename(
+    adr_dir, script
+):
+    """A refusal a reader cannot act on sends them somewhere else.
+
+    The glyphs are the entire problem and, fullwidth especially, are not
+    distinguishable on sight from `0003`, so the message gives codepoints and
+    the number the name reads as. It must also *not* offer COMPANION_NAMES:
+    that allowlist is for READMEs and templates, and following the suggestion
+    for a file named like a decision record would exempt a real ADR from
+    collision checking permanently -- converting a naming slip into the exact
+    failure this module exists to prevent.
+    """
+    digits = NON_ASCII_0003[script]
+    report = checker.check(
+        adr_dir("0003-real-decision.md", f"{digits}-impostor.md"), REPO_ROOT
+    )
+    refusals = [
+        problem for problem in report.problems if "NON-ASCII NUMBER" in problem
+    ]
+
+    assert len(refusals) == 1, report.render()
+    message = refusals[0]
+    assert f"{digits}-impostor.md" in message
+    assert all(f"U+{ord(char):04X}" in message for char in digits)
+    assert "ADR 0003" in message
+    assert "COMPANION_NAMES" not in message
+
+
+def test_an_ascii_near_miss_still_gets_the_unnumbered_refusal(adr_dir):
+    """The counterweight: the new branch must not swallow the old one.
+
+    `003-x.md` carries no four-digit number in any script, so the advice that
+    fits it -- rename, or allowlist it as a companion -- is still the advice it
+    gets.
+    """
+    report = checker.check(adr_dir("0001-a.md", "003-three-digits.md"), REPO_ROOT)
+
+    assert not report.ok
+    assert any("UNNUMBERED" in problem for problem in report.problems)
+    assert not any("NON-ASCII NUMBER" in problem for problem in report.problems)
+
+
+# --- classification: the Markdown suffix is read case-insensitively ----------
+
+
+@pytest.mark.parametrize("suffix", [".MD", ".Md", ".mD"])
+def test_an_uppercase_markdown_suffix_is_accepted(adr_dir, suffix):
+    """One question, one answer.
+
+    `path.suffix.lower() != ".md"` had already decided that Markdown-ness does
+    not depend on case; the name pattern then re-decided it case-sensitively
+    and disagreed. `0007-uppercase-ext.MD` was refused as a Markdown file that
+    is "neither named NNNN-title.md nor a known companion" -- which it plainly
+    is -- and the casing, the one thing that actually disqualified it, went
+    unmentioned.
+    """
+    report = checker.check(
+        adr_dir("0001-a.md", f"0007-uppercase-ext{suffix}"), REPO_ROOT
+    )
+
+    assert report.ok, report.render()
+    assert [adr.number for adr in report.adrs] == ["0001", "0007"]
+
+
+def test_a_collision_is_seen_across_suffix_casing(adr_dir):
+    """Accepting the file is only worth something if it is then checked.
+
+    Refusing it left the collision unreported: the reader was told to rename or
+    allowlist one file and never told that another already claims ADR 7.
+    """
+    report = checker.check(adr_dir("0007-lower.md", "0007-UPPER.MD"), REPO_ROOT)
+
+    assert not report.ok
+    assert numbers_reported(report) == {"0007"}
+
+
+def test_no_numbered_decision_record_is_sent_to_companion_names(adr_dir):
+    """COMPANION_NAMES is for READMEs and templates. Suggesting it for a file
+    named `NNNN-title` invites the reader to file a decision record as a
+    non-ADR and exempt its number from checking for good."""
+    report = checker.check(adr_dir("0001-a.md", "0007-uppercase-ext.MD"), REPO_ROOT)
+
+    assert not any("COMPANION_NAMES" in problem for problem in report.problems)
+
+
+def test_a_non_markdown_suffix_is_still_not_an_adr(adr_dir):
+    """Case-insensitive is not extension-insensitive: `.MD` is Markdown, `.TXT`
+    is not, and neither is `.markdown`."""
+    report = checker.check(
+        adr_dir("0001-a.md", "0002-notes.TXT", "0003-notes.markdown"), REPO_ROOT
+    )
+
+    assert report.ok, report.render()
+    assert sorted(path for path, _ in report.ignored) == [
+        "0002-notes.TXT",
+        "0003-notes.markdown",
+    ]
 
 
 # --- anti-vacuity -----------------------------------------------------------
