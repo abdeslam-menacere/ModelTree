@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import re
 
 import pytest
 
@@ -550,6 +551,90 @@ def test_two_overrunning_executions_one_timer_tick_apart_render_identically(
 
     assert _measured_values(fast) != _measured_values(slow)
     assert render_body(fast) == render_body(slow)
+
+
+# The seconds limit is printed twice — as prose in the failures table and, on the
+# same row, as a JSON `Detail` cell — and the two used different formatters: `:g`
+# for the sentence, `json.dumps` for the cell. `:g` keeps six significant figures
+# and switches to exponent form past them, so above that width the sentence stops
+# round-tripping and disagrees with the cell beside it (#180). These values are
+# #180's own table, chosen to straddle the six-significant-digit boundary: the
+# ones below it round-trip under `:g` already, the ones at and above it do not.
+LIMIT_ROUND_TRIP_CASES = (5.0, 120.0, 999999.0, 1000000.0, 1234567.0, 10000000.0, 0.1, 12.5)
+
+
+def _with_seconds_limit(proposal, limit: float):
+    """The same overrunning proposal re-pinned to one seconds limit, in the
+    budget and in every seconds failure's detail, leaving the measured values
+    alone. `_failure_row` rebuilds the sentence from `detail["limit"]`, so this
+    is what both the prose and the JSON cell are rendered from.
+    """
+    failures = tuple(
+        dataclasses.replace(failure, detail={**failure.detail, "limit": limit})
+        if failure.detail.get("resource") == "seconds"
+        else failure
+        for failure in proposal.failures
+    )
+    return dataclasses.replace(
+        proposal,
+        budget=dataclasses.replace(proposal.budget, max_seconds=limit),
+        failures=failures,
+    )
+
+
+@pytest.mark.parametrize("limit", LIMIT_ROUND_TRIP_CASES)
+def test_the_stated_limit_and_the_json_cell_state_the_same_number(
+    proposal_factory, limit
+) -> None:
+    """The failures-table sentence and the JSON cell beside it must round-trip to
+    one value, and read cleanly while doing so.
+
+    Executed across the six-significant-digit boundary rather than asserted by
+    eye: with `:g`, `1234567.0` renders `1.23457e+06` in the sentence and
+    `1234567.0` in the cell, and `float("1.23457e+06")` is `1234570.0` — a
+    different number printed beside the right one. Fails against `main` at
+    `1000000.0`, `1234567.0` and `10000000.0`, where `:g` switches to exponent
+    form; the readability clauses catch the exponent cases even where the value
+    still happens to round-trip.
+    """
+    proposal = _with_seconds_limit(_overrunning(proposal_factory), limit)
+    body = render_body(proposal)
+
+    prose = re.search(r"reached its (\S+) second limit", body)
+    cell = re.search(r'"limit": ([0-9.eE+-]+)', body)
+    assert prose is not None and cell is not None, body
+
+    # The two cells state the same number, and it is the one the run was stopped at.
+    assert float(prose.group(1)) == float(cell.group(1)) == limit
+    # Readable and lossless: never an exponent, and an integral limit is a bare
+    # integer (`5`, not `5.0` or `5.000000`), which is the form #180 asked survive.
+    assert "e" not in prose.group(1).lower()
+    if float(limit).is_integer():
+        assert prose.group(1) == str(int(limit))
+
+
+@pytest.mark.parametrize("limit", LIMIT_ROUND_TRIP_CASES)
+def test_the_budget_tables_seconds_limit_stays_round_trippable(
+    proposal_factory, limit
+) -> None:
+    """The budget table's `Limit` cell is the second place the seconds limit is
+    printed, and it used `:g` too — so above six significant digits it disagreed
+    with the failures table across sections. It has no JSON cell beside it, but a
+    reviewer still has to recover the number, so it must round-trip and not go
+    exponential. Fails against `main` at `1000000.0`, `1234567.0`, `10000000.0`.
+    """
+    proposal = dataclasses.replace(
+        proposal_factory(MATERIAL),
+        budget=dataclasses.replace(
+            proposal_factory(MATERIAL).budget, max_seconds=limit
+        ),
+    )
+    body = render_body(proposal)
+
+    cell = re.search(r"\| seconds \| _not rendered_ \| (\S+) \|", body)
+    assert cell is not None, body
+    assert float(cell.group(1)) == limit
+    assert "e" not in cell.group(1).lower()
 
 
 def test_a_run_stopped_by_the_token_limit_still_prints_its_count(
