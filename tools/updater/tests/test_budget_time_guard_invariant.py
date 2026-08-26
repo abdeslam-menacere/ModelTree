@@ -879,6 +879,23 @@ _UNGUARDED_DICT_UPDATE_OPAQUE = """
         self.__dict__.update(state)
 """
 
+# `dict.update` takes keywords as well as a mapping, and the keyword spelling is
+# the one that reads least like a dictionary write — `update(tokens_used=n)` is
+# the same charge as `self.tokens_used = n` with no subscript and no literal key
+# anywhere in the call. Both arms of the keyword limb are planted separately,
+# because a probe that deletes the whole comprehension cannot tell them apart.
+# See #355.
+
+_UNGUARDED_DICT_UPDATE_KEYWORD = """
+    def charge_widgets(self, count: int) -> None:
+        self.__dict__.update(tokens_used=self.tokens_used + count)
+"""
+
+_UNGUARDED_DICT_UPDATE_KWARGS = """
+    def charge_widgets(self, changes: dict) -> None:
+        self.__dict__.update(**changes)
+"""
+
 _GUARDED_DICT_AUG = """
     def charge_widgets(self, count: int) -> None:
         self.check_time()
@@ -905,6 +922,17 @@ _UPDATES_ANOTHER_MAPPING = """
     def stash_widgets(self, count: int) -> None:
         self._notes = {}
         self._notes.update({"tokens_used": count})
+"""
+
+_UPDATES_ANOTHER_MAPPING_BY_KEYWORD = """
+    def stash_widgets(self, count: int) -> None:
+        self._notes = {}
+        self._notes.update(tokens_used=count)
+"""
+
+_UPDATES_A_NON_COUNTER_DICT_KEYWORD = """
+    def note_widgets(self, text: str) -> None:
+        self.__dict__.update(note=text)
 """
 
 # --- The write forms this file deliberately does not read. Each one reaches
@@ -1025,6 +1053,18 @@ def charge_widgets_outside_the_class(ledger: "BudgetLedger", count: int) -> None
     ledger.__dict__.update({"pages_fetched": count})
 '''
 
+_OUTSIDE_DICT_UPDATE_KEYWORD = '''
+
+def charge_widgets_outside_the_class(ledger: "BudgetLedger", count: int) -> None:
+    ledger.__dict__.update(pages_fetched=count)
+'''
+
+_OUTSIDE_DICT_UPDATE_KWARGS = '''
+
+def charge_widgets_outside_the_class(ledger: "BudgetLedger", changes: dict) -> None:
+    ledger.__dict__.update(**changes)
+'''
+
 _OUTSIDE_DICT_COMPUTED_KEY = '''
 
 def charge_widgets_outside_the_class(ledger: "BudgetLedger", name: str, n: int) -> None:
@@ -1047,6 +1087,12 @@ _OUTSIDE_UNRELATED_SUBSCRIPT = '''
 
 _CACHE: dict[str, int] = {}
 _CACHE["pages_fetched"] = 1
+'''
+
+_OUTSIDE_UNRELATED_UPDATE_KEYWORD = '''
+
+_CACHE: dict[str, int] = {}
+_CACHE.update(pages_fetched=1)
 '''
 
 
@@ -1079,6 +1125,12 @@ def _variants() -> dict[str, str]:
         "unguarded_dict_update_opaque": _extend_ledger(
             real, _UNGUARDED_DICT_UPDATE_OPAQUE
         ),
+        "unguarded_dict_update_keyword": _extend_ledger(
+            real, _UNGUARDED_DICT_UPDATE_KEYWORD
+        ),
+        "unguarded_dict_update_kwargs": _extend_ledger(
+            real, _UNGUARDED_DICT_UPDATE_KWARGS
+        ),
         "guarded_dict_aug": _extend_ledger(real, _GUARDED_DICT_AUG),
         "reads_a_counter_through_the_dict": _extend_ledger(
             real, _READS_A_COUNTER_THROUGH_THE_DICT
@@ -1088,6 +1140,12 @@ def _variants() -> dict[str, str]:
         ),
         "writes_another_mapping": _extend_ledger(real, _WRITES_ANOTHER_MAPPING),
         "updates_another_mapping": _extend_ledger(real, _UPDATES_ANOTHER_MAPPING),
+        "updates_another_mapping_by_keyword": _extend_ledger(
+            real, _UPDATES_ANOTHER_MAPPING_BY_KEYWORD
+        ),
+        "updates_a_non_counter_dict_keyword": _extend_ledger(
+            real, _UPDATES_A_NON_COUNTER_DICT_KEYWORD
+        ),
         "aliased_instance_dict": _extend_ledger(real, _ALIASED_INSTANCE_DICT),
         "object_setattr": _extend_ledger(real, _OBJECT_SETATTR),
         "operator_setitem": _extend_ledger(real, _OPERATOR_SETITEM),
@@ -1105,10 +1163,17 @@ def _variants() -> dict[str, str]:
         "outside_dict_aug": _extend_module(real, _OUTSIDE_DICT_AUG),
         "outside_vars_assign": _extend_module(real, _OUTSIDE_VARS_ASSIGN),
         "outside_dict_update": _extend_module(real, _OUTSIDE_DICT_UPDATE),
+        "outside_dict_update_keyword": _extend_module(
+            real, _OUTSIDE_DICT_UPDATE_KEYWORD
+        ),
+        "outside_dict_update_kwargs": _extend_module(real, _OUTSIDE_DICT_UPDATE_KWARGS),
         "outside_dict_computed_key": _extend_module(real, _OUTSIDE_DICT_COMPUTED_KEY),
         "outside_dict_module_level": _extend_module(real, _OUTSIDE_DICT_MODULE_LEVEL),
         "outside_dict_read": _extend_module(real, _OUTSIDE_DICT_READ),
         "outside_unrelated_subscript": _extend_module(real, _OUTSIDE_UNRELATED_SUBSCRIPT),
+        "outside_unrelated_update_keyword": _extend_module(
+            real, _OUTSIDE_UNRELATED_UPDATE_KEYWORD
+        ),
     }
 
 
@@ -1412,6 +1477,36 @@ def test_an_instance_dict_update_the_rule_cannot_read_is_detected() -> None:
     assert _injected_unguarded("unguarded_dict_update_opaque") == {"charge_widgets"}
 
 
+def test_an_unguarded_charge_through_a_dict_update_keyword_is_detected() -> None:
+    """`self.__dict__.update(tokens_used=n)`: the same bulk write with no
+    subscript, no literal key and no mapping anywhere in the call — the counter
+    is named only by a keyword argument. `dict.update` accepts keywords as well
+    as a mapping, so reading only the mapping argument would leave the shorter
+    and more natural spelling of the bypass open. See #355.
+
+    The counter is asserted by name rather than through `_injected_unguarded`
+    alone, so this cannot pass on a detector that merely notices the call: the
+    keyword has to resolve to `tokens_used` and not to `COMPUTED`."""
+    charges = _injected("unguarded_dict_update_keyword")[0]
+    assert {(charge.method, charge.counter) for charge in charges} == {
+        ("charge_widgets", "tokens_used")
+    }
+
+
+def test_an_unguarded_dict_update_of_computed_keywords_is_detected() -> None:
+    """`self.__dict__.update(**changes)` is the keyword limb's other arm, and it
+    is a separate claim: a rule that reads keyword *names* still cannot see the
+    names inside a `**` unpacking, because `ast.keyword.arg` is `None` there.
+    Treated as `COMPUTED` for the same reason `update(state)` is — an unreadable
+    bulk write to the ledger is a wider bypass than an unreadable single one.
+
+    Pinned apart from the named-keyword test above because deleting the whole
+    comprehension reddens both, and so cannot distinguish which arm is live."""
+    charges = _injected("unguarded_dict_update_kwargs")[0]
+    assert {charge.counter for charge in charges} == {COMPUTED}
+    assert _injected_unguarded("unguarded_dict_update_kwargs") == {"charge_widgets"}
+
+
 # --- Counterweights: what must stay quiet ------------------------------------
 
 
@@ -1495,6 +1590,25 @@ def test_an_update_of_another_mapping_is_not_a_charge() -> None:
     """`update` is only read on the instance dictionary. `dict.update` is an
     ordinary method and flagging every call to it would be pure noise."""
     assert _injected("updates_another_mapping") == NOTHING
+
+
+def test_a_keyword_update_of_another_mapping_is_not_a_charge() -> None:
+    """The receiver check has to hold for the keyword spelling too, or closing
+    the gap in #355 would buy coverage with noise: an `update` keyword naming a
+    counter on some *other* mapping writes nothing on the ledger. This is the
+    bracket on the other side of the keyword limb — the named-keyword test above
+    goes red when the limb is too narrow, and this one goes red when it is too
+    broad, so neither mistake passes both."""
+    assert _injected("updates_another_mapping_by_keyword") == NOTHING
+
+
+def test_updating_a_non_counter_key_by_keyword_is_not_a_charge() -> None:
+    """`self.__dict__.update(note=text)` is on the instance dictionary and is
+    still not a charge, because the keyword resolves to an attribute name that
+    is checked against the derived counters exactly as a literal subscript key
+    is. Without this, a limb that collapsed to "any keyword is `COMPUTED`" would
+    keep the positive tests green while reddening ordinary code."""
+    assert _injected("updates_a_non_counter_dict_keyword") == NOTHING
 
 
 # --- The boundary is the module, not the ledger class ------------------------
@@ -1638,6 +1752,26 @@ def test_an_out_of_class_instance_dict_update_is_detected() -> None:
     }
 
 
+def test_an_out_of_class_dict_update_keyword_is_detected() -> None:
+    """`ledger.__dict__.update(pages_fetched=n)` out here too. Both rules read
+    write forms through the same `_written_attrs`, so pinning the keyword limb
+    in one scope and not the other would leave the module rule resting on a
+    shared helper that no module-scope test measures — the exact shape of the
+    unenforced coverage #355 records."""
+    assert _injected_outside("outside_dict_update_keyword") == {
+        ("charge_widgets_outside_the_class", "pages_fetched")
+    }
+
+
+def test_an_out_of_class_dict_update_of_computed_keywords_is_detected() -> None:
+    """The `**` arm at module scope, pinned separately for the same reason it is
+    inside the class: it is the arm a rule that reads keyword names still misses,
+    and only a probe that deletes it alone can tell the two apart."""
+    assert _injected_outside("outside_dict_update_kwargs") == {
+        ("charge_widgets_outside_the_class", COMPUTED)
+    }
+
+
 def test_an_out_of_class_instance_dict_write_with_a_computed_key_is_detected() -> None:
     """An unreadable key is a charge outside the class for the same reason an
     unreadable `setattr` name is: it is the shape a bypass takes."""
@@ -1689,6 +1823,15 @@ def test_an_unrelated_subscript_write_outside_the_class_is_not_a_charge() -> Non
     the subscript has to be on an instance dictionary — which is what stops
     this rule from reddening every mapping that reuses a counter's name."""
     assert _injected("outside_unrelated_subscript") == NOTHING
+
+
+def test_an_unrelated_keyword_update_outside_the_class_is_not_a_charge() -> None:
+    """`_CACHE.update(pages_fetched=1)` is the keyword spelling of the line
+    above, on a module-level dict that is not any object's instance dictionary.
+    The module rule matches any *receiver*, which is not the same as matching
+    any *mapping*, and this is what holds that distinction for the keyword
+    limb — it goes red on a detector widened until `update` alone is enough."""
+    assert _injected("outside_unrelated_update_keyword") == NOTHING
 
 
 # --- The write forms that stay open, held open by measurement ----------------
