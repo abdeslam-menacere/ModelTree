@@ -69,7 +69,7 @@
     "firstReleaseDate": "2026-06-09",
     "status": "current",
     "sourceIds": ["anthropic-models-overview", "anthropic-fable-5-mythos-5-docs"],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "anthropic-claude-4-5",

@@ -136,19 +136,19 @@
   },
   {
     "id": "anthropic-models-overview",
-    "url": "https://platform.claude.com/docs/en/about-claude/models/overview",
+    "url": "https://platform.claude.com/docs/en/models/overview",
     "title": "Models overview",
     "type": "official-docs",
     "publisherId": "anthropic",
-    "lastCheckedDate": "2026-08-15"
+    "lastCheckedDate": "2026-08-26"
   },
   {
     "id": "anthropic-fable-5-mythos-5-docs",
-    "url": "https://platform.claude.com/docs/en/about-claude/models/introducing-claude-fable-5-and-claude-mythos-5",
+    "url": "https://platform.claude.com/docs/en/models/fable-5/introducing-claude-fable-5-and-claude-mythos-5",
     "title": "Introducing Claude Fable 5 and Claude Mythos 5",
     "type": "official-docs",
     "publisherId": "anthropic",
-    "lastCheckedDate": "2026-08-15"
+    "lastCheckedDate": "2026-08-26"
   },
   {
     "id": "anthropic-model-deprecations",
@@ -156,7 +156,7 @@
     "title": "Model deprecations",
     "type": "official-docs",
     "publisherId": "anthropic",
-    "lastCheckedDate": "2026-08-15"
+    "lastCheckedDate": "2026-08-26"
   },
   {
     "id": "anthropic-opus-5-announcement",
@@ -165,7 +165,7 @@
     "type": "official-announcement",
     "publisherId": "anthropic",
     "publishedDate": "2026-07-24",
-    "lastCheckedDate": "2026-08-15"
+    "lastCheckedDate": "2026-08-26"
   },
   {
     "id": "anthropic-sonnet-4-5-announcement",
@@ -174,7 +174,7 @@
     "type": "official-announcement",
     "publisherId": "anthropic",
     "publishedDate": "2025-09-29",
-    "lastCheckedDate": "2026-08-15"
+    "lastCheckedDate": "2026-08-26"
   },
   {
     "id": "anthropic-haiku-4-5-announcement",
@@ -183,7 +183,7 @@
     "type": "official-announcement",
     "publisherId": "anthropic",
     "publishedDate": "2025-10-15",
-    "lastCheckedDate": "2026-08-15",
+    "lastCheckedDate": "2026-08-26",
     "notes": "The newsroom dates this announcement 15 Oct 2025, while the pinned model ID is claude-haiku-4-5-20251001."
   },
   {
@@ -427,5 +427,22 @@
     "publisherId": "openai",
     "lastCheckedDate": "2026-08-26",
     "notes": "OpenAI's news RSS feed. Used to date the GPT-5.6 Cyber introduction: the item 'Expanding Daybreak as the Cyber Defense Window Narrows', whose description introduces GPT-5.6-Cyber, carries pubDate Mon, 10 Aug 2026."
+  },
+  {
+    "id": "anthropic-sonnet-5-docs",
+    "url": "https://platform.claude.com/docs/en/models/sonnet-5/overview",
+    "title": "Claude Sonnet 5",
+    "type": "official-docs",
+    "publisherId": "anthropic",
+    "lastCheckedDate": "2026-08-26"
+  },
+  {
+    "id": "anthropic-sonnet-5-announcement",
+    "url": "https://www.anthropic.com/news/claude-sonnet-5",
+    "title": "Introducing Claude Sonnet 5",
+    "type": "official-announcement",
+    "publisherId": "anthropic",
+    "publishedDate": "2026-06-30",
+    "lastCheckedDate": "2026-08-26"
   }
 ]
