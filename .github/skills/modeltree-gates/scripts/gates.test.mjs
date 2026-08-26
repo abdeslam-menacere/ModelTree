@@ -1075,6 +1075,36 @@ describe('gate-scope', () => {
     assert.deepEqual(JSON.parse(result.stdout).outOfClass, ['sneaky.mjs', OUT_OF_CLASS]);
   });
 
+  // The scenario named on the issue, in the fixture shape the sibling schema test
+  // already established. `empty` is the assertion target rather than the exit code
+  // because it is the observable signature of the blind state: on `main` this same
+  // callback yields `empty: true`, and a naive fix could exit 1 for another reason
+  // while still reporting the tree as empty.
+  test('a committed schema change is not empty, which is what the blind state claimed', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      writeFileSync(join(dir, 'web', 'src', 'data', 'schema.ts'), 'export const x = 1;\n');
+      git('add', '-A');
+      git('commit', '-qm', 'schema change, committed');
+      assert.equal(git('status', '--porcelain').trim(), '', 'the working tree must be clean here');
+      return gate('--json');
+    });
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.empty, false, 'a committed change must never be reported as an empty tree');
+    assert.deepEqual(report.outOfClass, ['web/src/data/schema.ts']);
+    assert.equal(result.code, 1, result.stdout);
+  });
+
+  // The pair below is the proof, and neither half carries it alone. This one
+  // shows empty-means-empty; the `empty: false` assertion in the committed test
+  // above shows committed-does-not-mean-empty. Restored verbatim from `main`
+  // rather than rewritten: exit 0 on a genuinely empty tree is the correct
+  // answer and a fix that broke this test would be the wrong fix.
+  test('a clean tree reports nothing to publish rather than passing silently', () => {
+    const result = scratchRepo(() => {});
+    assert.equal(result.code, 0);
+    assert.equal(JSON.parse(result.stdout).empty, true);
+  });
+
   test('nothing changed is a finding about the anchor, not a fallthrough', () => {
     const result = withScratchRepo(({ gate }) => ({ text: gate(), json: gate('--json') }));
     assert.equal(result.text.code, 0, result.text.stdout);
