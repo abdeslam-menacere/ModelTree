@@ -200,7 +200,7 @@
     "title": "Gemini deprecations",
     "type": "official-docs",
     "publisherId": "google",
-    "lastCheckedDate": "2026-08-15",
+    "lastCheckedDate": "2026-08-26",
     "notes": "States the release date, shutdown date, and recommended replacement for each Gemini model ID."
   },
   {
@@ -444,5 +444,65 @@
     "publisherId": "anthropic",
     "publishedDate": "2026-06-30",
     "lastCheckedDate": "2026-08-26"
+  },
+  {
+    "id": "google-gemini-3-5-flash-docs",
+    "url": "https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash",
+    "title": "Gemini 3.5 Flash",
+    "type": "official-docs",
+    "publisherId": "google",
+    "lastCheckedDate": "2026-08-26"
+  },
+  {
+    "id": "google-gemini-3-5-flash-platform-docs",
+    "url": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-5-flash",
+    "title": "Gemini 3.5 Flash on Gemini Enterprise Agent Platform",
+    "type": "official-docs",
+    "publisherId": "google-cloud",
+    "lastCheckedDate": "2026-08-26",
+    "notes": "Google Cloud platform documentation; used for token limits, modalities, launch stage, release date, and the model description it publishes."
+  },
+  {
+    "id": "google-gemini-3-6-flash-docs",
+    "url": "https://ai.google.dev/gemini-api/docs/models/gemini-3.6-flash",
+    "title": "Gemini 3.6 Flash",
+    "type": "official-docs",
+    "publisherId": "google",
+    "lastCheckedDate": "2026-08-26"
+  },
+  {
+    "id": "google-gemini-3-6-flash-platform-docs",
+    "url": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-6-flash",
+    "title": "Gemini 3.6 Flash on Gemini Enterprise Agent Platform",
+    "type": "official-docs",
+    "publisherId": "google-cloud",
+    "lastCheckedDate": "2026-08-26",
+    "notes": "Google Cloud platform documentation; used for token limits, modalities, launch stage, release date, and the model description it publishes."
+  },
+  {
+    "id": "google-gemini-3-7-flash-docs",
+    "url": "https://ai.google.dev/gemini-api/docs/models/gemini-3.7-flash",
+    "title": "Gemini 3.7 Flash",
+    "type": "official-docs",
+    "publisherId": "google",
+    "lastCheckedDate": "2026-08-26"
+  },
+  {
+    "id": "google-gemini-3-7-flash-platform-docs",
+    "url": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-7-flash",
+    "title": "Gemini 3.7 Flash on Gemini Enterprise Agent Platform",
+    "type": "official-docs",
+    "publisherId": "google-cloud",
+    "lastCheckedDate": "2026-08-26",
+    "notes": "Google Cloud platform documentation; used for token limits, modalities, launch stage, release date, and the model description it publishes."
+  },
+  {
+    "id": "google-gemini-models-reference",
+    "url": "https://ai.google.dev/gemini-api/docs/models",
+    "title": "Gemini API models",
+    "type": "official-docs",
+    "publisherId": "google",
+    "lastCheckedDate": "2026-08-26",
+    "notes": "The Gemini API model reference listing the models exposed through the API; used to confirm which Gemini 3 tiers are stable versus preview."
   }
 ]

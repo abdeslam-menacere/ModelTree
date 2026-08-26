@@ -93,7 +93,7 @@
     "firstReleaseDate": "2025-11-18",
     "status": "current",
     "sourceIds": ["google-gemini-deprecations", "google-gemini-3-guide"],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "google-gemini-2-5",
@@ -105,7 +105,7 @@
     "firstReleaseDate": "2025-06-17",
     "status": "current",
     "sourceIds": ["google-gemini-deprecations", "google-gemini-2-5-report"],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "meta-llama-4",
