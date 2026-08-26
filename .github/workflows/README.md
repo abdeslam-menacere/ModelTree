@@ -10,9 +10,9 @@ the right ones.
 |---|---|---|
 | [`web-ci.yml`](web-ci.yml) | `pull_request` (every one), `workflow_dispatch` | Validates and builds the Astro site under `web/` |
 | [`skills-ci.yml`](skills-ci.yml) | `pull_request`, path-filtered to `.github/skills/**`, `.github/workflows/skills-ci.yml` and `web/src/data/**`, `workflow_dispatch` | The data-refresh gates' self-tests, plus `gate-dataset` run against the live dataset |
-| [`updater-tests.yml`](updater-tests.yml) | `pull_request` and `push` to `main`, path-filtered to `tools/updater/**`, `tools/instruction_refs/**`, `tools/adr_numbers/**` and `docs/adr/**` | The updater's pytest suite, which is also where this repository's stdlib-Python invariants are asserted |
-| [`instruction-references.yml`](instruction-references.yml) | `pull_request` and `push` to `main`, path-filtered to `.github/copilot-instructions.md` and `tools/instruction_refs/**`, `workflow_dispatch` | Resolves every path, issue citation, and section marker in the instructions file |
-| [`adr-numbers.yml`](adr-numbers.yml) | `pull_request` and `push` to `main`, path-filtered to `docs/adr/**` and `tools/adr_numbers/**`, `workflow_dispatch` | Refuses two decision records under `docs/adr/` that claim the same four-digit number |
+| [`updater-tests.yml`](updater-tests.yml) | `pull_request` and `push` to `main`, path-filtered to `tools/updater/**`, `.github/workflows/updater-tests.yml`, `.github/workflows/publish-updater-proposals.yml`, `tools/instruction_refs/**`, `tools/adr_numbers/**`, `.github/workflows/adr-numbers.yml` and `docs/adr/**`, `workflow_dispatch` | The updater's pytest suite, which is also where this repository's stdlib-Python invariants are asserted |
+| [`instruction-references.yml`](instruction-references.yml) | `pull_request` and `push` to `main`, path-filtered to `.github/copilot-instructions.md`, `tools/instruction_refs/**` and `.github/workflows/instruction-references.yml`, `workflow_dispatch` | Resolves every path, issue citation, and section marker in the instructions file |
+| [`adr-numbers.yml`](adr-numbers.yml) | `pull_request` and `push` to `main`, path-filtered to `docs/adr/**`, `tools/adr_numbers/**` and `.github/workflows/adr-numbers.yml`, `workflow_dispatch` | Refuses two decision records under `docs/adr/` that claim the same four-digit number |
 | [`pages.yml`](pages.yml) | `push` to `main`, `workflow_dispatch` | Builds and deploys the site, reports a failed deploy, and resolves that report when the deploy recovers |
 | [`publish-updater-proposals.yml`](publish-updater-proposals.yml) | `workflow_dispatch` only | Files creator proposals as issues |
 
@@ -52,15 +52,19 @@ no `strategy.matrix`, so the reported name never varies per leg or per run.
 ### Why the `pytest` checks are not
 
 `updater-tests.yml` is path-filtered to `tools/updater/**` (and to
-`tools/instruction_refs/**`, `tools/adr_numbers/**` and `docs/adr/**`, whose
-behaviour the suite asserts), so it reports nothing on a pull request confined to
+`.github/workflows/updater-tests.yml`,
+`.github/workflows/publish-updater-proposals.yml`, `tools/instruction_refs/**`,
+`tools/adr_numbers/**`, `.github/workflows/adr-numbers.yml` and `docs/adr/**`,
+whose behaviour or structure the suite asserts), so it reports nothing on a pull
+request confined to
 `web/`. Requiring either leg would block every web change indefinitely. Its names
 also carry the Python version, so adding or dropping a version changes them.
 
 ### Nor is `instruction-references`
 
 Same trap, for the same reason: `instruction-references.yml` is path-filtered to
-`.github/copilot-instructions.md`, so it reports no check at all on the great
+`.github/copilot-instructions.md` among other paths (see the table above), so it
+reports no check at all on the great
 majority of pull requests, and each of those would sit pending forever. Whether
 it is ever required is a branch-protection decision — issue #80 in this
 repository — not something this workflow decides.
@@ -73,7 +77,8 @@ belongs in branch protection, where it is auditable.
 
 ### Nor is `adr-numbers`
 
-The same trap again: `adr-numbers.yml` is path-filtered to `docs/adr/**`, and
+The same trap again: `adr-numbers.yml` is path-filtered to `docs/adr/**` among
+other paths (see the table above), and
 decision records change rarely, so it reports no check on almost every pull
 request. Making it required is issue #169 and needs the repository owner, because
 requiring a check that does not report is what deadlocks a pull request — not
