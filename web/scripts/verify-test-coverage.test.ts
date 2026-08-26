@@ -1,6 +1,10 @@
-import { join, resolve } from 'node:path';
+import { spawn } from 'node:child_process';
+import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   compareCoverage,
@@ -875,4 +879,210 @@ describe('a report that is null rather than an object', () => {
     expect(result.missing).toEqual(['src/a.test.ts', 'src/b.test.ts']);
     expect(result.problems.join('\n')).toContain('produced no result');
   });
+});
+
+// Issue #307, finding 1 / criterion 1: the coverage gap that made every case
+// above insufficient on its own. All of them call the exported pure functions,
+// so nothing checked the code in `main` that wires them together -- the reads,
+// the vitest discovery call, which value is passed to which formatter, what is
+// printed, and on which stream. That wiring could be cut with the whole suite
+// green: replacing the `unexecuted` computation in `main` with `[]` left every
+// unit case passing while the real end-to-end output claimed a skipped-only
+// file had been exercised, which is the precise claim #270 exists to prevent.
+//
+// So these cases spawn the script as a process against a throwaway fixture tree
+// and assert on its real stdout, stderr, and exit code. The fixture lives
+// outside the repository, in the OS temp directory, for a reason worth stating:
+// a fixture test file placed anywhere under `web/` would be picked up by this
+// project's own vitest glob and would itself become a discovered file.
+describe('the script run as a process', () => {
+  const scriptPath = fileURLToPath(new URL('./verify-test-coverage.mjs', import.meta.url));
+  const createdDirectories: string[] = [];
+
+  type FixtureFile = {
+    name: string;
+    source: string;
+    // The statuses the report claims for this file, matching what vitest 4.1.10
+    // emits for the source above. `null` means the report omits the file
+    // entirely -- the dropped-worker shape from #218.
+    statuses: string[] | null;
+  };
+
+  const passingSource = "import { it, expect } from 'vitest';\nit('runs', () => expect(1).toBe(1));\n";
+  const skippedSource = "import { it } from 'vitest';\nit.skip('does not run', () => {});\n";
+
+  async function buildFixture(files: FixtureFile[], reportPath: string): Promise<string> {
+    // realpath, because the temp directory can be reached by a symlink or a
+    // short path, and the child's own `process.cwd()` reports the resolved form.
+    // The report's absolute names have to normalise against that same root or
+    // the comparison would fail for a reason the fixture never intended.
+    const directory = await realpath(await mkdtemp(join(tmpdir(), 'verify-test-coverage-')));
+    createdDirectories.push(directory);
+
+    const testResults = [];
+    for (const file of files) {
+      await writeFile(join(directory, file.name), file.source, 'utf8');
+      if (file.statuses === null) {
+        continue;
+      }
+      testResults.push({
+        name: join(directory, file.name),
+        status: 'passed',
+        assertionResults: file.statuses.map((status, index) => ({
+          title: `assertion ${index}`,
+          status,
+        })),
+      });
+    }
+
+    const absoluteReportPath = join(directory, reportPath);
+    await mkdir(dirname(absoluteReportPath), { recursive: true });
+    await writeFile(
+      absoluteReportPath,
+      JSON.stringify({
+        numTotalTests: testResults.reduce((sum, file) => sum + file.assertionResults.length, 0),
+        numFailedTests: 0,
+        numFailedTestSuites: 0,
+        success: true,
+        testResults,
+      }),
+      'utf8',
+    );
+
+    return directory;
+  }
+
+  async function runScriptIn(directory: string, args: string[] = []) {
+    // The parent is itself a vitest worker, and its VITEST_* variables describe
+    // that run. Handing them to a child that starts its own Vitest instance
+    // would let the harness leak into what is under test.
+    const env = Object.fromEntries(
+      Object.entries(process.env).filter(([key]) => !key.startsWith('VITEST')),
+    );
+
+    return await new Promise<{ code: number | null; stdout: string; stderr: string }>(
+      (settle, fail) => {
+        const child = spawn(process.execPath, [scriptPath, ...args], { cwd: directory, env });
+        let stdout = '';
+        let stderr = '';
+
+        child.stdout.setEncoding('utf8');
+        child.stderr.setEncoding('utf8');
+        child.stdout.on('data', (chunk) => {
+          stdout += chunk;
+        });
+        child.stderr.on('data', (chunk) => {
+          stderr += chunk;
+        });
+        child.on('error', fail);
+        child.on('close', (code) => settle({ code, stdout, stderr }));
+      },
+    );
+  }
+
+  afterEach(async () => {
+    await Promise.all(
+      createdDirectories.splice(0).map((directory) => rm(directory, { recursive: true, force: true })),
+    );
+  });
+
+  // Also the only case that exercises the default report path, so the argument
+  // fallback in `main` is not taken on trust either.
+  it(
+    'prints the healthy summary and exits 0, reading the default report path',
+    async () => {
+      const directory = await buildFixture(
+        [
+          { name: 'alpha.test.js', source: passingSource, statuses: ['passed'] },
+          { name: 'beta.test.js', source: passingSource, statuses: ['passed'] },
+        ],
+        join('.vitest', 'report.json'),
+      );
+
+      const { code, stdout, stderr } = await runScriptIn(directory);
+
+      expect(stderr).toBe('');
+      expect(stdout.trim()).toBe(
+        'test-coverage check: all 2 discovered test file(s) reported results and all executed ' +
+          'at least one test (2 reported test(s): 2 executed, 0 not executed).',
+      );
+      expect(code).toBe(0);
+    },
+    60_000,
+  );
+
+  // The mutation-killer, and the reason this whole describe exists. Cutting the
+  // `unexecuted` computation out of `main` leaves every other test in this file
+  // green while this stdout silently becomes "all executed at least one test".
+  it(
+    'names a skipped-only file on real stdout, and still exits 0',
+    async () => {
+      const directory = await buildFixture(
+        [
+          { name: 'alpha.test.js', source: passingSource, statuses: ['passed'] },
+          { name: 'quarantined.test.js', source: skippedSource, statuses: ['skipped'] },
+        ],
+        'report.json',
+      );
+
+      const { code, stdout, stderr } = await runScriptIn(directory, ['report.json']);
+
+      expect(stdout).toContain('but 1 of them executed no tests');
+      expect(stdout).toContain('2 reported test(s): 1 executed, 1 not executed');
+      expect(stdout).toContain('NOT exercised');
+      expect(stdout).toContain('quarantined.test.js');
+      // The claim that must never appear for this tree, however green the run is.
+      expect(stdout).not.toContain('all executed at least one test');
+      expect(stderr).toBe('');
+      // Reported, not refused: the recorded #270 decision, observed end to end.
+      expect(code).toBe(0);
+    },
+    60_000,
+  );
+
+  // The #218 shape through the real wiring: a discovered file the report never
+  // mentions. This is the half of `main` the healthy cases cannot reach --
+  // the failure block, the stream it goes to, and the exit code.
+  it(
+    'refuses a dropped file on stderr with exit 1, printing no summary',
+    async () => {
+      const directory = await buildFixture(
+        [
+          { name: 'alpha.test.js', source: passingSource, statuses: ['passed'] },
+          { name: 'dropped.test.js', source: passingSource, statuses: null },
+        ],
+        'report.json',
+      );
+
+      const { code, stdout, stderr } = await runScriptIn(directory, ['report.json']);
+
+      expect(stderr).toContain('test-coverage check FAILED -- the run cannot be trusted:');
+      expect(stderr).toContain('dropped.test.js');
+      expect(stderr).toContain('Discovered 2 test file(s); the report holds results for 1.');
+      // The refusal must not drag the summary's coverage claim along with it.
+      expect(stderr).not.toContain('test-coverage check: ');
+      expect(stdout).toBe('');
+      expect(code).toBe(1);
+    },
+    60_000,
+  );
+
+  // The top-level catch, which is wiring too: an unreadable report must refuse
+  // in the checker's own words rather than as an unhandled rejection.
+  it(
+    'refuses in its own words when the report file is not there at all',
+    async () => {
+      const directory = await realpath(await mkdtemp(join(tmpdir(), 'verify-test-coverage-')));
+      createdDirectories.push(directory);
+
+      const { code, stdout, stderr } = await runScriptIn(directory, ['absent-report.json']);
+
+      expect(stderr).toContain('test-coverage check errored:');
+      expect(stderr).toContain('absent-report.json');
+      expect(stderr).toContain('The test run must write it before this check runs.');
+      expect(stdout).toBe('');
+      expect(code).toBe(1);
+    },
+    60_000,
+  );
 });
