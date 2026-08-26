@@ -2,6 +2,8 @@
 dist/
 # generated types
 .astro/
+# vitest json report consumed by scripts/verify-test-coverage.mjs
+.vitest/
 
 # dependencies
 node_modules/

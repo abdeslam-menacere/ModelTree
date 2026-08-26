@@ -10,7 +10,7 @@
     "dev": "astro dev",
     "build": "npm run validate && astro build",
     "check": "astro check",
-    "test": "vitest run",
+    "test": "vitest run --reporter=default --reporter=json --outputFile=.vitest/report.json && node scripts/verify-test-coverage.mjs .vitest/report.json",
     "validate": "npm run test && npm run check",
     "preview": "astro preview",
     "astro": "astro"
