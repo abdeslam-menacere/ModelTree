@@ -33,6 +33,17 @@ which passes against the defect as readily as against the fix.
 not on the problems list the script prints and exits on, and truncating the
 problems loop used to leave this whole file green.
 
+The last two sections are #303, and both are about output that misstates what
+happened rather than about the duplicate rule. A filename holding a newline used
+to claim a line of the report and put a forged `OK:` above the genuine `FAIL:`;
+a filename holding a character the console's codepage cannot represent used to
+kill the run inside `cp1252.py`, over an ADR set in which every number was
+unique. The pairs matter more than the individual assertions in both: an
+ordinary name has to come back untouched or the fix is a rewrite of the report,
+and a name cp1252 *can* carry has to keep printing or the encoding test is
+pinning "non-ASCII" -- which is not the trigger and never was. `run_cli` exists
+because `capsys` carries any `str` and so cannot see the defect at all.
+
 The checker lives outside the updater package because it is not an updater
 concern, and is loaded by path for the same reason -- the arrangement
 `test_instruction_references.py` already uses. Its tests live here because this is
@@ -43,6 +54,7 @@ this suite needs no second pytest project.
 from __future__ import annotations
 
 import importlib.util
+import io
 import re
 import sys
 from pathlib import Path
@@ -727,6 +739,341 @@ def test_the_cli_takes_no_flags_that_could_skip_the_check(capsys):
     assert checker.main(["--force"]) == 2
     assert checker.main([str(REPO_ROOT), "extra"]) == 2
     assert "OK" not in capsys.readouterr().out
+
+
+# --- output: a name cannot forge a line -------------------------------------
+
+
+# The forged verdict from #303, reproduced by constructing the module's own
+# `Report` and `Adr` and calling `render()`. No filesystem is involved because
+# none is needed: `Adr.path` is a `str`, which is what makes this reachable, and
+# Windows cannot create a file whose name holds a newline anyway.
+FORGED_OK = "OK: 9 ADRs, every number claimed by exactly one file."
+GENUINE_FAIL = "FAIL: an ADR number does not identify exactly one decision record."
+
+# Every character `str.splitlines()` treats as ending a line. A test that pinned
+# only "\n" would pass against a fix that special-cased "\n", and "\r" alone
+# splits a line just as effectively -- as do the separators nobody thinks of.
+LINE_ENDERS = ["\n", "\r", "\r\n", "\v", "\f", "\x1c", "\x85", "\u2028", "\u2029"]
+
+
+def verdict_lines(rendered: str) -> list[str]:
+    """The lines that state an outcome. Exactly one of these is ever genuine."""
+    return [
+        line for line in rendered.splitlines() if line.startswith(("OK:", "FAIL:"))
+    ]
+
+
+@pytest.mark.parametrize("ender", LINE_ENDERS)
+def test_a_line_ender_in_a_reported_path_cannot_forge_a_verdict(ender):
+    """The defect: a filename claims a line of the report, and the line it
+    claims says the run was clean.
+
+    On the unfixed checker this renders a forged `OK:` *above* the genuine
+    `FAIL:`, so anything grepping the output for `OK:` reads a run with a real
+    duplicate as clean. Asserted as "the only verdict line is the genuine one"
+    rather than as "the path is escaped", because the escaping is a means and
+    this is the property that matters.
+    """
+    report = checker.Report(
+        directory=Path("docs") / "adr",
+        base=REPO_ROOT,
+        adrs=[
+            checker.Adr("0001", "0001-real.md"),
+            checker.Adr("0002", f"0002-x.md{ender}{ender}{FORGED_OK}{ender}"),
+        ],
+        problems=["  0003 is claimed by two files"],
+    )
+    rendered = report.render()
+
+    assert verdict_lines(rendered) == [GENUINE_FAIL], rendered
+
+
+@pytest.mark.parametrize("ender", LINE_ENDERS)
+def test_the_report_has_exactly_the_lines_its_own_tally_implies(ender):
+    """The same property counted rather than matched, because the pattern-based
+    form of this test passed on the unfixed checker.
+
+    Two ADRs and no problems is six lines: the heading, the tally, one line per
+    ADR, a blank, and the verdict. A name that spans lines makes the report
+    contradict the tally it printed two lines above -- "2 ADR files examined"
+    over a four-line inventory -- and a reader has no way to tell which of the
+    two is lying. Counting every line catches that; counting only the lines that
+    still look like inventory entries does not, which is why it is done this
+    way.
+    """
+    report = checker.Report(
+        directory=Path("docs") / "adr",
+        base=REPO_ROOT,
+        adrs=[
+            checker.Adr("0001", "0001-real.md"),
+            checker.Adr("0002", f"0002-x.md{ender}{FORGED_OK}"),
+        ],
+    )
+    rendered = report.render()
+
+    assert "2 ADR files examined, 0 files ignored" in rendered
+    assert len(rendered.splitlines()) == 6, rendered
+
+
+def test_the_scanned_directory_cannot_forge_a_line():
+    """The directory is a reported path too -- it is the first line of every
+    report, and the UNNUMBERED and EMPTY refusals name it as well. It arrives
+    from argv, so on any filesystem that permits the name it is as untrusted as
+    the files under it."""
+    report = checker.Report(
+        directory=Path(f"docs/adr\n{FORGED_OK}"),
+        base=REPO_ROOT,
+        adrs=[checker.Adr("0001", "0001-real.md")],
+        problems=["  0003 is claimed by two files"],
+    )
+
+    assert verdict_lines(report.render()) == [GENUINE_FAIL], report.render()
+
+
+def test_a_real_path_holding_a_newline_is_shown_as_one_line():
+    """The other route into the report, and the one Windows cannot demonstrate
+    end to end.
+
+    A refusal paragraph interpolates what `display()` returns and is never
+    re-formatted by `render()`, so closing the hole in `render()` alone would
+    leave `UNNUMBERED: <forged lines>` forging exactly the same way on Linux,
+    where such a filename is legal and git carries it. `display()` only
+    resolves the path, so this needs no file on disk -- which is what makes it
+    runnable on the machine that cannot create one.
+    """
+    forging = Path(f"docs/adr/notes.md\n\n{FORGED_OK}")
+
+    shown = checker.display(forging, REPO_ROOT)
+
+    assert len(shown.splitlines()) == 1
+    assert FORGED_OK not in shown.splitlines()
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "0001-a.md",
+        "0002-caf\u00e9.md",
+        "0003-\u65e5\u672c.md",
+        "0004-a b.md",
+        "0005-\U0001f600.md",
+    ],
+)
+def test_an_ordinary_name_is_returned_unchanged(name):
+    """The counterweight, and the reason this is a robustness fix rather than a
+    change to what the report says.
+
+    Nothing here holds a line ender, so nothing here is spelled -- including the
+    non-ASCII names, which is the distinction the whole encoding half of #303
+    turns on. A fix that escaped "anything unusual" would quietly rewrite every
+    accented or emoji filename in the inventory, and this test is what stops it.
+    """
+    assert checker.spelled(name) == name
+
+
+def test_a_spelled_character_names_its_codepoint():
+    """`U+XXXX`, the notation the NON-ASCII NUMBER refusal already uses. A
+    reader who has to identify an invisible character needs its number, and one
+    notation for that is enough."""
+    assert checker.spelled("a\nb") == "a<U+000A>b"
+    assert checker.spelled("a\u2028b") == "a<U+2028>b"
+
+
+def test_spelling_a_name_twice_changes_nothing_the_second_time():
+    """`display()` spells, and `render()` spells what `display()` produced.
+
+    That is deliberate -- neither boundary covers the other -- and it is only
+    safe because the result holds nothing left to spell. If it were not
+    idempotent the two boundaries would be two answers, which is the defect
+    #220 removed from this file rather than reworded.
+    """
+    once = checker.spelled(f"0002-x.md\n\n{FORGED_OK}")
+
+    assert checker.spelled(once) == once
+
+
+# --- output: a report this stdout cannot carry -------------------------------
+
+
+# A name cp1252 cannot carry, and a name it can. The pair is the entire point:
+# `e` with an acute accent is non-ASCII too and prints on a cp1252 stdout
+# perfectly well, so "non-ASCII crashes it" is not true and a test written to
+# that framing passes for the wrong reason. It takes a codepoint the codepage
+# does not have.
+OUTSIDE_CP1252 = "0002-\u65e5\u672c.md"
+INSIDE_CP1252 = "0002-caf\u00e9.md"
+
+
+def run_cli(monkeypatch, argv: list[str], encoding: str, err_encoding=None):
+    """`main(argv)` against a stdout and stderr encoded as `encoding`.
+
+    `capsys` cannot express this test. Its streams carry any `str`, so the
+    defect -- a console whose codepage cannot represent a name in the report --
+    is invisible through it, and every existing CLI test in this file passes on
+    the unfixed checker for that reason. Real `TextIOWrapper`s over real buffers
+    with `errors="strict"` reproduce the console exactly, which is why reverting
+    the fix turns these red with the original `UnicodeEncodeError` rather than
+    with an assertion.
+
+    `err_encoding` gives stderr a narrower encoding than stdout, which is the
+    one case where a refusal can still die in its own print.
+    """
+    err_encoding = err_encoding or encoding
+    out = io.TextIOWrapper(io.BytesIO(), encoding=encoding, newline="\n")
+    err = io.TextIOWrapper(io.BytesIO(), encoding=err_encoding, newline="\n")
+    monkeypatch.setattr(sys, "stdout", out)
+    monkeypatch.setattr(sys, "stderr", err)
+    code = checker.main(argv)
+    out.flush()
+    err.flush()
+    return (
+        code,
+        out.buffer.getvalue().decode(encoding),
+        err.buffer.getvalue().decode(err_encoding),
+    )
+
+
+def test_a_name_this_stdout_cannot_carry_is_refused_not_crashed(
+    adr_dir, monkeypatch
+):
+    """#303 item 1. The checker died inside `cp1252.py` with a traceback that
+    reads as a bug in itself, over an ADR set in which every number was unique.
+
+    The refusal has to be the checker's own and has to be actionable: which
+    encoding, which codepoints, and which name -- spelled, since by definition
+    it cannot be shown as itself on this stream.
+    """
+    directory = adr_dir("0001-plain.md", OUTSIDE_CP1252)
+
+    code, out, err = run_cli(monkeypatch, [str(directory)], "cp1252")
+
+    assert code == 2
+    assert out == ""
+    assert "UNPRINTABLE" in err
+    assert "cp1252" in err
+    assert "U+65E5" in err and "U+672C" in err
+    assert "0002-<U+65E5><U+672C>.md" in err
+
+
+def test_the_refusal_cannot_be_mistaken_for_a_verdict(adr_dir, monkeypatch):
+    """#303 item 1, the half that makes it worth doing. A refusal that reads
+    like a clean run is the failure this repository keeps finding, so the
+    refusal says outright that no result was reported and emits no OK line."""
+    directory = adr_dir("0001-plain.md", OUTSIDE_CP1252)
+
+    code, out, err = run_cli(monkeypatch, [str(directory)], "cp1252")
+
+    assert code != 0
+    assert "OK:" not in err and "OK:" not in out
+    assert "every number claimed by exactly one file" not in err
+    assert "the check ran and its result was not reported" in err
+
+
+def test_a_duplicate_hidden_behind_an_unprintable_name_never_exits_zero(
+    adr_dir, monkeypatch
+):
+    """The safe direction, pinned. A real collision that cannot be printed must
+    not become a pass -- the exit code says "no verdict", never "clean"."""
+    directory = adr_dir("0003-real.md", f"0003-{OUTSIDE_CP1252}")
+
+    code, out, err = run_cli(monkeypatch, [str(directory)], "cp1252")
+
+    assert code == 2
+    assert out == ""
+    assert "UNPRINTABLE" in err
+
+
+def test_the_same_name_prints_as_itself_on_a_utf8_stdout(adr_dir, monkeypatch):
+    """The refusal is keyed on what the stream can carry, not on the name.
+
+    A counterweight rather than evidence: it passes on the unfixed checker too,
+    which is exactly its job. Without it, a fix that simply refused every
+    non-ASCII name would satisfy the test above while making the checker useless
+    on the UTF-8 stdout CI actually runs, and nothing here would notice.
+    """
+    directory = adr_dir("0001-plain.md", OUTSIDE_CP1252)
+
+    code, out, err = run_cli(monkeypatch, [str(directory)], "utf-8")
+
+    assert code == 0
+    assert OUTSIDE_CP1252 in out
+    assert "UNPRINTABLE" not in err
+    assert "every number claimed by exactly one file" in out
+
+
+def test_a_name_cp1252_can_carry_still_prints_on_a_cp1252_stdout(
+    adr_dir, monkeypatch
+):
+    """The control case #303 insists on, and the one that decides whether the
+    encoding tests above test what they claim.
+
+    `e` with an acute accent is non-ASCII and cp1252 has it, so this run printed
+    fine and exited 0 before the fix and prints identically after it -- it
+    passes both ways by design. A fix keyed on "non-ASCII" rather than on "this
+    encoding" is what turns it red.
+    """
+    directory = adr_dir("0001-plain.md", INSIDE_CP1252)
+
+    code, out, err = run_cli(monkeypatch, [str(directory)], "cp1252")
+
+    assert code == 0
+    assert err == ""
+    assert INSIDE_CP1252 in out
+    assert "U+00E9" not in out
+    assert "every number claimed by exactly one file" in out
+
+
+def test_a_missing_directory_named_outside_the_encoding_is_still_refused(
+    tmp_path, monkeypatch
+):
+    """The other print in `main()`. It echoes an argument straight to stderr, so
+    it carries the identical crash, and a usage refusal that dies inside the
+    codec leaves the operator with nothing at all. Spelled inline rather than
+    withheld: this message is already the refusal, so there is no verdict being
+    held back."""
+    missing = tmp_path / "\u65e5\u672c"
+
+    code, out, err = run_cli(monkeypatch, [str(missing)], "cp1252")
+
+    assert code == 2
+    assert out == ""
+    assert "no such directory:" in err
+    assert "<U+65E5><U+672C>" in err
+
+
+def test_a_refusal_survives_a_stderr_narrower_than_stdout(adr_dir, monkeypatch):
+    """The refusal is checked against stdout and printed to stderr, and the two
+    need not agree.
+
+    A name holding both a character cp1252 carries and one it does not is
+    spelled only for the second, so the refusal still contains `e` with an acute
+    accent -- which an ASCII stderr cannot take. Routing every refusal through
+    one function that spells for stderr is what closes it; checking stdout and
+    printing to stderr unchecked reopens it.
+    """
+    directory = adr_dir("0001-plain.md", "0002-caf\u00e9\u65e5\u672c.md")
+
+    code, out, err = run_cli(
+        monkeypatch, [str(directory)], "cp1252", err_encoding="ascii"
+    )
+
+    assert code == 2
+    assert out == ""
+    assert "UNPRINTABLE" in err
+    assert "0002-caf<U+00E9><U+65E5><U+672C>.md" in err
+
+
+def test_an_unknown_encoding_does_not_become_a_refusal_of_its_own():
+    """A codec Python cannot look up is not evidence about the report.
+
+    Refusing on it would substitute one wrong answer for another -- the checker
+    failing on the codec's account rather than on the ADRs' -- which is the
+    exact substitution this change removes.
+    """
+    assert checker.unencodable("anything", "not-a-real-codec") == ""
+    assert checker.unencodable("anything", None) == ""
+    assert checker.encoding_refusal("report", "not-a-real-codec") is None
 
 
 # --- the workflow that runs it ----------------------------------------------
