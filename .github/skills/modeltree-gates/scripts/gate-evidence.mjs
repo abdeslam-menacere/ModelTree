@@ -9,7 +9,7 @@
 // snippets are refused here, by contract, rather than by anyone remembering.
 //
 // Usage:
-//   node gate-evidence.mjs --claims <path> [--today YYYY-MM-DD] [--json]
+//   node gate-evidence.mjs --claims <path> [--today YYYY-MM-DD] [--repo <dir>] [--json]
 //
 // Exit 0 = every claim in the bundle is admissible. Exit 1 = at least one is
 // not. Exit 2 = the runner could not run, which is never treated as a pass.
@@ -19,8 +19,9 @@
 //     "claims": [ { id, kind, collection, targetId, field?, currentValue,
 //                   proposedValue, statement, evidence: [...], verdicts: [...] } ] }
 
-import { readFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { resolve, join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // The three rubrics from #59's review panel. A bundle must carry exactly these,
 // once each: a panel missing a rubric has not been independently reviewed, and
@@ -30,6 +31,12 @@ const REQUIRED_REVIEWERS = ['provenance', 'consistency', 'editorial'];
 // A pilot creator's claim needs 2 of 3. A long-tail creator is a creator nobody
 // has written a reviewed profile for, so #59 and ADR 0002 require unanimity.
 const THRESHOLDS = { pilot: 2, 'long-tail': 3 };
+
+// The reviewed-profile set is this repository's ground truth for which creators
+// are pilots. A creator with a reviewed profile here is a pilot; one without is
+// long-tail. It is read from disk, not taken from the bundle, which is the whole
+// point of #233 -- see the derivation in main().
+const PROFILE_DIR = 'tools/updater/profiles';
 
 const VALID_KINDS = ['add', 'change', 'remove', 'unchanged', 'conflict'];
 const VALID_COLLECTIONS = [
@@ -49,11 +56,12 @@ function fail(gate, message, where) {
 }
 
 function parseArgs(argv) {
-  const args = { claims: null, today: null, json: false, help: false };
+  const args = { claims: null, today: null, json: false, repo: null, help: false };
   for (let i = 2; i < argv.length; i += 1) {
     const flag = argv[i];
     if (flag === '--claims') args.claims = argv[++i];
     else if (flag === '--today') args.today = argv[++i];
+    else if (flag === '--repo') args.repo = argv[++i];
     else if (flag === '--json') args.json = true;
     else if (flag === '--help' || flag === '-h') args.help = true;
     else {
@@ -62,6 +70,54 @@ function parseArgs(argv) {
     }
   }
   return args;
+}
+
+// The repository root, found from this script's own location so the reviewed set
+// is read from the checkout the gate ships in rather than from wherever it was
+// invoked. `.github/skills/modeltree-gates/scripts/gate-evidence.mjs` -> up four.
+function repoRoot() {
+  return resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
+}
+
+// The set of creator ids that have a reviewed profile, read from disk. Keyed by
+// the declared `creator.id` inside each profile, exactly as tools/updater keys
+// its ProfileLibrary -- the filename is incidental, the declared id is the id a
+// bundle names. Throws rather than returning a partial set: an unreadable,
+// malformed, or empty reviewed set must fail the gate closed, never quietly
+// classify every creator as long-tail (or admit one as pilot) against nothing.
+function reviewedCreatorIds(repo) {
+  const dir = resolve(repo, PROFILE_DIR);
+  let entries;
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch (error) {
+    throw new Error(`cannot read the reviewed-profile set at ${dir}: ${error.message}`);
+  }
+
+  const ids = new Set();
+  for (const entry of entries) {
+    // Dotfiles are "not part of the working set", and the long-tail profiles live
+    // in a subdirectory; neither is a reviewed creator profile. A `.json` suffix
+    // is matched exactly, the same as tools/updater's own discovery.
+    if (entry.name.startsWith('.') || !entry.isFile() || !entry.name.endsWith('.json')) continue;
+    const file = join(dir, entry.name);
+    let profile;
+    try {
+      profile = JSON.parse(readFileSync(file, 'utf8'));
+    } catch (error) {
+      throw new Error(`reviewed profile ${entry.name} is not valid JSON: ${error.message}`);
+    }
+    const id = profile?.creator?.id;
+    if (typeof id !== 'string' || id.length === 0) {
+      throw new Error(`reviewed profile ${entry.name} declares no creator.id, so the reviewed set cannot be trusted`);
+    }
+    ids.add(id);
+  }
+
+  if (ids.size === 0) {
+    throw new Error(`the reviewed-profile set at ${dir} holds no profiles; refusing to classify a creator against nothing`);
+  }
+  return ids;
 }
 
 function isRealDate(value) {
@@ -239,7 +295,7 @@ function gateShape(claim, index) {
 function main() {
   const args = parseArgs(process.argv);
   if (args.help) {
-    process.stdout.write('usage: gate-evidence.mjs --claims <path> [--today YYYY-MM-DD] [--json]\n');
+    process.stdout.write('usage: gate-evidence.mjs --claims <path> [--today YYYY-MM-DD] [--repo <dir>] [--json]\n');
     return 0;
   }
   if (!args.claims) {
@@ -267,20 +323,64 @@ function main() {
     return 2;
   }
 
-  // Required, never defaulted. An absent policy is refused exactly as an
-  // unknown one is: the field is self-reported by the agent this gate exists to
-  // check, so treating silence as the *looser* threshold would let a long-tail
-  // claim publish on a pilot majority it never had to reach. Do not infer it
-  // from `creator` either -- inference is the same defect wearing a heuristic.
+  // `policy` is still required and still validated for membership: an absent
+  // policy is refused exactly as an unknown one is, because the field is
+  // self-reported by the agent this gate exists to check and silence must not
+  // select the looser threshold. What changed in #233 is that presence and
+  // membership are no longer enough -- the *applied* threshold is derived from
+  // repository state below, and a declared value that contradicts the derived
+  // one is refused rather than believed.
   if (!Object.hasOwn(bundle, 'policy')) {
     process.stderr.write('gate-evidence: bundle has no policy; expected pilot or long-tail (it is never defaulted)\n');
     return 2;
   }
-  const policy = bundle.policy;
-  if (!Object.hasOwn(THRESHOLDS, policy)) {
-    process.stderr.write(`gate-evidence: unknown policy "${policy}"; expected pilot or long-tail\n`);
+  const declaredPolicy = bundle.policy;
+  if (!Object.hasOwn(THRESHOLDS, declaredPolicy)) {
+    process.stderr.write(`gate-evidence: unknown policy "${declaredPolicy}"; expected pilot or long-tail\n`);
     return 2;
   }
+
+  // Derive the threshold from the reviewed-profile set on disk rather than
+  // believing the bundle. A creator with a reviewed profile is a pilot; one
+  // without is long-tail. This is the correction the earlier design forbade too
+  // broadly: inferring the policy from the self-reported `creator` field would be
+  // the same defect wearing a heuristic, but *deriving* it from the reviewed set
+  // the gate already has on disk is ground truth, not self-report. The two are
+  // different operations.
+  //
+  // It fails closed. If that set cannot be read, or the creator cannot be
+  // classified, the gate exits 2 -- an unclassifiable creator never falls back to
+  // the looser bar. And a bundle whose declared policy contradicts the derived
+  // one is refused, naming both, rather than silently overridden: a run that
+  // believes it is publishing under the wrong policy is itself a defect worth
+  // surfacing.
+  let reviewed;
+  try {
+    reviewed = reviewedCreatorIds(args.repo ? resolve(args.repo) : repoRoot());
+  } catch (error) {
+    process.stderr.write(`gate-evidence: ${error.message}\n`);
+    return 2;
+  }
+  const creator = bundle.creator;
+  if (typeof creator !== 'string' || creator.length === 0) {
+    process.stderr.write(
+      'gate-evidence: bundle names no creator to classify; the policy is derived from the creator, '
+      + 'never taken on the bundle\'s word\n',
+    );
+    return 2;
+  }
+  const derivedPolicy = reviewed.has(creator) ? 'pilot' : 'long-tail';
+  if (declaredPolicy !== derivedPolicy) {
+    process.stderr.write(
+      `gate-evidence: creator "${creator}" is a ${derivedPolicy} creator, but the bundle declares `
+      + `policy "${declaredPolicy}". The review threshold is derived from the reviewed-profile set, `
+      + 'not read from the bundle; refusing rather than publishing under the wrong bar.\n',
+    );
+    return 2;
+  }
+  // From here the applied policy is the derived one, never the bundle's word.
+  const policy = derivedPolicy;
+
   if (!Array.isArray(bundle.claims)) {
     process.stderr.write('gate-evidence: bundle has no claims array\n');
     return 2;
