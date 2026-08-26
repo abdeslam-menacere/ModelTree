@@ -7,7 +7,8 @@ description: Run ModelTree's three-rubric independent review panel over a claim 
 
 Three reviewers, one vote each, no conferring. Acceptance is **2-of-3** for a
 creator with a reviewed profile and **unanimous 3-of-3** for a long-tail creator
-(#59, ADR 0002). The bundle's `policy` field says which applies; do not infer it.
+(abdeslam-menacere/ModelTree#59, ADR 0002). The bundle's `policy` field says
+which applies; do not infer it.
 
 You are the panel chair. You launch the reviewers, collect verdicts, and write
 them into the bundle. **You do not vote, and you do not overrule.** A claim you

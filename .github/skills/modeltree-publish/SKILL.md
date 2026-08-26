@@ -89,12 +89,13 @@ one revert, not all of them.
 Follow that advice freely: it is the gate that was made order-independent, not
 the advice that was withdrawn. `gate-scope.mjs` measures from the merge base with
 `refs/remotes/origin/main` rather than from the working tree, so a commit made
-partway through a run cannot hide itself from a gate invoked after it. Until #210
-it could: the documented bare invocation inspected uncommitted work only, so
-committing creator A before gating creator B was enough to make the gate report
-nothing had changed and exit 0 having examined nothing. **Never re-introduce a
-gate invocation that depends on being run before the run commits** — an ordering
-rule no code enforces is one an unattended run will break silently.
+partway through a run cannot hide itself from a gate invoked after it. Until
+abdeslam-menacere/ModelTree#210 it could: the documented bare invocation
+inspected uncommitted work only, so committing creator A before gating creator B
+was enough to make the gate report nothing had changed and exit 0 having examined
+nothing. **Never re-introduce a gate invocation that depends on being run before
+the run commits** — an ordering rule no code enforces is one an unattended run
+will break silently.
 
 `--auto` is not decoration. `main` requires the `web-ci` check, so GitHub itself
 refuses to merge a red pull request. Never poll CI and merge yourself: that moves

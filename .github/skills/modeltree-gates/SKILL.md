@@ -76,7 +76,8 @@ scripts and Zod ever disagree, Zod wins and the script is wrong.
 - a review panel that is incomplete, that let one rubric vote twice, or that gave
   a verdict without a rationale;
 - a change that did not reach its threshold — 2-of-3 for a pilot creator,
-  **unanimous 3-of-3 for a long-tail creator**, per #59 and ADR 0002;
+  **unanimous 3-of-3 for a long-tail creator**, per
+  abdeslam-menacere/ModelTree#59 and ADR 0002;
 - a claim that changes nothing, names no field, or targets a file that is not a
   dataset document.
 
@@ -91,9 +92,9 @@ profiles declaring one id, and a filename that differs from `.json` only in case
 The last is a **refusal, not a skip**, on purpose: `profile.JSON` is one file
 beside its lowercase twin on Windows and two files on the Linux CI runs, so
 skipping it lets the same repository classify the same creator differently on the
-two platforms (#246). Refusing is the only answer that is the same on both. Every
-one of these refusals exits 2 — an unreadable or malformed reviewed set never
-falls back to the looser bar.
+two platforms (abdeslam-menacere/ModelTree#246). Refusing is the only answer that
+is the same on both. Every one of these refusals exits 2 — an unreadable or
+malformed reviewed set never falls back to the looser bar.
 
 **`gate-source-approval.mjs`** is the approved-source binding — ADR 0003's
 precondition 2, and the skill-set equivalent of `gates.py`'s `source-approval`.
@@ -207,10 +208,10 @@ node --test .github/skills/modeltree-gates/scripts/gates.test.mjs
 ```
 
 The run reports its own totals, so no count is repeated here to go stale — one
-was, and it did (#276). Every rule is proved to fire by breaking the data in
-exactly the way that rule exists to catch, and the live repository dataset is
-asserted to pass — so the suite fails both when a gate goes blind and when a
-gate goes paranoid.
+was, and it did (abdeslam-menacere/ModelTree#276). Every rule is proved to fire
+by breaking the data in exactly the way that rule exists to catch, and the live
+repository dataset is asserted to pass — so the suite fails both when a gate goes
+blind and when a gate goes paranoid.
 One test is a deliberate exception: it characterises the accepted limit of ADR
 0005 — that `gate-evidence` checks the form of a citation, not its remote content
 — by pinning that a well-formed but fabricated hash and quote pass.

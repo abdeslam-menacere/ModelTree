@@ -84,9 +84,10 @@ node --test .github/skills/modeltree-gates/scripts/gates.test.mjs
 ```
 
 The run reports its own totals, so no count is repeated here to go stale — one
-was, and it did (#276). Every rule is proved to fire by breaking real data in
-exactly the way that rule exists to catch, and the live dataset is asserted to
-pass. A gate change without a test change is a gate change nobody verified.
+was, and it did (abdeslam-menacere/ModelTree#276). Every rule is proved to fire
+by breaking real data in exactly the way that rule exists to catch, and the live
+dataset is asserted to pass. A gate change without a test change is a gate change
+nobody verified.
 
 ## Related
 

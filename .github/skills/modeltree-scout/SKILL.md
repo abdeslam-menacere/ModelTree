@@ -52,8 +52,8 @@ For each creator, in this order:
 
 1. **New releases.** Anything on the announcement feed or model reference that
    `releases.json` does not have. This is the highest-value finding and the
-   reason the refresh exists — #86 records the dataset going sixteen months
-   stale on exactly this.
+   reason the refresh exists — abdeslam-menacere/ModelTree#86 records the dataset
+   going sixteen months stale on exactly this.
 2. **Changed facts on existing releases.** Status moving to `legacy` or
    `deprecated`, a corrected context window, a new API alias, a licence change.
 3. **Stale verifications.** Entries whose `verifiedAt` is oldest. Re-checking a
@@ -110,8 +110,8 @@ One creator failing does not stop the others. Record the failure and continue.
   the model. Collapsing them is the single most common data error in this domain
   and one of the three reviewers exists to catch it.
 - **Never invent a composite score, rank, or "best model" claim.** The product
-  does not publish one (#67 is blocked pending a product decision), and
-  `gate-dataset.mjs` refuses the vocabulary outright.
+  does not publish one (abdeslam-menacere/ModelTree#67 is blocked pending a
+  product decision), and `gate-dataset.mjs` refuses the vocabulary outright.
 - **Usage figures are observations, never rankings.** Each carries its metric,
   measured population, window, methodology, source category, scope, and caveats.
   Two figures measuring different populations are never added together.
