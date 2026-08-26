@@ -26,7 +26,7 @@
     "summary": "A non-reasoning API model for instruction following, tool calling, and broad-domain work.",
     "intendedUse": "Complex API tasks that benefit from the most capable model in the GPT-4.1 family.",
     "sourceIds": ["openai-gpt-4-1-announcement", "openai-gpt-4-1-docs"],
-    "verifiedAt": "2026-08-14"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "openai-gpt-4-1-mini-2025-04-14",
@@ -55,7 +55,7 @@
     "summary": "A smaller, faster GPT-4.1 variant for instruction following and tool calling.",
     "intendedUse": "API tasks that prioritize lower latency while retaining instruction following and tool calling.",
     "sourceIds": ["openai-gpt-4-1-announcement", "openai-gpt-4-1-mini-docs"],
-    "verifiedAt": "2026-08-14"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "openai-gpt-4-1-nano-2025-04-14",
@@ -114,7 +114,7 @@
     "summary": "The flagship tier of the GPT-5.6 family and OpenAI's most capable model for complex professional, coding, and agentic work. Its API documentation lists a 1,050,000-token context window and a 2026-02-16 knowledge cutoff, and the gpt-5.6 alias routes to Sol.",
     "intendedUse": "Complex professional, coding, and agentic tasks that call for OpenAI's highest-capability model.",
     "sourceIds": ["openai-gpt-5-6-launch", "openai-gpt-5-6-sol-docs", "openai-gpt-5-6-sol-preview"],
-    "verifiedAt": "2026-08-18"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "openai-gpt-5-6-terra",
@@ -144,7 +144,7 @@
     "summary": "The balanced cost-and-performance tier of the GPT-5.6 family, which OpenAI positions as competitive with GPT-5.5 at a lower cost. Its API documentation lists a 1,050,000-token context window and a 2026-02-16 knowledge cutoff, and says it roughly corresponds to the mini tier of earlier GPT-5 families.",
     "intendedUse": "Everyday professional and coding workloads that balance capability against cost.",
     "sourceIds": ["openai-gpt-5-6-launch", "openai-gpt-5-6-terra-docs", "openai-gpt-5-6-price-update"],
-    "verifiedAt": "2026-08-18"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "openai-gpt-5-6-luna",
@@ -174,7 +174,7 @@
     "summary": "The most affordable, highest-throughput tier of the GPT-5.6 family. Its API documentation lists a 1,050,000-token context window and a 2026-02-16 knowledge cutoff, and says it roughly corresponds to the nano tier of earlier GPT-5 families.",
     "intendedUse": "Cost-sensitive, high-volume workloads that still need GPT-5.6-generation capability.",
     "sourceIds": ["openai-gpt-5-6-launch", "openai-gpt-5-6-luna-docs", "openai-gpt-5-6-price-update"],
-    "verifiedAt": "2026-08-18"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "openai-gpt-5-5",
@@ -203,7 +203,7 @@
     "summary": "The GPT-5 generation before GPT-5.6, introduced in the API on 2026-04-23 for complex coding, research, and data-analysis work. Its API documentation lists a 1,050,000-token context window, a 2026-04-23 default snapshot, and a 2025-12-01 knowledge cutoff.",
     "intendedUse": "Complex coding, research, and professional workflows on the generation directly preceding GPT-5.6.",
     "sourceIds": ["openai-gpt-5-5-announcement", "openai-gpt-5-5-docs"],
-    "verifiedAt": "2026-08-18"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "openai-gpt-5-4",
@@ -232,7 +232,7 @@
     "summary": "An earlier GPT-5 generation, introduced on 2026-03-05 as OpenAI's frontier model for professional work, with state-of-the-art coding, computer use, and a roughly one-million-token context. Its API documentation lists a 1,050,000-token context window, a 2026-03-05 default snapshot, and a 2025-08-31 knowledge cutoff.",
     "intendedUse": "Professional coding and agentic work on the generation two steps before GPT-5.6.",
     "sourceIds": ["openai-gpt-5-4-announcement", "openai-gpt-5-4-docs"],
-    "verifiedAt": "2026-08-18"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "openai-gpt-5",
@@ -685,5 +685,34 @@
     "intendedUse": "Assistant-style multilingual chat.",
     "sourceIds": ["meta-llama-3-3-model-card", "meta-llama-3-3-license"],
     "verifiedAt": "2026-08-15"
+  },
+  {
+    "id": "openai-gpt-5-6-cyber",
+    "slug": "gpt-5-6-cyber",
+    "canonicalName": "GPT-5.6 Cyber",
+    "displayName": "GPT-5.6 Cyber",
+    "organizationId": "openai",
+    "familyId": "openai-gpt-5-6",
+    "version": "5.6",
+    "variant": "Cyber",
+    "releaseDate": "2026-08-10",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": ["language-reasoning", "coding"],
+    "inputModalities": ["text", "image"],
+    "outputModalities": ["text"],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 400000,
+    "maximumOutput": 128000,
+    "apiAliases": ["gpt-5.6-cyber"],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "A purpose-trained cybersecurity model in the GPT-5.6 family, offered as the gpt-5.6-cyber alias for approved defenders conducting authorized vulnerability research, exploit validation, and security testing. Access requires separate approval through OpenAI's Daybreak program and is served via the Daybreak Red channel. Its API documentation lists text and image input, text output, a 400,000-token context window, 128,000 max output tokens, and a 2026-02-16 knowledge cutoff, and it is offered on the Responses endpoint (Chat Completions is not supported). Its release date is taken from the 2026-08-10 announcement because the model documentation page carries no date.",
+    "intendedUse": "Authorized, governed cybersecurity work - vulnerability research, exploit validation, and security testing - by defenders approved for OpenAI's Daybreak program.",
+    "sourceIds": ["openai-gpt-5-6-cyber-docs", "openai-news-rss"],
+    "verifiedAt": "2026-08-26"
   }
 ]
