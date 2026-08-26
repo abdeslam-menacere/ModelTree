@@ -1,0 +1,289 @@
+[
+  {
+    "id": "2026-08-26-d5f729",
+    "title": "Data refresh 2026-08-26",
+    "ranOn": "2026-08-26",
+    "outcome": "published",
+    "summary": "An agent-run, source-backed refresh under ADR 0003. Five scouts fetched and hashed 55 primary pages and proposed 71 claims; twelve blind reviewers cast 213 verdicts across three rubrics; four deterministic gates passed; 63 edits landed across five dataset documents and GitHub Pages deployed successfully. No human reviewed any part of it.",
+    "scope": "Every creator in organizations.json, plus the long-tail profile sweep",
+    "stages": [
+      { "stage": "preflight", "status": "ran", "note": "Clean tree, gh authenticated, no unmerged pull request from a previous refresh." },
+      { "stage": "scout", "status": "ran", "note": "Five bundles, one per creator profile plus a long-tail sweep. 55 page snapshots hashed." },
+      { "stage": "review", "status": "ran", "note": "Twelve reviewers, three rubrics over four bundles. The long-tail bundle had no claims to review." },
+      { "stage": "gates", "status": "ran", "note": "gate-evidence and gate-source-approval before applying anything; gate-dataset, npm run validate, and gate-scope after." },
+      { "stage": "publish", "status": "ran", "note": "PR #302 opened with the full evidence trail and merged by GitHub on a green web-ci." },
+      { "stage": "deploy", "status": "ran", "note": "Pages deployed main @ 0e9867b successfully; the live site serves the new records. No revert needed." }
+    ],
+    "found": {
+      "scouts": 5,
+      "pagesFetched": 55,
+      "claimsProposed": 71,
+      "bundles": [
+        { "creator": "openai", "policy": "pilot", "threshold": "2-of-3", "claimsFound": 14 },
+        { "creator": "anthropic", "policy": "pilot", "threshold": "2-of-3", "claimsFound": 18 },
+        { "creator": "google-deepmind", "policy": "pilot", "threshold": "2-of-3", "claimsFound": 19 },
+        { "creator": "meta", "policy": "pilot", "threshold": "2-of-3", "claimsFound": 20 },
+        { "creator": "long-tail sweep", "policy": "long-tail", "threshold": "3-of-3", "claimsFound": 0 }
+      ],
+      "claimsByKind": [
+        { "kind": "add", "count": 25, "effect": "New records." },
+        { "kind": "change", "count": 15, "effect": "Field corrections and counter updates." },
+        { "kind": "unchanged", "count": 29, "effect": "Re-verified against a primary source; no value changed." },
+        { "kind": "conflict", "count": 2, "effect": "Primary sources disagree; both sides recorded, no value changed." }
+      ],
+      "notCovered": [
+        "Any creator outside the four pilot profiles and the long-tail catalogue.",
+        "www.llama.com content, deferred because the host now redirects to an unapproved origin.",
+        "The long-tail sweep returned zero claims. That is an honest zero, not a skipped stage — it was gated like every other bundle."
+      ]
+    },
+    "evaluated": {
+      "reviewers": 12,
+      "verdictsCast": 213,
+      "acceptedByPanel": 71,
+      "rejectedByPanel": 0,
+      "dissents": [
+        {
+          "claimId": "openai-add-gpt-5-6-cyber-release",
+          "rubric": "editorial",
+          "objection": "releaseDate was taken from an RSS pubDate, which dates the announcement item rather than the release."
+        },
+        {
+          "claimId": "anthropic-unchanged-source-opus-5-announcement-checked",
+          "rubric": "provenance",
+          "objection": "The quote supports the API identifier but not the pricing half of the same claim."
+        },
+        {
+          "claimId": "meta-muse-video-release",
+          "rubric": "editorial",
+          "objection": "A model described as \"coming soon\" was given a concrete day-precision releaseDate."
+        }
+      ],
+      "gates": [
+        {
+          "gate": "gate-evidence",
+          "scope": "5 bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Three rubrics present per claim, no duplicate votes, no empty rationale, every claim at its profile threshold."
+        },
+        {
+          "gate": "gate-source-approval",
+          "scope": "5 bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "134 citations against anchor 13276b0, selected by merge-base with refs/remotes/origin/main. 20 inherited sources, 17 proposed, 16 approved origins, no new host admitted."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "working tree",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "The dataset is internally coherent after the edits were applied."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "branch vs anchor",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "changed: 5, outOfClass: [], empty: false. Exit 0 alone is ambiguous; the publish precondition is exit 0 and changed > 0."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "baseline and after",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "400/400 tests, 0 errors both before any change and on the branch. The baseline was captured first so a pre-existing red main could not be mistaken for damage from this run."
+        },
+        {
+          "gate": "web-ci",
+          "scope": "PR #302",
+          "outcome": "pass",
+          "required": true,
+          "detail": "400/400 tests, 0 errors. This is the check branch protection requires before a merge."
+        },
+        {
+          "gate": "skills-ci",
+          "scope": "PR #302",
+          "outcome": "fail",
+          "required": false,
+          "detail": "Red, and not a required check, so GitHub merged on web-ci alone before it could be acted on. Filed as #304: gates.test.mjs pins TODAY to 2026-08-25 but asserts it against the live dataset, so any same-day refresh fails it."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 63,
+      "documents": [
+        { "document": "sources.json", "recordsBefore": 47, "recordsAfter": 61, "note": "14 sources added." },
+        { "document": "families.json", "recordsBefore": 11, "recordsAfter": 12, "note": "One family added: meta-muse." },
+        { "document": "releases.json", "recordsBefore": 22, "recordsAfter": 31, "note": "Nine releases added." },
+        { "document": "organizations.json", "recordsBefore": 4, "recordsAfter": 4, "note": "One field corrected; no record added or removed." },
+        { "document": "usage-observations.json", "recordsBefore": 2, "recordsAfter": 2, "note": "Both readings updated; no record added or removed." }
+      ],
+      "records": [
+        { "id": "meta-muse", "collection": "families", "note": "New Meta family." },
+        { "id": "openai-gpt-5-6-cyber", "collection": "releases", "note": "New release; carries a recorded editorial dissent on its release date." },
+        { "id": "anthropic-claude-sonnet-5", "collection": "releases", "note": "New release." },
+        { "id": "google-gemini-3-5-flash", "collection": "releases", "note": "New release." },
+        { "id": "google-gemini-3-6-flash", "collection": "releases", "note": "New release." },
+        { "id": "google-gemini-3-7-flash", "collection": "releases", "note": "New release." },
+        { "id": "meta-muse-spark", "collection": "releases", "note": "New release." },
+        { "id": "meta-muse-spark-1-1", "collection": "releases", "note": "New release." },
+        { "id": "meta-muse-image", "collection": "releases", "note": "New release." },
+        { "id": "meta-muse-video", "collection": "releases", "note": "New release; carries a recorded editorial dissent on its release date." }
+      ]
+    },
+    "withheld": [
+      {
+        "id": "openai-add-source-deprecations",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then dropped by the chair. validate.test.ts enforces that an unreferenced source is dead provenance, and no reviewed claim wired openai-deprecations into any record's sourceIds. Adding that edit would have meant authoring dataset content no reviewer saw.",
+        "blockedBy": ["validate.test.ts"]
+      },
+      {
+        "id": "openai-change-gpt-5-status-deprecated",
+        "category": "dropped-after-acceptance",
+        "detail": "Dropped with its source. Keeping the status change alone records \"deprecated\" against sourceIds that do not state it — every supporting quote comes from openai-deprecations.",
+        "blockedBy": ["openai-add-source-deprecations"]
+      },
+      {
+        "id": "openai-change-gpt-4-1-nano-status-deprecated",
+        "category": "dropped-after-acceptance",
+        "detail": "Dropped for the same reason as the GPT-5 status change: its only supporting quote comes from the source that could not be added.",
+        "blockedBy": ["openai-add-source-deprecations"]
+      },
+      {
+        "id": "releases/anthropic-claude-haiku-4-5",
+        "category": "verification-held",
+        "detail": "The field was re-read and unchanged, but validate.ts requires a model-fit statement to be at least as fresh as the facts it reads. Bumping verifiedAt would strand a dependent statement, so it stays at 2026-08-15. Under-claiming a verification is honest; over-claiming is not.",
+        "blockedBy": ["fit-claude-haiku-4-5-release-current", "fit-claude-haiku-4-5-family-legacy"]
+      },
+      {
+        "id": "releases/anthropic-claude-mythos-5",
+        "category": "verification-held",
+        "detail": "Held at 2026-08-15 for the same freshness rule: nobody re-derived the dependent fit statement over the re-read field.",
+        "blockedBy": ["fit-claude-mythos-5-limited-availability"]
+      },
+      {
+        "id": "families/meta-llama-4",
+        "category": "verification-held",
+        "detail": "Held at 2026-08-15 by a test-suite coupling rather than a data fact: model-fit.test.ts injects fixtures pinned at 2026-08-15 over the real seed records. Tests are not dataset documents, so this run may not edit them.",
+        "blockedBy": ["model-fit.test.ts"]
+      },
+      {
+        "id": "families/anthropic-claude-4-5.status",
+        "category": "conflict-recorded",
+        "detail": "Two Anthropic pages disagree and neither changed a value. The models overview lists Claude Sonnet 4.5 under \"Legacy models (still available)\"; the deprecations page lists claude-sonnet-4-5-20250929 as Active, retirement not sooner than 29 September 2026. Conflicting data stays explicit rather than being smoothed over.",
+        "blockedBy": []
+      },
+      {
+        "id": "releases/google-gemini-3-5-flash-lite.status",
+        "category": "conflict-recorded",
+        "detail": "The Gemini 3 developer guide states \"All Gemini 3 models are currently in preview\"; the platform docs give gemini-3.5-flash-lite launch stage GA, released 21 July 2026. Recorded with both sides quoted; no value changed.",
+        "blockedBy": []
+      },
+      {
+        "id": "www.llama.com",
+        "category": "source-refused",
+        "detail": "The host now redirects to developer.meta.com, an origin neither the committed dataset nor any profile catalogue stands behind. The Meta scout deferred it rather than citing it, so the Muse claims rest on ai.meta.com instead. Admitting a new host is a human decision.",
+        "blockedBy": ["gate-source-approval"]
+      }
+    ],
+    "caveats": [
+      "The gates catch malformed, impossible, unreferenced, and boundary-violating data. They do not catch a well-formed claim that is simply wrong.",
+      "Per ADR 0005 the evidence gate checks the form of a citation, never its remote content. A gate pass attests that the paperwork is complete, not that the page still says what it said.",
+      "The three reviewers share a failure mode — three instances of one model family reading the same page — so a source that is itself wrong can carry all three.",
+      "Auto-merge was armed correctly, but because skills-ci is not a required check GitHub merged on web-ci alone while skills-ci was red. No gate was skipped and no threshold lowered; it does mean an unattended run cannot currently stop on a non-required check going red."
+    ],
+    "followUps": [
+      "A scout proposing a status change must also propose the sourceIds change that carries its source. This cost three panel-accepted OpenAI claims.",
+      "Fit-statement freshness blocks legitimate verification bumps on anthropic-claude-haiku-4-5, anthropic-claude-mythos-5, and meta-llama-4.",
+      "www.llama.com now redirects to developer.meta.com, a new host that needs a human decision on the approved-origin list.",
+      "Consider making skills-ci a required check (#169), so a red non-required job can stop an unattended merge."
+    ],
+    "references": [
+      { "kind": "pull-request", "label": "PR #302 — chore(data): source-backed dataset refresh 2026-08-26", "url": "https://github.com/abdeslam-menacere/ModelTree/pull/302", "state": "merged" },
+      { "kind": "issue", "label": "Issue #305 — run summary", "url": "https://github.com/abdeslam-menacere/ModelTree/issues/305", "state": "open" },
+      { "kind": "commit", "label": "0e9867b — squash merge of PR #302", "url": "https://github.com/abdeslam-menacere/ModelTree/commit/0e9867b", "state": "merged" },
+      { "kind": "deployment", "label": "GitHub Pages deploy of main @ 0e9867b", "url": "https://abdeslam-menacere.github.io/ModelTree/", "state": "success" }
+    ],
+    "recordedAt": "2026-08-26"
+  },
+  {
+    "id": "2026-08-25-902306",
+    "title": "Data refresh 2026-08-25",
+    "ranOn": "2026-08-25",
+    "outcome": "stopped",
+    "summary": "Stopped at preflight and published nothing. ADR 0003 precondition 2 was still open — the approved-source binding enforced on the proposal-only path had no equivalent in the publishing skill set — and ADR 0003's guardrail is that the automation does not run until the skill set is corrected. No dataset change, no branch, no commit, no pull request, no deploy.",
+    "scope": "Every creator in organizations.json, plus the long-tail profile sweep",
+    "stages": [
+      { "stage": "preflight", "status": "ran", "note": "ModelTree checkout, clean tree, gh authenticated, no open pull request from a previous refresh. Preconditions were then checked live and one was open." },
+      { "stage": "scout", "status": "not-run", "note": "Zero pages fetched, zero claims extracted. The publisher was not authorised to run." },
+      { "stage": "review", "status": "not-run", "note": "No bundle existed to review." },
+      { "stage": "gates", "status": "not-run", "note": "No bundle existed to gate. A read-only dataset health check was run separately and is recorded below." },
+      { "stage": "publish", "status": "not-run", "note": "Nothing was applied, so there was nothing to publish." },
+      { "stage": "deploy", "status": "not-applicable", "note": "Nothing merged, so nothing deployed." }
+    ],
+    "found": {
+      "scouts": 0,
+      "pagesFetched": 0,
+      "claimsProposed": 0,
+      "bundles": [],
+      "claimsByKind": [],
+      "notCovered": [
+        "Every creator in scope. Scouting never started, so no creator was checked for new releases.",
+        "Because scouting did not run, this run is not evidence that the dataset is current. It says only that the publisher was not authorised to run."
+      ]
+    },
+    "evaluated": {
+      "reviewers": 0,
+      "verdictsCast": 0,
+      "acceptedByPanel": 0,
+      "rejectedByPanel": 0,
+      "dissents": [],
+      "gates": [
+        {
+          "gate": "gate-dataset",
+          "scope": "committed dataset, read-only health check",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": false,
+          "detail": "Run standalone rather than as a run gate: passed: true, failures: []. Counts at the time — sources 47, publishers 8, organizations 4, families 11, releases 22, usageObservations 2, usageSyntheses 0, modelFitStatements 7, modelFitEvidenceGaps 3."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 0,
+      "documents": [],
+      "records": []
+    },
+    "withheld": [
+      {
+        "id": "entire-run",
+        "category": "blocked-by-policy",
+        "detail": "ADR 0003 precondition 2 was open. gates.py enforced an approved-source binding per claim; the publishing skill set's gate-evidence.mjs never inspected sourceId against any approved catalogue, and gate-dataset.mjs resolves sourceIds only referentially against a file the refresh may itself patch. On that rule the publishing path was strictly more permissive, which stops the automation.",
+        "blockedBy": ["ADR 0003 precondition 2", "#167"]
+      }
+    ],
+    "caveats": [
+      "This run did not find \"nothing to do\". It found work for a human, which is why its summary issue was left open until the blocker was closed.",
+      "The read-only health check shows the published dataset was internally coherent. It does not show that it was current or true — gate-dataset has no network and does not check that a source still says what it said."
+    ],
+    "followUps": [
+      "#167 — the blocker: the publishing gates must refuse a run that adds a source record to sources.json and cites it in the same change.",
+      "#205 — gate soundness is emergent across the set rather than provable gate by gate.",
+      "#210 — gate-scope reported green on a committed out-of-class change when run with no --base.",
+      "#209 — no gate input self-reported by the subject of the gate may have a default.",
+      "#168 — nothing detects drift between the Python and JavaScript gate implementations."
+    ],
+    "references": [
+      { "kind": "issue", "label": "Issue #211 — run summary, stopped at preflight", "url": "https://github.com/abdeslam-menacere/ModelTree/issues/211", "state": "closed" }
+    ],
+    "recordedAt": "2026-08-26"
+  }
+]

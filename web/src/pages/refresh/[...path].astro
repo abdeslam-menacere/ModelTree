@@ -1,0 +1,399 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { dataset } from '../../data/dataset';
+import { refreshLog } from '../../data/refresh-log';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { formatDate, formatNumber } from '../../lib/format';
+import { firstHomepageRelease, buildHomepageHierarchy } from '../../lib/homepage';
+import { buildModelTree, modelTreeReleaseIds } from '../../lib/model-tree';
+import {
+	claimKindLabel,
+	countLabel,
+	gateOutcomeLabel,
+	gateTally,
+	logTotals,
+	outcomeLabel,
+	postedTally,
+	runLedger,
+	rubricLabel,
+	stageLabel,
+	stageStatusLabel,
+	withheldGroups,
+} from '../../lib/refresh-log';
+import { postedDocumentLinks, postedRecordLinks } from '../../lib/refresh-log-links';
+import {
+	ALL_RUNS,
+	filterLabel,
+	refreshFilterOptions,
+	refreshViews,
+	sameFilter,
+	viewHref,
+	viewSegments,
+	type RefreshView,
+} from '../../lib/refresh-log-views';
+
+export const getStaticPaths = (() => refreshViews(refreshLog).map((view) => {
+	const segments = viewSegments(view.filter, view.page);
+	return { params: { path: segments.length === 0 ? undefined : segments.join('/') }, props: { view } };
+})) satisfies GetStaticPaths;
+
+const { view } = Astro.props as { view: RefreshView };
+
+const totals = logTotals(refreshLog);
+const options = refreshFilterOptions(refreshLog);
+const latestVerification = [...dataset.releases.map(({ verifiedAt }) => verifiedAt)].sort().at(-1)!;
+const base = import.meta.env.BASE_URL;
+const passportHref = `${base}models/${firstHomepageRelease(buildHomepageHierarchy(dataset)).slug}/`;
+const linkOptions = { base, treeReleaseIds: modelTreeReleaseIds(buildModelTree(dataset)) };
+const filtered = !sameFilter(view.filter, ALL_RUNS);
+const pages = Array.from({ length: view.totalPages }, (_, index) => index + 1);
+const titlePrefix = filtered ? `${filterLabel(view.filter)} — ` : '';
+const pageSuffix = view.page > 1 ? ` (page ${view.page})` : '';
+---
+
+<BaseLayout
+	title={`${titlePrefix}Data refresh${pageSuffix} | ModelTree`}
+	description="Every ModelTree data refresh, in full: what each run found, how it was evaluated, what reached the dataset, and what did not."
+	passportHref={passportHref}
+	verifiedAt={formatDate(latestVerification)}
+	currentPage="refresh"
+>
+	<main id="main-content" class="log-page">
+		<header class="log-intro">
+			<div>
+				<span class="eyebrow">Data refresh</span>
+				<h1>What each refresh found, and what it did not publish.</h1>
+			</div>
+			<div>
+				<p>ModelTree's dataset is refreshed by agents against primary sources, reviewed by an independent three-rubric panel, and gated deterministically. Every run is recorded here in full — including the runs that published nothing.</p>
+				<p class="log-help">A run's working state is never committed. This page transcribes the durable record: the pull request body and the summary issue, both linked from each entry.</p>
+			</div>
+		</header>
+
+		<dl class="coverage-stats log-totals" aria-label="Totals across every recorded data refresh">
+			<div><dt>Runs recorded</dt><dd>{formatNumber(totals.runs)}</dd></div>
+			<div><dt>Pages fetched</dt><dd>{formatNumber(totals.pagesFetched)}</dd></div>
+			<div><dt>Claims proposed</dt><dd>{formatNumber(totals.claimsProposed)}</dd></div>
+			<div><dt>Edits published</dt><dd>{formatNumber(totals.editsApplied)}</dd></div>
+			<div><dt>Items withheld</dt><dd>{formatNumber(totals.withheld)}</dd></div>
+		</dl>
+
+		<nav class="log-filters" aria-label="Filter data refresh runs">
+			{options.map(({ filter, label, count }) => (
+				<a
+					href={viewHref(base, filter, 1)}
+					aria-current={sameFilter(filter, view.filter) ? 'page' : undefined}
+				>
+					{label}
+					<span class="log-filter-count">{formatNumber(count)}</span>
+				</a>
+			))}
+		</nav>
+
+		<div class="log-list-status">
+			<p>
+				{view.totalRuns === 0
+					? 'No runs recorded yet.'
+					: `Showing ${formatNumber(view.firstShown)}–${formatNumber(view.lastShown)} of ${countLabel(view.totalRuns, 'run')}`}
+				{filtered && <span class="log-filter-active">filtered by {filterLabel(view.filter)}</span>}
+			</p>
+			{filtered && <a class="log-filter-clear" href={viewHref(base, ALL_RUNS, 1)}>Clear filter</a>}
+		</div>
+
+		<ol class="log-runs">
+			{view.runs.map((run, index) => {
+				const ledger = runLedger(run);
+				const posted = postedTally(run);
+				const gates = gateTally(run);
+				const groups = withheldGroups(run);
+				const documentLinks = postedDocumentLinks(run);
+				const recordLinks = postedRecordLinks(run, dataset, linkOptions);
+
+				return (
+					<li>
+						<details class="log-run" open={index === 0 && view.page === 1}>
+							<summary class="log-run-header">
+								<span class="log-run-id">{run.id}</span>
+								<h2>{run.title}</h2>
+								<span class="log-run-scope"><strong>Scope requested:</strong> {run.scope}</span>
+								<span class="log-run-verdict">
+									<span class={`log-outcome log-outcome-${run.outcome}`}>{outcomeLabel(run.outcome)}</span>
+									<time datetime={run.ranOn}>{formatDate(run.ranOn)}</time>
+									<span class="log-run-ledger">
+										{countLabel(ledger.posted, 'edit')} posted · {countLabel(ledger.withheld, 'item')} withheld
+									</span>
+								</span>
+							</summary>
+
+							<p class="log-run-summary">{run.summary}</p>
+
+							<section class="log-stages" aria-label={`Stages of run ${run.id}`}>
+								<ol>
+									{run.stages.map((stage) => (
+										<li class={`log-stage log-stage-${stage.status}`}>
+											<span class="log-stage-name">{stageLabel(stage.stage)}</span>
+											<span class="log-stage-status">{stageStatusLabel(stage.status)}</span>
+											<span class="log-stage-note">{stage.note}</span>
+										</li>
+									))}
+								</ol>
+							</section>
+
+							<div class="log-columns">
+								<section aria-label={`What run ${run.id} found`}>
+									<h3>What was found</h3>
+									<dl class="log-figures">
+										<div><dt>Scouts</dt><dd>{formatNumber(run.found.scouts)}</dd></div>
+										<div><dt>Pages fetched and hashed</dt><dd>{formatNumber(run.found.pagesFetched)}</dd></div>
+										<div><dt>Claims proposed</dt><dd>{formatNumber(run.found.claimsProposed)}</dd></div>
+									</dl>
+
+									{run.found.bundles.length > 0 && (
+										<table class="log-table">
+											<caption>Claims per creator bundle, with the review threshold its profile set</caption>
+											<thead>
+												<tr><th scope="col">Creator</th><th scope="col">Policy</th><th scope="col">Threshold</th><th scope="col">Claims</th></tr>
+											</thead>
+											<tbody>
+												{run.found.bundles.map((bundle) => (
+													<tr>
+														<th scope="row">{bundle.creator}</th>
+														<td>{bundle.policy}</td>
+														<td>{bundle.threshold}</td>
+														<td class="log-numeric">{formatNumber(bundle.claimsFound)}</td>
+													</tr>
+												))}
+											</tbody>
+										</table>
+									)}
+
+									{run.found.claimsByKind.length > 0 && (
+										<table class="log-table">
+											<caption>What those claims proposed to do</caption>
+											<thead>
+												<tr><th scope="col">Kind</th><th scope="col">Count</th><th scope="col">Effect</th></tr>
+											</thead>
+											<tbody>
+												{run.found.claimsByKind.map((tally) => (
+													<tr>
+														<th scope="row">{claimKindLabel(tally.kind)}</th>
+														<td class="log-numeric">{formatNumber(tally.count)}</td>
+														<td>{tally.effect}</td>
+													</tr>
+												))}
+											</tbody>
+										</table>
+									)}
+
+									{run.found.notCovered.length > 0 && (
+										<div class="log-note">
+											<h4>Not covered</h4>
+											<ul>{run.found.notCovered.map((item) => <li>{item}</li>)}</ul>
+										</div>
+									)}
+								</section>
+
+								<section aria-label={`How run ${run.id} was evaluated`}>
+									<h3>What was evaluated</h3>
+									<dl class="log-figures">
+										<div><dt>Reviewers</dt><dd>{formatNumber(run.evaluated.reviewers)}</dd></div>
+										<div><dt>Verdicts cast</dt><dd>{formatNumber(run.evaluated.verdictsCast)}</dd></div>
+										<div><dt>Accepted by panel</dt><dd>{formatNumber(run.evaluated.acceptedByPanel)}</dd></div>
+										<div><dt>Rejected by panel</dt><dd>{formatNumber(run.evaluated.rejectedByPanel)}</dd></div>
+									</dl>
+
+									<table class="log-table">
+										<caption>
+											Deterministic gates and required checks — {formatNumber(gates.passed)} of {countLabel(gates.total, 'check')} passed.
+											Exit 0 is a pass; exit 2 means the gate could not run and is never treated as one.
+										</caption>
+										<thead>
+											<tr><th scope="col">Check</th><th scope="col">Scope</th><th scope="col">Exit</th><th scope="col">Result</th></tr>
+										</thead>
+										<tbody>
+											{run.evaluated.gates.map((gate) => (
+												<tr class={`log-gate-${gate.outcome}`}>
+													<th scope="row">
+														<code>{gate.gate}</code>
+														{!gate.required && <span class="log-optional">not required</span>}
+													</th>
+													<td>{gate.scope}</td>
+													<td class="log-numeric">{gate.exitCode ?? '—'}</td>
+													<td>
+														<span class="log-gate-verdict">{gateOutcomeLabel(gate.outcome)}</span>
+														<span class="log-gate-detail">{gate.detail}</span>
+													</td>
+												</tr>
+											))}
+										</tbody>
+									</table>
+
+									{run.evaluated.dissents.length > 0 && (
+										<div class="log-note">
+											<h4>Applied over a recorded dissent</h4>
+											<p>These met their threshold and were applied. The objection stands on the record and was not overruled.</p>
+											<ul class="log-dissents">
+												{run.evaluated.dissents.map((dissent) => (
+													<li>
+														<code>{dissent.claimId}</code>
+														<span class="log-rubric">{rubricLabel(dissent.rubric)}</span>
+														<span>{dissent.objection}</span>
+													</li>
+												))}
+											</ul>
+										</div>
+									)}
+								</section>
+							</div>
+
+							<div class="log-ledger">
+								<section class="log-ledger-side log-posted" aria-label={`What run ${run.id} posted`}>
+									<h3>Posted <span class="log-count">{countLabel(ledger.posted, 'edit')}</span></h3>
+									{posted.documentsTouched === 0 ? (
+										<p class="log-empty">Nothing reached the dataset. No branch, no commit, no pull request.</p>
+									) : (
+										<>
+											<p>{countLabel(posted.edits, 'edit')} across {countLabel(posted.documentsTouched, 'document')}, a net change of {countLabel(posted.netRecordChange, 'record')}.</p>
+											<table class="log-table">
+												<caption>Dataset documents this run changed</caption>
+												<thead>
+													<tr><th scope="col">Document</th><th scope="col">Before</th><th scope="col">After</th><th scope="col">What changed</th></tr>
+												</thead>
+												<tbody>
+													{documentLinks.map(({ document, href }) => (
+														<tr>
+															<th scope="row">
+																{href ? (
+																	<a href={href}><code>{document.document}</code></a>
+																) : (
+																	<code>{document.document}</code>
+																)}
+															</th>
+															<td class="log-numeric">{formatNumber(document.recordsBefore)}</td>
+															<td class="log-numeric">{formatNumber(document.recordsAfter)}</td>
+															<td>{document.note}</td>
+														</tr>
+													))}
+												</tbody>
+											</table>
+											{documentLinks.some(({ href }) => href) && (
+												<p class="log-help">Each document links to the file as this run left it, not as it stands today.</p>
+											)}
+											{recordLinks.length > 0 && (
+												<>
+													<h4>Records added</h4>
+													<ul class="log-records log-record-links">
+														{recordLinks.map(({ record, label, href, target, resolved }) => (
+															<li>
+																<span class="log-record-name">
+																	{href ? (
+																		<a href={href}>
+																			{label}
+																			<span class="log-link-target">
+																				{target === 'tree' ? 'in the tree' : 'passport'}
+																			</span>
+																		</a>
+																	) : label}
+																</span>
+																<span class="log-collection">{record.collection}</span>
+																<code>{record.id}</code>
+																<span>{record.note}</span>
+																{!resolved && (
+																	<span class="log-blocked">Not in today's dataset under this id.</span>
+																)}
+																{resolved && !href && (
+																	<span class="log-blocked">No page of its own yet.</span>
+																)}
+															</li>
+														))}
+													</ul>
+												</>
+											)}
+										</>
+									)}
+								</section>
+
+								<section class="log-ledger-side log-withheld" aria-label={`What run ${run.id} did not post`}>
+									<h3>Not posted <span class="log-count">{countLabel(ledger.withheld, 'item')}</span></h3>
+									{groups.length === 0 ? (
+										<p class="log-empty">This run recorded nothing it held back.</p>
+									) : (
+										groups.map((group) => (
+											<div class="log-withheld-group">
+												<h4>{group.label}</h4>
+												<ul class="log-records">
+													{group.items.map((item) => (
+														<li>
+															<code>{item.id}</code>
+															<span>{item.detail}</span>
+															{item.blockedBy.length > 0 && (
+																<span class="log-blocked">
+																	Blocked by {item.blockedBy.map((blocker) => <code>{blocker}</code>)}
+																</span>
+															)}
+														</li>
+													))}
+												</ul>
+											</div>
+										))
+									)}
+								</section>
+							</div>
+
+							<section class="log-note log-caveats" aria-label={`What run ${run.id} does not prove`}>
+								<h3>What this run does not prove</h3>
+								<ul>{run.caveats.map((caveat) => <li>{caveat}</li>)}</ul>
+							</section>
+
+							{run.followUps.length > 0 && (
+								<section class="log-note" aria-label={`Follow-ups from run ${run.id}`}>
+									<h3>Follow-ups — proposed, not fixed</h3>
+									<ul>{run.followUps.map((followUp) => <li>{followUp}</li>)}</ul>
+								</section>
+							)}
+
+							<footer class="log-references">
+								<h3>Check this entry against the record</h3>
+								<ul>
+									{run.references.map((reference) => (
+										<li>
+											<a href={reference.url}>{reference.label}</a>
+											{reference.state && <span class="log-state">{reference.state}</span>}
+										</li>
+									))}
+								</ul>
+								<p class="log-recorded">Transcribed into this repository on {formatDate(run.recordedAt)}.</p>
+							</footer>
+						</details>
+					</li>
+				);
+			})}
+		</ol>
+
+		{view.totalPages > 1 && (
+			<nav class="log-pagination" aria-label="Data refresh pages">
+				{view.page > 1 ? (
+					<a class="log-page-step" href={viewHref(base, view.filter, view.page - 1)} rel="prev">Previous</a>
+				) : (
+					<span class="log-page-step" aria-hidden="true">Previous</span>
+				)}
+				<ol>
+					{pages.map((page) => (
+						<li>
+							{page === view.page ? (
+								<span class="log-page-current" aria-current="page">{formatNumber(page)}</span>
+							) : (
+								<a href={viewHref(base, view.filter, page)} aria-label={`Page ${page}`}>{formatNumber(page)}</a>
+							)}
+						</li>
+					))}
+				</ol>
+				{view.page < view.totalPages ? (
+					<a class="log-page-step" href={viewHref(base, view.filter, view.page + 1)} rel="next">Next</a>
+				) : (
+					<span class="log-page-step" aria-hidden="true">Next</span>
+				)}
+			</nav>
+		)}
+	</main>
+</BaseLayout>
