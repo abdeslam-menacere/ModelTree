@@ -80,6 +80,43 @@ opens a decision record, so it cannot object to what one says. In particular it
 does not compare the number in the filename with the number in the `# ADR NNNN:`
 heading inside it.
 
+Two things about a *name* can stop the report being read as what it is, and both
+are settled where a name becomes report text rather than where the report is
+printed, because that is the one place every name passes through.
+
+**A name cannot introduce a line.** `Adr.path` is a `str` and `render()` joins
+with "\\n", so a filename holding a newline claims a line of its own:
+`0002-x.md\\n\\nOK: 9 ADRs, ...` puts a forged `OK:` *above* the genuine `FAIL:`,
+and anything grepping the output for `OK:` reads a run with a real duplicate as
+clean. Windows cannot create such a file, which is why this went unnoticed; git
+and every POSIX filesystem can. So every character that can end a line -- the C0
+and C1 controls, DEL, U+2028 and U+2029 -- is spelled `<U+000A>` rather than
+emitted, in `display()` where a filesystem path becomes text and again in
+`render()` where text becomes lines. Both, because neither covers the other: a
+refusal message interpolates a path from `display()` and never passes through
+`render()`'s per-entry formatting, while an `Adr` built directly -- the field is
+a `str`, which is what makes the forge reachable at all -- never passed through
+`display()`. It is one function at both boundaries and it leaves no such
+character behind, so applying it twice cannot produce a second answer.
+
+**A name the output encoding cannot carry is refused, not crashed on.** Nothing
+here configures an encoding, so `print(report.render())` on a console whose
+codepage cannot represent a name died inside the codec: the operator was shown a
+traceback naming this file and `cp1252.py`, never the actual situation -- that
+this console cannot print that filename -- over an ADR set that was perfectly
+fine. The trigger is the codepage, not non-ASCII-ness: a name carrying U+00E9
+prints on a cp1252 stdout, because cp1252 has that character, and one carrying
+U+65E5 does not. So the encoding is asked *before* printing, and a report it
+cannot carry is withheld, with the offending name spelled by codepoint, at exit
+2 -- no verdict was reached, which is what 2 already means here. Withheld rather
+than printed through an `errors="replace"` stdout, because `0002-??.md` is not a
+name on disk and this checker exists to name files precisely enough to act on.
+`no such directory:` spells its name inline instead of withholding: that message
+is already a refusal at exit 2, so there is no verdict to hold back and
+withholding would leave the operator with nothing at all. Every refusal goes to
+stderr through one function that spells for *stderr*, which need not share
+stdout's encoding.
+
 Standard library only, and no network: `pip install` fails on the development
 machine.
 
@@ -93,7 +130,8 @@ against a fixture. CI passes no argument, so the job cannot be aimed at an
 emptier directory than the real one.
 
 Exit codes match `tools/instruction_refs/check_instruction_references.py`:
-0 clean, 1 the check failed, 2 the invocation was wrong. There is no --skip and
+0 clean, 1 the check failed, 2 no verdict was reached -- the invocation was
+wrong, or the report could not be carried by this stdout. There is no --skip and
 no --force. A genuine exception belongs in branch protection, where it is
 auditable.
 """
@@ -138,6 +176,85 @@ NON_ASCII_NUMBER_RE = re.compile(r"^(\d{4})-.+\Z")
 # output, so an exemption is never invisible.
 COMPANION_NAMES = frozenset({"readme.md", "template.md", "adr-template.md"})
 
+# Characters that must never reach the report as themselves, because each one
+# ends a line: the whole `str.splitlines()` set, which is the C0 controls, DEL
+# and the C1 controls, U+2028 and U+2029. The remaining controls in those ranges
+# are included rather than picked out one by one -- an escape sequence rewrites
+# a reader's idea of the line as effectively as a newline does, and "no control
+# character reaches the report" is a rule that can be checked by reading it.
+#
+# An explicit class rather than a shorthand, for the same reason `ADR_NAME_RE`
+# spells `[0-9]`: a Unicode shorthand answers a wider question than the one
+# being asked, and this file has already shipped that defect once.
+UNRENDERABLE_RE = re.compile(r"[\x00-\x1F\x7F-\x9F\u2028\u2029]")
+
+
+def _as_codepoints(text: str, offends) -> str:
+    """`text` with every character `offends` rejects written as `<U+XXXX>`.
+
+    The single place this notation is decided. `U+XXXX` because the NON-ASCII
+    NUMBER refusal already spells an unseeable character that way: one notation,
+    and the reader has to learn it once.
+    """
+    return "".join(
+        f"<U+{ord(char):04X}>" if offends(char) else char for char in text
+    )
+
+
+def spelled(text: str) -> str:
+    """`text` with every line-ending control written as `<U+XXXX>`.
+
+    The name boundary. No value interpolated into the report can claim a line of
+    its own, because the characters that would end one no longer survive to be
+    printed.
+
+    A no-op on every ordinary name -- `0001-a.md` and a name carrying U+00E9
+    come back unchanged -- which is the property that keeps this from being a
+    change to what the report says. Idempotent: the output holds no line-ending
+    control, so a second pass finds nothing left to spell, and the two places
+    that call it cannot disagree about a name they both handle.
+    """
+    return _as_codepoints(text, UNRENDERABLE_RE.match)
+
+
+def carried(text: str, encoding: str | None) -> str:
+    """`text` with every character `encoding` cannot carry written as `<U+XXXX>`.
+
+    The stream boundary, and a different question from `spelled()`: that one
+    asks what a *name* may do to the report, this one asks what a *stream* can
+    take. Applied to authored refusal text, whose own newlines are structure
+    rather than an interpolated name, so it must leave them alone -- spelling
+    them would turn a refusal into one unreadable line.
+    """
+    offenders = unencodable(text, encoding)
+    return _as_codepoints(text, offenders.__contains__) if offenders else text
+
+
+def unencodable(text: str, encoding: str | None) -> str:
+    """The characters in `text` that `encoding` cannot carry, first seen first.
+
+    Asked per character rather than of the whole string, because the refusal has
+    to name them and `UnicodeEncodeError` over a whole report names an offset
+    into a string the reader never sees.
+
+    A stream with no encoding -- a `StringIO`, which carries any `str` -- and an
+    encoding name Python does not know both come back empty. Refusing to print
+    because the codec could not be identified would fail on the codec's account
+    rather than on the report's, which is the substitution this whole change
+    exists to stop.
+    """
+    if encoding is None:
+        return ""
+    offenders = ""
+    for char in dict.fromkeys(text):
+        try:
+            char.encode(encoding)
+        except UnicodeEncodeError:
+            offenders += char
+        except LookupError:
+            return ""
+    return offenders
+
 
 @dataclass(frozen=True)
 class Adr:
@@ -169,14 +286,25 @@ class Report:
         }
 
     def render(self) -> str:
+        # Every value interpolated below occupies exactly one line, so each is
+        # spelled first. `Adr.path` is a `str` and this method joins with
+        # "\n", so without it a name holding a newline forges a report line --
+        # an `OK:` above the genuine `FAIL:`, in the case that prompted this.
+        # `display()` spells the names it produces too; this is the same
+        # function, applied where text becomes lines rather than where a path
+        # becomes text, and it covers the entries a caller built directly.
         lines = [
-            f"Checking {self.directory}",
+            f"Checking {spelled(str(self.directory))}",
             f"  {len(self.adrs)} ADR files examined, "
             f"{len(self.ignored)} files ignored",
         ]
-        lines.extend(f"    {adr.number}  {adr.path}" for adr in self.adrs)
         lines.extend(
-            f"    ignored: {path} -- {reason}" for path, reason in self.ignored
+            f"    {spelled(adr.number)}  {spelled(adr.path)}"
+            for adr in self.adrs
+        )
+        lines.extend(
+            f"    ignored: {spelled(path)} -- {spelled(reason)}"
+            for path, reason in self.ignored
         )
         if self.problems:
             lines.append("")
@@ -203,14 +331,22 @@ def display(path: Path, *bases: Path) -> str:
     case; relative to the scanned directory otherwise, which is what a fixture
     outside the checkout gets. An absolute path is the last resort rather than
     the ordinary output.
+
+    Spelled on the way out, because this is where an untrusted filesystem name
+    becomes report text: a refusal message interpolates what this returns and is
+    never re-formatted by `render()`, so a name holding a newline would forge a
+    line from inside a problem paragraph. Ordinary names come back untouched.
     """
     resolved = path.resolve()
     for base in bases:
         try:
-            return resolved.relative_to(base).as_posix()
+            shown = resolved.relative_to(base).as_posix()
+            break
         except ValueError:
             continue
-    return resolved.as_posix()
+    else:
+        shown = resolved.as_posix()
+    return spelled(shown)
 
 
 def check(directory: Path, base: Path = REPO_ROOT) -> Report:
@@ -272,10 +408,10 @@ def check(directory: Path, base: Path = REPO_ROOT) -> Report:
                 continue
             report.problems.append(
                 f"  UNNUMBERED: {shown} is a Markdown file under "
-                f"{directory.as_posix()} that is neither named NNNN-title.md "
-                "nor a known companion, so no number can be read from it and it "
-                "cannot be checked for a collision. Rename it, or add its name "
-                "to COMPANION_NAMES."
+                f"{spelled(directory.as_posix())} that is neither named "
+                "NNNN-title.md nor a known companion, so no number can be read "
+                "from it and it cannot be checked for a collision. Rename it, "
+                "or add its name to COMPANION_NAMES."
             )
             continue
         report.adrs.append(Adr(number=match.group(1), path=shown))
@@ -295,25 +431,80 @@ def check(directory: Path, base: Path = REPO_ROOT) -> Report:
 
     if not report.adrs and not report.problems:
         report.problems.append(
-            f"  EMPTY: no ADR files were found under {directory.as_posix()}. A "
-            "duplicate check that examines nothing passes for the wrong reason, "
-            "so this is reported as a failure rather than a clean run."
+            f"  EMPTY: no ADR files were found under "
+            f"{spelled(directory.as_posix())}. A duplicate check that examines "
+            "nothing passes for the wrong reason, so this is reported as a "
+            "failure rather than a clean run."
         )
 
     return report
 
 
+def encoding_refusal(rendered: str, encoding: str | None) -> str | None:
+    """What to say instead of `rendered`, or None when it can simply be printed.
+
+    The refusal is ASCII whatever the report held, because a refusal that dies
+    in its own print is the defect it is here to remove. It names the encoding,
+    the codepoints that encoding cannot carry, and the report lines they appear
+    in with those characters spelled -- enough to identify the file and act on
+    it -- and it states outright that no verdict is being given, so that a
+    reader cannot take a refusal for a clean run.
+    """
+    offenders = unencodable(rendered, encoding)
+    if not offenders:
+        return None
+    codepoints = ", ".join(f"U+{ord(char):04X}" for char in offenders)
+    listed = "\n".join(
+        f"      {carried(line, encoding)}"
+        for line in rendered.splitlines()
+        if any(char in line for char in offenders)
+    )
+    return (
+        f"  UNPRINTABLE: stdout is encoded as {encoding}, which cannot carry "
+        f"{codepoints}. The report lines holding them, with those characters "
+        f"spelled by codepoint:\n"
+        f"{listed}\n"
+        "      The report itself is withheld rather than printed with a name "
+        "it does not have. This says nothing about whether an ADR number is "
+        "claimed twice -- the check ran and its result was not reported. "
+        "Re-run with a UTF-8 stdout, PYTHONIOENCODING=utf-8 or `chcp 65001` on "
+        "a Windows console, to read it."
+    )
+
+
+def refuse(message: str) -> None:
+    """Put `message` on stderr, spelled so that it cannot itself fail to print.
+
+    Every refusal in this file goes through here, including the one that exists
+    because a report could not be printed: the stream carrying the reason is the
+    one that must never be the thing that fails, and stderr's encoding is not
+    guaranteed to be stdout's. Only the encoding question is asked here --
+    `message` is authored text whose newlines are its structure, and every
+    untrusted name reaching it has already passed `spelled()`.
+    """
+    encoding = getattr(sys.stderr, "encoding", None)
+    print(carried(message, encoding), file=sys.stderr)
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if len(args) > 1:
-        print("usage: check_adr_numbers.py [directory]", file=sys.stderr)
+        refuse("usage: check_adr_numbers.py [directory]")
         return 2
     directory = Path(args[0]) if args else REPO_ROOT / DEFAULT_DIRECTORY
     if not directory.is_dir():
-        print(f"no such directory: {directory}", file=sys.stderr)
+        refuse(f"no such directory: {spelled(str(directory))}")
         return 2
     report = check(directory, REPO_ROOT)
-    print(report.render())
+    rendered = report.render()
+    # Asked before printing, not caught afterwards: `print` raising from inside
+    # the codec leaves the operator a traceback about this file and cp1252.py
+    # over an ADR set that may be perfectly fine.
+    refusal = encoding_refusal(rendered, getattr(sys.stdout, "encoding", None))
+    if refusal is not None:
+        refuse(refusal)
+        return 2
+    print(rendered)
     return 0 if report.ok else 1
 
 
