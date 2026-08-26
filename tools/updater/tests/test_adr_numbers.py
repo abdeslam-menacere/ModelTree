@@ -1087,6 +1087,34 @@ def test_a_correct_heading_further_down_does_not_rescue_a_wrong_first_one(
     assert problem.heading_number == "0009"
 
 
+def test_a_numbered_heading_below_an_unnumbered_title_does_not_rescue_it(
+    adr_dir,
+):
+    """The other half of "the *first* H1", and the half that actually
+    distinguishes the rule from a search-anywhere one.
+
+    Its sibling above pins a first heading carrying the *wrong* number -- which
+    a rule scanning for any `# ADR NNNN:` line finds first too, so that test
+    cannot tell the two rules apart and a mutation swapping them survives it.
+    Here the title carries no number at all and the matching one sits below:
+    under "first H1" the record is refused, under "any matching line" it passes
+    clean. Only this shape separates them, and it is the realistic one -- a
+    record retitled in prose while a stale `# ADR NNNN:` lingers further down.
+    """
+    directory = adr_dir("0001-a.md")
+    write(
+        directory,
+        "0002-b.md",
+        "# The Title Of This Decision\n\n# ADR 0002: only mentioned here\n",
+    )
+
+    report = checker.check(directory, REPO_ROOT)
+    refusals = problems_of(report, checker.UNREADABLE_HEADING)
+
+    assert not report.ok, report.render()
+    assert [problem.paths for problem in refusals] == [("0002-b.md",)]
+
+
 def test_a_byte_order_mark_does_not_make_a_correct_record_unreadable(adr_dir):
     """A Windows editor leaves a BOM in front of the `#`.
 
