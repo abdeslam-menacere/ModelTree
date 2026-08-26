@@ -998,6 +998,7 @@ def test_the_unreadable_heading_refusal_names_the_number_to_write(adr_dir):
         checker.check(directory, REPO_ROOT), checker.UNREADABLE_HEADING
     )
 
+    assert [problem.paths for problem in refusals] == [("0008-x.md",)]
     assert "# ADR 0008: Title" in refusals[0].message
 
 
@@ -1165,6 +1166,7 @@ def test_a_very_long_unreadable_heading_is_clipped(adr_dir):
         checker.check(directory, REPO_ROOT), checker.UNREADABLE_HEADING
     )
 
+    assert [problem.paths for problem in refusals] == [("0002-long.md",)]
     assert "x" * checker.HEADING_QUOTE_LIMIT not in refusals[0].message
     assert "..." in refusals[0].message
 
