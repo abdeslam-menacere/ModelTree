@@ -26,9 +26,10 @@ derivation against runtime introspection of a real `BudgetLedger`, so a counter
 the AST rule cannot see fails loudly instead of narrowing the coverage. See #249.
 
 The detector also has to be hard to walk around, without crying wolf. It reads
-`+=`, plain re-assignment, annotated assignment, `for`/`with` binding, and
+`+=`, plain re-assignment, annotated assignment, `for`/`with` binding,
 `setattr(self, ...)` (including a computed attribute name, which is an opaque
-bypass in a ledger), and it follows `self._helper(...)` delegation in both
+bypass in a ledger), and the instance-dictionary spelling of all of those —
+see *Dynamic writes* below — and it follows `self._helper(...)` delegation in both
 directions: an unguarded caller is reported through its helper, while a caller
 that guards *before* delegating clears the helper it calls. Counterweights below
 pin what must stay quiet — reads, private attributes, another object's counters,
@@ -90,6 +91,46 @@ than build machinery for a shape that has never existed, that gap is closed by
 refusal: `test_the_guard_rule_reaches_every_function_inside_the_ledger_class`
 compares what the guard rule walks against every function the class contains, so
 the shape cannot arrive quietly — it arrives red.
+
+*Dynamic writes.* An attribute write has spellings that are not attribute
+syntax, and a rule reading only `ast.Attribute` targets is walked around by
+picking one. `self.__dict__["pages_fetched"] += n` spends the same counter as
+`self.pages_fetched += n`, and is an `ast.Subscript` rather than an
+`ast.Attribute` in the tree, so it was invisible to both rules at once —
+including inside `BudgetLedger`, where the guard rule's entire job is that no
+counter is spent before the clock is checked. The whole suite stayed green on
+it. See #347.
+
+Read now, by both rules, because both reach write forms through `_target_attrs`
+and `_written_attrs`: `<receiver>.__dict__[key]` and `vars(<receiver>)[key]` as
+the target of every binding form an attribute already had, and
+`<receiver>.__dict__.update(...)` for the keys it can read. A key, or an
+`update()` argument, that is not a literal is treated as `COMPUTED`, exactly as
+a computed `setattr` name already was.
+
+Not read, and that is a boundary rather than a backlog. Each of these reaches
+the counter through a value that is not named where the write happens: an alias
+(`state = self.__dict__`, then `state[...] = n`); any callable handed the
+dictionary (`operator.setitem(self.__dict__, ...)`, `dict.__setitem__`); and
+reflection routed through another object (`object.__setattr__(self, ...)`).
+Closing them means following a value between statements — dataflow analysis,
+which this file does not do and should not grow — and every extra special case
+is one more shape to get subtly wrong in a detector whose worth depends on not
+crying wolf. `test_the_dynamic_write_forms_that_stay_open_are_named` holds them
+open by measurement, so the boundary cannot decay into a claim nobody checks.
+
+Those three are what has been probed, **not** an enumeration of what gets
+through: any spelling that puts a value between the receiver and the write is
+open by the same argument whether or not it is named above. So the covered list
+must not be read as "this axis is closed" — it is not, and it cannot be made so
+syntactically. The narrower claim is the one worth having and is the one made
+here: every form that reads like ordinary code is read, and what stays open is
+conspicuously reflective in a module this small.
+
+Both new forms inherit the receiver-blindness recorded above rather than
+widening it. Outside the ledger the module rule matches any receiver, so
+`vars(anything)["pages_fetched"] = n` is reported exactly as
+`anything.pages_fetched = n` already was, and for the same reason.
 """
 
 from __future__ import annotations
@@ -127,6 +168,14 @@ NUMERIC_ANNOTATIONS = frozenset({"int", "float"})
 # It cannot be resolved to a counter, so it is treated as one: an unresolvable
 # write to the ledger is exactly the shape of a deliberate bypass.
 COMPUTED = "<computed>"
+
+# The instance dictionary, and the two ways to reach it without leaving the
+# expression the write is in. `self.__dict__["pages_fetched"] = n` and
+# `vars(self)["pages_fetched"] = n` both write the counter `self.pages_fetched`
+# names, so both are read as writes to it. See #347 and *Dynamic writes* above.
+INSTANCE_DICT = "__dict__"
+VARS = "vars"
+DICT_UPDATE = "update"
 
 # Which receiver a write has to be on to count. The guard rule inside the class
 # means `self` and only `self` — `other.tokens_used` is another run's budget and
@@ -199,8 +248,73 @@ def _self_attr(node: ast.AST | None) -> str | None:
     return _receiver_attr(node, SELF)
 
 
+def _is_receiver(node: ast.AST | None, receiver: str) -> bool:
+    """True when `node` names the object a rule matches writes on.
+
+    The receiver half of `_receiver_attr`, on its own, because the instance
+    dictionary forms below have to identify the receiver with no attribute
+    hanging off it to read.
+    """
+    if node is None:
+        return False
+    if receiver == ANY_RECEIVER:
+        return True
+    return isinstance(node, ast.Name) and node.id == receiver
+
+
+def _is_instance_dict(node: ast.AST | None, receiver: str) -> bool:
+    """True when `node` evaluates to `<receiver>`'s own instance dictionary.
+
+    Both direct spellings, so that neither is a bypass of the other: the
+    attribute `<receiver>.__dict__`, and `vars(<receiver>)`, which the builtin
+    documents as returning that same dictionary. A dictionary reached any other
+    way is deliberately not matched — see *Dynamic writes* in the module
+    docstring for what that leaves open and why.
+    """
+    if isinstance(node, ast.Attribute) and node.attr == INSTANCE_DICT:
+        return _is_receiver(node.value, receiver)
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == VARS
+        and len(node.args) == 1
+        and not node.keywords
+        and _is_receiver(node.args[0], receiver)
+    )
+
+
+def _key_name(node: ast.AST | None) -> str:
+    """A subscript or mapping key as an attribute name, or the sentinel.
+
+    A key that is not a literal string cannot be resolved to a counter, so it
+    is treated as one for the same reason a computed `setattr` name is.
+    """
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    return COMPUTED
+
+
+def _instance_dict_key(node: ast.AST | None, receiver: str) -> set[str]:
+    """`<receiver>.__dict__["x"]` / `vars(<receiver>)["x"]` -> `{"x"}`.
+
+    `ast.Subscript.slice` holds the key expression directly rather than an
+    `ast.Index` wrapper, which has been true since the 3.9 grammar and so holds
+    on both Python versions CI runs.
+    """
+    if not isinstance(node, ast.Subscript):
+        return set()
+    if not _is_instance_dict(node.value, receiver):
+        return set()
+    return {_key_name(node.slice)}
+
+
 def _target_attrs(target: ast.AST | None, receiver: str) -> set[str]:
-    """The `<receiver>.<name>` attributes an assignment target binds."""
+    """The `<receiver>` attributes an assignment target binds.
+
+    Written as an attribute, or as a key in the receiver's instance dictionary,
+    which binds the same attribute. Every binding form routes through here, so
+    the dictionary spelling is covered wherever plain attribute syntax is.
+    """
     if target is None:
         return set()
     if isinstance(target, (ast.Tuple, ast.List)):
@@ -211,7 +325,9 @@ def _target_attrs(target: ast.AST | None, receiver: str) -> set[str]:
     if isinstance(target, ast.Starred):
         return _target_attrs(target.value, receiver)
     attr = _receiver_attr(target, receiver)
-    return {attr} if attr is not None else set()
+    if attr is not None:
+        return {attr}
+    return _instance_dict_key(target, receiver)
 
 
 def _setattr_attrs(node: ast.Call, receiver: str) -> set[str]:
@@ -228,6 +344,32 @@ def _setattr_attrs(node: ast.Call, receiver: str) -> set[str]:
     if isinstance(name, ast.Constant) and isinstance(name.value, str):
         return {name.value}
     return {COMPUTED}
+
+
+def _dict_update_attrs(node: ast.Call, receiver: str) -> set[str]:
+    """`<receiver>.__dict__.update(...)` -> the attributes it binds.
+
+    The bulk spelling of the same bypass: one call writes as many counters as
+    it has keys. Literal keys and keyword names resolve to attribute names; a
+    mapping the rule cannot read into keys — a name, a call, `**kwargs` — is
+    `COMPUTED`, since an unreadable bulk write to the ledger is if anything a
+    broader bypass than an unreadable single one.
+    """
+    if not (
+        isinstance(node.func, ast.Attribute)
+        and node.func.attr == DICT_UPDATE
+        and _is_instance_dict(node.func.value, receiver)
+    ):
+        return set()
+    written = {
+        keyword.arg if keyword.arg is not None else COMPUTED for keyword in node.keywords
+    }
+    for argument in node.args:
+        if isinstance(argument, ast.Dict):
+            written |= {_key_name(key) for key in argument.keys}
+        else:
+            written.add(COMPUTED)
+    return written
 
 
 def _written_attrs(node: ast.AST, receiver: str) -> set[str]:
@@ -253,7 +395,7 @@ def _written_attrs(node: ast.AST, receiver: str) -> set[str]:
             found |= _target_attrs(item.optional_vars, receiver)
         return found
     if isinstance(node, ast.Call):
-        return _setattr_attrs(node, receiver)
+        return _setattr_attrs(node, receiver) | _dict_update_attrs(node, receiver)
     return set()
 
 
@@ -704,6 +846,90 @@ _LEDGER_NESTED_CLASS = """
             self.tokens_used += count
 """
 
+# --- Instance-dictionary writes inside the ledger. The same charge as the
+# attribute injections above, one AST node type over. See #347. ---------------
+
+_UNGUARDED_DICT_AUG = """
+    def charge_widgets(self, count: int) -> None:
+        self.__dict__["tokens_used"] += count
+"""
+
+_UNGUARDED_DICT_ASSIGN = """
+    def charge_widgets(self, count: int) -> None:
+        self.__dict__["tokens_used"] = self.tokens_used + count
+"""
+
+_UNGUARDED_DICT_COMPUTED_KEY = """
+    def charge_widgets(self, name: str, count: int) -> None:
+        self.__dict__[name] = count
+"""
+
+_UNGUARDED_VARS_AUG = """
+    def charge_widgets(self, count: int) -> None:
+        vars(self)["tokens_used"] += count
+"""
+
+_UNGUARDED_DICT_UPDATE = """
+    def charge_widgets(self, count: int) -> None:
+        self.__dict__.update({"tokens_used": self.tokens_used + count})
+"""
+
+_UNGUARDED_DICT_UPDATE_OPAQUE = """
+    def charge_widgets(self, state: dict) -> None:
+        self.__dict__.update(state)
+"""
+
+_GUARDED_DICT_AUG = """
+    def charge_widgets(self, count: int) -> None:
+        self.check_time()
+        self.__dict__["tokens_used"] += count
+"""
+
+_READS_A_COUNTER_THROUGH_THE_DICT = """
+    def widgets_left(self) -> int:
+        return self.budget.max_tokens - self.__dict__["tokens_used"]
+"""
+
+_WRITES_A_NON_COUNTER_DICT_KEY = """
+    def note_widgets(self, text: str) -> None:
+        self.__dict__["note"] = text
+"""
+
+_WRITES_ANOTHER_MAPPING = """
+    def stash_widgets(self, count: int) -> None:
+        self._notes = {}
+        self._notes["tokens_used"] = count
+"""
+
+_UPDATES_ANOTHER_MAPPING = """
+    def stash_widgets(self, count: int) -> None:
+        self._notes = {}
+        self._notes.update({"tokens_used": count})
+"""
+
+# --- The write forms this file deliberately does not read. Each one reaches
+# the counter through a value that is not named where the write happens, so
+# seeing it takes dataflow analysis rather than a wider node match. Pinned as
+# open by `test_the_dynamic_write_forms_that_stay_open_are_named`. -------------
+
+_ALIASED_INSTANCE_DICT = """
+    def charge_widgets(self, count: int) -> None:
+        state = self.__dict__
+        state["tokens_used"] += count
+"""
+
+_OBJECT_SETATTR = """
+    def charge_widgets(self, count: int) -> None:
+        object.__setattr__(self, "tokens_used", count)
+"""
+
+_OPERATOR_SETITEM = """
+    def charge_widgets(self, count: int) -> None:
+        import operator
+
+        operator.setitem(self.__dict__, "tokens_used", count)
+"""
+
 # --- Injections outside the ledger class. Single-quoted so the reproducer from
 # #335 can carry its own docstring verbatim, and the rest match it. -----------
 
@@ -777,6 +1003,52 @@ def charge_bytes_outside_the_class(ledger: "BudgetLedger", count: int) -> None:
     ledger.{NEW_COUNTER} += count
 '''
 
+# --- Instance-dictionary writes outside the ledger. The module rule has to
+# learn the same forms the guard rule just did, or the fix closes one scope and
+# leaves the other open — #335's own defect, one node type over. See #347. -----
+
+_OUTSIDE_DICT_AUG = '''
+
+def charge_widgets_outside_the_class(ledger: "BudgetLedger", count: int) -> None:
+    ledger.__dict__["pages_fetched"] += count
+'''
+
+_OUTSIDE_VARS_ASSIGN = '''
+
+def charge_widgets_outside_the_class(ledger: "BudgetLedger", count: int) -> None:
+    vars(ledger)["pages_fetched"] = count
+'''
+
+_OUTSIDE_DICT_UPDATE = '''
+
+def charge_widgets_outside_the_class(ledger: "BudgetLedger", count: int) -> None:
+    ledger.__dict__.update({"pages_fetched": count})
+'''
+
+_OUTSIDE_DICT_COMPUTED_KEY = '''
+
+def charge_widgets_outside_the_class(ledger: "BudgetLedger", name: str, n: int) -> None:
+    ledger.__dict__[name] = n
+'''
+
+_OUTSIDE_DICT_MODULE_LEVEL = '''
+
+_SHARED = BudgetLedger(CreatorBudget())
+_SHARED.__dict__["pages_fetched"] = 1
+'''
+
+_OUTSIDE_DICT_READ = '''
+
+def pages_left_through_the_dict(ledger: "BudgetLedger") -> int:
+    return ledger.budget.max_pages - ledger.__dict__["pages_fetched"]
+'''
+
+_OUTSIDE_UNRELATED_SUBSCRIPT = '''
+
+_CACHE: dict[str, int] = {}
+_CACHE["pages_fetched"] = 1
+'''
+
 
 def _variants() -> dict[str, str]:
     """Every scratch source these tests analyse, built from the real module."""
@@ -799,6 +1071,26 @@ def _variants() -> dict[str, str]:
         "new_counter_unguarded": _extend_ledger(with_counter, _NEW_COUNTER_UNGUARDED),
         "new_counter_guarded": _extend_ledger(with_counter, _NEW_COUNTER_GUARDED),
         "ledger_nested_class": _extend_ledger(real, _LEDGER_NESTED_CLASS),
+        "unguarded_dict_aug": _extend_ledger(real, _UNGUARDED_DICT_AUG),
+        "unguarded_dict_assign": _extend_ledger(real, _UNGUARDED_DICT_ASSIGN),
+        "unguarded_dict_computed_key": _extend_ledger(real, _UNGUARDED_DICT_COMPUTED_KEY),
+        "unguarded_vars_aug": _extend_ledger(real, _UNGUARDED_VARS_AUG),
+        "unguarded_dict_update": _extend_ledger(real, _UNGUARDED_DICT_UPDATE),
+        "unguarded_dict_update_opaque": _extend_ledger(
+            real, _UNGUARDED_DICT_UPDATE_OPAQUE
+        ),
+        "guarded_dict_aug": _extend_ledger(real, _GUARDED_DICT_AUG),
+        "reads_a_counter_through_the_dict": _extend_ledger(
+            real, _READS_A_COUNTER_THROUGH_THE_DICT
+        ),
+        "writes_a_non_counter_dict_key": _extend_ledger(
+            real, _WRITES_A_NON_COUNTER_DICT_KEY
+        ),
+        "writes_another_mapping": _extend_ledger(real, _WRITES_ANOTHER_MAPPING),
+        "updates_another_mapping": _extend_ledger(real, _UPDATES_ANOTHER_MAPPING),
+        "aliased_instance_dict": _extend_ledger(real, _ALIASED_INSTANCE_DICT),
+        "object_setattr": _extend_ledger(real, _OBJECT_SETATTR),
+        "operator_setitem": _extend_ledger(real, _OPERATOR_SETITEM),
         "outside_aug": _extend_module(real, _OUTSIDE_AUG),
         "outside_assign": _extend_module(real, _OUTSIDE_ASSIGN),
         "outside_setattr": _extend_module(real, _OUTSIDE_SETATTR),
@@ -810,6 +1102,13 @@ def _variants() -> dict[str, str]:
         "outside_local_name": _extend_module(real, _OUTSIDE_LOCAL_NAME),
         "outside_other_attribute": _extend_module(real, _OUTSIDE_OTHER_ATTRIBUTE),
         "outside_new_counter": _extend_module(with_counter, _OUTSIDE_NEW_COUNTER),
+        "outside_dict_aug": _extend_module(real, _OUTSIDE_DICT_AUG),
+        "outside_vars_assign": _extend_module(real, _OUTSIDE_VARS_ASSIGN),
+        "outside_dict_update": _extend_module(real, _OUTSIDE_DICT_UPDATE),
+        "outside_dict_computed_key": _extend_module(real, _OUTSIDE_DICT_COMPUTED_KEY),
+        "outside_dict_module_level": _extend_module(real, _OUTSIDE_DICT_MODULE_LEVEL),
+        "outside_dict_read": _extend_module(real, _OUTSIDE_DICT_READ),
+        "outside_unrelated_subscript": _extend_module(real, _OUTSIDE_UNRELATED_SUBSCRIPT),
     }
 
 
@@ -1062,6 +1361,57 @@ def test_a_guard_that_runs_after_the_charge_is_reported_as_late_not_missing() ->
     assert _injected_unguarded("late_guard") == set()
 
 
+# --- Non-vacuity: the instance-dictionary spelling of the same charge --------
+
+
+def test_an_unguarded_augmented_charge_through_the_instance_dict_is_detected() -> None:
+    """#347's reproducer, inside the class it matters most. At runtime
+    `self.__dict__["tokens_used"] += n` is `self.tokens_used += n`; in the tree
+    it is a `Subscript`, and reading only `Attribute` targets made it invisible
+    to the rule whose whole job is that no counter is spent unguarded."""
+    assert _injected_unguarded("unguarded_dict_aug") == {"charge_widgets"}
+
+
+def test_an_unguarded_plain_assignment_through_the_instance_dict_is_detected() -> None:
+    """Both spellings of the bypass compose, so both are read. The attribute
+    forms are covered one by one above for the same reason."""
+    assert _injected_unguarded("unguarded_dict_assign") == {"charge_widgets"}
+
+
+def test_an_instance_dict_write_with_a_computed_key_is_detected() -> None:
+    """`self.__dict__[name] = n` cannot be resolved to a counter, so it is
+    treated as one — the same call `setattr` with a computed name already gets,
+    and for the same reason: `budgets.py` has no legitimate use for a write to
+    the ledger whose target this file cannot name."""
+    charges = _injected("unguarded_dict_computed_key")[0]
+    assert {charge.counter for charge in charges} == {COMPUTED}
+    assert _injected_unguarded("unguarded_dict_computed_key") == {"charge_widgets"}
+
+
+def test_an_unguarded_charge_through_vars_is_detected() -> None:
+    """`vars(self)` returns the same dictionary `self.__dict__` does. Covering
+    one spelling and not the other would move the bypass rather than close it."""
+    assert _injected_unguarded("unguarded_vars_aug") == {"charge_widgets"}
+
+
+def test_an_unguarded_charge_through_instance_dict_update_is_detected() -> None:
+    """The bulk spelling: one call, keys read out of the literal it is given."""
+    charges = _injected("unguarded_dict_update")[0]
+    assert {(charge.method, charge.counter) for charge in charges} == {
+        ("charge_widgets", "tokens_used")
+    }
+
+
+def test_an_instance_dict_update_the_rule_cannot_read_is_detected() -> None:
+    """`self.__dict__.update(state)` hands the ledger a mapping this file
+    cannot open, so every counter in it is potentially charged. Reported as
+    `COMPUTED` rather than ignored, because an unreadable bulk write is a wider
+    bypass than an unreadable single one, not a narrower one."""
+    charges = _injected("unguarded_dict_update_opaque")[0]
+    assert {charge.counter for charge in charges} == {COMPUTED}
+    assert _injected_unguarded("unguarded_dict_update_opaque") == {"charge_widgets"}
+
+
 # --- Counterweights: what must stay quiet ------------------------------------
 
 
@@ -1103,6 +1453,48 @@ def test_a_new_counter_charged_with_the_guard_is_not_flagged() -> None:
     """The counterweight to the #249 row: discovering a new counter must not
     make correctly guarded code fail."""
     assert _injected("new_counter_guarded") == NOTHING
+
+
+# --- Counterweights for the dictionary forms: what must stay quiet -----------
+#
+# A matcher widened until it fires on ordinary code is a worse defect than the
+# gap it closed, because the fix for noise is to stop trusting the test.
+
+
+def test_the_same_instance_dict_charge_guarded_is_not_flagged() -> None:
+    """The new forms key on the missing guard, exactly as the attribute forms
+    do, rather than on the mutation being unusual."""
+    assert _injected("guarded_dict_aug") == NOTHING
+
+
+def test_reading_a_counter_through_the_instance_dict_is_not_a_charge() -> None:
+    """`self.__dict__["tokens_used"]` in an expression loads the counter. Only
+    a subscript in a binding position is a write, which is what keeps this rule
+    from flagging every line that mentions a counter."""
+    assert _injected("reads_a_counter_through_the_dict") == NOTHING
+
+
+def test_writing_a_non_counter_key_in_the_instance_dict_is_not_a_charge() -> None:
+    """The key is resolved and checked against the derived counters, so
+    `self.__dict__["note"] = ...` is treated exactly as `self.note = ...` is —
+    which is the claim, in both directions. Neither is a charge, and both are
+    seen by `test_no_public_ledger_attribute_is_written_outside_the_derived_counters`
+    as public state the derivation cannot classify. Measured: the two spellings
+    produce the same one failure when planted in the real module."""
+    assert _injected("writes_a_non_counter_dict_key") == NOTHING
+
+
+def test_a_subscript_write_to_another_mapping_is_not_a_charge() -> None:
+    """The receiver has to be the instance dictionary. A key that merely reads
+    like a counter name in some other dict spends nothing, and matching on the
+    key alone would flag any mapping in the module that borrowed the name."""
+    assert _injected("writes_another_mapping") == NOTHING
+
+
+def test_an_update_of_another_mapping_is_not_a_charge() -> None:
+    """`update` is only read on the instance dictionary. `dict.update` is an
+    ordinary method and flagging every call to it would be pure noise."""
+    assert _injected("updates_another_mapping") == NOTHING
 
 
 # --- The boundary is the module, not the ledger class ------------------------
@@ -1220,6 +1612,48 @@ def test_a_class_nested_inside_the_ledger_is_refused_by_the_coverage_check() -> 
     assert len(contained - walked) == 1
 
 
+def test_an_out_of_class_instance_dict_charge_is_detected() -> None:
+    """#347 in the module rule. Both rules read write forms through the same
+    `_written_attrs`, so the dictionary spelling could not close in one scope
+    and stay open in the other — which would have re-created #335's own defect,
+    a rule that stops at a scope boundary, one node type over."""
+    assert _injected_outside("outside_dict_aug") == {
+        ("charge_widgets_outside_the_class", "pages_fetched")
+    }
+
+
+def test_an_out_of_class_vars_charge_is_detected() -> None:
+    """`vars(ledger)["pages_fetched"] = n` out here too, for the same reason it
+    is read inside: it is the same dictionary under a second name."""
+    assert _injected_outside("outside_vars_assign") == {
+        ("charge_widgets_outside_the_class", "pages_fetched")
+    }
+
+
+def test_an_out_of_class_instance_dict_update_is_detected() -> None:
+    """The bulk write, refused outside the class like every other charge out
+    here — the rule there is encapsulation, so guarding it would not help."""
+    assert _injected_outside("outside_dict_update") == {
+        ("charge_widgets_outside_the_class", "pages_fetched")
+    }
+
+
+def test_an_out_of_class_instance_dict_write_with_a_computed_key_is_detected() -> None:
+    """An unreadable key is a charge outside the class for the same reason an
+    unreadable `setattr` name is: it is the shape a bypass takes."""
+    assert _injected_outside("outside_dict_computed_key") == {
+        ("charge_widgets_outside_the_class", COMPUTED)
+    }
+
+
+def test_an_instance_dict_charge_at_module_level_is_detected() -> None:
+    """In no function at all, through the dictionary. The module rule walks
+    nodes rather than scopes, so this needs no handling of its own."""
+    assert _injected_outside("outside_dict_module_level") == {
+        (MODULE_SCOPE, "pages_fetched")
+    }
+
+
 # --- Counterweights outside the class: what must stay quiet out there ---------
 
 
@@ -1241,6 +1675,50 @@ def test_writing_a_non_counter_attribute_outside_the_class_is_not_a_charge() -> 
     `self.used` and `self.limit` in the live module depends on this staying
     quiet."""
     assert _injected("outside_other_attribute") == NOTHING
+
+
+def test_reading_a_counter_through_the_dict_outside_the_class_is_not_a_charge() -> None:
+    """Headroom read through the dictionary instead of the attribute. A load is
+    not a charge out here either."""
+    assert _injected("outside_dict_read") == NOTHING
+
+
+def test_an_unrelated_subscript_write_outside_the_class_is_not_a_charge() -> None:
+    """`_CACHE["pages_fetched"] = 1` writes a module-level dict that has
+    nothing to do with a ledger. The counter name in the key is not enough —
+    the subscript has to be on an instance dictionary — which is what stops
+    this rule from reddening every mapping that reuses a counter's name."""
+    assert _injected("outside_unrelated_subscript") == NOTHING
+
+
+# --- The write forms that stay open, held open by measurement ----------------
+
+
+DOCUMENTED_OPEN_WRITES = ("aliased_instance_dict", "object_setattr", "operator_setitem")
+
+
+def test_the_dynamic_write_forms_that_stay_open_are_named() -> None:
+    """The limits of a syntactic matcher, measured rather than asserted.
+
+    Each variant here charges a counter and is *not* reported, because each
+    reaches it through a value that is not named where the write happens: a
+    local alias of `__dict__`, a callable handed the dictionary, and reflection
+    routed through another object. Seeing them means following a value between
+    statements, which is dataflow analysis and a different tool than this file.
+
+    This list is what has been probed, **not** an enumeration of everything
+    that gets through, and the covered forms above are not "this axis is
+    closed" — no syntactic rule can close it. The test exists so that claim
+    stays a measurement: if you close one of these, delete its entry and move
+    it to the covered list in the module docstring. Do not delete the test to
+    make a wider matcher green, and do not read a green run here as coverage.
+    """
+    for variant in DOCUMENTED_OPEN_WRITES:
+        assert _injected(variant) == NOTHING, (
+            f"{variant!r} is now reported. That is an improvement, not a "
+            "failure: drop it from DOCUMENTED_OPEN_WRITES and record it as "
+            "covered in the module docstring's *Dynamic writes* section."
+        )
 
 
 # --- The scratch sources are real modules, not strings that happen to parse ---
