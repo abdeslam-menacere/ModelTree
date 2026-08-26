@@ -100,12 +100,16 @@ field is refusing a specific way of being wrong:
   evidence"; it is the rule most likely to be skipped under time pressure, so it
   is the one most worth having a machine enforce.
 - **`url`** must be https, credential-free, and not a local or internal host.
-- **`contentHash`** must be `sha256:` plus 64 hex characters, taken over the page
-  body that was actually read. It is what makes "this page said this on this
-  date" checkable later rather than merely asserted.
+- **`contentHash`** must be `sha256:` plus 64 hex characters, and the run must take
+  it over the page body it actually read. The gate checks this **form** only: it
+  fetches nothing, so it never confirms the digest is the hash of the cited page.
+  A well-formed hash records "this page said this on this date" as an assertion the
+  PR trail and revert path can act on later; the evidence gate does not verify it.
+  ADR 0005 records this limit and what compensates for it.
 - **`fetchedAt`** must be a real date and not in the future.
 - **`quote`** must be at least 24 characters, taken verbatim. A quote short
-  enough to be a coincidence is not corroboration.
+  enough to be a coincidence is not corroboration. Like `contentHash`, the gate
+  checks its shape and length, never that it appears on the cited page.
 - **`sourceId`** is the id this evidence will carry into `sources.json`. If the
   source is new, the run must also propose a `sources` claim adding it, or the
   reference will not resolve when the dataset gate runs. That claim's url must sit
