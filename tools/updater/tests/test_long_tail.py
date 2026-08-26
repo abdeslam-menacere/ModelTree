@@ -965,9 +965,44 @@ def test_two_long_tail_ids_differing_only_in_spacing_are_one_id(tmp_path) -> Non
     assert "first.json" in message and "second.json" in message
 
 
-def test_a_run_cannot_be_started_from_an_unreviewed_profile_file(
-    tmp_path, fixture_dir
-) -> None:
+# --- Empty and format-character ids reach this loader too, by object identity (#260) ---
+# The rule lives once in `_refuse_padded_id`; these prove by execution that the long-tail
+# loader refuses the empty string and a category-`Cf` format character exactly as the
+# reviewed set does. On `main` both ids load, so each `pytest.raises` fails behaviourally.
+
+
+def test_an_empty_long_tail_id_is_refused(tmp_path) -> None:
+    """`""` names nothing, and passes the padding check by stripping to itself.
+
+    The reviewed profile loads by exact id, so an empty id answers to a key that cannot
+    distinguish one profile from another. Refused at parse, naming the file.
+    """
+    empty = _reviewed_profile_file(tmp_path / "empty.json", profile_id="")
+
+    with pytest.raises(ProfileError) as error:
+        load_long_tail_profile(empty)
+
+    assert "empty" in str(error.value)
+
+
+def test_a_format_character_long_tail_id_is_refused(tmp_path) -> None:
+    """A zero-width space is category `Cf`, not whitespace, so `str.strip()` missed it.
+
+    `long-tail-generic\\u200b` renders identically to the plain id while being a distinct
+    key. The refusal names the codepoint, and the plain id loads once it is removed --
+    the guard refuses rather than strips.
+    """
+    padded = _reviewed_profile_file(
+        tmp_path / "zwsp.json", profile_id=f"{DEFAULT_LONG_TAIL_PROFILE_ID}\u200b"
+    )
+
+    with pytest.raises(ProfileError) as error:
+        load_long_tail_profile(padded)
+
+    assert "U+200B" in str(error.value)
+
+    _reviewed_profile_file(padded, profile_id=DEFAULT_LONG_TAIL_PROFILE_ID)
+    assert load_long_tail_profile(padded).id == DEFAULT_LONG_TAIL_PROFILE_ID
     """The refusal that closes the swap, stated at the moment it becomes possible.
 
     The file here is the awkward one: it declares the same id as the reviewed
