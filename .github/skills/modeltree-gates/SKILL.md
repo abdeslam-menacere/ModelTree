@@ -190,7 +190,7 @@ for a human: stop, and file an issue describing what it needed and why.
 node --test .github/skills/modeltree-gates/scripts/gates.test.mjs
 ```
 
-87 tests. Every rule is proved to fire by breaking the data in exactly the way
+88 tests. Every rule is proved to fire by breaking the data in exactly the way
 that rule exists to catch, and the live repository dataset is asserted to pass —
 so the suite fails both when a gate goes blind and when a gate goes paranoid.
 The `gate-source-approval` cases build a throwaway git repository with its own

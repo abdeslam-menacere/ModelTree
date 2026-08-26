@@ -564,7 +564,14 @@ describe('gate-evidence', () => {
   // Fails closed when the reviewed-profile set itself cannot be read. Pointed at
   // a repository with no profiles directory, the gate exits 2 rather than
   // classifying every creator against nothing.
-  test('an unreadable reviewed-profile set fails closed with exit 2', () => {
+  //
+  // Exit 2 on its own does not establish that (#251). A gate that has never heard
+  // of `--repo` rejects it as an unknown flag and exits 2 as well, so the bare
+  // assertion this test used to make passed against a gate that did not handle
+  // the case at all -- it read the right code off the wrong behaviour. The two
+  // assertions below are what make it discriminate: the refusal must not be the
+  // unknown-flag one, and it must name the set it could not read.
+  test('an unreadable reviewed-profile set fails closed with exit 2, naming the set', () => {
     const emptyRepo = mkdtempSync(join(tmpdir(), 'modeltree-no-profiles-'));
     try {
       const result = gateBundle(
@@ -572,8 +579,54 @@ describe('gate-evidence', () => {
         { repo: emptyRepo },
       );
       assert.equal(result.code, 2, `an unreadable reviewed set must fail closed: ${result.stdout}`);
+      assert.ok(
+        !result.stdout.includes('unknown flag'),
+        `--repo must be honoured, not rejected as unknown; exit 2 from that path proves nothing:\n${result.stdout}`,
+      );
+      assert.ok(
+        result.stdout.includes('reviewed-profile set'),
+        `the refusal must say what was unreadable:\n${result.stdout}`,
+      );
+      assert.ok(
+        result.stdout.includes(resolve(emptyRepo, 'tools', 'updater', 'profiles')),
+        `the refusal must name the directory it could not read:\n${result.stdout}`,
+      );
     } finally {
       rmSync(emptyRepo, { recursive: true, force: true });
+    }
+  });
+
+  // The other half of that tightening. Refusing to read a directory shows `--repo`
+  // was not ignored; it does not show the flag *selects* the set the policy is
+  // derived from. Pointed at a scratch repository whose reviewed set holds one
+  // creator this repository has never heard of, the derivation has to follow that
+  // set in both directions -- the invented creator is a pilot there, and `openai`,
+  // a pilot here, is long-tail there.
+  test('--repo selects the reviewed set the policy is derived from', () => {
+    const repo = mkdtempSync(join(tmpdir(), 'modeltree-other-profiles-'));
+    try {
+      const dir = join(repo, 'tools', 'updater', 'profiles');
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, 'acme.json'), JSON.stringify({ creator: { id: 'acme-labs' } }));
+
+      const pilotThere = gateBundle(
+        { runId: 'r1', creator: 'acme-labs', policy: 'pilot', claims: [claim()] },
+        { repo },
+      );
+      assert.equal(pilotThere.code, 0, `acme-labs has a reviewed profile in that repository: ${pilotThere.stdout}`);
+      assert.equal(JSON.parse(pilotThere.stdout).threshold, 2, 'a pilot there is held to 2 of 3');
+
+      const longTailHere = gateBundle(
+        { runId: 'r1', creator: 'openai', policy: 'pilot', claims: [claim()] },
+        { repo },
+      );
+      assert.equal(longTailHere.code, 2, `openai has no reviewed profile there: ${longTailHere.stdout}`);
+      assert.ok(
+        longTailHere.stdout.includes('long-tail'),
+        `the refusal must derive long-tail from the set --repo named:\n${longTailHere.stdout}`,
+      );
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
     }
   });
 });
