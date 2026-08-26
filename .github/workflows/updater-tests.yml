@@ -17,6 +17,18 @@ on:
       # And it asserts the behaviour of the instruction-reference checker, which
       # lives outside tools/updater because it is not an updater concern.
       - 'tools/instruction_refs/**'
+      # That checker's covered set is *derived from* the skills directory rather
+      # than listed, so the suite's guard on the covered set -- and the checker's
+      # refusal of a run that discovers nothing there -- are both assertions
+      # about these files. Without this filter a pull request that renamed or
+      # emptied the directory would be the one pull request that never ran the
+      # test written to catch it. Same arrangement, and same reason, as
+      # `docs/adr/**` below.
+      - '.github/skills/**'
+      # The suite also asserts that workflow's own path filter, on the principle
+      # that a covered document CI never triggers on is not covered, so a change
+      # to it has to re-run the suite that checks it.
+      - '.github/workflows/instruction-references.yml'
       # Same arrangement for the ADR number checker and the workflow that runs
       # it, whose structure the suite also asserts. `docs/adr/**` is here
       # because the suite checks the committed decision records themselves: a
@@ -33,6 +45,8 @@ on:
       - '.github/workflows/updater-tests.yml'
       - '.github/workflows/publish-updater-proposals.yml'
       - 'tools/instruction_refs/**'
+      - '.github/skills/**'
+      - '.github/workflows/instruction-references.yml'
       - 'tools/adr_numbers/**'
       - '.github/workflows/adr-numbers.yml'
       - 'docs/adr/**'
