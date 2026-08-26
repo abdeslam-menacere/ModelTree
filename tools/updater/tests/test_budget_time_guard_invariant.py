@@ -41,6 +41,11 @@ without any test holding it. Both directions are reported separately:
 `_unguarded` is the invariant that keeps `INTERNAL_ERROR` unreachable (which
 holds whatever the order), and `_late_guard` is the weaker ordering claim.
 
+The non-vacuity proofs analyse the real module with one edit spliced in, and
+subtract the real module's own report, so each proof measures only its own
+injection. A regression in `budgets.py` then fails the module-level tests once
+rather than reddening every proof at the same time.
+
 `record_retry` deliberately does **not** call `check_time()` and must not be
 "fixed": a retry does not consume the time budget, and its only caller
 (`workflow.py`) is off the timed charging path. It is the single documented
@@ -371,10 +376,6 @@ def _late_guard(source: str) -> set[str]:
     return {charge.method for charge in _report(source)[1]}
 
 
-def _unguarded_paths(source: str) -> set[tuple[str, str]]:
-    return {(charge.entry, charge.method) for charge in _report(source)[0]}
-
-
 def _charging_methods(source: str) -> set[str]:
     """Every ledger method that writes a counter itself, constructor aside."""
     counters = _spending_counters(source)
@@ -407,6 +408,12 @@ def _add_counter(source: str, counter: str) -> str:
     this keeps working when `budgets.py` is reformatted or reordered.
     """
     init = _ledger_methods(source)[CONSTRUCTOR]
+    if counter in _spending_counters(source):
+        raise AssertionError(
+            f"{LEDGER_CLASS} already has a {counter!r} counter, so injecting one "
+            "would produce a duplicate parameter rather than a new counter. Pick "
+            "another name for NEW_COUNTER."
+        )
     parameter = init.args.kwonlyargs[-1]
     seeds = [
         node
@@ -538,6 +545,35 @@ def _variants() -> dict[str, str]:
 VARIANTS = _variants()
 
 
+def _injected(variant: str) -> tuple[frozenset[Charge], frozenset[Charge]]:
+    """What one injection adds to whatever `budgets.py` already reports.
+
+    Every variant is the real module plus a single edit, so subtracting the
+    module's own report keeps each proof below measuring its own injection. A
+    real regression in `budgets.py` then fails the module-level tests once,
+    instead of turning every proof and counterweight red at the same time and
+    burying which idiom actually stopped working.
+    """
+    real_unguarded, real_late = _report(_read_source())
+    unguarded, late = _report(VARIANTS[variant])
+    return unguarded - real_unguarded, late - real_late
+
+
+def _injected_unguarded(variant: str) -> set[str]:
+    return {charge.method for charge in _injected(variant)[0]}
+
+
+def _injected_late(variant: str) -> set[str]:
+    return {charge.method for charge in _injected(variant)[1]}
+
+
+def _injected_paths(variant: str) -> set[tuple[str, str]]:
+    return {(charge.entry, charge.method) for charge in _injected(variant)[0]}
+
+
+NOTHING: tuple[frozenset[Charge], frozenset[Charge]] = (frozenset(), frozenset())
+
+
 # --- The counter set is derived, not declared --------------------------------
 
 
@@ -551,7 +587,14 @@ def test_the_counter_set_matches_the_constructed_ledger() -> None:
 
 
 def test_the_derivation_finds_the_known_counters() -> None:
-    """A derivation that returned nothing would make every test below vacuous."""
+    """A derivation that returned nothing would make every test below vacuous,
+    so the three counters `budgets.py` has today are named once, here.
+
+    This is the only place a counter name is written down, and it is an
+    acknowledgement anchor rather than an input: nothing above or below reads
+    it, so adding a fourth counter still widens the invariant's coverage
+    automatically — it just cannot do so *silently*, because this equality goes
+    red until someone has looked at the new counter and updated the list."""
     assert _spending_counters(_read_source()) == {
         "pages_fetched",
         "tokens_used",
@@ -680,34 +723,34 @@ def test_the_current_module_is_clean_under_the_whole_detector() -> None:
 
 def test_an_unguarded_augmented_charge_is_detected() -> None:
     """`self.tokens_used += n` with no guard: the original shape, still caught."""
-    assert _unguarded(VARIANTS["unguarded_aug"]) == {"charge_widgets"}
+    assert _injected_unguarded("unguarded_aug") == {"charge_widgets"}
 
 
 def test_an_unguarded_plain_reassignment_is_detected() -> None:
     """`self.tokens_used = self.tokens_used + n` was a free bypass of a detector
     that only read `ast.AugAssign`. It is not any more."""
-    assert _unguarded(VARIANTS["unguarded_assign"]) == {"charge_widgets"}
+    assert _injected_unguarded("unguarded_assign") == {"charge_widgets"}
 
 
 def test_an_unguarded_setattr_charge_is_detected() -> None:
     """`setattr(self, "tokens_used", ...)` names the counter as a string, which
     no assignment-node check could see."""
-    assert _unguarded(VARIANTS["unguarded_setattr"]) == {"charge_widgets"}
+    assert _injected_unguarded("unguarded_setattr") == {"charge_widgets"}
 
 
 def test_a_setattr_with_a_computed_name_is_detected() -> None:
     """A `setattr` whose attribute is computed cannot be resolved to a counter,
     so it is treated as one: an unresolvable write to the ledger is the shape a
     deliberate bypass would take, and `budgets.py` has no legitimate use for it."""
-    charges, _ = _report(VARIANTS["unguarded_computed_setattr"])
+    charges, _ = _injected("unguarded_computed_setattr")
     assert {charge.counter for charge in charges} == {COMPUTED}
-    assert _unguarded(VARIANTS["unguarded_computed_setattr"]) == {"charge_widgets"}
+    assert _injected_unguarded("unguarded_computed_setattr") == {"charge_widgets"}
 
 
 def test_an_unguarded_charge_through_a_helper_names_both_methods() -> None:
     """Delegation is followed, and the report names the entry point as well as
     the helper, so the fix is obvious from the failure alone."""
-    assert _unguarded_paths(VARIANTS["unguarded_helper_aug"]) == {
+    assert _injected_paths("unguarded_helper_aug") == {
         ("charge_widgets", "_bump_widgets")
     }
 
@@ -715,7 +758,7 @@ def test_an_unguarded_charge_through_a_helper_names_both_methods() -> None:
 def test_an_unguarded_plain_assignment_through_a_helper_is_detected() -> None:
     """The two bypasses combined — indirection plus a plain assign — which the
     hardcoded-counter version of this file let through in both halves."""
-    assert _unguarded_paths(VARIANTS["unguarded_helper_assign"]) == {
+    assert _injected_paths("unguarded_helper_assign") == {
         ("charge_widgets", "_bump_widgets")
     }
 
@@ -723,7 +766,7 @@ def test_an_unguarded_plain_assignment_through_a_helper_is_detected() -> None:
 def test_a_brand_new_counter_charged_without_the_guard_is_detected() -> None:
     """The row from #249 that mattered: a new resource gets metered, a new
     counter appears, and the guard must not silently stop covering it."""
-    charges, _ = _report(VARIANTS["new_counter_unguarded"])
+    charges, _ = _injected("new_counter_unguarded")
     assert {(charge.method, charge.counter) for charge in charges} == {
         ("charge_bytes", NEW_COUNTER)
     }
@@ -733,8 +776,8 @@ def test_a_guard_that_runs_after_the_charge_is_reported_as_late_not_missing() ->
     """The ordering pin biting, and biting in the right bucket: the invariant
     that keeps `INTERNAL_ERROR` unreachable still holds here, so this must not
     be reported as an unguarded charge."""
-    assert _late_guard(VARIANTS["late_guard"]) == {"charge_widgets"}
-    assert _unguarded(VARIANTS["late_guard"]) == set()
+    assert _injected_late("late_guard") == {"charge_widgets"}
+    assert _injected_unguarded("late_guard") == set()
 
 
 # --- Counterweights: what must stay quiet ------------------------------------
@@ -742,42 +785,42 @@ def test_a_guard_that_runs_after_the_charge_is_reported_as_late_not_missing() ->
 
 def test_the_same_charge_site_guarded_is_not_flagged() -> None:
     """The detector keys on the missing guard, not merely on the mutation."""
-    assert _report(VARIANTS["guarded_aug"]) == (frozenset(), frozenset())
+    assert _injected("guarded_aug") == NOTHING
 
 
 def test_a_guarded_caller_delegating_to_a_mutating_helper_is_not_flagged() -> None:
     """The false positive the old delegation handling produced: a helper that
     writes a counter is legitimate when every caller guards before calling it.
     A guard that cries wolf gets disabled, which is worse than one with gaps."""
-    assert _report(VARIANTS["guarded_helper"]) == (frozenset(), frozenset())
+    assert _injected("guarded_helper") == NOTHING
 
 
 def test_a_brand_new_counter_that_is_only_seeded_is_not_flagged() -> None:
     """Adding a counter is not itself a violation. The derivation must widen
     quietly; only an unguarded write to it may go red."""
-    assert _report(VARIANTS["new_counter_seeded"]) == (frozenset(), frozenset())
+    assert _injected("new_counter_seeded") == NOTHING
 
 
 def test_reading_a_counter_is_not_a_charge() -> None:
     """`snapshot()` and `state()` read every counter and guard nothing."""
-    assert _report(VARIANTS["reads_a_counter"]) == (frozenset(), frozenset())
+    assert _injected("reads_a_counter") == NOTHING
 
 
 def test_writing_another_ledger_s_counter_is_not_a_charge() -> None:
     """The write has to be to `self`; `other.tokens_used` spends another run's
     budget and is that ledger's methods' business."""
-    assert _report(VARIANTS["writes_another_ledger"]) == (frozenset(), frozenset())
+    assert _injected("writes_another_ledger") == NOTHING
 
 
 def test_writing_a_private_attribute_is_not_a_charge() -> None:
     """`_exhausted_by` and friends are bookkeeping, not spending."""
-    assert _report(VARIANTS["writes_a_private_attribute"]) == (frozenset(), frozenset())
+    assert _injected("writes_a_private_attribute") == NOTHING
 
 
 def test_a_new_counter_charged_with_the_guard_is_not_flagged() -> None:
     """The counterweight to the #249 row: discovering a new counter must not
     make correctly guarded code fail."""
-    assert _report(VARIANTS["new_counter_guarded"]) == (frozenset(), frozenset())
+    assert _injected("new_counter_guarded") == NOTHING
 
 
 # --- The scratch sources are real modules, not strings that happen to parse ---
