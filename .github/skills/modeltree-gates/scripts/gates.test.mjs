@@ -13,9 +13,9 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, readFileSync, cpSync, mkdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, cpSync, mkdirSync, rmSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, dirname, resolve } from 'node:path';
+import { join, dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -165,6 +165,60 @@ function assertFailed(result, gate, fragment) {
       matching.some((failure) => failure.message.includes(fragment)),
       `expected a "${gate}" failure mentioning "${fragment}", got:\n${matching.map((f) => f.message).join('\n')}`,
     );
+  }
+}
+
+/**
+ * A throwaway repository holding a *copy of the gate itself*, so the gate can be
+ * run the way the workflows run it: with no `--repo` at all.
+ *
+ * Both `gate-scope.mjs` and `gate-source-approval.mjs` choose their working
+ * directory with
+ *
+ *     const cwd = args.repo ? resolve(args.repo) : repoRoot();
+ *
+ * and every other test in this file supplies `--repo`, which is right for
+ * isolation but leaves the `repoRoot()` arm executed by nothing. Running the
+ * ambient checkout instead is not an option: these two gates anchor on
+ * `refs/remotes/origin/main`, and a CI clone has no such ref -- the same reason
+ * the `gate-source-approval` block builds its own repository rather than gating
+ * this one.
+ *
+ * The copy is planted at the path the original occupies **relative to this
+ * repository's root**, derived rather than written out. That is what gives the
+ * copy the same directory arithmetic to do as the original, so the test fails
+ * both when the `..` count changes and when a gate is moved to a different depth
+ * without its count being adjusted -- and it is a claim about location only, so
+ * nothing here depends on the checkout's commit or on data that changes.
+ *
+ * `build` fills the tree and returns the argv to run the planted copy with.
+ * `root` comes back resolved through `realpathSync`, because the platform temp
+ * directory is a symlink on some systems and Node resolves a module's own path
+ * before `import.meta.url` ever reaches `repoRoot()`.
+ */
+function fallbackRepo(script, build) {
+  const dir = mkdtempSync(join(tmpdir(), 'modeltree-fallback-'));
+  const git = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' });
+  try {
+    git('init', '-q');
+    git('config', 'user.email', 'gate@example.com');
+    git('config', 'user.name', 'Gate Test');
+    const planted = join(dir, relative(REPO, script));
+    mkdirSync(dirname(planted), { recursive: true });
+    cpSync(script, planted);
+    mkdirSync(join(dir, 'web', 'src', 'data'), { recursive: true });
+    writeFileSync(join(dir, 'README.md'), 'scratch\n');
+    const commit = (message) => {
+      git('add', '-A');
+      git('commit', '-qm', message);
+      return git('rev-parse', 'HEAD').trim();
+    };
+    const publish = () => git('update-ref', 'refs/remotes/origin/main', git('rev-parse', 'HEAD').trim());
+    const args = build({ dir, git, commit, publish });
+    const root = realpathSync(dir);
+    return { ...run(planted, args), root };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 }
 
@@ -1694,6 +1748,95 @@ describe('gate-source-approval', () => {
     assertFailed(outside, 'source-approval', 'nothing approved it');
   });
 
+  // The **unresolvable** state of `--base`, which is a different cell from the
+  // two above: those supply a ref that resolves and is then judged against the
+  // merge base, and this one supplies a ref that resolves to nothing at all. The
+  // two are separated by distinct guards in `resolveAnchor`, and only the second
+  // guard -- the ancestry one -- had a catcher here; a typo'd or stale ref went
+  // straight past the first.
+  //
+  // The direction that matters is fail-open. `gate-scope.mjs` carries the same
+  // function and states the hazard at its own copy of this test: "the dangerous
+  // shape would be falling back to the computed anchor and passing". That is
+  // precisely what an unguarded first branch does, and it is silent -- the run
+  // reports `"passed": true` with `requestedBase: null`, so the operator who
+  // typed the ref never learns it was ignored.
+  //
+  // The bundle is deliberately one that *would* pass at the computed anchor, so
+  // a fallback would exit 0 rather than merely exiting differently. That is what
+  // makes exit 2 here a claim about the guard and not about the bundle.
+  test('--base naming a ref that does not exist exits 2 rather than falling back to the computed anchor', () => {
+    const good = { id: 'good-source', url: 'https://good.example/a', title: 'G', type: 'official-announcement', publisherId: 'p', lastCheckedDate: TODAY };
+    const result = scratchRepo(
+      ({ writeSources, commit, publish }) => {
+        writeSources([good]);
+        commit('the reviewed base');
+        publish();
+      },
+      {
+        runId: 'r1',
+        creator: 'someone',
+        policy: 'pilot',
+        claims: [claim({ evidence: [evidence(good.id, good.url)] })],
+      },
+      ['--base', 'no-such-ref'],
+    );
+    assert.equal(result.code, 2, `an unresolvable --base must not fall back:\n${result.stdout}`);
+    assert.match(result.stdout, /--base no-such-ref is not a commit in this repository/);
+  });
+
+  // `--repo` in its **absent** state -- how `gate-source-approval.mjs` runs when
+  // invoked without the flag, and the arm every test above skips, since they all
+  // route through `approvalRepo` and always pass `--repo <scratch>`.
+  //
+  // The exit code alone cannot carry this claim, and neither can the dataset
+  // anchor. A `repoRoot()` landing one directory short resolves to `.github`,
+  // which exists and sits inside the same git repository -- and `datasetAnchor`
+  // reads `git show <base>:web/src/data/sources.json`, whose path git resolves
+  // from the top of the working tree no matter which subdirectory git was run
+  // in. So a wrong-but-inside-the-repo root still finds the same sources.
+  //
+  // The profile catalogue is what separates them: `catalogAnchor` passes
+  // `tools/updater/profiles` as a **pathspec**, which git resolves relative to
+  // the directory it was run in. From the real root the catalogue is found; from
+  // `.github` it matches nothing and is silently treated as absent, since an
+  // absent catalogue is a tolerated state rather than an error. Asserting that
+  // the catalogued origin was picked up therefore pins the resolved root itself.
+  //
+  // Neither origin appears in any real dataset, so this cannot pass by having
+  // read some other repository either.
+  test('with no --repo at all the approval gate falls back to the repository its own file sits in', () => {
+    const good = { id: 'good-source', url: 'https://good.example/a', title: 'G', type: 'official-announcement', publisherId: 'p', lastCheckedDate: TODAY };
+    const result = fallbackRepo(GATE_SOURCE_APPROVAL, ({ dir, commit, publish }) => {
+      writeFileSync(join(dir, 'web', 'src', 'data', 'sources.json'), JSON.stringify([good], null, 2));
+      writeCatalogue(dir, `${CATALOGUED}/newsroom`);
+      commit('the reviewed dataset and its catalogue');
+      publish();
+      const bundle = join(dir, 'claims.json');
+      writeFileSync(bundle, JSON.stringify({
+        runId: 'r1',
+        creator: 'someone',
+        policy: 'pilot',
+        claims: [claim({ evidence: [evidence(good.id, good.url)] })],
+      }, null, 2));
+      return ['--claims', bundle, '--json'];
+    });
+    assert.equal(result.code, 0, `the fallback root must be gateable:\n${result.stdout}`);
+    const report = JSON.parse(result.stdout);
+    assert.equal(
+      report.anchors.profileCatalogues,
+      1,
+      `the fallback must resolve to the root the catalogue is read from, not to a directory inside it:\n${result.stdout}`,
+    );
+    // Sorted by the gate, so this is the whole set and not a subset.
+    assert.deepEqual(
+      report.anchors.approvedOrigins,
+      [CATALOGUED, 'https://good.example'],
+      'the fallback must anchor trust in the repository the script sits in, not in another tree',
+    );
+    assert.equal(report.anchors.datasetSources, 1, 'the fallback root must be the tree actually read');
+  });
+
   test('a repository with no published main cannot be gated', () => {
     const good = { id: 'good-source', url: 'https://good.example/a', title: 'G', type: 'official-announcement', publisherId: 'p', lastCheckedDate: TODAY };
     const result = scratchRepo(
@@ -2285,6 +2428,43 @@ describe('gate-scope', () => {
     const result = withScratchRepo(({ gate }) => gate('--base'));
     assert.equal(result.code, 2, result.stdout);
     assert.match(result.stdout, /--base needs a value/);
+  });
+
+  // `--repo` in its **absent** state, which is how `.github/workflows` and the
+  // skill documentation invoke this gate, and the one input cell no test above
+  // reaches: `withScratchRepo`'s `gate` always passes `--repo <scratch>`, so
+  // `repoRoot()` -- four `..` segments counted by hand -- was executed by
+  // nothing.
+  //
+  // Asserting the resolved root, and not just the exit code, is the point. The
+  // ordinary way this line breaks is a miscounted segment, and one segment short
+  // resolves to `.github`: a directory that exists, and one that git happily
+  // answers from because it walks up to the enclosing repository. The gate would
+  // then exit 0 having measured a tree nobody asked about. Only the reported
+  // root separates that from the correct answer.
+  //
+  // Per the note on `fallbackRepo`, this is a claim about location alone -- no
+  // commit and no dataset content is asserted -- so it cannot rot as the
+  // repository changes.
+  test('with no --repo at all the scope gate falls back to the repository its own file sits in', () => {
+    const result = fallbackRepo(GATE_SCOPE, ({ dir, commit, publish }) => {
+      commit('base');
+      publish();
+      writeFileSync(join(dir, 'web', 'src', 'data', 'releases.json'), '[{"id":"x"}]');
+      return ['--json'];
+    });
+    assert.equal(result.code, 0, `the fallback root must be gateable:\n${result.stdout}`);
+    const report = JSON.parse(result.stdout);
+    assert.equal(
+      resolve(report.repo),
+      result.root,
+      'the fallback must resolve to the repository the script sits in, not to a neighbour of it',
+    );
+    assert.deepEqual(
+      report.inClass,
+      ['web/src/data/releases.json'],
+      'the fallback root must be the tree actually measured, not just the one named',
+    );
   });
 
   // -------------------------------------------------------------------------
