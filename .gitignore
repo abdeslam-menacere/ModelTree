@@ -1,3 +1,14 @@
+# HAZARD for anything that shells out to `git check-ignore`: some blank-ish lines
+# here make git report ANY path ending in "/" as ignored, so a bare "docs/nowhere/"
+# reads back "ignored" whether or not anything ignores it -- a fail-open for a tool
+# that treats "gitignored" as "absence is fine". The exact triggers are git-version-
+# bound (a whitespace-only line and a lone CR from CRLF fire on git 2.53; a truly
+# blank line does not), so the version-bound detail lives in one place rather than
+# two: see tools/updater/README.md, "Asking git what is repository content", and
+# issue #170. Do NOT delete the blank separators below to dodge this -- they are
+# idiomatic; the fix is to never ask about a trailing-slash path, which the one
+# consumer (tools/instruction_refs/check_instruction_references.py:is_git_ignored)
+# already does, and any new consumer must too.
 node_modules/
 *.log
 
