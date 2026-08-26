@@ -1184,33 +1184,23 @@ def test_a_first_publication_supersedes_nothing(
     assert "| Supersedes run | — |" in client.issues[0].body
 
 
-def test_re_rendering_the_same_run_adds_no_comment_and_no_churn(
-    proposal_factory, fake_issues_client
-) -> None:
-    """Byte-identical, and the earlier supersession is carried forward intact."""
-    client = fake_issues_client()
-    publish_proposal(proposal_factory(MATERIAL, run_id="run-a"), client)
-    publish_proposal(proposal_factory(MATERIAL, run_id="run-b"), client)
-    after_replacement = client.issues[0].body
-
-    outcome = publish_proposal(proposal_factory(MATERIAL, run_id="run-b"), client)
-
-    assert outcome.superseded_run is None
-    assert len(client.comments) == 1
-    assert client.issues[0].body == after_replacement
-    assert "| Supersedes run | `run-a` |" in client.issues[0].body
-
-
 def test_re_publishing_a_run_that_took_longer_adds_no_comment_and_no_churn(
     proposal_factory, fake_issues_client
 ) -> None:
-    """The test above, with the clock controlled instead of raced.
+    """Publication idempotency, with the clock controlled instead of raced.
 
     Two executions of run `run-b`: one against a stopped clock, one against a
     clock that advances a Windows timer tick per read. Their measured elapsed
     times genuinely differ — asserted, not assumed — and the published issue must
-    still be byte-identical with no second supersession comment. This is what the
-    test above can only get by luck, and got wrong a few percent of the time.
+    still be byte-identical with no second supersession comment.
+
+    This replaced `test_re_rendering_the_same_run_adds_no_comment_and_no_churn`,
+    which published `run-b` twice on the real clock and could only get that
+    difference by luck — it got it wrong a few percent of the time. #149 added
+    this test and left that one in place beside it; #197 removed it, having
+    established that all four of its assertions are made here. The invariant it
+    was standing in for is asserted directly, and positively, by
+    `test_the_published_body_carries_no_measured_value`.
     """
     client = fake_issues_client()
     publish_proposal(proposal_factory(MATERIAL, run_id="run-a"), client)
