@@ -37,6 +37,8 @@ wheel in CI; that is not this issue.
 
 from __future__ import annotations
 
+import ast
+import functools
 import json
 import os
 import re
@@ -50,8 +52,12 @@ import pytest
 
 import modeltree_updater
 from modeltree_updater import cli, layout, longtail, profiles
+from modeltree_updater.budgets import CreatorBudget
 from modeltree_updater.checkpoints import TOOL_VERSION
 from modeltree_updater.cli import EXIT_OK, EXIT_USAGE, main
+from modeltree_updater.workflow import RunSettings
+
+_ZERO_BUDGET = CreatorBudget()
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 PACKAGE_DIR = PROJECT_DIR / "src" / "modeltree_updater"
@@ -303,20 +309,218 @@ def test_a_source_checkout_still_defaults_to_the_reviewed_profiles() -> None:
     assert longtail.DEFAULT_LONG_TAIL_PROFILE.is_file()
 
 
+def _climbs_from_file_root(module_source: str) -> list[str]:
+    """Every expression in ``module_source`` that walks >=2 levels up from ``__file__``.
+
+    This is the structural replacement for grepping the literal string ``parents[2]``.
+    That grep saw one spelling of one idea; the idea is "root an ``os``-style path
+    walk at this module's own ``__file__`` and climb far enough up to leave the
+    installed package", and it has many spellings that all mean it:
+
+        Path(__file__).resolve().parents[2]
+        Path(__file__).parent.parent.parent
+        Path(__file__).resolve().parents[3]
+        here = Path(__file__).resolve(); here.parents[2]        # via a variable
+        Path(__file__).parents[1 + 1]                           # arithmetic index
+        Path(__file__).parents[-1]                              # negative index
+
+    We parse the module and, for every attribute/subscript chain rooted at
+    ``Path(__file__)`` (optionally through ``.resolve()`` and optionally through a
+    local variable that was itself bound to such a chain), we sum how many directory
+    levels the chain climbs: each ``.parent`` is one level, ``.parents[k]`` for a
+    constant ``k`` is ``k`` levels. A subscript whose index is *not* a provable
+    non-negative constant — a negative literal, an arithmetic expression, a name — is
+    the evasion this exists to stop, so it counts as "unknown, therefore suspect".
+
+    Two levels is the boundary because it is the smallest climb that leaves the
+    package: ``modeltree_updater/foo.py`` -> ``.parent`` is the package dir, a second
+    ``.parent`` is ``src``/``site-packages`` and everything above is outside. One
+    ``.parent`` (staying inside the package) is legitimate and stays quiet.
+
+    Known limits, stated rather than papered over: this reasons about ``pathlib``
+    chains written in the module's own text. It does not evaluate ``os.path.dirname``
+    nesting, string ``"../.."`` joins, ``PurePath`` used under an alias it cannot see,
+    or a climb assembled across a function-call boundary. It is a stronger net than
+    the literal grep, not a proof of the negative. The list it returns is offenders,
+    each rendered back to source for the failure message.
+    """
+    UNKNOWN = 10_000  # a climb we cannot bound is treated as "definitely too far"
+
+    def _is_file_root(node: ast.AST) -> bool:
+        # Path(__file__)  (optionally .resolve()) — the anchor every walk starts at.
+        target = node
+        if (
+            isinstance(target, ast.Call)
+            and isinstance(target.func, ast.Attribute)
+            and target.func.attr == "resolve"
+        ):
+            target = target.func.value
+        return (
+            isinstance(target, ast.Call)
+            and isinstance(target.func, ast.Name)
+            and target.func.id == "Path"
+            and len(target.args) == 1
+            and isinstance(target.args[0], ast.Name)
+            and target.args[0].id == "__file__"
+        )
+
+    # Locals bound to a file-rooted path, and how far up they already climbed, so a
+    # walk routed through an intermediate variable is not invisible.
+    rooted_vars: dict[str, int] = {}
+
+    def _levels_and_rooted(node: ast.AST) -> tuple[int, bool]:
+        """Return (levels climbed, whether the chain is rooted at ``__file__``)."""
+        if _is_file_root(node):
+            return 0, True
+        if isinstance(node, ast.Name):
+            if node.id in rooted_vars:
+                return rooted_vars[node.id], True
+            return 0, False
+        if isinstance(node, ast.Call):
+            # Ignore .resolve()/.absolute() etc.: they do not climb.
+            if isinstance(node.func, ast.Attribute):
+                base, rooted = _levels_and_rooted(node.func.value)
+                return base, rooted
+            return 0, False
+        if isinstance(node, ast.Attribute):
+            base, rooted = _levels_and_rooted(node.value)
+            if not rooted:
+                return 0, False
+            if node.attr == "parent":
+                return base + 1, True
+            if node.attr == "parents":
+                # `.parents` on its own contributes nothing; the Subscript adds it.
+                return base, True
+            return base, True
+        if isinstance(node, ast.Subscript):
+            base, rooted = _levels_and_rooted(node.value)
+            if not rooted:
+                return 0, False
+            is_parents = (
+                isinstance(node.value, ast.Attribute) and node.value.attr == "parents"
+            )
+            if not is_parents:
+                return base, True
+            index = node.slice
+            if isinstance(index, ast.Constant) and isinstance(index.value, int):
+                if index.value < 0:
+                    return base + UNKNOWN, True  # negative index: unbounded, suspect
+                # parents[k] is the (k+1)-th ancestor: k levels above `.parent`,
+                # counted as k+1 climbs from the file so parents[2] == 3 levels,
+                # the same three-deep walk as `.parent.parent.parent`.
+                return base + index.value + 1, True
+            return base + UNKNOWN, True  # name / arithmetic / anything non-constant
+        return 0, False
+
+    tree = ast.parse(module_source)
+    offenders: list[str] = []
+
+    for node in ast.walk(tree):
+        # Learn variables bound to a file-rooted path first, so later references resolve.
+        if isinstance(node, ast.Assign):
+            levels, rooted = _levels_and_rooted(node.value)
+            if rooted:
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        rooted_vars[target.id] = levels
+        elif isinstance(node, (ast.AnnAssign,)) and node.value is not None:
+            levels, rooted = _levels_and_rooted(node.value)
+            if rooted and isinstance(node.target, ast.Name):
+                rooted_vars[node.target.id] = levels
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Attribute, ast.Subscript)):
+            levels, rooted = _levels_and_rooted(node)
+            if rooted and levels >= 2:
+                offenders.append(ast.unparse(node))
+
+    # De-duplicate while collapsing sub-chains: a full `a.parent.parent` also matches
+    # its own `a.parent.parent` prefix once, so unique rendered forms are enough.
+    return sorted(set(offenders))
+
+
+# The evasions the structural guard blocks, each a spelling of the same three-deep
+# walk out of the installed package. Held in one table so the guard's own test and
+# the demonstration test below draw the offenders from the same source of truth
+# rather than each asserting its own list.
+GUARD_EVASIONS = {
+    "literal parents[2]": "Path(__file__).resolve().parents[2] / 'profiles'",
+    "chained .parent": "Path(__file__).parent.parent.parent / 'profiles'",
+    "deeper parents[3]": "Path(__file__).resolve().parents[3] / 'profiles'",
+    "intermediate variable": (
+        "here = Path(__file__).resolve()\n"
+        "root = here.parents[2] / 'profiles'"
+    ),
+    "arithmetic index": "Path(__file__).parents[1 + 1] / 'profiles'",
+    "negative index": "Path(__file__).parents[-1] / 'profiles'",
+    "variable index": "n = 2\nroot = Path(__file__).parents[n] / 'profiles'",
+    "split across lines": (
+        "root = (\n    Path(__file__).resolve()\n    .parents[2]\n)"
+    ),
+}
+
+# Walks that stay inside the package, or do not root at __file__ at all, which the
+# guard must leave alone or it would flag every legitimate `.parent`.
+GUARD_NON_OFFENDERS = {
+    "single .parent stays in package": "Path(__file__).parent / 'data.json'",
+    "parents[0] is the package dir": "Path(__file__).resolve().parents[0]",
+    "not rooted at __file__": "other = Path('/etc'); root = other.parent.parent",
+    "resolve does not climb": "Path(__file__).resolve() / 'data.json'",
+}
+
+
+@pytest.mark.parametrize("case", sorted(GUARD_EVASIONS), ids=lambda name: name)
+def test_the_structural_guard_flags_every_evasion_of_the_literal_walk(case) -> None:
+    """Each spelling of the three-deep walk is caught, demonstrated one at a time.
+
+    This is the "before the guard is widened, each fixture goes red" evidence
+    (#198 acceptance 1): the detector is handed a module containing exactly one
+    offending walk and must return it. The literal ``parents[2]`` case is included
+    so the structural check is shown to still catch what the grep caught.
+    """
+    module_source = GUARD_EVASIONS[case]
+    offenders = _climbs_from_file_root(module_source)
+    assert offenders, (
+        f"the {case!r} spelling walked out of the package but the structural "
+        f"guard did not flag it:\n{module_source}"
+    )
+
+
+@pytest.mark.parametrize("case", sorted(GUARD_NON_OFFENDERS), ids=lambda name: name)
+def test_the_structural_guard_leaves_legitimate_walks_alone(case) -> None:
+    """A single ``.parent`` and unrelated paths must not trip the guard.
+
+    Without this the guard would fail against its own tree the moment any module
+    used ``Path(__file__).parent`` legitimately, which is #198 acceptance 2 in
+    miniature: widening must add no false positives.
+    """
+    offenders = _climbs_from_file_root(GUARD_NON_OFFENDERS[case])
+    assert not offenders, (
+        f"the legitimate {case!r} path was wrongly flagged as walking out: {offenders}"
+    )
+
+
 def test_no_module_walks_out_to_the_repository_on_its_own() -> None:
     """The guess, as a shape, confined to the module that checks it.
 
-    `Path(__file__).resolve().parents[2]` is the expression #139 named and #147
+    ``Path(__file__).resolve().parents[2]`` is the expression #139 named and #147
     found two more of. A new one would be a second answer to a question that has
     one, and it would be invisible to the tests above, which can only compare the
     resolvers they already know about. `layout.py` is excluded because quoting the
     expression it replaces is what that module is for.
+
+    Matched structurally rather than textually (#198): the guard parses each module
+    and reasons about what the path expression *evaluates to* — how many levels it
+    climbs from ``__file__`` — so it catches ``.parent.parent.parent``, ``parents[3]``,
+    a walk routed through a variable, and non-constant indices, not just the one
+    spelling ``parents[2]``. ``_climbs_from_file_root`` documents what it does and
+    does not catch; the widening is a stronger net, not a proof.
     """
     offenders = sorted(
         path.relative_to(PACKAGE_DIR).as_posix()
         for path in PACKAGE_DIR.rglob("*.py")
         if path.name != "layout.py"
-        and "parents[2]" in path.read_text(encoding="utf-8")
+        and _climbs_from_file_root(path.read_text(encoding="utf-8"))
     )
 
     assert not offenders, (
@@ -731,3 +935,179 @@ def test_the_packaged_version_pins_the_checkpoint_marker_to_pyproject() -> None:
         f"the packaged version {manifest_version!r}; the checkpoint marker would "
         "record a build identity that is not this build's"
     )
+
+
+# --- The intersection of #94 (profile identity in checkpoints) and #147 (install-
+# layout resolution): a `resume` under an installed layout whose checkpoint records a
+# long-tail profile id. It is correct today — the reviewed set cannot be loaded from
+# an installed distribution, so `reviewed_long_tail_profile` raises `FileNotFoundError`,
+# which is NOT `runner.py`'s `ProfileError` and so propagates past that catch to the
+# CLI, which maps it to exit 2 and refuses. Nothing pinned that the propagation stays
+# a broken-installation refusal rather than being reshaped into a profile disagreement.
+
+_RECORDED_PROVIDERS = {"sources": "fixtures", "extractor": "fixtures"}
+
+
+class _StubProviders:
+    """Just enough of ``ProviderBundle`` for the resume gate to compare descriptors."""
+
+    @property
+    def descriptor(self) -> dict[str, str]:
+        return dict(_RECORDED_PROVIDERS)
+
+
+class _RecordedData:
+    """One checkpointed message's payload, carrying the marks the resume gate reads."""
+
+    def __init__(self, profile_id: str) -> None:
+        self.providers = dict(_RECORDED_PROVIDERS)
+        self.profile_id = profile_id
+        self.tool_version = TOOL_VERSION
+        self.checkpoint_schema_version = 1
+
+
+class _Envelope:
+    def __init__(self, data: _RecordedData) -> None:
+        self.data = data
+
+
+class _FakeCheckpoint:
+    def __init__(self, profile_id: str) -> None:
+        self.messages = {"discover-sources": [_Envelope(_RecordedData(profile_id))]}
+
+
+class _FakeStorage:
+    """A storage whose one checkpoint records a long-tail id, providers, and version.
+
+    Built by hand rather than by running a real long-tail run, because the fact under
+    test is the *resolution* of the recorded id under an installed layout, not the
+    run that recorded it — and the full long-tail run machinery lives in
+    `test_long_tail.py`. The version marker matches this build so the resume gets past
+    the version and provider checks and reaches the profile step, which is the step
+    the installed layout breaks.
+    """
+
+    def __init__(self, profile_id: str) -> None:
+        self._checkpoint = _FakeCheckpoint(profile_id)
+
+    def load(self, checkpoint_id: str):  # noqa: ARG002 - one checkpoint, id ignored
+        return self._checkpoint
+
+
+def test_a_resume_under_an_installed_layout_refuses_a_recorded_long_tail_id(
+    monkeypatch,
+) -> None:
+    """Installed + a checkpointed long-tail id: refuse loudly, do not fall back.
+
+    #198 acceptance 3. An installed distribution has no reviewed long-tail set
+    (`REVIEWED_LONG_TAIL_DIR is None`), so rebuilding the recorded profile from the
+    id raises `FileNotFoundError` — a broken installation, not a disagreement about
+    which profile applies. That error is deliberately *not* a `ProfileError`, so it
+    is not caught by `resume_creator_run`'s `except ProfileError` and reshaped into a
+    `ProfileMismatch`; it propagates, and the CLI maps it to exit 2. The alternative —
+    resolving to an empty library and running under it — is the silent fallback this
+    refuses.
+
+    The installed layout is reproduced by binding the reviewed directory to ``None``,
+    which is exactly what the module-level default `REVIEWED_LONG_TAIL_DIR` is when the
+    package is imported from a wheel (there is no repository above it to find). The
+    real loader runs and raises the real message.
+
+    This is pinned against a widening of the catch: see the companion test below,
+    which shows that catching `FileNotFoundError` there turns this refusal into a
+    `ProfileMismatch` and loses the "installed distribution" diagnosis.
+    """
+    import asyncio
+
+    from modeltree_updater import runner
+    from modeltree_updater.longtail import reviewed_long_tail_profile
+
+    # The installed layout: no reviewed set to find. Bind the directory the real
+    # loader consults to None, the value a wheel import produces, and let it raise.
+    monkeypatch.setattr(
+        runner,
+        "reviewed_long_tail_profile",
+        functools.partial(reviewed_long_tail_profile, directory=None),
+    )
+
+    settings = RunSettings(
+        _StubProviders(),
+        budget=_ZERO_BUDGET,
+        timestamp="2026-01-01T00:00:00Z",
+    )
+    storage = _FakeStorage(profile_id="long-tail-generic")
+
+    with pytest.raises(FileNotFoundError) as raised:
+        asyncio.run(
+            runner.resume_creator_run(
+                settings,
+                checkpoint_id="any",
+                checkpoint_storage=storage,
+            )
+        )
+
+    message = str(raised.value)
+    assert "installed distribution" in message
+    assert "long-tail" in message
+    # Not reshaped into a profile disagreement: the diagnosis stays "broken install".
+    assert "not in the reviewed set" not in message
+
+
+def test_widening_the_resume_catch_would_swallow_the_installed_layout_refusal(
+    monkeypatch,
+) -> None:
+    """Why the catch stays narrow: widening it converts the refusal into the wrong thing.
+
+    Demonstrates the failure the test above pins against. `runner.py` catches
+    `ProfileError` around the profile rebuild and re-raises it as `ProfileMismatch`.
+    If that catch were widened to swallow `FileNotFoundError` too, the installed-layout
+    refusal — a broken installation — would be reshaped into a `ProfileMismatch` that
+    reads "not in the reviewed set", a disagreement about *which* profile applies. This
+    reproduces that widening in-process and shows the diagnosis is lost, so a future
+    author who widens the catch sees this go red.
+
+    It does not modify `runner.py`; it stands in a widened rebuild step and confirms
+    the shape of the wrong outcome, which is what the production catch must never do.
+    """
+    import asyncio
+
+    from modeltree_updater import runner
+    from modeltree_updater.longtail import reviewed_long_tail_profile
+    from modeltree_updater.profiles import ProfileError
+    from modeltree_updater.workflow import ProfileMismatch
+
+    def _widened_rebuild(profile_id: str):
+        # The narrow catch reshapes only ProfileError; the widened one would also
+        # reshape FileNotFoundError. Reproduce the widened behaviour to show its cost.
+        try:
+            return reviewed_long_tail_profile(profile_id, directory=None)
+        except (ProfileError, FileNotFoundError) as error:
+            raise ProfileMismatch(
+                profile_id,
+                None,
+                reason=(
+                    f"this checkpoint was produced under profile {profile_id!r}, "
+                    f"which is not in the reviewed set ({error})"
+                ),
+            ) from error
+
+    monkeypatch.setattr(runner, "reviewed_long_tail_profile", _widened_rebuild)
+
+    settings = RunSettings(
+        _StubProviders(),
+        budget=_ZERO_BUDGET,
+        timestamp="2026-01-01T00:00:00Z",
+    )
+    storage = _FakeStorage(profile_id="long-tail-generic")
+
+    with pytest.raises(ProfileMismatch) as raised:
+        asyncio.run(
+            runner.resume_creator_run(
+                settings,
+                checkpoint_id="any",
+                checkpoint_storage=storage,
+            )
+        )
+
+    # The widening loses the broken-installation diagnosis — the regression pinned above.
+    assert "not in the reviewed set" in str(raised.value)
