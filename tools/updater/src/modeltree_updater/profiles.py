@@ -18,6 +18,7 @@ Two rules this module exists to keep:
 from __future__ import annotations
 
 import json
+import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -432,6 +433,53 @@ def _refuse_padded_id(
     Below the type gate, ``isinstance`` still guards the whitespace check rather than
     ``str()`` coercing it: no JSON scalar's ``str()`` is padded anyway, so the guard costs
     nothing it should have caught, and it stays correct for a caller that opts out.
+
+    **What "matched exactly" refuses beyond padding (#260).** ``str.strip()`` refuses only
+    leading/trailing characters Python calls whitespace, which is narrower than the exact-id
+    contract this guard exists to enforce. Three further content defects are refused here,
+    each as its own named refusal because each is a different wrong, and refusing rather than
+    tidying for the same reason padding is refused -- registering a document under a string it
+    does not literally declare is the trap this whole guard avoids:
+
+    * **The empty string** ``""`` is refused. It strips to itself, so the padding check let it
+      through, yet an id names exactly one record and the empty string names nothing: every
+      downstream lookup, sort and join then runs on a key that cannot tell one record from
+      another.
+    * **Any Unicode format character** (general category ``Cf``) anywhere in the id is refused.
+      That category covers U+200B ZERO WIDTH SPACE, U+200E/U+200F LRM/RLM, U+202A-U+202E bidi
+      embeddings and overrides, U+2066-U+2069 isolates, and U+FEFF ZWNBSP/BOM. These are not
+      whitespace to ``str.strip()`` -- Unicode files them under ``Cf`` (format), not ``Zs``
+      (space separator) -- so the padding check never saw them. Two consequences make this a
+      review-integrity defect, not merely a data one: an id carrying an invisible ``Cf``
+      character renders identically to one without it while being a distinct dict key (so the
+      duplicate fold, which normalises *spacing* not format characters, cannot catch it), and
+      a bidi override reorders how the rest of the line renders in most terminals and many web
+      contexts, making the artefact a reviewer reads disagree with the bytes.
+
+    The check is **category-based**, ``unicodedata.category(ch) == "Cf"``, rather than an
+    explicit codepoint list. The class this refuses is exactly "characters nobody listed", so
+    a durable membership test that a future Unicode format character joins without a code
+    change is the point; and because ``Cf`` is a single named Unicode property, membership
+    stays auditable through ``unicodedata`` rather than by trusting a hand-maintained list to
+    stay complete. The refusal names each offending codepoint as ``U+XXXX`` and prints the id
+    via ``repr``, which escapes these characters to ``\\uXXXX`` -- deliberately, so a refusal
+    about invisible characters is itself readable on a cp1252 console and in a diff.
+
+    Neither the rule nor a broader one such as "ASCII only" or "all non-printable" narrows the
+    *alphabet*: an id is not refused for being non-Latin, only for being empty, padded, or
+    carrying a format character. The shipped ids are plain kebab-case ASCII, but the rule is
+    scoped to the invisible/reordering class rather than to the alphabet those ids happen to
+    use, so a legitimate non-ASCII id (were one added) still loads.
+
+    **Ids are not NFC-normalised, and a non-NFC id is not refused, by decision (#260).** This
+    guard refuses an ambiguous id; it never rewrites one. Normalising before comparison would
+    resolve a document under a string it does not literally contain -- the same "registered
+    under a string it does not declare" trap that makes padding a refusal rather than a trim --
+    so an id already in the repository that would change under NFC keeps loading unchanged.
+    Whether a non-NFC id *should* be refused is a distinct question about canonical equivalence
+    of *visible* characters, separate from the invisible/reordering characters this refusal is
+    about, and is left to its own issue with its own audit of existing data rather than folded
+    in silently here.
     """
     if require_string and not isinstance(declared_id, str):
         raise ProfileError(
@@ -440,12 +488,29 @@ def _refuse_padded_id(
             "exactly as the string it declares, so a non-string id answers to no lookup "
             "and is refused rather than coerced into one"
         )
-    if isinstance(declared_id, str) and declared_id != declared_id.strip():
-        raise ProfileError(
-            f"{path.name}: {subject} {declared_id!r} has leading or trailing whitespace; "
-            "an id is matched exactly, so declare it without padding rather than "
-            "relying on it being trimmed"
+    if isinstance(declared_id, str):
+        if declared_id == "":
+            raise ProfileError(
+                f"{path.name}: {subject} is the empty string; an id names exactly one "
+                "record and the empty string names none, so declare a non-empty id"
+            )
+        if declared_id != declared_id.strip():
+            raise ProfileError(
+                f"{path.name}: {subject} {declared_id!r} has leading or trailing whitespace; "
+                "an id is matched exactly, so declare it without padding rather than "
+                "relying on it being trimmed"
+            )
+        formats = list(
+            dict.fromkeys(ch for ch in declared_id if unicodedata.category(ch) == "Cf")
         )
+        if formats:
+            codepoints = ", ".join(f"U+{ord(ch):04X}" for ch in formats)
+            raise ProfileError(
+                f"{path.name}: {subject} {declared_id!r} contains Unicode format "
+                f"character(s) {codepoints}; these render invisibly or reorder the line, so "
+                "two ids that look identical can be distinct keys and an id can read "
+                "differently from its bytes -- declare the id with visible characters only"
+            )
     return declared_id
 
 
