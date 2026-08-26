@@ -98,8 +98,9 @@ files its summary and closes it immediately.
 - **No bypass, ever.** No `--force`, no skipped gate, no lowered threshold, no
   `gh pr merge --admin`, no direct push to `main`. If a gate blocks the run, the
   gate has done its job.
-- **Never touch `tools/updater/`.** It is #59's proposal-only subsystem, read-only
-  here. Its profiles are input; its code is out of scope.
+- **Never touch `tools/updater/`.** It is the proposal-only subsystem from
+  abdeslam-menacere/ModelTree#59, read-only here. Its profiles are input; its
+  code is out of scope.
 - **A run never approves its own source.** A claim may only rest on a source the
   dataset already carries, or on a new page of an origin a reviewed profile
   catalogue or the committed dataset already stands behind.
