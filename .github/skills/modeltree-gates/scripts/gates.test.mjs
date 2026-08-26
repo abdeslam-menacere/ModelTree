@@ -404,6 +404,144 @@ describe('gate-dataset', () => {
     }
   });
 
+  // -------------------------------------------------------------------------
+  // The three states of one dataset document (#312). A document can be
+  // **absent**, **unknown** (present but not what it claims to be), or
+  // **present-but-stale**. They fail differently and none implies another, so
+  // each is stated rather than inferred from its neighbour.
+  //
+  // The stale cell is deliberately empty and is not a gap: this gate applies no
+  // freshness floor to a record, and nothing here caches a document between
+  // runs, so a document has no stale state to test. Inventing one to fill the
+  // row would be worse than saying so.
+  //
+  // The absent *directory* test below is a fourth thing again, and covers none
+  // of these: it exits 2 before any document is looked for.
+  // -------------------------------------------------------------------------
+
+  // `usage-syntheses.json` is the document to delete, and the choice is the
+  // whole test. Nothing references it, so the missing-document rule is the only
+  // thing standing between a deleted document and exit 0 -- delete
+  // `releases.json` instead and a wall of dangling-reference failures fires,
+  // which would pass this assertion while proving nothing about the rule under
+  // test. Removing the rule leaves the suite green and the gate publishing a
+  // dataset with a document silently gone.
+  test('a dataset document that is absent entirely is caught, not read as an empty collection', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'modeltree-gate-'));
+    try {
+      cpSync(DATA, dir, { recursive: true });
+      rmSync(join(dir, 'usage-syntheses.json'));
+      const result = run(GATE_DATASET, ['--data', dir, '--json']);
+      assertFailed(result, 'well-formed', 'dataset document is missing');
+      const report = JSON.parse(result.stdout);
+      assert.ok(
+        report.failures.some((failure) => failure.where === 'usage-syntheses.json'),
+        `the refusal must name the document that vanished:\n${result.stdout}`,
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  // The sibling of `a malformed dataset document fails rather than being
+  // skipped` above, which reaches only the *unparseable* branch. A document that
+  // parses cleanly but is an object, a string or a number takes a different
+  // branch entirely, and without this rule would load as an empty collection --
+  // which every other gate in this file accepts, because an empty collection has
+  // no dangling references, no duplicate ids and no out-of-range dates.
+  test('a dataset document that parses but is not an array is caught, not loaded as empty', () => {
+    for (const body of ['{"usageSyntheses": []}', '"a string"', '42', 'null']) {
+      const dir = mkdtempSync(join(tmpdir(), 'modeltree-gate-'));
+      try {
+        cpSync(DATA, dir, { recursive: true });
+        writeFileSync(join(dir, 'usage-syntheses.json'), body);
+        const result = run(GATE_DATASET, ['--data', dir, '--json']);
+        assertFailed(result, 'well-formed', 'must be a JSON array');
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    }
+  });
+
+  // `--today`'s three states, and this is the one that fails open. **Absent** is
+  // the live path, asserted at the top of this block. **Present-but-stale** -- an
+  // older day supplied on purpose -- is what `gateDatasetAt` exists for and what
+  // the later-day test above exercises. **Unknown** is here.
+  //
+  // Why it is the dangerous one: every future-date rule in this gate is a `>`
+  // comparison against `startOf(today)`, and `startOf("tomorrow")` is NaN. NaN
+  // loses every comparison, so an unvalidated `--today` does not shift the clock
+  // by a day, it deletes the entire future-date gate while still exiting 0.
+  test('--today that is not a real date exits 2 rather than disabling every future-date rule', () => {
+    for (const bad of ['not-a-date', 'tomorrow', '2026-13-01', '2026-02-30', '26-08-25', '']) {
+      const result = run(GATE_DATASET, ['--data', DATA, '--today', bad, '--json']);
+      assert.equal(result.code, 2, `--today ${JSON.stringify(bad)} must not be accepted:\n${result.stdout}`);
+      assert.ok(
+        result.stdout.includes('is not a real date'),
+        `the refusal must name the flag, not fail for some other reason:\n${result.stdout}`,
+      );
+    }
+
+    // The consequence the guard exists to prevent, stated as a scenario so the
+    // test above is anchored to something observable rather than to an exit
+    // code: on a real clock a record dated far in the future is caught, so a
+    // `--today` that waved it through would be this gate going blind.
+    const future = gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      releases[0].verifiedAt = '2099-01-01';
+      write('releases.json', releases);
+    });
+    assertFailed(future, 'dates', 'is in the future');
+  });
+
+  // The mirror of gate-scope's `an unknown flag exits 2 rather than being
+  // ignored`, and stated per gate rather than inferred across them: these four
+  // scripts each hand-roll their own `parseArgs`, so a guarantee proved on one
+  // is not a guarantee about another. #168 is open on exactly that drift.
+  test('an unknown flag on the dataset gate exits 2 rather than being ignored', () => {
+    for (const flag of ['--force', '--skip', '--skip-gates', '--yes']) {
+      const result = run(GATE_DATASET, ['--data', DATA, flag, '--json']);
+      assert.equal(result.code, 2, `${flag} must not be recognised, and must never be a pass:\n${result.stdout}`);
+      assert.ok(
+        result.stdout.includes(`unknown flag ${flag}`),
+        `the refusal must name the flag it did not recognise:\n${result.stdout}`,
+      );
+    }
+  });
+
+  // `--data` in its **absent** state. The test below is a different cell and
+  // does not cover this one: it supplies `--data <a path that does not exist>`,
+  // which is the *unknown* state. Absent means the flag is not passed at all,
+  // and the two take different branches at `gate-dataset.mjs:549`:
+  //
+  //     const dataDir = args.data ? resolve(args.data) : join(repoRoot(), ...);
+  //
+  // Every other `run(GATE_DATASET, ...)` call site in this file passes `--data`,
+  // so before this test the fallback arm was never executed once. A `repoRoot()`
+  // with the wrong number of `..` segments -- the ordinary way that line breaks,
+  // since it counts directories by hand -- was caught by nothing.
+  //
+  // Asserting the resolved directory, and not just the exit code, is the point.
+  // A gate that fell back to the wrong place but happened to find some dataset
+  // there would still exit 0, so the code alone cannot tell the two apart. The
+  // counts assertion then proves it actually loaded what it named, rather than
+  // reporting a path it never opened.
+  //
+  // No `--today`: this reads the live dataset, so it is bound by the two-clock
+  // rule at the top of this file exactly as the first test in this block is.
+  test('with no --data at all the gate falls back to this repository, not to nothing', () => {
+    const result = run(GATE_DATASET, ['--json']);
+    assert.equal(result.code, 0, `the live dataset must pass when found by fallback:\n${result.stdout}`);
+    const report = JSON.parse(result.stdout);
+    assert.equal(
+      resolve(report.dataDir),
+      resolve(DATA),
+      'the fallback must resolve to this repository\'s own web/src/data',
+    );
+    assert.ok(report.counts.sources > 0, `the fallback directory must be the one actually read:\n${result.stdout}`);
+  });
+
+  // The **unknown** state of the same input: supplied, but naming nothing.
   test('a missing data directory exits 2 rather than passing', () => {
     const result = run(GATE_DATASET, ['--data', join(tmpdir(), 'modeltree-does-not-exist'), '--json']);
     assert.equal(result.code, 2, 'a gate that cannot run must not report success');
@@ -479,6 +617,26 @@ function repoWithProfiles(entries) {
     else writeFileSync(join(dir, name), typeof body === 'string' ? body : JSON.stringify(body));
   }
   return repo;
+}
+
+/**
+ * As `gateBundle`, but the argument list is stated in full: no `--today` is
+ * supplied unless `args` carries one.
+ *
+ * `gateBundle` always pins the clock, which is right for a fixture and wrong for
+ * the tests that are *about* the clock flag -- an absent `--today` and an
+ * unknown one are states of that input in their own right (#312), and neither is
+ * reachable through a helper that always supplies a good value.
+ */
+function gateBundleWithArgs(bundle, args) {
+  const dir = mkdtempSync(join(tmpdir(), 'modeltree-claims-'));
+  try {
+    const path = join(dir, 'claims.json');
+    writeFileSync(path, JSON.stringify(bundle, null, 2));
+    return run(GATE_EVIDENCE, ['--claims', path, '--json', ...args]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 describe('gate-evidence', () => {
@@ -689,6 +847,77 @@ describe('gate-evidence', () => {
     assert.equal(result.code, 2);
   });
 
+  // -------------------------------------------------------------------------
+  // `--today`, across its three states (#312). Every other test in this block
+  // pins the clock through `gateBundle`, which covers the **present-but-stale**
+  // cell -- a day supplied on purpose that is not the real one -- and leaves the
+  // other two unexercised. Both are closed here, and they fail differently.
+  // -------------------------------------------------------------------------
+
+  // **Absent.** The default path, and the one every documented invocation of
+  // this gate takes: `node gate-evidence.mjs --claims <path>` supplies no clock.
+  // Until now no test in this file ran it, so the fallback could have been any
+  // constant at all -- including one far enough forward to make the future-date
+  // rule unreachable -- without the suite noticing.
+  test('with no --today the gate falls back to the real clock, so a future fetchedAt is still caught', () => {
+    const future = shiftDays(realToday(), 400);
+    const result = gateBundleWithArgs({
+      runId: 'r1',
+      creator: DEFAULT_PILOT_CREATOR,
+      policy: 'pilot',
+      claims: [claim({ evidence: [{ ...claim().evidence[0], fetchedAt: future }] })],
+    }, []);
+    assertFailed(result, 'evidence', 'is in the future');
+    assert.ok(
+      result.stdout.includes(future),
+      `the refusal must name the date it read as the future:\n${result.stdout}`,
+    );
+    // And the clock it compared against is the real one, not a constant that
+    // happens to sit before the fixture. A frozen fallback would satisfy the
+    // assertion above while being exactly the defect (#318 is the same shape).
+    assert.ok(
+      [shiftDays(realToday(), -1), realToday()].some((day) => result.stdout.includes(`today is ${day}`)),
+      `the fallback clock must be the real one:\n${result.stdout}`,
+    );
+  });
+
+  // **Unknown.** The dangerous half, for the same reason it is in `gate-dataset`:
+  // the future-date rule is a `>` comparison against `startOf(today)`, and
+  // `startOf("soon")` is NaN. NaN loses every comparison, so an unvalidated
+  // `--today` would not shift the clock, it would delete the rule while still
+  // reporting a pass.
+  test('--today that is not a real date exits 2 rather than being carried into the comparison', () => {
+    for (const bad of ['soon', 'not-a-date', '2026-13-01', '2026-02-30', '26-08-25', '']) {
+      const result = gateBundleWithArgs(
+        { runId: 'r1', creator: DEFAULT_PILOT_CREATOR, policy: 'pilot', claims: [claim()] },
+        ['--today', bad],
+      );
+      assert.equal(result.code, 2, `--today ${JSON.stringify(bad)} must not be accepted:\n${result.stdout}`);
+      assert.ok(
+        result.stdout.includes('is not a real date'),
+        `the refusal must name the flag, not fail for some other reason:\n${result.stdout}`,
+      );
+    }
+  });
+
+  // The mirror of gate-scope's and gate-source-approval's unknown-flag tests.
+  // Stated per gate rather than inferred across them: all four scripts hand-roll
+  // their own `parseArgs`, and #168 is open on nothing detecting drift between
+  // them. ADR 0003's "no escape hatch" guardrail is a claim about every gate.
+  test('an unknown flag on the evidence gate exits 2 rather than being ignored', () => {
+    for (const flag of ['--force', '--skip', '--skip-gates', '--yes']) {
+      const result = gateBundleWithArgs(
+        { runId: 'r1', creator: DEFAULT_PILOT_CREATOR, policy: 'pilot', claims: [claim()] },
+        ['--today', TODAY, flag],
+      );
+      assert.equal(result.code, 2, `${flag} must not be recognised, and must never be a pass:\n${result.stdout}`);
+      assert.ok(
+        result.stdout.includes(`unknown flag ${flag}`),
+        `the refusal must name the flag it did not recognise:\n${result.stdout}`,
+      );
+    }
+  });
+
   test('an unknown policy exits 2 rather than falling back to the loose one', () => {
     const result = gateBundle({ policy: 'whatever', claims: [claim()] });
     assert.equal(result.code, 2, result.stdout);
@@ -858,6 +1087,83 @@ describe('gate-evidence', () => {
       );
     } finally {
       rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  // The reviewed-profile **directory**, in its three states (#312). **Absent** is
+  // the test above, which cannot `readdirSync` it at all. **Present-but-stale**
+  // is not a state it has: it is read once per run, straight from disk, and
+  // nothing caches it -- the closest thing, a set that disagrees with this
+  // checkout, is what `--repo` selects on purpose and is tested as such above.
+  // **Unknown** is this test, and it is a genuinely different branch: the
+  // directory reads fine and simply holds nothing that is a profile.
+  //
+  // The refusal must be the second one, not the first. A directory holding only
+  // a README is readable, so the failure has to come from `holds no profiles`;
+  // without that rule the gate loads an empty reviewed set and quietly
+  // classifies every creator in the world as long-tail against nothing.
+  // `long-tail` is declared here deliberately, so a pass could not be mistaken
+  // for the declared/derived mismatch refusal firing instead.
+  test('a reviewed-profile directory that exists but holds no profiles fails closed', () => {
+    const sets = {
+      'nothing at all': {},
+      'a note nobody meant as a profile': { 'README.md': '# not a profile\n' },
+      'only a dotfile': { '.hidden.json': { creator: { id: 'hidden-labs' } } },
+      'only a directory': { generic: null },
+    };
+    for (const [description, entries] of Object.entries(sets)) {
+      const repo = repoWithProfiles(entries);
+      try {
+        const result = gateBundle(
+          { runId: 'r1', creator: 'acme-labs', policy: 'long-tail', claims: [claim()] },
+          { repo },
+        );
+        assert.equal(result.code, 2, `${description}: an empty reviewed set must fail closed:\n${result.stdout}`);
+        assert.ok(
+          result.stdout.includes('holds no profiles'),
+          `${description}: the refusal must be the empty-set one, not another:\n${result.stdout}`,
+        );
+      } finally {
+        rmSync(repo, { recursive: true, force: true });
+      }
+    }
+  });
+
+  // A reviewed **profile** that is not valid JSON. Its siblings are all covered
+  // below and none of them reaches this branch: a padded id, a duplicate id, a
+  // `.JSON` case-variant and an invisible id all parse first. This one does not
+  // parse at all, and the loader's stated contract -- "throws rather than
+  // returning a partial set" -- is what makes it a refusal instead of a profile
+  // that vanishes from the reviewed set with nobody told. A skipped profile is
+  // the silent half: the creator it was written for becomes long-tail, and the
+  // only symptom is a bundle refused for a policy mismatch it did not cause.
+  test('a reviewed profile that is not valid JSON is refused, not skipped', () => {
+    for (const [name, body] of Object.entries({
+      truncated: '{"creator": {"id": "broken-labs"',
+      'not json at all': 'creator: broken-labs\n',
+      empty: '',
+    })) {
+      const repo = repoWithProfiles({
+        'acme.json': { creator: { id: 'acme-labs' } },
+        'broken.json': body,
+      });
+      try {
+        const result = gateBundle(
+          { runId: 'r1', creator: 'acme-labs', policy: 'pilot', claims: [claim()] },
+          { repo },
+        );
+        assert.equal(result.code, 2, `${name}: an unparseable profile must be refused:\n${result.stdout}`);
+        assert.ok(
+          result.stdout.includes('broken.json'),
+          `${name}: the refusal must name the document to fix:\n${result.stdout}`,
+        );
+        assert.ok(
+          result.stdout.includes('not valid JSON'),
+          `${name}: the refusal must say what is wrong with it:\n${result.stdout}`,
+        );
+      } finally {
+        rmSync(repo, { recursive: true, force: true });
+      }
     }
   });
 
@@ -1430,6 +1736,144 @@ describe('gate-source-approval', () => {
     assert.match(result.stdout, /no approved origin at/);
   });
 
+  // -------------------------------------------------------------------------
+  // The **second** trust anchor: `tools/updater/profiles/**` `source_catalog`.
+  //
+  // Until now no test in this block reached it. `approvalRepo` never creates
+  // `tools/updater/profiles`, so `catalogAnchor` returned an empty set in every
+  // case and the whole function could have been deleted outright without the
+  // suite noticing -- which is precisely the "one covered case reads as a
+  // covered axis" pattern #312 exists to stop, with the dataset anchor's own
+  // absent/unknown/stale tests above standing in for it.
+  //
+  // What the two tests below cover, and what they do not. The happy path is
+  // stated separately from the axis, because it is not one of the three states:
+  //
+  //   present -- at the anchor commit, the first test below. Not an axis cell;
+  //              it is the control that proves the anchor is read at all, and
+  //              without it the two cells beneath could both pass vacuously.
+  //              Trust attaches to the origin, so a new page on a catalogued
+  //              origin is admissible.
+  //
+  //   absent  -- every other test in this block, which is why the dataset anchor
+  //              carries them alone; the gate reports `profileCatalogues: 0`.
+  //   unknown -- **not covered, and not N/A.** A catalogue that is present at
+  //              the anchor but unparseable is swallowed by the `catch { continue }`
+  //              in `catalogAnchor` (`gate-source-approval.mjs:257`) and skipped
+  //              with nobody told, so a typo silently narrows the trust boundary
+  //              instead of refusing. It fails closed, which is why it is left
+  //              open here rather than closed with the rest, but it is a real
+  //              gap and is recorded as one on #312 -- not a state this input
+  //              lacks. Do not read the two tests below as covering it.
+  //   stale   -- present, but not at the anchor: only in the working tree, or
+  //              committed by this branch after it left published history. The
+  //              second test below. This is the cell that fails open.
+  // -------------------------------------------------------------------------
+
+  /** A source on an origin the dataset anchor stands behind, so it is not the one under test. */
+  const ANCHORED = {
+    id: 'anchored-source',
+    url: 'https://good.example/a',
+    title: 'G',
+    type: 'official-announcement',
+    publisherId: 'p',
+    lastCheckedDate: TODAY,
+  };
+
+  /** An origin only a reviewed profile catalogue ever stands behind. */
+  const CATALOGUED = 'https://catalogued.example';
+
+  function writeCatalogue(dir, url) {
+    mkdirSync(join(dir, 'tools', 'updater', 'profiles'), { recursive: true });
+    writeFileSync(
+      join(dir, 'tools', 'updater', 'profiles', 'acme.json'),
+      JSON.stringify({ creator: { id: 'acme-labs' }, source_catalog: [{ url }] }, null, 2),
+    );
+  }
+
+  test('a reviewed profile catalogue at the anchor is a trust anchor in its own right', () => {
+    const result = scratchRepo(
+      ({ dir, writeSources, commit, publish }) => {
+        writeSources([ANCHORED]);
+        writeCatalogue(dir, `${CATALOGUED}/newsroom`);
+        commit('the reviewed dataset and its catalogue');
+        publish();
+      },
+      {
+        runId: 'r1',
+        creator: 'someone',
+        policy: 'pilot',
+        // A *different page* on the catalogued origin. Trust attaches to the
+        // origin, so a creator announcing on a new page of its own newsroom is
+        // the ordinary case and the whole point of the refresh.
+        claims: [addSource('acme-launch', `${CATALOGUED}/launch`)],
+      },
+    );
+    assert.equal(result.code, 0, `a catalogued origin is inherited trust:\n${result.stdout}`);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.anchors.profileCatalogues, 1, 'the catalogue must actually have been read');
+    assert.ok(
+      report.anchors.approvedOrigins.includes(CATALOGUED),
+      `the catalogued origin must be approved:\n${result.stdout}`,
+    );
+    // And it came from the catalogue rather than from the dataset: the anchor
+    // tree holds exactly one source, on a different origin. Without this the
+    // test would pass on the dataset anchor alone.
+    assert.equal(report.anchors.datasetSources, 1, 'the dataset anchor holds only the unrelated source');
+    assert.equal(report.inheritedSources.length, 0, 'nothing here was inherited from sources.json');
+  });
+
+  // The mirror of `a source written into the working tree does not approve
+  // itself`, for the other anchor -- and the fail-open half of this input. A run
+  // that could write itself a catalogue would extend the trust boundary to any
+  // host it liked, which is exactly what ADR 0003 keeps as a human act.
+  //
+  // `gate-scope.mjs` refuses any change touching `tools/updater/`, so in the
+  // pipeline this is barred twice. That is not a reason to leave it untested: a
+  // gate that is only closed because another one runs first is not closed, and
+  // this file already states that rule for the claim-shape checks above.
+  test('a profile catalogue this run wrote, rather than inherited, approves nothing', () => {
+    const bundle = {
+      runId: 'r1',
+      creator: 'someone',
+      policy: 'pilot',
+      claims: [addSource('acme-launch', `${CATALOGUED}/launch`)],
+    };
+
+    // Written into the working tree, never committed.
+    const onDisk = scratchRepo(({ dir, writeSources, commit, publish }) => {
+      writeSources([ANCHORED]);
+      commit('the reviewed base');
+      publish();
+      writeCatalogue(dir, `${CATALOGUED}/newsroom`);
+    }, bundle);
+    assertFailed(onDisk, 'source-approval', 'a run cannot approve its own source');
+    const onDiskReport = JSON.parse(onDisk.stdout);
+    assert.equal(onDiskReport.anchors.profileCatalogues, 0, 'an uncommitted catalogue is not at the anchor');
+    assert.ok(
+      !onDiskReport.anchors.approvedOrigins.includes(CATALOGUED),
+      `an uncommitted catalogue must not widen the trust boundary:\n${onDisk.stdout}`,
+    );
+
+    // And one step further on, which is the half that survived the equivalent
+    // dataset-anchor bug: committed by this branch *after* it left published
+    // history. Committing moves HEAD and never the merge base, so this buys the
+    // run nothing either.
+    const committed = scratchRepo(({ dir, writeSources, commit, publish }) => {
+      writeSources([ANCHORED]);
+      commit('the reviewed base');
+      publish();
+      writeCatalogue(dir, `${CATALOGUED}/newsroom`);
+      commit('the run commits its own catalogue, then calls the gate');
+    }, bundle);
+    assertFailed(committed, 'source-approval', 'a run cannot approve its own source');
+    assert.equal(
+      JSON.parse(committed.stdout).anchors.profileCatalogues,
+      0,
+      'a catalogue committed on this branch is not at the merge base',
+    );
+  });
+
   // Malformed shapes are refused, not skipped. A missing `sourceId` already
   // refuses, so a missing `evidence` that silently passed would make absence the
   // most permissive input in a gate about what a run leaves out. `gate-evidence`
@@ -1696,6 +2140,45 @@ describe('gate-scope', () => {
     // Byte-identical to gate-source-approval.mjs's, because #168 is open on the
     // absence of drift detection between the two and this is where drift starts.
     assert.equal(result.report.anchor.selectedBy, 'merge-base with refs/remotes/origin/main');
+  });
+
+  // The fourth half of the working-tree question, and the one #210's three-state
+  // table did not reach (#312). `changedPaths` asks four things and unions the
+  // answers: the committed diff, the unstaged diff, the **staged** diff, and
+  // untracked files. Three have tests -- committed is State B above, unstaged is
+  // the dataset-only and schema-change tests, untracked is the sneaky-file test.
+  // Staged-but-not-committed had none, because every `git add` in this block is
+  // followed immediately by a commit, which moves the change into the first
+  // question and out of this one.
+  //
+  // It is invisible to all three siblings by construction, which is why none of
+  // them covers it: `git add` puts the file in the index, so `ls-files --others`
+  // stops listing it; the worktree then matches the index, so the unstaged diff
+  // is empty; and nothing is committed, so `<anchor>...HEAD` is empty too. Only
+  // `--cached` sees it. Dropping that one line makes the gate report
+  // `empty: true` and exit 0 over an out-of-class change -- the same wrong
+  // success as #210, on a different half of the same input, which is why `empty`
+  // is asserted here rather than only the exit code.
+  test('State D - a staged but uncommitted out-of-class change is refused', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      writeOutOfClass(dir);
+      git('add', '-A');
+      // The preconditions that isolate this half. Without them the test could
+      // pass on the strength of one of the three siblings instead.
+      assert.equal(
+        git('status', '--porcelain').trim(),
+        `A  ${OUT_OF_CLASS}`,
+        'the change must be staged, and only staged',
+      );
+      assert.equal(git('diff', '--name-only').trim(), '', 'nothing may be left unstaged');
+      assert.equal(git('ls-files', '--others', '--exclude-standard').trim(), '', 'nothing may be left untracked');
+      assert.equal(git('rev-list', '--count', 'refs/remotes/origin/main..HEAD').trim(), '0', 'nothing may be committed');
+      return gate('--json');
+    });
+    assert.equal(result.code, 1, `a staged out-of-class change must be refused:\n${result.stdout}`);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.empty, false, 'a staged change must never be reported as an empty tree');
+    assert.deepEqual(report.outOfClass, [OUT_OF_CLASS]);
   });
 
   // -------------------------------------------------------------------------
