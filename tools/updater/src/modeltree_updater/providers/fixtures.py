@@ -26,7 +26,11 @@ from ..contracts import (
     SourceVerdict,
     content_hash,
 )
-from ..profiles import ProfileError, _duplicate_key, _reviewed_profile_paths
+from ..profiles import (
+    _DuplicateIdGuard,
+    _refuse_padded_id,
+    _reviewed_profile_paths,
+)
 from ..review import ClaimReviewRequest, SourceReviewRequest
 from .base import (
     ExtractionResult,
@@ -95,13 +99,18 @@ def load_fixture_library(directory: Path) -> FixtureLibrary:
 
     Two deliberate points about the shared rule, neither of them re-decided here:
 
-    * The collision key folds case; the **lookup does not**. ``self.documents`` and
-      ``self.creators`` stay keyed by the exact declared string, so ``document()`` keeps
-      answering only to the id it was given. Folding widens what is *refused*, never
-      what an id matches.
+    * The collision key folds case and normalises whitespace; the **lookup does not**.
+      ``self.documents`` and ``self.creators`` stay keyed by the exact declared string,
+      so ``document()`` keeps answering only to the id it was given. Folding widens what
+      is *refused*, never what an id matches.
     * A leading dot is judged before the extension, so ``.draft.JSON`` is skipped as
       the author's stated "not part of the working set" rather than refused for its
       case.
+
+    A creator id padded with whitespace is refused outright by
+    :func:`~modeltree_updater.profiles._refuse_padded_id` before it can be counted,
+    which is this loader adopting a rule the long-tail set already had rather than a
+    rule invented for it (#199).
 
     One wording divergence is inherited, not chosen: the shared refusal for a
     case-variant extension says "the reviewed set", which here names the set of
@@ -123,39 +132,28 @@ def load_fixture_library(directory: Path) -> FixtureLibrary:
 
     creators: dict[str, CreatorRequest] = {}
     documents: dict[str, Mapping[str, Any]] = {}
-    sources: dict[Any, tuple[str, Path]] = {}
+    guard = _DuplicateIdGuard(
+        subject="creator id",
+        reason=(
+            "an id has to name exactly one fixture, because a run resolves each "
+            "creator through this library and a silently dropped fixture is a "
+            "green run that quietly did less than it was asked"
+        ),
+    )
     for path in _reviewed_profile_paths(directory, kind="a creator fixture"):
         document = json.loads(path.read_text(encoding="utf-8"))
         creator = document["creator"]
         request = CreatorRequest(
-            creator_id=creator["creator_id"],
+            creator_id=_refuse_padded_id(
+                creator["creator_id"], path=path, subject="creator id"
+            ),
             creator_name=creator["creator_name"],
             entry_urls=tuple(creator.get("entry_urls", ())),
             notes=creator.get("notes"),
         )
-        key = _duplicate_key(request.creator_id)
-        # Neither key space contains the other. Folding catches 'x' against 'X'; the
-        # declared id catches ids that fold apart but are one dict key, such as True
-        # and 1, which the plain assignment below would overwrite in silence.
-        if key in sources or request.creator_id in creators:
-            twin_id, twin_path = sources.get(key) or sources[request.creator_id]
-            reason = (
-                "an id has to name exactly one fixture, because a run resolves each "
-                "creator through this library and a silently dropped fixture is a "
-                "green run that quietly did less than it was asked"
-            )
-            if twin_id != request.creator_id:
-                reason = f"ids differing only in case are one id here, and {reason}"
-            raise ProfileError(
-                f"duplicate creator id {request.creator_id!r} in {path.name} and "
-                f"{twin_id!r} in {twin_path.name}: {reason}"
-            )
+        guard.register(request.creator_id, path)
         creators[request.creator_id] = request
         documents[request.creator_id] = document
-        sources[key] = (request.creator_id, path)
-        # Recorded under the declared id too, so the guard above can name the twin it
-        # found through either key space.
-        sources[request.creator_id] = (request.creator_id, path)
     if not creators:
         raise FileNotFoundError(f"no creator fixtures found in {directory}")
     return FixtureLibrary(creators=creators, documents=documents)

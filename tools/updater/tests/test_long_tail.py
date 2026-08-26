@@ -867,6 +867,28 @@ def test_a_declared_id_padded_with_whitespace_is_refused(tmp_path) -> None:
     assert load_long_tail_profile(padded).id == DEFAULT_LONG_TAIL_PROFILE_ID
 
 
+def test_two_long_tail_ids_differing_only_in_spacing_are_one_id(tmp_path) -> None:
+    """The third set gets the same named test, because the rule is one object.
+
+    Internal spacing is folded rather than refused: it may be deliberate, so refusing
+    it outright would refuse documents that load green today. But `long tail generic`
+    and `long  tail  generic` are one id to a reader and indistinguishable in a diff,
+    so they may not both load. This is here rather than only on the reviewed set
+    because a rule shared by object identity should still be observable from each
+    caller — a future fork of the logic has to break a test in every set it touches.
+    """
+    _reviewed_profile_file(tmp_path / "first.json", profile_id="long tail generic")
+    _reviewed_profile_file(tmp_path / "second.json", profile_id="long  tail  generic")
+
+    with pytest.raises(ProfileError) as error:
+        load_long_tail_library(tmp_path)
+
+    message = str(error.value)
+    assert "duplicate" in message
+    assert "whitespace" in message
+    assert "first.json" in message and "second.json" in message
+
+
 def test_a_run_cannot_be_started_from_an_unreviewed_profile_file(
     tmp_path, fixture_dir
 ) -> None:

@@ -62,7 +62,8 @@ from .profiles import (
     ProfileError,
     SourceAmbiguity,
     TrustedSource,
-    _duplicate_key,
+    _DuplicateIdGuard,
+    _refuse_padded_id,
     _reviewed_profile_paths,
     origin_of,
     source_checkout_profiles,
@@ -303,21 +304,15 @@ def _entity_kind(value: Any, *, path: Path) -> EntityKind:
 def _profile_id(raw: Mapping[str, Any], *, path: Path) -> Any:
     """The declared id, refused rather than tidied when it is padded.
 
-    An id is looked up by the exact string a checkpoint recorded, so a document
-    declaring ``" long-tail-generic "`` answers to a name nobody would type. Stripping
-    it would be worse than refusing: the profile would register under a string the
-    document does not contain, and a reader of the JSON could no longer tell which
-    string resolves. Refusing says exactly what is wrong and cannot change which
-    document any well-formed id resolves to.
+    The rule and its wording are :func:`~modeltree_updater.profiles._refuse_padded_id`'s
+    — this set had it first and the other two did not, which is the same "one rule,
+    three copies" shape the duplicate check itself was factored out of (#151, #199).
+    Sharing it is what stops the three sets from disagreeing again about what a
+    declarable id is.
     """
-    declared = _require(raw, "id", path=path)
-    if isinstance(declared, str) and declared != declared.strip():
-        raise ProfileError(
-            f"{path.name}: profile id {declared!r} has leading or trailing whitespace; "
-            "an id is matched exactly, so declare it without padding rather than "
-            "relying on it being trimmed"
-        )
-    return declared
+    return _refuse_padded_id(
+        _require(raw, "id", path=path), path=path, subject="profile id"
+    )
 
 
 def _review_policy(raw: Mapping[str, Any], *, path: Path) -> ReviewPolicy:
@@ -512,30 +507,17 @@ def load_long_tail_library(
         )
 
     profiles: dict[str, LongTailProfile] = {}
-    sources: dict[Any, tuple[str, Path]] = {}
+    guard = _DuplicateIdGuard(
+        subject="long-tail profile id",
+        reason=(
+            "an id has to name exactly one reviewed document, because a resumed "
+            "run rebuilds its profile from the id the checkpoint recorded"
+        ),
+    )
     for path in _reviewed_profile_paths(directory, kind="a reviewed long-tail profile"):
         profile = load_long_tail_profile(path)
-        key = _duplicate_key(profile.id)
-        # Neither key space contains the other. Folding catches 'x' against 'X'; the
-        # declared id catches ids that fold apart but are one dict key, such as True
-        # and 1, where `profiles` would otherwise overwrite and say nothing.
-        if key in sources or profile.id in profiles:
-            twin_id, twin_path = sources.get(key) or sources[profile.id]
-            reason = (
-                "an id has to name exactly one reviewed document, because a resumed "
-                "run rebuilds its profile from the id the checkpoint recorded"
-            )
-            if twin_id != profile.id:
-                reason = f"ids differing only in case are one id here, and {reason}"
-            raise ProfileError(
-                f"duplicate long-tail profile id {profile.id!r} in {path.name} and "
-                f"{twin_id!r} in {twin_path.name}: {reason}"
-            )
+        guard.register(profile.id, path)
         profiles[profile.id] = profile
-        sources[key] = (profile.id, path)
-        # Recorded under the declared id too, so the guard above can name the twin it
-        # found through either key space.
-        sources[profile.id] = (profile.id, path)
     if not profiles:
         raise FileNotFoundError(
             f"no long-tail profiles found in {directory}\n"

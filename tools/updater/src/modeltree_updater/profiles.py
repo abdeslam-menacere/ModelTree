@@ -302,7 +302,9 @@ def load_profile(path: Path | str) -> CreatorProfile:
 
     extraction_raw = document.get("extraction_rules", {})
     profile = CreatorProfile(
-        creator_id=_require(creator, "id", path=path),
+        creator_id=_refuse_padded_id(
+            _require(creator, "id", path=path), path=path, subject="creator id"
+        ),
         creator_name=_require(creator, "name", path=path),
         creator_type=creator.get("type", "company"),
         aliases=tuple(creator.get("aliases", ())),
@@ -368,21 +370,163 @@ def _reviewed_profile_paths(directory: Path, *, kind: str) -> list[Path]:
     return paths
 
 
-def _duplicate_key(profile_id: str) -> str:
+def _refuse_padded_id(declared_id: Any, *, path: Path, subject: str) -> Any:
+    """A declared id padded with whitespace, refused rather than folded or tidied.
+
+    The decision this states, once, for all three reviewed sets: an id carrying leading
+    or trailing whitespace is **refused outright**, not silently accepted as its
+    stripped form and not merely refused when a twin happens to exist.
+
+    Why refusing beats folding here. Every one of these sets is read by *exact* lookup:
+    the mapping is keyed by the declared string, so a document declaring ``" acme"``
+    answers only to ``" acme"`` and never to the id its author plainly meant. Folding
+    such an id into the collision key alone would catch it only in the company of a
+    twin — the lone typo, which is the far commoner case, would still load and still be
+    unreachable. Stripping it instead would be worse than either: the document would
+    register under a string it does not contain, and a reader of the JSON could no
+    longer tell which string resolves. Refusing says exactly what is wrong, always, and
+    cannot change what any well-formed id resolves to.
+
+    This is not a new rule so much as the removal of a third divergence. The long-tail
+    loader already refused a padded id and the other two did not, which is the same
+    "one rule, three copies" shape that let #108 and #151 each fix a defect that
+    survived elsewhere. The wording is the long-tail one, unchanged apart from
+    ``subject``, so the set that already had this rule reads exactly as it did.
+
+    It is judged per document, at the moment the id is read, because padding is a
+    property of one declaration rather than of a set — a directory holding exactly one
+    such file is just as wrong as one holding two.
+
+    ``isinstance`` guards the check rather than ``str()`` coercing it: whether a
+    non-string id is admissible at all is a separate question (#204), and this refusal
+    deliberately does not answer it. No JSON scalar's ``str()`` is padded anyway, so
+    the guard costs nothing it should have caught.
+    """
+    if isinstance(declared_id, str) and declared_id != declared_id.strip():
+        raise ProfileError(
+            f"{path.name}: {subject} {declared_id!r} has leading or trailing whitespace; "
+            "an id is matched exactly, so declare it without padding rather than "
+            "relying on it being trimmed"
+        )
+    return declared_id
+
+
+def _duplicate_key(profile_id: Any) -> str:
     """The key two documents collide on, which is broader than the key they load under.
 
     Two ids differing only in case are one id to the reader the duplicate check exists
     for: it is there so that nobody has to work out which of two similar documents won.
+    Two ids differing only in how they space themselves are one id to that same reader,
+    and ``"acme labs"`` against ``"acme\u00a0labs"`` is worse than that — they are one id
+    to the *eye*, indistinguishable in any diff. So whitespace is normalised before
+    case is folded: ``str.split`` drops the padding and collapses every internal run to
+    a single space, and it treats a non-breaking space as the space it is drawn as.
+
     Folding is not a *superset* of comparing declared ids, though, and does not replace
-    it: ``True`` and ``1`` fold to different strings while being one dict key, so both
-    loaders guard on both key spaces. What folding cannot do is widen what an id
+    it: ``True`` and ``1`` fold to different strings while being one dict key, so the
+    guard below watches both key spaces. What folding cannot do is widen what an id
     *matches*, because the mapping a run reads is still keyed by the exact declared
     string — a lookup must keep answering to the exact id it was given.
+
+    Every step here only ever removes a distinction, so this key refuses strictly more
+    than the case-only key it replaces and can never refuse less: whitespace
+    normalisation and case folding both commute with each other and neither invents a
+    difference. Padding is additionally refused outright upstream by
+    :func:`_refuse_padded_id`; stripping again here is what keeps this function honest
+    when read on its own, and covers the non-string ids that refusal deliberately
+    leaves alone.
+
+    Not normalised: a zero-width space is not whitespace to Python and stays a real
+    difference between two ids, which is the conservative answer — this fold may only
+    grow what is refused, and guessing at invisible characters one at a time is how it
+    would start shrinking instead.
 
     ``str()`` because a document can declare a non-string id, and refusing that is a
     different question from this one.
     """
-    return str(profile_id).casefold()
+    return " ".join(str(profile_id).split()).casefold()
+
+
+def _id_difference(declared_id: Any, twin_id: Any) -> str:
+    """How two colliding ids differ, named accurately, or ``""`` when they do not.
+
+    The refusal message is the operator's entire diagnosis, so it has to be true. It
+    used to say the two ids "differ only in case" whenever the declared strings were
+    not identical, which is right for ``acme`` against ``ACME`` and false for every
+    type collision the same check catches: someone told that ``1`` and ``"1"`` differ
+    only in case goes looking for a capitalisation problem in a file whose actual
+    problem is that JSON gave them a number.
+
+    Each difference is judged on its own, so a pair differing in more than one way is
+    described as differing in more than one way — ``True`` against ``"true"`` genuinely
+    differs in both type and case. An empty string means nothing can be said beyond
+    "duplicate", which is the honest answer for two documents declaring the very same
+    id, and the caller then adds no clause at all.
+    """
+    differences: list[str] = []
+    if type(declared_id) is not type(twin_id):
+        differences.append("type")
+    left, right = str(declared_id), str(twin_id)
+    if left != right:
+        folded_left, folded_right = " ".join(left.split()), " ".join(right.split())
+        if folded_left.casefold() == folded_right.casefold():
+            if folded_left != left or folded_right != right:
+                differences.append("whitespace")
+            if folded_left != folded_right:
+                differences.append("case")
+    return " and ".join(differences)
+
+
+class _DuplicateIdGuard:
+    """The one duplicate-id rule, owned in one place and shared by all three sets.
+
+    Three loaders — the reviewed creator profiles, the reviewed long-tail profiles and
+    the creator fixtures — each need an id to name exactly one document. Holding that
+    rule in three copies is precisely what let #108 fix it in one set while the others
+    kept the defect, so the rule lives here and the callers supply only what genuinely
+    differs between them: the noun for the thing being counted, and the sentence saying
+    why uniqueness matters for *their* set.
+
+    Two key spaces, watched together, because neither contains the other. The folded
+    key catches ``acme`` against ``ACME``; the declared id catches ids that fold apart
+    while being one dict key, such as ``True`` and ``1``, which a plain assignment
+    would overwrite in silence.
+
+    The collision test *is* the twin lookup, deliberately. Asking "have I seen this?"
+    and then separately asking "what did I see?" is what let a fix in this area raise
+    ``KeyError`` while naming the twin: the two questions were answered by different
+    expressions and could disagree. Here a single ``get`` per key space produces the
+    record, and there is no path that reports a collision without holding the record
+    that proves it.
+    """
+
+    def __init__(self, *, subject: str, reason: str) -> None:
+        self._subject = subject
+        self._reason = reason
+        self._seen: dict[Any, tuple[Any, Path]] = {}
+
+    def register(self, declared_id: Any, path: Path) -> None:
+        """Record ``declared_id`` as this set's, or refuse it and name both documents."""
+        key = _duplicate_key(declared_id)
+        twin = self._seen.get(key)
+        if twin is None:
+            twin = self._seen.get(declared_id)
+        if twin is None:
+            self._seen[key] = (declared_id, path)
+            # Recorded under the declared id too, so a later collision found through
+            # either key space arrives holding the record that names its twin.
+            self._seen[declared_id] = (declared_id, path)
+            return
+
+        twin_id, twin_path = twin
+        reason = self._reason
+        difference = _id_difference(declared_id, twin_id)
+        if difference:
+            reason = f"ids differing only in {difference} are one id here, and {reason}"
+        raise ProfileError(
+            f"duplicate {self._subject} {declared_id!r} in {path.name} and "
+            f"{twin_id!r} in {twin_path.name}: {reason}"
+        )
 
 
 def load_profile_library(
@@ -417,31 +561,17 @@ def load_profile_library(
         )
 
     profiles: dict[str, CreatorProfile] = {}
-    sources: dict[Any, tuple[str, Path]] = {}
+    guard = _DuplicateIdGuard(
+        subject="creator id",
+        reason=(
+            "an id has to name exactly one reviewed profile, because a caller asks "
+            "for a creator by id and the library answers to that exact string"
+        ),
+    )
     for path in _reviewed_profile_paths(directory, kind="a reviewed creator profile"):
         profile = load_profile(path)
-        key = _duplicate_key(profile.creator_id)
-        # Neither key space contains the other. Folding catches 'x' against 'X'; the
-        # declared id catches ids that fold apart but are one dict key, such as True
-        # and 1, which plain dict equality already refused and which folding alone
-        # would let overwrite in silence.
-        if key in sources or profile.creator_id in profiles:
-            twin_id, twin_path = sources.get(key) or sources[profile.creator_id]
-            reason = (
-                "an id has to name exactly one reviewed profile, because a caller asks "
-                "for a creator by id and the library answers to that exact string"
-            )
-            if twin_id != profile.creator_id:
-                reason = f"ids differing only in case are one id here, and {reason}"
-            raise ProfileError(
-                f"duplicate creator id {profile.creator_id!r} in {path.name} and "
-                f"{twin_id!r} in {twin_path.name}: {reason}"
-            )
+        guard.register(profile.creator_id, path)
         profiles[profile.creator_id] = profile
-        sources[key] = (profile.creator_id, path)
-        # Recorded under the declared id too, so the guard above can name the twin it
-        # found through either key space.
-        sources[profile.creator_id] = (profile.creator_id, path)
     if not profiles:
         raise FileNotFoundError(
             f"no creator profiles found in {directory}\n{PROFILES_ARE_REPOSITORY_DATA}"
