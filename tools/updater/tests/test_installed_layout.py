@@ -388,23 +388,44 @@ def _climbs_from_file_root(module_source: str, *, depth: int = 0) -> list[str]:
     appears as ``.parent``/``.parents`` because it is written as ``os.path.dirname``
     nesting, a ``'../..'`` join, or text surgery on the path itself — note the
     asymmetry that ``Path(f'{__file__}')`` is matched as a *root* while a climb
-    spelled inside that same string, ``Path(f'{__file__}/../..')``, is not seen;
-    ``PurePath``, or ``Path`` used under an alias this cannot see; a binding chain
-    read backwards (``b = a`` written above ``a = __file__``, which the single
-    pre-pass below resolves in the other direction only); and a climb assembled
-    across a function-call boundary. It is a stronger net than the literal grep, not
-    a proof of the negative. ``GUARD_KNOWN_LIMITS`` below runs every one of these,
-    so the list is measured rather than asserted and goes red if one is ever closed
-    silently.
+    spelled inside that same string, ``Path(f'{__file__}/../..')``, is not seen; a
+    constructor this cannot recognise as ``Path``, which is ``PurePath`` and ``Path``
+    imported under an alias — one limit with two spellings rather than two limits,
+    since the root is unrecognisable for the same reason either way, and closing
+    either without the other would be arbitrary; a binding chain read backwards
+    (``b = a`` written above ``a = __file__``, which the single pre-pass below
+    resolves in the other direction only); and a climb assembled across a
+    function-call boundary. It is a stronger net than the literal grep, not a proof
+    of the negative. ``GUARD_KNOWN_LIMITS`` below runs every one of these, so the
+    list is measured rather than asserted and goes red if one is ever closed
+    silently. That claim is only worth what its coverage is: every construct named
+    in this block has a row in that table, and a construct named here without one
+    would be exactly the failure this paragraph exists to prevent (#273).
 
-    One widening is deliberate rather than incidental (#273). The ``.__file__``
-    attribute arm does not ask *whose* module object it reads, so
-    ``Path(other_module.__file__).resolve().parents[2]`` is flagged as well as the
-    module's own. That is wanted: climbing out of another module's file to guess a
-    repository path is the same defect with a worse blast radius, because the
-    climbing module does not even own the layout it is assuming. A module that
-    genuinely needs another package's directory has the remedy the failure message
-    already names, ``layout.source_checkout_dir``.
+    Two widenings are deliberate rather than incidental (#273), and are recorded
+    here so the next reader meets them as decisions rather than surprises.
+
+    The first is the ``.__file__`` attribute arm, which does not ask *whose* module
+    object it reads, so ``Path(other_module.__file__).resolve().parents[2]`` is
+    flagged as well as the module's own. That is wanted: climbing out of another
+    module's file to guess a repository path is the same defect with a worse blast
+    radius, because the climbing module does not even own the layout it is assuming.
+    A module that genuinely needs another package's directory has the remedy the
+    failure message already names, ``layout.source_checkout_dir``.
+
+    The second is ``file_vars``, which is module-wide and scope-blind. A name bound
+    to the module's path anywhere in the module marks that name *everywhere* in it,
+    with no notion of scope, shadowing, reachability or rebinding. Five constructs
+    were tried where the name is not the module's path at the point of use — a
+    parameter that shadows it, a class-body attribute, a binding in a branch that
+    never runs, a name later rebound to something else, and an unrelated function's
+    local — and all five flag. This is the larger of the two vectors and it is kept
+    anyway, because it errs toward over-reporting rather than toward missing a real
+    climb, the failure it produces names the expression so a reader can dismiss it
+    in seconds, and there are zero live instances in the package. The alternative is
+    a scope-aware pass, which is a different piece of work; if one of these ever
+    fires on a legitimate module, that is the trigger to do it rather than to
+    loosen the arm.
 
     The list it returns is offenders, each rendered back to source for the failure
     message.
@@ -682,6 +703,13 @@ GUARD_KNOWN_LIMITS = {
     "string '../..' join": "Path(__file__).joinpath('..', '..', '..')",
     # Neither the root nor the climb is legible in this module's text.
     "aliased Path import": "from pathlib import Path as P\nroot = P(__file__).parents[2]",
+    # The same limit as the alias above, spelled the other way: `_is_file_root`
+    # recognises the constructor by the name `Path`, so any other name that
+    # produces a path object is invisible. #273 scopes closing this out, and it
+    # would be arbitrary to close one spelling and leave the other.
+    "PurePath instead of Path": (
+        "from pathlib import PurePath\nroot = PurePath(__file__).parents[2]"
+    ),
     "binding chain read backwards": (
         "b = a\na = __file__\nroot = Path(b).resolve().parents[2]"
     ),
