@@ -117,6 +117,24 @@ withholding would leave the operator with nothing at all. Every refusal goes to
 stderr through one function that spells for *stderr*, which need not share
 stdout's encoding.
 
+A problem is held as **what it is, not as the line it prints**. `render()`
+concatenates an inventory of every examined ADR with the problems block into one
+string, so `"<filename>" in report.render()` is satisfied by the inventory
+whatever the diagnosis actually says: an assertion meant to prove that a
+`DUPLICATE` message names both contested files passed against a checker that
+said "claimed by 2 files" and then named one. That was found twice in this file,
+both times by someone reading it rather than by a test going red, and both times
+repaired by slicing the paragraph out of the rendered text before asserting.
+Slicing works, and it is a habit -- the next person to write an assertion here
+has to remember it, and two people already did not. So each problem is a frozen
+`Problem` carrying its kind, the number it concerns, the paths it names and its
+message, and formatting happens at the edge in `render()`. The report text is
+unchanged; what changes is that `problem.paths` *is* the diagnosis, and the
+inventory cannot be reached from it. The count in "claimed by N files" is
+derived from those same paths as the message is built, so a report that states
+one number and then lists a different one is no longer a thing this code can
+express.
+
 Standard library only, and no network: `pip install` fails on the development
 machine.
 
@@ -262,13 +280,65 @@ class Adr:
     path: str
 
 
+# The four diagnoses this checker can reach, named once. `Problem.kind` is the
+# label the report prints and the label a test selects on, and spelling either
+# of them by hand at a call site is how the two drift apart.
+DUPLICATE = "DUPLICATE"
+UNNUMBERED = "UNNUMBERED"
+NON_ASCII_NUMBER = "NON-ASCII NUMBER"
+EMPTY = "EMPTY"
+
+
+@dataclass(frozen=True)
+class Problem:
+    """One diagnosis, structured, with its text produced on demand.
+
+    `kind` is which refusal this is, `number` the ADR number it concerns (the
+    contested one for a `DUPLICATE`, the number a non-ASCII name *reads* as for
+    a `NON-ASCII NUMBER`, and None where no number could be read at all),
+    `paths` the files the diagnosis is about, and `message` the sentence that
+    explains it. A test asserts against those fields; nothing in them is
+    reachable from the inventory `Report.render()` prints above the problems
+    block, which is the entire point of holding them this way.
+
+    `DUPLICATE` is the one kind that lists its paths, because it is the one
+    kind about a *set* of files -- every other diagnosis concerns one file and
+    says so in a sentence. Its stated count is `len(self.paths)`, computed here
+    rather than carried, so the count and the list are the same fact rendered
+    twice and cannot disagree.
+
+    Paths and the number are spelled on the way out for the reason `Adr.path`
+    is: both are `str`, so a caller may put a line ender in one, and `render()`
+    joins with "\\n". Production values arrive from `display()`, which has
+    already spelled them, and `spelled()` is idempotent -- so this costs the
+    real output nothing and closes the forge on a record built directly.
+    """
+
+    kind: str
+    message: str
+    number: str | None = None
+    paths: tuple[str, ...] = ()
+
+    def render(self) -> str:
+        if self.kind == DUPLICATE:
+            return "\n".join(
+                [
+                    f"  {self.kind}: ADR {spelled(self.number or '')} is "
+                    f"claimed by {len(self.paths)} files:",
+                    *(f"      {spelled(path)}" for path in self.paths),
+                    f"      {self.message}",
+                ]
+            )
+        return f"  {self.kind}: {self.message}"
+
+
 @dataclass
 class Report:
     directory: Path
     base: Path
     adrs: list[Adr] = field(default_factory=list)
     ignored: list[tuple[str, str]] = field(default_factory=list)
-    problems: list[str] = field(default_factory=list)
+    problems: list[Problem] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -308,7 +378,7 @@ class Report:
         )
         if self.problems:
             lines.append("")
-            lines.extend(self.problems)
+            lines.extend(problem.render() for problem in self.problems)
             lines.append("")
             lines.append(
                 "FAIL: an ADR number does not identify exactly one decision "
@@ -398,20 +468,35 @@ def check(directory: Path, base: Path = REPO_ROOT) -> Report:
                 digits = near_miss.group(1)
                 codepoints = " ".join(f"U+{ord(char):04X}" for char in digits)
                 report.problems.append(
-                    f"  NON-ASCII NUMBER: {shown} begins with four digits that "
-                    f"are not ASCII 0-9 ({codepoints}), so it reads as ADR "
-                    f"{int(digits):04d} to a human while colliding with no "
-                    "other file's number here. Renaming it with ASCII digits "
-                    "0-9 is the only fix: it is a decision record, so its "
-                    "number has to be one this check can compare."
+                    Problem(
+                        kind=NON_ASCII_NUMBER,
+                        number=f"{int(digits):04d}",
+                        paths=(shown,),
+                        message=(
+                            f"{shown} begins with four digits that "
+                            f"are not ASCII 0-9 ({codepoints}), so it reads "
+                            f"as ADR {int(digits):04d} to a human while "
+                            "colliding with no other file's number here. "
+                            "Renaming it with ASCII digits 0-9 is the only "
+                            "fix: it is a decision record, so its number has "
+                            "to be one this check can compare."
+                        ),
+                    )
                 )
                 continue
             report.problems.append(
-                f"  UNNUMBERED: {shown} is a Markdown file under "
-                f"{spelled(directory.as_posix())} that is neither named "
-                "NNNN-title.md nor a known companion, so no number can be read "
-                "from it and it cannot be checked for a collision. Rename it, "
-                "or add its name to COMPANION_NAMES."
+                Problem(
+                    kind=UNNUMBERED,
+                    paths=(shown,),
+                    message=(
+                        f"{shown} is a Markdown file under "
+                        f"{spelled(directory.as_posix())} that is neither "
+                        "named NNNN-title.md nor a known companion, so no "
+                        "number can be read from it and it cannot be checked "
+                        "for a collision. Rename it, or add its name to "
+                        "COMPANION_NAMES."
+                    ),
+                )
             )
             continue
         report.adrs.append(Adr(number=match.group(1), path=shown))
@@ -420,21 +505,33 @@ def check(directory: Path, base: Path = REPO_ROOT) -> Report:
 
     # Both paths and the number, so the fix is obvious without opening either
     # file -- the whole point is that the two documents do not otherwise touch.
+    # The paths go on the record rather than into a formatted block: the stated
+    # count is derived from them in `Problem.render()`, so "claimed by N files"
+    # over a shorter list is unrepresentable rather than merely untested.
     for number, paths in report.duplicates.items():
-        listed = "\n".join(f"      {path}" for path in paths)
         report.problems.append(
-            f"  DUPLICATE: ADR {number} is claimed by {len(paths)} files:\n"
-            f"{listed}\n"
-            "      An ADR number must identify exactly one decision record. "
-            "Renumber all but one of these to the next unused number."
+            Problem(
+                kind=DUPLICATE,
+                number=number,
+                paths=tuple(paths),
+                message=(
+                    "An ADR number must identify exactly one decision record. "
+                    "Renumber all but one of these to the next unused number."
+                ),
+            )
         )
 
     if not report.adrs and not report.problems:
         report.problems.append(
-            f"  EMPTY: no ADR files were found under "
-            f"{spelled(directory.as_posix())}. A duplicate check that examines "
-            "nothing passes for the wrong reason, so this is reported as a "
-            "failure rather than a clean run."
+            Problem(
+                kind=EMPTY,
+                message=(
+                    f"no ADR files were found under "
+                    f"{spelled(directory.as_posix())}. A duplicate check that "
+                    "examines nothing passes for the wrong reason, so this is "
+                    "reported as a failure rather than a clean run."
+                ),
+            )
         )
 
     return report
