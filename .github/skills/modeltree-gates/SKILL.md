@@ -67,8 +67,12 @@ scripts and Zod ever disagree, Zod wins and the script is wrong.
 - evidence whose `retrieval` is anything but `fetch`. **A search snippet is
   never evidence.** This is the single most important rule in the file — it is
   the mechanical form of the source policy, so it holds when nobody remembers it;
-- evidence with no `sha256:` content hash of the page that was actually read, no
-  real `fetchedAt`, or a quote too short to show the source stating the claim;
+- evidence with no well-formed `sha256:` content hash, no real `fetchedAt`, or a
+  quote too short to show the source stating the claim. The gate checks the
+  **form** of the hash and quote, never that they match the remote page — it
+  fetches nothing, so both are self-authored by the run and unverified against
+  their source. That accepted limit and what compensates for it are recorded in
+  ADR 0005;
 - a review panel that is incomplete, that let one rubric vote twice, or that gave
   a verdict without a rationale;
 - a change that did not reach its threshold — 2-of-3 for a pilot creator,
@@ -202,9 +206,12 @@ for a human: stop, and file an issue describing what it needed and why.
 node --test .github/skills/modeltree-gates/scripts/gates.test.mjs
 ```
 
-93 tests. Every rule is proved to fire by breaking the data in exactly the way
+94 tests. Every rule is proved to fire by breaking the data in exactly the way
 that rule exists to catch, and the live repository dataset is asserted to pass —
 so the suite fails both when a gate goes blind and when a gate goes paranoid.
+One test is a deliberate exception: it characterises the accepted limit of ADR
+0005 — that `gate-evidence` checks the form of a citation, not its remote content
+— by pinning that a well-formed but fabricated hash and quote pass.
 The `gate-source-approval` cases build a throwaway git repository with its own
 published `refs/remotes/origin/main`, because the anchor is defined against
 published history and a CI checkout does not always have that ref; the dataset
