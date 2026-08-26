@@ -162,6 +162,34 @@ messages, and `resume` refuses to continue if the requested providers differ fro
 ones that produced the checkpoint. A resumed run can never quietly finish against
 fixtures while claiming otherwise.
 
+So does the identity of the code. Every checkpoint records the **tool version** that
+wrote it and a **checkpoint schema version**, and `resume` refuses — before it looks at
+the providers, the profile, or anything else in the state — unless both match the build
+reading it. The two answer different questions: which code adjudicated the run, and which
+shape the state is in. They move independently — a release need not bump the schema
+version — but the gate compares both, so a release that leaves the state's shape untouched
+still invalidates work in flight: a checkpoint written by `0.0.9` is refused by `0.1.0`
+with the schema version identical on either side. Finish a run before upgrading the tool,
+or start it again afterwards.
+
+This is a version marker, not a content hash of the profile set. A hash would make every
+benign profile edit invalidate every outstanding checkpoint, and ADR 0002 considered and
+rejected it. The marker detects only the case that reasoning left open: the code that
+interprets the state changed.
+
+The refusal is a refusal, not a warning. A run's supersteps are adjudicated one at a time,
+so a build change across a resume produces a single proposal decided under two sets of
+rules with nothing on its face saying so — there is no partial outcome for a warning to be
+useful for. `CheckpointVersionMismatch` names the build that wrote the checkpoint, the
+build reading it, which of the two numbers differ, and what the operator can do; like the
+other resume refusals it is non-retryable and exits 2.
+
+A checkpoint written **before** the marker existed carries none, and is refused as well.
+Absence is not treated as the permissive case: an unmarked checkpoint cannot be shown to
+match, and those that exist are exactly the ones written when `--long-tail-profile` still
+took a path, carrying an id from a document the reviewed set never saw. There is no
+checkpoint corpus to migrate; start such a run again rather than resuming it.
+
 Claims are judged twice, in two different ways. **Three semantic reviewers** each answer
 a different question and vote; **deterministic gates** then decide whether the candidate
 is admissible at all. See "Review and gates" below.

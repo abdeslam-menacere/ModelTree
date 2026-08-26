@@ -1027,11 +1027,13 @@ def test_an_in_process_colliding_profile_resumes_under_the_reviewed_document(
     """The residual ADR 0002 accepts, pinned so the prose cannot drift off it.
 
     The CLI cannot *start* this run — that is what the reviewed set is for — but the
-    loader still takes a path, so in-process code can, and a checkpoint written by an
-    older build that accepted paths records no schema or tool-version marker, so a
-    resume can still reach this state through the CLI. When such a profile declares
-    an id the reviewed set *does* contain, the resume rebuilds from that id and gets
-    the reviewed document back: #94's substitution, surviving on the Python API.
+    loader still takes a path, so in-process code can. A checkpoint written by an older
+    build that accepted paths carries no version marker and is refused outright since
+    #140, so the CLI can no longer resume into this state either; what survives is this
+    in-process route, where the checkpoint is written by the current build and satisfies
+    the version gate like any other. When such a profile declares an id the reviewed set
+    *does* contain, the resume rebuilds from that id and gets the reviewed document
+    back: #94's substitution, surviving on the Python API.
 
     This is documented, not fixed. It resolves towards the reviewed document rather
     than away from it, which is the safe direction for *provenance* — though not
