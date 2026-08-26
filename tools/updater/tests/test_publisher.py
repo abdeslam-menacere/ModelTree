@@ -612,27 +612,37 @@ def test_two_overrunning_executions_one_timer_tick_apart_render_identically(
 # the sentence states its own evidence and can be audited by reading it.
 # Rewording either mention into the present tense is the defect to watch for; a
 # name that no longer resolves is not, on its own, a defect here.
-def test_the_published_seconds_cells_hold_the_sentinel_rather_than_a_measurement(
+def test_the_published_clock_cells_are_redacted_and_the_counter_cells_are_not(
     proposal_factory, fake_issues_client
 ) -> None:
-    """The invariant #149 established, asserted by name on the cells that carry it.
+    """The cells that carry the clock hold the sentinel; the counters beside them do not.
 
-    Scope, stated because the name used to claim more than the body checks: what
-    is pinned here is the budget table's `seconds` `Used` cell and, per seconds
-    exhaustion, the failure row's `used` detail cell and its rebuilt message
-    cell. Those are the cells this run's measurements are rendered into, and they
-    are all this test speaks for.
+    Scope, stated because the name used to claim more than the body checks. Six
+    cells are pinned, in two groups with opposite expectations. Three carry this
+    run's measurements and must hold the sentinel: the budget table's `seconds`
+    `Used` cell and, per seconds exhaustion, the failure row's `used` detail
+    cell and its rebuilt message cell. Three sit beside them and must hold their
+    real counted values: the budget table's `pages`, `tokens` and `retries`
+    `Used` cells. Those six together are what this test speaks for.
+
+    The second group is load-bearing rather than incidental. Redact any one of
+    those three counter cells in `_budget_section` and exactly one test in the
+    suite fails — this one. It is the only assertion in the repository that
+    rejects "redact the whole table" as a way of satisfying #149, so removing it
+    as though it were a detail of the clock property would drop that check
+    entirely.
 
     It is *not* the whole-body property. A measured value that reaches the
-    published body somewhere other than those cells is not caught here. On the
-    send path `test_the_rendered_payload_is_what_gets_sent` catches it, by
+    published body somewhere other than those six cells is not caught here. On
+    the send path `test_the_rendered_payload_is_what_gets_sent` catches it, by
     pinning the sent body to the rendered payload byte for byte. On the render
     path `test_two_overrunning_executions_one_timer_tick_apart_render_identically`
     catches it whenever it varies between the two executions — which is any
     faithful rendering of a measurement, though not one bucketed coarsely enough
     to come out equal in both. This test was named
     `test_the_published_body_carries_no_measured_value` until #309, which read as
-    that universal property; the name narrowed, the assertions did not change.
+    that universal property. The name now names the cells instead; the
+    assertions did not change.
 
     This is what `test_re_rendering_the_same_run_adds_no_comment_and_no_churn`
     was reaching for and could only reach by luck. That test published one run
@@ -645,7 +655,7 @@ def test_the_published_seconds_cells_hold_the_sentinel_rather_than_a_measurement
     which forces the difference instead of racing for it, so it was removed
     (#197) and the property it was standing in for is stated here directly.
 
-    Stated *positively*, cell by cell: each cell pinned below holds the sentinel,
+    Stated *positively*, cell by cell: each clock cell holds the sentinel,
     rather than merely not holding the measurement. Absence alone would not be
     enough — `"4m"` is not the measured value, yet it is still derived from the
     clock and still churns whenever two executions straddle a bucket boundary.
@@ -657,9 +667,10 @@ def test_the_published_seconds_cells_hold_the_sentinel_rather_than_a_measurement
     What that positive form is worth, measured rather than assumed. Bucketing was
     not an open gap this test closed: #197's QA planted it and counted 12 catchers
     at the merge-base against 13 with this test present, and across nine planted
-    faults this test adds a catcher six times and is never the sole catcher
-    suite-wide. The narrower claim is the one that holds. Within the idempotency
-    pair — this test and
+    faults this test adds a catcher six times and is never the sole catcher.
+    That holds for those nine, which all break the clock; on the counter cells
+    above it is the sole catcher. The narrower claim is the one that holds.
+    Within the idempotency pair — this test and
     `test_re_publishing_a_run_that_took_longer_adds_no_comment_and_no_churn` — it
     is the only member that catches a bucketed measurement, because bucketing
     puts both of the sibling's clocks in the same bucket and its byte-identity
@@ -1241,7 +1252,7 @@ def test_a_first_publication_supersedes_nothing(
 
 # The removed test named in the docstring below is deliberate past-tense
 # provenance; the note above
-# `test_the_published_seconds_cells_hold_the_sentinel_rather_than_a_measurement`
+# `test_the_published_clock_cells_are_redacted_and_the_counter_cells_are_not`
 # records why it stays and why no tooling checks it (#309).
 def test_re_publishing_a_run_that_took_longer_adds_no_comment_and_no_churn(
     proposal_factory, fake_issues_client
@@ -1259,7 +1270,7 @@ def test_re_publishing_a_run_that_took_longer_adds_no_comment_and_no_churn(
     this test and left that one in place beside it; #197 removed it, having
     established that all four of its assertions are made here. The invariant it
     was standing in for is asserted directly, and positively, by
-    `test_the_published_seconds_cells_hold_the_sentinel_rather_than_a_measurement`.
+    `test_the_published_clock_cells_are_redacted_and_the_counter_cells_are_not`.
     """
     client = fake_issues_client()
     publish_proposal(proposal_factory(MATERIAL, run_id="run-a"), client)
