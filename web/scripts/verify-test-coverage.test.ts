@@ -7,6 +7,7 @@ import {
   emptyReportedFiles,
   executionCountsByFile,
   executionTotals,
+  EXECUTED_STATUSES,
   formatCoverageSummary,
   formatFailureReport,
   formatUnexercisedNote,
@@ -347,11 +348,14 @@ describe('skipped-only test files', () => {
 
   // Acceptance criterion: it.todo and describe.skip are handled the same way as
   // it.skip. Each is checked on its own so a regression naming only one of them
-  // cannot hide behind the others.
+  // cannot hide behind the others. Issue #307 adds jest's `disabled` to the
+  // list: it is the third status its criterion 2 names, and like `pending` it is
+  // neither skipped nor todo.
   it.each([
     ['it.skip', 'skipped'],
     ['it.todo', 'todo'],
     ["jest's pending", 'pending'],
+    ["jest's disabled", 'disabled'],
     ['a status no vitest version has emitted yet', 'not-a-real-status'],
   ])('treats %s as not executed', (_label, status) => {
     const report = {
@@ -364,6 +368,16 @@ describe('skipped-only test files', () => {
       notExecuted: 1,
     });
     expect(unexecutedReportedFiles(report, '/repo/web')).toEqual(['src/only.test.ts']);
+  });
+
+  // Issue #307, criterion 3. The allow-list is the safe half of finding 2 and
+  // must survive the wording fix, so it is pinned as a set rather than only
+  // sampled through statuses. Widening it -- to make the old "skipped or todo"
+  // sentence true, say -- would count an unrecognised status as exercised, which
+  // is the exact failure mode (overstating what ran) this whole guard exists to
+  // close. The wording was changed instead; this set must not be.
+  it('recognises exactly passed and failed as executed, and nothing else', () => {
+    expect([...EXECUTED_STATUSES].sort()).toEqual(['failed', 'passed']);
   });
 
   it('counts a failed test as executed, because its body did run', () => {
@@ -496,11 +510,15 @@ describe('the coverage summary wording', () => {
 
     expect(summary).toBe(
       'test-coverage check: all 19 discovered test file(s) reported results and all executed ' +
-        'at least one test (400 reported test(s): 400 executed, 0 skipped/todo).',
+        'at least one test (400 reported test(s): 400 executed, 0 not executed).',
     );
   });
 
-  it('states how many tests were skipped rather than folding them into the total', () => {
+  // The tally names the test that was applied, not a cause. `EXECUTED_STATUSES`
+  // is an allow-list, so the not-executed bucket also holds `pending`,
+  // `disabled`, and any status a future vitest adds -- none of which is skipped
+  // or todo (issue #307, finding 2).
+  it('states how many tests did not execute rather than folding them into the total', () => {
     const summary = formatCoverageSummary({
       expectedFileCount: 19,
       reportedFileCount: 19,
@@ -508,7 +526,8 @@ describe('the coverage summary wording', () => {
       unexecuted: ['src/quarantined.test.ts'],
     });
 
-    expect(summary).toContain('400 reported test(s): 396 executed, 4 skipped/todo');
+    expect(summary).toContain('400 reported test(s): 396 executed, 4 not executed');
+    expect(summary).not.toContain('skipped/todo');
   });
 
   // The defect in one assertion: the old line said "all reported results" and
@@ -585,6 +604,89 @@ describe('the coverage summary wording', () => {
     expect(summary).not.toContain('all 20');
     expect(summary).toContain('19 of 20 discovered test file(s) reported results');
   });
+
+  // Issue #307, finding 3 / criterion 4, and it is demonstrated by calling the
+  // function directly on purpose. `main` never produces this input, because it
+  // refuses before printing when `empty` is non-empty -- so the healthy claim
+  // was true only because of where it was called from, which is the defect class
+  // this file's own docstring warns about one level up.
+  it('never claims execution when the tally in the same sentence says nothing ran', () => {
+    const summary = formatCoverageSummary({
+      expectedFileCount: 2,
+      reportedFileCount: 2,
+      totals: { total: 0, executed: 0, notExecuted: 0 },
+      unexecuted: [],
+    });
+
+    expect(summary).not.toContain('all executed at least one test');
+    expect(summary).toContain('no reported test executed');
+    expect(summary).toContain('0 reported test(s): 0 executed, 0 not executed');
+  });
+
+  // The other half of the same fix: the guard belongs in the function, so the
+  // set of present-but-empty files is taken as an argument rather than assumed
+  // away because some caller happens to filter it.
+  it('accounts for files that reported no results at all, instead of ignoring them', () => {
+    const summary = formatCoverageSummary({
+      expectedFileCount: 2,
+      reportedFileCount: 2,
+      totals: { total: 0, executed: 0, notExecuted: 0 },
+      empty: ['src/killed.test.ts'],
+      unexecuted: [],
+    });
+
+    expect(summary).not.toContain('all executed at least one test');
+    expect(summary).toContain('1 of them reported no test results at all');
+  });
+
+  it('names both shortfalls when a run has an empty file and a quarantined one', () => {
+    const summary = formatCoverageSummary({
+      expectedFileCount: 3,
+      reportedFileCount: 3,
+      totals: { total: 3, executed: 2, notExecuted: 1 },
+      empty: ['src/killed.test.ts'],
+      unexecuted: ['src/quarantined.test.ts'],
+    });
+
+    expect(summary).not.toContain('all executed at least one test');
+    expect(summary).toContain('1 of them executed no tests');
+    expect(summary).toContain('1 of them reported no test results at all');
+    expect(summary).toContain('src/quarantined.test.ts');
+  });
+
+  // Issue #307, criterion 2, driven through the real helpers rather than with a
+  // hand-written `unexecuted` list, so what is checked is the sentence the
+  // pipeline actually prints for a status the allow-list does not recognise.
+  it.each(['pending', 'disabled', 'quarantined'])(
+    'never calls a %s result skipped or todo, because the allow-list cannot know',
+    (status) => {
+      const report = {
+        testResults: [
+          {
+            name: '/repo/web/src/only.test.ts',
+            assertionResults: [{ status }, { status }],
+          },
+        ],
+      };
+      const unexecuted = unexecutedReportedFiles(report, '/repo/web') as string[];
+
+      const summary = formatCoverageSummary({
+        expectedFileCount: 1,
+        reportedFileCount: 1,
+        totals: executionTotals(report, '/repo/web'),
+        empty: emptyReportedFiles(report, '/repo/web') as string[],
+        unexecuted,
+      });
+
+      expect(unexecuted).toEqual(['src/only.test.ts']);
+      expect(summary).toContain('src/only.test.ts');
+      expect(summary).toContain('2 reported test(s): 0 executed, 2 not executed');
+      // The whole of finding 2 in two assertions: the file is still named, and
+      // the output does not attribute a cause the code never established.
+      expect(summary).not.toContain('skipped');
+      expect(summary).not.toContain('todo');
+    },
+  );
 });
 
 // What `main` prints underneath a refusal. This is the wording the review gate
@@ -603,6 +705,18 @@ describe('the failure-path note', () => {
     expect(note).toContain('NOT exercised');
     expect(note).toContain('src/one.test.ts, src/two.test.ts');
     expect(note).toContain('Reported, not refused');
+  });
+
+  // Issue #307, finding 2. The note used to read "every test in them is skipped
+  // or todo", which the allow-list at `EXECUTED_STATUSES` cannot establish -- a
+  // `pending`, a `disabled`, or a status a future vitest invents lands in this
+  // set too. The sentence now states the test that was applied.
+  it('states the test that was applied, not a cause the allow-list cannot support', () => {
+    const note = formatUnexercisedNote({ unexecuted: ['src/quarantined.test.ts'] });
+
+    expect(note).toContain("no result in them had status 'passed' or 'failed'");
+    expect(note).not.toContain('skipped or todo');
+    expect(note).not.toContain('every test in them');
   });
 
   // The blocking finding, stated as a property: the note goes out under a
@@ -710,5 +824,55 @@ describe('the failure report block', () => {
         '\n' +
         'Discovered 19 test file(s); the report holds results for 18.',
     );
+  });
+});
+
+// Issue #307, finding 4 / criterion 5. `JSON.parse` turns a file containing the
+// four bytes `null` into `null`, so this is a real input, not a hypothetical.
+// Every reader in the script guarded it except `reportedFilesFrom`, which meant
+// one malformed-input path surfaced a raw TypeError while all its neighbours
+// refused in the checker's own words. The run was refused either way -- the
+// defect was the inconsistency, so what is pinned here is that they now agree.
+describe('a report that is null rather than an object', () => {
+  const readers = [
+    ['reportedFilesFrom', () => reportedFilesFrom(null, '/repo/web')],
+    ['testCountsByFile', () => testCountsByFile(null, '/repo/web')],
+    ['emptyReportedFiles', () => emptyReportedFiles(null, '/repo/web')],
+    ['executionCountsByFile', () => executionCountsByFile(null, '/repo/web')],
+    ['executionTotals', () => executionTotals(null, '/repo/web')],
+    ['unexecutedReportedFiles', () => unexecutedReportedFiles(null, '/repo/web')],
+  ] as const;
+
+  it.each(readers)('%s reads it without throwing a TypeError', (_name, read) => {
+    expect(read).not.toThrow();
+  });
+
+  it('reads as a report holding nothing, exactly as its neighbours already did', () => {
+    expect(reportedFilesFrom(null, '/repo/web')).toEqual([]);
+    expect(emptyReportedFiles(null, '/repo/web')).toEqual([]);
+    expect(unexecutedReportedFiles(null, '/repo/web')).toEqual([]);
+    expect(testCountsByFile(null, '/repo/web').size).toBe(0);
+    expect(executionTotals(null, '/repo/web')).toEqual({
+      total: 0,
+      executed: 0,
+      notExecuted: 0,
+    });
+  });
+
+  // Guarding it must not soften it. A report holding nothing still loses every
+  // discovered file, so the run is refused -- through the checker's own message,
+  // naming the files, which is the whole point of the alignment.
+  it('is still fail-closed: the run refuses, and names what it lost', () => {
+    const result = compareCoverage({
+      expected: ['src/a.test.ts', 'src/b.test.ts'],
+      reported: reportedFilesFrom(null, '/repo/web') as string[],
+      empty: emptyReportedFiles(null, '/repo/web') as string[],
+      unexecuted: unexecutedReportedFiles(null, '/repo/web') as string[],
+      report: null as unknown as object,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.missing).toEqual(['src/a.test.ts', 'src/b.test.ts']);
+    expect(result.problems.join('\n')).toContain('produced no result');
   });
 });

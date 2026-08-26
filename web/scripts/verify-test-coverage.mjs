@@ -81,6 +81,16 @@
 // property this check is about. Whether the author intends to come back is not
 // something the JSON report records and not something this guard should guess.
 //
+// `describe.todo` is the exception to that equivalence, and it is forced by
+// what vitest emits rather than chosen here: a file whose only suite is
+// `describe.todo` produces no `assertionResults` entries at all (observed,
+// vitest 4.1.10, alongside the statuses listed above), so it never reaches this
+// branch. It lands in #245's present-but-empty set and is *refused*, where an
+// `it.todo`-only file is merely named. That asymmetry is the safe direction --
+// the stricter outcome for the case this file cannot tell apart from a dropped
+// worker -- and it is written down here only so the next reader does not have
+// to rediscover it by experiment (issue #307, finding 5).
+//
 // Known limits, stated rather than papered over:
 //   - This does not stop a skip from reaching main. It makes the skip loud at
 //     the point the coverage claim is made; it does not refuse the run. A skip
@@ -91,12 +101,19 @@
 //     (jest's `pending`/`disabled`, or anything a future vitest adds) therefore
 //     counts as *not* executed. That is the deliberate direction to be wrong in:
 //     the failure mode being closed is overstating what ran, so an unknown
-//     status must never be silently counted as exercised.
+//     status must never be silently counted as exercised. The output is held to
+//     the same standard (issue #307, finding 2): it says a file executed no
+//     tests and states the test that was applied, and it does not name skip or
+//     todo as the cause, because an allow-list cannot establish one. A status
+//     of `pending`, `disabled`, or anything a future vitest adds is neither
+//     skipped nor todo, and describing it as either would be the printed claim
+//     outrunning the code again. The fix for that wording is the wording; it is
+//     never to widen this set so the old sentence becomes true.
 //   - It is per-file, not per-test. A file with 40 tests where 39 are skipped
 //     still executed one, so it is not named on the not-exercised line. The
-//     run-wide skipped/todo tally on the summary line is what surfaces that
-//     case; there is no per-file threshold, because any threshold would be a
-//     number this code asserts rather than derives.
+//     run-wide executed/not-executed tally on the summary line is what surfaces
+//     that case; there is no per-file threshold, because any threshold would be
+//     a number this code asserts rather than derives.
 //   - A test that runs but asserts nothing is not detected, and cannot be from
 //     this input. A body that executes and reaches its end -- assertions behind
 //     an `if (false)`, an `expect` never called, an async assertion never
@@ -288,9 +305,13 @@ export function executionTotals(report, root) {
 
 /**
  * The normalised names of files that reported at least one result but executed
- * none of them -- every test skipped or todo. The `total > 0` guard is what
- * keeps this disjoint from #245's `empty` set: a file with no results at all is
- * that branch's failure and must not be double-reported here as a quarantine.
+ * none of them -- no result carried a status in `EXECUTED_STATUSES`. The set is
+ * deliberately described by the test that produced it rather than by a cause:
+ * an allow-list establishes "not recognised as executed", never "skipped or
+ * todo", and a `pending` or `disabled` result lands here too. The `total > 0`
+ * guard is what keeps this disjoint from #245's `empty` set: a file with no
+ * results at all is that branch's failure and must not be double-reported here
+ * as a quarantine.
  */
 export function unexecutedReportedFiles(report, root) {
   return [...executionCountsByFile(report, root).entries()]
@@ -310,6 +331,12 @@ export function unexecutedReportedFiles(report, root) {
  * was printed whole on a failing run, so a run with a dropped file still
  * announced that every discovered file had reported results.
  *
+ * The sentence names the test that was applied, not a cause. It used to read
+ * "every test in them is skipped or todo", which the mechanism above cannot
+ * establish: `EXECUTED_STATUSES` is an allow-list, so `pending`, `disabled`, or
+ * any status a future vitest adds also arrives here and is neither skipped nor
+ * todo (issue #307, finding 2).
+ *
  * @param {{ unexecuted?: string[] }} input
  * @returns {string}
  */
@@ -319,8 +346,8 @@ export function formatUnexercisedNote({ unexecuted = [] }) {
   }
 
   return (
-    `  Discovered and reported, but NOT exercised -- every test in them is skipped or todo: ` +
-    `${unexecuted.join(', ')}\n` +
+    `  Discovered and reported, but NOT exercised -- no result in them had status ` +
+    `'passed' or 'failed': ${unexecuted.join(', ')}\n` +
     `  Reported, not refused: a deliberately quarantined suite is a legitimate state. See the ` +
     `known-limits note in scripts/verify-test-coverage.mjs.`
   );
@@ -337,13 +364,25 @@ export function formatUnexercisedNote({ unexecuted = [] }) {
  * true the moment it was also called on the failure path. A claim that depends
  * on its call site is the same defect class #270 is about, one level up.
  *
- * @param {{ expectedFileCount: number, reportedFileCount: number, totals: { total: number, executed: number, notExecuted: number }, unexecuted?: string[] }} input
+ * The healthy branch used to be one instance of that trap left standing (issue
+ * #307, finding 3). It gated "all executed at least one test" on
+ * `unexecuted.length === 0` alone, which is only sufficient because `main` also
+ * holds back the summary when `empty` is non-empty. Called with `unexecuted: []`
+ * and zero totals it produced "all executed at least one test (0 reported
+ * test(s): 0 executed" -- a sentence contradicting its own tally. So every
+ * reason that claim can be false is now read off an argument: `empty` is taken
+ * as a parameter rather than assumed absent, and `totals.executed` has to be
+ * non-zero for the claim to be made at all. The guard is here, not at the call
+ * site.
+ *
+ * @param {{ expectedFileCount: number, reportedFileCount: number, totals: { total: number, executed: number, notExecuted: number }, empty?: string[], unexecuted?: string[] }} input
  * @returns {string}
  */
 export function formatCoverageSummary({
   expectedFileCount,
   reportedFileCount,
   totals,
+  empty = [],
   unexecuted = [],
 }) {
   const coverage =
@@ -351,18 +390,34 @@ export function formatCoverageSummary({
       ? `all ${expectedFileCount} discovered test file(s) reported results`
       : `${reportedFileCount} of ${expectedFileCount} discovered test file(s) reported results`;
 
+  // "not executed" and not "skipped/todo": the split is made by an allow-list,
+  // which cannot tell those two apart from a `pending` or an unknown status.
   const tally =
     `${totals.total} reported test(s): ${totals.executed} executed, ` +
-    `${totals.notExecuted} skipped/todo`;
+    `${totals.notExecuted} not executed`;
 
-  if (unexecuted.length === 0) {
+  const shortfalls = [];
+  if (unexecuted.length > 0) {
+    shortfalls.push(`${unexecuted.length} of them executed no tests`);
+  }
+  if (empty.length > 0) {
+    shortfalls.push(`${empty.length} of them reported no test results at all`);
+  }
+  // Nothing was named, yet nothing ran either -- an inconsistent or empty input
+  // rather than a healthy run. Say so instead of claiming execution the tally
+  // contradicts one clause later.
+  if (shortfalls.length === 0 && totals.executed === 0) {
+    shortfalls.push('no reported test executed');
+  }
+
+  if (shortfalls.length === 0) {
     return `test-coverage check: ${coverage} and all executed at least one test (${tally}).`;
   }
 
-  return (
-    `test-coverage check: ${coverage}, but ${unexecuted.length} of them executed no tests ` +
-    `(${tally}).\n${formatUnexercisedNote({ unexecuted })}`
-  );
+  const line = `test-coverage check: ${coverage}, but ${shortfalls.join(', and ')} (${tally}).`;
+  const note = formatUnexercisedNote({ unexecuted });
+
+  return note.length > 0 ? `${line}\n${note}` : line;
 }
 
 /**
@@ -409,9 +464,15 @@ export function formatFailureReport({
 
 /**
  * Pull the set of files the report actually holds results for.
+ *
+ * The `report &&` guard matches every other reader in this file (issue #307,
+ * finding 4). Without it a report of literal `null` -- which `JSON.parse` will
+ * happily produce from a well-formed file -- surfaced a raw TypeError instead
+ * of the checker's own refusal. The run was refused either way; what was wrong
+ * was that one malformed-input path refused differently from all the others.
  */
 export function reportedFilesFrom(report, root) {
-  const results = Array.isArray(report.testResults) ? report.testResults : [];
+  const results = Array.isArray(report && report.testResults) ? report.testResults : [];
   return results
     .map((result) => result && result.name)
     .filter((name) => typeof name === 'string' && name.length > 0)
@@ -470,6 +531,7 @@ async function main() {
     expectedFileCount: expected.length,
     reportedFileCount: reported.length,
     totals,
+    empty,
     unexecuted,
   });
 
