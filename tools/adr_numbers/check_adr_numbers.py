@@ -26,15 +26,23 @@ next-unused is a separate decision for a separate change.
 Three classification decisions, made against what `docs/adr/` actually contains
 (three files, all of the form NNNN-title.md, no README and no template):
 
-1. **An ADR is a Markdown file whose name begins with exactly four digits and a
-   hyphen** -- the `NNNN-kebab-case-title.md` convention the instructions state.
+1. **An ADR is a Markdown file whose name begins with exactly four ASCII digits
+   and a hyphen** -- the `NNNN-kebab-case-title.md` convention the instructions
+   state. ASCII, explicitly: `\\d` in a `str` pattern is the whole Unicode `Nd`
+   category, so an Arabic-Indic or fullwidth `0003` matched and was admitted as
+   an ADR whose number no ASCII `0003` could ever be bucketed against. Those
+   files are refused as near misses now, and told which digits offend.
    The scan is recursive, because a number claimed inside a subdirectory is still
    a claim on "ADR NNNN": nesting does not open a second numbering namespace.
 
 2. **A file that is not Markdown is not an ADR.** A diagram or other asset may
    legitimately sit beside a decision record, and refusing one would make the
    rule trip over correct work. Every such file is still *named* in the output,
-   so the skip is visible rather than silent.
+   so the skip is visible rather than silent. Markdown-ness is decided once, by
+   lowercasing the suffix, so `0007-title.MD` is an ADR and is checked for a
+   collision like any other. It had been accepted as Markdown by that test and
+   then refused by a case-sensitive one in the name pattern -- two answers to
+   one question, and the refusal named neither.
 
 3. **A Markdown file that is neither an ADR nor an allowlisted companion is a
    failure, not a skip.** This is the one place this checker is deliberately
@@ -86,10 +94,29 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DIRECTORY = Path("docs") / "adr"
 
 # Exactly four digits, then a hyphen, then a title. Anchored at both ends so
-# `003-x.md`, `00003-x.md` and `0003_x.md` do not match -- they are near misses
-# that a reader would still call ADR 3, and they are refused below rather than
-# skipped.
-ADR_NAME_RE = re.compile(r"^(\d{4})-.+\.md$")
+# `003-x`, `00003-x` and `0003_x` do not match -- they are near misses that a
+# reader would still call ADR 3, and they are refused below rather than skipped.
+#
+# Matched against the filename with its extension removed, because whether the
+# file is Markdown at all is settled once, above, by `path.suffix.lower()`.
+# Spelling `\.md$` here as well was a second, case-*sensitive* answer to a
+# question already answered case-insensitively, and the two disagreed:
+# `0007-uppercase-ext.MD` was accepted as Markdown on one line and then refused
+# as unnumbered on the next, for a reason the message never named.
+#
+# `[0-9]` rather than `\d`: in a `str` pattern `\d` is the whole Unicode `Nd`
+# category, so an Arabic-Indic, Devanagari or fullwidth `0003` matched and was
+# admitted as an ADR carrying a number string no ASCII `0003` could ever
+# collide with. The explicit class rather than `re.ASCII`, which would narrow
+# `.+` too. `\Z` rather than `$`, which also matches before a trailing newline.
+ADR_NAME_RE = re.compile(r"^([0-9]{4})-.+\Z")
+
+# The same shape read through Unicode `\d`. Never used to admit a file -- only
+# to tell the reader of a refusal *why*, because a `0003` written in U+0660..
+# or U+FF10.. reads as ADR 3 to a human while matching nothing to the checker,
+# and the advice for a genuinely unnumbered file is the wrong advice for this
+# one: it is a decision record, and allowlisting it would exempt it for good.
+NON_ASCII_NUMBER_RE = re.compile(r"^(\d{4})-.+\Z")
 
 # Markdown files a decision-record directory legitimately carries that are not
 # decision records. Compared case-insensitively; every match is named in the
@@ -187,8 +214,21 @@ def check(directory: Path, base: Path = REPO_ROOT) -> Report:
         if path.suffix.lower() != ".md":
             report.ignored.append((shown, "not a Markdown document"))
             continue
-        match = ADR_NAME_RE.match(name)
+        match = ADR_NAME_RE.match(path.stem)
         if match is None:
+            near_miss = NON_ASCII_NUMBER_RE.match(path.stem)
+            if near_miss is not None:
+                digits = near_miss.group(1)
+                codepoints = " ".join(f"U+{ord(char):04X}" for char in digits)
+                report.problems.append(
+                    f"  NON-ASCII NUMBER: {shown} begins with four digits that "
+                    f"are not ASCII 0-9 ({codepoints}), so it reads as ADR "
+                    f"{int(digits):04d} to a human while colliding with no "
+                    "other file's number here. Renaming it with ASCII digits "
+                    "0-9 is the only fix: it is a decision record, so its "
+                    "number has to be one this check can compare."
+                )
+                continue
             report.problems.append(
                 f"  UNNUMBERED: {shown} is a Markdown file under "
                 f"{directory.as_posix()} that is neither named NNNN-title.md "
