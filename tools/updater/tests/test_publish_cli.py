@@ -619,3 +619,167 @@ def test_a_loadable_artefact_still_gets_its_destination_line_first(
     assert lines[0] == "dry run: would publish to octo/other-repo (from --repo)"
     assert f"title: {issue_title(MATERIAL)}" in output
     assert "error:" not in output
+
+
+# -- GITHUB_REPOSITORY is shape-checked on both channels and both paths ---------
+#
+# #155 refused a malformed `--repo`, but left the `GITHUB_REPOSITORY` channel --
+# the one GitHub Actions sets and workflows actually use -- unchecked. Under
+# `--dry-run` a malformed env var was echoed as `would publish to <garbage>` and
+# exited 0; on the real path shape was validated only inside `RestIssuesClient`,
+# after `GITHUB_TOKEN` was demanded. #261 closes both, refusing (exit 2) on the
+# effective destination -- `--repo` if given, else `GITHUB_REPOSITORY` -- so the
+# two channels reach the identical verdict for any identical value.
+
+
+def test_a_dry_run_refuses_a_malformed_github_repository(
+    artefact, monkeypatch
+) -> None:
+    """The env channel now catches the typo the `--repo` channel already did.
+
+    On `main` this returned EXIT_OK and printed
+    `dry run: would publish to octo-modeltree (from GITHUB_REPOSITORY)`.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    code, output = _run(
+        ["publish", "--report", str(artefact(MATERIAL)), "--dry-run"],
+        env={"GITHUB_REPOSITORY": MALFORMED_NO_SLASH},
+    )
+
+    assert code == EXIT_USAGE
+    assert MALFORMED_NO_SLASH in output
+    assert "owner/name" in output
+    # No unqualified destination line for a value that cannot name a repository.
+    assert "would publish to" not in output
+    # Refused instead of rendered: nothing downstream ran.
+    assert f"title: {issue_title(MATERIAL)}" not in output
+
+
+def test_the_env_refusal_names_the_environment_channel(artefact, monkeypatch) -> None:
+    """An operator who never typed `--repo` must be told where the value came from."""
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    code, output = _run(
+        ["publish", "--report", str(artefact(MATERIAL)), "--dry-run"],
+        env={"GITHUB_REPOSITORY": MALFORMED_NO_SLASH},
+    )
+
+    refusal = output.splitlines()[0]
+    assert code == EXIT_USAGE
+    assert "GITHUB_REPOSITORY" in refusal
+    assert "environment" in refusal
+
+
+def test_the_env_refusal_is_about_shape_and_says_nothing_about_existence(
+    artefact, monkeypatch
+) -> None:
+    """The existence disclaimer #155 pinned for `--repo` holds for the env channel too."""
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    _, output = _run(
+        ["publish", "--report", str(artefact(MATERIAL)), "--dry-run"],
+        env={"GITHUB_REPOSITORY": MALFORMED_NO_SLASH},
+    )
+
+    refusal = output.splitlines()[0]
+    assert "shape" in refusal
+    assert "not a claim that any repository does or does not exist" in refusal
+    lowered = refusal.lower()
+    for lookup_claim in ("not found", "no such", "unreachable", "404", "does not exist."):
+        assert lookup_claim not in lowered, lookup_claim
+    # And it does not borrow `split_repository`'s own existence-flavoured text.
+    assert "is not a valid repository" not in refusal
+
+
+@pytest.mark.parametrize(
+    "argv_extra,env",
+    [
+        (["--repo", MALFORMED_NO_SLASH], {}),
+        ([], {"GITHUB_REPOSITORY": MALFORMED_NO_SLASH}),
+    ],
+    ids=["--repo", "GITHUB_REPOSITORY"],
+)
+def test_the_real_publish_path_refuses_a_malformed_repo_before_the_token(
+    artefact, monkeypatch, argv_extra, env
+) -> None:
+    """Criterion 3: a typo must not require a credential to discover, from either channel.
+
+    No `GITHUB_TOKEN` is provided. On `main` the malformed value was present but
+    unchecked, so the token check fired first and the operator was told to supply
+    a credential before ever learning the destination was malformed -- and on the
+    real path a value from either channel reached `RestIssuesClient` at all only
+    once a token was in hand.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    code, output = _run(
+        ["publish", "--report", str(artefact(MATERIAL)), *argv_extra],
+        env=env,
+    )
+
+    assert code == EXIT_USAGE
+    assert MALFORMED_NO_SLASH in output
+    assert "owner/name" in output
+    # The shape verdict is reached before the token is demanded.
+    assert "GITHUB_TOKEN" not in output
+
+
+def test_both_channels_agree_on_shape_for_every_value(artefact, monkeypatch) -> None:
+    """Criterion 4: `--repo <v>` and `GITHUB_REPOSITORY=<v>` give the same verdict.
+
+    A differential table, run over both channels rather than asserted by reading,
+    with `split_repository` as the oracle for what each verdict should be.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+    report_path = artefact(MATERIAL)
+    candidates = [
+        MALFORMED_NO_SLASH,
+        MALFORMED_PASTED_URL,
+        "octo/modeltree",
+        "octo/model.tree",
+        "octo/",
+        "/modeltree",
+        "octo/modeltree?x=1",
+        "octo/../evil",
+        "octo_name/modeltree",
+        "octo/modeltree/extra",
+    ]
+
+    for value in candidates:
+        via_repo, _ = _run(
+            ["publish", "--report", str(report_path), "--repo", value, "--dry-run"]
+        )
+        via_env, _ = _run(
+            ["publish", "--report", str(report_path), "--dry-run"],
+            env={"GITHUB_REPOSITORY": value},
+        )
+        assert via_repo == via_env, f"{value!r} disagreed across channels"
+        try:
+            split_repository(value)
+        except GitHubError:
+            assert via_env == EXIT_USAGE, f"{value!r} should have been refused"
+        else:
+            assert via_env == EXIT_OK, f"{value!r} should have been accepted"
+
+
+def test_a_well_formed_github_repository_is_completely_unaffected(
+    artefact, monkeypatch
+) -> None:
+    """Criterion 6: a correct CI run gains no new failure mode.
+
+    GitHub Actions always sets `GITHUB_REPOSITORY` to a well-shaped `owner/name`,
+    and that run must still render and name its destination exactly as before.
+    This passes on `main` and must keep passing.
+    """
+    monkeypatch.setattr(cli, "RestIssuesClient", _blocked_client, raising=True)
+
+    code, output = _run(
+        ["publish", "--report", str(artefact(MATERIAL)), "--dry-run"],
+        env={"GITHUB_REPOSITORY": "octo/modeltree"},
+    )
+
+    assert code == EXIT_OK
+    assert "dry run: would publish to octo/modeltree (from GITHUB_REPOSITORY)" in output
+    assert f"title: {issue_title(MATERIAL)}" in output
+    assert "error:" not in output

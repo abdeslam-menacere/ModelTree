@@ -583,8 +583,10 @@ def _summarise_publication(result: PublicationReport, stream) -> int:
     return EXIT_PUBLISH_FAILED if result.failures else EXIT_OK
 
 
-def _malformed_repo_refusal(args: argparse.Namespace) -> str | None:
-    """Refuse a ``--repo`` that could not name any repository, before a token exists.
+def _malformed_repo_refusal(
+    args: argparse.Namespace, env: Mapping[str, str]
+) -> str | None:
+    """Refuse a destination that could not name a repository, before a token exists.
 
     ``split_repository`` is this tool's single format validator, and it is pure:
     it reads no network and needs no credentials, which is exactly why a dry run
@@ -594,30 +596,57 @@ def _malformed_repo_refusal(args: argparse.Namespace) -> str | None:
     disagreed with the real run about what counts as a destination would be a
     worse defect than the silence it replaced.
 
-    Only ``--repo`` is checked. A refusal is worth adding when the invocations it
-    breaks were already going to fail, and that is true of ``--repo``: it is a
-    destination the operator asserted on this command line, so a malformed one
-    is a typo whose only other outcome is the same rejection later, after a
-    token has been handed over. ``GITHUB_REPOSITORY`` is ambient state that this
-    invocation never asked to use, and ``--dry-run`` promises it needs no
-    repository at all, so refusing on it would break runs that are not
-    mis-running.
+    Both channels that can name a destination are checked, and the *effective*
+    one is the one checked: ``--repo`` when it is given, otherwise
+    ``GITHUB_REPOSITORY``. This is the same precedence :func:`_dry_run_destination`
+    and :func:`_publish` resolve, so the value that would actually be used is the
+    value whose shape is judged, and the two channels reach the identical verdict
+    for any identical value.
+
+    ``GITHUB_REPOSITORY`` was originally left unchecked here (see #261). The
+    reasoning was #129's reversibility test -- do not refuse a run that was going
+    to succeed -- applied to ambient state ``--dry-run`` promises it needs no
+    repository for. That test still holds; what changed is the case it is applied
+    to. The refusal fires only on a *malformed* value, and a malformed
+    ``GITHUB_REPOSITORY`` is not a run that was going to succeed: on the real path
+    it fails once a token is in hand, and under ``--dry-run`` it can only mislead,
+    because the rehearsal it exists to be would echo a value that cannot name a
+    repository. GitHub Actions sets ``GITHUB_REPOSITORY`` to a well-shaped
+    ``owner/name`` automatically, so a correct CI run is untouched; the only
+    invocations newly refused are ones already mis-configured -- exactly the set
+    #155 narrowed ``--repo`` refusal to. Refusing here is therefore the same
+    reversible move, applied to the channel automation actually uses.
 
     What this returns is a message about *shape*. Existence is a different claim
     and is not made: nothing is looked up here, and a well-shaped value is not
-    looked up either.
+    looked up either. When the value came from the environment the message says
+    so, because an operator who never typed ``--repo`` needs to be told which
+    channel carried the malformed value.
     """
-    if not args.repo:
-        return None
+    if args.repo:
+        value = args.repo
+        source = "--repo"
+        origin = ""
+    else:
+        value = env.get("GITHUB_REPOSITORY", "")
+        if not value:
+            return None
+        source = "GITHUB_REPOSITORY"
+        origin = (
+            ". This value came from the GITHUB_REPOSITORY environment variable, "
+            "which GitHub Actions sets automatically, not from --repo on this "
+            "command line"
+        )
     try:
-        split_repository(args.repo)
+        split_repository(value)
     except GitHubError:
         return (
-            f"error: --repo {args.repo!r} is not shaped like owner/name; "
+            f"error: {source} {value!r} is not shaped like owner/name; "
             "expected an owner and a name joined by a single '/'. Only the "
             "shape of the value is checked here: nothing was looked up, so "
             "this is not a claim that any repository does or does not exist, "
             "and a well-shaped value is not checked for existence either"
+            f"{origin}"
         )
     return None
 
@@ -658,12 +687,15 @@ def _dry_run_destination(args: argparse.Namespace, env: Mapping[str, str]) -> st
     working are ones the real publication would have rejected anyway — the same
     reversibility test, applied where there is now a case that meets it.
 
-    So a ``--repo`` value reaching here is well-shaped, and nothing more; a
-    ``GITHUB_REPOSITORY`` value is still reported exactly as given. What neither
-    has is a check that the repository *exists*, which needs the credentials and
-    the network a dry run deliberately does without. Shape and existence are
-    separate claims and only the first is knowable offline: naming a destination
-    says at most that the value *could* name a repository, never that it does.
+    So a ``--repo`` value reaching here is well-shaped, and so now is a
+    ``GITHUB_REPOSITORY`` value: :func:`_malformed_repo_refusal` checks whichever
+    channel names the destination before this function runs (see #261), so the
+    value echoed below has already passed the shape check and neither channel is
+    reported exactly as given any more. What neither has is a check that the
+    repository *exists*, which needs the credentials and the network a dry run
+    deliberately does without. Shape and existence are separate claims and only
+    the first is knowable offline: naming a destination says at most that the
+    value *could* name a repository, never that it does.
     """
     if args.repo:
         return f"dry run: would publish to {args.repo} (from --repo)"
@@ -688,7 +720,7 @@ def _publish(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
         # `test_an_unloadable_artefact_under_dry_run_reports_only_itself` and
         # `test_an_unloadable_artefact_is_reported_ahead_of_a_malformed_repo`
         # red. See #156 — this comment used to be the only thing saying so.
-        refusal = _malformed_repo_refusal(args)
+        refusal = _malformed_repo_refusal(args, env)
         if refusal is not None:
             stream.write(refusal + "\n")
             return EXIT_USAGE
@@ -703,6 +735,17 @@ def _publish(args: argparse.Namespace, env: Mapping[str, str], stream) -> int:
             "error: --repo (or GITHUB_REPOSITORY) is required to publish; "
             "use --dry-run to render the payload instead\n"
         )
+        return EXIT_USAGE
+
+    # Shape is validated here, before a token is demanded, so a typo in either
+    # channel is caught without a credential in hand (see #261). Both channels
+    # go through the same check `--dry-run` uses, so the real path and the
+    # rehearsal reach the identical verdict. `RestIssuesClient` re-validates at
+    # construction and stays the single source of truth; this only moves the
+    # same rejection ahead of the token so it is reached from either channel.
+    refusal = _malformed_repo_refusal(args, env)
+    if refusal is not None:
+        stream.write(refusal + "\n")
         return EXIT_USAGE
 
     token = env.get("GITHUB_TOKEN", "")
