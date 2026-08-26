@@ -69,10 +69,20 @@ jobs:
       # on the data change it exists to catch.
       #
       # What it does not do is block. `skills-ci` is not a required check, so a
-      # red run here is visible but does not stop auto-merge; making it required
-      # is #169, and needs the repository owner. `.github/workflows/README.md`
-      # records which of these rules `web-ci` already enforces and which it does
-      # not, measured rule by rule.
+      # red run here is visible but does not stop auto-merge.
+      #
+      # Making it required is a branch-protection change, so it is an owner
+      # action, and no issue in this repository files it. It is not #169 —
+      # `skills-ci` sits outside that issue's scope, which
+      # `.github/workflows/README.md` states once under `### What issue #169
+      # covers`, and that is where to read it, so this file and that one cannot
+      # drift into disagreeing again. #294 is the prerequisite rather than the
+      # outcome: it restructures this workflow on the `web-ci` pattern so the
+      # check always reports and is therefore safe to require, and its own text
+      # leaves requiring it to the owner. Landing it does not make this required.
+      #
+      # That same file records which of these rules `web-ci` already enforces and
+      # which it does not, measured rule by rule.
       - name: Run the dataset gate against the live data
         run: node .github/skills/modeltree-gates/scripts/gate-dataset.mjs
 
