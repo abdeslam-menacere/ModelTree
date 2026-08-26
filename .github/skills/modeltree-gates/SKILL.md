@@ -79,6 +79,18 @@ scripts and Zod ever disagree, Zod wins and the script is wrong.
 `unchanged` and `conflict` findings need full evidence but no majority. They
 apply nothing; they are published in the summary as findings.
 
+Which threshold applies is derived from the reviewed-profile set on disk
+(`tools/updater/profiles`), never from the bundle's own `policy`. That set is
+read under the same rules `tools/updater`'s `ProfileLibrary` applies to the same
+directory, so the gate refuses a profile whose `creator.id` is padded, two
+profiles declaring one id, and a filename that differs from `.json` only in case.
+The last is a **refusal, not a skip**, on purpose: `profile.JSON` is one file
+beside its lowercase twin on Windows and two files on the Linux CI runs, so
+skipping it lets the same repository classify the same creator differently on the
+two platforms (#246). Refusing is the only answer that is the same on both. Every
+one of these refusals exits 2 — an unreadable or malformed reviewed set never
+falls back to the looser bar.
+
 **`gate-source-approval.mjs`** is the approved-source binding — ADR 0003's
 precondition 2, and the skill-set equivalent of `gates.py`'s `source-approval`.
 It reads the same bundle and refuses:
@@ -190,7 +202,7 @@ for a human: stop, and file an issue describing what it needed and why.
 node --test .github/skills/modeltree-gates/scripts/gates.test.mjs
 ```
 
-87 tests. Every rule is proved to fire by breaking the data in exactly the way
+93 tests. Every rule is proved to fire by breaking the data in exactly the way
 that rule exists to catch, and the live repository dataset is asserted to pass —
 so the suite fails both when a gate goes blind and when a gate goes paranoid.
 The `gate-source-approval` cases build a throwaway git repository with its own

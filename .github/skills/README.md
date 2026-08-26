@@ -77,7 +77,7 @@ is what refuses to merge a red pull request.
 
 ## Changing a gate
 
-The gates have 87 self-tests. Run them:
+The gates have 93 self-tests. Run them:
 
 ```bash
 node --test .github/skills/modeltree-gates/scripts/gates.test.mjs
