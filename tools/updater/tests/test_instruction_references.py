@@ -78,6 +78,27 @@ def test_the_default_target_is_the_governing_file():
     assert (REPO_ROOT / checker.DEFAULT_DOCUMENT).is_file()
 
 
+def test_the_reviewer_skill_scope_citation_resolves():
+    """The gate-scope.mjs pointer added to the reviewer skill cannot rot silently.
+
+    `test_the_governing_file_resolves` guards copilot-instructions.md, but the
+    reviewer skill is not the default document, so nothing else runs the checker
+    over it. Its cross-reference to the gate that computes the merge-base anchor
+    is a path citation like any other, and this resolves it against the working
+    tree so a moved or renamed gate turns this red. It asserts that one citation
+    rather than the whole file: the skill carries an unrelated bare `#59` this
+    change does not own and must not touch.
+    """
+    skill = REPO_ROOT / ".github" / "skills" / "modeltree-review" / "SKILL.md"
+    cited = ".github/skills/modeltree-gates/scripts/gate-scope.mjs"
+    report = checker.check(skill, REPO_ROOT)
+
+    assert cited in report.candidates
+    assert any(
+        finding.reference == cited for finding in report.resolved
+    ), report.render()
+
+
 # --- the regression pin -----------------------------------------------------
 
 
