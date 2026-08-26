@@ -519,17 +519,26 @@ def test_a_multi_creator_run_names_the_creator_on_every_checkpoint_row(
     assert all(named.count(creator_id) > 0 for creator_id in creator_ids)
     assert len(set(named)) == len(creator_ids)
 
-    # Additive, and the order the command promises is untouched.
+    # Additive: the creator identity #158 added rides alongside the ordering and
+    # resumability this issue (#242) adds.
     expected_keys = {
         "checkpoint_id",
         "creator_id",
         "workflow_id",
         "iteration",
         "timestamp",
+        "resumable",
     }
     assert all(set(summary) == expected_keys for summary in summaries)
-    assert [summary["iteration"] for summary in summaries] == sorted(
-        summary["iteration"] for summary in summaries
+    # #242 replaced the old contract, which pinned the rows in ascending
+    # `iteration` order (`[summary["iteration"]] == sorted(...)`). That order is
+    # meaningless across a multi-creator run, where every creator restarts the
+    # count, so it is gone. The rows are now ordered by `timestamp` (and lineage),
+    # which a multi-creator run keeps globally non-decreasing because the creators
+    # run one after another.
+    timestamps = [summary["timestamp"] for summary in summaries]
+    assert timestamps == sorted(timestamps), (
+        "rows are no longer ordered by timestamp: " f"{timestamps}"
     )
 
 
@@ -561,19 +570,22 @@ def test_a_checkpoint_with_no_creator_identity_lists_as_unknown() -> None:
         creator = _Creator()
 
     class _Checkpoint:
-        def __init__(self, checkpoint_id, iteration_count, messages):
+        def __init__(self, checkpoint_id, iteration_count, messages, timestamp):
             self.checkpoint_id = checkpoint_id
             self.iteration_count = iteration_count
             self.messages = messages
-            self.timestamp = "2026-06-01T00:00:00+00:00"
+            self.timestamp = timestamp
+            self.previous_checkpoint_id = None
 
     class _Storage:
         def list_checkpoints(self, *, workflow_name):
+            # Distinct timestamps fix a deliberate order; the rows are handed back
+            # scrambled so the listing cannot pass by echoing input order.
             return [
-                _Checkpoint("legacy", 0, {"discover-sources": [_Envelope(_NoCreator())]}),
-                _Checkpoint("terminal", 1, {}),
-                _Checkpoint("unreadable", 2, ["not-a-mapping"]),
-                _Checkpoint("named", 3, {"extract-claims": [_Envelope(_WithCreator())]}),
+                _Checkpoint("unreadable", 2, ["not-a-mapping"], "2026-06-01T00:00:03+00:00"),
+                _Checkpoint("named", 3, {"extract-claims": [_Envelope(_WithCreator())]}, "2026-06-01T00:00:04+00:00"),
+                _Checkpoint("legacy", 0, {"discover-sources": [_Envelope(_NoCreator())]}, "2026-06-01T00:00:01+00:00"),
+                _Checkpoint("terminal", 1, {}, "2026-06-01T00:00:02+00:00"),
             ]
 
     summaries = asyncio.run(
@@ -594,6 +606,279 @@ def test_a_checkpoint_with_no_creator_identity_lists_as_unknown() -> None:
     ]
     # Unknown, not absent: the key is there to be read either way.
     assert all("creator_id" in summary for summary in summaries)
+    # `resumable` is read from each row's own messages, not its position: `legacy`
+    # and `named` still carry a message to deliver, while the terminal row (no
+    # messages) and the unreadable payload have nothing to resume. The terminal row
+    # is marked, not dropped — it is still one of the four rows above.
+    assert [summary["resumable"] for summary in summaries] == [
+        True,
+        False,
+        False,
+        True,
+    ]
+
+
+def test_checkpoint_listing_orders_deterministically_by_timestamp_over_a_multi_creator_run(
+    tmp_path, library, settings
+) -> None:
+    """The ordering half of #242, proved over a genuinely multi-creator run.
+
+    `run_creators` writes several independent lineage chains into one storage, and
+    `FileCheckpointStorage.list_checkpoints` hands them back in filesystem glob order.
+    The old listing sorted on `iteration_count`, which the framework's own docstring
+    says is neither unique nor the ordering key: every creator restarts the count, so a
+    row's `iteration` says nothing about where it falls across the run.
+
+    Three things are pinned here, none of which a single-creator fixture can exhibit:
+    the order is deterministic (two listings of the same storage agree); it is
+    non-decreasing by `timestamp` (the framework's stated key), which the old
+    `iteration` sort violates because a later creator's iteration-0 checkpoint precedes
+    an earlier creator's iteration-2 one; and every row still follows the lineage parent
+    named by its `previous_checkpoint_id`.
+    """
+    creator_ids = ["contoso-ai", "fabrikam-ai", "northwind-ai"]
+    storage = create_checkpoint_storage(tmp_path / "checkpoints")
+
+    async def scenario():
+        await run_creators(
+            [library.creators[creator_id] for creator_id in creator_ids],
+            settings,
+            run_id="run-order",
+            checkpoint_storage=storage,
+        )
+        first = await list_checkpoint_summaries(storage, workflow_name=WORKFLOW_NAME)
+        second = await list_checkpoint_summaries(storage, workflow_name=WORKFLOW_NAME)
+        raw = storage.list_checkpoints(workflow_name=WORKFLOW_NAME)
+        if inspect.isawaitable(raw):
+            raw = await raw
+        return first, second, raw
+
+    first, second, raw = asyncio.run(scenario())
+
+    assert first, "a multi-creator run must produce checkpoints to order"
+    # Determinism: the same storage lists in the same order every time, not in
+    # whatever order the filesystem happened to enumerate the files.
+    assert [row["checkpoint_id"] for row in first] == [
+        row["checkpoint_id"] for row in second
+    ]
+
+    # The stated key: non-decreasing by timestamp across the whole listing.
+    timestamps = [row["timestamp"] for row in first]
+    assert timestamps == sorted(timestamps), (
+        "rows are not ordered by timestamp across creators: " f"{timestamps}"
+    )
+
+    # More than one creator's chain is present, so this is the case the
+    # single-creator fixture cannot reach.
+    assert len({row["creator_id"] for row in first if row["creator_id"]}) > 1
+
+    # Lineage: a row never precedes the parent its checkpoint names.
+    parent_of = {
+        getattr(checkpoint, "checkpoint_id", None): getattr(
+            checkpoint, "previous_checkpoint_id", None
+        )
+        for checkpoint in raw
+    }
+    position = {row["checkpoint_id"]: index for index, row in enumerate(first)}
+    for checkpoint_id, parent in parent_of.items():
+        if parent in position:
+            assert position[parent] < position[checkpoint_id], (
+                f"row {checkpoint_id} precedes its lineage parent {parent}"
+            )
+
+
+def test_checkpoint_order_follows_lineage_and_timestamp_not_iteration() -> None:
+    """Two chains interleave by timestamp; `iteration` would order them wrongly.
+
+    Chain A and chain B each count their own iterations from zero. Ordered by
+    `timestamp`, they interleave (A's first, B's two, A's last). Ordered by
+    `iteration_count` — the behaviour on `main` — every iteration-1 row would sit
+    before A's iteration-1 tail, producing a different sequence. Pinning the timestamp
+    order fails against `main`.
+    """
+
+    class _Checkpoint:
+        def __init__(self, checkpoint_id, iteration_count, timestamp, previous):
+            self.checkpoint_id = checkpoint_id
+            self.iteration_count = iteration_count
+            self.timestamp = timestamp
+            self.previous_checkpoint_id = previous
+            self.messages = {"stage": [_Env(object())]}
+
+    class _Storage:
+        def list_checkpoints(self, *, workflow_name):
+            return [
+                _Checkpoint("a0", 0, "2026-06-01T00:00:01+00:00", None),
+                _Checkpoint("a1", 1, "2026-06-01T00:00:05+00:00", "a0"),
+                _Checkpoint("b0", 0, "2026-06-01T00:00:02+00:00", None),
+                _Checkpoint("b1", 1, "2026-06-01T00:00:03+00:00", "b0"),
+            ]
+
+    summaries = asyncio.run(
+        list_checkpoint_summaries(_Storage(), workflow_name=WORKFLOW_NAME)
+    )
+    assert [summary["checkpoint_id"] for summary in summaries] == ["a0", "b0", "b1", "a1"]
+
+
+def test_checkpoint_order_breaks_timestamp_ties_by_lineage() -> None:
+    """When a parent and child share a timestamp, lineage decides — not the id sort.
+
+    The framework records checkpoints at second resolution here, so a parent and its
+    child can carry the identical `timestamp`, and they carry the identical
+    `iteration_count` too (the same superstep boundary can hold both). The rows are fed
+    child-first, and the child's id sorts *before* the parent's, so neither the input
+    order, the `iteration` sort on `main`, nor a naive `(timestamp, checkpoint_id)` sort
+    would put the parent first. Only walking `previous_checkpoint_id` does.
+    """
+
+    class _Checkpoint:
+        def __init__(self, checkpoint_id, previous):
+            self.checkpoint_id = checkpoint_id
+            self.iteration_count = 2
+            self.timestamp = "2026-06-01T00:00:00+00:00"
+            self.previous_checkpoint_id = previous
+            self.messages = {"stage": [_Env(object())]}
+
+    class _Storage:
+        def list_checkpoints(self, *, workflow_name):
+            # child ("aaa") before parent ("zzz"); child names the parent as previous.
+            return [
+                _Checkpoint("aaa", "zzz"),
+                _Checkpoint("zzz", None),
+            ]
+
+    summaries = asyncio.run(
+        list_checkpoint_summaries(_Storage(), workflow_name=WORKFLOW_NAME)
+    )
+    assert [summary["checkpoint_id"] for summary in summaries] == ["zzz", "aaa"]
+
+
+def test_checkpoint_order_lists_every_row_when_lineage_is_broken() -> None:
+    """A missing parent and a fork still yield a deterministic listing of every row.
+
+    An interrupted run leaves a chain whose root names a parent that was never written;
+    a fork leaves one parent with two children. Neither is a single well-formed chain,
+    so the sort treats an absent parent as a root and orders siblings by their key, and
+    every row appears exactly once.
+    """
+
+    class _Checkpoint:
+        def __init__(self, checkpoint_id, timestamp, previous):
+            self.checkpoint_id = checkpoint_id
+            self.iteration_count = 0
+            self.timestamp = timestamp
+            self.previous_checkpoint_id = previous
+            self.messages = {"stage": [_Env(object())]}
+
+    class _Storage:
+        def list_checkpoints(self, *, workflow_name):
+            return [
+                # fork: one parent, two children
+                _Checkpoint("fork-child-late", "2026-06-01T00:00:04+00:00", "root"),
+                _Checkpoint("fork-child-early", "2026-06-01T00:00:03+00:00", "root"),
+                _Checkpoint("root", "2026-06-01T00:00:02+00:00", None),
+                # orphan: names a parent that is not in the listing
+                _Checkpoint("orphan", "2026-06-01T00:00:01+00:00", "vanished"),
+            ]
+
+    summaries = asyncio.run(
+        list_checkpoint_summaries(_Storage(), workflow_name=WORKFLOW_NAME)
+    )
+    order = [summary["checkpoint_id"] for summary in summaries]
+    # Every row listed exactly once.
+    assert sorted(order) == ["fork-child-early", "fork-child-late", "orphan", "root"]
+    # Orphan treated as a root, ordered by its own timestamp; the fork's children
+    # both follow their parent, earliest first.
+    assert order == ["orphan", "root", "fork-child-early", "fork-child-late"]
+
+
+def test_checkpoint_listing_marks_the_unresumable_terminal_checkpoint(
+    tmp_path, library, settings
+) -> None:
+    """The triage half of #242: the message-less terminal row is visibly marked.
+
+    The checkpoint written after the final superstep carries no messages, so there is
+    nothing to re-deliver and the framework refuses to resume it. The old listing
+    offered it as an equal candidate. Now every row carries `resumable`, read from the
+    checkpoint's own messages, so the terminal row is marked rather than hidden — an
+    operator can still see the run finished. The flag is cross-checked against a
+    *separate* reading of the raw payload (its messages being empty), so the assertion
+    cannot pass by agreeing with the production reader.
+    """
+    creator_ids = ["contoso-ai", "fabrikam-ai"]
+    storage = create_checkpoint_storage(tmp_path / "checkpoints")
+
+    async def scenario():
+        await run_creators(
+            [library.creators[creator_id] for creator_id in creator_ids],
+            settings,
+            run_id="run-terminal",
+            checkpoint_storage=storage,
+        )
+        summaries = await list_checkpoint_summaries(storage, workflow_name=WORKFLOW_NAME)
+        raw = storage.list_checkpoints(workflow_name=WORKFLOW_NAME)
+        if inspect.isawaitable(raw):
+            raw = await raw
+        return summaries, raw
+
+    summaries, raw = asyncio.run(scenario())
+
+    assert summaries
+    # Every row is marked, so the key is always there to read.
+    assert all("resumable" in summary for summary in summaries)
+
+    # Independent reading: a row is resumable exactly when its checkpoint stored a
+    # message to deliver. `has_message` is computed straight from the raw payload,
+    # not via the production predicate, so the two cannot agree vacuously.
+    def has_message(checkpoint) -> bool:
+        messages = getattr(checkpoint, "messages", None) or {}
+        return any(len(envelopes or ()) > 0 for envelopes in messages.values())
+
+    expected = {
+        getattr(checkpoint, "checkpoint_id", None): has_message(checkpoint)
+        for checkpoint in raw
+    }
+    mismatched = [
+        (summary["checkpoint_id"], summary["resumable"], expected[summary["checkpoint_id"]])
+        for summary in summaries
+        if summary["resumable"] != expected[summary["checkpoint_id"]]
+    ]
+    assert not mismatched, (
+        "these rows are marked resumable against their own contents "
+        f"(checkpoint_id, resumable, has_message): {mismatched}"
+    )
+
+    # The run produced both kinds, and the terminal ones are present, not dropped.
+    resumable_rows = [s for s in summaries if s["resumable"]]
+    terminal_rows = [s for s in summaries if not s["resumable"]]
+    assert resumable_rows, "no resumable checkpoint was listed"
+    assert terminal_rows, "the unresumable terminal checkpoint was hidden, not marked"
+    # One terminal row per creator: the message-less checkpoint each run ends on.
+    assert len(terminal_rows) == len(creator_ids)
+
+
+def test_recorded_is_resumable_reads_messages_not_position() -> None:
+    """`recorded_is_resumable` is a content predicate: messages present, or not.
+
+    A checkpoint with at least one message envelope is resumable; the terminal
+    checkpoint (no messages) is not; and a payload too malformed to read as the
+    declared mapping is reported unresumable rather than raising, so one bad row can
+    never take the listing down.
+    """
+    # Imported locally, not at module top: the predicate is new in #242, and a
+    # top-level import of a symbol absent on `main` would mask every test in this
+    # file behind one collection error instead of failing here on its own.
+    from modeltree_updater.checkpoints import recorded_is_resumable
+
+    class _Checkpoint:
+        def __init__(self, messages):
+            self.messages = messages
+
+    assert recorded_is_resumable(_Checkpoint({"stage": [_Env(object())]})) is True
+    assert recorded_is_resumable(_Checkpoint({})) is False
+    assert recorded_is_resumable(_Checkpoint({"stage": []})) is False
+    assert recorded_is_resumable(_Checkpoint(["not-a-mapping"])) is False
+    assert recorded_is_resumable(_Checkpoint(None)) is False
 
 
 class _Env:
