@@ -22,7 +22,19 @@ Refuse to publish unless every one holds:
    was applied.
 3. Accepted claims are applied and `gate-dataset.mjs` exited 0.
 4. `cd web && npm run validate` passed.
-5. `gate-scope.mjs` exited 0 — every changed path is a dataset document.
+5. `gate-scope.mjs` exited 0 **and reported a non-empty change** — every changed
+   path is a dataset document.
+
+Precondition **5** needs its two readings kept apart, because the exit code alone
+does not separate them. Exit 0 means *either* every changed path is a dataset
+document *or* there was no change at all; the second is a legitimate outcome and
+is not a licence to publish. Read `changed` in the `--json` report, which is the
+count of paths the gate actually measured — `changed: 0` with `empty: true` means
+there is nothing to publish, not that a change was approved. The gate anchors
+that count on `git merge-base HEAD refs/remotes/origin/main`, so it is a finding
+about a specific commit rather than an artefact of when you ran it, and it holds
+whether or not the run has already committed. If the anchor cannot be resolved
+the gate exits **2**, which is never a pass.
 
 If **2** fails, a claim rests on a source nobody approved. Drop the claim and
 every claim citing that source, record why, and re-run the gate. Never add the
