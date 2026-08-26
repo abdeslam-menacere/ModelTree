@@ -512,6 +512,32 @@ function gateNoRanking(docs) {
 }
 
 // ---------------------------------------------------------------------------
+// Gate: the dataset is not wholesale empty.
+//
+// Every other gate here is satisfied by an empty set: it has no dangling
+// references, no duplicate ids, no out-of-range dates. That makes a broken
+// generator that writes nine structurally valid but empty documents invisible
+// to coherence checking, while it silently wipes the dataset. ADR 0003 lets an
+// agent-gated refresh auto-merge, so this gate is the floor that stops a green
+// run from taking the live data to zero (see #185).
+//
+// This is a floor, not a fixed count: it refuses only the all-empty case. A
+// non-empty tree is accepted exactly as before, so `usage-syntheses.json` being
+// legitimately empty today does not trip it. That is why the rule is "some
+// document has a record", not "every document does".
+// ---------------------------------------------------------------------------
+function gateNonEmpty(docs) {
+  const total = Object.values(docs).reduce((sum, entries) => sum + entries.length, 0);
+  if (total === 0) {
+    fail(
+      'non-empty',
+      'expected at least one record across the nine documents, found 0 (a wholesale-empty dataset)',
+      'dataset',
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 
 function main() {
   const args = parseArgs(process.argv);
@@ -533,6 +559,7 @@ function main() {
   }
 
   const docs = loadDocuments(dataDir);
+  gateNonEmpty(docs);
   const ids = gateIdentity(docs);
   gateReferences(docs, ids);
   gateLineage(docs);
