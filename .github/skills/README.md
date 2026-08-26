@@ -77,15 +77,16 @@ is what refuses to merge a red pull request.
 
 ## Changing a gate
 
-The gates have 94 self-tests. Run them:
+The gates have a self-test suite. Run it:
 
 ```bash
 node --test .github/skills/modeltree-gates/scripts/gates.test.mjs
 ```
 
-Every rule is proved to fire by breaking real data in exactly the way that rule
-exists to catch, and the live dataset is asserted to pass. A gate change without
-a test change is a gate change nobody verified.
+The run reports its own totals, so no count is repeated here to go stale — one
+was, and it did (#276). Every rule is proved to fire by breaking real data in
+exactly the way that rule exists to catch, and the live dataset is asserted to
+pass. A gate change without a test change is a gate change nobody verified.
 
 ## Related
 
