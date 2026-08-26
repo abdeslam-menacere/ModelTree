@@ -74,6 +74,12 @@ out into every worktree including every dock, and a row keyed on it matches
 everywhere. The first row is the one that goes unmatched when there is no
 `DOCK.md` at your root; your branch then decides which of the rest applies.
 
+A narrow gap between the two dock-worktree rows — a dock whose branch you cannot
+tie to its issue reading as the last row rather than the second — is accepted
+rather than closed: reaching it means the one-issue-one-branch invariant has
+already been broken, so the table's guidance is moot by the time it bites, and
+tightening the rows to catch it would cost more clarity than it buys.
+
 Where `git symbolic-ref --short refs/remotes/origin/HEAD` exits non-zero — a
 checkout carrying no remote-tracking refs is enough for that — the default
 branch is not discoverable here, so the main-repo row cannot match and the row
