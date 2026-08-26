@@ -512,6 +512,27 @@ def test_a_profile_that_does_not_match_the_checkpoint_stops_the_run(library) -> 
 
 
 def _profile_document():
+    """The reviewed document as editable JSON, or a skip when there is no checkout.
+
+    Guarded for the same reason as `test_nothing_creates_a_dedicated_profile`
+    above (#212): `DEFAULT_LONG_TAIL_PROFILE` is `None` in an installed
+    distribution (#147), and the reviewed document these tests edit copies of is
+    not there to be read. Skipping says so; before the guard it raised
+    `AttributeError: 'NoneType' object has no attribute 'read_text'`, which reads
+    as a bug in the code under test rather than as a run with no checkout.
+
+    The guard belongs here rather than at the call sites because this is a
+    *helper*: `_custom_profile_file` and `_reviewed_profile_file` are built on it
+    and are themselves reused across the file, so the bad failure was inherited
+    by far more tests than the ones that name this function directly (#300). One
+    guard at the root of the fan-out covers all of them and cannot drift.
+    """
+    if DEFAULT_LONG_TAIL_PROFILE is None:
+        pytest.skip(
+            "DEFAULT_LONG_TAIL_PROFILE is None: running from an installed "
+            "distribution, which ships no reviewed long-tail profiles (#147), "
+            "so there is no reviewed profile document to read and edit"
+        )
     return json.loads(DEFAULT_LONG_TAIL_PROFILE.read_text(encoding="utf-8"))
 
 
@@ -687,6 +708,18 @@ def _reviewed_profile_file(path, *, profile_id=DEFAULT_LONG_TAIL_PROFILE_ID):
 
 
 def test_the_reviewed_set_contains_the_shipped_profile() -> None:
+    """Deliberately unguarded, unlike `_profile_document` above (#300).
+
+    The #212 dock proposed guarding this too, on the grounds that it shares the
+    wrong-failure shape. It does not. Every `None` it can reach is already
+    refused by name: `load_long_tail_library` at `longtail.py:503-508` and
+    `load_long_tail_profile` at `longtail.py:413-417` both raise a
+    `FileNotFoundError` saying the updater is running from an installed
+    distribution and where the reviewed set lives in the repository. So the
+    diagnostic complaint #212 makes — a failure that names neither the constant
+    nor the cause — has nothing to bite on here, and a skip would only trade a
+    correct, self-explaining red for a green that says less.
+    """
     library = load_long_tail_library()
 
     assert DEFAULT_LONG_TAIL_PROFILE_ID in library.ids
