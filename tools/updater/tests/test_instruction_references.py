@@ -27,6 +27,13 @@ report claims to have measured, because a count printed as zero where nothing wa
 counted is what let a run over 81 backticked spans and a run over nothing print
 the same line.
 
+The "wraps across a line break" section pins a fail-open of a different shape. A
+backticked reference the file wrapped did not merely go unchecked: the stray
+backtick it left behind was read as an *opening* one, which put the pairing out
+of phase and swallowed the next real reference on the line the wrap's tail landed
+on. Those tests bracket the fix from both sides, because an over-broad one moves
+that swallowing onto the line below an unpaired backtick rather than removing it.
+
 The checker lives outside the updater package because it is not an updater
 concern, and is loaded by path for the same reason. Its tests live here because
 this is already where the repository's stdlib-Python invariants are asserted --
@@ -394,6 +401,115 @@ def test_a_bracketed_route_filename_resolves(document, tmp_path):
     report = checker.check(path, tmp_path)
 
     assert report.ok, report.render()
+
+
+# --- a code span the file wraps across a line break --------------------------
+#
+# The defect these pin is not that a wrapped reference went unchecked. It is
+# that the stray backtick left over from the failed match was read as an
+# *opening* one, which put the pairing out of phase and silently swallowed the
+# next real reference on the line the wrap's tail landed on. A wrap cost two
+# references, and the second of them was a reference the author wrote in the
+# ordinary way and the checker had in hand.
+#
+# Bracketed from both sides on purpose. Under-matching swallows the next
+# reference; over-matching glues an unpaired backtick to the line below it and
+# swallows a reference the old scan resynchronised onto, or reports a wrapped
+# span that is not a broken path at all. A fix that trades one of those for the
+# other has moved the fail-open rather than closed it.
+
+
+def test_a_wrapped_span_does_not_swallow_the_next_reference(document):
+    """The fail-open, exactly as measured on the reporting issue.
+
+    `web/src/data/` and `schema.ts` are one reference the document wrapped. The
+    reference after it is broken and has nothing to do with the wrap, and it is
+    the one that used to disappear: the wrapped span's closing backtick was
+    consumed as an opener, so the checker never saw the span that followed.
+    """
+    path = document(
+        "See `web/src/data/\nschema.ts` and `truly/missing.md` here.\n"
+    )
+    report = checker.check(path, REPO_ROOT)
+
+    assert not report.ok, report.render()
+    assert "truly/missing.md" in references(report)
+    reported = next(f for f in report.problems if f.reference == "truly/missing.md")
+    # Reported where a reader will look for it, not at the line the wrap opened.
+    assert reported.line == 2
+
+
+def test_wrapping_a_span_does_not_change_what_follows_it(document):
+    """The control that proves the test above discriminates.
+
+    Byte-identical but for the newline. Before the fix these two inputs
+    disagreed -- the unwrapped one failed, the wrapped one passed -- which is
+    the whole defect stated as a difference. They must now agree.
+    """
+    wrapped = checker.check(
+        document("See `web/src/data/\nschema.ts` and `truly/missing.md` here.\n"),
+        REPO_ROOT,
+    )
+    unwrapped = checker.check(
+        document("See `web/src/data/schema.ts` and `truly/missing.md` here.\n"),
+        REPO_ROOT,
+    )
+
+    assert references(unwrapped) == {"truly/missing.md"}
+    assert references(wrapped) == references(unwrapped)
+
+
+def test_a_wrapped_reference_is_declined_rather_than_flagged(document):
+    """The recorded decision: seen enough to stay in phase, not resolved.
+
+    What the document renders is the two fragments joined by a *space*, so the
+    token it presents carries whitespace and is not a path. Joining them
+    without the space would be a guess at what the author meant, and a guess is
+    the failure this checker exists to prevent -- so a wrapped reference is
+    neither resolved nor reported, exactly as `check_section_markers` already
+    declines it. The name here does not exist, so an over-broad fix that
+    resolved the join would turn this red.
+    """
+    path = document("See `truly/\nmissing.md` for the rest.\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert report.ok, report.render()
+    assert "truly/missing.md" not in report.candidates
+
+
+def test_an_unpaired_backtick_still_resynchronises_at_the_line_end(document):
+    """The other side of the bracket, and the one an over-broad fix breaks.
+
+    A backtick with no partner is not a wrap. Letting it pair with the first
+    backtick on the line below moves the swallowing rather than removing it:
+    the reference on that next line is the one that would vanish, which is the
+    same fail-open at a new address.
+    """
+    path = document(
+        "See `an unpaired backtick\nand then `truly/missing.md` here.\n"
+    )
+    report = checker.check(path, REPO_ROOT)
+
+    assert not report.ok, report.render()
+    assert "truly/missing.md" in references(report)
+
+
+def test_a_fenced_block_does_not_pair_across_its_own_lines(document):
+    """A fence is three backticks and a newline, and it stays inert.
+
+    The checker does not model fenced blocks -- a separate, deliberately
+    separate defect -- and widening the span scan must not change that by
+    accident. If a fence delimiter started pairing with the line under it, the
+    references inside the block would shift phase and the ones after it with
+    them.
+    """
+    path = document(
+        "Example:\n\n```\nSee `truly/missing.md` in here.\n```\n\n"
+        "And `also/missing.md` after it.\n"
+    )
+    report = checker.check(path, REPO_ROOT)
+
+    assert references(report) == {"truly/missing.md", "also/missing.md"}
 
 
 # --- slash-bearing tokens that are not paths --------------------------------

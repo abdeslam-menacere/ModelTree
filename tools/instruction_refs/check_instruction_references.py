@@ -201,7 +201,35 @@ PATH_EXTENSIONS = frozenset(
     }
 )
 
-CODE_SPAN_RE = re.compile(r"`([^`\n]+)`")
+# A code span, and the second alternative is the whole of the phase defence.
+#
+# A span cannot contain a newline, so a reference the file wraps across two
+# lines never matched -- and the cost of that was not the wrapped reference. The
+# scan resumed at the wrap's *closing* backtick and read it as an opening one,
+# which put the pairing out of phase and silently swallowed the next real
+# reference on the line the tail landed on. One wrap cost two references, and
+# the second was one the author had written in the ordinary way.
+#
+# So a span may also close one line down. The wrap is admitted only when neither
+# fragment carries whitespace, which is what keeps this from trading the miss for
+# an over-match: an unpaired backtick followed by prose is not a wrap, and
+# gluing it to the first backtick on the line below would swallow *that* line's
+# reference -- the same fail-open at a new address. Ending the line at the
+# backtick is likewise not a wrap, because the fragment after it would be empty
+# of anything but whitespace. A fence delimiter is inert for that reason too:
+# ``` is followed by a newline, so it cannot open a wrapped span, and the
+# checker's blindness to fenced blocks is left exactly as it is rather than
+# quietly changed here.
+#
+# The wrapped span is then seen but not resolved. What the document renders is
+# the two fragments joined by a space, so the token it presents carries
+# whitespace and `is_path_candidate` declines it -- the same answer
+# `check_section_markers` has always given it through `normalise`. Joining the
+# fragments without the space would be a guess at what the author meant, and a
+# guess is the failure this file exists to prevent. Being in phase is what was
+# missing; resolving the wrap is a separate decision, and this is it, recorded
+# rather than taken.
+CODE_SPAN_RE = re.compile(r"`([^`\n]+|[^`\s]+\n[ \t]*[^`\s]*)`")
 TEMPLATE_RE = re.compile(r"[<>{}]|([A-Z])\1{2,}")
 # Not preceded by a word character, so `owner/repo#3` -- which does say which
 # repository it means -- is left alone; and not by "/" or "#", so a URL fragment
