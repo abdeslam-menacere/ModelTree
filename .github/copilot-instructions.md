@@ -92,11 +92,17 @@ renamed, that reads the main-repo row as matching when it does not.
    Out-of-scope changes fail review — this is the most common failure by far.
 2. **Stay inside the worktree.** Sibling directories are other docks with other
    agents actively working. Never read or modify anything outside your root.
-3. **Record assumptions.** Ambiguity gets written into `## Assumptions` in
-   `DOCK.md` if this worktree has one, and otherwise into the summary you post to
-   the issue; never into this file, where it would read to the next agent as
-   sanctioned practice. Then you proceed. Silent guessing is the failure mode
-   this entire system exists to prevent.
+3. **Record assumptions.** Ambiguity gets written into the summary you post to
+   the issue — every assumption, every time, whether or not this worktree has a
+   `DOCK.md`. The reason is one you can check: `git ls-files DOCK.md` prints
+   nothing, so that file is not repository content. It exists in the one
+   worktree that holds it and goes when that worktree does, which puts anything
+   recorded only there beyond the reach of the gates — they judge from the issue
+   text and `git diff` — and of every later reader. `## Assumptions` in
+   `DOCK.md` is a good place to collect assumptions as you work, and never the
+   place they stop. Never write them into this file either, where they would
+   read to the next agent as sanctioned practice. Then you proceed. Silent
+   guessing is the failure mode this entire system exists to prevent.
 4. **Never switch branches, rebase, or merge by hand.** Landing is `drydock land`
    after the gates pass if that command is on your PATH, and otherwise is not a
    step you perform at all; merging is GitHub's once CI is green. Your work ends
