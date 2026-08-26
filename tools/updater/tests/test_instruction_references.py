@@ -494,6 +494,64 @@ def test_an_unpaired_backtick_still_resynchronises_at_the_line_end(document):
     assert "truly/missing.md" in references(report)
 
 
+@pytest.mark.parametrize(
+    "second_line",
+    ["`truly/missing.md` here.", "   `truly/missing.md` here."],
+    ids=["flush", "indented"],
+)
+def test_a_wrap_does_not_close_on_the_next_lines_opening_backtick(
+    document, second_line
+):
+    """The empty tail, which is the other way a wrap can swallow a reference.
+
+    Requiring the fragment after the break to be non-empty is not tidiness. Let
+    a wrap close on nothing and it closes instead on the backtick that was
+    *opening* the next reference, consuming it whole -- and that reference is
+    one the un-widened scan reported, so admitting it would be a regression
+    against the merge base rather than a residual carried forward.
+
+    The indented case is here because indentation is skipped before the tail is
+    read, so "empty" and "whitespace then a backtick" are the same hazard
+    reached by two routes, and a rule that closes only the first leaves the
+    fail-open reachable.
+    """
+    path = document(f"See `docs/adr\n{second_line}\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert not report.ok, report.render()
+    assert "truly/missing.md" in references(report)
+
+
+def test_a_wrapped_span_carrying_whitespace_is_a_disclosed_residual(document):
+    """Pins the limit, so the documentation cannot outrun the code.
+
+    Only a wrap whose fragments are both whitespace-free is admitted, and a
+    wrapped command line is not that. Such a wrap still goes out of phase and
+    still swallows the reference after it -- the very fail-open this rule
+    narrows -- because that text is indistinguishable from a stray unpaired
+    backtick followed by prose, and admitting it was measured to lose a broken
+    path the narrower rule catches.
+
+    Asserted rather than described so the claim in `.github/workflows/README.md`
+    stays checkable: if a later change closes this, the test goes red and says
+    so, and the row it contradicts gets rewritten instead of quietly becoming
+    false. The control is the same reference unwrapped, which must be reported,
+    so the test cannot pass merely because the name resolved.
+    """
+    swallowed = document(
+        "Run `git merge-base\nHEAD refs/heads/main` and `truly/missing.md` here.\n"
+    )
+    report = checker.check(swallowed, REPO_ROOT)
+
+    assert report.ok, report.render()
+    assert "truly/missing.md" not in references(report)
+
+    control = document("Run `git merge-base` and `truly/missing.md` here.\n")
+    control_report = checker.check(control, REPO_ROOT)
+
+    assert "truly/missing.md" in references(control_report)
+
+
 def test_a_fenced_block_does_not_pair_across_its_own_lines(document):
     """A fence is three backticks and a newline, and it stays inert.
 

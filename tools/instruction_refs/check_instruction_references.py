@@ -210,16 +210,20 @@ PATH_EXTENSIONS = frozenset(
 # reference on the line the tail landed on. One wrap cost two references, and
 # the second was one the author had written in the ordinary way.
 #
-# So a span may also close one line down. The wrap is admitted only when neither
-# fragment carries whitespace, which is what keeps this from trading the miss for
-# an over-match: an unpaired backtick followed by prose is not a wrap, and
-# gluing it to the first backtick on the line below would swallow *that* line's
-# reference -- the same fail-open at a new address. Ending the line at the
-# backtick is likewise not a wrap, because the fragment after it would be empty
-# of anything but whitespace. A fence delimiter is inert for that reason too:
-# ``` is followed by a newline, so it cannot open a wrapped span, and the
-# checker's blindness to fenced blocks is left exactly as it is rather than
-# quietly changed here.
+# So a span may also close one line down. Both fragments are required to be
+# non-empty and free of whitespace, and each half of that earns its keep:
+#
+# *Whitespace-free* is what stops an unpaired backtick followed by prose being
+# read as a wrap. Gluing it to the first backtick on the line below would
+# swallow that line's reference -- the same fail-open at a new address.
+#
+# *Non-empty* is what stops the wrap closing on a backtick that was opening
+# something else. The tail quantifier was once `*`, and an empty tail let
+# "`docs/adr\n`truly/missing.md`" pair the wrap with the opening backtick of the
+# *next* reference and swallow it -- a reference the un-widened scan caught, so
+# a regression rather than a residual. Note that it takes both ends to state
+# this correctly: an empty tail arises when line one ends at a backtick, and
+# equally when line two begins with one.
 #
 # The wrapped span is then seen but not resolved. What the document renders is
 # the two fragments joined by a space, so the token it presents carries
@@ -229,7 +233,23 @@ PATH_EXTENSIONS = frozenset(
 # guess is the failure this file exists to prevent. Being in phase is what was
 # missing; resolving the wrap is a separate decision, and this is it, recorded
 # rather than taken.
-CODE_SPAN_RE = re.compile(r"`([^`\n]+|[^`\s]+\n[ \t]*[^`\s]*)`")
+#
+# What this deliberately does not fix, because the fix would cost more than it
+# buys: a wrapped span with whitespace in either fragment still goes out of
+# phase, and still swallows the next reference. That is the shape this
+# repository actually contains -- `.github/skills/modeltree-gates/SKILL.md`
+# wraps "`git merge-base\nHEAD refs/remotes/origin/main`" -- so the omission is
+# real rather than theoretical, and it is disclosed in
+# `.github/workflows/README.md` rather than left for a reader to discover. It
+# stays because a wrapped multi-word span and a stray unpaired backtick
+# followed by prose are the same text, and nothing local tells them apart:
+# admitting one admits the other, which was measured to lose a broken path the
+# narrower rule catches. Trading this miss for that one moves the fail-open
+# instead of closing it. Closing it properly means pairing backticks the way
+# CommonMark does, which is a scanner this file does not have and cannot grow
+# here without also deciding how fenced blocks are modelled -- a separate,
+# deliberately separate question.
+CODE_SPAN_RE = re.compile(r"`([^`\n]+|[^`\s]+\n[ \t]*[^`\s]+)`")
 TEMPLATE_RE = re.compile(r"[<>{}]|([A-Z])\1{2,}")
 # Not preceded by a word character, so `owner/repo#3` -- which does say which
 # repository it means -- is left alone; and not by "/" or "#", so a URL fragment
@@ -615,6 +635,15 @@ def count_spans(text: str, report: Report) -> None:
     rather than a fact about the document: under the narrowed coverage the rule
     did not run, so the count stayed at its initial zero and was printed as
     though it had been taken.
+
+    It counts spans, not resolvable references, and a wrapped span is the case
+    where those come apart: every token `CODE_SPAN_RE`'s wrapped alternative
+    matches contains a newline, so `is_path_candidate` rejects all of them and
+    none can ever resolve. That is the right count for what this number is for
+    -- it exists so a run that examined nothing cannot look like a healthy one,
+    and markup the document really carries is exactly what answers that -- but
+    it does mean the number is not an upper bound on what the path rule could
+    report.
     """
     report.spans = sum(1 for _ in CODE_SPAN_RE.finditer(text))
 
