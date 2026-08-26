@@ -1,14 +1,22 @@
-"""The guard on `.github/copilot-instructions.md` and the two false positives.
+"""The guard on the covered documents, and the two false positives.
 
-This suite is the guard itself: `test_the_governing_file_resolves` runs the
-checker against the real committed file, so a pull request that adds a broken
-pointer to it turns this red.
+This suite is the guard itself: `test_every_covered_document_resolves` runs the
+checker over every document CI checks -- `.github/copilot-instructions.md` and
+the skill documents -- so a pull request that adds a broken pointer to any of
+them turns this red.
 
 The rest pin the behaviour that makes that first test worth anything. A check
 that cannot fail against the defect it names is worthless -- this repository has
 already shipped one of those -- so `test_reintroducing_spec_md_fails` restores
 the #103 defect and asserts the checker rejects it, and its neighbours assert
 the two settled non-issues, `DOCK.md` and `.docks/`, stay green.
+
+The "which documents are covered" section pins the scope decision itself, in
+both directions: that a skill added later is covered without editing a list, and
+that the narrowed rule set applied to skill documents still catches the citation
+defect it was widened for. The narrowing is a stated decision recorded in the
+checker's module docstring, not an exemption, and a test asserts it stays
+visible in the report rather than implied by silence.
 
 The checker lives outside the updater package because it is not an updater
 concern, and is loaded by path for the same reason. Its tests live here because
@@ -73,25 +81,29 @@ def test_the_governing_file_resolves():
 
 
 def test_the_default_target_is_the_governing_file():
-    """CI passes no argument, so the default is the whole of what it checks."""
+    """The governing file leads the covered set, and CI passes no argument."""
     assert checker.DEFAULT_DOCUMENT == Path(".github") / "copilot-instructions.md"
     assert (REPO_ROOT / checker.DEFAULT_DOCUMENT).is_file()
+    assert checker.covered_documents(REPO_ROOT)[0] == (
+        REPO_ROOT / checker.DEFAULT_DOCUMENT,
+        checker.FULL,
+    )
 
 
 def test_the_reviewer_skill_scope_citation_resolves():
     """The gate-scope.mjs pointer added to the reviewer skill cannot rot silently.
 
-    `test_the_governing_file_resolves` guards copilot-instructions.md, but the
-    reviewer skill is not the default document, so nothing else runs the checker
-    over it. Its cross-reference to the gate that computes the merge-base anchor
-    is a path citation like any other, and this resolves it against the working
-    tree so a moved or renamed gate turns this red. It asserts that one citation
-    rather than the whole file: the skill carries an unrelated bare `#59` this
-    change does not own and must not touch.
+    `test_the_governing_file_resolves` guards copilot-instructions.md. The
+    reviewer skill is now covered too, but only for issue citations -- its paths
+    are document-relative, so the checker does not resolve them (see the scope
+    section of the checker's module docstring). This asserts that one citation
+    under the full rule set anyway, so a moved or renamed gate turns it red
+    rather than waiting for a scope decision the checker has deliberately
+    deferred.
     """
     skill = REPO_ROOT / ".github" / "skills" / "modeltree-review" / "SKILL.md"
     cited = ".github/skills/modeltree-gates/scripts/gate-scope.mjs"
-    report = checker.check(skill, REPO_ROOT)
+    report = checker.check(skill, REPO_ROOT, checker.FULL)
 
     assert cited in report.candidates
     assert any(
@@ -540,9 +552,15 @@ def test_a_section_marker_finds_its_document_past_a_long_code_span(
 # --- the command line -------------------------------------------------------
 
 
-def test_the_cli_exits_zero_on_the_governing_file(capsys):
+def test_the_cli_exits_zero_over_the_whole_covered_set(capsys):
+    """No argument checks every covered document, which is what CI runs."""
     assert checker.main([]) == 0
-    assert "OK: every reference resolves." in capsys.readouterr().out
+    out = capsys.readouterr().out
+
+    assert out.rstrip().splitlines()[-1].startswith("OK: ")
+    assert "covered documents checked, every reference resolves." in out
+    for document, _ in checker.covered_documents(REPO_ROOT):
+        assert document.name in out
 
 
 def test_the_cli_exits_one_when_a_reference_is_broken(document, capsys):
@@ -562,3 +580,214 @@ def test_the_cli_takes_no_flags_that_could_skip_the_check(capsys):
     assert checker.main(["--force"]) == 2
     assert checker.main([str(CHECKER_PATH), "extra"]) == 2
     assert "OK" not in capsys.readouterr().out
+
+
+# --- which documents are covered --------------------------------------------
+#
+# The checker used to read one document, so a rule it enforced and a violation
+# of that rule could both exist and never meet: the reviewer skill carried a
+# bare `#59` that the checker rejected on sight when pointed at it, and nothing
+# ever pointed it there. These pin the scope that closed that, and -- just as
+# importantly -- pin the edge of it, so the narrowing stays a stated decision
+# rather than drifting into a blind spot nobody can see.
+
+
+def test_every_covered_document_resolves():
+    """The widened guard itself: every document CI checks is green."""
+    failed = [
+        report
+        for report in (
+            checker.check(document, REPO_ROOT, coverage)
+            for document, coverage in checker.covered_documents(REPO_ROOT)
+        )
+        if not report.ok
+    ]
+
+    assert not failed, "\n\n".join(report.render() for report in failed)
+
+
+def test_every_tracked_skill_document_is_covered():
+    """Asked of git, not of the glob the checker uses.
+
+    Comparing the covered set against the checker's own glob would only prove
+    the glob equals itself. `git ls-files` is the independent answer to "what
+    skill documents does this repository have", so a glob that stops matching
+    -- a renamed directory, a nested layout, a stray typo -- turns this red.
+    """
+    tracked = subprocess.run(
+        ["git", "ls-files", "--", ".github/skills/**/*.md", ".github/skills/*.md"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.split()
+    expected = {Path(name).as_posix() for name in tracked}
+    covered = {
+        document.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+        for document, _ in checker.covered_documents(REPO_ROOT)
+    }
+
+    assert expected, "no tracked skill documents: the query itself is wrong"
+    assert expected <= covered, sorted(expected - covered)
+
+
+def test_a_new_skill_document_is_covered_without_touching_a_list(tmp_path):
+    """The whole point of globbing the set rather than listing it.
+
+    A document added later must be covered the day it lands. If this needed an
+    edit to a roster somewhere, the next skill would be silently unchecked --
+    which is the defect, restored.
+    """
+    added = tmp_path / ".github" / "skills" / "modeltree-newcomer" / "SKILL.md"
+    added.parent.mkdir(parents=True)
+    added.write_text("# Newcomer\n\nBody.\n", encoding="utf-8")
+
+    covered = dict(checker.covered_documents(tmp_path))
+
+    assert added in covered
+    assert covered[added] == checker.CITATIONS_ONLY
+
+
+def test_the_governing_file_is_checked_under_the_full_rule_set():
+    governing = REPO_ROOT / checker.DEFAULT_DOCUMENT
+
+    assert checker.coverage_for(governing, REPO_ROOT) == checker.FULL
+    assert checker.coverage_for(governing, REPO_ROOT).resolves_paths
+
+
+def test_a_skill_document_is_checked_for_citations_only():
+    """The stated narrowing: skill paths are document-relative, so unresolved."""
+    skill = REPO_ROOT / ".github" / "skills" / "modeltree-review" / "SKILL.md"
+
+    assert checker.coverage_for(skill, REPO_ROOT) == checker.CITATIONS_ONLY
+    assert not checker.coverage_for(skill, REPO_ROOT).resolves_paths
+
+
+def test_an_uncovered_document_gets_the_full_rule_set(document):
+    """An unrecognised name must not be a way to shed rules.
+
+    Defaulting an unknown document to the narrower coverage would turn "not in
+    the covered set" into a bypass. It defaults to the stricter one instead.
+    """
+    path = document("Body.\n")
+
+    assert checker.coverage_for(path, REPO_ROOT) == checker.FULL
+
+
+def test_a_bare_citation_in_a_skill_document_still_fails(document):
+    """The rule that was never pointed at the skills, now pointed at them."""
+    path = document("Acceptance is unanimous for a long-tail creator (#59).\n")
+    report = checker.check(path, REPO_ROOT, checker.CITATIONS_ONLY)
+
+    assert not report.ok
+    assert "#59" in references(report)
+
+
+def test_citations_only_coverage_does_not_resolve_paths(document):
+    """Pins the exact edge of the narrowing, in both directions at once.
+
+    A dangling path is not reported under this coverage -- that is the stated
+    decision -- while a bare citation in the very same document still is. A
+    test that only asserted the second half would pass just as well if the
+    narrowing had quietly swallowed the citation rule too.
+    """
+    path = document(
+        "See `nowhere-at-all/guide.md`, and the rationale in #59.\n"
+    )
+    report = checker.check(path, REPO_ROOT, checker.CITATIONS_ONLY)
+
+    assert references(report) == {"#59"}
+    assert report.candidates == []
+
+
+def test_the_reviewer_skill_no_longer_carries_a_bare_citation():
+    """The named instance from the issue, fixed rather than exempted.
+
+    The citation is still made -- it is a real and relevant pointer -- but it
+    now says which repository it means, which is all the rule ever asked.
+    """
+    skill = REPO_ROOT / ".github" / "skills" / "modeltree-review" / "SKILL.md"
+    body = skill.read_text(encoding="utf-8")
+    report = checker.check(skill, REPO_ROOT, checker.CITATIONS_ONLY)
+
+    assert report.ok, report.render()
+    assert "abdeslam-menacere/ModelTree#59" in body
+
+
+def test_the_verdict_names_the_document_it_checked(document):
+    """It used to claim every failure was in "the file every agent reads first".
+
+    That was true only while the checker could never be pointed anywhere else.
+    Widening the scope made it wrong for most of what it now reads, so the
+    message names the document instead of asserting which one it must be.
+    """
+    path = document("The rationale is in #3.\n")
+    report = checker.check(path, REPO_ROOT, checker.CITATIONS_ONLY)
+    rendered = report.render()
+
+    assert f"FAIL: a reference in {report.display} points at nothing." in rendered
+    assert "the file every agent reads first" not in rendered
+
+
+def test_the_report_states_which_rules_it_applied(document):
+    """An exemption nobody can see is indistinguishable from a bypass.
+
+    The narrowed coverage is a deliberate decision, so every report says which
+    rules produced its verdict rather than leaving a reader of the CI log to
+    infer it from what is missing.
+    """
+    path = document("Body.\n")
+
+    full = checker.check(path, REPO_ROOT, checker.FULL).render()
+    narrow = checker.check(path, REPO_ROOT, checker.CITATIONS_ONLY).render()
+
+    assert "rules applied: paths, issue citations and section markers" in full
+    assert "rules applied: issue citations only" in narrow
+
+
+def test_the_run_verdict_reports_a_failure_anywhere_in_the_set(
+    tmp_path, monkeypatch, capsys
+):
+    """A green document must not be able to carry a red one over the line.
+
+    Each document prints its own verdict, so a log read from the bottom could
+    otherwise end on an `OK:` while an earlier document had failed. The run
+    prints its own verdict last.
+    """
+    governing = tmp_path / checker.DEFAULT_DOCUMENT
+    governing.parent.mkdir(parents=True)
+    governing.write_text("# Instructions\n\nNothing to resolve.\n", encoding="utf-8")
+    skill = tmp_path / ".github" / "skills" / "modeltree-newcomer" / "SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("# Newcomer\n\nPer #59.\n", encoding="utf-8")
+    monkeypatch.setattr(checker, "REPO_ROOT", tmp_path)
+
+    assert checker.main([]) == 1
+    out = capsys.readouterr().out
+
+    assert out.rstrip().splitlines()[-1] == (
+        "FAIL: 1 of 2 covered documents make a reference that points at nothing."
+    )
+
+
+def test_the_workflow_runs_on_every_covered_document():
+    """A covered document CI never triggers on is not actually covered.
+
+    The checker's scope and the workflow's path filter are two halves of one
+    decision: widening the first without the second would leave a skill change
+    unchecked on every pull request that touched only skills.
+    """
+    yaml = pytest.importorskip("yaml", reason="PyYAML is part of the dev extra")
+    workflow = yaml.safe_load(
+        (
+            REPO_ROOT / ".github" / "workflows" / "instruction-references.yml"
+        ).read_text(encoding="utf-8")
+    )
+    # YAML 1.1 reads a bare `on` key as the boolean True.
+    triggers = workflow.get("on", workflow.get(True))
+
+    for event in ("pull_request", "push"):
+        paths = triggers[event]["paths"]
+        assert ".github/copilot-instructions.md" in paths
+        assert ".github/skills/**" in paths
+        assert "tools/instruction_refs/**" in paths

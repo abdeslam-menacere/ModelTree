@@ -1,4 +1,4 @@
-"""Resolve every reference `.github/copilot-instructions.md` makes.
+"""Resolve the references the governing file and the skill documents make.
 
 The governing file is the one every agent is required to read first. A pointer in
 it that resolves to nothing is not a cosmetic defect: an agent reads
@@ -19,6 +19,54 @@ list, which can go stale exactly the way the prose did:
    Write "owner/repo#N", which says which repository it means.
 3. Section markers (U+00A7 followed by a number). Each must attach to a path
    reference, and that document must carry a heading with that number.
+
+Which documents are covered, and why not all of them
+----------------------------------------------------
+
+The governing file, plus every `.github/skills/**/*.md`. The set is globbed, not
+listed, so a skill added tomorrow is covered the day it lands rather than the day
+somebody remembers to extend a list.
+
+The skills earn coverage because of who reads them. They are the instructions
+an agent follows *while acting as a gate* -- deciding whether work is fit to
+merge. A misdirected pointer costs more there than in ordinary prose, because a
+gate that mis-anchors emits a confident wrong verdict rather than visible
+confusion. The reviewer skill carried a bare `#59` from the day it was written,
+and the rule that forbids exactly that had never once been pointed at the file.
+
+The two rule groups do not travel together, and this is the substance of the
+decision rather than a detail of it:
+
+**Issue citations are location-independent.** "#59" misdirects a reader the same
+way in any file, because the ambiguity is about *which repository* the number
+belongs to and nothing about the citing document changes that answer. So this
+rule applies to every covered document.
+
+**Path and section-marker resolution is anchored, and the anchor is a house
+style rather than a fact.** Every path in the governing file is written relative
+to the repository root, which is why resolving against the root is correct there.
+The skills use document-relative links instead -- `scripts/gate-scope.mjs` and
+`../../docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md` -- because
+that is what renders as a working link on GitHub from where those files sit. So
+path checking stays on the governing file, and covered skill documents are
+checked for citations only. Each report prints which rules it applied, so the
+narrowing is visible in the log rather than implied by silence.
+
+Widening the path rule to the skills is a real piece of design, not an oversight
+deferred out of laziness. It needs an answer to two questions this file does not
+attempt: which anchor a given document's paths are written against, and what to
+do about a bare filename used in prose as a *name* rather than a path (the skills
+say "the `gate-scope.mjs` gate refuses" more often than they cite its path).
+Rewriting those documents to repo-root paths would resolve them here at the cost
+of breaking the relative links GitHub renders -- a worse document for a greener
+checker. That trade is recorded rather than taken.
+
+The rest of the repository is out of scope for the same reason, at a scale that
+makes it obvious: at the time this was written, tracked Markdown outside the
+covered set carried 236 bare citations, 184 of them in `docs/product/BACKLOG.md`
+alone, where `#N` is the idiom of a repository-local tracking list. Bringing
+those in is a separate decision about a separate class of document, and folding
+it in here would have buried it.
 
 Two exemptions, both mechanical, both reported with their evidence so the CI log
 shows what was skipped and why. Neither is an override: there is no --skip and
@@ -69,10 +117,13 @@ Usage:
 
     python tools/instruction_refs/check_instruction_references.py
 
-An optional positional argument points the checker at a different document,
-which is how its own tests -- and a demonstration that it can fail -- run it
-against a fixture. Paths still resolve against the repository root, and CI
-passes no argument.
+With no argument the whole covered set is checked, which is what CI runs. An
+optional positional argument narrows the run to one document, which is how its
+own tests -- and a demonstration that it can fail -- run it against a fixture.
+A document that is in the covered set is checked under exactly the rules CI
+would apply to it, so pointing the checker at a file by hand cannot report
+something CI would not; a document outside the set gets the full rule set, which
+is the stricter of the two and never the more permissive.
 """
 
 from __future__ import annotations
@@ -85,6 +136,12 @@ from pathlib import Path, PurePosixPath
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DOCUMENT = Path(".github") / "copilot-instructions.md"
+
+# Globbed rather than listed, on the same principle as the reference extraction
+# above: a hand-maintained roster of covered documents goes stale exactly the way
+# the prose it guards does, and a skill added without touching the list would be
+# silently unchecked -- which is the defect this scope widening exists to close.
+SKILL_DOCUMENTS_GLOB = ".github/skills/**/*.md"
 
 # A backticked span is a path candidate when it ends in one of these, or when it
 # contains "/" and starts at something this repository actually has. The
@@ -162,6 +219,66 @@ IGNORE_PROBE = ".gitignore-probe"
 
 
 @dataclass(frozen=True)
+class Coverage:
+    """Which of the two rule groups apply to a document.
+
+    Separated because they do not have the same reach. A bare issue citation
+    misdirects identically wherever it is written, while path resolution depends
+    on the anchor the document's own house style uses -- see the scope section
+    of the module docstring. `resolves_paths` false is a narrower check, never a
+    suppressed one: nothing is exempted, a rule group simply does not claim
+    jurisdiction it cannot exercise correctly.
+    """
+
+    resolves_paths: bool
+
+    @property
+    def label(self) -> str:
+        if self.resolves_paths:
+            return "paths, issue citations and section markers"
+        return "issue citations only (paths are document-relative here)"
+
+
+FULL = Coverage(resolves_paths=True)
+CITATIONS_ONLY = Coverage(resolves_paths=False)
+
+
+def covered_documents(repo_root: Path = REPO_ROOT) -> list[tuple[Path, Coverage]]:
+    """Every document CI checks, with the rules that apply to each.
+
+    The governing file first because it is the one every agent reads first, then
+    the skill documents in a stable sorted order so a CI log diffs cleanly.
+    """
+    covered: list[tuple[Path, Coverage]] = [(repo_root / DEFAULT_DOCUMENT, FULL)]
+    covered.extend(
+        (document, CITATIONS_ONLY)
+        for document in sorted(repo_root.glob(SKILL_DOCUMENTS_GLOB))
+        if document.is_file()
+    )
+    return covered
+
+
+def coverage_for(document: Path, repo_root: Path = REPO_ROOT) -> Coverage:
+    """The rules for a named document: what CI would apply, else the full set.
+
+    An uncovered document gets `FULL`, which is the stricter answer. Defaulting
+    the other way would let a document escape path checking merely by not being
+    listed, turning an unrecognised name into a bypass.
+    """
+    try:
+        resolved = document.resolve()
+    except OSError:
+        return FULL
+    for candidate, coverage in covered_documents(repo_root):
+        try:
+            if candidate.resolve() == resolved:
+                return coverage
+        except OSError:
+            continue
+    return FULL
+
+
+@dataclass(frozen=True)
 class Finding:
     line: int
     reference: str
@@ -175,6 +292,7 @@ class Finding:
 class Report:
     document: Path
     repo_root: Path
+    coverage: Coverage = FULL
     spans: int = 0
     candidates: list[str] = field(default_factory=list)
     resolved: list[Finding] = field(default_factory=list)
@@ -185,10 +303,21 @@ class Report:
     def ok(self) -> bool:
         return not self.problems
 
+    @property
+    def display(self) -> str:
+        """The document as a reader would cite it: relative to the root."""
+        try:
+            return self.document.resolve().relative_to(
+                self.repo_root.resolve()
+            ).as_posix()
+        except (OSError, ValueError):
+            return str(self.document)
+
     def render(self) -> str:
         lines = [
-            f"Checking {self.document}",
+            f"Checking {self.display}",
             f"  repository root: {self.repo_root}",
+            f"  rules applied: {self.coverage.label}",
             f"  {self.spans} backticked spans, "
             f"{len(self.candidates)} path-like references",
             f"  resolved ({len(self.resolved)}):",
@@ -200,13 +329,15 @@ class Report:
             lines.append(f"  UNRESOLVED ({len(self.problems)}):")
             lines.extend(str(finding) for finding in self.problems)
             lines.append("")
+            # Names the document it actually read. The message used to assert
+            # this was "the file every agent reads first", which was true only
+            # while the checker could never be pointed anywhere else.
             lines.append(
-                "FAIL: a reference in the file every agent reads first points "
-                "at nothing."
+                f"FAIL: a reference in {self.display} points at nothing."
             )
         else:
             lines.append("")
-            lines.append("OK: every reference resolves.")
+            lines.append(f"OK: every checked reference in {self.display} resolves.")
         return "\n".join(lines)
 
 
@@ -488,12 +619,18 @@ def check_section_markers(text: str, repo_root: Path, report: Report) -> None:
             )
 
 
-def check(document: Path, repo_root: Path = REPO_ROOT) -> Report:
+def check(
+    document: Path,
+    repo_root: Path = REPO_ROOT,
+    coverage: Coverage = FULL,
+) -> Report:
     text = document.read_text(encoding="utf-8")
-    report = Report(document=document, repo_root=repo_root)
-    check_paths(text, repo_root, report)
+    report = Report(document=document, repo_root=repo_root, coverage=coverage)
+    if coverage.resolves_paths:
+        check_paths(text, repo_root, report)
     check_issue_citations(text, report)
-    check_section_markers(text, repo_root, report)
+    if coverage.resolves_paths:
+        check_section_markers(text, repo_root, report)
     report.problems.sort(key=lambda finding: (finding.line, finding.reference))
     return report
 
@@ -509,13 +646,40 @@ def main(argv: list[str] | None = None) -> int:
     if len(args) > 1:
         print("usage: check_instruction_references.py [document]", file=sys.stderr)
         return 2
-    document = Path(args[0]) if args else REPO_ROOT / DEFAULT_DOCUMENT
-    if not document.is_file():
-        print(f"no such document: {document}", file=sys.stderr)
-        return 2
-    report = check(document, REPO_ROOT)
-    print(report.render())
-    return 0 if report.ok else 1
+
+    if args:
+        document = Path(args[0])
+        if not document.is_file():
+            print(f"no such document: {document}", file=sys.stderr)
+            return 2
+        targets = [(document, coverage_for(document, REPO_ROOT))]
+    else:
+        targets = covered_documents(REPO_ROOT)
+        missing = [document for document, _ in targets if not document.is_file()]
+        if missing:
+            for document in missing:
+                print(f"no such document: {document}", file=sys.stderr)
+            return 2
+
+    reports = [check(document, REPO_ROOT, coverage) for document, coverage in targets]
+    print("\n\n".join(report.render() for report in reports))
+
+    failed = [report for report in reports if not report.ok]
+    if len(reports) > 1:
+        # One verdict for the run, below the per-document ones, so a log read
+        # from the bottom cannot mistake the last document's OK for the run's.
+        print("")
+        if failed:
+            print(
+                f"FAIL: {len(failed)} of {len(reports)} covered documents make a "
+                "reference that points at nothing."
+            )
+        else:
+            print(
+                f"OK: {len(reports)} covered documents checked, every reference "
+                "resolves."
+            )
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
