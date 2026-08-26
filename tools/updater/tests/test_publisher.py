@@ -588,6 +588,30 @@ def test_two_overrunning_executions_one_timer_tick_apart_render_identically(
     assert render_body(fast) == render_body(slow)
 
 
+# `test_re_rendering_the_same_run_adds_no_comment_and_no_churn` is named twice in
+# this file — in the docstring just below, and in
+# `test_re_publishing_a_run_that_took_longer_adds_no_comment_and_no_churn` — and
+# no test by that name exists: #197 deleted it. Both mentions are kept on
+# purpose. They are past-tense provenance, so a reader who greps the dead name
+# out of #149 or #197 lands on why it went, which is how #197 was asked to
+# record its reasoning.
+#
+# Nothing checks them, and #309 asked whether to close that with tooling. The
+# decision, recorded here because there is nowhere else it would be read, is no.
+# `tools/instruction_refs` resolves only the references made by
+# `.github/copilot-instructions.md`, and only path-shaped ones — a backticked
+# span with no extension and no `/` is not even a candidate — while the other
+# two programs under `tools/` check ADR numbering and are the updater itself. So
+# a checker would be new code, and it would have to fire on something: "names a
+# test that does not exist" fires on both of these, which are correct, and
+# anything narrower has to tell past-tense provenance from a present-tense
+# claim, which is a judgement about English rather than about symbols.
+#
+# The convention that stands in for it costs nothing: a mention of a removed
+# test is written in the past tense and carries the issue that removed it, so
+# the sentence states its own evidence and can be audited by reading it.
+# Rewording either mention into the present tense is the defect to watch for; a
+# name that no longer resolves is not, on its own, a defect here.
 def test_the_published_seconds_cells_hold_the_sentinel_rather_than_a_measurement(
     proposal_factory, fake_issues_client
 ) -> None:
@@ -1215,6 +1239,10 @@ def test_a_first_publication_supersedes_nothing(
     assert "| Supersedes run | — |" in client.issues[0].body
 
 
+# The removed test named in the docstring below is deliberate past-tense
+# provenance; the note above
+# `test_the_published_seconds_cells_hold_the_sentinel_rather_than_a_measurement`
+# records why it stays and why no tooling checks it (#309).
 def test_re_publishing_a_run_that_took_longer_adds_no_comment_and_no_churn(
     proposal_factory, fake_issues_client
 ) -> None:
