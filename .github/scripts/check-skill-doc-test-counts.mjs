@@ -47,21 +47,72 @@ import { fileURLToPath } from "node:url";
 const REPO_ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const SKILLS_DIR = join(REPO_ROOT, ".github", "skills");
 
-// A digit that counts tests. Written-out numbers are deliberately not matched:
-// SKILL.md says "One test is a deliberate exception" about a single
-// characterisation test, which is a statement about that test and not a claim
-// about the size of the suite. The singular "N test" is left out for the same
-// reason -- it would flag "2 test files", which claims nothing about the suite.
-const TEST_COUNT = /\b\d+\s+(?:self-)?(?:tests|test\s+cases?)\b/i;
+// A digit that counts tests, in either order: the number before the noun
+// ("103 tests", "**103** self-tests") or the noun before the number, which is
+// how a table row or a label states it ("| tests | 103 |", "tests: 103").
+//
+// Markdown emphasis is tolerated around the numeral, because prose that quotes
+// a count usually emphasises it -- #276's own issue body writes `**95**` and
+// `**100**`. A pattern anchored on `\d+\s+tests` cannot see any of those, so the
+// most likely way an author restates the count would be the one way the guard
+// missed. `*`, `_` and backticks are therefore allowed to wrap the number and to
+// sit between it and the noun.
+//
+// ## What is deliberately not matched, so the promise stays honest
+//
+// - **Written-out numbers.** SKILL.md says "One test is a deliberate exception"
+//   about a single characterisation test. That is a statement about that test,
+//   not a claim about the size of the suite.
+// - **The singular "N test".** It would flag "2 test files", which claims
+//   nothing about the suite.
+// - **"N checks".** In this repository "check" overwhelmingly means a CI status
+//   check -- `.github/workflows/README.md` is largely about which ones are safe
+//   to require -- so "3 checks" is far more likely to be a true statement about
+//   CI than a test count. It is excluded on purpose and pinned as a
+//   must-not-flag sample below. This is the one evasion left open, and it is
+//   left open knowingly: an honest narrow promise beats an ambitious false one.
+//
+// Where it errs, it errs toward over-matching: "test cases 1 and 2" would be
+// flagged. That is the safer error. A false positive is a red check with a
+// message telling the author exactly what to do, while a false negative is the
+// silent drift this whole check exists to end.
+const COUNT_NOUN = String.raw`(?:self-)?(?:tests|test\s+cases?|assertions)`;
+// Emphasis, code marks, and the separators a table or label puts between the
+// two. `#` is excluded so an issue reference like "tests #103" is not a count.
+const WRAP = String.raw`[\s*_\`]*`;
+const LABEL_SEP = String.raw`[\s*_\`:|\u2014\u2013-]*`;
+// Not `\b`: `_` is a word character, so `\b\d` never fires inside `_103_`. This
+// spells out what may sit immediately before the numeral instead -- anything
+// except a letter, another digit, or the `#` of an issue reference. That also
+// stops "H100 tests" being read as a count of 100.
+const NUMBER_START = String.raw`(?<![#0-9A-Za-z])`;
+const NUMBER_FIRST = new RegExp(String.raw`${NUMBER_START}\d+${WRAP}${COUNT_NOUN}\b`, "i");
+const NOUN_FIRST = new RegExp(String.raw`\b${COUNT_NOUN}\b${LABEL_SEP}${NUMBER_START}\d+`, "i");
 
-// Proof, re-run on every invocation, that the pattern above still does the job
-// it is here to do. If a future edit breaks it, this fails loudly instead of
-// passing every file forever.
+const statesATestCount = (line) => NUMBER_FIRST.test(line) || NOUN_FIRST.test(line);
+
+// Proof, re-run on every invocation, that the patterns above still do the job
+// they are here to do. If a future edit breaks one, this fails loudly instead of
+// passing every file forever. Every form the guard claims to cover is pinned
+// here, and so is every form it deliberately declines to cover.
 const MUST_FLAG = [
   "The gates have 94 self-tests. Run them:",
   "94 tests. Every rule is proved to fire by breaking the data",
   "The suite has 103 test cases.",
   "there are 7 self-tests covering it",
+  // Emphasis around the numeral -- the evasion this pattern was widened to close.
+  "The gates have **103** self-tests.",
+  "The suite has *103* tests.",
+  "It runs _103_ tests.",
+  "There are __103__ test cases.",
+  "There are `103` tests.",
+  "The gates have **110 self-tests** today.",
+  // The noun-first forms a table or a label produces.
+  "| tests | 103 |",
+  "tests: 103",
+  "self-tests — 103",
+  // A count restated as assertions rather than tests.
+  "103 assertions cover the gates.",
 ];
 const MUST_NOT_FLAG = [
   "One test is a deliberate exception: it characterises the accepted limit",
@@ -69,17 +120,23 @@ const MUST_NOT_FLAG = [
   "Run the 2 test files in that directory",
   "ADR 0003 authorises the refresh",
   "Every rule is proved to fire by breaking real data in exactly the way",
+  // Deliberate exclusions, pinned so that narrowing the promise stays a decision
+  // rather than an accident.
+  "103 checks reported on the pull request",
+  "the gate checks the form of a citation, not its remote content",
+  "The `gate-source-approval` cases build a throwaway git repository",
+  "see the tests #103 for the reasoning",
 ];
 
 function selfCheck() {
   const broken = [];
   for (const sample of MUST_FLAG) {
-    if (!TEST_COUNT.test(sample)) {
+    if (!statesATestCount(sample)) {
       broken.push(`should have been flagged but was not: ${JSON.stringify(sample)}`);
     }
   }
   for (const sample of MUST_NOT_FLAG) {
-    if (TEST_COUNT.test(sample)) {
+    if (statesATestCount(sample)) {
       broken.push(`should not have been flagged but was: ${JSON.stringify(sample)}`);
     }
   }
@@ -132,7 +189,7 @@ const findings = [];
 for (const file of files) {
   const lines = readFileSync(file, "utf8").split(/\r?\n/);
   lines.forEach((text, index) => {
-    if (TEST_COUNT.test(text)) {
+    if (statesATestCount(text)) {
       findings.push({ path: posix(relative(REPO_ROOT, file)), line: index + 1, text: text.trim() });
     }
   });
@@ -157,5 +214,5 @@ if (findings.length > 0) {
 
 console.log(
   `check-skill-doc-test-counts: OK -- ${files.length} markdown file(s) under ` +
-    `${posix(relative(REPO_ROOT, SKILLS_DIR))} state no hand-written test count.`,
+    `${posix(relative(REPO_ROOT, SKILLS_DIR))} state no test count in any form this check recognises.`,
 );
