@@ -672,6 +672,79 @@ def test_the_budget_tables_seconds_limit_stays_round_trippable(
     assert "e" not in cell.group(1).lower()
 
 
+@pytest.mark.parametrize("limit", [True, False])
+def test_a_boolean_seconds_limit_falls_back_to_the_unnumbered_phrasing(
+    proposal_factory, limit
+) -> None:
+    """A bool limit must not be rendered as a number.
+
+    `isinstance(True, int)` and `isinstance(False, int)` are both True, so a bool
+    reaching `_seconds_limit` renders `repr(True)` -> `'True'`, and a formatter
+    that leaned on bool-is-int would print `1`/`0`. The failures sentence excludes
+    the type first and falls back to the unnumbered `its seconds budget`. That
+    holds today only because of a guard on the sentence, not `_seconds_limit`
+    itself, and nothing in the suite pinned it: a refactor that fed the value in
+    directly would print `its True second limit` with no test objecting.
+    """
+    real = _overrunning(proposal_factory)
+    failures = tuple(
+        dataclasses.replace(failure, detail={**failure.detail, "limit": limit})
+        if failure.detail.get("resource") == "seconds"
+        else failure
+        for failure in real.failures
+    )
+    proposal = dataclasses.replace(real, failures=failures)
+
+    # Anti-vacuity: a seconds failure really is carrying the boolean limit, so the
+    # fallback below is exercised on the bool path and not on an absent one.
+    assert any(
+        failure.detail.get("limit") is limit
+        for failure in proposal.failures
+        if failure.detail.get("resource") == "seconds"
+    )
+
+    body = render_body(proposal)
+
+    assert "reached its seconds budget" in body
+    # No numeric-limit sentence at all, and specifically none of the renderings a
+    # bool would produce if its type were trusted.
+    assert "second limit" not in body
+    assert "its 1 second limit" not in body
+    assert "its 0 second limit" not in body
+    assert "its True second limit" not in body
+    assert "its False second limit" not in body
+
+
+def test_an_integer_and_a_float_seconds_limit_render_identically(
+    proposal_factory,
+) -> None:
+    """`5` and `5.0` are one limit and must print as one string.
+
+    `_seconds_limit` normalises the integral float (`5.0` -> `5`) so it matches
+    the int; a formatter that used `str` would print `5.0` for the float and
+    split the two. Only the budget table's `Limit` cell is compared -- the JSON
+    `Detail` cell serialises `5` and `5.0` differently by design, so whole-body
+    equality is not the property here.
+    """
+    base = proposal_factory(MATERIAL)
+    as_int = render_body(
+        dataclasses.replace(
+            base, budget=dataclasses.replace(base.budget, max_seconds=5)
+        )
+    )
+    as_float = render_body(
+        dataclasses.replace(
+            base, budget=dataclasses.replace(base.budget, max_seconds=5.0)
+        )
+    )
+
+    pattern = r"\| seconds \| _not rendered_ \| (\S+) \|"
+    int_cell = re.search(pattern, as_int)
+    float_cell = re.search(pattern, as_float)
+    assert int_cell is not None and float_cell is not None
+    assert int_cell.group(1) == float_cell.group(1) == "5"
+
+
 def test_a_run_stopped_by_the_token_limit_still_prints_its_count(
     proposal_factory,
 ) -> None:
