@@ -387,6 +387,34 @@ def _value(value: Any) -> str:
     return _code(json.dumps(value, sort_keys=True, ensure_ascii=False))
 
 
+def _seconds_limit(value: float | int) -> str:
+    """Render a seconds limit so its prose form and the JSON cell agree.
+
+    The failures-table sentence and the JSON `Detail` cell beside it both read
+    one `detail["limit"]`, but a shared *source* is not a shared *rendering*.
+    The cell serialises with `json.dumps`; formatting the prose with `:g` —
+    six significant digits, exponent form once past them — turned `1234567.0`
+    into `1.23457e+06`, which parses back to `1234570.0`. The two cells then
+    printed different numbers and neither recovered the limit the run was
+    stopped against. The budget table's `Limit` cell rendered the same value
+    with `:g` too, so above six significant digits it disagreed with the
+    failures table across sections. This is the rendering half of the guarantee
+    #149's docstring makes about these cells not contradicting each other.
+
+    The rule is round-trippability, not a shared byte string. An integral limit
+    renders as an integer (`120.0` -> `120`, `1234567.0` -> `1234567`), keeping
+    the readable form #149 chose for the common case; every other value renders
+    with `repr`, whose result Python guarantees parses back to the same float
+    (`12.5` -> `12.5`, `0.1` -> `0.1`). Both forms round-trip to the value
+    `json.dumps` wrote, so `float(prose) == float(cell)` for every limit either
+    cell can hold — no truncation to six figures, no exponent switch. `:g` is
+    never used here, because it is exactly the lossy step this replaces.
+    """
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return repr(value)
+
+
 def _quote(text: str) -> list[str]:
     lines = (text or "").replace("\r\n", "\n").replace("\r", "\n").split("\n")
     return [f"> {line}" if line else ">" for line in lines]
@@ -778,7 +806,7 @@ def _budget_section(proposal: CreatorProposal) -> _Section:
             # the same run, so printing it here would make every re-render an
             # edit. The limit stays, because a run stopped by it has to be
             # readable against something. The note below says so in the body.
-            ["seconds", NOT_RENDERED, f"{budget.max_seconds:g}"],
+            ["seconds", NOT_RENDERED, _seconds_limit(budget.max_seconds)],
             ["retries", str(budget.retries_used), str(budget.max_retries)],
         ],
     )
@@ -833,7 +861,11 @@ def _failure_row(failure: RunFailure) -> list[str]:
     while the failure carries the one actually enforced when the run stopped. The
     failure is the record of what happened, so it is the only truthful source —
     and reading the limit from beside the measurement keeps this cell and the
-    JSON cell next to it from contradicting each other.
+    JSON cell next to it from contradicting each other. That agreement is
+    structural but not yet visible: the two cells only *print* the same number
+    because the sentence is formatted with `_seconds_limit`, whose rendering
+    round-trips to the value `json.dumps` writes into the cell. `:g` did not,
+    and the two disagreed above six significant digits (#180).
 
     Only `seconds` is treated this way. Pages, tokens and retries are counters,
     a reviewer needs their exact values, and they are rendered verbatim.
@@ -850,7 +882,7 @@ def _failure_row(failure: RunFailure) -> list[str]:
     ):
         limit = detail.get("limit")
         stated = (
-            f"its {limit:g} second limit"
+            f"its {_seconds_limit(limit)} second limit"
             if isinstance(limit, (int, float)) and not isinstance(limit, bool)
             else "its seconds budget"
         )
