@@ -33,6 +33,14 @@ threshold and is not a stylistic choice: `pilot` accepts on 2-of-3,
 bundle that omits it is refused with exit 2, exactly as one naming an unknown
 policy is. Silence must not select the looser bar.
 
+The gate does not take this on the bundle's word. `gate-evidence` derives the
+same classification from the reviewed-profile set on disk — a creator with a
+reviewed profile is `pilot`, one without is `long-tail` — and applies *that*
+threshold. A bundle whose declared `policy` contradicts the derived one is
+refused, naming the creator, the declared policy and the derived one; if the
+reviewed set cannot be read or the creator cannot be classified, the gate exits
+2 rather than fall back to the looser bar.
+
 `incomplete` records what the run could not finish — a source that would not
 load, a budget that ran out — as strings. It is published rather than hidden. A
 run that quietly did less than it claims is worse than one that failed loudly.

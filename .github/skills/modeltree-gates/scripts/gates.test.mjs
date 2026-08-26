@@ -261,12 +261,24 @@ function claim(overrides = {}) {
   };
 }
 
-function gateBundle(bundle) {
+// A bundle's policy is derived from its creator (#233), so every bundle now
+// names one. Tests that are not about derivation take a reviewed (pilot) creator
+// by default, so their declared `pilot` matches the policy derived from the
+// reviewed-profile set; the derivation tests below set `creator` explicitly to
+// exercise the long-tail and mismatch cases. A bundle carrying no `policy` is
+// left untouched, so the absent-policy refusal still sees the bundle as written.
+const DEFAULT_PILOT_CREATOR = 'openai';
+
+function gateBundle(bundle, options = {}) {
+  const withCreator = Object.hasOwn(bundle, 'creator') || !Object.hasOwn(bundle, 'policy')
+    ? bundle
+    : { ...bundle, creator: DEFAULT_PILOT_CREATOR };
   const dir = mkdtempSync(join(tmpdir(), 'modeltree-claims-'));
   try {
     const path = join(dir, 'claims.json');
-    writeFileSync(path, JSON.stringify(bundle, null, 2));
-    return run(GATE_EVIDENCE, ['--claims', path, '--today', TODAY, '--json']);
+    writeFileSync(path, JSON.stringify(withCreator, null, 2));
+    const extra = options.repo ? ['--repo', options.repo] : [];
+    return run(GATE_EVIDENCE, ['--claims', path, '--today', TODAY, '--json', ...extra]);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -345,6 +357,7 @@ describe('gate-evidence', () => {
 
   test('the same 2-of-3 majority is NOT enough for a long-tail creator', () => {
     const result = gateBundle({
+      creator: 'some-long-tail-creator',
       policy: 'long-tail',
       claims: [claim({
         verdicts: [
@@ -480,6 +493,88 @@ describe('gate-evidence', () => {
       })],
     });
     assert.notEqual(result.code, 0, `a claim that never chose a threshold must not pass: ${result.stdout}`);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Policy is derived from the reviewed-profile set, not believed from the
+  // bundle (#233). The gate validated that `policy` was present and one of the
+  // two known strings, but never that it was the *correct* threshold for the
+  // creator -- so a long-tail creator could declare "pilot" and be held to a
+  // 2-of-3 majority instead of the unanimity ADR 0002 requires.
+  // ---------------------------------------------------------------------------
+
+  // The defect, demonstrated. A creator with no reviewed profile is long-tail,
+  // so it must clear a unanimous panel; declaring "pilot" must not lower that bar
+  // to a majority. Against the pre-#233 gate this bundle passed with exit 0 --
+  // which is exactly the hole this issue closes.
+  test('a long-tail creator declaring "policy": "pilot" is refused, not held to the pilot bar', () => {
+    const result = gateBundle({
+      runId: 'r1',
+      creator: 'some-long-tail-creator',
+      policy: 'pilot',
+      claims: [claim()],
+    });
+    assert.equal(result.code, 2, `a long-tail creator must not publish under the pilot bar: ${result.stdout}`);
+    assert.match(result.stdout, /some-long-tail-creator/, 'the refusal must name the creator');
+    assert.match(result.stdout, /pilot/, 'the refusal must name the declared policy');
+    assert.match(result.stdout, /long-tail/, 'the refusal must name the derived policy');
+  });
+
+  // The mirror: a reviewed (pilot) creator declaring long-tail is also a
+  // contradiction. The declared value is checked against ground truth in both
+  // directions, and never silently overridden -- a run that believes it is
+  // publishing under the wrong bar is itself a defect worth surfacing.
+  test('a pilot creator declaring "policy": "long-tail" is refused as a contradiction', () => {
+    const result = gateBundle({
+      runId: 'r1',
+      creator: 'openai',
+      policy: 'long-tail',
+      claims: [claim()],
+    });
+    assert.equal(result.code, 2, `a declared/derived policy mismatch must be refused: ${result.stdout}`);
+    assert.match(result.stdout, /openai/, 'the refusal must name the creator');
+  });
+
+  // Derivation admits the honest bundle: a reviewed creator whose declared
+  // policy matches the one derived from disk still passes and still applies.
+  test('a reviewed creator whose declared policy matches the derived one still passes', () => {
+    const result = gateBundle({ runId: 'r1', creator: 'anthropic', policy: 'pilot', claims: [claim()] });
+    assert.equal(result.code, 0, result.stdout);
+    assert.equal(JSON.parse(result.stdout).applicable, 1);
+  });
+
+  // Fails closed on an unclassifiable creator. A bundle naming no creator has
+  // nothing to derive a policy from, so it exits 2 rather than falling through to
+  // the declared (looser) value. Built inline rather than through `gateBundle`,
+  // which would supply a default creator and hide the case under test.
+  test('a bundle with no creator cannot be classified and exits 2', () => {
+    const bundle = { runId: 'r1', policy: 'pilot', claims: [claim()] };
+    assert.ok(!Object.hasOwn(bundle, 'creator'), 'the fixture must not carry a creator');
+    const dir = mkdtempSync(join(tmpdir(), 'modeltree-claims-'));
+    try {
+      const path = join(dir, 'claims.json');
+      writeFileSync(path, JSON.stringify(bundle, null, 2));
+      const result = run(GATE_EVIDENCE, ['--claims', path, '--today', TODAY, '--json']);
+      assert.equal(result.code, 2, `an unclassifiable creator must exit 2: ${result.stdout}`);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  // Fails closed when the reviewed-profile set itself cannot be read. Pointed at
+  // a repository with no profiles directory, the gate exits 2 rather than
+  // classifying every creator against nothing.
+  test('an unreadable reviewed-profile set fails closed with exit 2', () => {
+    const emptyRepo = mkdtempSync(join(tmpdir(), 'modeltree-no-profiles-'));
+    try {
+      const result = gateBundle(
+        { runId: 'r1', creator: 'openai', policy: 'pilot', claims: [claim()] },
+        { repo: emptyRepo },
+      );
+      assert.equal(result.code, 2, `an unreadable reviewed set must fail closed: ${result.stdout}`);
+    } finally {
+      rmSync(emptyRepo, { recursive: true, force: true });
+    }
   });
 });
 
