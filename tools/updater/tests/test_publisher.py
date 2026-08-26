@@ -301,10 +301,20 @@ def _ticking_clock(step: float = WINDOWS_TIMER_TICK, start: float = 1000.0):
 OVERRUN_STEP = 130.0
 OVERRUN_LIMIT = 120.0
 
+# A seconds limit whose lossy `:g` rendering and the publisher's real rendering
+# disagree: `:g` gives `780.094` (six significant figures), `_seconds_limit`
+# gives `780.09375`. From the byte-identity family #149 established. The old
+# expectations used `120.0`, which both formatters render `120`, so they passed
+# whether or not the publisher still used the `:g` that #180 removed. Assertions
+# built on this value fail loudly if the formatter regresses to `:g` (#263).
+DISCRIMINATING_LIMIT = 780.09375
+
 # The limit the *original* run is stopped by, before it is resumed. Deliberately
 # not the 120.0 default, because a resume falls back to that default and the two
-# have to disagree for the test to prove anything.
-RESUME_LIMIT = 5.0
+# have to disagree for the test to prove anything; and deliberately a value `:g`
+# would round differently, so the resumed sentence is pinned to the publisher's
+# real rendering rather than to a format-insensitive one.
+RESUME_LIMIT = DISCRIMINATING_LIMIT
 
 
 def _measured_values(proposal) -> list[float]:
@@ -342,10 +352,18 @@ def test_the_budget_section_prints_the_time_limit_and_no_measured_time(
 
     The limit stays: a run stopped by it has to be readable against something.
     """
-    proposal = proposal_factory(MATERIAL)
+    proposal = proposal_factory(
+        MATERIAL, budget=CreatorBudget(max_seconds=DISCRIMINATING_LIMIT)
+    )
     body = render_body(_with_elapsed(proposal, 47.31597))
 
-    assert f"| seconds | _not rendered_ | {proposal.budget.max_seconds:g} |" in body
+    # A literal, not `{...:g}`. On the old default of `120.0` the `:g` expectation
+    # agreed with the publisher's rendering by coincidence -- both give `120` --
+    # so the row was pinned to a format #180 removed and would still have passed
+    # had the publisher never stopped using it. `DISCRIMINATING_LIMIT` renders
+    # `780.09375`, where `:g` gives `780.094`, so this row now fails if the
+    # `Limit` cell regresses to `:g`.
+    assert "| seconds | _not rendered_ | 780.09375 |" in body
     assert "47.31597" not in body
     assert "47.32" not in body
     assert "47.3" not in body
@@ -392,16 +410,23 @@ def test_a_run_stopped_by_the_time_limit_says_so_without_the_measurement(
     genuine overrun records `BudgetExhausted`, which puts the measured elapsed
     time in the failure's message *and* in its detail, and both reach the body.
     """
-    proposal = _overrunning(proposal_factory)
+    # `step` stays above `limit` so the first budget check already overruns, as
+    # the default does; `limit` is the discriminating value so the rows below are
+    # pinned to the publisher's real rendering rather than to a `:g` that would
+    # coincide with it at `120.0`.
+    proposal = _overrunning(proposal_factory, step=790.0, limit=DISCRIMINATING_LIMIT)
 
     body = render_body(proposal)
 
     # The stop is reported, in the budget section and in the failures table ...
     assert "**Exhausted:** `seconds`" in body
-    assert f"| seconds | _not rendered_ | {proposal.budget.max_seconds:g} |" in body
+    # Literals, not `{...:g}`: `:g` renders `780.09375` as `780.094`, so these
+    # fail if either the budget-table `Limit` cell or the failures sentence
+    # regresses to it. At the old `120.0` both formatters agreed and could not.
+    assert "| seconds | _not rendered_ | 780.09375 |" in body
     assert "`budget-exhausted`" in body
     assert "seconds budget exhausted" in body
-    assert f"reached its {OVERRUN_LIMIT:g} second limit" in body
+    assert "reached its 780.09375 second limit" in body
     # ... and every measured value the run recorded is absent from it.
     for measured in _measured_values(proposal):
         assert str(measured) not in body
@@ -473,7 +498,9 @@ def test_the_stated_limit_is_the_one_that_stopped_the_run_not_the_proposals(
 
     body = render_body(resumed)
 
-    assert f"reached its {RESUME_LIMIT:g} second limit" in body
+    # Literal, not `{...:g}`: RESUME_LIMIT is now a value `:g` would round to
+    # `780.094`, so this pins the publisher's real `780.09375` rendering.
+    assert "reached its 780.09375 second limit" in body
     assert f"reached its {resumed.budget.max_seconds:g} second limit" not in body
     # The sentence and the JSON cell beside it must not contradict each other.
     assert f'"limit": {RESUME_LIMIT}' in body
@@ -523,16 +550,24 @@ def test_a_run_stopped_exactly_on_its_limit_says_reached_not_passed(
     false on the one boundary the enforcement is defined at.
     """
     proposal = _overrunning(
-        proposal_factory, step=OVERRUN_LIMIT / 2, limit=OVERRUN_LIMIT
+        proposal_factory,
+        step=DISCRIMINATING_LIMIT / 2,
+        limit=DISCRIMINATING_LIMIT,
     )
     exhausted = [f for f in proposal.failures if f.detail.get("resource") == "seconds"]
 
     # Anti-vacuity: this is the boundary case only if the two are actually equal.
-    assert exhausted[0].detail["used"] == exhausted[0].detail["limit"] == OVERRUN_LIMIT
+    assert (
+        exhausted[0].detail["used"]
+        == exhausted[0].detail["limit"]
+        == DISCRIMINATING_LIMIT
+    )
 
     body = render_body(proposal)
 
-    assert f"reached its {OVERRUN_LIMIT:g} second limit" in body
+    # Literal, not `{...:g}`: pins the publisher's `780.09375` and fails on the
+    # `780.094` a `:g` regression would print; `120.0` could not tell them apart.
+    assert "reached its 780.09375 second limit" in body
     assert "passed its" not in body
 
 
@@ -635,6 +670,79 @@ def test_the_budget_tables_seconds_limit_stays_round_trippable(
     assert cell is not None, body
     assert float(cell.group(1)) == limit
     assert "e" not in cell.group(1).lower()
+
+
+@pytest.mark.parametrize("limit", [True, False])
+def test_a_boolean_seconds_limit_falls_back_to_the_unnumbered_phrasing(
+    proposal_factory, limit
+) -> None:
+    """A bool limit must not be rendered as a number.
+
+    `isinstance(True, int)` and `isinstance(False, int)` are both True, so a bool
+    reaching `_seconds_limit` renders `repr(True)` -> `'True'`, and a formatter
+    that leaned on bool-is-int would print `1`/`0`. The failures sentence excludes
+    the type first and falls back to the unnumbered `its seconds budget`. That
+    holds today only because of a guard on the sentence, not `_seconds_limit`
+    itself, and nothing in the suite pinned it: a refactor that fed the value in
+    directly would print `its True second limit` with no test objecting.
+    """
+    real = _overrunning(proposal_factory)
+    failures = tuple(
+        dataclasses.replace(failure, detail={**failure.detail, "limit": limit})
+        if failure.detail.get("resource") == "seconds"
+        else failure
+        for failure in real.failures
+    )
+    proposal = dataclasses.replace(real, failures=failures)
+
+    # Anti-vacuity: a seconds failure really is carrying the boolean limit, so the
+    # fallback below is exercised on the bool path and not on an absent one.
+    assert any(
+        failure.detail.get("limit") is limit
+        for failure in proposal.failures
+        if failure.detail.get("resource") == "seconds"
+    )
+
+    body = render_body(proposal)
+
+    assert "reached its seconds budget" in body
+    # No numeric-limit sentence at all, and specifically none of the renderings a
+    # bool would produce if its type were trusted.
+    assert "second limit" not in body
+    assert "its 1 second limit" not in body
+    assert "its 0 second limit" not in body
+    assert "its True second limit" not in body
+    assert "its False second limit" not in body
+
+
+def test_an_integer_and_a_float_seconds_limit_render_identically(
+    proposal_factory,
+) -> None:
+    """`5` and `5.0` are one limit and must print as one string.
+
+    `_seconds_limit` normalises the integral float (`5.0` -> `5`) so it matches
+    the int; a formatter that used `str` would print `5.0` for the float and
+    split the two. Only the budget table's `Limit` cell is compared -- the JSON
+    `Detail` cell serialises `5` and `5.0` differently by design, so whole-body
+    equality is not the property here.
+    """
+    base = proposal_factory(MATERIAL)
+    as_int = render_body(
+        dataclasses.replace(
+            base, budget=dataclasses.replace(base.budget, max_seconds=5)
+        )
+    )
+    as_float = render_body(
+        dataclasses.replace(
+            base, budget=dataclasses.replace(base.budget, max_seconds=5.0)
+        )
+    )
+
+    pattern = r"\| seconds \| _not rendered_ \| (\S+) \|"
+    int_cell = re.search(pattern, as_int)
+    float_cell = re.search(pattern, as_float)
+    assert int_cell is not None and float_cell is not None
+    assert int_cell.group(1) == float_cell.group(1) == "5"
 
 
 def test_a_run_stopped_by_the_token_limit_still_prints_its_count(
