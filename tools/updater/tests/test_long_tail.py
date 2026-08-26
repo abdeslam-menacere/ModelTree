@@ -823,24 +823,80 @@ def test_two_ids_differing_by_more_than_case_are_two_profiles(tmp_path) -> None:
     assert library.ids == ("long-tail-experimental", DEFAULT_LONG_TAIL_PROFILE_ID)
 
 
-def test_two_documents_whose_ids_are_one_dict_key_are_refused(tmp_path) -> None:
-    """Folding does not replace comparing the declared ids, so both are guarded.
+def test_a_non_string_profile_id_is_refused_at_parse_time(tmp_path) -> None:
+    """A reviewed long-tail document declaring a non-string id refuses, not crashes.
 
-    `True` and `1` fold to different strings while being the same dict key. Guarding
-    on the folded key alone would miss the collision and then let the second document
-    overwrite the first, leaving one entry in the library for two documents on disk
-    with nothing said — a silent acceptance, in a change whose whole thesis is that
-    agreeing quietly is the trap. The merge-base refused this pair through plain dict
-    equality; this is the guard that keeps it refused.
+    `True` and `1` fold to different strings while being one dict key, which is why the
+    merge-base met them at the duplicate guard. This reviewed set now refuses either one
+    earlier, at parse, for the more basic reason that a non-string id is unreachable by
+    the exact-string lookup a resume depends on. The refusal names the file, the field,
+    and the type found, so it reads as its true reason rather than as a duplicate.
+
+    The fixtures set decides the same question for itself (#204); this is the long-tail
+    half of #136.
     """
     _reviewed_profile_file(tmp_path / "first.json", profile_id=True)
-    _reviewed_profile_file(tmp_path / "second.json", profile_id=1)
 
     with pytest.raises(ProfileError) as error:
         load_long_tail_library(tmp_path)
 
-    assert "duplicate" in str(error.value)
-    assert "first.json" in str(error.value)
+    message = str(error.value)
+    assert "first.json" in message
+    assert "profile id must be a string" in message
+    assert "bool" in message
+    assert "TypeError" not in message
+
+
+@pytest.mark.parametrize(
+    "profile_id, type_name",
+    [(["a"], "list"), ({}, "dict"), (0.0, "float"), (1, "int"), (None, "NoneType")],
+)
+def test_every_non_string_profile_id_shape_is_refused_by_the_real_loader(
+    tmp_path, profile_id, type_name
+) -> None:
+    """Each shape #136 names, driven through the real loader rather than the helper.
+
+    A `list`/`dict` id crashed at the duplicate guard's membership test; a `float`
+    beside a `str` crashed `sorted` inside `LongTailLibrary.ids`, which
+    `reviewed_long_tail_profile` formats into its "the reviewed profiles are …" message —
+    so the crash landed while building a *different* document's refusal. Refusing at
+    parse means neither `TypeError` can form; loading `load_long_tail_library` proves it
+    for an operator-reachable path.
+    """
+    _reviewed_profile_file(tmp_path / "first.json", profile_id=profile_id)
+
+    with pytest.raises(ProfileError) as error:
+        load_long_tail_library(tmp_path)
+
+    message = str(error.value)
+    assert "profile id must be a string" in message
+    assert type_name in message
+
+
+def test_a_non_string_id_cannot_crash_the_unknown_profile_message(tmp_path) -> None:
+    """The nastiest path in #136: the crash that surfaced formatting an unrelated error.
+
+    A `str` id beside a `float` id both load on the merge-base, and a missing lookup
+    then sorts that mixed set to say "the reviewed profiles are …", crashing with a
+    `TypeError` while reporting a *different* failure. With the float document refused at
+    parse the library never holds a non-string key, so the miss reports cleanly.
+    """
+    _reviewed_profile_file(tmp_path / "first.json", profile_id="long-tail-zero")
+    _reviewed_profile_file(tmp_path / "second.json", profile_id=0.0)
+
+    with pytest.raises(ProfileError) as error:
+        reviewed_long_tail_profile("nope", directory=tmp_path)
+
+    assert "profile id must be a string" in str(error.value)
+
+
+def test_a_well_formed_string_profile_id_still_loads(tmp_path) -> None:
+    """The accept side: the type gate refuses non-strings and nothing else."""
+    _reviewed_profile_file(tmp_path / "first.json")
+
+    library = load_long_tail_library(tmp_path)
+
+    assert library.ids == (DEFAULT_LONG_TAIL_PROFILE_ID,)
 
 
 def test_resolution_still_matches_the_recorded_id_exactly(tmp_path) -> None:

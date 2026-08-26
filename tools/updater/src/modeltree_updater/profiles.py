@@ -303,7 +303,10 @@ def load_profile(path: Path | str) -> CreatorProfile:
     extraction_raw = document.get("extraction_rules", {})
     profile = CreatorProfile(
         creator_id=_refuse_padded_id(
-            _require(creator, "id", path=path), path=path, subject="creator id"
+            _require(creator, "id", path=path),
+            path=path,
+            subject="creator id",
+            require_string=True,
         ),
         creator_name=_require(creator, "name", path=path),
         creator_type=creator.get("type", "company"),
@@ -370,7 +373,9 @@ def _reviewed_profile_paths(directory: Path, *, kind: str) -> list[Path]:
     return paths
 
 
-def _refuse_padded_id(declared_id: Any, *, path: Path, subject: str) -> Any:
+def _refuse_padded_id(
+    declared_id: Any, *, path: Path, subject: str, require_string: bool = False
+) -> Any:
     """A declared id padded with whitespace, refused rather than folded or tidied.
 
     The decision this states, once, for all three reviewed sets: an id carrying leading
@@ -397,11 +402,36 @@ def _refuse_padded_id(declared_id: Any, *, path: Path, subject: str) -> Any:
     property of one declaration rather than of a set — a directory holding exactly one
     such file is just as wrong as one holding two.
 
-    ``isinstance`` guards the check rather than ``str()`` coercing it: whether a
-    non-string id is admissible at all is a separate question (#204), and this refusal
-    deliberately does not answer it. No JSON scalar's ``str()`` is padded anyway, so
-    the guard costs nothing it should have caught.
+    ``require_string`` is what the two *reviewed* sets — the dedicated creator
+    profiles and the long-tail profiles — pass, and the fixtures set does not. A
+    reviewed document whose ``id`` is not a string loads a profile keyed under a value
+    no string lookup can reach, and, because both loaders sort that id set to render
+    ``ids``/``creator_ids`` and the *"the reviewed profiles are …"* refusal, a second
+    such document of a different type crashes ``sorted`` — turning a clean, unrelated
+    refusal into a ``TypeError`` while it formats its message. An unhashable id (a
+    ``list`` or ``dict``) is worse still: it raises at the duplicate guard's membership
+    test before any message is even reached. Refusing a non-string id here, at parse
+    time, is what keeps either ``TypeError`` from ever forming (#136). The refusal names
+    the file, the field and the offending value's type, and it refuses rather than
+    coerces for the reason padding is refused rather than trimmed: registering a document
+    under a string it does not declare is the trap #108 settled.
+
+    The fixtures set passes ``require_string`` false and this gate does nothing for it —
+    whether a *fixture* id must be a string is a decision that set makes for itself
+    (#204), not one taken here on its behalf.
+
+    Below the type gate, ``isinstance`` still guards the whitespace check rather than
+    ``str()`` coercing it: the only ids that now reach it non-string are the fixtures',
+    and no JSON scalar's ``str()`` is padded anyway, so the guard costs nothing it
+    should have caught.
     """
+    if require_string and not isinstance(declared_id, str):
+        raise ProfileError(
+            f"{path.name}: {subject} must be a string, but the document declares "
+            f"{declared_id!r} of type {type(declared_id).__name__}; an id is matched "
+            "exactly as the string it declares, so a non-string id answers to no lookup "
+            "and is refused rather than coerced into one"
+        )
     if isinstance(declared_id, str) and declared_id != declared_id.strip():
         raise ProfileError(
             f"{path.name}: {subject} {declared_id!r} has leading or trailing whitespace; "

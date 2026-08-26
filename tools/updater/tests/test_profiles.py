@@ -293,23 +293,63 @@ def test_two_creator_ids_differing_by_more_than_case_are_two_profiles(tmp_path) 
     assert library.creator_ids == ("acme-labs", "acme-labs-research")
 
 
-def test_two_documents_whose_ids_are_one_dict_key_are_refused(tmp_path) -> None:
-    """Folding does not replace comparing the declared ids, so both are guarded.
+def test_a_non_string_creator_id_is_refused_at_parse_time(tmp_path) -> None:
+    """A reviewed document declaring a non-string id refuses cleanly, not with a crash.
 
-    `True` and `1` fold to different strings while being the same dict key. Guarding
-    on the folded key alone would miss the collision and then let the second document
-    overwrite the first, leaving one entry in the library for two documents on disk
-    with nothing said. The merge-base refused this pair through plain dict equality;
-    this is the guard that keeps it refused. What such an id *should* be rejected for
-    is a separate question, and not this change's.
+    An id that is not a string keys a profile under a value no string lookup can reach,
+    and the id set is sorted to build both `creator_ids` and unrelated refusal messages —
+    so a second such document of a different type would crash `sorted` while formatting
+    someone else's error. `True` and `1` fold to different strings while being one dict
+    key, which is why the merge-base met them at the duplicate guard; this reviewed set
+    now refuses either one earlier, at parse, for the more basic reason that a non-string
+    id is unreachable. The refusal names the file, the field, and the type found.
+
+    What such an id should be for the *fixtures* set is a separate question and not this
+    change's (#204). This is the reviewed-profile half of #136.
     """
     _profile_file(tmp_path / "acme.json", creator_id=True)
-    _profile_file(tmp_path / "other.json", creator_id=1)
 
     with pytest.raises(ProfileError) as error:
         load_profile_library(tmp_path)
 
-    assert "duplicate" in str(error.value)
+    message = str(error.value)
+    assert "acme.json" in message
+    assert "creator id must be a string" in message
+    assert "bool" in message
+    assert "TypeError" not in message
+
+
+@pytest.mark.parametrize(
+    "creator_id, type_name",
+    [(["a"], "list"), ({}, "dict"), (0.0, "float"), (1, "int"), (None, "NoneType")],
+)
+def test_every_non_string_creator_id_shape_is_refused_by_the_real_loader(
+    tmp_path, creator_id, type_name
+) -> None:
+    """Each unhashable and mixed-type shape #136 names, driven through the real loader.
+
+    A `list`/`dict` id crashed at the duplicate guard's membership test; a `float`
+    beside a `str` crashed `sorted(creator_ids)`. Refusing at parse means neither can
+    form. Driving `load_profile_library`, not `_refuse_padded_id` in isolation, is what
+    proves no operator-reachable path reaches the `TypeError`.
+    """
+    _profile_file(tmp_path / "acme.json", creator_id=creator_id)
+
+    with pytest.raises(ProfileError) as error:
+        load_profile_library(tmp_path)
+
+    message = str(error.value)
+    assert "creator id must be a string" in message
+    assert type_name in message
+
+
+def test_a_well_formed_string_creator_id_still_loads(tmp_path) -> None:
+    """The accept side: the type gate refuses non-strings and nothing else."""
+    _profile_file(tmp_path / "acme.json", creator_id="acme-labs")
+
+    library = load_profile_library(tmp_path)
+
+    assert library.creator_ids == ("acme-labs",)
 
 
 def test_both_reviewed_sets_are_discovered_by_the_same_function() -> None:
@@ -471,40 +511,6 @@ def test_a_zero_width_space_is_left_alone_as_a_real_difference(tmp_path) -> None
     assert library.creator_ids == ("acmelabs", "acme\u200blabs")
 
 
-def test_a_type_collision_is_not_reported_as_a_case_collision(tmp_path) -> None:
-    """The message-only defect, and the reason it was worth fixing anyway.
-
-    `1` and `"1"` differ in type, not case. Told they differ only in case, an operator
-    goes looking for a capitalisation problem in a file whose actual problem is that
-    JSON gave them a number — and the message is their entire diagnosis.
-    """
-    _profile_file(tmp_path / "acme.json", creator_id=1)
-    _profile_file(tmp_path / "other.json", creator_id="1")
-
-    with pytest.raises(ProfileError) as error:
-        load_profile_library(tmp_path)
-
-    message = str(error.value)
-    assert "differing only in type" in message
-    assert "case" not in message
-
-
-def test_an_id_differing_in_both_type_and_case_is_described_as_both(tmp_path) -> None:
-    """`True` against `"true"` really does differ in both, so both are named.
-
-    Each difference is judged on its own rather than one label being picked for the
-    whole collision, which is what made the old wording false as soon as more than one
-    kind of difference existed.
-    """
-    _profile_file(tmp_path / "acme.json", creator_id=True)
-    _profile_file(tmp_path / "other.json", creator_id="true")
-
-    with pytest.raises(ProfileError) as error:
-        load_profile_library(tmp_path)
-
-    assert "differing only in type and case" in str(error.value)
-
-
 def test_two_documents_declaring_the_very_same_id_claim_no_difference(tmp_path) -> None:
     """Silence is the honest answer when there is nothing to say beyond "duplicate".
 
@@ -530,13 +536,15 @@ def test_every_ordering_of_a_colliding_pair_names_both_documents(tmp_path) -> No
     which one fires depends on the order the files are read in. The guard records
     every id under both key spaces and finds the twin with the same lookup that
     detected the collision, so no ordering can report a duplicate it cannot then name.
+
+    These are the string pairs that still reach the guard in this reviewed set. #136
+    refuses a non-string reviewed id at parse, before the guard, so the pairs that used
+    to fold apart while being one dict key — `(True, 1)` and the `1`/`True`/`None`
+    collisions — are now met earlier; the guard's ordering-independence over *those*
+    stays exercised by the fixtures set, which still admits non-string ids pending #204.
     """
     pairs = (
         ("acme-labs", "Acme-Labs"),
-        (1, "1"),
-        (True, "true"),
-        (None, "none"),
-        (True, 1),
         ("acme labs", "acme  labs"),
         ("acme-labs", "acme-labs"),
     )

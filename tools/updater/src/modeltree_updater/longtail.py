@@ -302,16 +302,23 @@ def _entity_kind(value: Any, *, path: Path) -> EntityKind:
 
 
 def _profile_id(raw: Mapping[str, Any], *, path: Path) -> Any:
-    """The declared id, refused rather than tidied when it is padded.
+    """The declared id, refused rather than tidied when it is padded, and refused
+    outright when it is not a string.
 
     The rule and its wording are :func:`~modeltree_updater.profiles._refuse_padded_id`'s
-    — this set had it first and the other two did not, which is the same "one rule,
-    three copies" shape the duplicate check itself was factored out of (#151, #199).
+    — this set had the padding half first and the other two did not, which is the same
+    "one rule, three copies" shape the duplicate check itself was factored out of (#151,
+    #199). The non-string half is what this reviewed set requires so a document declaring
+    a ``list``/``dict``/mixed-type id refuses cleanly at parse rather than crashing later
+    while :attr:`~modeltree_updater.longtail.LongTailLibrary.ids` sorts the set (#136).
     Sharing it is what stops the three sets from disagreeing again about what a
     declarable id is.
     """
     return _refuse_padded_id(
-        _require(raw, "id", path=path), path=path, subject="profile id"
+        _require(raw, "id", path=path),
+        path=path,
+        subject="profile id",
+        require_string=True,
     )
 
 
