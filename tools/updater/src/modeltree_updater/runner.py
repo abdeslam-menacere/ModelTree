@@ -147,6 +147,48 @@ def _failed_proposal(
     run_id: str,
     error: BaseException,
 ) -> CreatorProposal:
+    """The proposal an uncaught error becomes: an explicit `INTERNAL_ERROR`.
+
+    Publishing note — the decision #181 part 2 asked for, recorded where the
+    next reader meets the code. Both fields built below reach the published
+    GitHub issue body: `publisher._failure_row` renders `message` and the
+    `detail` JSON verbatim for `INTERNAL_ERROR`, since #149's redaction is
+    scoped to `BUDGET_EXHAUSTED` with `resource == "seconds"`. So an arbitrary
+    caught exception's `str()` is published, and an exception message routinely
+    carries a filesystem path or the URL a fetch failed on (this program fetches
+    remote sources; see #88's SSRF hardening).
+
+    Two mitigations already narrow that exposure and are kept deliberately.
+    `format_exception_only(type(error), error)` yields the exception's type and
+    message and **not** its stack frames, so no local variable, no intermediate
+    value, and no source line reaches the body. `retryable=False` stops the same
+    text being retried into repetition. The `"traceback"` key name overstates
+    what it holds — there is no traceback in it — and that misnaming is the one
+    change here that would alter the published payload, so it is deferred, not
+    made: renaming a key is a non-additive payload change, which #158's
+    additivity precedent weighs against, and it belongs with the bounding
+    decision rather than ahead of it.
+
+    Is publishing the message unbounded acceptable? No, on two counts, and
+    neither is covered by what already exists. `publisher.render_body` bounds the
+    *whole* body to `MAX_BODY_CHARS` and `_hard_truncate` trims its *tail*, so a
+    pathological exception string in an early failure row is not itself bounded —
+    it spends the body budget and can evict the actual report content that
+    follows it, and truncation by length says nothing about *content*: a short
+    message bearing a sensitive path or URL is published in full. Bounding it —
+    truncating the field, a redaction pass, or restricting the cell to the
+    exception type alone — is therefore warranted.
+
+    But bounding changes the published payload for every internal-error failure,
+    and its shape is a real design choice (how many characters, which patterns to
+    redact, type-only versus message). The issue is explicit that such a change
+    "probably deserves its own issue rather than being folded in here", so it is
+    **not** done here and is filed separately as #282. This function is the
+    construction site, not the rendering site; changing what is *measured and
+    recorded* here would also lose it from the run artefact, which must keep the
+    full error. The bound belongs where `_failure_row` renders, alongside the
+    `"traceback"` rename, under that issue.
+    """
     failure = RunFailure(
         stage=WorkflowStage.DISCOVER,
         kind=FailureKind.INTERNAL_ERROR,
