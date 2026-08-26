@@ -255,11 +255,13 @@ async def resume_creator_run(
     resolves towards a reviewed document, which is safe for *provenance*; it is not
     necessarily the stricter document, and strictness is not ordered between the
     two — the substituted promotion criteria can be looser on one criterion and
-    stricter on another than the ones the run started under. See ADR 0002. Reaching
-    that case *through the CLI* required a checkpoint written by an older build, back
-    when ``--long-tail-profile`` still took a path; the version check above refuses
-    such a checkpoint outright, so what remains of that route is in-process on the
-    Python API. And a
+    stricter on another than the ones the run started under. See ADR 0002. Only the
+    *start* of such a run is confined to the Python API: no CLI invocation can name an
+    unreviewed document, but the checkpoint that in-process run writes carries this
+    build's version marker like any other, so a CLI ``resume`` of it satisfies the
+    version check above and substitutes the document — executed rather than reasoned in
+    #206. What that check refuses is the older route: a checkpoint written back when
+    ``--long-tail-profile`` still took a path, which carries no marker at all. And a
     reviewed set that cannot be loaded at all, because the directory is missing or
     empty, surfaces as ``FileNotFoundError`` rather than ``ProfileMismatch``: that
     is a broken installation, not a disagreement about which profile applies. The

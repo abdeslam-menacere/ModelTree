@@ -70,8 +70,8 @@ topics silently became the default's.
   because the loader's own failure modes are tested against temporary files. A test —
   or anything else running in-process — can therefore still build a profile the
   reviewed set does not contain. No **newly started** run reaches it through the CLI;
-  that is exactly what taking an id buys. Resume **was** the qualification, and #140
-  closed it: a checkpoint now records the tool version and the checkpoint schema version
+  that is exactly what taking an id buys. What #140 closed is narrower than "resume": a
+  checkpoint now records the tool version and the checkpoint schema version
   that wrote it, and one that records neither — which is precisely what a build from when
   `--long-tail-profile` still took a path wrote — is refused outright rather than resumed.
   So a pre-#94 checkpoint carrying whatever id that unreviewed document declared no longer
@@ -79,11 +79,22 @@ topics silently became the default's.
   Resuming such a run does not restore the unreviewed document either way, and the two
   cases differ: an id outside the reviewed set stops the resume with `ProfileMismatch`,
   while an id that **collides** with a reviewed one resumes silently under the
-  *reviewed* document — #94's substitution, which remains reachable in-process on the
-  Python API, where the loader still accepts a path and a checkpoint written by the
-  current build satisfies the version gate like any other. That is accepted rather than
-  chased. The operator boundary is now the enforcement point on every CLI route, resume
-  included; what is accepted is what the in-process substitution can reach, which the rest
+  *reviewed* document — #94's substitution, which survives on a route with two halves,
+  only the first of which the Python API keeps to itself. **Starting** a run under an
+  unreviewed document is in-process only: the loader still accepts a path, and
+  `--long-tail-profile` refuses one with exit 2. **Resuming** into the substitution is
+  not. The checkpoint that in-process run writes is stamped with this build's tool
+  version and checkpoint schema version like any other, so
+  `modeltree-updater resume --checkpoint-dir <dir> --checkpoint-id <id>` satisfies the
+  #140 version gate, rebuilds the profile from the recorded id, and finishes under the
+  reviewed document — exit 0, nothing said. Executed rather than reasoned (#206,
+  2026-08-26): a CLI `resume` of the iteration-0 checkpoint of a run started in-process
+  under a colliding document declaring `accepted-claims` at 99 wrote a proposal carrying
+  the reviewed profile's `accepted-claims` 3, `approved-sources` 2 and
+  `escalated-mappings` 1, recommended 3/3. That is accepted rather than
+  chased. What the operator boundary buys is that no CLI invocation can *introduce* an
+  unreviewed document, which is not the same as keeping the CLI out of the resume that
+  substitutes one; what is accepted is what that substitution can reach, which the rest
   of this bullet sets out: a recommendation, never acceptance. Resolving towards the reviewed document
   is separately the safe direction for **provenance** — you land on a document this
   repository reviewed. It is not necessarily the *stricter* document, and the pinning
@@ -109,6 +120,11 @@ topics silently became the default's.
   run. The strictness reading they support was reached in review, by reading the fixture
   against the evaluator, which is why this bullet names specific criteria rather than
   "the bar".
+  `test_a_cli_resume_of_a_current_build_checkpoint_substitutes_the_document` pins the
+  *route* rather than the document: it drives the CLI `resume` named above against a
+  checkpoint this build wrote and reads which document the emitted proposal came back
+  under, so "the CLI does not reach it" cannot be written here again without a test
+  going red. It holds no threshold at a literal either, for the reason just given.
 - The second residual, equally plain: this pins *which document* a resumed run reads, not
   *what that document said when the run started*. Editing a reviewed profile in place
   between start and resume is not detected, because rejecting option 2 means there is no

@@ -18,8 +18,13 @@ import json
 import pytest
 
 from modeltree_updater.budgets import CreatorBudget
-from modeltree_updater.checkpoints import create_checkpoint_storage, recorded_profile_id
-from modeltree_updater.cli import EXIT_USAGE, _long_tail_profile, build_parser, main
+from modeltree_updater.checkpoints import (
+    create_checkpoint_storage,
+    current_version_marker,
+    recorded_profile_id,
+    recorded_version_marker,
+)
+from modeltree_updater.cli import EXIT_OK, EXIT_USAGE, _long_tail_profile, build_parser, main
 from modeltree_updater.contracts import (
     ClaimDecision,
     ConflictKind,
@@ -1027,13 +1032,14 @@ def test_an_in_process_colliding_profile_resumes_under_the_reviewed_document(
     """The residual ADR 0002 accepts, pinned so the prose cannot drift off it.
 
     The CLI cannot *start* this run — that is what the reviewed set is for — but the
-    loader still takes a path, so in-process code can. A checkpoint written by an older
-    build that accepted paths carries no version marker and is refused outright since
-    #140, so the CLI can no longer resume into this state either; what survives is this
-    in-process route, where the checkpoint is written by the current build and satisfies
-    the version gate like any other. When such a profile declares an id the reviewed set
+    loader still takes a path, so in-process code can. What #140 refused is the older
+    route: a checkpoint written by a build that accepted paths carries no version marker
+    at all. A checkpoint written by the *current* build satisfies the version gate like
+    any other, so the resume that follows may equally be a CLI one, which
+    `test_a_cli_resume_of_a_current_build_checkpoint_substitutes_the_document` drives.
+    When such a profile declares an id the reviewed set
     *does* contain, the resume rebuilds from that id and gets the reviewed document
-    back: #94's substitution, surviving on the Python API.
+    back: #94's substitution, entered on the Python API and finished on either.
 
     This is documented, not fixed. It resolves towards the reviewed document rather
     than away from it, which is the safe direction for *provenance* — though not
@@ -1085,6 +1091,87 @@ def test_an_in_process_colliding_profile_resumes_under_the_reviewed_document(
 
     assert resuming.long_tail == reviewed
     assert resuming.long_tail != unreviewed
+
+
+def test_a_cli_resume_of_a_current_build_checkpoint_substitutes_the_document(
+    tmp_path, library, fixture_dir
+) -> None:
+    """The route rather than the document: the resume that substitutes can be a CLI one.
+
+    ADR 0002 scoped this residual to "in-process on the Python API", which reads as *not
+    through the CLI* and understates the reachable surface. Only the **start** is
+    confined that way — `--long-tail-profile` refuses a path. The checkpoint that
+    in-process run writes carries this build's marker like any other, so `resume` passes
+    the #140 version gate, rebuilds from the recorded id, and finishes under the reviewed
+    document through the CLI, exit 0, with nothing said.
+
+    Reads *which document came back* rather than what its numbers are: both expectations
+    are computed from the two documents, so editing either one cannot leave a literal
+    here holding a stale value.
+    """
+    custom = _custom_profile_file(tmp_path / "collides.json")
+    unreviewed = load_long_tail_profile(custom)
+    reviewed = reviewed_long_tail_profile(DEFAULT_LONG_TAIL_PROFILE_ID)
+
+    assert unreviewed.id == reviewed.id, "the collision is the whole premise"
+    assert unreviewed.promotion.criteria != reviewed.promotion.criteria
+
+    checkpoints = tmp_path / "checkpoints"
+    storage = create_checkpoint_storage(checkpoints)
+    asyncio.run(
+        run_creator(
+            library.creators[RICH],
+            RunSettings(
+                build_fixture_bundle(library, timestamp=TIMESTAMP),
+                budget=CreatorBudget(),
+                timestamp=TIMESTAMP,
+                long_tail=unreviewed,
+            ),
+            run_id="run-collides",
+            checkpoint_storage=storage,
+        )
+    )
+
+    async def scenario():
+        checkpoint = await _first_checkpoint(storage)
+        return checkpoint.checkpoint_id, await recorded_version_marker(
+            storage, checkpoint.checkpoint_id
+        )
+
+    checkpoint_id, marker = asyncio.run(scenario())
+
+    # The premise of the route, asserted rather than assumed: this checkpoint really was
+    # written by the build now reading it, so the version gate is *satisfied* here rather
+    # than skipped. Without this the test could stay green while exercising a state the
+    # gate would have refused.
+    assert marker == current_version_marker()
+
+    output = tmp_path / "proposals"
+    code, _ = _cli(
+        [
+            "resume",
+            "--checkpoint-id",
+            checkpoint_id,
+            "--checkpoint-dir",
+            str(checkpoints),
+            "--fixtures",
+            str(fixture_dir),
+            "--timestamp",
+            TIMESTAMP,
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert code == EXIT_OK
+
+    proposal = json.loads(
+        (output / "run-collides" / f"{RICH}.json").read_text(encoding="utf-8")
+    )
+    came_back_as = [item["id"] for item in proposal["promotion"]["criteria"]]
+
+    assert came_back_as == [criterion.id for criterion in reviewed.promotion.criteria]
+    assert came_back_as != [criterion.id for criterion in unreviewed.promotion.criteria]
 
 
 def test_resume_still_takes_no_profile_flag_of_any_kind() -> None:
