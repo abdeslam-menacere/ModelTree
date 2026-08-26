@@ -1739,6 +1739,460 @@ main {
   margin-top: 16px;
 }
 
+.log-page {
+  padding-bottom: 80px;
+}
+
+.log-intro {
+  display: grid;
+  padding: 62px 0 40px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
+  gap: 64px;
+}
+
+.log-intro h1 {
+  margin: 12px 0 0;
+  font-size: clamp(40px, 6vw, 66px);
+}
+
+.log-intro > div:last-child {
+  align-self: end;
+}
+
+.log-intro p {
+  margin-bottom: 10px;
+  color: var(--cp-text-muted);
+  font-size: 18px;
+}
+
+.log-intro .log-help {
+  margin-bottom: 0;
+  font-size: 13px;
+}
+
+.log-totals {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.log-runs {
+  margin: 44px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.log-runs > li + li {
+  margin-top: 34px;
+}
+
+.log-run {
+  padding: 30px;
+  border: 1px solid var(--cp-border);
+  border-radius: 16px;
+  background: var(--cp-panel-strong);
+  box-shadow: var(--cp-shadow);
+}
+
+.log-run-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 28px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--cp-border-strong);
+}
+
+.log-run-header h2 {
+  margin: 8px 0 0;
+  font-size: clamp(28px, 3.4vw, 38px);
+}
+
+.log-run-id {
+  color: var(--cp-accent);
+  font-family: "Archivo Variable", "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 720;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.log-run-scope {
+  margin: 10px 0 0;
+  color: var(--cp-text-muted);
+  font-size: 13px;
+}
+
+.log-run-verdict {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  text-align: right;
+}
+
+.log-run-verdict time {
+  color: var(--cp-text-muted);
+  font-size: 13px;
+}
+
+.log-outcome {
+  padding: 6px 12px;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 999px;
+  font-family: "Archivo Variable", "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 720;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.log-outcome-published {
+  border-color: var(--cp-success);
+  color: var(--cp-success);
+}
+
+.log-outcome-stopped,
+.log-outcome-reverted {
+  border-color: var(--cp-warning);
+  color: var(--cp-warning);
+}
+
+.log-run-summary {
+  max-width: 92ch;
+  margin: 20px 0 0;
+  font-size: 17px;
+}
+
+.log-stages ol {
+  display: grid;
+  margin: 24px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--cp-border);
+  list-style: none;
+}
+
+.log-stage {
+  display: grid;
+  align-items: baseline;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--cp-border);
+  grid-template-columns: 110px 130px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.log-stage-name {
+  font-family: "Archivo Variable", "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 720;
+  text-transform: uppercase;
+}
+
+.log-stage-status {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.log-stage-ran .log-stage-status {
+  color: var(--cp-success);
+}
+
+.log-stage-failed .log-stage-status {
+  color: var(--cp-danger);
+}
+
+.log-stage-not-run .log-stage-status,
+.log-stage-not-applicable .log-stage-status {
+  color: var(--cp-text-soft);
+}
+
+.log-stage-note {
+  color: var(--cp-text-muted);
+  font-size: 14px;
+}
+
+.log-columns {
+  display: grid;
+  margin-top: 30px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 34px;
+}
+
+.log-columns h3,
+.log-ledger h3,
+.log-caveats h3,
+.log-references h3 {
+  margin: 0 0 12px;
+  font-size: 24px;
+}
+
+.log-figures {
+  display: grid;
+  margin: 0 0 20px;
+  border-top: 1px solid var(--cp-border-strong);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.log-figures div {
+  padding: 12px 10px 10px 0;
+  border-bottom: 1px solid var(--cp-border);
+}
+
+.log-figures dt {
+  color: var(--cp-text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.log-figures dd {
+  margin: 2px 0 0;
+  font-family: "Newsreader Variable", Georgia, serif;
+  font-size: 26px;
+  line-height: 1.1;
+}
+
+.log-table {
+  width: 100%;
+  margin: 0 0 20px;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.log-table caption {
+  padding-bottom: 8px;
+  color: var(--cp-text-muted);
+  font-size: 12px;
+  text-align: left;
+}
+
+.log-table th,
+.log-table td {
+  padding: 9px 10px 9px 0;
+  border-bottom: 1px solid var(--cp-border);
+  vertical-align: top;
+}
+
+.log-table thead th {
+  border-bottom: 1px solid var(--cp-border-strong);
+  color: var(--cp-text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.log-table tbody th {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.log-numeric {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.log-gate-verdict {
+  display: block;
+  font-weight: 700;
+}
+
+.log-gate-pass .log-gate-verdict {
+  color: var(--cp-success);
+}
+
+.log-gate-fail .log-gate-verdict,
+.log-gate-not-run .log-gate-verdict {
+  color: var(--cp-danger);
+}
+
+.log-gate-detail {
+  display: block;
+  margin-top: 3px;
+  color: var(--cp-text-muted);
+}
+
+.log-optional {
+  display: block;
+  margin-top: 3px;
+  color: var(--cp-text-soft);
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.log-note {
+  margin-top: 8px;
+  padding: 16px 18px;
+  border-left: 3px solid var(--cp-border-strong);
+  background: var(--cp-bg-elevated);
+  border-radius: 0 10px 10px 0;
+}
+
+.log-note h4 {
+  margin: 0 0 8px;
+  font-family: "Archivo Variable", "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 720;
+  text-transform: uppercase;
+}
+
+.log-note p {
+  margin: 0 0 8px;
+  color: var(--cp-text-muted);
+  font-size: 13px;
+}
+
+.log-note ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+}
+
+.log-note li + li {
+  margin-top: 6px;
+}
+
+.log-caveats {
+  margin-top: 30px;
+  border-left-color: var(--cp-warning);
+}
+
+.log-dissents {
+  padding-left: 0;
+  list-style: none;
+}
+
+.log-dissents li,
+.log-records li {
+  padding: 9px 0;
+  border-top: 1px solid var(--cp-border);
+}
+
+.log-dissents code,
+.log-records code {
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.log-rubric,
+.log-collection {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 8px;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 999px;
+  color: var(--cp-text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.log-ledger {
+  display: grid;
+  margin-top: 34px;
+  padding-top: 28px;
+  border-top: 1px solid var(--cp-border-strong);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 34px;
+}
+
+.log-ledger-side {
+  padding: 20px 22px;
+  border: 1px solid var(--cp-border);
+  border-radius: 14px;
+  background: var(--cp-surface);
+}
+
+.log-posted {
+  border-top: 3px solid var(--cp-success);
+}
+
+.log-withheld {
+  border-top: 3px solid var(--cp-warning);
+}
+
+.log-ledger-side > p {
+  color: var(--cp-text-muted);
+  font-size: 14px;
+}
+
+.log-count {
+  display: inline-block;
+  margin-left: 8px;
+  color: var(--cp-text-muted);
+  font-family: "Archivo Variable", "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 720;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.log-empty {
+  margin: 0;
+  color: var(--cp-text-muted);
+  font-size: 14px;
+  font-style: italic;
+}
+
+.log-ledger-side h4,
+.log-withheld-group h4 {
+  margin: 18px 0 4px;
+  font-family: "Archivo Variable", "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 720;
+  text-transform: uppercase;
+}
+
+.log-records {
+  margin: 0;
+  padding-left: 0;
+  font-size: 14px;
+  list-style: none;
+}
+
+.log-records li > span {
+  color: var(--cp-text-muted);
+}
+
+.log-blocked {
+  display: block;
+  margin-top: 5px;
+  color: var(--cp-text-soft);
+  font-size: 12px;
+}
+
+.log-references {
+  margin-top: 30px;
+  padding-top: 22px;
+  border-top: 1px solid var(--cp-border-strong);
+}
+
+.log-references ul {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.log-references li {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--cp-border);
+}
+
+.log-state {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 1px 8px;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 999px;
+  color: var(--cp-text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.log-recorded {
+  margin: 14px 0 0;
+  color: var(--cp-text-soft);
+  font-size: 12px;
+}
+
 @keyframes reveal {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -1795,6 +2249,20 @@ main {
   .tree-release-list {
     margin-left: 12px;
   }
+
+  .log-intro,
+  .log-columns,
+  .log-ledger {
+    grid-template-columns: 1fr;
+  }
+
+  .log-intro {
+    gap: 24px;
+  }
+
+  .log-totals {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 @media (max-width: 700px) {
@@ -1841,6 +2309,34 @@ main {
 
   .coverage-stats div:nth-child(-n + 2) {
     border-bottom: 1px solid var(--cp-border);
+  }
+
+  .log-totals div {
+    border-bottom: 1px solid var(--cp-border);
+  }
+
+  .log-totals div:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .log-run {
+    padding: 22px 18px;
+  }
+
+  .log-run-header {
+    align-items: start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .log-run-verdict {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .log-stage {
+    grid-template-columns: 1fr;
+    gap: 3px;
   }
 
   .explorer-heading,

@@ -11,13 +11,14 @@ interface Props {
   description: string;
   passportHref: string;
   verifiedAt: string;
-  currentPage?: 'explore' | 'tree' | 'passport';
+  currentPage?: 'explore' | 'tree' | 'passport' | 'log';
 }
 
 const { title, description, passportHref, verifiedAt, currentPage } = Astro.props;
 const base = import.meta.env.BASE_URL;
 const iconHref = `${base}favicon.svg`;
 const treeHref = `${base}tree/`;
+const logHref = `${base}log/`;
 ---
 
 <!doctype html>
@@ -40,13 +41,14 @@ const treeHref = `${base}tree/`;
           <a href={base} aria-current={currentPage === 'explore' ? 'page' : undefined}>Explore</a>
           <a href={treeHref} aria-current={currentPage === 'tree' ? 'page' : undefined}>Model Tree</a>
           <a href={passportHref} aria-current={currentPage === 'passport' ? 'page' : undefined}>Model Passport</a>
+          <a href={logHref} aria-current={currentPage === 'log' ? 'page' : undefined}>Data check log</a>
         </nav>
       </div>
     </header>
     <slot />
     <footer class="site-footer">
       <p><strong>ModelTree</strong> separates model creators, families, releases, and sources.</p>
-      <p>Seed data verified {verifiedAt}. Unknown facts stay unknown.</p>
+      <p>Seed data verified {verifiedAt}. Unknown facts stay unknown. Every data check is logged at <a href={logHref}>Data check log</a>.</p>
       <ThemePicker />
     </footer>
   </body>
