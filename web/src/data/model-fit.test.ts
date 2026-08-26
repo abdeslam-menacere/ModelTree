@@ -9,6 +9,29 @@ const FAMILY_ID = 'meta-llama-4';
 const OTHER_RELEASE_ID = 'openai-gpt-4-1-2025-04-14';
 const SEED_SOURCE_ID = 'meta-llama-4-scout-model-card';
 
+/**
+ * Two clocks, because this file builds two kinds of record.
+ *
+ * A record only ever compared against other records built here keeps a pinned
+ * date. That is deliberate anti-drift: a suite passing today still passes in a
+ * year, because both sides of every comparison are frozen together.
+ *
+ * A record compared against the *live* seed cannot use a pin. `validateDataset`
+ * refuses guidance dated before the evidence beneath it, so a hand-written date
+ * on such a record is not a fixture — it is a ceiling on the seed's own
+ * verification dates. The pin that used to sit here held meta-llama-4-scout at
+ * 2026-08-15: re-verifying that release means bumping it and the three
+ * fit-llama-4-scout-* statements resting on it, and doing so turned 13 tests in
+ * this file red in web-ci, the only required check (#321). The real clock lifts
+ * the ceiling without moving a single assertion — the rule itself is still
+ * asserted below, in both directions, against evidence that is pinned.
+ */
+const FIXTURE_VERIFIED_AT = '2026-08-15';
+const TODAY = new Date().toISOString().slice(0, 10);
+
+/** One day before FIXTURE_VERIFIED_AT, so the date rule is tested at its edge. */
+const DAY_BEFORE_FIXTURE = '2026-08-14';
+
 /** A statement over facts the seed already records, so only the rule under test varies. */
 function statement(overrides: Partial<ModelFitStatement> = {}): ModelFitStatement {
   return {
@@ -23,7 +46,8 @@ function statement(overrides: Partial<ModelFitStatement> = {}): ModelFitStatemen
     scope: 'Covers availability only.',
     caveats: ['Availability is not a statement about behaviour.'],
     conflictsWithIds: [],
-    verifiedAt: '2026-08-15',
+    // Measured against live seed evidence, so it takes the real clock.
+    verifiedAt: TODAY,
     ...overrides,
   };
 }
@@ -35,7 +59,7 @@ function gap(overrides: Partial<ModelFitEvidenceGap> = {}): ModelFitEvidenceGap 
     dimension: 'cost-structure',
     reason: 'no-qualifying-source',
     note: 'No pricing record is held for this release, so no cost guidance is derived.',
-    verifiedAt: '2026-08-15',
+    verifiedAt: FIXTURE_VERIFIED_AT,
     ...overrides,
   };
 }
@@ -71,7 +95,7 @@ function datasetWithSupportingRecords(
     datePrecision: 'day',
     note: 'Published for download on the day of the announcement.',
     sourceIds: [SEED_SOURCE_ID],
-    verifiedAt: '2026-08-15',
+    verifiedAt: FIXTURE_VERIFIED_AT,
   }];
 
   input.benchmarks = [{
@@ -84,7 +108,7 @@ function datasetWithSupportingRecords(
     metricUnit: '%',
     direction: 'higher-is-better',
     sourceIds: [SEED_SOURCE_ID],
-    verifiedAt: '2026-08-15',
+    verifiedAt: FIXTURE_VERIFIED_AT,
   }];
 
   input.benchmarkResults = [{
@@ -97,7 +121,7 @@ function datasetWithSupportingRecords(
     evaluationDate: '2026-06',
     resultType: 'official',
     sourceIds: [SEED_SOURCE_ID],
-    verifiedAt: '2026-08-15',
+    verifiedAt: FIXTURE_VERIFIED_AT,
   }];
 
   input.servingPlatforms = [{
@@ -108,7 +132,7 @@ function datasetWithSupportingRecords(
     type: 'model-hub',
     website: 'https://platform.test/',
     sourceIds: [SEED_SOURCE_ID],
-    verifiedAt: '2026-08-15',
+    verifiedAt: FIXTURE_VERIFIED_AT,
   }];
 
   input.deployments = [{
@@ -119,7 +143,7 @@ function datasetWithSupportingRecords(
     regions: [],
     effectiveFrom: '2025-04-05',
     sourceIds: [SEED_SOURCE_ID],
-    verifiedAt: '2026-08-15',
+    verifiedAt: FIXTURE_VERIFIED_AT,
   }];
 
   input.pricing = [{
@@ -130,7 +154,7 @@ function datasetWithSupportingRecords(
     rates: { input: 0.5, output: 2 },
     effectiveFrom: '2025-04-05',
     sourceIds: [SEED_SOURCE_ID],
-    verifiedAt: '2026-08-15',
+    verifiedAt: FIXTURE_VERIFIED_AT,
   }];
 
   return input;
@@ -235,6 +259,29 @@ describe('claim-level provenance', () => {
   it('rejects guidance dated before the evidence beneath it', () => {
     expect(() => validateDataset(datasetWith([statement({ verifiedAt: '2025-01-01' })])))
       .toThrow(/was verified before release field accessType/);
+  });
+
+  // The same rule at its exact edge. Both sides are fixtures here — the
+  // synthetic release event carries FIXTURE_VERIFIED_AT — so the dates can be
+  // pinned honestly, which is what the live seed records above cannot offer.
+  // Widen the comparison in validate.ts from `<` to `<=` and the first goes
+  // red; drop the comparison entirely and the second does.
+  it('accepts guidance verified on the same day as its evidence', () => {
+    const parsed = validateDataset(datasetWithSupportingRecords([statement({
+      rubricDimensions: ['lifecycle-stability'],
+      facts: [{ kind: 'release-event', eventId: 'test-release-event' }],
+      verifiedAt: FIXTURE_VERIFIED_AT,
+    })]));
+
+    expect(parsed.modelFitStatements).toHaveLength(1);
+  });
+
+  it('rejects guidance verified the day before its evidence', () => {
+    expect(() => validateDataset(datasetWithSupportingRecords([statement({
+      rubricDimensions: ['lifecycle-stability'],
+      facts: [{ kind: 'release-event', eventId: 'test-release-event' }],
+      verifiedAt: DAY_BEFORE_FIXTURE,
+    })]))).toThrow(/was verified before release event test-release-event/);
   });
 });
 
