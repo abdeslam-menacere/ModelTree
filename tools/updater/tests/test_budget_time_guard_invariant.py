@@ -1606,8 +1606,17 @@ def test_updating_a_non_counter_key_by_keyword_is_not_a_charge() -> None:
     """`self.__dict__.update(note=text)` is on the instance dictionary and is
     still not a charge, because the keyword resolves to an attribute name that
     is checked against the derived counters exactly as a literal subscript key
-    is. Without this, a limb that collapsed to "any keyword is `COMPUTED`" would
-    keep the positive tests green while reddening ordinary code."""
+    is.
+
+    Measured against the collapse that reads every keyword as `COMPUTED`, rather
+    than reasoned about: three tests redden, not this one alone, because the two
+    named-keyword positives assert their counter by name and get `COMPUTED`
+    instead. What this one adds is the *other* failure mode. Those two go red
+    over a degraded name while still reporting a method that genuinely spends;
+    only here does a method that spends nothing — `note_widgets`, writing a
+    non-counter attribute — begin to be reported at all. Of the three, this is
+    the only one that catches the collapse as a false positive, which is the
+    half that gets a detector switched off rather than merely mistrusted."""
     assert _injected("updates_a_non_counter_dict_keyword") == NOTHING
 
 
