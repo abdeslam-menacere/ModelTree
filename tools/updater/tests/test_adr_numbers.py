@@ -16,6 +16,11 @@ carries no readable number is refused rather than quietly skipped.
 that finds nothing to compare would otherwise report success, which is the exact
 defect class the issue warns about.
 
+`numbers_reported` exists because assertions on `report.duplicates` are
+assertions on a property recomputed from `report.adrs`, not on the problems list
+the script prints and exits on -- so truncating the problems loop used to leave
+this whole file green.
+
 The checker lives outside the updater package because it is not an updater
 concern, and is loaded by path for the same reason -- the arrangement
 `test_instruction_references.py` already uses. Its tests live here because this is
@@ -26,6 +31,7 @@ this suite needs no second pytest project.
 from __future__ import annotations
 
 import importlib.util
+import re
 import sys
 from pathlib import Path
 
@@ -72,6 +78,28 @@ def adr_dir(tmp_path):
 
 def numbers(report) -> set[str]:
     return set(report.duplicates)
+
+
+DUPLICATE_HEADING_RE = re.compile(r"^\s*DUPLICATE: ADR (\S+) is claimed by")
+
+
+def numbers_reported(report) -> set[str]:
+    """The contested numbers read back out of `report.problems`.
+
+    `numbers()` above reads `report.duplicates`, a property recomputed from
+    `report.adrs` -- so it answers "which numbers *are* contested", which is not
+    the same question as "which contested numbers does the script tell anyone
+    about". `report.problems` is the list `render()` prints and `ok` is derived
+    from, so it is the one a reader and CI actually see. Truncating the
+    problems loop to `list(report.duplicates.items())[:1]` leaves every
+    `numbers()` assertion green and turns the assertions using this red.
+    """
+    return {
+        match.group(1)
+        for problem in report.problems
+        for line in problem.splitlines()
+        if (match := DUPLICATE_HEADING_RE.match(line))
+    }
 
 
 # The advice line closing a DUPLICATE paragraph. Indented like the paths it
@@ -213,12 +241,20 @@ def test_the_stated_count_matches_the_paths_the_message_lists(adr_dir):
 
 def test_two_separate_collisions_are_both_reported(adr_dir):
     """Reporting only the first would hide the second behind a fix for the
-    first, so the same pull request would fail twice for different reasons."""
+    first, so the same pull request would fail twice for different reasons.
+
+    Asserted against `report.problems` as well as `report.duplicates`. The
+    latter is recomputed from `report.adrs`, so on its own it says the checker
+    *found* both collisions and says nothing about whether it *reports* both --
+    `list(report.duplicates.items())[:1]` in the problems loop ships a script
+    that prints one collision of two and left this test green.
+    """
     report = checker.check(
         adr_dir("0004-a.md", "0004-b.md", "0009-c.md", "0009-d.md"), REPO_ROOT
     )
 
     assert numbers(report) == {"0004", "0009"}
+    assert numbers_reported(report) == {"0004", "0009"}
 
 
 def test_a_number_claimed_in_a_subdirectory_still_collides(adr_dir):
