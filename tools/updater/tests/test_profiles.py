@@ -352,6 +352,40 @@ def test_a_well_formed_string_creator_id_still_loads(tmp_path) -> None:
     assert library.creator_ids == ("acme-labs",)
 
 
+def test_refuse_padded_id_requires_a_string_by_default(tmp_path) -> None:
+    """The shared guard's default is the safe mode, so a caller opts *out*, not in (#204).
+
+    This pins the decision directly at the helper rather than only through a loader. The
+    fixtures loader shared this helper while leaving `require_string` at its previous
+    default of `False`, and nothing flagged the omission — a safety helper whose default
+    is the unsafe mode puts the burden on every caller to remember to opt in, and one
+    did not, which is how that loader kept the `TypeError` #136 closed for the other two.
+    Defaulting to `True` makes the omission safe: a non-string id passed with no
+    `require_string` argument at all is now refused.
+    """
+    path = tmp_path / "acme.json"
+
+    with pytest.raises(ProfileError) as error:
+        _refuse_padded_id(True, path=path, subject="creator id")
+
+    message = str(error.value)
+    assert "creator id must be a string" in message
+    assert "bool" in message
+
+
+def test_refuse_padded_id_accepts_non_strings_only_on_explicit_opt_out(tmp_path) -> None:
+    """`require_string=False` is the visible, deliberate opt-out that stays available.
+
+    Flipping the default did not remove the ability to accept a non-string id; it made
+    accepting one a choice a caller must state at its call site, where a reviewer can see
+    it, rather than one inherited from a permissive default. No loader opts out, but the
+    lever remains and returns the value unchanged when pulled.
+    """
+    path = tmp_path / "acme.json"
+
+    assert _refuse_padded_id(True, path=path, subject="creator id", require_string=False) is True
+
+
 def test_both_reviewed_sets_are_discovered_by_the_same_function() -> None:
     """The sharing is the fix, so it is pinned rather than left to convention.
 

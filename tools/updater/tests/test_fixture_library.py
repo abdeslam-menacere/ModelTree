@@ -105,13 +105,18 @@ def test_two_fixture_ids_differing_only_in_whitespace_cannot_both_load(
     assert "whitespace" in str(error.value)
 
 
-def test_a_fixture_type_collision_is_not_reported_as_a_case_collision(
+def test_a_non_string_fixture_id_is_refused_before_it_can_collide(
     tmp_path,
 ) -> None:
-    """`True` and `"true"` differ in type as well as case, and the message says so.
+    """A non-string id is refused at parse, before the duplicate guard ever sees it.
 
-    This loader restated the wording rather than sharing it, so it carried the same
-    false sentence as the other two. It is now one sentence, built in one place.
+    At the merge base this pair (`True` and `"true"`) loaded far enough for the folding
+    guard to refuse it as a collision "differing only in type and case". The id decision
+    #204 makes moves the refusal earlier: a fixture id must be a string, so `True` is
+    refused the moment it is read, naming the file, the field and the type. The input is
+    still refused — strictly no less than before — only sooner and for the more precise
+    reason. The type collision the old message described is now unreachable through this
+    loader, because two ids that both load are now always both strings.
     """
     _fixture_file(tmp_path / "acme.json", creator_id=True)
     _fixture_file(tmp_path / "other.json", creator_id="true")
@@ -119,7 +124,133 @@ def test_a_fixture_type_collision_is_not_reported_as_a_case_collision(
     with pytest.raises(ProfileError) as error:
         load_fixture_library(tmp_path)
 
-    assert "differing only in type and case" in str(error.value)
+    message = str(error.value)
+    assert "creator id must be a string" in message
+    assert "bool" in message
+
+
+def test_two_non_string_fixture_ids_are_refused_at_parse(tmp_path) -> None:
+    """`True` and `1` are two dict keys, and both are refused for not being strings.
+
+    At the merge base this pair was refused by the duplicate guard, which watches both
+    key spaces so a plain assignment could not silently drop one. With string ids
+    required (#204) the first non-string id read is refused before the guard is reached,
+    so the directory is still refused — the "strictly more refusals, never fewer"
+    property holds — while the reachable-`TypeError` path the guard left open is closed.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id=True)
+    _fixture_file(tmp_path / "other.json", creator_id=1)
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    assert "creator id must be a string" in str(error.value)
+
+
+@pytest.mark.parametrize(
+    "creator_id, type_name",
+    [(["a"], "list"), ({}, "dict"), (0.0, "float"), (1, "int"), (None, "NoneType"), (True, "bool")],
+)
+def test_every_non_string_fixture_id_shape_is_refused_by_the_real_loader(
+    tmp_path, creator_id, type_name
+) -> None:
+    """Every non-string id shape, refused at parse by the real fixtures loader (#204).
+
+    This is the reviewed sets' rule (#136) reaching the third loader, driven through
+    `load_fixture_library` rather than the helper in isolation: a `list`/`dict` id
+    crashed the duplicate guard's membership test, and a `float`/`bool` id beside a
+    string crashed `sorted(creator_ids)`. Requiring a string at parse means neither
+    reachable `TypeError` can form. The refusal names the offending value's type.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id=creator_id)
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    message = str(error.value)
+    assert "creator id must be a string" in message
+    assert type_name in message
+
+
+def test_a_mixed_type_fixture_library_cannot_reach_creator_ids(tmp_path) -> None:
+    """The reported defect: a str id and a bool id, distinct and both loadable, sorted.
+
+    The two ids do not collide under folding — `"acme-labs"` and `True` fold to
+    different keys — so at the merge base the library loaded, correctly and by design,
+    and `FixtureLibrary.creator_ids` then raised `TypeError: '<' not supported between
+    instances of 'bool' and 'str'` the moment it sorted them. Constructed through the
+    real loader, not by hand-assembling the object, so it proves the sort was reachable.
+    Requiring a string id refuses the bool at parse, so no library the loader accepts can
+    hold a mixed-type id set and `creator_ids` can sort freely.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id="acme-labs")
+    _fixture_file(tmp_path / "other.json", creator_id=True)
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    assert "creator id must be a string" in str(error.value)
+
+
+def test_creator_ids_is_orderable_for_every_library_the_loader_accepts(tmp_path) -> None:
+    """The accept side of criterion 2: an accepted library sorts without raising.
+
+    A well-formed set of string ids loads and `creator_ids` returns them sorted. The
+    refusal above and this together are the two halves of "cannot raise TypeError for
+    any library the loader accepts": mixed types never load, and what does load orders.
+    """
+    _fixture_file(tmp_path / "b.json", creator_id="beta")
+    _fixture_file(tmp_path / "a.json", creator_id="alpha")
+
+    library = load_fixture_library(tmp_path)
+
+    assert library.creator_ids == ("alpha", "beta")
+
+
+def test_a_fixture_document_missing_creator_is_refused_by_name(tmp_path) -> None:
+    """A document with no `creator` key is refused naming the file, not a bare KeyError.
+
+    Valid JSON, wrong shape: a plausible hand-edit, or a different kind of document
+    entirely. At the merge base the loader indexed `document["creator"]` directly and
+    raised `KeyError: 'creator'`, which names the key but not which of a dozen documents
+    on disk carried it — the one thing the operator needs. Now it is the same exit-2
+    usage error the missing-fixtures case uses, naming the file and the field (#204).
+    """
+    (tmp_path / "acme.json").write_text(
+        json.dumps({"sources": []}), encoding="utf-8"
+    )
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    message = str(error.value)
+    assert "acme.json" in message
+    assert "creator" in message
+
+
+@pytest.mark.parametrize("missing", ["creator_id", "creator_name"])
+def test_a_fixture_creator_missing_a_required_field_is_refused_by_name(
+    tmp_path, missing
+) -> None:
+    """A creator block missing a required field is refused by name, not by KeyError.
+
+    Same standard as the missing top-level `creator`: `creator["creator_id"]` and
+    `creator["creator_name"]` were direct index reads that raised a bare `KeyError`
+    naming the field but not the file. `_require` names both, matching how the reviewed
+    profile loader already reads its own required creator fields (#204).
+    """
+    creator = {"creator_id": "acme-labs", "creator_name": "Acme"}
+    del creator[missing]
+    (tmp_path / "acme.json").write_text(
+        json.dumps({"creator": creator, "sources": []}), encoding="utf-8"
+    )
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    message = str(error.value)
+    assert "acme.json" in message
+    assert missing in message
 
 
 def test_a_duplicate_creator_id_is_refused_and_names_both_files(tmp_path) -> None:
@@ -159,22 +290,26 @@ def test_two_creator_ids_differing_only_in_case_are_one_id(tmp_path) -> None:
     assert "acme.json" in message and "other.json" in message
 
 
-def test_two_fixtures_whose_ids_are_one_dict_key_are_refused(tmp_path) -> None:
-    """Folding case does not replace comparing the declared ids, so both are guarded.
+def test_two_string_ids_differing_only_in_internal_spacing_are_one_id(tmp_path) -> None:
+    """Folding still refuses a string collision through this loader after the id rule.
 
-    `True` and `1` fold to different strings while being the same dict key. Guarding on
-    the folded key alone would miss the collision and let the second document overwrite
-    the first — one entry in the library for two documents on disk, with nothing said.
-    Whether such an id should be rejected for being non-string is a separate question,
-    and not this one.
+    `"acme labs"` and `"acme  labs"` (one internal space vs two) are two dict keys that
+    fold to one, and the guard refuses them as one id. This replaces the merge base's
+    `True`/`1` form of the pin: that pair exercised the guard's second key space (ids
+    that are one dict key but fold apart), which only non-string ids can be — and those
+    are now refused before the guard for not being strings (#204). Two ids that both
+    reach the guard are now always strings, so the reachable collision to pin is a
+    folding one, and it is still refused.
     """
-    _fixture_file(tmp_path / "acme.json", creator_id=True)
-    _fixture_file(tmp_path / "other.json", creator_id=1)
+    _fixture_file(tmp_path / "acme.json", creator_id="acme labs")
+    _fixture_file(tmp_path / "other.json", creator_id="acme  labs")
 
     with pytest.raises(ProfileError) as error:
         load_fixture_library(tmp_path)
 
-    assert "duplicate creator id" in str(error.value)
+    message = str(error.value)
+    assert "duplicate creator id" in message
+    assert "whitespace" in message
 
 
 def test_two_creator_ids_differing_by_more_than_case_are_two_fixtures(tmp_path) -> None:

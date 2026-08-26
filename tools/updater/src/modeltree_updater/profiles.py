@@ -374,7 +374,7 @@ def _reviewed_profile_paths(directory: Path, *, kind: str) -> list[Path]:
 
 
 def _refuse_padded_id(
-    declared_id: Any, *, path: Path, subject: str, require_string: bool = False
+    declared_id: Any, *, path: Path, subject: str, require_string: bool = True
 ) -> Any:
     """A declared id padded with whitespace, refused rather than folded or tidied.
 
@@ -402,28 +402,36 @@ def _refuse_padded_id(
     property of one declaration rather than of a set — a directory holding exactly one
     such file is just as wrong as one holding two.
 
-    ``require_string`` is what the two *reviewed* sets — the dedicated creator
-    profiles and the long-tail profiles — pass, and the fixtures set does not. A
-    reviewed document whose ``id`` is not a string loads a profile keyed under a value
-    no string lookup can reach, and, because both loaders sort that id set to render
-    ``ids``/``creator_ids`` and the *"the reviewed profiles are …"* refusal, a second
-    such document of a different type crashes ``sorted`` — turning a clean, unrelated
-    refusal into a ``TypeError`` while it formats its message. An unhashable id (a
-    ``list`` or ``dict``) is worse still: it raises at the duplicate guard's membership
-    test before any message is even reached. Refusing a non-string id here, at parse
-    time, is what keeps either ``TypeError`` from ever forming (#136). The refusal names
-    the file, the field and the offending value's type, and it refuses rather than
-    coerces for the reason padding is refused rather than trimmed: registering a document
-    under a string it does not declare is the trap #108 settled.
+    ``require_string`` refuses an id that is not a string, at parse time. A document
+    whose ``id`` is not a string loads keyed under a value no string lookup can reach,
+    and, because every loader sorts its id set to render ``ids``/``creator_ids`` and the
+    *"the reviewed profiles are …"* refusal, a second such document of a different type
+    crashes ``sorted`` — turning a clean, unrelated refusal into a ``TypeError`` while it
+    formats its message. An unhashable id (a ``list`` or ``dict``) is worse still: it
+    raises at the duplicate guard's membership test before any message is even reached.
+    Refusing a non-string id here keeps either ``TypeError`` from ever forming (#136).
+    The refusal names the file, the field and the offending value's type, and it refuses
+    rather than coerces for the reason padding is refused rather than trimmed: registering
+    a document under a string it does not declare is the trap #108 settled.
 
-    The fixtures set passes ``require_string`` false and this gate does nothing for it —
-    whether a *fixture* id must be a string is a decision that set makes for itself
-    (#204), not one taken here on its behalf.
+    **The default is the safe mode (#204).** ``require_string`` defaults to ``True``, so a
+    caller requires string ids by *omission* and would accept a non-string one only by
+    opting out explicitly with ``require_string=False``. This is deliberate: the fixtures
+    loader shared this helper while leaving ``require_string`` at its previous default of
+    ``False``, and nothing flagged the omission, so the identical latent ``TypeError``
+    #136 closed for the two reviewed sets survived in the third — the guard whose *default*
+    is the unsafe mode puts the burden on every caller to remember to opt in, and one did
+    not. Defaulting to ``True`` converts that silent omission into a visible one: a loader
+    that genuinely needs non-string ids must now say so at its call site, where a reviewer
+    can see the decision, rather than inherit it from a permissive default nobody chose.
+    No loader opts out — the two reviewed sets still pass ``require_string=True`` at their
+    call sites as documentation, and the fixtures set now relies on the safe default. This
+    is the same family of guardrail as ADR 0003's *no gate input self-reported by the
+    subject may have a default*: a permissive default doing the work of a decision.
 
     Below the type gate, ``isinstance`` still guards the whitespace check rather than
-    ``str()`` coercing it: the only ids that now reach it non-string are the fixtures',
-    and no JSON scalar's ``str()`` is padded anyway, so the guard costs nothing it
-    should have caught.
+    ``str()`` coercing it: no JSON scalar's ``str()`` is padded anyway, so the guard costs
+    nothing it should have caught, and it stays correct for a caller that opts out.
     """
     if require_string and not isinstance(declared_id, str):
         raise ProfileError(
