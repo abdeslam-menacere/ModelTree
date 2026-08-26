@@ -159,6 +159,132 @@ describe('compareCoverage', () => {
   });
 });
 
+// Issue #337: the axis the cases above do not cover, and a live instance of
+// why a neighbouring negative test is no evidence that they do (issue #312).
+// Every case above varies *which* files are in the two sets; this one varies
+// whether either set holds anything at all. Emptiness is the single state a set
+// difference cannot see, because the difference of two empty sets is empty and
+// reads exactly like agreement -- so the guard passed a run in which the whole
+// suite had vanished, and passed it more readily the more total the loss was.
+//
+// The sibling cases, named so the next reader cannot mistake one of them for
+// this one:
+//   - 'fails loudly, naming the file, when a discovered file produced no
+//     result' (#218) -- SOME discovered file is absent from the report. Always
+//     caught, and re-asserted here as the control, because the defect was
+//     precisely that one file gone was refused while every file gone was not.
+//   - 'fails when the report shows results for a file that was not discovered'
+//     -- a reported file nothing discovered. Non-empty `expected`.
+//   - 'fails the comparison by name when a reported file ran zero tests'
+//     (#245) -- a file is reported but holds no results. Non-empty `expected`.
+//   - 'reports a quarantined file on the result and still calls the run ok'
+//     (#270) -- a reported file executed nothing, and is deliberately NOT a
+//     failure. Re-probed below, because an emptiness guard is likelier to
+//     swallow that case than any other: discovering nothing and running
+//     nothing are different states, and only the first is a defect.
+// None of them can reach `expected: []`, so none of them covers this axis.
+describe('a run that discovered no test files at all', () => {
+  const greenReport = { success: true, numFailedTests: 0, numFailedTestSuites: 0 };
+
+  // The discriminator. Against the pre-#337 script every assertion here dies:
+  // ok was true and problems was empty, so a run whose entire suite had
+  // disappeared exited 0.
+  it('refuses, rather than passing vacuously, when the discovered set is empty', () => {
+    const result = compareCoverage({
+      expected: [],
+      reported: [],
+      empty: [],
+      unexecuted: [],
+      report: greenReport,
+    });
+
+    expect(result.ok).toBe(false);
+    // Caught by the emptiness check and by nothing else: there is no missing
+    // file, no unexpected file and no empty file for another branch to name.
+    expect(result.missing).toEqual([]);
+    expect(result.unexpected).toEqual([]);
+    expect(result.empty).toEqual([]);
+    expect(result.problems).toHaveLength(1);
+  });
+
+  // Held to #307's standard: the message may state what was observed -- that
+  // discovery returned nothing -- and must not settle on a cause this input
+  // cannot establish. It lists the candidates as indistinguishable, which is
+  // the honest form, so what is pinned here is that the hedge survives.
+  it('names discovery coming back empty without asserting why it did', () => {
+    const problems = compareCoverage({
+      expected: [],
+      reported: [],
+      report: greenReport,
+    }).problems.join('\n');
+
+    expect(problems).toContain('Zero test files were discovered');
+    expect(problems).toContain('does not establish why');
+  });
+
+  // Emptiness is a property of the discovered set specifically. The two
+  // problems stay distinct rather than one absorbing the other.
+  it('refuses on both counts when nothing was discovered but the report holds a file', () => {
+    const result = compareCoverage({
+      expected: [],
+      reported: ['src/ghost.test.ts'],
+      report: greenReport,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.unexpected).toEqual(['src/ghost.test.ts']);
+    expect(result.problems).toHaveLength(2);
+  });
+
+  // No over-firing, 1 of 3: the control from the issue. The sibling that was
+  // already refused must still be refused, and for its own reason -- if the new
+  // problem also fired here it would mean the guard had stopped being about
+  // emptiness.
+  it('still refuses a single dropped file, by name and not as an emptiness problem', () => {
+    const result = compareCoverage({
+      expected: ['src/a.test.ts', 'src/dropped.test.ts'],
+      reported: ['src/a.test.ts'],
+      report: greenReport,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.missing).toEqual(['src/dropped.test.ts']);
+    expect(result.problems).toHaveLength(1);
+    expect(result.problems.join('\n')).not.toContain('Zero test files were discovered');
+  });
+
+  // No over-firing, 2 of 3: the smallest healthy run that exists. One file is
+  // not "nearly empty" -- the guard is on zero, never on few.
+  it('passes a healthy run that discovered exactly one file', () => {
+    const result = compareCoverage({
+      expected: ['src/a.test.ts'],
+      reported: ['src/a.test.ts'],
+      report: greenReport,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.problems).toEqual([]);
+  });
+
+  // No over-firing, 3 of 3: #270's state, probed deliberately. Nothing here
+  // executed either, which is what makes it the case most at risk of being
+  // caught by a guard aimed at emptiness -- but a file WAS discovered, and that
+  // is the whole difference. The recorded decision is report-not-refuse, and
+  // this change must leave it exactly where it was.
+  it('leaves a quarantined run alone: nothing executed, but something was discovered', () => {
+    const result = compareCoverage({
+      expected: ['src/quarantined.test.ts'],
+      reported: ['src/quarantined.test.ts'],
+      unexecuted: ['src/quarantined.test.ts'],
+      report: greenReport,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.problems).toEqual([]);
+    expect(result.unexecuted).toEqual(['src/quarantined.test.ts']);
+  });
+});
+
 // Issue #245: a file can be *present* in the report yet hold zero test results.
 // That hides exactly as much as an absent file -- nothing ran -- but the
 // set-membership check is blind to it, because the file does have a name and so
@@ -911,7 +1037,11 @@ describe('the script run as a process', () => {
   const passingSource = "import { it, expect } from 'vitest';\nit('runs', () => expect(1).toBe(1));\n";
   const skippedSource = "import { it } from 'vitest';\nit.skip('does not run', () => {});\n";
 
-  async function buildFixture(files: FixtureFile[], reportPath: string): Promise<string> {
+  async function buildFixture(
+    files: FixtureFile[],
+    reportPath: string,
+    configSource?: string,
+  ): Promise<string> {
     // realpath, because the temp directory can be reached by a symlink or a
     // short path, and the child's own `process.cwd()` reports the resolved form.
     // The report's absolute names have to normalise against that same root or
@@ -933,6 +1063,14 @@ describe('the script run as a process', () => {
           status,
         })),
       });
+    }
+
+    // A vitest config, when the fixture needs discovery itself to be broken --
+    // the #337 shape, where test files exist on disk but the include glob does
+    // not reach them. `.mjs` so the config is loaded as ESM without vite
+    // warning about ESM syntax in a file it treats as CommonJS.
+    if (configSource !== undefined) {
+      await writeFile(join(directory, 'vitest.config.mjs'), configSource, 'utf8');
     }
 
     const absoluteReportPath = join(directory, reportPath);
@@ -1061,6 +1199,43 @@ describe('the script run as a process', () => {
       expect(stderr).toContain('Discovered 2 test file(s); the report holds results for 1.');
       // The refusal must not drag the summary's coverage claim along with it.
       expect(stderr).not.toContain('test-coverage check: ');
+      expect(stdout).toBe('');
+      expect(code).toBe(1);
+    },
+    60_000,
+  );
+
+  // Issue #337 through the real wiring, and the half of it no exported function
+  // can reach: `expected` comes from vitest's own globTestSpecifications(), so
+  // "discovery returned nothing" is only genuinely reproduced by pointing that
+  // glob somewhere empty. Two real test files sit on disk in this fixture; the
+  // config's include glob names a directory that does not exist, which is the
+  // broken-glob / moved-directory shape the issue describes. The unit case
+  // above hands `compareCoverage` an empty array and has to assume `main` can
+  // produce one; this case makes `main` produce it.
+  //
+  // Against the pre-#337 script this exits 0 and prints the summary to stdout:
+  // the fail-open observed end to end, not argued from the pure functions.
+  it(
+    'refuses a run in which discovery found nothing, instead of reporting success',
+    async () => {
+      const directory = await buildFixture(
+        [
+          { name: 'alpha.test.js', source: passingSource, statuses: null },
+          { name: 'beta.test.js', source: passingSource, statuses: null },
+        ],
+        'report.json',
+        "export default { test: { include: ['tests-moved-away/**/*.test.js'] } };\n",
+      );
+
+      const { code, stdout, stderr } = await runScriptIn(directory, ['report.json']);
+
+      expect(stderr).toContain('test-coverage check FAILED -- the run cannot be trusted:');
+      expect(stderr).toContain('Zero test files were discovered');
+      expect(stderr).toContain('Discovered 0 test file(s); the report holds results for 0.');
+      // The summary line, whose prose was already correct, must not be printed
+      // under a refusal -- and above all must not be printed alone on stdout,
+      // which is exactly what the fail-open did.
       expect(stdout).toBe('');
       expect(code).toBe(1);
     },
