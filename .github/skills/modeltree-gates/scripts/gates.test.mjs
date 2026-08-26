@@ -1864,13 +1864,27 @@ describe('gate-scope ALLOWED_PATHS mirrors raw.ts', () => {
 // removed were code comments, so a test that inspected only refusal output
 // would have missed them; the scan below is over the script's whole source.
 //
+// The decision forbids two claims, so the patterns cover two halves: the
+// hash-and-retrieval half, which is where all four of #278's instances were,
+// and the quote half. The quote half is the easier one to drift into, because
+// no contentHash check sits beside it to make the limit obvious.
+//
 // The vocabulary is chosen to be *presupposing*: each pattern asserts that a
-// retrieval happened, or asserts correspondence between a hash and a page, and
-// none can appear in an honest disclaimer without rewording. That is a
-// deliberate cost. A disclaimer in this file must say what the gate does not do
-// without borrowing the phrasing that does the overclaiming -- writing "never
-// that a page was retrieved" trips the same wire as claiming it, because a
-// substring scan cannot read negation.
+// retrieval happened, or asserts correspondence between a value the producer
+// declared and a remote page, and none can appear in an honest disclaimer
+// without rewording. That is a deliberate cost. A disclaimer in this file must
+// say what the gate does not do without borrowing the phrasing that does the
+// overclaiming -- writing "never that a page was retrieved" trips the same wire
+// as claiming it, because a substring scan cannot read negation. It is also why
+// the scan is scoped to gate-evidence.mjs alone: ADR 0005 and
+// reference/claim-bundle.md state the same limit correctly and, in doing so,
+// use the forbidden phrasings, so scanning them would red honest text.
+//
+// What this scan is not: a fixed vocabulary cannot recognise every way of
+// overclaiming, and phrasings outside it pass -- #278's QA demonstrated several.
+// A clean run means no *known* phrasing is present in this one file, never that
+// the file is free of overclaims. Item 2 is a standing obligation on all three
+// channels, and this test discharges a part of it on one of them.
 // ---------------------------------------------------------------------------
 describe('gate-evidence claims no retrieval it cannot perform (ADR 0005)', () => {
   const OVERCLAIMS = [
@@ -1878,21 +1892,62 @@ describe('gate-evidence claims no retrieval it cannot perform (ADR 0005)', () =>
     { label: 'claims something was actually fetched/read/retrieved', re: /\bactually\s+(fetched|read|retrieved|downloaded)\b/i },
     { label: 'claims a check proves a retrieval happened', re: /\bprove[sdn]?\b[^.\n]{0,60}\b(read|fetched|retrieved|downloaded)\b/i },
     { label: 'claims the hash corresponds to the page', re: /\b(hash|digest)\s+of\s+the\s+(\w+\s+){0,2}page\b/i },
+    // The quote half of Decision item 2. gate-evidence.mjs does check that a
+    // quote is present and long enough, so the drift this watches for is one
+    // word wide: "present in the bundle" becoming "present in the source".
+    {
+      label: 'claims the quote was located in the cited source',
+      re: /\bquot(?:e|es|ed|ation)\b[^.\n]{0,60}\b(appears?|occurs?|found|present)\b[^.\n]{0,30}\b(page|source|document|article|site|url|there)\b/i,
+    },
   ];
 
   function matchOverclaims(text) {
     return OVERCLAIMS.filter(({ re }) => re.test(text)).map(({ label }) => label);
   }
 
-  // The exact strings #278 removed, kept as negative fixtures. They prove the
-  // patterns are capable of firing, so a clean scan is evidence the file is
-  // clean rather than evidence the patterns match nothing anywhere. Each also
-  // pins one historical regression against silent reintroduction.
+  // One probe per pattern, each phrased so that pattern and no other matches it.
+  // Deliberately a separate list rather than a field on each OVERCLAIMS entry: a
+  // probe that lived on its own pattern would be deleted along with it, and the
+  // coverage test below would stay green through exactly the deletion it exists
+  // to catch. Kept apart, deleting a pattern orphans its probe and goes red.
+  const PATTERN_PROBES = [
+    ['names a page as fetched/retrieved/downloaded', 'no hash and no fetched page for this citation'],
+    ['claims something was actually fetched/read/retrieved', 'the url was actually retrieved by the gate'],
+    ['claims a check proves a retrieval happened', 'a well-formed hash proves the source was read'],
+    ['claims the hash corresponds to the page', 'the digest of the page it names'],
+    ['claims the quote was located in the cited source', 'the quote appears in the source document'],
+  ];
+
+  test('every pattern is the sole match for some probe, so none can be deleted unnoticed', () => {
+    for (const [label, text] of PATTERN_PROBES) {
+      assert.deepEqual(
+        matchOverclaims(text),
+        [label],
+        `the probe for "${label}" is not matched by that pattern and only that pattern: ${text}`,
+      );
+    }
+    assert.deepEqual(
+      PATTERN_PROBES.map(([label]) => label).sort(),
+      OVERCLAIMS.map(({ label }) => label).sort(),
+      'every pattern needs a probe only it matches, and every probe needs a live pattern',
+    );
+  });
+
+  // The strings #278 removed, kept as fixtures -- verbatim apart from leading
+  // indentation and, on the last, the trailing comma that followed it in the
+  // argument list. Each pins one historical regression against silent
+  // reintroduction, and the test below shows the scan still fires on real
+  // removed text rather than only on text written to be caught.
+  //
+  // What they do not show is that each pattern individually can fire: all four
+  // are hash-and-retrieval-half text, so none reaches the quote pattern, and the
+  // only one reaching the hash-corresponds-to-page pattern is matched by a
+  // second pattern too. Per-pattern capability is PATTERN_PROBES' job.
   const REMOVED_BY_278 = [
     '// fetched page, no hash, or a review that never reached a majority. Search',
     '// Gate: the evidence behind a claim was actually retrieved.',
     '// field that must say `fetch` and a hash that proves something was read.',
-    '`contentHash "${item.contentHash}" is not a sha256:<64 hex> digest of the fetched page`',
+    '`contentHash "${item.contentHash ?? \'missing\'}" is not a sha256:<64 hex> digest of the fetched page`',
   ];
 
   test('every removed overclaim is still detected, so the scan is not vacuous', () => {
@@ -1914,6 +1969,16 @@ describe('gate-evidence claims no retrieval it cannot perform (ADR 0005)', () =>
       'fetchedAt "2026-01-01" is not a real YYYY-MM-DD date',
       'retrieval is "search-snippet", but only "fetch" is admissible',
       'the reviewed-profile set is read from disk, not taken from the bundle',
+      // The quote half. These are the shapes an honest description of the quote
+      // check takes, including the live refusal message with its template
+      // resolved: the quote pattern must leave every one of them alone, or the
+      // gate cannot describe what it does without tripping its own scanner.
+      'quote is missing or shorter than 24 characters, so it cannot show the source stating this',
+      'a quote short enough to be a coincidence is not corroboration',
+      'the quote field is checked for length only, never against the cited url',
+      'the quote and the url are both values the producer declared in the bundle',
+      'a quote is copied from the source by the scout, and this gate never sees the source',
+      'the quote is present and non-empty',
     ];
     for (const text of honest) {
       assert.deepEqual(matchOverclaims(text), [], `honest text was flagged: ${text}`);
