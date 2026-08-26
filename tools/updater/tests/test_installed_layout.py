@@ -48,7 +48,9 @@ from pathlib import Path
 
 import pytest
 
+import modeltree_updater
 from modeltree_updater import cli, layout, longtail, profiles
+from modeltree_updater.checkpoints import TOOL_VERSION
 from modeltree_updater.cli import EXIT_OK, EXIT_USAGE, main
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
@@ -688,3 +690,44 @@ def test_the_reviewed_profiles_are_not_inside_the_package() -> None:
     """
     assert not (PACKAGE_DIR / "profiles").exists()
     assert (PROJECT_DIR / "profiles" / "generic").is_dir()
+
+
+def test_the_packaged_version_pins_the_checkpoint_marker_to_pyproject() -> None:
+    """`TOOL_VERSION` is `__version__` is `pyproject.toml`'s version — all one number.
+
+    `TOOL_VERSION` is the identity a checkpoint marker records (#140), and the
+    `resume` gate keys on marker equality (ADR 0002). If the build that stamps a
+    checkpoint drifts *behind* the packaged version, the marker compares equal to
+    a genuinely different build and an incompatible checkpoint is accepted — the
+    exact failure #140 exists to catch, defeated by forgetting to bump one of two
+    hand-maintained copies of the same fact (#191).
+
+    `checkpoints.TOOL_VERSION` already derives from `modeltree_updater.__version__`,
+    so in code there is one source between those two. The remaining drift is
+    between that literal and `pyproject.toml`'s `[project].version`, which nothing
+    otherwise checks. This closes it with a test rather than by deriving
+    `__version__` from `importlib.metadata.version` at runtime (the other candidate
+    fix): `__version__` is set at module import, and this package is run both
+    installed and from a bare source checkout — `test_installed_layout.py` exists
+    because that distinction is delicate. In a source tree with no installed
+    distribution, `importlib.metadata.version("modeltree-updater")` raises
+    `PackageNotFoundError`, which at module scope would break `import
+    modeltree_updater` entirely. A metadata lookup would therefore trade a
+    forgotten bump for an import that fails wherever the package is not installed,
+    so the literal stays and this test guards it. Asserted over the whole chain,
+    not just the manifest-versus-`__version__` pair, so that breaking the
+    `TOOL_VERSION = __version__` line is caught here too.
+    """
+    manifest_version = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))["project"][
+        "version"
+    ]
+
+    assert modeltree_updater.__version__ == manifest_version, (
+        f"__init__.py declares {modeltree_updater.__version__!r} but "
+        f"pyproject.toml declares {manifest_version!r}; bump both together"
+    )
+    assert TOOL_VERSION == manifest_version, (
+        f"checkpoints.TOOL_VERSION is {TOOL_VERSION!r}, which no longer tracks "
+        f"the packaged version {manifest_version!r}; the checkpoint marker would "
+        "record a build identity that is not this build's"
+    )
