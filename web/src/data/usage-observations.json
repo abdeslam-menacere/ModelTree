@@ -6,8 +6,8 @@
     "metricLabel": "Downloads last month",
     "unit": "downloads",
     "population": "requests served by the Hugging Face Hub for the download-counting query files of the meta-llama/Llama-4-Scout-17B-16E-Instruct repository",
-    "value": 342101,
-    "valueAsStated": "Downloads last month: 342,101 (reading taken 24 August 2026)",
+    "value": 317748,
+    "valueAsStated": "Downloads last month: 317,748 (reading taken 26 August 2026)",
     "windowStart": "2026-07",
     "windowEnd": "2026-08",
     "methodology": "Measured by Hugging Face, not reported by Meta: \"The count is done server-side as the Hub serves files for downloads.\" Hugging Face counts \"Every HTTP request to these files, including GET and HEAD\" as one download, where \"these files\" are \"a set of query files\" chosen per library \"to avoid double counting downloads\". This repository declares the transformers library, and Hugging Face states only that \"the query file depends on each library\", keeping the per-library definitions in its open-source library list rather than on the documentation page, so the exact file counted for this repository is not stated by the cited sources.",
@@ -17,13 +17,13 @@
     "caveats": [
       "Hugging Face counts requests, not people or deployments: \"Every HTTP request to these files, including GET and HEAD, will be counted as a download.\" A single automated pipeline can therefore contribute many downloads.",
       "The Hub's default statistics neither deduplicate downloaders nor exclude automated traffic. Hugging Face offers request-level Publisher Analytics separately for anyone who needs to \"exclude downloads from CI/CD pipelines, or deduplicate users (i.e. count unique downloaders)\".",
-      "This is a live rolling counter rather than a published, fixed figure. 342,101 is the reading taken on 24 August 2026; the same URL will return a different number on a later date.",
+      "This is a live rolling counter rather than a published, fixed figure. 317,748 is the reading taken on 26 August 2026; the same URL will return a different number on a later date.",
       "Hugging Face labels this counter \"Downloads last month\" but states no window boundaries, so the window recorded here is the span of calendar months the reading can fall in rather than a precise interval.",
       "It covers only meta-llama/Llama-4-Scout-17B-16E-Instruct. The base repository meta-llama/Llama-4-Scout-17B-16E carries its own separate counter, and the two are not added together.",
       "The Hub record reports \"gated\": \"manual\" for this repository, so the figure is measured on an access-gated repository rather than an openly downloadable one."
     ],
     "conflictsWithIds": [],
-    "verifiedAt": "2026-08-24"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "meta-llama-4-scout-base-hugging-face-downloads-2026-08",
@@ -32,8 +32,8 @@
     "metricLabel": "Downloads last month",
     "unit": "downloads",
     "population": "requests served by the Hugging Face Hub for the download-counting query files of the meta-llama/Llama-4-Scout-17B-16E repository",
-    "value": 14764,
-    "valueAsStated": "Downloads last month: 14,764 (reading taken 24 August 2026)",
+    "value": 14384,
+    "valueAsStated": "Downloads last month: 14,384 (reading taken 26 August 2026)",
     "windowStart": "2026-07",
     "windowEnd": "2026-08",
     "methodology": "The same server-side count Hugging Face applies to every repository: \"Every HTTP request to these files, including GET and HEAD, will be counted as a download\", against \"a set of query files\" chosen per library \"to avoid double counting downloads\". Recorded separately from the Instruct repository because it counts a different repository, not because a different method was used.",
@@ -41,13 +41,13 @@
     "sourceIds": ["hugging-face-llama-4-scout-base-hub-record", "hugging-face-download-stats-docs"],
     "scope": "The base, non-instruction-tuned repository of Llama 4 Scout on the Hugging Face Hub. Both repositories are listed as API aliases of this one release, so this is a second reading of a different population, not a second reading of the same fact.",
     "caveats": [
-      "This figure and the 342,101 recorded for meta-llama/Llama-4-Scout-17B-16E-Instruct count two different repositories. They are deliberately not added together, and their sum would not be a meaningful total for the release.",
+      "This figure and the 317,748 recorded for meta-llama/Llama-4-Scout-17B-16E-Instruct count two different repositories. They are deliberately not added together, and their sum would not be a meaningful total for the release.",
       "Hugging Face counts requests, not people or deployments, and its default statistics neither deduplicate downloaders nor exclude automated traffic.",
-      "This is a live rolling counter rather than a published, fixed figure. 14,764 is the reading taken on 24 August 2026; the same URL will return a different number on a later date.",
+      "This is a live rolling counter rather than a published, fixed figure. 14,384 is the reading taken on 26 August 2026; the same URL will return a different number on a later date.",
       "Hugging Face labels this counter \"Downloads last month\" but states no window boundaries, so the window recorded here is the span of calendar months the reading can fall in rather than a precise interval.",
       "The Hub record reports \"gated\": \"manual\" for this repository, so the figure is measured on an access-gated repository rather than an openly downloadable one."
     ],
     "conflictsWithIds": [],
-    "verifiedAt": "2026-08-24"
+    "verifiedAt": "2026-08-26"
   }
 ]

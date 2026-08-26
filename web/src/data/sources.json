@@ -40,7 +40,7 @@
     "publisherId": "openai",
     "publishedDate": "2026-07-09",
     "lastCheckedDate": "2026-08-18",
-    "notes": "General-availability launch of the GPT-5.6 family (Sol, Terra, Luna). The article body states launch-day API pricing per 1M tokens of Sol $5 input / $30 output, Terra $2.50 input / $15 output, and Luna $1 input / $6 output. A banner dated 2026-07-30 records that Luna's price was later cut by ~80% and Terra's by ~20%, and links to openai-gpt-5-6-price-update; the body table therefore reflects the pre-cut prices."
+    "notes": "General-availability launch of the GPT-5.6 family (Sol, Terra, Luna). The article body states launch-day API pricing per 1M tokens of Sol $5 input / $30 output, Terra $2.50 input / $15 output, and Luna $1 input / $6 output. A banner dated 2026-07-30 records that Luna's price was later cut by ~80% and Terra's by ~20%, and links to openai-gpt-5-6-price-update; the body table therefore reflects the pre-cut prices. A later banner dated 2026-08-21 records that OpenAI dropped GPT-5.6 Sol's API and credit pricing by over 20% for the next three months; the GPT-5.6 Sol model documentation lists the promotional Sol pricing as $4 input / $20 output per 1M tokens (a 20% input and 33% output reduction), available at least through 2026-11-21."
   },
   {
     "id": "openai-gpt-5-6-price-update",
@@ -136,19 +136,19 @@
   },
   {
     "id": "anthropic-models-overview",
-    "url": "https://platform.claude.com/docs/en/about-claude/models/overview",
+    "url": "https://platform.claude.com/docs/en/models/overview",
     "title": "Models overview",
     "type": "official-docs",
     "publisherId": "anthropic",
-    "lastCheckedDate": "2026-08-15"
+    "lastCheckedDate": "2026-08-26"
   },
   {
     "id": "anthropic-fable-5-mythos-5-docs",
-    "url": "https://platform.claude.com/docs/en/about-claude/models/introducing-claude-fable-5-and-claude-mythos-5",
+    "url": "https://platform.claude.com/docs/en/models/fable-5/introducing-claude-fable-5-and-claude-mythos-5",
     "title": "Introducing Claude Fable 5 and Claude Mythos 5",
     "type": "official-docs",
     "publisherId": "anthropic",
-    "lastCheckedDate": "2026-08-15"
+    "lastCheckedDate": "2026-08-26"
   },
   {
     "id": "anthropic-model-deprecations",
@@ -156,7 +156,7 @@
     "title": "Model deprecations",
     "type": "official-docs",
     "publisherId": "anthropic",
-    "lastCheckedDate": "2026-08-15"
+    "lastCheckedDate": "2026-08-26"
   },
   {
     "id": "anthropic-opus-5-announcement",
@@ -165,7 +165,7 @@
     "type": "official-announcement",
     "publisherId": "anthropic",
     "publishedDate": "2026-07-24",
-    "lastCheckedDate": "2026-08-15"
+    "lastCheckedDate": "2026-08-26"
   },
   {
     "id": "anthropic-sonnet-4-5-announcement",
@@ -174,7 +174,7 @@
     "type": "official-announcement",
     "publisherId": "anthropic",
     "publishedDate": "2025-09-29",
-    "lastCheckedDate": "2026-08-15"
+    "lastCheckedDate": "2026-08-26"
   },
   {
     "id": "anthropic-haiku-4-5-announcement",
@@ -183,7 +183,7 @@
     "type": "official-announcement",
     "publisherId": "anthropic",
     "publishedDate": "2025-10-15",
-    "lastCheckedDate": "2026-08-15",
+    "lastCheckedDate": "2026-08-26",
     "notes": "The newsroom dates this announcement 15 Oct 2025, while the pinned model ID is claude-haiku-4-5-20251001."
   },
   {
@@ -200,7 +200,7 @@
     "title": "Gemini deprecations",
     "type": "official-docs",
     "publisherId": "google",
-    "lastCheckedDate": "2026-08-15",
+    "lastCheckedDate": "2026-08-26",
     "notes": "States the release date, shutdown date, and recommended replacement for each Gemini model ID."
   },
   {
@@ -380,7 +380,7 @@
     "title": "Hugging Face Hub record for meta-llama/Llama-4-Scout-17B-16E-Instruct",
     "type": "repository",
     "publisherId": "hugging-face",
-    "lastCheckedDate": "2026-08-24",
+    "lastCheckedDate": "2026-08-26",
     "notes": "The Hub's machine-readable record for the repository, carrying the download counter Hugging Face itself measures. The model card prose at the human-readable URL is Meta's and is recorded separately as meta-llama-4-scout-model-card; only the Hub-measured counter is cited from here."
   },
   {
@@ -389,7 +389,7 @@
     "title": "Hugging Face Hub record for meta-llama/Llama-4-Scout-17B-16E",
     "type": "repository",
     "publisherId": "hugging-face",
-    "lastCheckedDate": "2026-08-24",
+    "lastCheckedDate": "2026-08-26",
     "notes": "The Hub's record for the base (non-instruction-tuned) repository of the same release. It carries its own download counter, separate from the Instruct repository's."
   },
   {
@@ -409,5 +409,127 @@
     "publisherId": "google-cloud",
     "lastCheckedDate": "2026-08-15",
     "notes": "Google Cloud is the cloud-computing division of Google, itself part of Alphabet."
+  },
+  {
+    "id": "openai-gpt-5-6-cyber-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-5.6-cyber",
+    "title": "GPT-5.6 Cyber model documentation",
+    "type": "official-docs",
+    "publisherId": "openai",
+    "lastCheckedDate": "2026-08-26",
+    "notes": "Documents the gpt-5.6-cyber alias for OpenAI's purpose-trained cybersecurity models, restricted to approved Daybreak-program defenders. Lists text and image input, text output, a 400,000-token context window, 272,000 max input tokens, 128,000 max output tokens, a 2026-02-16 knowledge cutoff, Responses-endpoint availability with Chat Completions not supported, and pricing of $12.50 input / $1.25 cached / $75 output per 1M tokens."
+  },
+  {
+    "id": "openai-news-rss",
+    "url": "https://openai.com/news/rss.xml",
+    "title": "OpenAI News RSS feed",
+    "type": "official-announcement",
+    "publisherId": "openai",
+    "lastCheckedDate": "2026-08-26",
+    "notes": "OpenAI's news RSS feed. Used to date the GPT-5.6 Cyber introduction: the item 'Expanding Daybreak as the Cyber Defense Window Narrows', whose description introduces GPT-5.6-Cyber, carries pubDate Mon, 10 Aug 2026."
+  },
+  {
+    "id": "anthropic-sonnet-5-docs",
+    "url": "https://platform.claude.com/docs/en/models/sonnet-5/overview",
+    "title": "Claude Sonnet 5",
+    "type": "official-docs",
+    "publisherId": "anthropic",
+    "lastCheckedDate": "2026-08-26"
+  },
+  {
+    "id": "anthropic-sonnet-5-announcement",
+    "url": "https://www.anthropic.com/news/claude-sonnet-5",
+    "title": "Introducing Claude Sonnet 5",
+    "type": "official-announcement",
+    "publisherId": "anthropic",
+    "publishedDate": "2026-06-30",
+    "lastCheckedDate": "2026-08-26"
+  },
+  {
+    "id": "google-gemini-3-5-flash-docs",
+    "url": "https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash",
+    "title": "Gemini 3.5 Flash",
+    "type": "official-docs",
+    "publisherId": "google",
+    "lastCheckedDate": "2026-08-26"
+  },
+  {
+    "id": "google-gemini-3-5-flash-platform-docs",
+    "url": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-5-flash",
+    "title": "Gemini 3.5 Flash on Gemini Enterprise Agent Platform",
+    "type": "official-docs",
+    "publisherId": "google-cloud",
+    "lastCheckedDate": "2026-08-26",
+    "notes": "Google Cloud platform documentation; used for token limits, modalities, launch stage, release date, and the model description it publishes."
+  },
+  {
+    "id": "google-gemini-3-6-flash-docs",
+    "url": "https://ai.google.dev/gemini-api/docs/models/gemini-3.6-flash",
+    "title": "Gemini 3.6 Flash",
+    "type": "official-docs",
+    "publisherId": "google",
+    "lastCheckedDate": "2026-08-26"
+  },
+  {
+    "id": "google-gemini-3-6-flash-platform-docs",
+    "url": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-6-flash",
+    "title": "Gemini 3.6 Flash on Gemini Enterprise Agent Platform",
+    "type": "official-docs",
+    "publisherId": "google-cloud",
+    "lastCheckedDate": "2026-08-26",
+    "notes": "Google Cloud platform documentation; used for token limits, modalities, launch stage, release date, and the model description it publishes."
+  },
+  {
+    "id": "google-gemini-3-7-flash-docs",
+    "url": "https://ai.google.dev/gemini-api/docs/models/gemini-3.7-flash",
+    "title": "Gemini 3.7 Flash",
+    "type": "official-docs",
+    "publisherId": "google",
+    "lastCheckedDate": "2026-08-26"
+  },
+  {
+    "id": "google-gemini-3-7-flash-platform-docs",
+    "url": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-7-flash",
+    "title": "Gemini 3.7 Flash on Gemini Enterprise Agent Platform",
+    "type": "official-docs",
+    "publisherId": "google-cloud",
+    "lastCheckedDate": "2026-08-26",
+    "notes": "Google Cloud platform documentation; used for token limits, modalities, launch stage, release date, and the model description it publishes."
+  },
+  {
+    "id": "google-gemini-models-reference",
+    "url": "https://ai.google.dev/gemini-api/docs/models",
+    "title": "Gemini API models",
+    "type": "official-docs",
+    "publisherId": "google",
+    "lastCheckedDate": "2026-08-26",
+    "notes": "The Gemini API model reference listing the models exposed through the API; used to confirm which Gemini 3 tiers are stable versus preview."
+  },
+  {
+    "id": "meta-muse-spark-announcement",
+    "url": "https://ai.meta.com/blog/introducing-muse-spark-msl/",
+    "title": "Introducing Muse Spark: Scaling Towards Personal Superintelligence",
+    "type": "official-announcement",
+    "publisherId": "meta",
+    "publishedDate": "2026-04-08",
+    "lastCheckedDate": "2026-08-26"
+  },
+  {
+    "id": "meta-muse-spark-1-1-announcement",
+    "url": "https://ai.meta.com/blog/introducing-muse-spark-meta-model-api/",
+    "title": "Introducing Muse Spark 1.1",
+    "type": "official-announcement",
+    "publisherId": "meta",
+    "publishedDate": "2026-07-09",
+    "lastCheckedDate": "2026-08-26"
+  },
+  {
+    "id": "meta-muse-image-video-announcement",
+    "url": "https://ai.meta.com/blog/introducing-muse-image-muse-video-msl/",
+    "title": "Introducing Muse Image and Muse Video",
+    "type": "official-announcement",
+    "publisherId": "meta",
+    "publishedDate": "2026-07-07",
+    "lastCheckedDate": "2026-08-26"
   }
 ]

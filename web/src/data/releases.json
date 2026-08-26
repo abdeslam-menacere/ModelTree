@@ -26,7 +26,7 @@
     "summary": "A non-reasoning API model for instruction following, tool calling, and broad-domain work.",
     "intendedUse": "Complex API tasks that benefit from the most capable model in the GPT-4.1 family.",
     "sourceIds": ["openai-gpt-4-1-announcement", "openai-gpt-4-1-docs"],
-    "verifiedAt": "2026-08-14"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "openai-gpt-4-1-mini-2025-04-14",
@@ -55,7 +55,7 @@
     "summary": "A smaller, faster GPT-4.1 variant for instruction following and tool calling.",
     "intendedUse": "API tasks that prioritize lower latency while retaining instruction following and tool calling.",
     "sourceIds": ["openai-gpt-4-1-announcement", "openai-gpt-4-1-mini-docs"],
-    "verifiedAt": "2026-08-14"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "openai-gpt-4-1-nano-2025-04-14",
@@ -114,7 +114,7 @@
     "summary": "The flagship tier of the GPT-5.6 family and OpenAI's most capable model for complex professional, coding, and agentic work. Its API documentation lists a 1,050,000-token context window and a 2026-02-16 knowledge cutoff, and the gpt-5.6 alias routes to Sol.",
     "intendedUse": "Complex professional, coding, and agentic tasks that call for OpenAI's highest-capability model.",
     "sourceIds": ["openai-gpt-5-6-launch", "openai-gpt-5-6-sol-docs", "openai-gpt-5-6-sol-preview"],
-    "verifiedAt": "2026-08-18"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "openai-gpt-5-6-terra",
@@ -144,7 +144,7 @@
     "summary": "The balanced cost-and-performance tier of the GPT-5.6 family, which OpenAI positions as competitive with GPT-5.5 at a lower cost. Its API documentation lists a 1,050,000-token context window and a 2026-02-16 knowledge cutoff, and says it roughly corresponds to the mini tier of earlier GPT-5 families.",
     "intendedUse": "Everyday professional and coding workloads that balance capability against cost.",
     "sourceIds": ["openai-gpt-5-6-launch", "openai-gpt-5-6-terra-docs", "openai-gpt-5-6-price-update"],
-    "verifiedAt": "2026-08-18"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "openai-gpt-5-6-luna",
@@ -174,7 +174,7 @@
     "summary": "The most affordable, highest-throughput tier of the GPT-5.6 family. Its API documentation lists a 1,050,000-token context window and a 2026-02-16 knowledge cutoff, and says it roughly corresponds to the nano tier of earlier GPT-5 families.",
     "intendedUse": "Cost-sensitive, high-volume workloads that still need GPT-5.6-generation capability.",
     "sourceIds": ["openai-gpt-5-6-launch", "openai-gpt-5-6-luna-docs", "openai-gpt-5-6-price-update"],
-    "verifiedAt": "2026-08-18"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "openai-gpt-5-5",
@@ -203,7 +203,7 @@
     "summary": "The GPT-5 generation before GPT-5.6, introduced in the API on 2026-04-23 for complex coding, research, and data-analysis work. Its API documentation lists a 1,050,000-token context window, a 2026-04-23 default snapshot, and a 2025-12-01 knowledge cutoff.",
     "intendedUse": "Complex coding, research, and professional workflows on the generation directly preceding GPT-5.6.",
     "sourceIds": ["openai-gpt-5-5-announcement", "openai-gpt-5-5-docs"],
-    "verifiedAt": "2026-08-18"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "openai-gpt-5-4",
@@ -232,7 +232,7 @@
     "summary": "An earlier GPT-5 generation, introduced on 2026-03-05 as OpenAI's frontier model for professional work, with state-of-the-art coding, computer use, and a roughly one-million-token context. Its API documentation lists a 1,050,000-token context window, a 2026-03-05 default snapshot, and a 2025-08-31 knowledge cutoff.",
     "intendedUse": "Professional coding and agentic work on the generation two steps before GPT-5.6.",
     "sourceIds": ["openai-gpt-5-4-announcement", "openai-gpt-5-4-docs"],
-    "verifiedAt": "2026-08-18"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "openai-gpt-5",
@@ -291,7 +291,7 @@
     "summary": "Anthropic's most capable widely released model, with adaptive thinking always on.",
     "intendedUse": "Long-running agent work that needs the highest available Claude capability.",
     "sourceIds": ["anthropic-models-overview", "anthropic-fable-5-mythos-5-docs"],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "anthropic-claude-mythos-5",
@@ -350,7 +350,7 @@
     "summary": "A hosted Claude model for complex agent-driven coding and enterprise work.",
     "intendedUse": "Complex, multi-step coding and enterprise workloads.",
     "sourceIds": ["anthropic-models-overview", "anthropic-opus-5-announcement"],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "anthropic-claude-haiku-4-5",
@@ -410,7 +410,7 @@
     "summary": "Refines the Gemini 3 Pro series with better thinking, improved token efficiency, and more grounded, factually consistent output.",
     "intendedUse": "Software engineering and multi-step automated workflows that need precise tool use.",
     "sourceIds": ["google-gemini-3-1-pro-preview-docs", "google-gemini-deprecations", "google-gemini-pro-page"],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "google-gemini-3-1-flash-lite",
@@ -440,7 +440,7 @@
     "summary": "A fast, lightweight model that accepts text, images, audio, and video, built for high-frequency, simple tasks.",
     "intendedUse": "High-volume automated workflows and simple data extraction where response speed is the main constraint.",
     "sourceIds": ["google-gemini-3-1-flash-lite-docs", "google-gemini-3-1-flash-lite-platform-docs", "google-gemini-deprecations"],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "google-gemini-3-5-flash-lite",
@@ -470,7 +470,7 @@
     "summary": "A fast, lightweight model that accepts text, images, audio, and video, built for high-throughput work and document parsing.",
     "intendedUse": "High-volume automated workflows, simple data extraction, and document understanding.",
     "sourceIds": ["google-gemini-3-5-flash-lite-docs", "google-gemini-3-5-flash-lite-platform-docs", "google-gemini-deprecations"],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "google-gemini-2-5-pro",
@@ -500,7 +500,7 @@
     "summary": "Google's most advanced Gemini 2.5 reasoning model, able to work across text, audio, images, video, and entire code repositories.",
     "intendedUse": "Complex reasoning over large datasets, codebases, and documents.",
     "sourceIds": ["google-gemini-2-5-pro-platform-docs", "google-gemini-deprecations", "google-gemini-2-5-report"],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "google-gemini-2-5-flash",
@@ -530,7 +530,7 @@
     "summary": "The balanced tier of Gemini 2.5, able to reason step by step before answering.",
     "intendedUse": "Large-scale, low-latency, high-volume tasks that still require thinking.",
     "sourceIds": ["google-gemini-2-5-flash-platform-docs", "google-gemini-deprecations", "google-gemini-2-5-report"],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-26"
   },
   {
     "id": "meta-llama-4-scout",
@@ -685,5 +685,264 @@
     "intendedUse": "Assistant-style multilingual chat.",
     "sourceIds": ["meta-llama-3-3-model-card", "meta-llama-3-3-license"],
     "verifiedAt": "2026-08-15"
+  },
+  {
+    "id": "openai-gpt-5-6-cyber",
+    "slug": "gpt-5-6-cyber",
+    "canonicalName": "GPT-5.6 Cyber",
+    "displayName": "GPT-5.6 Cyber",
+    "organizationId": "openai",
+    "familyId": "openai-gpt-5-6",
+    "version": "5.6",
+    "variant": "Cyber",
+    "releaseDate": "2026-08-10",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": ["language-reasoning", "coding"],
+    "inputModalities": ["text", "image"],
+    "outputModalities": ["text"],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 400000,
+    "maximumOutput": 128000,
+    "apiAliases": ["gpt-5.6-cyber"],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "A purpose-trained cybersecurity model in the GPT-5.6 family, offered as the gpt-5.6-cyber alias for approved defenders conducting authorized vulnerability research, exploit validation, and security testing. Access requires separate approval through OpenAI's Daybreak program and is served via the Daybreak Red channel. Its API documentation lists text and image input, text output, a 400,000-token context window, 128,000 max output tokens, and a 2026-02-16 knowledge cutoff, and it is offered on the Responses endpoint (Chat Completions is not supported). Its release date is taken from the 2026-08-10 announcement because the model documentation page carries no date.",
+    "intendedUse": "Authorized, governed cybersecurity work - vulnerability research, exploit validation, and security testing - by defenders approved for OpenAI's Daybreak program.",
+    "sourceIds": ["openai-gpt-5-6-cyber-docs", "openai-news-rss"],
+    "verifiedAt": "2026-08-26"
+  },
+  {
+    "id": "anthropic-claude-sonnet-5",
+    "slug": "claude-sonnet-5",
+    "canonicalName": "Claude Sonnet 5",
+    "displayName": "Claude Sonnet 5",
+    "organizationId": "anthropic",
+    "familyId": "anthropic-claude-5",
+    "version": "5",
+    "variant": "Sonnet",
+    "releaseDate": "2026-06-30",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": true,
+    "featuredRationale": "The current Sonnet-tier model in the Claude 5 lineup, with a dated general-availability launch and full specifications in Anthropic's model documentation.",
+    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
+    "inputModalities": ["text", "image"],
+    "outputModalities": ["text"],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 1000000,
+    "maximumOutput": 128000,
+    "apiAliases": ["claude-sonnet-5"],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "A hosted Claude model that Anthropic positions as the best combination of speed and intelligence, and describes as its most agentic Sonnet model to date.",
+    "intendedUse": "Agentic work such as planning, tool use, coding, and knowledge work where speed and cost matter alongside capability.",
+    "sourceIds": ["anthropic-models-overview", "anthropic-sonnet-5-docs", "anthropic-sonnet-5-announcement"],
+    "verifiedAt": "2026-08-26"
+  },
+  {
+    "id": "google-gemini-3-5-flash",
+    "slug": "gemini-3-5-flash",
+    "canonicalName": "Gemini 3.5 Flash",
+    "displayName": "Gemini 3.5 Flash",
+    "organizationId": "google-deepmind",
+    "familyId": "google-gemini-3",
+    "version": "3.5",
+    "variant": "Flash",
+    "releaseDate": "2026-05-19",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": true,
+    "featuredRationale": "A generally available Flash tier of the Gemini 3 generation, with a dated release, an announced retirement window, and published token limits.",
+    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
+    "inputModalities": ["text", "image", "audio", "video"],
+    "outputModalities": ["text"],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 1048576,
+    "maximumOutput": 65536,
+    "apiAliases": ["gemini-3.5-flash"],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "A Gemini 3 Flash model offering sustained frontier-level intelligence at higher speed and lower cost, with near-Pro coding proficiency and parallel agentic execution.",
+    "intendedUse": "Sub-agent deployment, multi-step workflows, and long-horizon agentic and coding tasks at scale.",
+    "sourceIds": ["google-gemini-3-5-flash-docs", "google-gemini-3-5-flash-platform-docs", "google-gemini-deprecations"],
+    "verifiedAt": "2026-08-26"
+  },
+  {
+    "id": "google-gemini-3-6-flash",
+    "slug": "gemini-3-6-flash",
+    "canonicalName": "Gemini 3.6 Flash",
+    "displayName": "Gemini 3.6 Flash",
+    "organizationId": "google-deepmind",
+    "familyId": "google-gemini-3",
+    "version": "3.6",
+    "variant": "Flash",
+    "releaseDate": "2026-07-21",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": true,
+    "featuredRationale": "A generally available Flash tier of the Gemini 3 generation, with a dated release and published token limits.",
+    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
+    "inputModalities": ["text", "image", "audio", "video"],
+    "outputModalities": ["text"],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 1048576,
+    "maximumOutput": 65536,
+    "apiAliases": ["gemini-3.6-flash"],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "A Gemini 3 Flash model optimized for multi-step orchestration, full-stack code refactoring, and general reasoning, with improved token efficiency over Gemini 3.5 Flash.",
+    "intendedUse": "Multi-step orchestration, code refactoring, and agentic execution across coding and multimodal tasks.",
+    "sourceIds": ["google-gemini-3-6-flash-docs", "google-gemini-3-6-flash-platform-docs", "google-gemini-deprecations", "google-gemini-models-reference"],
+    "verifiedAt": "2026-08-26"
+  },
+  {
+    "id": "google-gemini-3-7-flash",
+    "slug": "gemini-3-7-flash",
+    "canonicalName": "Gemini 3.7 Flash",
+    "displayName": "Gemini 3.7 Flash",
+    "organizationId": "google-deepmind",
+    "familyId": "google-gemini-3",
+    "version": "3.7",
+    "variant": "Flash",
+    "releaseDate": "2026-08-13",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": true,
+    "featuredRationale": "The newest generally available Flash tier of the Gemini 3 generation, with a dated release and published token limits.",
+    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
+    "inputModalities": ["text", "image", "audio", "video"],
+    "outputModalities": ["text"],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 1048576,
+    "maximumOutput": 65536,
+    "apiAliases": ["gemini-3.7-flash"],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "The high-efficiency, cost-effective Flash model of the Gemini 3 family, delivering Pro-level agentic capabilities with strong code generation and terminal execution.",
+    "intendedUse": "Primary agentic workhorse for high-throughput multimodal and coding workloads.",
+    "sourceIds": ["google-gemini-3-7-flash-docs", "google-gemini-3-7-flash-platform-docs", "google-gemini-deprecations"],
+    "verifiedAt": "2026-08-26"
+  },
+  {
+    "id": "meta-muse-spark",
+    "slug": "muse-spark",
+    "canonicalName": "Muse Spark",
+    "displayName": "Muse Spark",
+    "organizationId": "meta",
+    "familyId": "meta-muse",
+    "version": "1",
+    "variant": "Spark",
+    "releaseDate": "2026-04-08",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": ["language-reasoning", "multimodal-generalist"],
+    "inputModalities": ["text", "image"],
+    "outputModalities": ["text"],
+    "accessType": "proprietary-hosted",
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": ["meta-muse-spark-1-1"],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "Muse Spark is the first model in Meta Superintelligence Labs' Muse family, described as a natively multimodal reasoning model with tool use, visual chain of thought, and multi-agent orchestration.",
+    "intendedUse": "Multimodal reasoning with tool use and multi-agent orchestration.",
+    "sourceIds": ["meta-muse-spark-announcement"],
+    "verifiedAt": "2026-08-26"
+  },
+  {
+    "id": "meta-muse-spark-1-1",
+    "slug": "muse-spark-1-1",
+    "canonicalName": "Muse Spark 1.1",
+    "displayName": "Muse Spark 1.1",
+    "organizationId": "meta",
+    "familyId": "meta-muse",
+    "version": "1.1",
+    "variant": "Spark",
+    "releaseDate": "2026-07-09",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": true,
+    "featuredRationale": "Meta Superintelligence Labs' latest Muse reasoning model, with a stated 1 million token context window and availability via the Meta Model API.",
+    "categories": ["language-reasoning", "multimodal-generalist"],
+    "inputModalities": ["text", "image"],
+    "outputModalities": ["text"],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 1000000,
+    "apiAliases": [],
+    "predecessorIds": ["meta-muse-spark"],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "Muse Spark 1.1 is Meta Superintelligence Labs' multimodal reasoning model built for agentic tasks, with a context window of 1 million tokens, offered to developers via the Meta Model API.",
+    "intendedUse": "Agentic, tool-using multimodal reasoning over long-context inputs.",
+    "sourceIds": ["meta-muse-spark-1-1-announcement"],
+    "verifiedAt": "2026-08-26"
+  },
+  {
+    "id": "meta-muse-image",
+    "slug": "muse-image",
+    "canonicalName": "Muse Image",
+    "displayName": "Muse Image",
+    "organizationId": "meta",
+    "familyId": "meta-muse",
+    "version": "1",
+    "variant": "Image",
+    "releaseDate": "2026-07-07",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": ["image"],
+    "inputModalities": ["text"],
+    "outputModalities": ["image"],
+    "accessType": "proprietary-hosted",
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": ["meta-muse-video"],
+    "derivedFromIds": [],
+    "summary": "Muse Image is Meta Superintelligence Labs' image generation model, available across the Meta AI app.",
+    "intendedUse": "Text-to-image generation.",
+    "sourceIds": ["meta-muse-image-video-announcement"],
+    "verifiedAt": "2026-08-26"
+  },
+  {
+    "id": "meta-muse-video",
+    "slug": "muse-video",
+    "canonicalName": "Muse Video",
+    "displayName": "Muse Video",
+    "organizationId": "meta",
+    "familyId": "meta-muse",
+    "version": "1",
+    "variant": "Video",
+    "releaseDate": "2026-07-07",
+    "datePrecision": "day",
+    "status": "preview",
+    "featured": false,
+    "categories": ["video"],
+    "inputModalities": ["text"],
+    "outputModalities": ["video", "audio"],
+    "accessType": "proprietary-hosted",
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": ["meta-muse-image"],
+    "derivedFromIds": [],
+    "summary": "Muse Video is a video generation model built on the same pretraining base as Muse Image, with native audio support, announced as coming soon to creators and Meta AI.",
+    "intendedUse": "Text-to-video generation with native audio.",
+    "sourceIds": ["meta-muse-image-video-announcement"],
+    "verifiedAt": "2026-08-26"
   }
 ]
