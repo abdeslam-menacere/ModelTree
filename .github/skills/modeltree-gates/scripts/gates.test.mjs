@@ -509,6 +509,39 @@ describe('gate-dataset', () => {
     }
   });
 
+  // `--data` in its **absent** state. The test below is a different cell and
+  // does not cover this one: it supplies `--data <a path that does not exist>`,
+  // which is the *unknown* state. Absent means the flag is not passed at all,
+  // and the two take different branches at `gate-dataset.mjs:549`:
+  //
+  //     const dataDir = args.data ? resolve(args.data) : join(repoRoot(), ...);
+  //
+  // Every other `run(GATE_DATASET, ...)` call site in this file passes `--data`,
+  // so before this test the fallback arm was never executed once. A `repoRoot()`
+  // with the wrong number of `..` segments -- the ordinary way that line breaks,
+  // since it counts directories by hand -- was caught by nothing.
+  //
+  // Asserting the resolved directory, and not just the exit code, is the point.
+  // A gate that fell back to the wrong place but happened to find some dataset
+  // there would still exit 0, so the code alone cannot tell the two apart. The
+  // counts assertion then proves it actually loaded what it named, rather than
+  // reporting a path it never opened.
+  //
+  // No `--today`: this reads the live dataset, so it is bound by the two-clock
+  // rule at the top of this file exactly as the first test in this block is.
+  test('with no --data at all the gate falls back to this repository, not to nothing', () => {
+    const result = run(GATE_DATASET, ['--json']);
+    assert.equal(result.code, 0, `the live dataset must pass when found by fallback:\n${result.stdout}`);
+    const report = JSON.parse(result.stdout);
+    assert.equal(
+      resolve(report.dataDir),
+      resolve(DATA),
+      'the fallback must resolve to this repository\'s own web/src/data',
+    );
+    assert.ok(report.counts.sources > 0, `the fallback directory must be the one actually read:\n${result.stdout}`);
+  });
+
+  // The **unknown** state of the same input: supplied, but naming nothing.
   test('a missing data directory exits 2 rather than passing', () => {
     const result = run(GATE_DATASET, ['--data', join(tmpdir(), 'modeltree-does-not-exist'), '--json']);
     assert.equal(result.code, 2, 'a gate that cannot run must not report success');
@@ -1713,11 +1746,25 @@ describe('gate-source-approval', () => {
   // covered axis" pattern #312 exists to stop, with the dataset anchor's own
   // absent/unknown/stale tests above standing in for it.
   //
-  // Its three states, and each is a separate test or a stated N/A:
+  // What the two tests below cover, and what they do not. The happy path is
+  // stated separately from the axis, because it is not one of the three states:
+  //
+  //   present -- at the anchor commit, the first test below. Not an axis cell;
+  //              it is the control that proves the anchor is read at all, and
+  //              without it the two cells beneath could both pass vacuously.
+  //              Trust attaches to the origin, so a new page on a catalogued
+  //              origin is admissible.
+  //
   //   absent  -- every other test in this block, which is why the dataset anchor
   //              carries them alone; the gate reports `profileCatalogues: 0`.
-  //   present -- at the anchor commit, the first test below. Trust attaches to
-  //              the origin, so a new page on a catalogued origin is admissible.
+  //   unknown -- **not covered, and not N/A.** A catalogue that is present at
+  //              the anchor but unparseable is swallowed by the `catch { continue }`
+  //              in `catalogAnchor` (`gate-source-approval.mjs:257`) and skipped
+  //              with nobody told, so a typo silently narrows the trust boundary
+  //              instead of refusing. It fails closed, which is why it is left
+  //              open here rather than closed with the rest, but it is a real
+  //              gap and is recorded as one on #312 -- not a state this input
+  //              lacks. Do not read the two tests below as covering it.
   //   stale   -- present, but not at the anchor: only in the working tree, or
   //              committed by this branch after it left published history. The
   //              second test below. This is the cell that fails open.
