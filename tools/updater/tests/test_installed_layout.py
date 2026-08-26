@@ -676,6 +676,17 @@ GUARD_NON_OFFENDERS = {
 # a weakness in is the point — if a later widening closes one of these, this test
 # goes red, and the fix is to move the entry up into ``GUARD_EVASIONS`` *and*
 # strike it from the docstring, so the code and its stated limits cannot drift.
+#
+# What a row asserts is narrow and worth stating: the guard does not flag this
+# source. It does not assert that every row is a working escape. Executing all
+# sixteen in a throwaway package showed fourteen genuinely landing outside it,
+# and two that do not: "binding chain read backwards" raises ``NameError`` as
+# written, so it documents the pre-pass's single-direction ordering rather than a
+# runnable attack, and "climb by string surgery" splits on ``'/'``, so it climbs
+# three levels on POSIX and is a no-op on a Windows path. Both are still real
+# blind spots in the matcher; neither is a live exploit on every platform, and
+# saying so here costs a sentence and keeps this table from making the same
+# oversized claim #273 was filed about.
 GUARD_KNOWN_LIMITS = {
     # The globals() channel is a dict read, and a dict read is not a finite set of
     # spellings. These are the ways the key text never appears in this module.
