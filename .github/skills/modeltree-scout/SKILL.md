@@ -60,7 +60,8 @@ For each creator, in this order:
    fact that still holds is a real finding: record it as `kind: "unchanged"`
    with fresh evidence, so `verifiedAt` can move forward honestly.
 4. **New sources** worth adding to `sources.json`, each proposed as its own
-   claim.
+   claim — but only on an origin the dataset or a profile catalogue already
+   stands behind. See **Boundaries** below.
 5. **Conflicts.** Two sources disagreeing is a finding, not a problem to resolve.
    Record `kind: "conflict"` with both sides quoted, and let it stay explicit.
 
@@ -78,8 +79,14 @@ For each creator, in this order:
    `fetchedAt`, and `status` in `sourcesConsulted` — including failures, which
    go in `incomplete` rather than being dropped.
 4. Follow links **only** where the profile's `allowed_paths` permits. A link off
-   the creator's own domain is a candidate new source, not an automatic one; if
-   you use it, propose it as a `sources` claim so a reviewer votes on it.
+   the creator's own domain is not a source you can use: `gate-source-approval.mjs`
+   refuses a citation to any origin the committed dataset and the profile
+   catalogues do not already stand behind, and no panel vote overrides it. A new
+   *page* on an origin already trusted is fine and is the ordinary case — propose
+   it as a `sources` claim and cite it. A new *host* is work for a human: record
+   it in `incomplete` as a proposed follow-up and move on. Do not build the claim
+   and let the gate refuse it; that publishes nothing and hides the finding in a
+   failure list.
 5. Extract **atomic** claims. One claim moves one field. "GPT-5.7 was released on
    20 August with a 400k context window" is two claims, because a reviewer may
    accept the date and reject the window, and a bundled claim forces one verdict
@@ -111,6 +118,12 @@ One creator failing does not stop the others. Record the failure and continue.
 - **Unknown stays unknown.** If a source does not state a field, leave it unset.
   A plausible guess is the failure mode this whole system exists to prevent, and
   it is far more dangerous than an empty field because it looks like knowledge.
+- **A source's origin must already be trusted.** You may cite a new page, never a
+  new host. The trusted set is every origin in `web/src/data/sources.json` as
+  committed plus every `source_catalog` url in `tools/updater/profiles/`, and
+  `gate-source-approval.mjs` refuses anything else — including a source you
+  propose and cite in the same run, which is the run vouching for itself. A
+  genuinely new publisher is a follow-up for a human, not a claim.
 - **Never write to `web/src/data`.** You produce a bundle. Applying it is
   `modeltree-publish`'s job, after the gates.
 

@@ -59,11 +59,17 @@ Deterministic, and they run **after** review so no majority can outvote them:
 
 ```bash
 node .github/skills/modeltree-gates/scripts/gate-evidence.mjs --claims <bundle> --json
+node .github/skills/modeltree-gates/scripts/gate-source-approval.mjs --claims <bundle> --json
 # apply accepted claims to web/src/data
 node .github/skills/modeltree-gates/scripts/gate-dataset.mjs --json
 cd web && npm run validate
 node .github/skills/modeltree-gates/scripts/gate-scope.mjs --json
 ```
+
+Both bundle gates run **before** anything is applied. `gate-source-approval.mjs`
+anchors on the committed dataset, so running it after the patch would be asking
+the run's own writes whether the run's own sources are trustworthy. Keep its JSON
+— the pull request body has to carry it.
 
 Exit 2 is a failure, never a pass. A gate that could not run has not run.
 
@@ -94,6 +100,12 @@ files its summary and closes it immediately.
   gate has done its job.
 - **Never touch `tools/updater/`.** It is #59's proposal-only subsystem, read-only
   here. Its profiles are input; its code is out of scope.
+- **A run never approves its own source.** A claim may only rest on a source the
+  dataset already carries, or on a new page of an origin a reviewed profile
+  catalogue or the committed dataset already stands behind.
+  `gate-source-approval.mjs` enforces it, and no panel majority overrides it.
+  A genuinely new publisher is work for a human: propose it as an ordinary
+  change, not as part of a refresh.
 - **Never edit a claim to make it pass a gate.**
 - **Unknown stays unknown.** A guessed field is worse than an empty one because
   it looks like knowledge.
