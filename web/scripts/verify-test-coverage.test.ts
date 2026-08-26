@@ -1,3 +1,5 @@
+import { join, resolve } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -22,8 +24,40 @@ function healthyReport() {
 }
 
 describe('normaliseFile', () => {
-  it('makes paths relative, forward-slashed, and lower-cased so both sides compare equal', () => {
-    expect(normaliseFile('C:\\repo\\web\\src\\A.test.ts', 'C:\\repo\\web')).toBe('src/a.test.ts');
+  // Build the absolute paths with the platform's own resolver so the case
+  // asserts the property -- repo-relative, forward-slashed, lower-cased -- on
+  // whatever platform CI runs. The earlier version hard-coded a Windows drive
+  // path (`C:\repo\web`); on Linux that string is not absolute, so path.relative
+  // walked up out of the root and produced `../c:/repo/web/...`. Deriving the
+  // inputs from resolve()/join() means the base is always truly absolute and the
+  // separators are always the platform's own, which is exactly what the
+  // production code sees from the real filesystem.
+  it('makes a path repo-relative, forward-slashed, and lower-cased', () => {
+    const root = resolve('repo', 'web');
+    const file = join(root, 'src', 'A.test.ts');
+
+    const normalised = normaliseFile(file, root);
+
+    expect(normalised).toBe('src/a.test.ts');
+    // On Windows join() produced backslashes; the output must never carry one,
+    // or a report path and a glob path would fail to match.
+    expect(normalised).not.toContain('\\');
+  });
+
+  it('collapses a deeper native path to a lower-cased forward-slashed key', () => {
+    const root = resolve('repo', 'web');
+    const file = join(root, 'components', 'Deep', 'Nested.test.tsx');
+
+    expect(normaliseFile(file, root)).toBe('components/deep/nested.test.tsx');
+  });
+
+  // POSIX-style absolute inputs are exercised directly, so the intended output
+  // shape is pinned literally and not only via the platform-built paths above.
+  // This is safe on both platforms: path.resolve treats a leading-slash path as
+  // absolute on Linux and as rooted on the current drive on Windows, and both
+  // the base and the file get the same treatment, so the relative result is the
+  // same string either way.
+  it('normalises a POSIX-style absolute path the same way', () => {
     expect(normaliseFile('/repo/web/src/a.test.ts', '/repo/web')).toBe('src/a.test.ts');
   });
 });
