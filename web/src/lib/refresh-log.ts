@@ -12,7 +12,7 @@ import type {
 } from '../data/refresh-log-schema';
 
 /**
- * Reading helpers for the data-check log.
+ * Reading helpers for the data refresh log.
  *
  * Everything here is derived from the committed log document. Nothing counts a
  * run as having done more than it recorded: where the log is silent the answer
@@ -195,7 +195,7 @@ export interface LogTotals {
 export function logTotals(log: RefreshLog): LogTotals {
   const ordered = runsNewestFirst(log);
   const latest = ordered[0];
-  if (!latest) throw new Error('The data-check log needs at least one run');
+  if (!latest) throw new Error('The data refresh log needs at least one run');
 
   return {
     runs: log.length,

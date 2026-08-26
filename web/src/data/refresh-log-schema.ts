@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { isoDate } from './schema';
 
 /**
- * The contract for the data-check log.
+ * The contract for the data refresh log.
  *
  * A refresh run's working state lives under `.modeltree-refresh/runs/`, which is
  * git-ignored and deleted with the machine that produced it. The durable record

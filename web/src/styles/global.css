@@ -1775,13 +1775,126 @@ main {
 }
 
 .log-runs {
-  margin: 44px 0 0;
+  margin: 26px 0 0;
   padding: 0;
   list-style: none;
 }
 
-.log-runs > li + li {
+.log-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 34px;
+}
+
+.log-filters a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 999px;
+  color: var(--cp-text-muted);
+  font-family: "Archivo Variable", "Segoe UI", sans-serif;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.log-filters a:hover {
+  border-color: var(--cp-accent);
+  color: var(--cp-text);
+}
+
+.log-filters a[aria-current="page"] {
+  border-color: var(--cp-accent);
+  background: var(--cp-panel-strong);
+  color: var(--cp-text);
+  font-weight: 720;
+}
+
+.log-filter-count {
+  color: var(--cp-text-soft);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.log-list-status {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--cp-border);
+}
+
+.log-list-status p {
+  margin: 0;
+  color: var(--cp-text-muted);
+  font-size: 14px;
+}
+
+.log-filter-active {
+  margin-left: 8px;
+  color: var(--cp-text-soft);
+  font-style: italic;
+}
+
+.log-filter-clear {
+  flex: none;
+  font-size: 13px;
+}
+
+.log-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 34px;
+}
+
+.log-pagination ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.log-pagination a,
+.log-page-current {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  padding: 7px 12px;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 10px;
+  font-family: "Archivo Variable", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+
+.log-page-current {
+  border-color: var(--cp-accent);
+  background: var(--cp-panel-strong);
+  font-weight: 720;
+}
+
+/* The disabled end of the range keeps its slot so the row does not shift. */
+span.log-page-step {
+  padding: 7px 12px;
+  color: var(--cp-text-soft);
+  font-family: "Archivo Variable", "Segoe UI", sans-serif;
+  font-size: 13px;
+  opacity: 0.45;
+}
+
+.log-runs > li + li {
+  margin-top: 18px;
 }
 
 .log-run {
@@ -1792,18 +1905,76 @@ main {
   box-shadow: var(--cp-shadow);
 }
 
-.log-run-header {
-  display: flex;
+/*
+ * A flat summary: its content model is phrasing content plus one heading, so the
+ * grid does the grouping that nested divs would otherwise have to.
+ */
+.log-run > summary.log-run-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "id    verdict caret"
+    "title verdict caret"
+    "scope verdict caret";
   align-items: start;
-  justify-content: space-between;
-  gap: 28px;
+  column-gap: 24px;
+  padding-bottom: 0;
+  border-bottom: 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.log-run-header > .log-run-id {
+  grid-area: id;
+}
+
+.log-run-header > h2 {
+  grid-area: title;
+}
+
+.log-run-header > .log-run-scope {
+  grid-area: scope;
+}
+
+.log-run-header > .log-run-verdict {
+  grid-area: verdict;
+}
+
+.log-run > summary.log-run-header::-webkit-details-marker {
+  display: none;
+}
+
+.log-run[open] > summary.log-run-header {
   padding-bottom: 18px;
   border-bottom: 1px solid var(--cp-border-strong);
 }
 
+/* The open/closed caret. Decorative: the summary already announces its state. */
+.log-run > summary.log-run-header::after {
+  content: "";
+  grid-area: caret;
+  align-self: center;
+  width: 11px;
+  height: 11px;
+  border-right: 2px solid var(--cp-text-muted);
+  border-bottom: 2px solid var(--cp-text-muted);
+  transform: rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+.log-run[open] > summary.log-run-header::after {
+  transform: rotate(-135deg);
+}
+
 .log-run-header h2 {
   margin: 8px 0 0;
-  font-size: clamp(28px, 3.4vw, 38px);
+  font-size: clamp(22px, 2.6vw, 30px);
+}
+
+.log-run-ledger {
+  display: block;
+  color: var(--cp-text-soft);
+  font-size: 12px;
 }
 
 .log-run-id {
@@ -1816,6 +1987,7 @@ main {
 }
 
 .log-run-scope {
+  display: block;
   margin: 10px 0 0;
   color: var(--cp-text-muted);
   font-size: 13px;
@@ -2159,6 +2331,30 @@ main {
   font-size: 12px;
 }
 
+.log-record-links li > .log-record-name {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--cp-text);
+  font-family: "Archivo Variable", "Segoe UI", sans-serif;
+  font-size: 15px;
+  font-weight: 640;
+}
+
+.log-record-name a {
+  text-underline-offset: 3px;
+}
+
+.log-link-target {
+  display: inline-block;
+  margin-left: 8px;
+  color: var(--cp-text-soft);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .log-references {
   margin-top: 30px;
   padding-top: 22px;
@@ -2323,10 +2519,14 @@ main {
     padding: 22px 18px;
   }
 
-  .log-run-header {
-    align-items: start;
-    flex-direction: column;
-    gap: 14px;
+  .log-run > summary.log-run-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "id      caret"
+      "title   caret"
+      "scope   caret"
+      "verdict caret";
+    row-gap: 14px;
   }
 
   .log-run-verdict {

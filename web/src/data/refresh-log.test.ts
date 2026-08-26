@@ -47,7 +47,7 @@ function validRun(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe('the committed data-check log', () => {
+describe('the committed data refresh log', () => {
   it('validates against the contract', () => {
     expect(() => validateRefreshLog(refreshLog)).not.toThrow();
     expect(refreshLog.length).toBeGreaterThan(0);
