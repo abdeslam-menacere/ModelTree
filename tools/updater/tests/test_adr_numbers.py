@@ -33,6 +33,26 @@ which passes against the defect as readily as against the fix.
 not on the problems list the script prints and exits on, and truncating the
 problems loop used to leave this whole file green.
 
+Every assertion about a diagnosis is made against a `Problem` record rather than
+against rendered text, and the `duplicate_message` / `paths_named` pair that used
+to cut a paragraph out of `render()` before asserting is gone with the last call
+site. Slicing was the right repair when the problems list held preformatted
+lines -- `render()` concatenates an inventory of every examined ADR with those
+lines, so `"<filename>" in report.render()` is answered by the inventory whatever
+the diagnosis says, and twice in this file an assertion whose whole stated
+purpose was to pin the diagnosis was in fact passing off the inventory. It was a
+repair that had to be remembered, though, and the two tests that needed it were
+found by reading rather than by going red. `problem.paths` needs remembering by
+nobody: the inventory is not reachable from it.
+`test_the_duplicate_record_holds_the_diagnosis_and_not_the_inventory` is the pin
+on that, and it is deliberately built so that the rendered report and the record
+disagree -- an uncontested ADR that `render()` names and the diagnosis does not.
+The two `render()` pins that remain,
+`test_a_duplicate_record_renders_the_block_the_workflow_prints` and
+`test_a_single_file_refusal_renders_as_one_line`, spell the output in full,
+because the text is what the workflow shows a reader and restructuring how a
+problem is *held* must not move it.
+
 The last two sections are #303, and both are about output that misstates what
 happened rather than about the duplicate rule. A filename holding a newline used
 to claim a line of the report and put a forged `OK:` above the genuine `FAIL:`;
@@ -55,7 +75,6 @@ from __future__ import annotations
 
 import importlib.util
 import io
-import re
 import sys
 from pathlib import Path
 
@@ -116,9 +135,6 @@ def numbers(report) -> set[str]:
     return set(report.duplicates)
 
 
-DUPLICATE_HEADING_RE = re.compile(r"^\s*DUPLICATE: ADR (\S+) is claimed by")
-
-
 def numbers_reported(report) -> set[str]:
     """The contested numbers read back out of `report.problems`.
 
@@ -131,50 +147,48 @@ def numbers_reported(report) -> set[str]:
     `numbers()` assertion green and turns the assertions using this red.
     """
     return {
-        match.group(1)
+        problem.number
         for problem in report.problems
-        for line in problem.splitlines()
-        if (match := DUPLICATE_HEADING_RE.match(line))
+        if problem.kind == checker.DUPLICATE
     }
 
 
-# The advice line closing a DUPLICATE paragraph. Indented like the paths it
-# follows, so `paths_named` has to exclude it explicitly rather than by shape.
+# The advice sentence a DUPLICATE record carries as its message.
 DUPLICATE_ADVICE = "An ADR number must identify exactly one decision record."
 
 
-def duplicate_message(text: str, number: str) -> str:
-    """Cut the DUPLICATE paragraph for one number out of a rendered report.
+def problems_of(report, kind: str) -> list:
+    """Every problem of one kind, in the order the checker recorded them."""
+    return [problem for problem in report.problems if problem.kind == kind]
 
-    Asserting a filename against the *whole* of `render()` proves almost
-    nothing, and this file used to do exactly that. `render()` prints an
-    inventory of every examined ADR by path above the problems block, so both
-    names are in the rendered text however few of them the DUPLICATE message
-    itself lists -- the assertion passes on a checker that says "claimed by 2
-    files" and then names one. Slicing to the paragraph first is what makes the
-    assertion mean what its name says.
+
+def duplicate(report, number: str):
+    """The one DUPLICATE record for `number`.
+
+    This replaces the `duplicate_message` / `paths_named` pair this file used to
+    carry. Those existed because `render()` concatenates an inventory of every
+    examined ADR with the problems block into one string, so
+    `"<filename>" in report.render()` is satisfied by the inventory whatever the
+    diagnosis says -- and the paragraph had to be cut out of the rendered text
+    before a filename could be asserted against it meaningfully. Twice in this
+    file that slicing was missing and the assertion passed off the inventory.
+
+    `report.problems` holds records now, so there is no inventory to slice away:
+    `problem.paths` *is* the set of files the diagnosis names, and the examined
+    list is not reachable from it. Asserting exactly one record per number is
+    kept from the old helper -- two DUPLICATE paragraphs for one number would
+    otherwise let a test pick whichever one agreed with it.
     """
-    lines = text.splitlines()
-    heading = f"  DUPLICATE: ADR {number} is claimed by"
-    starts = [index for index, line in enumerate(lines) if line.startswith(heading)]
-    assert len(starts) == 1, (
-        f"expected exactly one DUPLICATE paragraph for ADR {number}, "
-        f"found {len(starts)}:\n{text}"
-    )
-    start = starts[0]
-    end = start + 1
-    while end < len(lines) and lines[end].startswith("      "):
-        end += 1
-    return "\n".join(lines[start:end])
-
-
-def paths_named(message: str) -> list[str]:
-    """The paths a DUPLICATE paragraph actually names, advice line excluded."""
-    return [
-        line.strip()
-        for line in message.splitlines()[1:]
-        if not line.strip().startswith(DUPLICATE_ADVICE[:13])
+    found = [
+        problem
+        for problem in report.problems
+        if problem.kind == checker.DUPLICATE and problem.number == number
     ]
+    assert len(found) == 1, (
+        f"expected exactly one DUPLICATE record for ADR {number}, "
+        f"found {len(found)}:\n{report.render()}"
+    )
+    return found[0]
 
 
 # --- the guard itself -------------------------------------------------------
@@ -222,57 +236,109 @@ def test_the_145_and_146_collision_fails(adr_dir):
 
 def test_the_failure_names_both_paths_and_the_number(adr_dir):
     """Naming one path, or saying only "duplicate found", leaves the reader to
-    go and find the other file. Both names and the number, in the message --
-    and asserted against the message, not against the whole rendered report.
+    go and find the other file. Both names and the number, on the record.
 
     The distinction is the entire value of this test. `render()` lists every
     examined ADR by path above the problems block, so an assertion over the
-    rendered text finds both filenames whatever the DUPLICATE line says. Pinned
-    by mutation: `for path in paths[:1]` in check_adr_numbers.py produces a
-    report claiming "2 files" and naming one, which the rendered-text form of
-    this assertion passed and this form fails.
+    rendered text finds both filenames whatever the DUPLICATE line says. That
+    is not a hazard this test has to steer around any more: `problem.paths` is
+    the diagnosis and holds nothing else, so there is no inventory in reach to
+    be satisfied by. Pinned by mutation: `paths[:1]` on the record built in
+    check_adr_numbers.py turns this red.
 
     The expected paths are literals rather than anything derived from the
     checker, so a mutation cannot move both sides of the comparison at once.
     """
     report = checker.check(adr_dir(MERGED_0003, COMPETING_0003), REPO_ROOT)
-    message = duplicate_message(report.render(), "0003")
+    problem = duplicate(report, "0003")
 
-    assert paths_named(message) == [MERGED_0003, COMPETING_0003]
-    assert "claimed by 2 files" in message
-    assert DUPLICATE_ADVICE in message
+    assert problem.paths == (MERGED_0003, COMPETING_0003)
+    assert problem.number == "0003"
+    assert problem.message == (
+        f"{DUPLICATE_ADVICE} Renumber all but one of these to the next unused "
+        "number."
+    )
+
+
+def test_the_duplicate_record_holds_the_diagnosis_and_not_the_inventory(adr_dir):
+    """The property this issue exists for, asserted rather than assumed.
+
+    An uncontested ADR is in `report.adrs` and in the rendered inventory, so
+    `"0009-uncontested.md" in report.render()` is true -- while the diagnosis
+    says nothing about it. The record has to disagree with the rendered text
+    here, because that gap is precisely what an assertion aimed at the
+    diagnosis used to be unable to see.
+    """
+    report = checker.check(
+        adr_dir(MERGED_0003, COMPETING_0003, "0009-uncontested.md"), REPO_ROOT
+    )
+    problem = duplicate(report, "0003")
+
+    assert "0009-uncontested.md" in report.render()
+    assert "0009-uncontested.md" not in problem.paths
+    assert "0009-uncontested.md" not in problem.message
+    assert set(problem.paths) == {MERGED_0003, COMPETING_0003}
+    assert {adr.path for adr in report.adrs} > set(problem.paths)
 
 
 def test_every_file_on_a_contested_number_is_named(adr_dir):
-    """Three claimants report three paths in the message, not the first two."""
+    """Three claimants report three paths on the record, not the first two."""
     report = checker.check(
         adr_dir("0007-one.md", "0007-two.md", "0007-three.md"), REPO_ROOT
     )
-    message = duplicate_message(report.render(), "0007")
+    problem = duplicate(report, "0007")
 
     assert report.duplicates["0007"] == [
         "0007-one.md",
         "0007-three.md",
         "0007-two.md",
     ]
-    assert paths_named(message) == [
+    assert problem.paths == (
         "0007-one.md",
         "0007-three.md",
         "0007-two.md",
-    ]
+    )
 
 
 def test_the_stated_count_matches_the_paths_the_message_lists(adr_dir):
     """"claimed by N files" followed by fewer than N paths is a lie the reader
-    cannot detect without opening the directory, and is precisely what the
-    rendered-text assertion this test replaces could not see."""
+    cannot detect without opening the directory.
+
+    The count is now derived from `problem.paths` when the message is rendered,
+    so the two cannot disagree by construction. That makes the interesting
+    assertion the other one: that `problem.paths` is what is actually on disk.
+    Both sides are pinned against the fixture -- the count against the literal
+    the fixture was built from, never against `len(problem.paths)`, which would
+    make this test agree with itself whatever the checker found.
+    """
     for count in (2, 3, 4):
         names = [f"0007-{index}.md" for index in range(count)]
         report = checker.check(adr_dir(*names), REPO_ROOT)
-        message = duplicate_message(report.render(), "0007")
+        problem = duplicate(report, "0007")
 
-        assert f"claimed by {count} files" in message
-        assert len(paths_named(message)) == count
+        assert sorted(problem.paths) == sorted(names)
+        assert len(problem.paths) == count
+        assert f"claimed by {count} files" in problem.render()
+
+
+def test_a_duplicate_record_renders_the_block_the_workflow_prints(adr_dir):
+    """The record is what a test asserts against; this is the pin that its
+    *text* has not moved.
+
+    `render()` is what `.github/workflows/adr-numbers.yml` puts in front of
+    whoever opens the failed job, so restructuring how a problem is held must
+    not move a byte of it. Written out in full rather than matched by pattern,
+    because a pattern is exactly what a formatting change slips through.
+    """
+    report = checker.check(adr_dir(MERGED_0003, COMPETING_0003), REPO_ROOT)
+
+    assert duplicate(report, "0003").render() == (
+        "  DUPLICATE: ADR 0003 is claimed by 2 files:\n"
+        f"      {MERGED_0003}\n"
+        f"      {COMPETING_0003}\n"
+        "      An ADR number must identify exactly one decision record. "
+        "Renumber all but one of these to the next unused number."
+    )
 
 
 def test_two_separate_collisions_are_both_reported(adr_dir):
@@ -528,15 +594,32 @@ def test_a_markdown_file_with_no_readable_number_is_refused(adr_dir, name):
     Skipping them silently is how a collision walks past a collision check.
     """
     report = checker.check(adr_dir("0001-a.md", name), REPO_ROOT)
+    refusals = problems_of(report, checker.UNNUMBERED)
 
     assert not report.ok
-    assert any("UNNUMBERED" in problem and name in problem for problem in report.problems)
+    assert [problem.paths for problem in refusals] == [(name,)]
 
 
 def test_the_refusal_says_how_to_resolve_it(adr_dir):
     report = checker.check(adr_dir("0001-a.md", "notes.md"), REPO_ROOT)
+    refusals = problems_of(report, checker.UNNUMBERED)
 
-    assert any("COMPANION_NAMES" in problem for problem in report.problems)
+    assert len(refusals) == 1
+    assert "COMPANION_NAMES" in refusals[0].message
+
+
+def test_a_single_file_refusal_renders_as_one_line(adr_dir):
+    """The counterpart to the DUPLICATE block pin. Every kind but DUPLICATE
+    concerns one file and states itself in a sentence, so its rendered form is
+    the kind, a colon and the message -- on one line, because a second line
+    here would put an unaccounted-for entry into a report whose tally two lines
+    above says nothing about it."""
+    report = checker.check(adr_dir("0001-a.md", "notes.md"), REPO_ROOT)
+    rendered = problems_of(report, checker.UNNUMBERED)[0].render()
+
+    assert len(rendered.splitlines()) == 1
+    assert rendered.startswith("  UNNUMBERED: notes.md is a Markdown file under ")
+    assert rendered.endswith("Rename it, or add its name to COMPANION_NAMES.")
 
 
 # --- classification: four digits means four ASCII digits ---------------------
@@ -597,13 +680,13 @@ def test_the_non_ascii_refusal_names_the_digits_rather_than_the_filename(
     report = checker.check(
         adr_dir("0003-real-decision.md", f"{digits}-impostor.md"), REPO_ROOT
     )
-    refusals = [
-        problem for problem in report.problems if "NON-ASCII NUMBER" in problem
-    ]
+    refusals = problems_of(report, checker.NON_ASCII_NUMBER)
 
     assert len(refusals) == 1, report.render()
-    message = refusals[0]
-    assert f"{digits}-impostor.md" in message
+    refusal = refusals[0]
+    message = refusal.message
+    assert refusal.paths == (f"{digits}-impostor.md",)
+    assert refusal.number == "0003"
     assert all(f"U+{ord(char):04X}" in message for char in digits)
     assert "ADR 0003" in message
     assert "COMPANION_NAMES" not in message
@@ -619,8 +702,8 @@ def test_an_ascii_near_miss_still_gets_the_unnumbered_refusal(adr_dir):
     report = checker.check(adr_dir("0001-a.md", "003-three-digits.md"), REPO_ROOT)
 
     assert not report.ok
-    assert any("UNNUMBERED" in problem for problem in report.problems)
-    assert not any("NON-ASCII NUMBER" in problem for problem in report.problems)
+    assert problems_of(report, checker.UNNUMBERED)
+    assert not problems_of(report, checker.NON_ASCII_NUMBER)
 
 
 # --- classification: the Markdown suffix is read case-insensitively ----------
@@ -663,7 +746,9 @@ def test_no_numbered_decision_record_is_sent_to_companion_names(adr_dir):
     non-ADR and exempt its number from checking for good."""
     report = checker.check(adr_dir("0001-a.md", "0007-uppercase-ext.MD"), REPO_ROOT)
 
-    assert not any("COMPANION_NAMES" in problem for problem in report.problems)
+    assert not any(
+        "COMPANION_NAMES" in problem.message for problem in report.problems
+    )
 
 
 def test_a_non_markdown_suffix_is_still_not_an_adr(adr_dir):
@@ -691,7 +776,7 @@ def test_an_empty_directory_is_a_failure(tmp_path):
     report = checker.check(directory, REPO_ROOT)
 
     assert not report.ok
-    assert any("EMPTY" in problem for problem in report.problems)
+    assert [problem.kind for problem in report.problems] == [checker.EMPTY]
 
 
 def test_a_directory_holding_only_companions_is_a_failure(adr_dir):
@@ -699,7 +784,7 @@ def test_a_directory_holding_only_companions_is_a_failure(adr_dir):
     report = checker.check(adr_dir("README.md"), REPO_ROOT)
 
     assert not report.ok
-    assert any("EMPTY" in problem for problem in report.problems)
+    assert [problem.kind for problem in report.problems] == [checker.EMPTY]
 
 
 # --- the command line -------------------------------------------------------
@@ -711,17 +796,23 @@ def test_the_cli_exits_zero_on_the_committed_adrs(capsys):
 
 
 def test_the_cli_exits_one_on_a_duplicate(adr_dir, capsys):
-    """The message reaching stdout is sliced the same way as in the report test.
+    """What the CLI owes the reader is that it prints the report and nothing
+    else, so that is what is asserted -- as equality, not as a substring.
 
-    The CLI prints `render()` verbatim, so asserting a filename against the
-    whole of stdout carried the identical defect: the inventory above the
-    problems block satisfied it regardless of what the DUPLICATE line named.
+    This test used to slice the DUPLICATE paragraph out of stdout and assert
+    the paths against it, because `render()` puts an inventory of every
+    examined ADR above the problems block and a bare `MERGED_0003 in out`
+    passed off that inventory whatever the diagnosis said. Splitting the claim
+    in two removes the need to slice anything: *this* pins that stdout is the
+    report verbatim, and what the report says about ADR 0003 is pinned on the
+    record by `test_the_failure_names_both_paths_and_the_number`. Neither half
+    can be satisfied by the other half's evidence.
     """
     directory = adr_dir(MERGED_0003, COMPETING_0003)
+    expected = checker.check(directory, REPO_ROOT).render()
 
     assert checker.main([str(directory)]) == 1
-    message = duplicate_message(capsys.readouterr().out, "0003")
-    assert paths_named(message) == [MERGED_0003, COMPETING_0003]
+    assert capsys.readouterr().out == f"{expected}\n"
 
 
 def test_the_cli_rejects_a_directory_that_is_not_there(tmp_path, capsys):
@@ -782,11 +873,43 @@ def test_a_line_ender_in_a_reported_path_cannot_forge_a_verdict(ender):
             checker.Adr("0001", "0001-real.md"),
             checker.Adr("0002", f"0002-x.md{ender}{ender}{FORGED_OK}{ender}"),
         ],
-        problems=["  0003 is claimed by two files"],
+        problems=[checker.Problem(kind=checker.EMPTY, message="stand-in")],
     )
     rendered = report.render()
 
     assert verdict_lines(rendered) == [GENUINE_FAIL], rendered
+
+
+@pytest.mark.parametrize("ender", LINE_ENDERS)
+def test_a_line_ender_in_a_diagnosed_path_cannot_forge_a_verdict(ender):
+    """`Problem.paths` holds `str`, exactly as `Adr.path` does.
+
+    Moving the contested paths onto a record put a second untrusted string
+    field into the report, and `render()` still joins with "\\n". Production
+    values reach it through `display()`, which has already spelled them and is
+    idempotent, so spelling them again in `Problem.render()` costs the real
+    output nothing -- and without it this refactor would have narrowed the
+    invariant the inventory already holds to, by adding a field it does not
+    cover.
+    """
+    report = checker.Report(
+        directory=Path("docs") / "adr",
+        base=REPO_ROOT,
+        adrs=[checker.Adr("0003", "0003-real.md")],
+        problems=[
+            checker.Problem(
+                kind=checker.DUPLICATE,
+                number="0003",
+                paths=(
+                    "0003-real.md",
+                    f"0003-x.md{ender}{ender}{FORGED_OK}{ender}",
+                ),
+                message="stand-in",
+            )
+        ],
+    )
+
+    assert verdict_lines(report.render()) == [GENUINE_FAIL], report.render()
 
 
 @pytest.mark.parametrize("ender", LINE_ENDERS)
@@ -825,7 +948,7 @@ def test_the_scanned_directory_cannot_forge_a_line():
         directory=Path(f"docs/adr\n{FORGED_OK}"),
         base=REPO_ROOT,
         adrs=[checker.Adr("0001", "0001-real.md")],
-        problems=["  0003 is claimed by two files"],
+        problems=[checker.Problem(kind=checker.EMPTY, message="stand-in")],
     )
 
     assert verdict_lines(report.render()) == [GENUINE_FAIL], report.render()
