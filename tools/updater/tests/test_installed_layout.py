@@ -324,6 +324,14 @@ def _climbs_from_file_root(module_source: str, *, depth: int = 0) -> list[str]:
         Path(__file__).parents[1 + 1]                           # arithmetic index
         Path(__file__).parents[-1]                              # negative index
 
+    The root has spellings of its own, on an axis independent of the climb — the
+    module's path can be named, fetched out of a mapping, read off a module
+    object, or interpolated:
+
+        Path(globals().get('__file__')).parents[2]              # fetched, not named
+        Path(getattr(sys.modules[__name__], '__file__')).parents[2]
+        Path(f'{__file__}').parents[2]
+
     We parse the module and, for every attribute/subscript chain rooted at
     ``Path(__file__)`` (optionally through ``.resolve()`` and optionally through a
     local variable that was itself bound to such a chain), we sum how many directory
@@ -348,34 +356,110 @@ def _climbs_from_file_root(module_source: str, *, depth: int = 0) -> list[str]:
     even though nothing left the package. Callers that scan a real module pass its
     depth; the default of ``0`` matches a bare source snippet at the package root.
 
-    Known limits, stated rather than papered over: this reasons about ``pathlib``
-    chains written in the module's own text. It resolves ``__file__`` reached
-    directly, through ``globals()['__file__']``, or through a
-    ``sys.modules[...].__file__`` attribute, but it does not evaluate
-    ``os.path.dirname`` nesting, string ``"../.."`` joins, ``PurePath`` used under an
-    alias it cannot see, or a climb assembled across a function-call boundary. It is
-    a stronger net than the literal grep, not a proof of the negative. The list it
-    returns is offenders, each rendered back to source for the failure message.
+    Known limits, stated rather than papered over. What this proves is narrow, and
+    worth stating as a sentence rather than as a list of spellings it happens to
+    catch: *within one module's own text*, a ``pathlib`` chain whose root
+    expression mentions this module's path — the ``__file__`` global, a
+    ``'__file__'`` mapping key, a ``.__file__`` attribute, or a local bound to one
+    of those — and which then climbs past the package boundary via
+    ``.parent``/``.parents`` is reported. Everything outside that sentence is open,
+    and the rest of this block is the honest reading of it.
+
+    The ``globals()`` channel is **not** closed, and cannot be closed here.
+    ``globals()`` returns an ordinary dict, and a dict can be read in unboundedly
+    many ways, so no finite matcher owns the channel. Matching on the key *text*
+    covers the ways the fetch is actually written — ``globals()['__file__']``,
+    ``globals().get('__file__')`` with or without a default, ``vars()``/``locals()``,
+    ``globals().pop('__file__')``, an aliased ``g = globals()``, and even
+    ``globals()[k]`` after ``k = '__file__'`` — because every one of them spells the
+    key out somewhere in the module's own text. It does not cover a key whose text
+    is never written here: ``globals()['__fi' + 'le__']`` assembles it at runtime,
+    and ``globals()[k]`` slips whenever ``k`` arrives from a function parameter or
+    an import. Each of those was tried rather than assumed, and each came back
+    quiet. So this is a net over the ways the fetch gets written, never a proof that
+    the channel is shut. #255 listed the subscript form as resolved, and that reads
+    as the channel being closed while the near-twin ``.get`` still walked through it
+    (#273); this paragraph is the wording that stops the same misreading recurring.
+
+    Also open, each confirmed by trying it: a path taken from a different dunder
+    (``__spec__.origin``, ``__loader__.get_filename()``) or from the interpreter
+    (``inspect.getfile``, ``inspect.currentframe().f_code.co_filename``,
+    ``sys.argv[0]``), none of which mentions ``__file__`` at all; a climb that never
+    appears as ``.parent``/``.parents`` because it is written as ``os.path.dirname``
+    nesting, a ``'../..'`` join, or text surgery on the path itself — note the
+    asymmetry that ``Path(f'{__file__}')`` is matched as a *root* while a climb
+    spelled inside that same string, ``Path(f'{__file__}/../..')``, is not seen; a
+    constructor this cannot recognise as ``Path``, which is ``PurePath`` and ``Path``
+    imported under an alias — one limit with two spellings rather than two limits,
+    since the root is unrecognisable for the same reason either way, and closing
+    either without the other would be arbitrary; a binding chain read backwards
+    (``b = a`` written above ``a = __file__``, which the single pre-pass below
+    resolves in the other direction only); and a climb assembled across a
+    function-call boundary. It is a stronger net than the literal grep, not a proof
+    of the negative. ``GUARD_KNOWN_LIMITS`` below runs every one of these, so the
+    list is measured rather than asserted and goes red if one is ever closed
+    silently. That claim is only worth what its coverage is: every construct named
+    in this block has a row in that table, and a construct named here without one
+    would be exactly the failure this paragraph exists to prevent (#273).
+
+    Two widenings are deliberate rather than incidental (#273), and are recorded
+    here so the next reader meets them as decisions rather than surprises.
+
+    The first is the ``.__file__`` attribute arm, which does not ask *whose* module
+    object it reads, so ``Path(other_module.__file__).resolve().parents[2]`` is
+    flagged as well as the module's own. That is wanted: climbing out of another
+    module's file to guess a repository path is the same defect with a worse blast
+    radius, because the climbing module does not even own the layout it is assuming.
+    A module that genuinely needs another package's directory has the remedy the
+    failure message already names, ``layout.source_checkout_dir``.
+
+    The second is ``file_vars``, which is module-wide and scope-blind. A name bound
+    to the module's path anywhere in the module marks that name *everywhere* in it,
+    with no notion of scope, shadowing, reachability or rebinding. Five constructs
+    were tried where the name is not the module's path at the point of use — a
+    parameter that shadows it, a class-body attribute, a binding in a branch that
+    never runs, a name later rebound to something else, and an unrelated function's
+    local — and all five flag. This is the larger of the two vectors and it is kept
+    anyway, because it errs toward over-reporting rather than toward missing a real
+    climb, the failure it produces names the expression so a reader can dismiss it
+    in seconds, and there are zero live instances in the package. The alternative is
+    a scope-aware pass, which is a different piece of work; if one of these ever
+    fires on a legitimate module, that is the trigger to do it rather than to
+    loosen the arm.
+
+    The list it returns is offenders, each rendered back to source for the failure
+    message.
     """
     UNKNOWN = 10_000  # a climb we cannot bound is treated as "definitely too far"
 
+    # Locals bound to the module's own path, so a root reached through a plain
+    # variable (``_HERE = __file__``) is not invisible. Filled by the pre-pass below.
+    file_vars: set[str] = set()
+
     def _is_file_expr(node: ast.AST) -> bool:
-        # The module's own path, however it is named: the ``__file__`` global, the
-        # same value fetched via ``globals()['__file__']``, or a module object's
-        # ``__file__`` attribute such as ``sys.modules[...].__file__``.
-        if isinstance(node, ast.Name) and node.id == "__file__":
-            return True
-        if (
-            isinstance(node, ast.Subscript)
-            and isinstance(node.value, ast.Call)
-            and isinstance(node.value.func, ast.Name)
-            and node.value.func.id == "globals"
-            and isinstance(node.slice, ast.Constant)
-            and node.slice.value == "__file__"
-        ):
-            return True
-        if isinstance(node, ast.Attribute) and node.attr == "__file__":
-            return True
+        """Does this expression name the running module's own path?
+
+        One structural rule rather than one arm per spelling: an expression that
+        *mentions* ``__file__`` anywhere inside it is treated as that path —
+        whether as the global itself, as a ``.__file__`` attribute on some module
+        object, as the string key ``'__file__'`` handed to a mapping, or through a
+        local bound to one of those. ``globals()['__file__']``,
+        ``globals().get('__file__')``, ``vars()``/``locals()``, an aliased
+        ``g = globals()``, ``getattr(mod, '__file__')`` and ``Path(f'{__file__}')``
+        then all follow from the rule instead of each needing its own case, which
+        is what stops the next near-twin spelling from being a fresh gap. It
+        over-approximates deliberately; the known limits above say what it still
+        cannot see, and why a general rule does not exist for the rest.
+        """
+        for inner in ast.walk(node):
+            if isinstance(inner, ast.Name) and (
+                inner.id == "__file__" or inner.id in file_vars
+            ):
+                return True
+            if isinstance(inner, ast.Attribute) and inner.attr == "__file__":
+                return True
+            if isinstance(inner, ast.Constant) and inner.value == "__file__":
+                return True
         return False
 
     def _is_file_root(node: ast.AST) -> bool:
@@ -446,6 +530,23 @@ def _climbs_from_file_root(module_source: str, *, depth: int = 0) -> list[str]:
     tree = ast.parse(module_source)
     offenders: list[str] = []
 
+    # Learn locals bound to the module's own path before anything else, so a root
+    # written as ``Path(_HERE)`` resolves. This pass finishes before the offender
+    # scan, so a binding written below its use still counts; what it does not do is
+    # iterate to a fixpoint, so a chain is transitive only when written in
+    # dependency order (``a = __file__`` then ``b = a``, not the reverse).
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            names = [t.id for t in node.targets if isinstance(t, ast.Name)]
+            value: ast.AST | None = node.value
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            names = [node.target.id] if isinstance(node.target, ast.Name) else []
+            value = node.value
+        else:
+            continue
+        if names and value is not None and _is_file_expr(value):
+            file_vars.update(names)
+
     for node in ast.walk(tree):
         # Learn variables bound to a file-rooted path first, so later references resolve.
         if isinstance(node, ast.Assign):
@@ -494,6 +595,52 @@ GUARD_EVASIONS = {
     "sys.modules __file__ attribute": (
         "Path(sys.modules[__name__].__file__).parent.parent.parent / 'profiles'"
     ),
+    # #273: the near-twin of the subscript form above, which #255 left open while
+    # its docstring read as though the globals() channel were closed. The rest of
+    # this block is the same channel written the other natural ways, plus the two
+    # non-globals() forms #273 names, plus the ones invented while closing it.
+    "globals().get fetch": (
+        "Path(globals().get('__file__')).resolve().parents[2] / 'profiles'"
+    ),
+    "globals().get with a default": (
+        "Path(globals().get('__file__', '')).resolve().parents[2] / 'profiles'"
+    ),
+    "globals().pop fetch": (
+        "Path(globals().pop('__file__')).resolve().parents[2] / 'profiles'"
+    ),
+    "vars() mapping fetch": (
+        "Path(vars()['__file__']).resolve().parents[2] / 'profiles'"
+    ),
+    "locals() mapping fetch": (
+        "Path(locals()['__file__']).resolve().parents[2] / 'profiles'"
+    ),
+    "aliased globals mapping": (
+        "g = globals()\n"
+        "root = Path(g['__file__']).resolve().parents[2] / 'profiles'"
+    ),
+    "key held in a local literal": (
+        "k = '__file__'\n"
+        "root = Path(globals()[k]).resolve().parents[2] / 'profiles'"
+    ),
+    "getattr on a module object": (
+        "Path(getattr(sys.modules[__name__], '__file__')).resolve().parents[2]"
+    ),
+    "f-string interpolation": (
+        "Path(f'{__file__}').resolve().parents[2] / 'profiles'"
+    ),
+    "str() coercion": "Path(str(__file__)).resolve().parents[2] / 'profiles'",
+    "os.fspath coercion": "Path(os.fspath(__file__)).resolve().parents[2]",
+    "variable bound to __file__": (
+        "_HERE = __file__\n"
+        "root = Path(_HERE).resolve().parents[2] / 'profiles'"
+    ),
+    "annotated variable bound to __file__": (
+        "_HERE: str = globals()['__file__']\n"
+        "root = Path(_HERE).parents[2] / 'profiles'"
+    ),
+    "importlib module attribute": (
+        "Path(importlib.import_module(__name__).__file__).resolve().parents[2]"
+    ),
 }
 
 # Walks that stay inside the package, or do not root at __file__ at all, which the
@@ -503,6 +650,83 @@ GUARD_NON_OFFENDERS = {
     "parents[0] is the package dir": "Path(__file__).resolve().parents[0]",
     "not rooted at __file__": "other = Path('/etc'); root = other.parent.parent",
     "resolve does not climb": "Path(__file__).resolve() / 'data.json'",
+    # #273 widened the matcher from three named spellings to "mentions __file__
+    # anywhere in the root expression", which is a much larger net, so these pin
+    # the ordinary reasons a module touches __file__ or a mapping and must not be
+    # dragged in with it.
+    "reads __file__ only for a message": "print(f'loaded from {__file__}')",
+    "__file__ in a variable that is only printed": "_HERE = __file__\nprint(_HERE)",
+    "package data beside the module": (
+        "DATA = Path(__file__).parent / 'schemas' / 'x.json'"
+    ),
+    "one .parent from a globals fetch": "Path(globals()['__file__']).parent / 'x'",
+    "globals().get of something else": "Path(globals().get('DATA_DIR', '.')) / 'x'",
+    "a literal path that contains the word": "Path('/tmp/__file__/data')",
+    "an unrelated mapping key": "Path(cfg['data_dir']).parent.parent",
+    "a module attribute that is not __file__": (
+        "Path(sys.modules[__name__].__spec__.name)"
+    ),
+}
+
+
+# Forms tried against the guard that it does **not** catch, each run rather than
+# assumed. This table exists so the residual-limits block in
+# ``_climbs_from_file_root`` is measured instead of asserted: #255 shortened that
+# list without proving the shortening, which is what #273 was filed about. Locking
+# a weakness in is the point — if a later widening closes one of these, this test
+# goes red, and the fix is to move the entry up into ``GUARD_EVASIONS`` *and*
+# strike it from the docstring, so the code and its stated limits cannot drift.
+#
+# What a row asserts is narrow and worth stating: the guard does not flag this
+# source. It does not assert that every row is a working escape. Executing all
+# sixteen in a throwaway package showed fourteen genuinely landing outside it,
+# and two that do not: "binding chain read backwards" raises ``NameError`` as
+# written, so it documents the pre-pass's single-direction ordering rather than a
+# runnable attack, and "climb by string surgery" splits on ``'/'``, so it climbs
+# three levels on POSIX and is a no-op on a Windows path. Both are still real
+# blind spots in the matcher; neither is a live exploit on every platform, and
+# saying so here costs a sentence and keeps this table from making the same
+# oversized claim #273 was filed about.
+GUARD_KNOWN_LIMITS = {
+    # The globals() channel is a dict read, and a dict read is not a finite set of
+    # spellings. These are the ways the key text never appears in this module.
+    "key assembled at runtime": "Path(globals()['__fi' + 'le__']).resolve().parents[2]",
+    "key from a function parameter": (
+        "def f(k):\n    return Path(globals()[k]).resolve().parents[2]"
+    ),
+    "key imported from elsewhere": (
+        "from cfg import KEY\nroot = Path(globals()[KEY]).resolve().parents[2]"
+    ),
+    # A different channel to the same path, mentioning __file__ nowhere.
+    "__spec__.origin": "Path(__spec__.origin).resolve().parents[2]",
+    "__loader__.get_filename()": "Path(__loader__.get_filename()).resolve().parents[2]",
+    "inspect.getfile": "Path(inspect.getfile(sys.modules[__name__])).parents[2]",
+    "the running frame's co_filename": (
+        "Path(inspect.currentframe().f_code.co_filename).parents[2]"
+    ),
+    "sys.argv[0]": "Path(sys.argv[0]).resolve().parents[2]",
+    # The root is seen; the climb is not, because it is never .parent/.parents.
+    "climb spelled inside the f-string": "Path(f'{__file__}/../../..').resolve()",
+    "climb by string surgery": "Path(__file__.rsplit('/', 3)[0])",
+    "os.path.dirname nesting": (
+        "os.path.dirname(os.path.dirname(os.path.dirname(__file__)))"
+    ),
+    "string '../..' join": "Path(__file__).joinpath('..', '..', '..')",
+    # Neither the root nor the climb is legible in this module's text.
+    "aliased Path import": "from pathlib import Path as P\nroot = P(__file__).parents[2]",
+    # The same limit as the alias above, spelled the other way: `_is_file_root`
+    # recognises the constructor by the name `Path`, so any other name that
+    # produces a path object is invisible. #273 scopes closing this out, and it
+    # would be arbitrary to close one spelling and leave the other.
+    "PurePath instead of Path": (
+        "from pathlib import PurePath\nroot = PurePath(__file__).parents[2]"
+    ),
+    "binding chain read backwards": (
+        "b = a\na = __file__\nroot = Path(b).resolve().parents[2]"
+    ),
+    "assembled across a function boundary": (
+        "def here():\n    return Path(__file__).resolve()\nroot = here().parents[2]"
+    ),
 }
 
 
@@ -534,6 +758,107 @@ def test_the_structural_guard_leaves_legitimate_walks_alone(case) -> None:
     offenders = _climbs_from_file_root(GUARD_NON_OFFENDERS[case])
     assert not offenders, (
         f"the legitimate {case!r} path was wrongly flagged as walking out: {offenders}"
+    )
+
+
+@pytest.mark.parametrize("case", sorted(GUARD_KNOWN_LIMITS), ids=lambda name: name)
+def test_the_structural_guard_s_documented_limits_are_still_its_limits(case) -> None:
+    """Every limit the docstring claims is open is checked to actually be open.
+
+    #273: the failure mode this repository keeps hitting is a limits list edited to
+    look better than the code. #255 moved two entries off it correctly and left a
+    near-twin of one of them uncaught, so the list read as covering a channel it did
+    not cover. A limits list nobody executes is a comment, and comments do not fail.
+
+    So this asserts the *absence* of coverage on purpose. Going red here is not a
+    regression — it means a widening closed one of these, and the entry should move
+    into ``GUARD_EVASIONS`` and out of the docstring in the same commit. That
+    coupling is the whole point: the code and its stated limits cannot drift apart
+    without a test naming the one that moved.
+    """
+    offenders = _climbs_from_file_root(GUARD_KNOWN_LIMITS[case])
+    assert not offenders, (
+        f"the {case!r} form is now caught, but it is still listed as a known limit "
+        f"of _climbs_from_file_root: {offenders}. Move it into GUARD_EVASIONS and "
+        "strike it from that function's docstring, so the documented limits keep "
+        "matching the code (#273)."
+    )
+
+
+# Every way the module globals are read for `__file__` that spells the key out in
+# the module's own text. #255 covered the first of these and its docstring then read
+# as though the channel were shut; `.get` is the single most natural way to write
+# the same fetch and it walked straight through (#273).
+GLOBALS_CHANNEL_FETCHES = {
+    "subscript": "Path(globals()['__file__']).resolve().parents[2]",
+    ".get": "Path(globals().get('__file__')).resolve().parents[2]",
+    ".get with a default": "Path(globals().get('__file__', '')).resolve().parents[2]",
+    ".pop": "Path(globals().pop('__file__')).resolve().parents[2]",
+    "vars()": "Path(vars()['__file__']).resolve().parents[2]",
+    "locals()": "Path(locals()['__file__']).resolve().parents[2]",
+    "an aliased dict": "g = globals()\nroot = Path(g['__file__']).parents[2]",
+    "a key held in a local": "k = '__file__'\nroot = Path(globals()[k]).parents[2]",
+}
+
+# The same channel, written so the key text never appears here at all.
+GLOBALS_CHANNEL_ESCAPES = {
+    "a key assembled at runtime": "Path(globals()['__fi' + 'le__']).parents[2]",
+    "a key from a parameter": "def f(k):\n    return Path(globals()[k]).parents[2]",
+}
+
+
+def test_the_globals_channel_is_matched_by_key_text_and_is_not_closed() -> None:
+    """#273, both halves in one place: what the globals() arm buys, and what it isn't.
+
+    The first half is the fix. Reading ``__file__`` out of the module globals is
+    matched by the key *text* rather than by one blessed spelling, so every fetch
+    that writes the key here is caught — subscript, ``.get`` with and without a
+    default, ``.pop``, ``vars()``, ``locals()``, an aliased dict, and a key parked in
+    a local. Enumerating spellings is what left ``.get`` open after #255; matching
+    the text is the general rule that makes the near-twins fall out for free.
+
+    The second half is the honesty, and it is why the docstring must not say the
+    channel is closed. ``globals()`` is an ordinary dict, and reading a key from a
+    dict has no finite set of forms: once the key text is assembled at runtime or
+    arrives from outside this module, nothing in the source says ``__file__`` and
+    there is nothing left to match on. These two are asserted uncaught so the claim
+    "not closed" is a measurement rather than a hedge.
+    """
+    for name, source in sorted(GLOBALS_CHANNEL_FETCHES.items()):
+        assert _climbs_from_file_root(source), (
+            f"the globals() fetch spelled with {name} walked out of the package "
+            f"and was not flagged:\n{source}"
+        )
+
+    for name, source in sorted(GLOBALS_CHANNEL_ESCAPES.items()):
+        assert not _climbs_from_file_root(source), (
+            f"the globals() fetch using {name} is now caught; the docstring still "
+            f"says the channel is open there, so update both together:\n{source}"
+        )
+
+
+def test_a_climb_out_of_another_module_s_file_is_flagged_too() -> None:
+    """The latent false-positive vector from #255, ruled on rather than discovered.
+
+    Matching ``.__file__`` as an attribute does not ask whose module object it reads,
+    so ``Path(other_module.__file__).resolve().parents[2]`` is flagged as well as the
+    module's own. There are no live instances, so nothing forces the question — which
+    is exactly why #273 asks for it to be decided here instead of when some future
+    module trips it.
+
+    The ruling is that this is wanted, and pinned so it cannot be narrowed by
+    accident. Climbing out of another module's file to guess a repository path is
+    the same defect as climbing out of your own, with a worse blast radius: the
+    climbing module does not own the layout it is assuming, so it breaks when a
+    package it merely imports is installed differently. The remedy is the one the
+    failure message already names — ``layout.source_checkout_dir``, which checks the
+    layout instead of assuming it.
+    """
+    source = "import other_pkg\nroot = Path(other_pkg.__file__).resolve().parents[2]"
+
+    assert _climbs_from_file_root(source), (
+        "a deep climb out of another module's __file__ must be flagged too; if that "
+        "is ever narrowed to the module's own file, say so in the docstring"
     )
 
 
