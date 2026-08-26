@@ -88,38 +88,73 @@ _FRAME_LOCATION = re.compile(r'\.py(?:\\*", line |:)\d+')
 # half. `body.count("discover") == 1` below binds on the bare word, which cannot
 # tell a leaked frame name from honest prose: "could not discover any sources
 # for this creator" raises that count, and so does "rediscovery pass aborted" by
-# substring. This pattern binds instead on the shape a frame name only ever has
-# when a traceback renders it — a line number immediately followed by `in
-# <name>` — which prose does not produce.
+# substring. This pattern binds instead on the shape a frame name has when a
+# traceback renders it — a line number immediately followed by `in <name>`.
 #
-# Two forms are pinned by construction below: `format_exception`'s `, line N, in
-# <name>` and the `FrameSummary` repr's `line N in <name>` that `extract_tb`
-# yields. The second matters on its own account: it writes its location as
-# `runner.py, line 118`, with neither the colon nor the quote `_FRAME_LOCATION`
-# requires, so the location check does not see it at all. Neither list is
-# exhaustive, and a leak shaped like neither is not thereby covered — in
-# particular a *bare* frame name carrying no location context (a `detail` key
-# holding just `["discover", "run_creators"]`, say) matches nothing here, which
-# is why the bare-word count is kept alongside rather than replaced by this.
-# Each catches what the other misses.
+# That shape is much rarer in prose than the bare word, and no message this
+# updater ships has it. It is *not* something prose cannot produce, and saying
+# so would repeat the overstatement this file is here to remove: `invalid syntax
+# at line 42 in settings`, `parse error on line 7, in the manifest`, and `could
+# not read line 3 in profile` all match, and are all plausible English. The
+# narrowing is a large reduction in false positives, not an elimination, and the
+# examples above are illustrations rather than the full set. `_FRAME_LOCATION`
+# above declines a bare `.py` for the same reason in the opposite direction;
+# this pattern accepts a smaller version of the same risk because the
+# alternative — the bare word alone — carries far more of it.
+#
+# Two frame forms are pinned by construction below: `format_exception`'s `, line
+# N, in <name>` and the `FrameSummary` repr's `line N in <name>` that
+# `extract_tb` yields. The second matters on its own account: it writes its
+# location as `runner.py, line 118`, with neither the colon nor the quote
+# `_FRAME_LOCATION` requires, so the location check does not see it at all.
+# Neither list is exhaustive, and a leak shaped like neither is not thereby
+# covered — in particular a *bare* frame name carrying no location context (a
+# `detail` key holding just `["discover", "run_creators"]`, say) matches nothing
+# here, which is why the bare-word count is kept alongside rather than replaced
+# by this. Each catches what the other misses.
 _FRAME_NAME = re.compile(r"line \d+,? in [A-Za-z_]\w*")
 
-# Messages whose serialised `detail` exercises one of `_cell`'s three
-# transformations, so the raw-versus-rendered gap #334 finding 1 describes is
-# covered by example rather than assumed for two of the three. Only the
-# backslash case has been observed in the wild — the QA gate on #181 hit it with
-# a live Windows `co_filename` — so the other two are pinned here precisely
-# because nothing has yet demonstrated they are benign.
+# Messages whose serialised `detail` diverges between the raw `json.dumps` and
+# the body's rendered copy, so the gap #334 finding 1 describes is covered by
+# example rather than assumed. Only the backslash case has been observed in the
+# wild — the QA gate on #181 hit it with a live Windows `co_filename` — so the
+# others are pinned here precisely because nothing has demonstrated they are
+# benign.
+#
+# Which of `_cell`'s transformations each row actually exercises is **not** one
+# each, and saying so would be the defect this file exists to police. Measured
+# by dropping each transformation from `_cell` in turn: removing the backslash
+# doubling reddens the `backslash` *and* `newline` rows, removing the pipe
+# escaping reddens `pipe`, and removing the newline-to-`<br>` conversion reddens
+# none of them. The reason is that `json.dumps` runs first and escapes a real
+# newline to the two characters `\` and `n`, so `_cell` never sees a newline in
+# a *detail* cell at all and the `newline` row's divergence is backslash
+# doubling reached by a different input. It is kept as its own row because a
+# newline in the message is a distinct and realistic way to reach that
+# divergence, not because it covers a third transformation.
+#
+# The newline-to-`<br>` conversion is real and load-bearing, and it is bound
+# separately — on the *message* cell, which is the only cell a raw newline
+# survives into. See `_MESSAGE_NEWLINE_FORMS` below.
 _CELL_TRANSFORMING_MESSAGES = {
     # `json.dumps` doubles each separator, and `_cell` doubles them again: the
     # body carries `C:\\\\secrets`, the raw serialisation `C:\\secrets`.
     "backslash": SENSITIVE_MARKER + r" (C:\secrets\token.txt)",
     # `_cell` escapes the pipe so it cannot end the markdown row.
     "pipe": SENSITIVE_MARKER + " | shell stage",
-    # A newline survives `json.dumps` as the two characters `\` and `n`, which
-    # `_cell` then doubles. (The newline inside the *message* cell separately
-    # becomes `<br>`.)
+    # Reaches the same backslash doubling as the row above, by way of the `\n`
+    # escape `json.dumps` writes. Not the `<br>` transformation — see above.
     "newline": SENSITIVE_MARKER + "\nsecond line of the message",
+}
+
+# The three line endings `_cell` converts to `<br>`, each with its own
+# replacement in `publisher._cell` and so each bound separately below. A raw
+# newline reaches the body only through the *message* cell: the detail cell is
+# serialised by `json.dumps` first, which escapes it out of existence.
+_MESSAGE_NEWLINE_FORMS = {
+    "lf": "\n",
+    "crlf": "\r\n",
+    "cr": "\r",
 }
 
 
@@ -591,4 +626,60 @@ def test_an_honest_message_naming_discover_is_distinguished_from_a_frame_leak(
     # Distinguished by shape: honest prose is not a rendered frame.
     assert _FRAME_NAME.search(honest) is None
     assert _FRAME_LOCATION.search(honest) is None
+
+
+@pytest.mark.parametrize("form", sorted(_MESSAGE_NEWLINE_FORMS))
+def test_a_newline_in_the_message_is_rendered_as_a_break_not_a_row_split(
+    library, settings, form
+) -> None:
+    """Acceptance criterion 3's third transformation, bound where it is real.
+
+    `_CELL_TRANSFORMING_MESSAGES` cannot reach this one. Every row there is
+    observed through the *detail* cell, and `json.dumps` escapes a newline to
+    the two characters `\\` and `n` before `_cell` is ever called, so no detail
+    cell contains a newline to convert. Measured rather than reasoned: with
+    `_cell`'s `<br>` conversion removed, those rows stay green.
+
+    The message cell is the one a raw newline survives into, so the conversion
+    is bound here. Two independent assertions, because the failure has two
+    faces. The first is that the break is *present*. The second is that the row
+    is *intact*: without the conversion the markdown row ends mid-message and
+    the remainder becomes a new line of the document, which is the table
+    corruption `_cell` exists to prevent and the more damaging of the two.
+
+    Each line ending gets its own case because `_cell` gives each its own
+    replacement, and a single case would leave two of the three unbound."""
+    separator = _MESSAGE_NEWLINE_FORMS[form]
+    tail = "second line of the message"
+    message = SENSITIVE_MARKER + separator + tail
+    body = render_body(_proposal_from_a_crash(library, settings, message=message))
+    rendered = _cell(message)
+
+    # The conversion happened: the cell carries a break, not the separator.
+    # Scoped to the cell rather than the whole body, because the body is a
+    # markdown document and is full of legitimate newlines of its own.
+    assert "<br>" in rendered
+    assert separator not in rendered
+    assert "<br>" in body
+    assert rendered in body
+
+    # One line ending in, exactly one break out. `_cell` gives `\r\n` its own
+    # replacement ahead of the single-character two, and this is the assertion
+    # that binds it: without it a `\r\n` falls through both and renders as
+    # `<br><br>`, which splits no row and so passes every check above.
+    assert rendered.count("<br>") == 1
+
+    # The row survived it. This is the assertion the one above cannot make: with
+    # the conversion dropped, `_cell` returns the separator untouched and the
+    # body embeds it, so `rendered in body` still holds while the markdown row
+    # has silently become two. `splitlines` splits on every one of the three
+    # separators, so an unconverted one shows up here as the message landing on
+    # two lines of the document instead of one.
+    carrying_the_marker = [
+        line for line in body.splitlines() if SENSITIVE_MARKER in line
+    ]
+    assert len(carrying_the_marker) == 1
+    row = carrying_the_marker[0]
+    assert tail in row, "the message cell was split across two markdown rows"
+    assert row.rstrip().endswith("|")
 
