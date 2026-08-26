@@ -74,6 +74,12 @@ out into every worktree including every dock, and a row keyed on it matches
 everywhere. The first row is the one that goes unmatched when there is no
 `DOCK.md` at your root; your branch then decides which of the rest applies.
 
+A narrow gap between the two dock-worktree rows — a dock whose branch you cannot
+tie to its issue reading as the last row rather than the second — is accepted
+rather than closed: reaching it means the one-issue-one-branch invariant has
+already been broken, so the table's guidance is moot by the time it bites, and
+tightening the rows to catch it would cost more clarity than it buys.
+
 Where `git symbolic-ref --short refs/remotes/origin/HEAD` exits non-zero — a
 checkout carrying no remote-tracking refs is enough for that — the default
 branch is not discoverable here, so the main-repo row cannot match and the row
@@ -106,7 +112,9 @@ renamed, that reads the main-repo row as matching when it does not.
 4. **Never switch branches, rebase, or merge by hand.** Landing is `drydock land`
    after the gates pass if that command is on your PATH, and otherwise is not a
    step you perform at all; merging is GitHub's once CI is green. Your work ends
-   at a reviewable commit.
+   at a reviewable commit. Opening the pull request is the coordinating session's
+   step, taken only after both gates have passed against that commit — never the
+   step of the dock agent that wrote it, whether or not `drydock` is on your PATH.
 5. **Small, atomic commits.** Conventional messages (`feat:`, `fix:`, `test:`).
 6. **Run the tests and report real output.** Never claim tests pass without
    running them. A behavioural change with no test fails QA.
