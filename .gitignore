@@ -1,3 +1,14 @@
+# HAZARD for anything that shells out to `git check-ignore`: a blank line here --
+# and, on current git, a whitespace-only line or a lone CR left by CRLF -- is
+# reported as a match for ANY path ending in "/". So a bare "docs/nowhere/" reads
+# back "ignored" whether or not anything ignores it. A tool that treats
+# "gitignored" as "not repository content, absence is fine" then waves through
+# every broken directory reference. Do NOT delete the blank separators below to
+# dodge this -- they are idiomatic. The fix is to never ask about a trailing-slash
+# path: strip the slash and probe a non-"/" child instead. The one existing
+# consumer, tools/instruction_refs/check_instruction_references.py:is_git_ignored,
+# already does this; any new consumer must go through the same discipline. See
+# tools/updater/README.md and issue #170.
 node_modules/
 *.log
 
