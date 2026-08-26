@@ -178,6 +178,17 @@ export const refreshRunSchema = z.object({
   withheld: z.array(withheldItemSchema).default([]),
   /** What a green run still does not prove. Never empty: there is always something. */
   caveats: z.array(nonEmpty).min(1),
+  /**
+   * A run's loose ends, written on the day and never revisited. An issue number
+   * may appear in one only where it *identifies* something the run itself
+   * produced or was blocked by, which is a fact the run fixes and time cannot
+   * unfix. It may not stand as a claim about what another issue covers: that
+   * asserts the contents of a document which keeps changing once the run is
+   * over, nothing re-reads this file to notice when it stops being true, and
+   * the entry is rendered to visitors either way. Decided on #342, where one
+   * such citation had gone false. A pointer that needs to stay current belongs
+   * in `references`, which carries a `state` a reader can check.
+   */
   followUps: z.array(nonEmpty).default([]),
   /** Where a reader checks this entry against the record it transcribes. */
   references: z.array(runReferenceSchema).min(1),
