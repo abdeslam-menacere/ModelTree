@@ -201,6 +201,21 @@ scripts.
 
 ## Rules
 
+- **No gate input self-reported by the subject may have a default, and absence
+  must never be the more permissive option.** When you write or change a gate,
+  every input the run itself supplies — a bundle field, a flag it passes — must
+  refuse absence explicitly, with the **same exit 2** it gives an unrecognised
+  value, and must never let an omitted input select the looser threshold or the
+  weaker anchor. Making the input *required* does not discharge this: a required
+  flag is still supplied by the party under test. Where the value is derivable,
+  derive it — `gate-scope` and `gate-source-approval` anchor on `git merge-base
+  HEAD refs/remotes/origin/main`, never on a `--base` the run chooses. This does
+  **not** forbid a default that is an environment fact (`--today` from the wall
+  clock, `--data`/`--repo` from the canonical committed location) or one that
+  resolves to a stricter derived value (an absent `--base` resolving to that
+  merge base, which an explicit `--base` may only narrow). ADR 0003's Guardrails
+  is the authoritative statement and the reasoning; this is the version you meet
+  before writing the next gate.
 - **Never add a bypass.** No `--force`, no `--skip`, no environment variable that
   lowers a threshold, no "the gate was flaky" retry that proceeds without it.
   ADR 0003 and `.github/copilot-instructions.md` both forbid it. A genuine
