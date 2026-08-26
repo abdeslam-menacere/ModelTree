@@ -13,8 +13,9 @@ it happens to be writing.
 
 from __future__ import annotations
 
+import heapq
 import inspect
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Sequence
@@ -35,6 +36,7 @@ __all__ = [
     "list_checkpoint_summaries",
     "load_checkpoint",
     "recorded_creator_id",
+    "recorded_is_resumable",
     "recorded_profile_id",
     "recorded_providers",
     "recorded_version_marker",
@@ -188,6 +190,123 @@ def recorded_creator_id(checkpoint: Any) -> str | None:
     return None
 
 
+def recorded_is_resumable(checkpoint: Any) -> bool:
+    """Whether a checkpoint still has messages to deliver, read from its contents.
+
+    A checkpoint is resumed by re-delivering the messages it stored. The checkpoint
+    written after the final superstep carries **no messages at all** — there is
+    nothing left to deliver — so resuming it does nothing useful and the framework
+    refuses it. That terminal row is otherwise indistinguishable from a genuinely
+    resumable one in the listing, so an operator scanning for a row to resume can
+    land on the one row that cannot work.
+
+    The verdict is derived from the payload the row already carries — at least one
+    non-empty message envelope — exactly like `recorded_creator_id`, and never from
+    the row's position or `iteration_count`. A payload that is absent, empty, or too
+    malformed to read as the declared `dict[str, list[WorkflowMessage]]` shape has no
+    messages this reader can deliver, so it is reported as not resumable rather than
+    taking the whole listing down with it.
+    """
+    messages = getattr(checkpoint, "messages", None)
+    if not isinstance(messages, Mapping):
+        return False
+    return any(envelopes for envelopes in messages.values())
+
+
+def _order_key(checkpoint: Any) -> tuple[str, str]:
+    """The cross-lineage ordering key: framework `timestamp`, then `checkpoint_id`.
+
+    `timestamp` is the framework's own stated secondary ordering key. `checkpoint_id`
+    is a unique identifier, so appending it makes the key a total order — two rows can
+    never tie on it — which is what keeps the listing off filesystem iteration order.
+    """
+    timestamp = getattr(checkpoint, "timestamp", None)
+    checkpoint_id = getattr(checkpoint, "checkpoint_id", None)
+    return (
+        "" if timestamp is None else str(timestamp),
+        "" if checkpoint_id is None else str(checkpoint_id),
+    )
+
+
+def _ordered_checkpoints(checkpoints: Iterable[Any]) -> list[Any]:
+    """Order checkpoints by `previous_checkpoint_id` lineage, then `timestamp`.
+
+    The framework's own docstring is explicit: checkpoint ordering is defined by the
+    `previous_checkpoint_id` lineage chain and `timestamp`, **not** by `iteration_count`
+    — a value it says is not unique across a run and must not be used to find the latest
+    checkpoint. `FileCheckpointStorage.list_checkpoints` returns rows in filesystem glob
+    order, so the listing has to impose an order of its own, and it imposes that one.
+
+    A multi-creator run writes several independent lineage chains into one storage, so
+    there is no single chain to walk. This is a topological sort: every checkpoint is
+    emitted after the parent named by its `previous_checkpoint_id` whenever that parent
+    is present, and among rows with no unemitted parent the earliest `(timestamp,
+    checkpoint_id)` goes first. So lineage decides parent-before-child *within* a chain —
+    even when a parent and child share a `timestamp`, which does happen at the stored
+    resolution — while `timestamp` orders independent chains against each other and
+    `checkpoint_id` breaks any final tie deterministically.
+
+    Broken and forked lineage are handled rather than assumed away: a checkpoint whose
+    parent is absent from the listing (an interrupted run, a chain that starts partway)
+    is treated as a root and ordered by its own key; a parent with several children (a
+    fork) emits them ordered by their keys; a self-reference or a cycle, which can never
+    hold everything back, leaves its members to be appended in `(timestamp, checkpoint_id)`
+    order so every row is still listed exactly once.
+    """
+    items = list(checkpoints)
+
+    present: dict[str, Any] = {}
+    for checkpoint in items:
+        checkpoint_id = getattr(checkpoint, "checkpoint_id", None)
+        if checkpoint_id is not None:
+            present.setdefault(str(checkpoint_id), checkpoint)
+
+    children: dict[str, list[Any]] = {}
+    indegree: dict[int, int] = {}
+    for checkpoint in items:
+        parent = getattr(checkpoint, "previous_checkpoint_id", None)
+        parent_id = None if parent is None else str(parent)
+        has_parent = (
+            parent_id is not None
+            and parent_id in present
+            and present[parent_id] is not checkpoint
+        )
+        indegree[id(checkpoint)] = 1 if has_parent else 0
+        if has_parent:
+            children.setdefault(parent_id, []).append(checkpoint)
+
+    heap: list[tuple[tuple[str, str], int, Any]] = []
+    counter = 0
+    for checkpoint in items:
+        if indegree[id(checkpoint)] == 0:
+            heapq.heappush(heap, (_order_key(checkpoint), counter, checkpoint))
+            counter += 1
+
+    ordered: list[Any] = []
+    seen: set[int] = set()
+    while heap:
+        _, _, checkpoint = heapq.heappop(heap)
+        if id(checkpoint) in seen:
+            continue
+        seen.add(id(checkpoint))
+        ordered.append(checkpoint)
+        checkpoint_id = getattr(checkpoint, "checkpoint_id", None)
+        if checkpoint_id is not None:
+            for child in children.get(str(checkpoint_id), ()):
+                indegree[id(child)] -= 1
+                if indegree[id(child)] == 0:
+                    heapq.heappush(heap, (_order_key(child), counter, child))
+                    counter += 1
+
+    if len(ordered) != len(items):
+        for checkpoint in sorted(
+            (item for item in items if id(item) not in seen), key=_order_key
+        ):
+            ordered.append(checkpoint)
+
+    return ordered
+
+
 async def list_checkpoint_summaries(
     storage: Any, *, workflow_name: str
 ) -> Sequence[dict[str, Any]]:
@@ -197,14 +316,20 @@ async def list_checkpoint_summaries(
     creator on each row an operator choosing one for `resume --checkpoint-id` after a
     multi-creator run is picking between opaque ids — and a wrong pick silently
     resumes a different creator rather than failing.
+
+    Two further properties make the choice safe. Rows are ordered by lineage and
+    `timestamp` (see `_ordered_checkpoints`) rather than by `iteration_count`, which the
+    framework says is neither unique nor the ordering key, so the order is deterministic
+    over a given storage instead of following filesystem glob order. And each row carries
+    `resumable`, read from whether the checkpoint still has messages to deliver, so the
+    unresumable terminal checkpoint is visibly marked rather than offered as an equal
+    candidate — it stays listed, because an operator may want to see that a run finished.
     """
     checkpoints = storage.list_checkpoints(workflow_name=workflow_name)
     if inspect.isawaitable(checkpoints):
         checkpoints = await checkpoints
     summaries: list[dict[str, Any]] = []
-    for checkpoint in sorted(
-        checkpoints, key=lambda item: getattr(item, "iteration_count", 0)
-    ):
+    for checkpoint in _ordered_checkpoints(checkpoints):
         summaries.append(
             {
                 "checkpoint_id": getattr(checkpoint, "checkpoint_id", None),
@@ -212,6 +337,7 @@ async def list_checkpoint_summaries(
                 "workflow_id": getattr(checkpoint, "workflow_id", None),
                 "iteration": getattr(checkpoint, "iteration_count", None),
                 "timestamp": getattr(checkpoint, "timestamp", None),
+                "resumable": recorded_is_resumable(checkpoint),
             }
         )
     return summaries
