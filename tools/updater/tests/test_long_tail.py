@@ -1003,6 +1003,11 @@ def test_a_format_character_long_tail_id_is_refused(tmp_path) -> None:
 
     _reviewed_profile_file(padded, profile_id=DEFAULT_LONG_TAIL_PROFILE_ID)
     assert load_long_tail_profile(padded).id == DEFAULT_LONG_TAIL_PROFILE_ID
+
+
+def test_a_run_cannot_be_started_from_an_unreviewed_profile_file(
+    tmp_path, fixture_dir
+) -> None:
     """The refusal that closes the swap, stated at the moment it becomes possible.
 
     The file here is the awkward one: it declares the same id as the reviewed

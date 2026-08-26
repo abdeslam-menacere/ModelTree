@@ -529,20 +529,28 @@ def test_a_non_breaking_space_does_not_hide_a_duplicate_id(tmp_path) -> None:
         assert "a.json" in message and "b.json" in message
 
 
-def test_a_zero_width_space_is_left_alone_as_a_real_difference(tmp_path) -> None:
-    """The stated limit of the fold, pinned so that widening it is a decision.
+def test_a_zero_width_space_is_left_alone_by_the_fold_but_refused_by_the_guard(
+    tmp_path,
+) -> None:
+    """The #199 fold pin, updated for the #260 refusal that now precedes it.
 
-    A zero-width space is not whitespace to Python and is not normalised here. Folding
-    may only ever grow what is refused, and guessing at invisible characters one at a
-    time is how that would start shrinking instead — so these stay two ids until
-    something says otherwise.
+    #199 pinned that `_duplicate_key` does not normalise a zero-width space -- it treats
+    U+200B as a real difference rather than guessing at invisible characters. That is
+    still true of the fold in isolation, and is asserted directly here. What changed is
+    that #260 refuses a format-character id at the guard, before the fold is ever
+    consulted, so a loader no longer loads two such ids as distinct: it refuses the one
+    that carries the character, naming the codepoint. Both facts are pinned -- the fold's
+    unchanged conservatism, and that a format-character id never reaches it through a
+    loader.
     """
+    assert _duplicate_key("acme\u200blabs") != _duplicate_key("acmelabs")
+
     _profile_file(tmp_path / "acme.json", creator_id="acme\u200blabs")
-    _profile_file(tmp_path / "other.json", creator_id="acmelabs")
 
-    library = load_profile_library(tmp_path)
+    with pytest.raises(ProfileError) as error:
+        load_profile_library(tmp_path)
 
-    assert library.creator_ids == ("acmelabs", "acme\u200blabs")
+    assert "U+200B" in str(error.value)
 
 
 def test_two_documents_declaring_the_very_same_id_claim_no_difference(tmp_path) -> None:
