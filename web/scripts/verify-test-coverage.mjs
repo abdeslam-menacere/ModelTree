@@ -97,6 +97,14 @@
 //     run-wide skipped/todo tally on the summary line is what surfaces that
 //     case; there is no per-file threshold, because any threshold would be a
 //     number this code asserts rather than derives.
+//   - A test that runs but asserts nothing is not detected, and cannot be from
+//     this input. A body that executes and reaches its end -- assertions behind
+//     an `if (false)`, an `expect` never called, an async assertion never
+//     awaited -- reports status `passed`, which is indistinguishable in the JSON
+//     report from a test that asserted and passed. Closing that needs a coverage
+//     provider, which issue #270 puts out of scope. So "executed" here means
+//     "the body ran", never "the body checked something", and this guard is a
+//     floor under the coverage claim rather than a proof of it.
 
 import { readFile } from 'node:fs/promises';
 import { relative } from 'node:path';
@@ -292,33 +300,111 @@ export function unexecutedReportedFiles(report, root) {
 }
 
 /**
- * Build the success summary. Kept pure and exported so the exact wording is
- * under test: the acceptance criterion of issue #270 is about what this string
- * claims, so the string is the thing that has to be asserted on.
+ * The indented lines naming the files that were discovered and reported but
+ * executed nothing, plus the one-line reason they are named and not refused.
+ * Empty string when there are none.
  *
- * @param {{ expectedFileCount: number, totals: { total: number, executed: number, notExecuted: number }, unexecuted?: string[] }} input
+ * Split out from the summary so the failure path can print this finding without
+ * dragging the summary's coverage claim along with it. That coupling is exactly
+ * what produced the overstatement this function exists to prevent: the summary
+ * was printed whole on a failing run, so a run with a dropped file still
+ * announced that every discovered file had reported results.
+ *
+ * @param {{ unexecuted?: string[] }} input
  * @returns {string}
  */
-export function formatCoverageSummary({ expectedFileCount, totals, unexecuted = [] }) {
-  const tally =
-    `${totals.total} reported test(s): ${totals.executed} executed, ` +
-    `${totals.notExecuted} skipped/todo`;
-
+export function formatUnexercisedNote({ unexecuted = [] }) {
   if (unexecuted.length === 0) {
-    return (
-      `test-coverage check: ${expectedFileCount} discovered test file(s) all reported results ` +
-      `and all executed at least one test (${tally}).`
-    );
+    return '';
   }
 
   return (
-    `test-coverage check: ${expectedFileCount} discovered test file(s) all reported results, ` +
-    `but ${unexecuted.length} of them executed no tests (${tally}).\n` +
     `  Discovered and reported, but NOT exercised -- every test in them is skipped or todo: ` +
     `${unexecuted.join(', ')}\n` +
     `  Reported, not refused: a deliberately quarantined suite is a legitimate state. See the ` +
     `known-limits note in scripts/verify-test-coverage.mjs.`
   );
+}
+
+/**
+ * Build the run summary. Kept pure and exported so the exact wording is under
+ * test: the acceptance criterion of issue #270 is about what this string
+ * claims, so the string is the thing that has to be asserted on.
+ *
+ * Every claim here is derived from an argument, never hard-coded. The earlier
+ * version wrote "all reported results" as a literal in both branches, which was
+ * true only because of where it happened to be called from -- and stopped being
+ * true the moment it was also called on the failure path. A claim that depends
+ * on its call site is the same defect class #270 is about, one level up.
+ *
+ * @param {{ expectedFileCount: number, reportedFileCount: number, totals: { total: number, executed: number, notExecuted: number }, unexecuted?: string[] }} input
+ * @returns {string}
+ */
+export function formatCoverageSummary({
+  expectedFileCount,
+  reportedFileCount,
+  totals,
+  unexecuted = [],
+}) {
+  const coverage =
+    reportedFileCount === expectedFileCount
+      ? `all ${expectedFileCount} discovered test file(s) reported results`
+      : `${reportedFileCount} of ${expectedFileCount} discovered test file(s) reported results`;
+
+  const tally =
+    `${totals.total} reported test(s): ${totals.executed} executed, ` +
+    `${totals.notExecuted} skipped/todo`;
+
+  if (unexecuted.length === 0) {
+    return `test-coverage check: ${coverage} and all executed at least one test (${tally}).`;
+  }
+
+  return (
+    `test-coverage check: ${coverage}, but ${unexecuted.length} of them executed no tests ` +
+    `(${tally}).\n${formatUnexercisedNote({ unexecuted })}`
+  );
+}
+
+/**
+ * Build the whole refusal block, so what a failing run prints is a pure value
+ * and not a sequence of `console.error` calls only a subprocess could observe.
+ *
+ * This exists because of the review-gate finding on 67072a1: the defect was not
+ * in any one string, it was in *which* string the failure path chose to print --
+ * it reached for the run summary, whose coverage claim describes a healthy run.
+ * A wording test on the individual pieces could not have caught that, because
+ * every piece was individually fine. Composing here makes the choice itself
+ * assertable.
+ *
+ * @param {{ problems: string[], expectedFileCount: number, reportedFileCount: number, unexecuted?: string[] }} input
+ * @returns {string}
+ */
+export function formatFailureReport({
+  problems,
+  expectedFileCount,
+  reportedFileCount,
+  unexecuted = [],
+}) {
+  const lines = ['test-coverage check FAILED -- the run cannot be trusted:'];
+
+  for (const problem of problems) {
+    lines.push(`  - ${problem}`);
+  }
+
+  lines.push(
+    '',
+    `Discovered ${expectedFileCount} test file(s); the report holds results for ${reportedFileCount}.`,
+  );
+
+  // The not-exercised finding is informational, so it survives a refusal rather
+  // than being swallowed by an unrelated one -- but only the finding itself, and
+  // visibly subordinated. The run summary is deliberately not reprinted here.
+  const note = formatUnexercisedNote({ unexecuted });
+  if (note.length > 0) {
+    lines.push('', 'Also, though it is not why this failed:', note);
+  }
+
+  return lines.join('\n');
 }
 
 /**
@@ -382,6 +468,7 @@ async function main() {
 
   const summary = formatCoverageSummary({
     expectedFileCount: expected.length,
+    reportedFileCount: reported.length,
     totals,
     unexecuted,
   });
@@ -391,18 +478,14 @@ async function main() {
     return;
   }
 
-  console.error('test-coverage check FAILED -- the run cannot be trusted:');
-  for (const problem of problems) {
-    console.error(`  - ${problem}`);
-  }
   console.error(
-    `\nDiscovered ${expected.length} test file(s); the report holds results for ${reported.length}.`,
+    formatFailureReport({
+      problems,
+      expectedFileCount: expected.length,
+      reportedFileCount: reported.length,
+      unexecuted,
+    }),
   );
-  // The not-exercised report is informational, so it survives the failure path
-  // too rather than being swallowed by an unrelated refusal.
-  if (unexecuted.length > 0) {
-    console.error(summary);
-  }
   process.exitCode = 1;
 }
 

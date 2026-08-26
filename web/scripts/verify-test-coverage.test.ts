@@ -8,6 +8,8 @@ import {
   executionCountsByFile,
   executionTotals,
   formatCoverageSummary,
+  formatFailureReport,
+  formatUnexercisedNote,
   normaliseFile,
   reportedFilesFrom,
   testCountsByFile,
@@ -487,12 +489,13 @@ describe('the coverage summary wording', () => {
   it('claims execution, not just reporting, when every file ran something', () => {
     const summary = formatCoverageSummary({
       expectedFileCount: 19,
+      reportedFileCount: 19,
       totals: { total: 400, executed: 400, notExecuted: 0 },
       unexecuted: [],
     });
 
     expect(summary).toBe(
-      'test-coverage check: 19 discovered test file(s) all reported results and all executed ' +
+      'test-coverage check: all 19 discovered test file(s) reported results and all executed ' +
         'at least one test (400 reported test(s): 400 executed, 0 skipped/todo).',
     );
   });
@@ -500,6 +503,7 @@ describe('the coverage summary wording', () => {
   it('states how many tests were skipped rather than folding them into the total', () => {
     const summary = formatCoverageSummary({
       expectedFileCount: 19,
+      reportedFileCount: 19,
       totals: { total: 400, executed: 396, notExecuted: 4 },
       unexecuted: ['src/quarantined.test.ts'],
     });
@@ -513,6 +517,7 @@ describe('the coverage summary wording', () => {
   it('never claims every file was exercised when one executed nothing', () => {
     const summary = formatCoverageSummary({
       expectedFileCount: 19,
+      reportedFileCount: 19,
       totals: { total: 400, executed: 396, notExecuted: 4 },
       unexecuted: ['src/quarantined.test.ts'],
     });
@@ -526,6 +531,7 @@ describe('the coverage summary wording', () => {
   it('names every unexercised file, not just a count of them', () => {
     const summary = formatCoverageSummary({
       expectedFileCount: 19,
+      reportedFileCount: 19,
       totals: { total: 400, executed: 390, notExecuted: 10 },
       unexecuted: ['src/one.test.ts', 'src/two.test.ts'],
     });
@@ -539,11 +545,170 @@ describe('the coverage summary wording', () => {
   it('says the finding was reported rather than refused, and where the reasoning lives', () => {
     const summary = formatCoverageSummary({
       expectedFileCount: 19,
+      reportedFileCount: 19,
       totals: { total: 400, executed: 396, notExecuted: 4 },
       unexecuted: ['src/quarantined.test.ts'],
     });
 
     expect(summary).toContain('Reported, not refused');
     expect(summary).toContain('scripts/verify-test-coverage.mjs');
+  });
+
+  // The review gate's blocking finding on 67072a1, pinned. The summary hard-coded
+  // "all reported results" in both of its branches, so it was true only because
+  // of where it was called from -- and `main` had begun printing it on the
+  // failure path too. A run with a dropped file therefore announced that every
+  // discovered file had reported results, two lines under the verifier saying it
+  // had not. The coverage clause is now derived from the reported count, so it
+  // cannot overstate regardless of the call site.
+  it('never claims every file reported when the reported count is short', () => {
+    const summary = formatCoverageSummary({
+      expectedFileCount: 20,
+      reportedFileCount: 19,
+      totals: { total: 400, executed: 396, notExecuted: 4 },
+      unexecuted: ['src/quarantined.test.ts'],
+    });
+
+    expect(summary).not.toContain('all 20');
+    expect(summary).not.toContain('all reported results');
+    expect(summary).toContain('19 of 20 discovered test file(s) reported results');
+  });
+
+  it('derives the same short claim even with nothing quarantined', () => {
+    const summary = formatCoverageSummary({
+      expectedFileCount: 20,
+      reportedFileCount: 19,
+      totals: { total: 400, executed: 400, notExecuted: 0 },
+      unexecuted: [],
+    });
+
+    expect(summary).not.toContain('all 20');
+    expect(summary).toContain('19 of 20 discovered test file(s) reported results');
+  });
+});
+
+// What `main` prints underneath a refusal. This is the wording the review gate
+// found overstating on 67072a1, and the absence of a test at exactly this level
+// is why it got through: every case above asserted the *summary*, which on a
+// failing run is not what should be printed at all.
+describe('the failure-path note', () => {
+  it('is empty when nothing was quarantined, so a clean refusal stays clean', () => {
+    expect(formatUnexercisedNote({ unexecuted: [] })).toBe('');
+    expect(formatUnexercisedNote({})).toBe('');
+  });
+
+  it('names the quarantined files and says why they were not refused', () => {
+    const note = formatUnexercisedNote({ unexecuted: ['src/one.test.ts', 'src/two.test.ts'] });
+
+    expect(note).toContain('NOT exercised');
+    expect(note).toContain('src/one.test.ts, src/two.test.ts');
+    expect(note).toContain('Reported, not refused');
+  });
+
+  // The blocking finding, stated as a property: the note goes out under a
+  // refusal, so it must carry no run-level claim of its own. Anything asserting
+  // how many files reported, or wearing the `test-coverage check:` prefix that
+  // reads like the success line, is the defect returning.
+  it('makes no run-level coverage claim and does not mimic the success line', () => {
+    const note = formatUnexercisedNote({ unexecuted: ['src/quarantined.test.ts'] });
+
+    expect(note).not.toContain('all reported results');
+    expect(note).not.toContain('discovered test file(s)');
+    expect(note).not.toContain('test-coverage check:');
+  });
+
+  // The note is a strict substring of the summary, so the two cannot drift into
+  // describing the same finding differently depending on which path printed it.
+  it('is the same text the summary embeds, so the two paths cannot disagree', () => {
+    const unexecuted = ['src/quarantined.test.ts'];
+    const summary = formatCoverageSummary({
+      expectedFileCount: 19,
+      reportedFileCount: 19,
+      totals: { total: 400, executed: 396, notExecuted: 4 },
+      unexecuted,
+    });
+
+    expect(summary).toContain(formatUnexercisedNote({ unexecuted }));
+  });
+});
+
+// The refusal block as a whole. The review gate's finding was not a bad string;
+// every string involved was individually correct. It was the failure path
+// *choosing* to print the run summary, whose coverage clause describes a healthy
+// run. That choice is only assertable if the block is composed by a pure
+// function, which is why `formatFailureReport` exists.
+describe('the failure report block', () => {
+  const droppedFile =
+    '1 discovered test file(s) produced no result and were silently omitted from the ' +
+    'reported count (a dropped file / fork-worker failure): src/lib/homepage.test.ts';
+
+  it('leads with the refusal and lists every problem it was given', () => {
+    const report = formatFailureReport({
+      problems: [droppedFile, 'The vitest JSON report does not record success: true.'],
+      expectedFileCount: 19,
+      reportedFileCount: 18,
+      unexecuted: [],
+    });
+
+    expect(report).toContain('test-coverage check FAILED -- the run cannot be trusted:');
+    expect(report).toContain(`  - ${droppedFile}`);
+    expect(report).toContain('  - The vitest JSON report does not record success: true.');
+    expect(report).toContain('Discovered 19 test file(s); the report holds results for 18.');
+  });
+
+  // The blocking finding on 67072a1, reproduced as a unit case. A dropped file
+  // alongside a quarantined one printed "19 ... all reported results" two lines
+  // under the verifier saying eighteen had. No coverage claim of any shape
+  // belongs in a block explaining why the run cannot be trusted.
+  it('never restates the run summary or its coverage claim under a refusal', () => {
+    const report = formatFailureReport({
+      problems: [droppedFile],
+      expectedFileCount: 19,
+      reportedFileCount: 18,
+      unexecuted: ['src/lib/selection.test.ts'],
+    });
+
+    expect(report).not.toContain('all reported results');
+    expect(report).not.toContain('discovered test file(s) reported results');
+    expect(report).not.toContain('all executed at least one test');
+    // The success line's prefix must not appear either: it reads as a verdict,
+    // and the verdict here is the FAILED line at the top.
+    expect(report).not.toContain('test-coverage check: ');
+  });
+
+  it('still surfaces the quarantined file, visibly subordinated to the refusal', () => {
+    const report = formatFailureReport({
+      problems: [droppedFile],
+      expectedFileCount: 19,
+      reportedFileCount: 18,
+      unexecuted: ['src/lib/selection.test.ts'],
+    });
+
+    expect(report).toContain('Also, though it is not why this failed:');
+    expect(report).toContain('NOT exercised');
+    expect(report).toContain('src/lib/selection.test.ts');
+    // Subordination is positional, not just a phrase: the refusal has to come
+    // first or the note reads as the headline.
+    expect(report.indexOf('FAILED')).toBeLessThan(report.indexOf('NOT exercised'));
+  });
+
+  // A refusal with nothing quarantined must be exactly what it was before this
+  // issue: #245's message and nothing appended.
+  it('adds nothing at all when no file was quarantined', () => {
+    const report = formatFailureReport({
+      problems: [droppedFile],
+      expectedFileCount: 19,
+      reportedFileCount: 18,
+      unexecuted: [],
+    });
+
+    expect(report).not.toContain('Also, though it is not why this failed');
+    expect(report).not.toContain('NOT exercised');
+    expect(report).toBe(
+      'test-coverage check FAILED -- the run cannot be trusted:\n' +
+        `  - ${droppedFile}\n` +
+        '\n' +
+        'Discovered 19 test file(s); the report holds results for 18.',
+    );
   });
 });
