@@ -219,9 +219,13 @@ def test_a_run_writes_checkpoints_and_can_be_resumed(tmp_path, library, settings
     assert resumed.status is ProposalStatus.COMPLETE
     assert resumed.claims == original.claims
     assert resumed.verdicts == original.verdicts
-    assert [summary["iteration"] for summary in summaries] == sorted(
-        summary["iteration"] for summary in summaries
-    )
+    # #242: rows are ordered by timestamp (and lineage), not `iteration`. This test
+    # runs an original run and then a resume into the same storage, so `iteration`
+    # restarts on the resumed chain and is *not* globally ascending here — the old
+    # assertion (`[summary["iteration"]] == sorted(...)`) pinned the removed sort.
+    # The timestamps stay non-decreasing because the resumed chain is written later.
+    timestamps = [summary["timestamp"] for summary in summaries]
+    assert timestamps == sorted(timestamps)
 
 
 def test_resuming_a_mid_run_checkpoint_restores_spend_without_recharging_it(
