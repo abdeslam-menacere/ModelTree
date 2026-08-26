@@ -10,7 +10,11 @@ name: Skills CI
 #
 # Path-filtered on purpose. Unlike `web-ci`, this check is NOT required on main,
 # so a pull request that never reports one is fine; filtering keeps it off the
-# many pull requests that touch no gate code.
+# many pull requests that touch neither the gates nor the data those gates read.
+#
+# The filter must therefore list both. `gate-dataset.mjs` reads exactly one
+# directory — `web/src/data` — so that path is what makes the dataset step below
+# able to fire at all.
 #
 # It uses no secrets and holds no write scope of any kind.
 
@@ -19,6 +23,9 @@ on:
     paths:
       - '.github/skills/**'
       - '.github/workflows/skills-ci.yml'
+      # The dataset the gates are run against. Without this, the dataset step
+      # below could never fire on a data change (#189).
+      - 'web/src/data/**'
   workflow_dispatch:
 
 permissions:
@@ -53,8 +60,17 @@ jobs:
       - name: Run the gate self-tests
         run: node --test .github/skills/modeltree-gates/scripts/gates.test.mjs
 
-      # The gates are written against the dataset as it actually is. If a data
-      # change makes a gate wrong, that shows up here rather than at 3am in an
-      # unattended refresh.
+      # The gates are written against the dataset as it actually is, so this step
+      # covers two distinct failures: a gate change that no longer matches the
+      # data, and a data change that a gate refuses. The second is the reason
+      # `web/src/data/**` appears in the trigger paths above — until #189 it did
+      # not, so this step ran only when the *gates* changed and could never fire
+      # on the data change it exists to catch.
+      #
+      # What it does not do is block. `skills-ci` is not a required check, so a
+      # red run here is visible but does not stop auto-merge; making it required
+      # is #169, and needs the repository owner. `.github/workflows/README.md`
+      # records which of these rules `web-ci` already enforces and which it does
+      # not, measured rule by rule.
       - name: Run the dataset gate against the live data
         run: node .github/skills/modeltree-gates/scripts/gate-dataset.mjs
