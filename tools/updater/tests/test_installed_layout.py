@@ -309,8 +309,8 @@ def test_a_source_checkout_still_defaults_to_the_reviewed_profiles() -> None:
     assert longtail.DEFAULT_LONG_TAIL_PROFILE.is_file()
 
 
-def _climbs_from_file_root(module_source: str) -> list[str]:
-    """Every expression in ``module_source`` that walks >=2 levels up from ``__file__``.
+def _climbs_from_file_root(module_source: str, *, depth: int = 0) -> list[str]:
+    """Every expression in ``module_source`` that walks out of the package from ``__file__``.
 
     This is the structural replacement for grepping the literal string ``parents[2]``.
     That grep saw one spelling of one idea; the idea is "root an ``os``-style path
@@ -332,22 +332,54 @@ def _climbs_from_file_root(module_source: str) -> list[str]:
     non-negative constant — a negative literal, an arithmetic expression, a name — is
     the evasion this exists to stop, so it counts as "unknown, therefore suspect".
 
-    Two levels is the boundary because it is the smallest climb that leaves the
+    Two levels is the boundary for a module that sits directly under
+    ``modeltree_updater/`` because it is the smallest climb that leaves the
     package: ``modeltree_updater/foo.py`` -> ``.parent`` is the package dir, a second
     ``.parent`` is ``src``/``site-packages`` and everything above is outside. One
     ``.parent`` (staying inside the package) is legitimate and stays quiet.
 
+    The boundary tracks the module's own depth rather than being a fixed two.
+    ``depth`` is how many directories the module sits below ``modeltree_updater/``,
+    and a climb is flagged only once it exceeds ``depth + 1`` levels — the number it
+    takes to reach the package root — so it is caught only when it actually leaves
+    the package. A module one level deeper, ``modeltree_updater/providers/foo.py``,
+    needs three levels to clear the package, so its two-level climb lands back on
+    ``modeltree_updater/`` and stays quiet; a fixed two-level boundary would flag it
+    even though nothing left the package. Callers that scan a real module pass its
+    depth; the default of ``0`` matches a bare source snippet at the package root.
+
     Known limits, stated rather than papered over: this reasons about ``pathlib``
-    chains written in the module's own text. It does not evaluate ``os.path.dirname``
-    nesting, string ``"../.."`` joins, ``PurePath`` used under an alias it cannot see,
-    or a climb assembled across a function-call boundary. It is a stronger net than
-    the literal grep, not a proof of the negative. The list it returns is offenders,
-    each rendered back to source for the failure message.
+    chains written in the module's own text. It resolves ``__file__`` reached
+    directly, through ``globals()['__file__']``, or through a
+    ``sys.modules[...].__file__`` attribute, but it does not evaluate
+    ``os.path.dirname`` nesting, string ``"../.."`` joins, ``PurePath`` used under an
+    alias it cannot see, or a climb assembled across a function-call boundary. It is
+    a stronger net than the literal grep, not a proof of the negative. The list it
+    returns is offenders, each rendered back to source for the failure message.
     """
     UNKNOWN = 10_000  # a climb we cannot bound is treated as "definitely too far"
 
+    def _is_file_expr(node: ast.AST) -> bool:
+        # The module's own path, however it is named: the ``__file__`` global, the
+        # same value fetched via ``globals()['__file__']``, or a module object's
+        # ``__file__`` attribute such as ``sys.modules[...].__file__``.
+        if isinstance(node, ast.Name) and node.id == "__file__":
+            return True
+        if (
+            isinstance(node, ast.Subscript)
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Name)
+            and node.value.func.id == "globals"
+            and isinstance(node.slice, ast.Constant)
+            and node.slice.value == "__file__"
+        ):
+            return True
+        if isinstance(node, ast.Attribute) and node.attr == "__file__":
+            return True
+        return False
+
     def _is_file_root(node: ast.AST) -> bool:
-        # Path(__file__)  (optionally .resolve()) — the anchor every walk starts at.
+        # Path(<file-expr>)  (optionally .resolve()) — the anchor every walk starts at.
         target = node
         if (
             isinstance(target, ast.Call)
@@ -360,8 +392,7 @@ def _climbs_from_file_root(module_source: str) -> list[str]:
             and isinstance(target.func, ast.Name)
             and target.func.id == "Path"
             and len(target.args) == 1
-            and isinstance(target.args[0], ast.Name)
-            and target.args[0].id == "__file__"
+            and _is_file_expr(target.args[0])
         )
 
     # Locals bound to a file-rooted path, and how far up they already climbed, so a
@@ -431,7 +462,7 @@ def _climbs_from_file_root(module_source: str) -> list[str]:
     for node in ast.walk(tree):
         if isinstance(node, (ast.Attribute, ast.Subscript)):
             levels, rooted = _levels_and_rooted(node)
-            if rooted and levels >= 2:
+            if rooted and levels >= depth + 2:
                 offenders.append(ast.unparse(node))
 
     # De-duplicate while collapsing sub-chains: a full `a.parent.parent` also matches
@@ -456,6 +487,12 @@ GUARD_EVASIONS = {
     "variable index": "n = 2\nroot = Path(__file__).parents[n] / 'profiles'",
     "split across lines": (
         "root = (\n    Path(__file__).resolve()\n    .parents[2]\n)"
+    ),
+    "globals()['__file__'] fetch": (
+        "Path(globals()['__file__']).resolve().parents[2] / 'profiles'"
+    ),
+    "sys.modules __file__ attribute": (
+        "Path(sys.modules[__name__].__file__).parent.parent.parent / 'profiles'"
     ),
 }
 
@@ -500,6 +537,45 @@ def test_the_structural_guard_leaves_legitimate_walks_alone(case) -> None:
     )
 
 
+# A two-level climb: the smallest walk that leaves a module sitting directly under
+# `modeltree_updater/`, but one that lands back on the package root from a module one
+# directory deeper (e.g. `providers/foo.py` -> `modeltree_updater/`).
+_TWO_LEVEL_CLIMB = "root = Path(__file__).parent.parent / 'data.json'"
+
+
+def test_a_two_level_climb_is_read_against_the_module_s_own_depth() -> None:
+    """The climb boundary tracks depth, so a deeper module's in-package walk is quiet.
+
+    Issue #255 part 2: the matcher measured levels from ``__file__`` and flagged at a
+    fixed two regardless of how deep the module sat, which would trap the first
+    sub-package module that legitimately climbed two levels back to
+    ``modeltree_updater/``. The same two-level climb must read as an evasion from the
+    package root (``depth`` 0, where two levels leaves the package) and as legitimate
+    from one level deeper (``depth`` 1, where two levels lands on the package root).
+    """
+    assert _climbs_from_file_root(_TWO_LEVEL_CLIMB, depth=0), (
+        "a two-level climb from the package root leaves the package and must be flagged"
+    )
+    assert not _climbs_from_file_root(_TWO_LEVEL_CLIMB, depth=1), (
+        "a two-level climb from a module one directory deeper lands back inside "
+        "modeltree_updater/ and must stay quiet"
+    )
+
+
+def test_a_deeper_module_that_still_clears_the_package_is_flagged() -> None:
+    """Depth-awareness does not go soft: a deeper walk that does leave is still caught.
+
+    The counterpart to the test above — raising the boundary by the module's depth must
+    not let a genuine escape through. From ``depth`` 1 it takes three levels to clear
+    the package, and that three-level climb must be flagged.
+    """
+    source = "root = Path(__file__).parent.parent.parent / 'data.json'"
+    assert _climbs_from_file_root(source, depth=1), (
+        "a three-level climb from a module one directory deep leaves the package and "
+        "must be flagged"
+    )
+
+
 def test_no_module_walks_out_to_the_repository_on_its_own() -> None:
     """The guess, as a shape, confined to the module that checks it.
 
@@ -515,12 +591,19 @@ def test_no_module_walks_out_to_the_repository_on_its_own() -> None:
     a walk routed through a variable, and non-constant indices, not just the one
     spelling ``parents[2]``. ``_climbs_from_file_root`` documents what it does and
     does not catch; the widening is a stronger net, not a proof.
+
+    Each module is scanned against its own depth below ``modeltree_updater/``, so a
+    two-level climb from a sub-package module that lands back inside the package is
+    not mistaken for one that leaves it.
     """
     offenders = sorted(
         path.relative_to(PACKAGE_DIR).as_posix()
         for path in PACKAGE_DIR.rglob("*.py")
         if path.name != "layout.py"
-        and _climbs_from_file_root(path.read_text(encoding="utf-8"))
+        and _climbs_from_file_root(
+            path.read_text(encoding="utf-8"),
+            depth=len(path.relative_to(PACKAGE_DIR).parts) - 1,
+        )
     )
 
     assert not offenders, (
@@ -1013,9 +1096,11 @@ def test_a_resume_under_an_installed_layout_refuses_a_recorded_long_tail_id(
     package is imported from a wheel (there is no repository above it to find). The
     real loader runs and raises the real message.
 
-    This is pinned against a widening of the catch: see the companion test below,
-    which shows that catching `FileNotFoundError` there turns this refusal into a
-    `ProfileMismatch` and loses the "installed distribution" diagnosis.
+    This is pinned against a widening of the catch by driving the real
+    ``runner.resume_creator_run``; the companion demonstration below,
+    ``test_demonstration_widening_the_resume_catch_would_swallow_the_installed_layout_refusal``,
+    renders the wrong outcome in-process to show what this guard protects against,
+    but it is that demonstration and not itself a guard.
     """
     import asyncio
 
@@ -1053,21 +1138,25 @@ def test_a_resume_under_an_installed_layout_refuses_a_recorded_long_tail_id(
     assert "not in the reviewed set" not in message
 
 
-def test_widening_the_resume_catch_would_swallow_the_installed_layout_refusal(
+def test_demonstration_widening_the_resume_catch_would_swallow_the_installed_layout_refusal(
     monkeypatch,
 ) -> None:
-    """Why the catch stays narrow: widening it converts the refusal into the wrong thing.
+    """An in-process demonstration of the failure mode, NOT a guard.
 
-    Demonstrates the failure the test above pins against. `runner.py` catches
-    `ProfileError` around the profile rebuild and re-raises it as `ProfileMismatch`.
-    If that catch were widened to swallow `FileNotFoundError` too, the installed-layout
-    refusal — a broken installation — would be reshaped into a `ProfileMismatch` that
-    reads "not in the reviewed set", a disagreement about *which* profile applies. This
-    reproduces that widening in-process and shows the diagnosis is lost, so a future
-    author who widens the catch sees this go red.
+    This does not exercise ``runner.py``: it monkeypatches ``reviewed_long_tail_profile``
+    with a locally widened rebuild step and shows that catching ``FileNotFoundError``
+    there reshapes the installed-layout refusal — a broken installation — into a
+    ``ProfileMismatch`` that reads "not in the reviewed set". It passes for the widened
+    stand-in it installs, not for anything in the production catch, so it would stay
+    green even if the real narrow catch were widened.
 
-    It does not modify `runner.py`; it stands in a widened rebuild step and confirms
-    the shape of the wrong outcome, which is what the production catch must never do.
+    The actual guard against that regression is
+    ``test_a_resume_under_an_installed_layout_refuses_a_recorded_long_tail_id`` above,
+    which drives the real ``runner.resume_creator_run`` and fails if the production
+    catch is widened. This test is kept only for its explanatory value: it renders the
+    wrong outcome concretely, so a reader can see what the guard above is protecting
+    against. If the guard above is ever deleted, deleting this one too is correct —
+    it does not cover the behaviour on its own.
     """
     import asyncio
 
