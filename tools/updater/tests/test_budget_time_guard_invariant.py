@@ -1,4 +1,4 @@
-"""Every ledger method that charges a spending counter guards on the clock.
+"""Every site in `budgets.py` that charges a spending counter is accounted for.
 
 `FailureKind.INTERNAL_ERROR` is constructed at exactly one site
 (`runner.py::_failed_proposal`) and is currently unreachable from the budget
@@ -50,6 +50,46 @@ rather than reddening every proof at the same time.
 "fixed": a retry does not consume the time budget, and its only caller
 (`workflow.py`) is off the timed charging path. It is the single documented
 exemption, asserted narrowly below so the exemption cannot quietly widen.
+
+*Stale scope.* The analysed region is the **module**, not the ledger class. This
+file used to walk one `ast.ClassDef` and nothing else, so a charge site written
+anywhere else in `budgets.py` — a module-level function, a module-level
+statement, another class — was not merely uncovered, it was invisible, and the
+whole suite stayed green on it. That is the #249 defect one scope level up, and
+it fails *open*: green read as "the guard is enforced everywhere". See #335.
+
+Widening the guard rule itself was not possible, and pretending otherwise would
+have been the quiet kind of wrong. That rule keys on `self`, on delegation
+between methods of one class, and on a guard spelled `self.check_time()`; none
+of those exist at module level. So `budgets.py` is covered by two rules that
+between them leave nothing out, and the boundary between them is stated rather
+than left to a traversal:
+
+*Inside `BudgetLedger`* — spend, but guard the clock first. Unchanged.
+
+*Everywhere else in the module* — do not spend at all. A counter write outside
+the ledger is refused whether or not it consults the clock, and that asymmetry
+is the point rather than an oversight: `check_time()` is only one of the two
+things a charging method does. `charge_pages` also tests the page limit and
+routes the refusal through `_exhaust`, so an outside writer that dutifully
+called `check_time()` would still spend past `max_pages` without ever raising
+`BudgetExhausted("pages")`. The clock guard cannot restore a property that
+encapsulation was carrying. The counters belong to the ledger, and the fix for
+any such site is a ledger method. There are no such sites today, so there is no
+exemption list to keep honest; if one is ever genuinely justified it belongs
+here, named and reasoned, in the shape `GUARD_EXEMPT` already uses.
+
+Two limits of that second rule, stated because a reader will otherwise assume
+they were handled. It is name-based, so `self.pages_fetched` on some *other*
+class in this module reads as a charge; in a module this small a second object
+holding a ledger counter's name is worth a look either way, and the failure
+names the site so the look is cheap. And a class nested *inside* `BudgetLedger`
+falls between both rules — inside the ledger's subtree, so the module rule skips
+it, but not a method of the ledger, so the guard rule never walks it. Rather
+than build machinery for a shape that has never existed, that gap is closed by
+refusal: `test_the_guard_rule_reaches_every_function_inside_the_ledger_class`
+compares what the guard rule walks against every function the class contains, so
+the shape cannot arrive quietly — it arrives red.
 """
 
 from __future__ import annotations
@@ -88,6 +128,17 @@ NUMERIC_ANNOTATIONS = frozenset({"int", "float"})
 # write to the ledger is exactly the shape of a deliberate bypass.
 COMPUTED = "<computed>"
 
+# Which receiver a write has to be on to count. The guard rule inside the class
+# means `self` and only `self` — `other.tokens_used` is another run's budget and
+# that ledger's methods' business, which the counterweights below pin. The
+# module rule outside the class has no `self` to key on and nothing to learn
+# from the object being written to, so it matches any receiver.
+SELF = "self"
+ANY_RECEIVER = "<any>"
+
+# What a charge outside every function is reported against.
+MODULE_SCOPE = "<module>"
+
 _METHOD_NODES = (ast.FunctionDef, ast.AsyncFunctionDef)
 
 
@@ -98,11 +149,21 @@ def _read_source() -> str:
     return BUDGETS_SOURCE.read_text(encoding="utf-8")
 
 
-def _ledger_class(source: str) -> ast.ClassDef:
-    for node in ast.walk(ast.parse(source)):
+def _ledger_class_in(tree: ast.Module) -> ast.ClassDef:
+    """The ledger class inside an already-parsed module.
+
+    Takes the tree rather than the source because the module rule compares the
+    class against the whole module by node identity, and two `ast.parse` calls
+    on the same text produce two disjoint sets of nodes.
+    """
+    for node in ast.walk(tree):
         if isinstance(node, ast.ClassDef) and node.name == LEDGER_CLASS:
             return node
     raise AssertionError(f"{LEDGER_CLASS} not found in {BUDGETS_SOURCE}")
+
+
+def _ledger_class(source: str) -> ast.ClassDef:
+    return _ledger_class_in(ast.parse(source))
 
 
 def _ledger_methods(source: str) -> dict[str, ast.AST]:
@@ -117,39 +178,51 @@ def _ledger_methods(source: str) -> dict[str, ast.AST]:
 # --- What counts as writing to the ledger ------------------------------------
 
 
-def _self_attr(node: ast.AST) -> str | None:
-    """`self.<name>` -> `<name>`; anything else -> None."""
-    if (
-        isinstance(node, ast.Attribute)
-        and isinstance(node.value, ast.Name)
-        and node.value.id == "self"
-    ):
+def _receiver_attr(node: ast.AST | None, receiver: str) -> str | None:
+    """`<receiver>.<name>` -> `<name>`; anything else -> None.
+
+    `ANY_RECEIVER` matches whatever the write is made on, including a chained
+    expression like `run.ledger.pages_fetched`. Both rules read attributes
+    through here so that neither can learn a form the other has not.
+    """
+    if not isinstance(node, ast.Attribute):
+        return None
+    if receiver == ANY_RECEIVER:
+        return node.attr
+    if isinstance(node.value, ast.Name) and node.value.id == receiver:
         return node.attr
     return None
 
 
-def _target_attrs(target: ast.AST | None) -> set[str]:
-    """The `self.<name>` attributes an assignment target binds."""
+def _self_attr(node: ast.AST | None) -> str | None:
+    """`self.<name>` -> `<name>`; anything else -> None."""
+    return _receiver_attr(node, SELF)
+
+
+def _target_attrs(target: ast.AST | None, receiver: str) -> set[str]:
+    """The `<receiver>.<name>` attributes an assignment target binds."""
     if target is None:
         return set()
     if isinstance(target, (ast.Tuple, ast.List)):
         found: set[str] = set()
         for element in target.elts:
-            found |= _target_attrs(element)
+            found |= _target_attrs(element, receiver)
         return found
     if isinstance(target, ast.Starred):
-        return _target_attrs(target.value)
-    attr = _self_attr(target)
+        return _target_attrs(target.value, receiver)
+    attr = _receiver_attr(target, receiver)
     return {attr} if attr is not None else set()
 
 
-def _setattr_attrs(node: ast.Call) -> set[str]:
+def _setattr_attrs(node: ast.Call, receiver: str) -> set[str]:
     """`setattr(self, "x", ...)` -> {"x"}; a computed name -> the sentinel."""
     if not (isinstance(node.func, ast.Name) and node.func.id == "setattr"):
         return set()
     if len(node.args) < 2:
         return set()
-    if not (isinstance(node.args[0], ast.Name) and node.args[0].id == "self"):
+    if receiver != ANY_RECEIVER and not (
+        isinstance(node.args[0], ast.Name) and node.args[0].id == receiver
+    ):
         return set()
     name = node.args[1]
     if isinstance(name, ast.Constant) and isinstance(name.value, str):
@@ -157,30 +230,30 @@ def _setattr_attrs(node: ast.Call) -> set[str]:
     return {COMPUTED}
 
 
-def _written_attrs(node: ast.AST) -> set[str]:
-    """The `self.<name>` attributes this single node writes.
+def _written_attrs(node: ast.AST, receiver: str) -> set[str]:
+    """The `<receiver>.<name>` attributes this single node writes.
 
     Every binding form Python offers for an attribute, so that a plain
     re-assignment is not a free bypass of a detector that only reads `+=`.
     """
     if isinstance(node, ast.AugAssign):
-        return _target_attrs(node.target)
+        return _target_attrs(node.target, receiver)
     if isinstance(node, ast.AnnAssign):
-        return _target_attrs(node.target) if node.value is not None else set()
+        return _target_attrs(node.target, receiver) if node.value is not None else set()
     if isinstance(node, ast.Assign):
         found: set[str] = set()
         for target in node.targets:
-            found |= _target_attrs(target)
+            found |= _target_attrs(target, receiver)
         return found
     if isinstance(node, (ast.For, ast.AsyncFor)):
-        return _target_attrs(node.target)
+        return _target_attrs(node.target, receiver)
     if isinstance(node, (ast.With, ast.AsyncWith)):
         found = set()
         for item in node.items:
-            found |= _target_attrs(item.optional_vars)
+            found |= _target_attrs(item.optional_vars, receiver)
         return found
     if isinstance(node, ast.Call):
-        return _setattr_attrs(node)
+        return _setattr_attrs(node, receiver)
     return set()
 
 
@@ -229,7 +302,9 @@ def _spending_counters(source: str) -> frozenset[str]:
             continue
         for target in targets:
             counters |= {
-                attr for attr in _target_attrs(target) if not attr.startswith("_")
+                attr
+                for attr in _target_attrs(target, SELF)
+                if not attr.startswith("_")
             }
     return frozenset(counters)
 
@@ -294,7 +369,7 @@ def _events(
         if _is_guard_call(node):
             events.append((position, "guard", GUARD))
             continue
-        for attr in sorted(_written_attrs(node)):
+        for attr in sorted(_written_attrs(node, SELF)):
             if attr in counters or attr == COMPUTED:
                 events.append((position, "charge", attr))
         delegate = _delegate(node, methods)
@@ -337,8 +412,95 @@ def _reaches_guard(
     )
 
 
-def _report(source: str) -> tuple[frozenset[Charge], frozenset[Charge]]:
-    """`(never guarded, guarded too late)` for every charge path on the ledger."""
+# --- Charges outside the ledger class ----------------------------------------
+#
+# The second of the two rules. The first one above cannot be stretched to cover
+# this ground — it keys on `self`, on delegation between methods of one class,
+# and on `self.check_time()`, none of which exist at module level — so the
+# widening happens here, and refuses rather than guards. The module docstring
+# gives the reasoning; this is the mechanism.
+
+
+@dataclass(frozen=True, order=True)
+class OutsideCharge:
+    """A spending counter written by code that is not a `BudgetLedger` method."""
+
+    scope: str
+    counter: str
+
+
+def _scopes(tree: ast.Module) -> dict[int, str]:
+    """Every node keyed to the qualified name of the scope that lexically holds it.
+
+    Reporting only. Violations are found by walking nodes rather than scopes, so
+    a charge site that sits in no function at all is found like any other and
+    named `<module>` here.
+    """
+    scopes: dict[int, str] = {id(tree): MODULE_SCOPE}
+
+    def descend(node: ast.AST, scope: str, prefix: str) -> None:
+        for child in ast.iter_child_nodes(node):
+            scopes[id(child)] = scope
+            if isinstance(child, (*_METHOD_NODES, ast.ClassDef)):
+                qualified = f"{prefix}{child.name}"
+                descend(child, qualified, f"{qualified}.")
+            else:
+                descend(child, scope, prefix)
+
+    descend(tree, MODULE_SCOPE, "")
+    return scopes
+
+
+def _charges_outside_the_ledger(source: str) -> frozenset[OutsideCharge]:
+    """Every write to a spending counter that is not inside `BudgetLedger`.
+
+    `ast.walk` over the whole module minus the ledger's own subtree, which is
+    what makes this rule scope-blind by construction: module-level statements,
+    module-level functions, other classes and anything nested in them are all
+    covered without any of those shapes being enumerated, so the next shape
+    nobody thought of is covered too. The counters come from the same derivation
+    the guard rule uses and the write forms from the same `_written_attrs`, so
+    widening either widens both rules at once rather than one of them.
+    """
+    tree = ast.parse(source)
+    inside_the_ledger = {id(node) for node in ast.walk(_ledger_class_in(tree))}
+    counters = _spending_counters(source)
+    scopes = _scopes(tree)
+    return frozenset(
+        OutsideCharge(scopes[id(node)], attr)
+        for node in ast.walk(tree)
+        if id(node) not in inside_the_ledger
+        for attr in _written_attrs(node, ANY_RECEIVER)
+        if attr in counters or attr == COMPUTED
+    )
+
+
+def _ledger_function_coverage(source: str) -> tuple[set[int], set[int]]:
+    """`(functions the guard rule walks, functions the ledger class contains)`.
+
+    Read off one parse, because they are compared by node identity. The guard
+    rule starts from the class body's own methods and follows `ast.walk` into
+    each, so a function the ledger holds some other way — inside a nested class,
+    say — is in the second set and not the first, and is analysed by neither
+    rule. That difference is what the coverage test refuses.
+    """
+    tree = ast.parse(source)
+    ledger = _ledger_class_in(tree)
+    walked = {
+        id(node)
+        for child in ledger.body
+        if isinstance(child, _METHOD_NODES)
+        for node in ast.walk(child)
+        if isinstance(node, _METHOD_NODES)
+    }
+    contained = {id(node) for node in ast.walk(ledger) if isinstance(node, _METHOD_NODES)}
+    return walked, contained
+
+
+def _report(
+    source: str,
+) -> tuple[frozenset[Charge], frozenset[Charge], frozenset[OutsideCharge]]:
+    """`(never guarded, guarded too late, spent outside the ledger)`."""
     methods = _ledger_methods(source)
     counters = _spending_counters(source)
     charges: set[Charge] = set()
@@ -363,7 +525,11 @@ def _report(source: str) -> tuple[frozenset[Charge], frozenset[Charge]]:
         visit(entry, entry, False, frozenset())
 
     unguarded = {charge for charge in charges if not _reaches_guard(charge.entry, methods)}
-    return frozenset(unguarded), frozenset(charges - unguarded)
+    return (
+        frozenset(unguarded),
+        frozenset(charges - unguarded),
+        _charges_outside_the_ledger(source),
+    )
 
 
 def _unguarded(source: str) -> set[str]:
@@ -383,7 +549,7 @@ def _charging_methods(source: str) -> set[str]:
         name
         for name, method in _ledger_methods(source).items()
         if name != CONSTRUCTOR
-        and any(_written_attrs(node) & counters for node in ast.walk(method))
+        and any(_written_attrs(node, SELF) & counters for node in ast.walk(method))
     }
 
 
@@ -419,7 +585,7 @@ def _add_counter(source: str, counter: str) -> str:
         node
         for node in ast.walk(init)
         if isinstance(node, ast.Assign)
-        and _target_attrs(node.targets[0]) & _spending_counters(source)
+        and _target_attrs(node.targets[0], SELF) & _spending_counters(source)
     ]
     last_seed = max(seeds, key=lambda node: node.lineno)
     lines = source.splitlines(keepends=True)
@@ -433,6 +599,17 @@ def _add_counter(source: str, counter: str) -> str:
         f"{' ' * parameter.col_offset}{counter}: int = 0,\n",
     )
     return "".join(lines)
+
+
+def _extend_module(source: str, addition: str) -> str:
+    """A copy of `source` with `addition` appended at module level.
+
+    Column-zero code appended past the end of a file is module level whatever
+    precedes it, so this needs no structural anchor the way `_extend_ledger`
+    does — and it is the exact shape #335 planted in the real `budgets.py` to
+    prove the class-scoped rule could not see it.
+    """
+    return source + addition
 
 
 _UNGUARDED_AUG = """
@@ -518,6 +695,88 @@ _NEW_COUNTER_GUARDED = f"""
         self.{NEW_COUNTER} += count
 """
 
+# A class nested inside the ledger: inside its subtree, so the module rule skips
+# it, and not a method of it, so the guard rule never walks it. Both rules stay
+# quiet and the coverage check is what refuses it.
+_LEDGER_NESTED_CLASS = """
+    class Nested:
+        def charge_widgets(self, count: int) -> None:
+            self.tokens_used += count
+"""
+
+# --- Injections outside the ledger class. Single-quoted so the reproducer from
+# #335 can carry its own docstring verbatim, and the rest match it. -----------
+
+_OUTSIDE_AUG = '''
+
+def charge_pages_outside_the_class(ledger: "BudgetLedger", count: int) -> None:
+    """A charge site that spends a counter without ever consulting the guard."""
+    ledger.pages_fetched += count
+'''
+
+_OUTSIDE_ASSIGN = '''
+
+def charge_widgets_outside_the_class(ledger: "BudgetLedger", count: int) -> None:
+    ledger.pages_fetched = ledger.pages_fetched + count
+'''
+
+_OUTSIDE_SETATTR = '''
+
+def charge_widgets_outside_the_class(ledger: "BudgetLedger", count: int) -> None:
+    setattr(ledger, "pages_fetched", ledger.pages_fetched + count)
+'''
+
+_OUTSIDE_COMPUTED_SETATTR = '''
+
+def charge_widgets_outside_the_class(ledger: "BudgetLedger", name: str, n: int) -> None:
+    setattr(ledger, name, n)
+'''
+
+_OUTSIDE_GUARDED = '''
+
+def guarded_charge_outside_the_class(ledger: "BudgetLedger", count: int) -> None:
+    ledger.check_time()
+    ledger.pages_fetched += count
+'''
+
+_OUTSIDE_ANOTHER_CLASS = '''
+
+class PageCounter:
+    def charge(self, count: int) -> None:
+        self.pages_fetched += count
+'''
+
+_OUTSIDE_MODULE_LEVEL = '''
+
+_SHARED = BudgetLedger(CreatorBudget())
+_SHARED.pages_fetched = 1
+'''
+
+_OUTSIDE_READ = '''
+
+def pages_left(ledger: "BudgetLedger") -> int:
+    return ledger.budget.max_pages - ledger.pages_fetched
+'''
+
+_OUTSIDE_LOCAL_NAME = '''
+
+def summarise(ledger: "BudgetLedger") -> int:
+    pages_fetched = ledger.pages_fetched
+    return pages_fetched
+'''
+
+_OUTSIDE_OTHER_ATTRIBUTE = '''
+
+def label(ledger: "BudgetLedger", note: str) -> None:
+    ledger.note = note
+'''
+
+_OUTSIDE_NEW_COUNTER = f'''
+
+def charge_bytes_outside_the_class(ledger: "BudgetLedger", count: int) -> None:
+    ledger.{NEW_COUNTER} += count
+'''
+
 
 def _variants() -> dict[str, str]:
     """Every scratch source these tests analyse, built from the real module."""
@@ -539,13 +798,27 @@ def _variants() -> dict[str, str]:
         "new_counter_seeded": with_counter,
         "new_counter_unguarded": _extend_ledger(with_counter, _NEW_COUNTER_UNGUARDED),
         "new_counter_guarded": _extend_ledger(with_counter, _NEW_COUNTER_GUARDED),
+        "ledger_nested_class": _extend_ledger(real, _LEDGER_NESTED_CLASS),
+        "outside_aug": _extend_module(real, _OUTSIDE_AUG),
+        "outside_assign": _extend_module(real, _OUTSIDE_ASSIGN),
+        "outside_setattr": _extend_module(real, _OUTSIDE_SETATTR),
+        "outside_computed_setattr": _extend_module(real, _OUTSIDE_COMPUTED_SETATTR),
+        "outside_guarded": _extend_module(real, _OUTSIDE_GUARDED),
+        "outside_another_class": _extend_module(real, _OUTSIDE_ANOTHER_CLASS),
+        "outside_module_level": _extend_module(real, _OUTSIDE_MODULE_LEVEL),
+        "outside_read": _extend_module(real, _OUTSIDE_READ),
+        "outside_local_name": _extend_module(real, _OUTSIDE_LOCAL_NAME),
+        "outside_other_attribute": _extend_module(real, _OUTSIDE_OTHER_ATTRIBUTE),
+        "outside_new_counter": _extend_module(with_counter, _OUTSIDE_NEW_COUNTER),
     }
 
 
 VARIANTS = _variants()
 
 
-def _injected(variant: str) -> tuple[frozenset[Charge], frozenset[Charge]]:
+def _injected(
+    variant: str,
+) -> tuple[frozenset[Charge], frozenset[Charge], frozenset[OutsideCharge]]:
     """What one injection adds to whatever `budgets.py` already reports.
 
     Every variant is the real module plus a single edit, so subtracting the
@@ -554,9 +827,9 @@ def _injected(variant: str) -> tuple[frozenset[Charge], frozenset[Charge]]:
     instead of turning every proof and counterweight red at the same time and
     burying which idiom actually stopped working.
     """
-    real_unguarded, real_late = _report(_read_source())
-    unguarded, late = _report(VARIANTS[variant])
-    return unguarded - real_unguarded, late - real_late
+    real_unguarded, real_late, real_outside = _report(_read_source())
+    unguarded, late, outside = _report(VARIANTS[variant])
+    return unguarded - real_unguarded, late - real_late, outside - real_outside
 
 
 def _injected_unguarded(variant: str) -> set[str]:
@@ -567,11 +840,19 @@ def _injected_late(variant: str) -> set[str]:
     return {charge.method for charge in _injected(variant)[1]}
 
 
+def _injected_outside(variant: str) -> set[tuple[str, str]]:
+    return {(charge.scope, charge.counter) for charge in _injected(variant)[2]}
+
+
 def _injected_paths(variant: str) -> set[tuple[str, str]]:
     return {(charge.entry, charge.method) for charge in _injected(variant)[0]}
 
 
-NOTHING: tuple[frozenset[Charge], frozenset[Charge]] = (frozenset(), frozenset())
+NOTHING: tuple[frozenset[Charge], frozenset[Charge], frozenset[OutsideCharge]] = (
+    frozenset(),
+    frozenset(),
+    frozenset(),
+)
 
 
 # --- The counter set is derived, not declared --------------------------------
@@ -633,7 +914,7 @@ def test_no_public_ledger_attribute_is_written_outside_the_derived_counters() ->
         for name, method in _ledger_methods(source).items()
         if name != CONSTRUCTOR
         for node in ast.walk(method)
-        for attr in _written_attrs(node)
+        for attr in _written_attrs(node, SELF)
         if not attr.startswith("_")
     }
     assert written <= counters, (
@@ -657,7 +938,7 @@ def test_every_charging_method_guards_on_the_clock_or_is_the_named_exemption() -
     """The invariant nothing else pins: a ledger method that spends must call
     `check_time()`, so a time overrun becomes a structured `BudgetExhausted`
     rather than an internal-error proposal in production."""
-    unguarded, _ = _report(_read_source())
+    unguarded = _report(_read_source())[0]
     assert unguarded == frozenset(), (
         "charge path(s) spend without ever calling check_time() and are not the "
         f"documented exemption: {sorted(unguarded)}"
@@ -672,7 +953,7 @@ def test_the_clock_guard_runs_before_the_charge_it_covers() -> None:
     *before* work happens": a guard that runs afterwards has already spent the
     counter on an expired clock. Pinned here so the word "first" in this file's
     docstring is backed by a test rather than asserted at the reader."""
-    _, late = _report(_read_source())
+    late = _report(_read_source())[1]
     assert late == frozenset(), (
         "charge path(s) write a counter before the clock guard that covers them "
         f"runs: {sorted(late)}"
@@ -704,7 +985,7 @@ def test_the_constructor_seeds_every_counter_and_is_not_a_charge() -> None:
     counters = _spending_counters(source)
     init = _ledger_methods(source)[CONSTRUCTOR]
     seeded = {
-        attr for node in ast.walk(init) for attr in _written_attrs(node)
+        attr for node in ast.walk(init) for attr in _written_attrs(node, SELF)
     } & counters
     assert seeded == counters
     assert not _reaches_guard(CONSTRUCTOR, _ledger_methods(source))
@@ -713,9 +994,10 @@ def test_the_constructor_seeds_every_counter_and_is_not_a_charge() -> None:
 
 
 def test_the_current_module_is_clean_under_the_whole_detector() -> None:
-    """The live `budgets.py` has no unguarded charge outside the exemption and
-    no charge that runs ahead of its guard."""
-    assert _report(_read_source()) == (frozenset(), frozenset())
+    """The live `budgets.py` has no unguarded charge outside the exemption, no
+    charge that runs ahead of its guard, and nothing spending a counter from
+    outside the ledger class."""
+    assert _report(_read_source()) == NOTHING
 
 
 # --- Non-vacuity: every idiom the detector claims to read is watched to bite --
@@ -742,7 +1024,7 @@ def test_a_setattr_with_a_computed_name_is_detected() -> None:
     """A `setattr` whose attribute is computed cannot be resolved to a counter,
     so it is treated as one: an unresolvable write to the ledger is the shape a
     deliberate bypass would take, and `budgets.py` has no legitimate use for it."""
-    charges, _ = _injected("unguarded_computed_setattr")
+    charges = _injected("unguarded_computed_setattr")[0]
     assert {charge.counter for charge in charges} == {COMPUTED}
     assert _injected_unguarded("unguarded_computed_setattr") == {"charge_widgets"}
 
@@ -766,7 +1048,7 @@ def test_an_unguarded_plain_assignment_through_a_helper_is_detected() -> None:
 def test_a_brand_new_counter_charged_without_the_guard_is_detected() -> None:
     """The row from #249 that mattered: a new resource gets metered, a new
     counter appears, and the guard must not silently stop covering it."""
-    charges, _ = _injected("new_counter_unguarded")
+    charges = _injected("new_counter_unguarded")[0]
     assert {(charge.method, charge.counter) for charge in charges} == {
         ("charge_bytes", NEW_COUNTER)
     }
@@ -823,8 +1105,145 @@ def test_a_new_counter_charged_with_the_guard_is_not_flagged() -> None:
     assert _injected("new_counter_guarded") == NOTHING
 
 
-# --- The scratch sources are real modules, not strings that happen to parse ---
+# --- The boundary is the module, not the ledger class ------------------------
 
+
+def test_the_live_module_spends_no_counter_outside_the_ledger_class() -> None:
+    """The invariant #335 asked for. `budgets.py` charges its counters from
+    ledger methods and nowhere else, so the guard rule above is analysing every
+    charge site the module has rather than every charge site it can see."""
+    outside = _charges_outside_the_ledger(_read_source())
+    assert outside == frozenset(), (
+        "spending counter(s) are written outside BudgetLedger, which bypasses "
+        "the clock guard and _exhaust together: "
+        f"{sorted((charge.scope, charge.counter) for charge in outside)}"
+    )
+
+
+def test_the_guard_rule_reaches_every_function_inside_the_ledger_class() -> None:
+    """The scope cross-check, in the spirit #249 applied to counters: the two
+    rules must leave no function unanalysed, and the one seam between them —
+    a function the ledger contains but no method of it reaches — fails here
+    rather than being covered by neither and noticed by nobody."""
+    walked, contained = _ledger_function_coverage(_read_source())
+    assert walked == contained, (
+        "function(s) inside BudgetLedger are analysed by neither rule, because "
+        "the guard rule only walks the class body's own methods and the module "
+        f"rule skips the class: {len(contained - walked)} unreached"
+    )
+
+
+def test_the_issue_reproducer_is_refused() -> None:
+    """#335's reproducer, verbatim: a module-level function spending
+    `pages_fetched` with no guard anywhere. The whole suite was green on this.
+
+    Asserted against the variant's own report rather than through `_injected`,
+    unlike its neighbours below. The claim here is one-directional — a module
+    containing this site is refused — and a delta would cancel to nothing in the
+    one case that matters most, the identical site landing in the real
+    `budgets.py`. Reporting *that* is the two module-level tests' job."""
+    reported = {
+        (charge.scope, charge.counter)
+        for charge in _charges_outside_the_ledger(VARIANTS["outside_aug"])
+    }
+    assert ("charge_pages_outside_the_class", "pages_fetched") in reported
+
+
+def test_an_out_of_class_plain_reassignment_is_detected() -> None:
+    """The write forms are read through the same `_written_attrs` as the guard
+    rule, so a plain assign is no more a bypass out here than it is in there."""
+    assert _injected_outside("outside_assign") == {
+        ("charge_widgets_outside_the_class", "pages_fetched")
+    }
+
+
+def test_an_out_of_class_setattr_is_detected() -> None:
+    """`setattr(ledger, "pages_fetched", ...)` names the counter as a string."""
+    assert _injected_outside("outside_setattr") == {
+        ("charge_widgets_outside_the_class", "pages_fetched")
+    }
+
+
+def test_an_out_of_class_setattr_with_a_computed_name_is_detected() -> None:
+    """Unresolvable writes are treated as charges outside the class for the same
+    reason as inside it: `budgets.py` has no legitimate computed `setattr`, and
+    an attribute name the rule cannot read is the shape a bypass would take."""
+    assert _injected_outside("outside_computed_setattr") == {
+        ("charge_widgets_outside_the_class", COMPUTED)
+    }
+
+
+def test_an_out_of_class_charge_is_refused_even_when_it_guards_the_clock() -> None:
+    """The decision this file makes, held by a test so it cannot erode into a
+    habit. Outside the ledger the rule is encapsulation, not guarding: this
+    site calls `check_time()` and is still refused, because `charge_pages` also
+    checks `max_pages` through `_exhaust` and a guarded outside writer skips
+    that half — spending past the page limit without a `BudgetExhausted`."""
+    assert _injected_outside("outside_guarded") == {
+        ("guarded_charge_outside_the_class", "pages_fetched")
+    }
+
+
+def test_a_charge_in_another_class_in_the_module_is_detected() -> None:
+    """Another class in `budgets.py` writing `self.pages_fetched` is reported.
+    The rule is name-based and cannot tell that object from a ledger, which is
+    the stated cost of it: in a module this small a second holder of a ledger
+    counter's name is worth a look, and the report names the site."""
+    assert _injected_outside("outside_another_class") == {
+        ("PageCounter.charge", "pages_fetched")
+    }
+
+
+def test_a_charge_at_module_level_is_detected() -> None:
+    """A charge site in no function at all. The rule walks nodes rather than
+    functions precisely so this needs no separate handling."""
+    assert _injected_outside("outside_module_level") == {
+        (MODULE_SCOPE, "pages_fetched")
+    }
+
+
+def test_a_brand_new_counter_spent_outside_the_class_is_detected() -> None:
+    """#249's derivation feeds both rules. A counter added to `budgets.py` is
+    protected outside the class too, without this file being edited."""
+    assert _injected_outside("outside_new_counter") == {
+        ("charge_bytes_outside_the_class", NEW_COUNTER)
+    }
+
+
+def test_a_class_nested_inside_the_ledger_is_refused_by_the_coverage_check() -> None:
+    """The one seam between the two rules, watched to bite. A charging method
+    on a class nested inside `BudgetLedger` is analysed by neither rule — the
+    report stays empty, which is exactly why the coverage check exists and why
+    it is not decoration."""
+    assert _injected("ledger_nested_class") == NOTHING
+    walked, contained = _ledger_function_coverage(VARIANTS["ledger_nested_class"])
+    assert len(contained - walked) == 1
+
+
+# --- Counterweights outside the class: what must stay quiet out there ---------
+
+
+def test_reading_a_counter_outside_the_class_is_not_a_charge() -> None:
+    """A helper computing headroom from a ledger spends nothing. The rule keys
+    on writes, or every caller of `snapshot()` would be a violation."""
+    assert _injected("outside_read") == NOTHING
+
+
+def test_a_local_name_that_shadows_a_counter_is_not_a_charge() -> None:
+    """`pages_fetched = ledger.pages_fetched` binds a local, not an attribute.
+    Matching bare names would flag every readable line in the module."""
+    assert _injected("outside_local_name") == NOTHING
+
+
+def test_writing_a_non_counter_attribute_outside_the_class_is_not_a_charge() -> None:
+    """The rule is scope-blind, not attribute-blind: `ledger.note = ...` writes
+    to a ledger and spends nothing, and `BudgetExhausted.__init__` assigning
+    `self.used` and `self.limit` in the live module depends on this staying
+    quiet."""
+    assert _injected("outside_other_attribute") == NOTHING
+
+
+# --- The scratch sources are real modules, not strings that happen to parse ---
 
 def test_every_scratch_variant_is_valid_python() -> None:
     """Proof the injections above are honest. A variant that did not compile
