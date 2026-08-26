@@ -22,6 +22,7 @@ on:
   pull_request:
     paths:
       - '.github/skills/**'
+      - '.github/scripts/**'
       - '.github/workflows/skills-ci.yml'
       # The dataset the gates are run against. Without this, the dataset step
       # below could never fire on a data change (#189).
@@ -74,3 +75,21 @@ jobs:
       # not, measured rule by rule.
       - name: Run the dataset gate against the live data
         run: node .github/skills/modeltree-gates/scripts/gate-dataset.mjs
+
+      # The suite above prints its own size on every run, so the documentation
+      # does not repeat it. This step is what keeps that true: it refuses a
+      # hand-written test count in the skill docs (#276).
+      #
+      # It is deliberately not a check that the stated number matches the
+      # observed one. A count is correct only against one merge-base, so two
+      # branches can each add a test, each state a total that is right for
+      # themselves, and both go green while their merge is wrong -- which is
+      # exactly how the docs came to claim 94 for a 103-test suite. The
+      # invariant asserted here has no such hole: "these documents state no
+      # count" is true of main and of every branch independently, so it survives
+      # any merge and never needs editing when the suite grows.
+      #
+      # The checker proves its own detector fires before it reads a file, and
+      # treats an empty scan as an error, so it cannot pass by matching nothing.
+      - name: Refuse a hand-written test count in the skill documentation
+        run: node .github/scripts/check-skill-doc-test-counts.mjs

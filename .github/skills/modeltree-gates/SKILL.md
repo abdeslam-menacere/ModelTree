@@ -206,9 +206,11 @@ for a human: stop, and file an issue describing what it needed and why.
 node --test .github/skills/modeltree-gates/scripts/gates.test.mjs
 ```
 
-94 tests. Every rule is proved to fire by breaking the data in exactly the way
-that rule exists to catch, and the live repository dataset is asserted to pass —
-so the suite fails both when a gate goes blind and when a gate goes paranoid.
+The run reports its own totals, so no count is repeated here to go stale — one
+was, and it did (#276). Every rule is proved to fire by breaking the data in
+exactly the way that rule exists to catch, and the live repository dataset is
+asserted to pass — so the suite fails both when a gate goes blind and when a
+gate goes paranoid.
 One test is a deliberate exception: it characterises the accepted limit of ADR
 0005 — that `gate-evidence` checks the form of a citation, not its remote content
 — by pinning that a well-formed but fabricated hash and quote pass.
