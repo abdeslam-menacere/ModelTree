@@ -50,8 +50,12 @@ Concretely:
    nothing about that is relaxed.
 2. The gate makes **no** claim, in code comments, messages, or documentation, that
    it verifies the hash is the hash of the cited page or that the quote appears
-   there. Any existing text implying otherwise is corrected (done in this change:
-   `SKILL.md` and `reference/claim-bundle.md`).
+   there. Any existing text implying otherwise is corrected. This is a standing
+   obligation on all three channels, not a report that no such text remains:
+   `SKILL.md` and `reference/claim-bundle.md` were corrected in the change that
+   recorded this ADR, `gate-evidence.mjs` was outside that change's scope and was
+   corrected in #278, and any instance found later is a regression to fix rather
+   than an exception to this item.
 3. What compensates for the unverified remote content is named and relied upon: the
    pull-request trail every refresh leaves, the revert path, the dataset-JSON-only
    scope of what a refresh may change (ADR 0003 precondition and the
@@ -109,9 +113,17 @@ proves.
 
 ## Guardrails
 
-- Documentation of `gate-evidence.mjs` must not state or imply that it verifies a
-  hash against its page or a quote against its source. It verifies **form**. Text
-  asserting content verification is a regression against this ADR.
+- No code comment, message, or documentation of `gate-evidence.mjs` may state or
+  imply that it verifies a hash against its page or a quote against its source.
+  It verifies **form**. Text asserting content verification is a regression
+  against this ADR in any of those three channels. They are named here in the
+  same terms as Decision item 2 because this Guardrail previously said only
+  "documentation"; #278 resolved that disagreement in favour of the Decision,
+  which is the operative statement, and found three surviving overclaims in code
+  comments and one in a refusal message — precisely the channels the narrower
+  wording had excluded. A refusal message is the channel that matters most in
+  practice: it reaches an operator at the moment the gate refuses, which is when
+  a false claim of verification is most likely to be believed.
 - If a future change makes the gate fetch, it must fail **closed** on a mismatch
   (a warning is not admissible here), and it must state how it stays non-flaky
   against legitimate page changes, or it does not land.
