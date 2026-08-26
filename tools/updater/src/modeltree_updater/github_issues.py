@@ -52,6 +52,12 @@ MAX_BODY_CHARS = 65_536
 
 _OWNER = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$")
 _REPO = re.compile(r"^[A-Za-z0-9._-]{1,100}$")
+# A name that is nothing but dots -- ``.``, ``..``, ``...`` -- passes the
+# character class above but is not a repository GitHub will name; ``.`` and
+# ``..`` in particular are path segments, and ``..`` reaches the wire literally
+# because the client does not normalise the path. Refusing every all-dots name
+# closes that without touching legitimate single-dot names like ``my.repo``.
+_ALL_DOTS = re.compile(r"^\.+$")
 
 # A listing that needs more pages than this is not a repository this tool should
 # be guessing about: failing loudly beats missing the issue it must update and
@@ -103,11 +109,22 @@ def split_repository(repository: str) -> tuple[str, str]:
     """Validate and split ``owner/name``.
 
     The two halves are interpolated into a URL, so they are checked against
-    GitHub's own naming rules rather than trusted; a value carrying ``..`` or a
-    query string must never be able to steer a request somewhere else.
+    GitHub's own naming rules rather than trusted. There is exactly one
+    separator, the owner cannot contain ``.`` or ``/`` at all, and a name that is
+    nothing but dots -- ``.`` or ``..`` or any run of dots -- is refused, so no
+    ``owner/..``-shaped value survives to be interpolated. A name that merely
+    contains a dot, such as ``my.repo``, is still accepted. What is *not*
+    promised here: a name carrying a dot in some other position is not otherwise
+    constrained beyond the character class, and this function does not confirm
+    that the repository exists.
     """
     owner, separator, name = repository.partition("/")
-    if not separator or not _OWNER.match(owner) or not _REPO.match(name):
+    if (
+        not separator
+        or not _OWNER.match(owner)
+        or not _REPO.match(name)
+        or _ALL_DOTS.match(name)
+    ):
         raise GitHubError(
             f"{repository!r} is not a valid repository; expected owner/name"
         )

@@ -244,6 +244,56 @@ def test_a_repository_that_could_escape_the_url_is_refused() -> None:
             RestIssuesClient(repository=repository, token="t", opener=Recorder([]))
 
 
+# A name that is nothing but dots passes the `_REPO` character class but is not a
+# repository GitHub will name, and `..` reaches the wire un-normalised. Every
+# traversal-shaped and malformed value below must be refused, and the refusal
+# message must stay the single shared one so the CLI's EXIT_USAGE path is
+# unchanged.
+_TRAVERSAL_AND_MALFORMED = (
+    "octo/..",
+    "octo/.",
+    "octo/...",
+    "../owner",
+    "owner/../..",
+    ".",
+    "..",
+    "/repo",
+    "owner/",
+    "owner\\..",
+    "",
+    "   ",
+    "owner/a/b",
+    "owner/na?me",
+    "owner name/repo",
+    "octo/model\x00tree",
+)
+
+
+@pytest.mark.parametrize("repository", _TRAVERSAL_AND_MALFORMED)
+def test_traversal_and_malformed_names_are_refused(repository: str) -> None:
+    with pytest.raises(GitHubError) as error:
+        split_repository(repository)
+    assert "expected owner/name" in str(error.value)
+
+
+# The fix must not narrow what already worked: a name may carry single dots and a
+# second slash is the only structural rule.
+_LEGITIMATE = (
+    ("octo", "modeltree"),
+    ("octo", "my.repo"),
+    ("octo", "repo.github.io"),
+    ("octo", "a.b.c"),
+    ("octo", "_leading"),
+    ("octo", "trailing."),
+    ("octo", ".hidden"),
+)
+
+
+@pytest.mark.parametrize("owner,name", _LEGITIMATE)
+def test_legitimate_repositories_are_still_accepted(owner: str, name: str) -> None:
+    assert split_repository(f"{owner}/{name}") == (owner, name)
+
+
 def test_a_missing_token_is_refused_before_any_request() -> None:
     with pytest.raises(GitHubError):
         RestIssuesClient(repository="octo/modeltree", token="")
