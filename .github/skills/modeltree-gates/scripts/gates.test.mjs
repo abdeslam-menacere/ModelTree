@@ -923,24 +923,55 @@ describe('gate-source-approval', () => {
 // ---------------------------------------------------------------------------
 
 describe('gate-scope', () => {
-  /** A throwaway git repository, so the test never depends on the real tree's state. */
-  function scratchRepo(build) {
+  // The path #210 reproduced against: a reviewed updater profile. It is absent
+  // from ALLOWED_PATHS, which is the only thing making the profiles unforgeable,
+  // so it is the right file to prove the gate still refuses.
+  const OUT_OF_CLASS = 'tools/updater/profiles/anthropic.json';
+
+  function writeOutOfClass(dir, body = '{"id":"anthropic"}\n') {
+    mkdirSync(join(dir, 'tools', 'updater', 'profiles'), { recursive: true });
+    writeFileSync(join(dir, 'tools', 'updater', 'profiles', 'anthropic.json'), body);
+  }
+
+  /**
+   * A throwaway git repository, so the test never depends on the real tree's
+   * state. `body` gets the directory, a `git`, and a `gate` that runs the gate
+   * against it.
+   *
+   * `publish` writes `refs/remotes/origin/main`, which is where the gate computes
+   * its anchor from. A real clone gets that ref from the remote; setting it here
+   * explicitly is what lets a test say which commit counts as reviewed - and
+   * omitting it is a degraded case in its own right, not an oversight.
+   */
+  function withScratchRepo(body, { publish = true } = {}) {
     const dir = mkdtempSync(join(tmpdir(), 'modeltree-scope-'));
     const git = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' });
     try {
       git('init', '-q');
       git('config', 'user.email', 'gate@example.com');
       git('config', 'user.name', 'Gate Test');
-      execFileSync('node', ['-e', 'require("fs").mkdirSync("web/src/data",{recursive:true})'], { cwd: dir });
+      mkdirSync(join(dir, 'web', 'src', 'data'), { recursive: true });
       writeFileSync(join(dir, 'web', 'src', 'data', 'releases.json'), '[]');
       writeFileSync(join(dir, 'README.md'), 'scratch\n');
       git('add', '-A');
       git('commit', '-qm', 'base');
-      build({ dir, git });
-      return run(GATE_SCOPE, ['--repo', dir, '--json']);
+      if (publish) git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+      return body({
+        dir,
+        git,
+        gate: (...args) => run(GATE_SCOPE, ['--repo', dir, ...args]),
+      });
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  }
+
+  /** The common shape: build a state, then gate it as JSON. */
+  function scratchRepo(build, extraArgs = []) {
+    return withScratchRepo(({ dir, git, gate }) => {
+      build({ dir, git });
+      return gate('--json', ...extraArgs);
+    });
   }
 
   test('a dataset-only change is in class', () => {
@@ -971,16 +1002,293 @@ describe('gate-scope', () => {
 
   test('a same-named data file outside web/src/data does not qualify', () => {
     const result = scratchRepo(({ dir }) => {
-      execFileSync('node', ['-e', 'require("fs").mkdirSync("elsewhere",{recursive:true})'], { cwd: dir });
+      mkdirSync(join(dir, 'elsewhere'), { recursive: true });
       writeFileSync(join(dir, 'elsewhere', 'releases.json'), '[]');
     });
     assert.equal(result.code, 1, result.stdout);
     assert.deepEqual(JSON.parse(result.stdout).outOfClass, ['elsewhere/releases.json']);
   });
 
+  // -------------------------------------------------------------------------
+  // The three-state table from #210. One test per row. The same out-of-class
+  // edit is gated uncommitted, committed, and committed with an explicit
+  // `--base`; every row must refuse.
+  //
+  // Each row asserts the **message**, not just the exit code. The broken gate
+  // got rows A and C right, so a suite that checked `code === 1` on those and
+  // `code === 0` on B would have passed against it in full. Row B's bug is a
+  // *wrong success*, and the only thing that distinguishes it from a real pass
+  // is what the gate said it examined.
+  // -------------------------------------------------------------------------
+
+  test('State A - an uncommitted out-of-class change is refused', () => {
+    const result = withScratchRepo(({ dir, gate }) => {
+      writeOutOfClass(dir);
+      return gate();
+    });
+    assert.equal(result.code, 1, result.stdout);
+    assert.match(result.stdout, /OUT OF CLASS - 1 file\(s\) outside the dataset documents/);
+    assert.ok(result.stdout.includes(OUT_OF_CLASS), `expected ${OUT_OF_CLASS} named:\n${result.stdout}`);
+  });
+
+  test('State B - the same change, committed, is refused with no flag passed', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      writeOutOfClass(dir);
+      git('add', '-A');
+      git('commit', '-qm', 'out of class');
+      // The precondition that used to blind the gate: nothing left on disk.
+      assert.equal(git('status', '--porcelain').trim(), '', 'the working tree must be clean here');
+      return gate();
+    });
+    assert.equal(result.code, 1, `a committed out-of-class change must be refused:\n${result.stdout}`);
+    assert.match(result.stdout, /OUT OF CLASS - 1 file\(s\) outside the dataset documents/);
+    assert.ok(result.stdout.includes(OUT_OF_CLASS), `expected ${OUT_OF_CLASS} named:\n${result.stdout}`);
+    // The exact wrong success this issue is about. Exit 1 alone would not catch a
+    // regression that reported absence of work while examining nothing.
+    assert.doesNotMatch(result.stdout, /nothing changed/);
+    assert.doesNotMatch(result.stdout, /nothing to publish/);
+  });
+
+  test('State C - the same commit with --base origin/main is still refused', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      writeOutOfClass(dir);
+      git('add', '-A');
+      git('commit', '-qm', 'out of class');
+      return gate('--base', 'origin/main');
+    });
+    assert.equal(result.code, 1, result.stdout);
+    assert.match(result.stdout, /OUT OF CLASS - 1 file\(s\) outside the dataset documents/);
+    assert.ok(result.stdout.includes(OUT_OF_CLASS), `expected ${OUT_OF_CLASS} named:\n${result.stdout}`);
+  });
+
+  test('a change split across a commit and the working tree is reported whole', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      writeOutOfClass(dir);
+      git('add', '-A');
+      git('commit', '-qm', 'half of it');
+      writeFileSync(join(dir, 'sneaky.mjs'), 'console.log(1)\n');
+      return gate('--json');
+    });
+    assert.equal(result.code, 1, result.stdout);
+    // Committed and uncommitted halves both present: neither mode replaced the
+    // other, which is what keeps AC 4 and AC 7 from trading off.
+    assert.deepEqual(JSON.parse(result.stdout).outOfClass, ['sneaky.mjs', OUT_OF_CLASS]);
+  });
+
+  // The scenario named on the issue, in the fixture shape the sibling schema test
+  // already established. `empty` is the assertion target rather than the exit code
+  // because it is the observable signature of the blind state: on `main` this same
+  // callback yields `empty: true`, and a naive fix could exit 1 for another reason
+  // while still reporting the tree as empty.
+  test('a committed schema change is not empty, which is what the blind state claimed', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      writeFileSync(join(dir, 'web', 'src', 'data', 'schema.ts'), 'export const x = 1;\n');
+      git('add', '-A');
+      git('commit', '-qm', 'schema change, committed');
+      assert.equal(git('status', '--porcelain').trim(), '', 'the working tree must be clean here');
+      return gate('--json');
+    });
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.empty, false, 'a committed change must never be reported as an empty tree');
+    assert.deepEqual(report.outOfClass, ['web/src/data/schema.ts']);
+    assert.equal(result.code, 1, result.stdout);
+  });
+
+  // The pair below is the proof, and neither half carries it alone. This one
+  // shows empty-means-empty; the `empty: false` assertion in the committed test
+  // above shows committed-does-not-mean-empty. Restored verbatim from `main`
+  // rather than rewritten: exit 0 on a genuinely empty tree is the correct
+  // answer and a fix that broke this test would be the wrong fix.
   test('a clean tree reports nothing to publish rather than passing silently', () => {
     const result = scratchRepo(() => {});
     assert.equal(result.code, 0);
     assert.equal(JSON.parse(result.stdout).empty, true);
+  });
+
+  test('nothing changed is a finding about the anchor, not a fallthrough', () => {
+    const result = withScratchRepo(({ gate }) => ({ text: gate(), json: gate('--json') }));
+    assert.equal(result.text.code, 0, result.text.stdout);
+    // It has to say what it established, so a reader can tell this apart from the
+    // gate having looked in the wrong place.
+    assert.match(result.text.stdout, /nothing changed since [0-9a-f]{10} and the working tree is clean/);
+    assert.equal(JSON.parse(result.json.stdout).empty, true);
+  });
+
+  test('the anchor is reported as a resolved commit, not as the flag that was passed', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      writeFileSync(join(dir, 'web', 'src', 'data', 'releases.json'), '[{"id":"x"}]');
+      return { report: JSON.parse(gate('--json').stdout), head: git('rev-parse', 'HEAD').trim() };
+    });
+    assert.match(result.report.base, /^[0-9a-f]{40}$/);
+    assert.equal(result.report.base, result.head, 'the anchor is the merge base, here HEAD');
+    assert.equal(result.report.anchor.publishedRef, 'refs/remotes/origin/main');
+    assert.equal(result.report.anchor.requestedBase, null);
+    // Byte-identical to gate-source-approval.mjs's, because #168 is open on the
+    // absence of drift detection between the two and this is where drift starts.
+    assert.equal(result.report.anchor.selectedBy, 'merge-base with refs/remotes/origin/main');
+  });
+
+  // -------------------------------------------------------------------------
+  // `--base` may only narrow. The flag is supplied by the agent under test, so
+  // it must never be able to select a commit this branch authored.
+  // -------------------------------------------------------------------------
+
+  test('--base HEAD cannot be used to hide what this branch committed', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      writeOutOfClass(dir);
+      git('add', '-A');
+      git('commit', '-qm', 'out of class');
+      return gate('--base', 'HEAD');
+    });
+    assert.equal(result.code, 2, `widening --base must exit 2, not pass:\n${result.stdout}`);
+    assert.match(result.stdout, /is not an ancestor of the merge base/);
+    assert.match(result.stdout, /may only narrow/);
+  });
+
+  // The rest of the widening set #167's review proved out by execution on
+  // `gate-source-approval.mjs`. Kept in step deliberately: #168 is open because
+  // nothing detects drift between the two gates, and a rejection this gate
+  // accepts while the other refuses is exactly that drift. Every one exits 2
+  // with no fallback - never 0, and never a quiet reversion to the merge base.
+  test('--base pointing at a post-merge-base commit that is not HEAD is refused', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      writeOutOfClass(dir);
+      git('add', '-A');
+      git('commit', '-qm', 'first branch commit');
+      const middle = git('rev-parse', 'HEAD').trim();
+      writeFileSync(join(dir, 'sneaky.mjs'), 'console.log(1)\n');
+      git('add', '-A');
+      git('commit', '-qm', 'second branch commit');
+      return gate('--base', middle);
+    });
+    assert.equal(result.code, 2, `a mid-branch commit must not become the anchor:\n${result.stdout}`);
+    assert.match(result.stdout, /is not an ancestor of the merge base/);
+  });
+
+  test('--base pointing at a tag on a branch commit is refused, not resolved past', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      writeOutOfClass(dir);
+      git('add', '-A');
+      git('commit', '-qm', 'out of class');
+      // An annotated tag: `^{commit}` peels it, so the check runs on the commit
+      // it names rather than being sidestepped by the object type.
+      git('tag', '-a', 'v-branch', '-m', 'tag on a branch commit');
+      return gate('--base', 'v-branch');
+    });
+    assert.equal(result.code, 2, `a tag naming a branch commit must not widen:\n${result.stdout}`);
+    assert.match(result.stdout, /is not an ancestor of the merge base/);
+  });
+
+  test('--base pointing at a sibling branch tip is refused', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      git('checkout', '-q', '-b', 'sibling');
+      writeFileSync(join(dir, 'sneaky.mjs'), 'console.log(1)\n');
+      git('add', '-A');
+      git('commit', '-qm', 'sibling work');
+      const siblingTip = git('rev-parse', 'HEAD').trim();
+      git('checkout', '-q', '-');
+      writeOutOfClass(dir);
+      git('add', '-A');
+      git('commit', '-qm', 'out of class');
+      return gate('--base', siblingTip);
+    });
+    assert.equal(result.code, 2, `a sibling tip is not inherited trust:\n${result.stdout}`);
+    assert.match(result.stdout, /is not an ancestor of the merge base/);
+  });
+
+  test('--base naming a ref that does not exist exits 2 rather than falling back', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      writeOutOfClass(dir);
+      git('add', '-A');
+      git('commit', '-qm', 'out of class');
+      return gate('--base', 'no-such-ref');
+    });
+    // The dangerous shape would be falling back to the computed anchor and
+    // passing, or worse to the working tree. Neither: it refuses to run.
+    assert.equal(result.code, 2, `an unresolvable --base must not fall back:\n${result.stdout}`);
+    assert.match(result.stdout, /--base no-such-ref is not a commit in this repository/);
+  });
+
+  test('--base may pin an older reviewed commit, and still sees the later change', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      const first = git('rev-parse', 'HEAD').trim();
+      writeFileSync(join(dir, 'README.md'), 'scratch, reviewed\n');
+      git('add', '-A');
+      git('commit', '-qm', 'second reviewed commit');
+      git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+      writeOutOfClass(dir);
+      git('add', '-A');
+      git('commit', '-qm', 'out of class');
+      return { pinned: gate('--json', '--base', first), first };
+    });
+    assert.equal(result.pinned.code, 1, result.pinned.stdout);
+    const report = JSON.parse(result.pinned.stdout);
+    assert.equal(report.anchor.commit, result.first, 'the pinned ancestor is the anchor');
+    // Narrowing widens the diff, so it can only ever add refusals.
+    assert.deepEqual(report.outOfClass, ['README.md', OUT_OF_CLASS]);
+  });
+
+  test('--base with no value exits 2 rather than swallowing the next argument', () => {
+    const result = withScratchRepo(({ gate }) => gate('--base'));
+    assert.equal(result.code, 2, result.stdout);
+    assert.match(result.stdout, /--base needs a value/);
+  });
+
+  // -------------------------------------------------------------------------
+  // Degraded anchors. A gate that cannot establish what changed exits 2; it
+  // never exits 0. A missing ref that passed would be a worse bug than the one
+  // this replaces.
+  // -------------------------------------------------------------------------
+
+  test('a repository with no refs/remotes/origin/main refuses rather than passing', () => {
+    const result = withScratchRepo(({ dir, gate }) => {
+      writeOutOfClass(dir);
+      return gate();
+    }, { publish: false });
+    assert.equal(result.code, 2, `a missing published ref must not pass:\n${result.stdout}`);
+    assert.match(result.stdout, /cannot resolve refs\/remotes\/origin\/main/);
+  });
+
+  test('a clean tree with no refs/remotes/origin/main still refuses, so absence never reads as a pass', () => {
+    const result = withScratchRepo(({ gate }) => gate(), { publish: false });
+    assert.equal(result.code, 2, `an unresolvable anchor must never exit 0:\n${result.stdout}`);
+    assert.match(result.stdout, /fetch main before gating/);
+  });
+
+  test('a HEAD sharing no history with the published ref refuses', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      git('checkout', '-q', '--orphan', 'unrelated');
+      writeFileSync(join(dir, 'sneaky.mjs'), 'console.log(1)\n');
+      git('add', '-A');
+      git('commit', '-qm', 'unrelated root');
+      return gate();
+    });
+    assert.equal(result.code, 2, `an unrelated history must not pass:\n${result.stdout}`);
+    assert.match(result.stdout, /shares no history with refs\/remotes\/origin\/main/);
+  });
+
+  test('a stale published ref only moves the anchor backwards, which adds refusals', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      // origin/main stays at the first commit while the branch moves on twice.
+      writeFileSync(join(dir, 'web', 'src', 'data', 'releases.json'), '[{"id":"x"}]');
+      git('add', '-A');
+      git('commit', '-qm', 'dataset change, already on main upstream');
+      writeOutOfClass(dir);
+      git('add', '-A');
+      git('commit', '-qm', 'out of class');
+      return gate('--json');
+    });
+    assert.equal(result.code, 1, result.stdout);
+    const report = JSON.parse(result.stdout);
+    // Everything since the stale anchor, which is a superset of what a current
+    // ref would have shown. Staleness costs precision, never safety.
+    assert.deepEqual(report.outOfClass, [OUT_OF_CLASS]);
+    assert.deepEqual(report.inClass, ['web/src/data/releases.json']);
+  });
+
+  test('an unknown flag exits 2 rather than being ignored', () => {
+    const result = withScratchRepo(({ gate }) => gate('--force'));
+    assert.equal(result.code, 2, result.stdout);
+    assert.match(result.stdout, /unknown flag --force/);
   });
 });

@@ -22,7 +22,26 @@ Refuse to publish unless every one holds:
    was applied.
 3. Accepted claims are applied and `gate-dataset.mjs` exited 0.
 4. `cd web && npm run validate` passed.
-5. `gate-scope.mjs` exited 0 — every changed path is a dataset document.
+5. `gate-scope.mjs` exited 0 **and its `--json` report shows `changed` above
+   zero** — every changed path is a dataset document, and there was a change to
+   judge.
+
+`gate-scope.mjs` is the one precondition on this list whose exit code is
+ambiguous on its own, so read its report rather than its status. Exit 0
+establishes that every path the gate measured is a dataset document. It does not
+establish that the gate measured anything: `changed: 0` with `empty: true` means
+there was no change, which is a legitimate outcome and is **not** a licence to
+publish. Publish nothing, and file the run summary saying the run found nothing
+to change. Never read an empty result as an approved change — that is the exact
+move this precondition exists to refuse, and it would satisfy a checklist that
+only looked at the exit code while establishing nothing at all.
+
+The gate measures from `git merge-base HEAD refs/remotes/origin/main` and reports
+that commit as `anchor.commit` alongside `anchor.selectedBy`. **Publish both in
+the run summary**, for the same reason `gate-source-approval.mjs` does: it is
+what shows the change was judged against reviewed history rather than against the
+run's own commit. An anchor the gate cannot resolve is exit 2, which is never a
+pass.
 
 If **2** fails, a claim rests on a source nobody approved. Drop the claim and
 every claim citing that source, record why, and re-run the gate. Never add the
@@ -66,6 +85,16 @@ Conventional messages: `feat(data):` for new entities, `fix(data):` for
 corrections, `chore(data):` for verification dates moving with no fact changing.
 Separate commits per creator when a run covers several — a bad creator is then
 one revert, not all of them.
+
+Follow that advice freely: it is the gate that was made order-independent, not
+the advice that was withdrawn. `gate-scope.mjs` measures from the merge base with
+`refs/remotes/origin/main` rather than from the working tree, so a commit made
+partway through a run cannot hide itself from a gate invoked after it. Until #210
+it could: the documented bare invocation inspected uncommitted work only, so
+committing creator A before gating creator B was enough to make the gate report
+nothing had changed and exit 0 having examined nothing. **Never re-introduce a
+gate invocation that depends on being run before the run commits** — an ordering
+rule no code enforces is one an unattended run will break silently.
 
 `--auto` is not decoration. `main` requires the `web-ci` check, so GitHub itself
 refuses to merge a red pull request. Never poll CI and merge yourself: that moves
