@@ -393,7 +393,9 @@ def _climbs_from_file_root(module_source: str, *, depth: int = 0) -> list[str]:
     read backwards (``b = a`` written above ``a = __file__``, which the single
     pre-pass below resolves in the other direction only); and a climb assembled
     across a function-call boundary. It is a stronger net than the literal grep, not
-    a proof of the negative.
+    a proof of the negative. ``GUARD_KNOWN_LIMITS`` below runs every one of these,
+    so the list is measured rather than asserted and goes red if one is ever closed
+    silently.
 
     One widening is deliberate rather than incidental (#273). The ``.__file__``
     attribute arm does not ask *whose* module object it reads, so
@@ -646,6 +648,49 @@ GUARD_NON_OFFENDERS = {
 }
 
 
+# Forms tried against the guard that it does **not** catch, each run rather than
+# assumed. This table exists so the residual-limits block in
+# ``_climbs_from_file_root`` is measured instead of asserted: #255 shortened that
+# list without proving the shortening, which is what #273 was filed about. Locking
+# a weakness in is the point — if a later widening closes one of these, this test
+# goes red, and the fix is to move the entry up into ``GUARD_EVASIONS`` *and*
+# strike it from the docstring, so the code and its stated limits cannot drift.
+GUARD_KNOWN_LIMITS = {
+    # The globals() channel is a dict read, and a dict read is not a finite set of
+    # spellings. These are the ways the key text never appears in this module.
+    "key assembled at runtime": "Path(globals()['__fi' + 'le__']).resolve().parents[2]",
+    "key from a function parameter": (
+        "def f(k):\n    return Path(globals()[k]).resolve().parents[2]"
+    ),
+    "key imported from elsewhere": (
+        "from cfg import KEY\nroot = Path(globals()[KEY]).resolve().parents[2]"
+    ),
+    # A different channel to the same path, mentioning __file__ nowhere.
+    "__spec__.origin": "Path(__spec__.origin).resolve().parents[2]",
+    "__loader__.get_filename()": "Path(__loader__.get_filename()).resolve().parents[2]",
+    "inspect.getfile": "Path(inspect.getfile(sys.modules[__name__])).parents[2]",
+    "the running frame's co_filename": (
+        "Path(inspect.currentframe().f_code.co_filename).parents[2]"
+    ),
+    "sys.argv[0]": "Path(sys.argv[0]).resolve().parents[2]",
+    # The root is seen; the climb is not, because it is never .parent/.parents.
+    "climb spelled inside the f-string": "Path(f'{__file__}/../../..').resolve()",
+    "climb by string surgery": "Path(__file__.rsplit('/', 3)[0])",
+    "os.path.dirname nesting": (
+        "os.path.dirname(os.path.dirname(os.path.dirname(__file__)))"
+    ),
+    "string '../..' join": "Path(__file__).joinpath('..', '..', '..')",
+    # Neither the root nor the climb is legible in this module's text.
+    "aliased Path import": "from pathlib import Path as P\nroot = P(__file__).parents[2]",
+    "binding chain read backwards": (
+        "b = a\na = __file__\nroot = Path(b).resolve().parents[2]"
+    ),
+    "assembled across a function boundary": (
+        "def here():\n    return Path(__file__).resolve()\nroot = here().parents[2]"
+    ),
+}
+
+
 @pytest.mark.parametrize("case", sorted(GUARD_EVASIONS), ids=lambda name: name)
 def test_the_structural_guard_flags_every_evasion_of_the_literal_walk(case) -> None:
     """Each spelling of the three-deep walk is caught, demonstrated one at a time.
@@ -674,6 +719,30 @@ def test_the_structural_guard_leaves_legitimate_walks_alone(case) -> None:
     offenders = _climbs_from_file_root(GUARD_NON_OFFENDERS[case])
     assert not offenders, (
         f"the legitimate {case!r} path was wrongly flagged as walking out: {offenders}"
+    )
+
+
+@pytest.mark.parametrize("case", sorted(GUARD_KNOWN_LIMITS), ids=lambda name: name)
+def test_the_structural_guard_s_documented_limits_are_still_its_limits(case) -> None:
+    """Every limit the docstring claims is open is checked to actually be open.
+
+    #273: the failure mode this repository keeps hitting is a limits list edited to
+    look better than the code. #255 moved two entries off it correctly and left a
+    near-twin of one of them uncaught, so the list read as covering a channel it did
+    not cover. A limits list nobody executes is a comment, and comments do not fail.
+
+    So this asserts the *absence* of coverage on purpose. Going red here is not a
+    regression — it means a widening closed one of these, and the entry should move
+    into ``GUARD_EVASIONS`` and out of the docstring in the same commit. That
+    coupling is the whole point: the code and its stated limits cannot drift apart
+    without a test naming the one that moved.
+    """
+    offenders = _climbs_from_file_root(GUARD_KNOWN_LIMITS[case])
+    assert not offenders, (
+        f"the {case!r} form is now caught, but it is still listed as a known limit "
+        f"of _climbs_from_file_root: {offenders}. Move it into GUARD_EVASIONS and "
+        "strike it from that function's docstring, so the documented limits keep "
+        "matching the code (#273)."
     )
 
 
