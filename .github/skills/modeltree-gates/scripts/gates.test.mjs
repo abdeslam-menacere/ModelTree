@@ -1725,3 +1725,134 @@ describe('gate-scope', () => {
     assert.match(result.stdout, /unknown flag --force/);
   });
 });
+
+// ---------------------------------------------------------------------------
+
+// gate-scope's ALLOWED_PATHS and raw.ts's JSON imports are a hand-maintained
+// mirror: the gate permits a refresh to touch exactly the documents raw.ts
+// composes. Nothing enforced that they stay equal, and #237 records that the
+// dangerous direction fails open - ALLOWED_PATHS keeping a path raw.ts no longer
+// imports lets the gate wave through a write to a file that has left the reviewed
+// dataset surface. This block derives both sides from their source files and
+// asserts set equality, naming any path and the side it is missing from.
+//
+// Both sides are DERIVED, never restated: no filename or count from either file
+// appears here as a literal. The comparison logic (`diffAllowedPaths`) is unit-
+// tested below against synthetic sources that disagree in each direction, so it
+// is proved able to fail without perturbing the committed files - which is also
+// why deriving the real expectation is not a tautology: a wrong ALLOWED_PATHS
+// value would change one derived set but not the other, and the diff would fire.
+describe('gate-scope ALLOWED_PATHS mirrors raw.ts', () => {
+  const RAW_TS = join(REPO, 'web', 'src', 'data', 'raw.ts');
+  const DATA_PREFIX = 'web/src/data/';
+
+  // Fails closed: a source that cannot be read or from which no set can be
+  // extracted throws, and every caller turns that into a refusal rather than an
+  // empty set that would spuriously compare equal to another empty set.
+  function readOrRefuse(file) {
+    let text;
+    try {
+      text = readFileSync(file, 'utf8');
+    } catch (error) {
+      throw new Error(`cannot read ${file}: ${error.message}`);
+    }
+    if (text.length === 0) throw new Error(`${file} is empty`);
+    return text;
+  }
+
+  // The repo-relative paths named inside `const ALLOWED_PATHS = new Set([ ... ])`.
+  // Extracts the array body by brackets, then every single- or double-quoted
+  // string in it. Refuses if the declaration is absent or names nothing.
+  function allowedPathsFrom(source) {
+    const decl = /const\s+ALLOWED_PATHS\s*=\s*new\s+Set\(\s*\[([\s\S]*?)\]\s*\)/.exec(source);
+    if (!decl) throw new Error('no ALLOWED_PATHS = new Set([...]) declaration found');
+    const paths = [...decl[1].matchAll(/['"]([^'"]+)['"]/g)].map((m) => m[1]);
+    if (paths.length === 0) throw new Error('ALLOWED_PATHS declaration names no paths');
+    return new Set(paths);
+  }
+
+  // The JSON documents raw.ts imports, resolved to their repo-relative paths.
+  // Only `.json` imports count - raw.ts imports nothing else, and a non-JSON
+  // import would not be a dataset document. Refuses if there are none.
+  function rawImportsFrom(source) {
+    const specs = [...source.matchAll(/import\s+[^;]*?\bfrom\s+['"](\.\/[^'"]+\.json)['"]/g)]
+      .map((m) => m[1].replace(/^\.\//, DATA_PREFIX));
+    if (specs.length === 0) throw new Error('raw.ts imports no .json documents');
+    return new Set(specs);
+  }
+
+  // The directional diff #237 asks for: what only the gate allows, and what only
+  // raw.ts composes. Returned as sorted arrays so a failure message is stable.
+  function diffAllowedPaths(allowed, imported) {
+    return {
+      onlyInAllowed: [...allowed].filter((p) => !imported.has(p)).sort(),
+      onlyInRaw: [...imported].filter((p) => !allowed.has(p)).sort(),
+    };
+  }
+
+  function describeDrift({ onlyInAllowed, onlyInRaw }) {
+    const parts = [];
+    if (onlyInAllowed.length > 0) {
+      parts.push(`allowed by gate-scope but not composed by raw.ts: ${onlyInAllowed.join(', ')}`);
+    }
+    if (onlyInRaw.length > 0) {
+      parts.push(`composed by raw.ts but not allowed by gate-scope: ${onlyInRaw.join(', ')}`);
+    }
+    return parts.join('; ');
+  }
+
+  test('the live ALLOWED_PATHS and raw.ts imports are equal as sets', () => {
+    const allowed = allowedPathsFrom(readOrRefuse(GATE_SCOPE));
+    const imported = rawImportsFrom(readOrRefuse(RAW_TS));
+    const drift = diffAllowedPaths(allowed, imported);
+    assert.deepEqual(
+      drift,
+      { onlyInAllowed: [], onlyInRaw: [] },
+      `gate-scope ALLOWED_PATHS and raw.ts imports have drifted - ${describeDrift(drift)}`,
+    );
+  });
+
+  test('drift is detected and named when raw.ts drops a path the gate still allows', () => {
+    const allowed = new Set(['web/src/data/a.json', 'web/src/data/b.json']);
+    const imported = new Set(['web/src/data/a.json']);
+    const drift = diffAllowedPaths(allowed, imported);
+    assert.deepEqual(drift.onlyInAllowed, ['web/src/data/b.json']);
+    assert.deepEqual(drift.onlyInRaw, []);
+    assert.match(describeDrift(drift), /allowed by gate-scope but not composed by raw\.ts: web\/src\/data\/b\.json/);
+  });
+
+  test('drift is detected and named when raw.ts adds a path the gate does not allow', () => {
+    const allowed = new Set(['web/src/data/a.json']);
+    const imported = new Set(['web/src/data/a.json', 'web/src/data/c.json']);
+    const drift = diffAllowedPaths(allowed, imported);
+    assert.deepEqual(drift.onlyInRaw, ['web/src/data/c.json']);
+    assert.deepEqual(drift.onlyInAllowed, []);
+    assert.match(describeDrift(drift), /composed by raw\.ts but not allowed by gate-scope: web\/src\/data\/c\.json/);
+  });
+
+  test('the ALLOWED_PATHS derivation actually reads the gate source', () => {
+    const allowed = allowedPathsFrom(readOrRefuse(GATE_SCOPE));
+    // A lower bound stated as a literal count would restate the file; instead we
+    // only assert non-empty, and prove the parser's shape against a synthetic
+    // source below.
+    assert.ok(allowed.size > 0);
+    for (const p of allowed) assert.ok(p.startsWith(DATA_PREFIX), `unexpected allowed path ${p}`);
+  });
+
+  test('allowedPathsFrom extracts exactly the quoted paths in the Set literal', () => {
+    const source = "const ALLOWED_PATHS = new Set([\n  'web/src/data/x.json',\n  \"web/src/data/y.json\",\n]);\n";
+    assert.deepEqual([...allowedPathsFrom(source)].sort(), ['web/src/data/x.json', 'web/src/data/y.json']);
+  });
+
+  test('rawImportsFrom resolves ./ JSON specifiers and ignores non-JSON imports', () => {
+    const source = "import a from './a.json';\nimport b from './b.json';\nimport { z } from './helper.ts';\n";
+    assert.deepEqual([...rawImportsFrom(source)].sort(), ['web/src/data/a.json', 'web/src/data/b.json']);
+  });
+
+  test('both derivations fail closed rather than returning an empty set', () => {
+    assert.throws(() => allowedPathsFrom('const OTHER = 1;'), /no ALLOWED_PATHS/);
+    assert.throws(() => allowedPathsFrom('const ALLOWED_PATHS = new Set([]);'), /names no paths/);
+    assert.throws(() => rawImportsFrom('export const x = 1;'), /imports no \.json/);
+    assert.throws(() => readOrRefuse(join(REPO, 'no', 'such', 'file.xyz')), /cannot read/);
+  });
+});
