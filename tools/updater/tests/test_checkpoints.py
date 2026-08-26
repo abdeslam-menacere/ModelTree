@@ -17,6 +17,7 @@ from modeltree_updater.checkpoints import (
     create_checkpoint_storage,
     list_checkpoint_summaries,
     load_checkpoint,
+    recorded_creator_id,
     recorded_providers,
     recorded_version_marker,
 )
@@ -42,20 +43,16 @@ async def _list(storage):
 async def _stored_creator_id(storage, checkpoint_id):
     """The creator named by a checkpoint's stored messages, read independently.
 
-    This is the test-local reader #125 had to write to tell one checkpoint from
-    another. It is kept here deliberately: the summary is checked against a separate
-    reading of the same payload, so the multi-creator assertions below cannot pass by
-    agreeing with themselves.
+    The summary is checked against a separate reading of the same payload, so the
+    multi-creator assertions below cannot pass by agreeing with themselves. That
+    separate reading is the production rule itself (`checkpoints.recorded_creator_id`)
+    rather than a hand-copied variant of it: a copy that has drifted checks the copy,
+    not the property (issue #221).
     """
     checkpoint = await load_checkpoint(storage, checkpoint_id)
     if checkpoint is None:
         return None
-    for envelopes in (getattr(checkpoint, "messages", None) or {}).values():
-        for envelope in envelopes:
-            creator = getattr(getattr(envelope, "data", None), "creator", None)
-            if creator is not None:
-                return creator.creator_id
-    return None
+    return recorded_creator_id(checkpoint)
 
 
 async def _pending_budget_state(storage, checkpoint_id):
@@ -597,6 +594,93 @@ def test_a_checkpoint_with_no_creator_identity_lists_as_unknown() -> None:
     ]
     # Unknown, not absent: the key is there to be read either way.
     assert all("creator_id" in summary for summary in summaries)
+
+
+class _Env:
+    def __init__(self, data):
+        self.data = data
+
+
+class _Data:
+    def __init__(self, creator):
+        self.creator = creator
+
+
+class _Cr:
+    def __init__(self, creator_id):
+        self.creator_id = creator_id
+
+
+class _Cp:
+    def __init__(self, messages):
+        self.messages = messages
+
+
+def test_recorded_creator_id_skips_a_falsy_id_and_keeps_scanning() -> None:
+    """A checkpoint whose first envelope names a creator with an empty `creator_id`
+    and whose later envelope names a real one resolves to the real one.
+
+    This is the mutation the issue asks to pin: production tests the *id*
+    (`if creator_id:`) and scans past a falsy one, where the drifted test copy tested
+    the *creator* (`if creator is not None:`) and stopped on it, returning the empty
+    id. Reading `""` here instead of `"real"` is exactly that mutation, so this test
+    goes red against the mutant and against the old copies.
+    """
+    checkpoint = _Cp(
+        {"discover-sources": [_Env(_Data(_Cr("")))], "extract-claims": [_Env(_Data(_Cr("real")))]}
+    )
+    assert recorded_creator_id(checkpoint) == "real"
+
+    none_first = _Cp(
+        {"discover-sources": [_Env(_Data(_Cr(None)))], "extract-claims": [_Env(_Data(_Cr("real")))]}
+    )
+    assert recorded_creator_id(none_first) == "real"
+
+
+def test_recorded_creator_id_coerces_a_non_string_id_to_str() -> None:
+    """A non-string stored id is returned as `str`, so it compares equal to the
+    expected creator id rather than reading as an isolation bug."""
+    checkpoint = _Cp({"a": [_Env(_Data(_Cr(42)))]})
+    result = recorded_creator_id(checkpoint)
+    assert result == "42"
+    assert isinstance(result, str)
+
+
+def test_recorded_creator_id_tolerates_a_malformed_payload() -> None:
+    """A malformed creator payload returns `None` rather than raising, so one bad row
+    cannot take the listing down with it."""
+
+    class _NoCreatorAttr:
+        pass
+
+    assert recorded_creator_id(_Cp({"a": [_Env(_NoCreatorAttr())]})) is None
+    assert recorded_creator_id(_Cp({"a": [_Env(None)]})) is None
+    assert recorded_creator_id(_Cp(["not-a-mapping"])) is None
+    assert recorded_creator_id(_Cp({"a": None})) is None
+
+
+def test_recorded_creator_id_reads_the_messages_not_sibling_provenance_fields() -> None:
+    """A checkpoint carrying `sources`, `source_approvals` and `conflicts` that name a
+    different creator than its messages resolves to the messages' creator.
+
+    Real checkpoints carry all three fields; a genuine cross-creator leak would be one
+    where those fields belong to a different creator than the messages do. Production
+    reads the creator from the messages alone, so this pins that it is not swayed by
+    the sibling provenance fields — and that the fixtures now exercise the shape a leak
+    would actually take (issue #221, second finding).
+    """
+
+    class _OtherCreatorField:
+        creator_id = "impostor-ai"
+
+    checkpoint = _Cp({"extract-claims": [_Env(_Data(_Cr("real-ai")))]})
+    # Sibling provenance fields deliberately name a *different* creator than the
+    # messages do — the shape a real cross-creator leak would leave behind.
+    checkpoint.sources = [_OtherCreatorField()]
+    checkpoint.source_approvals = [_OtherCreatorField()]
+    checkpoint.conflicts = [_OtherCreatorField()]
+
+    assert recorded_creator_id(checkpoint) == "real-ai"
 
 
 def test_every_checkpoint_a_run_writes_names_the_build_that_wrote_it(
