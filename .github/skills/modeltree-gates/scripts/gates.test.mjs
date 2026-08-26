@@ -1093,7 +1093,9 @@ describe('gate-scope', () => {
     assert.equal(result.report.base, result.head, 'the anchor is the merge base, here HEAD');
     assert.equal(result.report.anchor.publishedRef, 'refs/remotes/origin/main');
     assert.equal(result.report.anchor.requestedBase, null);
-    assert.match(result.report.anchor.selectedBy, /merge-base of HEAD with refs\/remotes\/origin\/main/);
+    // Byte-identical to gate-source-approval.mjs's, because #168 is open on the
+    // absence of drift detection between the two and this is where drift starts.
+    assert.equal(result.report.anchor.selectedBy, 'merge-base with refs/remotes/origin/main');
   });
 
   // -------------------------------------------------------------------------
@@ -1111,6 +1113,70 @@ describe('gate-scope', () => {
     assert.equal(result.code, 2, `widening --base must exit 2, not pass:\n${result.stdout}`);
     assert.match(result.stdout, /is not an ancestor of the merge base/);
     assert.match(result.stdout, /may only narrow/);
+  });
+
+  // The rest of the widening set #167's review proved out by execution on
+  // `gate-source-approval.mjs`. Kept in step deliberately: #168 is open because
+  // nothing detects drift between the two gates, and a rejection this gate
+  // accepts while the other refuses is exactly that drift. Every one exits 2
+  // with no fallback - never 0, and never a quiet reversion to the merge base.
+  test('--base pointing at a post-merge-base commit that is not HEAD is refused', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      writeOutOfClass(dir);
+      git('add', '-A');
+      git('commit', '-qm', 'first branch commit');
+      const middle = git('rev-parse', 'HEAD').trim();
+      writeFileSync(join(dir, 'sneaky.mjs'), 'console.log(1)\n');
+      git('add', '-A');
+      git('commit', '-qm', 'second branch commit');
+      return gate('--base', middle);
+    });
+    assert.equal(result.code, 2, `a mid-branch commit must not become the anchor:\n${result.stdout}`);
+    assert.match(result.stdout, /is not an ancestor of the merge base/);
+  });
+
+  test('--base pointing at a tag on a branch commit is refused, not resolved past', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      writeOutOfClass(dir);
+      git('add', '-A');
+      git('commit', '-qm', 'out of class');
+      // An annotated tag: `^{commit}` peels it, so the check runs on the commit
+      // it names rather than being sidestepped by the object type.
+      git('tag', '-a', 'v-branch', '-m', 'tag on a branch commit');
+      return gate('--base', 'v-branch');
+    });
+    assert.equal(result.code, 2, `a tag naming a branch commit must not widen:\n${result.stdout}`);
+    assert.match(result.stdout, /is not an ancestor of the merge base/);
+  });
+
+  test('--base pointing at a sibling branch tip is refused', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      git('checkout', '-q', '-b', 'sibling');
+      writeFileSync(join(dir, 'sneaky.mjs'), 'console.log(1)\n');
+      git('add', '-A');
+      git('commit', '-qm', 'sibling work');
+      const siblingTip = git('rev-parse', 'HEAD').trim();
+      git('checkout', '-q', '-');
+      writeOutOfClass(dir);
+      git('add', '-A');
+      git('commit', '-qm', 'out of class');
+      return gate('--base', siblingTip);
+    });
+    assert.equal(result.code, 2, `a sibling tip is not inherited trust:\n${result.stdout}`);
+    assert.match(result.stdout, /is not an ancestor of the merge base/);
+  });
+
+  test('--base naming a ref that does not exist exits 2 rather than falling back', () => {
+    const result = withScratchRepo(({ dir, git, gate }) => {
+      writeOutOfClass(dir);
+      git('add', '-A');
+      git('commit', '-qm', 'out of class');
+      return gate('--base', 'no-such-ref');
+    });
+    // The dangerous shape would be falling back to the computed anchor and
+    // passing, or worse to the working tree. Neither: it refuses to run.
+    assert.equal(result.code, 2, `an unresolvable --base must not fall back:\n${result.stdout}`);
+    assert.match(result.stdout, /--base no-such-ref is not a commit in this repository/);
   });
 
   test('--base may pin an older reviewed commit, and still sees the later change', () => {

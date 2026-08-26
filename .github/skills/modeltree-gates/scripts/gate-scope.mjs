@@ -254,7 +254,7 @@ function main() {
       publishedRef: PUBLISHED_REF,
       publishedCommit: anchor.published,
       selectedBy: anchor.requested === null
-        ? `merge-base of HEAD with ${PUBLISHED_REF}`
+        ? `merge-base with ${PUBLISHED_REF}`
         : `--base ${anchor.requested}, narrowed from the merge-base with ${PUBLISHED_REF}`,
       requestedBase: anchor.requested,
     },
