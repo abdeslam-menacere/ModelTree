@@ -137,7 +137,19 @@ core of the product.
   such as `--as` is also accepted is what `drydock gate --help` reports, so do
   not assume an unrecognised flag is harmless.) It is only worth
   something if the reviewer and QA agents never saw the developer's summary or
-  session — issue text and `git diff` only. Do not review your own work.
+  session — issue text and `git diff` only. That diff is the whole branch
+  against its computed merge-base, never a single commit: measure scope as
+  `git diff --stat <merge-base>...<tip>`, with the merge-base computed as
+  `git merge-base HEAD refs/remotes/origin/main` and never supplied. `git show`
+  reads one commit, so it is never a scope check on a branch — it can only
+  under-report, silently, and that it agrees with the branch diff on a
+  one-commit branch does not make it a check on any branch with more. This is
+  not a discipline the reviewer path invents: the scripted gates already anchor
+  the same way, and
+  `.github/skills/modeltree-gates/scripts/gate-scope.mjs` computes this
+  merge-base itself rather than trusting a supplied base — read it rather than
+  restating its algorithm here, so the two cannot drift. Do not review your own
+  work.
 
 ## Finishing
 

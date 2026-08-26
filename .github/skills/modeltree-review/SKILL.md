@@ -13,6 +13,20 @@ You are the panel chair. You launch the reviewers, collect verdicts, and write
 them into the bundle. **You do not vote, and you do not overrule.** A claim you
 personally find obvious still needs three verdicts.
 
+## Measuring the change under review
+
+Before any rubric, be sure what you are reviewing. A branch is the diff from its
+merge-base to its tip, not a single commit. Measure scope as
+`git diff --stat <merge-base>...<tip>`, with the merge-base computed as
+`git merge-base HEAD refs/remotes/origin/main` and never supplied. Never reach
+for `git show` here: it reads one commit, so on a branch with more than one it
+under-reports silently — showing you a subset and telling you nothing is missing
+— and the fact that it agrees with the branch diff when there is exactly one
+commit does not make it a check on any branch with more. The scripted gates
+already anchor exactly this way; `.github/skills/modeltree-gates/scripts/gate-scope.mjs`
+computes this merge-base itself rather than trusting a supplied base, and this
+path must not diverge from it.
+
 ## Independence is the product
 
 The 2-of-3 majority is worth exactly as much as the independence behind it, and
