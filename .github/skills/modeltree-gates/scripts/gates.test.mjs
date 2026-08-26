@@ -26,9 +26,61 @@ const GATE_EVIDENCE = join(HERE, 'gate-evidence.mjs');
 const GATE_SCOPE = join(HERE, 'gate-scope.mjs');
 const GATE_SOURCE_APPROVAL = join(HERE, 'gate-source-approval.mjs');
 
-// A date the fixtures are anchored to, so a passing suite today still passes in
-// a year. Real "today" is never used: these tests would then drift.
+// ---------------------------------------------------------------------------
+// Two clocks, and which tests may use which (#318)
+//
+// A gate that reads dates has to be told what "today" is, and the honest answer
+// differs between a fixture and the live dataset. Both kinds live in this file,
+// so the rule is written here rather than left to be inferred per test.
+//
+// PINNED (`TODAY`) -- every fixture test, meaning everything from the
+// `gate-evidence` block down. A fixture's dates are literals written next to the
+// assertion, so anchoring them to a fixed day is what makes a suite that passes
+// today still pass in a year. Real "today" is never used there: those tests
+// would then drift.
+//
+// REAL (no `--today` at all) -- the `gate-dataset` block, which gates the *live*
+// repository dataset, directly or through a mutated copy. Its dates are claims
+// about the real world, and "no record is dated after today" is a claim only the
+// real clock can settle. Omitting the flag lets `gate-dataset.mjs` use its own
+// clock, which is also the code path `node gate-dataset.mjs` takes in CI, so
+// there is no second clock here that could disagree with the gate's.
+//
+// Pinning a day for the live data is exactly what turned main red in #318: the
+// 2026-08-26 refresh landed, a frozen 2026-08-25 read it as the future, and
+// every data refresh thereafter would have needed a correlated edit to this
+// file. Do not re-merge the two clocks.
+//
+// Rejected alternative: derive the live clock from the data, e.g. the maximum
+// `verifiedAt` present. It cannot drift, which is the appeal, but it is
+// self-fulfilling -- the maximum date present is by construction never after
+// itself, so the future-date rule could no longer fail on the live data at all.
+// That rule catches a real thing (a refresh writing tomorrow's date, a machine
+// with a skewed clock), so deriving the clock would have bought a green suite by
+// giving up a live check.
+//
+// The cost accepted instead is that the live-dataset tests' verdict depends on
+// the wall clock. That is the correct dependency rather than drift: drift is
+// when an assertion's *meaning* changes as the clock moves, and here the meaning
+// is fixed while only its referent moves -- which is the rule itself.
+//
+// A test that simulates some *other* day passes it explicitly via
+// `gateDatasetAt`, so a supplied clock in this file always means "a day being
+// simulated on purpose", never "today".
+// ---------------------------------------------------------------------------
+
+/** The pinned clock. Fixtures only -- never aim this at the live dataset. */
 const TODAY = '2026-08-25';
+
+/** The real clock, in the same UTC form `gate-dataset.mjs` computes for itself. */
+function realToday() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** `days` after `date` (negative for before), as YYYY-MM-DD. */
+function shiftDays(date, days) {
+  return new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+}
 
 function run(script, args) {
   try {
@@ -40,18 +92,62 @@ function run(script, args) {
   }
 }
 
-/** A scratch copy of the real dataset, mutated by `edit`, then gated. */
+/**
+ * A scratch copy of the real dataset, mutated by `edit`, then gated on the real
+ * clock. The copy is still the live data, so its dates are still claims about
+ * the real world; see the clock note above. Use `gateDatasetAt` when a test
+ * means to simulate a particular day.
+ */
 function gateMutatedDataset(edit) {
+  return gateDatasetCopy(edit, []);
+}
+
+/**
+ * As `gateMutatedDataset`, but judged on a stated day. Only for tests that
+ * simulate a specific date on purpose -- never as a stand-in for "today".
+ */
+function gateDatasetAt(today, edit) {
+  return gateDatasetCopy(edit, ['--today', today]);
+}
+
+function gateDatasetCopy(edit, clockArgs) {
   const dir = mkdtempSync(join(tmpdir(), 'modeltree-gate-'));
   try {
     cpSync(DATA, dir, { recursive: true });
     const read = (file) => JSON.parse(readFileSync(join(dir, file), 'utf8'));
     const write = (file, value) => writeFileSync(join(dir, file), JSON.stringify(value, null, 2));
     edit({ read, write });
-    return run(GATE_DATASET, ['--data', dir, '--today', TODAY, '--json']);
+    return run(GATE_DATASET, ['--data', dir, ...clockArgs, '--json']);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+}
+
+/**
+ * Every document `gate-dataset.mjs` loads. Named once because two tests need the
+ * whole set, and a second hand-written copy of a list another file owns is the
+ * defect class #276 closed.
+ */
+const DATASET_DOCUMENTS = [
+  'sources.json', 'publishers.json', 'organizations.json', 'families.json',
+  'releases.json', 'usage-observations.json', 'usage-syntheses.json',
+  'model-fit-statements.json', 'model-fit-evidence-gaps.json',
+];
+
+/**
+ * `entry` as a refresh dated `day` would leave it: the fields a refresh rewrites
+ * move to that day, and nothing else does. `releaseDate` and `publishedDate` are
+ * facts about the past, so moving them would test a dataset no refresh produces.
+ */
+function reverified(entry, day) {
+  const moved = { ...entry };
+  for (const field of ['verifiedAt', 'lastCheckedDate']) {
+    if (moved[field] !== undefined) moved[field] = day;
+  }
+  if (moved.control && moved.control.verifiedAt !== undefined) {
+    moved.control = { ...moved.control, verifiedAt: day };
+  }
+  return moved;
 }
 
 /** Asserts the gate failed, and failed for the stated reason rather than any reason. */
@@ -76,8 +172,18 @@ function assertFailed(result, gate, fragment) {
 
 describe('gate-dataset', () => {
   test('the repository dataset passes as it stands', () => {
-    const result = run(GATE_DATASET, ['--data', DATA, '--today', TODAY, '--json']);
+    // No `--today`: the live dataset is judged on the gate's own clock. The
+    // sampled comparison below is the guard against this quietly being re-pinned
+    // -- a frozen constant here passes only until the data moves past it, which
+    // is #318. A one-day slip either side absorbs the UTC midnight race between
+    // this sample and the gate's own `new Date()`.
+    const sampled = realToday();
+    const result = run(GATE_DATASET, ['--data', DATA, '--json']);
     const report = JSON.parse(result.stdout);
+    assert.ok(
+      [shiftDays(sampled, -1), sampled, shiftDays(sampled, 1)].includes(report.today),
+      `the live dataset must be gated on the real clock, but ran at "${report.today}" against a real ${sampled}`,
+    );
     assert.deepEqual(report.failures, [], 'the live dataset must pass its own gates');
     assert.equal(result.code, 0);
     assert.ok(report.counts.releases > 0, 'the fixture-free dataset should not be empty');
@@ -85,6 +191,36 @@ describe('gate-dataset', () => {
 
   test('an unchanged copy of the dataset also passes, so the harness itself is honest', () => {
     const result = gateMutatedDataset(() => {});
+    assert.equal(result.code, 0, result.stdout);
+  });
+
+  // #318 in one assertion: a record verified *today* is not the future. The
+  // pinned clock failed exactly here the morning after a refresh landed, so this
+  // is the regression guard rather than a restatement of the test above -- that
+  // one passes whenever the data happens to be older than the pin, this one only
+  // when the boundary itself is right.
+  test('a record verified today is accepted rather than read as the future', () => {
+    const today = realToday();
+    const result = gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      releases[0].verifiedAt = today;
+      write('releases.json', releases);
+    });
+    assert.equal(result.code, 0, result.stdout);
+  });
+
+  // The other half of #318: the suite has to survive the *next* refresh, not
+  // just today's. A refresh dated later only exists on a later day, so this moves
+  // the data and the clock together -- moving the data alone would be a genuinely
+  // future-dated dataset, which must stay refused (proved below). Every date here
+  // is computed from the real clock, so nothing in this test can expire.
+  test('a dataset refreshed on a later day still passes, so no ceiling is pinned', () => {
+    const laterDay = shiftDays(realToday(), 400);
+    const result = gateDatasetAt(laterDay, ({ read, write }) => {
+      for (const file of DATASET_DOCUMENTS) {
+        write(file, read(file).map((entry) => reverified(entry, laterDay)));
+      }
+    });
     assert.equal(result.code, 0, result.stdout);
   });
 
@@ -97,11 +233,7 @@ describe('gate-dataset', () => {
   // the gate itself produces.
   test('a wholesale-empty dataset is refused rather than reported as coherent', () => {
     const result = gateMutatedDataset(({ write }) => {
-      for (const file of [
-        'sources.json', 'publishers.json', 'organizations.json', 'families.json',
-        'releases.json', 'usage-observations.json', 'usage-syntheses.json',
-        'model-fit-statements.json', 'model-fit-evidence-gaps.json',
-      ]) {
+      for (const file of DATASET_DOCUMENTS) {
         write(file, []);
       }
     });
@@ -141,9 +273,14 @@ describe('gate-dataset', () => {
   });
 
   test('a verification date in the future is caught', () => {
+    // Computed from the real clock, not written as a literal: under the live
+    // clock a fixed date stops being "the future" the moment it arrives, so
+    // `2027-01-01` would have quietly stopped testing anything in 2027. The
+    // wide margin also clears the UTC midnight race with the gate's own clock.
+    const future = shiftDays(realToday(), 366);
     const result = gateMutatedDataset(({ read, write }) => {
       const releases = read('releases.json');
-      releases[0].verifiedAt = '2027-01-01';
+      releases[0].verifiedAt = future;
       write('releases.json', releases);
     });
     assertFailed(result, 'dates', 'is in the future');
@@ -260,7 +397,7 @@ describe('gate-dataset', () => {
     try {
       cpSync(DATA, dir, { recursive: true });
       writeFileSync(join(dir, 'releases.json'), '{not json');
-      const result = run(GATE_DATASET, ['--data', dir, '--today', TODAY, '--json']);
+      const result = run(GATE_DATASET, ['--data', dir, '--json']);
       assertFailed(result, 'well-formed', 'not valid JSON');
     } finally {
       rmSync(dir, { recursive: true, force: true });
