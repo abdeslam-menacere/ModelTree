@@ -4,9 +4,12 @@
 // dataset coherent", this asks "was this claim actually established".
 //
 // It is the mechanical half of the source policy: it cannot judge whether a
-// quote supports a claim, but it can refuse a claim that has no quote, no
-// fetched page, no hash, or a review that never reached a majority. Search
-// snippets are refused here, by contract, rather than by anyone remembering.
+// quote supports a claim, nor whether anyone ever visited the cited url, but it
+// can refuse a claim that has no quote, a `retrieval` field that does not say
+// `fetch`, a malformed hash, or a review that never reached a majority. Those
+// are checks on the form of what the producer declared, never on remote content
+// -- see ADR 0005. Search snippets are refused here, by contract, rather than
+// by anyone remembering.
 //
 // Usage:
 //   node gate-evidence.mjs --claims <path> [--today YYYY-MM-DD] [--repo <dir>] [--json]
@@ -212,7 +215,7 @@ function startOf(value) {
 }
 
 // ---------------------------------------------------------------------------
-// Gate: the evidence behind a claim was actually retrieved.
+// Gate: the evidence behind a claim is well-formed and declares a fetch.
 // ---------------------------------------------------------------------------
 function gateEvidence(claim, today) {
   const where = `claim:${claim.id}`;
@@ -233,7 +236,9 @@ function gateEvidence(claim, today) {
 
     // The single most important rule in this file. A search result is a pointer
     // to a source, never the source. #59 states it as policy; here it is a
-    // field that must say `fetch` and a hash that proves something was read.
+    // field that must say `fetch` and a hash that must be well-formed. Both are
+    // values the producer declared, so their form is all this gate can check:
+    // well-formedness is not evidence of correspondence (ADR 0005).
     if (item.retrieval !== 'fetch') {
       fail(
         'evidence',
@@ -264,7 +269,7 @@ function gateEvidence(claim, today) {
     if (typeof item.contentHash !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(item.contentHash)) {
       fail(
         'evidence',
-        `contentHash "${item.contentHash ?? 'missing'}" is not a sha256:<64 hex> digest of the fetched page`,
+        `contentHash "${item.contentHash ?? 'missing'}" is not shaped sha256:<64 hex> - this gate checks that shape only, never correspondence to the cited url`,
         at,
       );
     }

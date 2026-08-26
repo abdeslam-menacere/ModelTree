@@ -363,7 +363,7 @@ describe('gate-evidence', () => {
     const evidence = { ...claim().evidence[0] };
     delete evidence.contentHash;
     const result = gateBundle({ policy: 'pilot', claims: [claim({ evidence: [evidence] })] });
-    assertFailed(result, 'evidence', 'digest of the fetched page');
+    assertFailed(result, 'evidence', 'is not shaped sha256:<64 hex>');
   });
 
   test('a hash that is not a sha256 digest is refused', () => {
@@ -371,7 +371,7 @@ describe('gate-evidence', () => {
       policy: 'pilot',
       claims: [claim({ evidence: [{ ...claim().evidence[0], contentHash: 'sha256:short' }] })],
     });
-    assertFailed(result, 'evidence', 'digest of the fetched page');
+    assertFailed(result, 'evidence', 'is not shaped sha256:<64 hex>');
   });
 
   test('a quote too short to show the source stating the claim is refused', () => {
@@ -1854,5 +1854,99 @@ describe('gate-scope ALLOWED_PATHS mirrors raw.ts', () => {
     assert.throws(() => allowedPathsFrom('const ALLOWED_PATHS = new Set([]);'), /names no paths/);
     assert.throws(() => rawImportsFrom('export const x = 1;'), /imports no \.json/);
     assert.throws(() => readOrRefuse(join(REPO, 'no', 'such', 'file.xyz')), /cannot read/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ADR 0005 Decision item 2: the gate makes no claim, "in code comments,
+// messages, or documentation", that it verifies the hash is the hash of the
+// cited page or that the quote appears there. Three of the four instances #278
+// removed were code comments, so a test that inspected only refusal output
+// would have missed them; the scan below is over the script's whole source.
+//
+// The vocabulary is chosen to be *presupposing*: each pattern asserts that a
+// retrieval happened, or asserts correspondence between a hash and a page, and
+// none can appear in an honest disclaimer without rewording. That is a
+// deliberate cost. A disclaimer in this file must say what the gate does not do
+// without borrowing the phrasing that does the overclaiming -- writing "never
+// that a page was retrieved" trips the same wire as claiming it, because a
+// substring scan cannot read negation.
+// ---------------------------------------------------------------------------
+describe('gate-evidence claims no retrieval it cannot perform (ADR 0005)', () => {
+  const OVERCLAIMS = [
+    { label: 'names a page as fetched/retrieved/downloaded', re: /\b(fetched|retrieved|downloaded)\s+page\b/i },
+    { label: 'claims something was actually fetched/read/retrieved', re: /\bactually\s+(fetched|read|retrieved|downloaded)\b/i },
+    { label: 'claims a check proves a retrieval happened', re: /\bprove[sdn]?\b[^.\n]{0,60}\b(read|fetched|retrieved|downloaded)\b/i },
+    { label: 'claims the hash corresponds to the page', re: /\b(hash|digest)\s+of\s+the\s+(\w+\s+){0,2}page\b/i },
+  ];
+
+  function matchOverclaims(text) {
+    return OVERCLAIMS.filter(({ re }) => re.test(text)).map(({ label }) => label);
+  }
+
+  // The exact strings #278 removed, kept as negative fixtures. They prove the
+  // patterns are capable of firing, so a clean scan is evidence the file is
+  // clean rather than evidence the patterns match nothing anywhere. Each also
+  // pins one historical regression against silent reintroduction.
+  const REMOVED_BY_278 = [
+    '// fetched page, no hash, or a review that never reached a majority. Search',
+    '// Gate: the evidence behind a claim was actually retrieved.',
+    '// field that must say `fetch` and a hash that proves something was read.',
+    '`contentHash "${item.contentHash}" is not a sha256:<64 hex> digest of the fetched page`',
+  ];
+
+  test('every removed overclaim is still detected, so the scan is not vacuous', () => {
+    for (const fixture of REMOVED_BY_278) {
+      assert.ok(
+        matchOverclaims(fixture).length > 0,
+        `no pattern detects the overclaim: ${fixture}`,
+      );
+    }
+  });
+
+  test('honest descriptions of the same checks are not flagged', () => {
+    // Guards the patterns against being so broad that conforming text cannot be
+    // written: these are the shapes the corrected file actually uses.
+    const honest = [
+      'a field that must say `fetch` and a hash that must be well-formed',
+      'contentHash is not shaped sha256:<64 hex> - this gate checks that shape only',
+      'it cannot judge whether a quote supports a claim, nor whether anyone ever visited the cited url',
+      'fetchedAt "2026-01-01" is not a real YYYY-MM-DD date',
+      'retrieval is "search-snippet", but only "fetch" is admissible',
+      'the reviewed-profile set is read from disk, not taken from the bundle',
+    ];
+    for (const text of honest) {
+      assert.deepEqual(matchOverclaims(text), [], `honest text was flagged: ${text}`);
+    }
+  });
+
+  test('the gate-evidence source makes no remote-content claim', () => {
+    const source = readFileSync(GATE_EVIDENCE, 'utf8');
+    assert.ok(source.length > 0, 'gate-evidence.mjs is empty');
+    const offenders = source
+      .split('\n')
+      .map((line, index) => ({ line, number: index + 1, labels: matchOverclaims(line) }))
+      .filter((entry) => entry.labels.length > 0);
+    assert.deepEqual(
+      offenders.map((o) => `${o.number}: ${o.line.trim()} [${o.labels.join('; ')}]`),
+      [],
+      'gate-evidence.mjs claims a retrieval or correspondence it never establishes (ADR 0005)',
+    );
+  });
+
+  // The #155/#261 pattern applied to this vocabulary: the refusal an operator
+  // actually sees must not describe a fetch that never happened.
+  test('the contentHash refusal describes only what was checked', () => {
+    const evidence = { ...claim().evidence[0] };
+    delete evidence.contentHash;
+    const result = gateBundle({ policy: 'pilot', claims: [claim({ evidence: [evidence] })] });
+    assert.equal(result.code, 1, result.stdout);
+    const messages = JSON.parse(result.stdout).failures
+      .filter((failure) => failure.gate === 'evidence')
+      .map((failure) => failure.message);
+    assert.ok(messages.length > 0, 'expected an evidence failure');
+    for (const message of messages) {
+      assert.deepEqual(matchOverclaims(message), [], `refusal overclaims: ${message}`);
+    }
   });
 });
