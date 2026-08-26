@@ -163,6 +163,24 @@ One file outside that list disqualifies the whole change — there is no partial
 case and no flag that relaxes it. It sees untracked files too, so a new file
 cannot slip past by never being added.
 
+It measures that change from a commit **it computes rather than one you pass**:
+`git merge-base HEAD refs/remotes/origin/main`, the point this branch left
+published history. Everything committed since that point and everything still in
+the working tree is judged together, so gating before you commit and gating after
+give the same verdict, and the bare invocation above is correct at either moment.
+`--base` may only *narrow* to an ancestor of that merge base — useful for
+re-gating an older bundle, refused with exit 2 for anything this branch authored,
+`HEAD` included. This is the same anchor, resolved the same way, as
+`gate-source-approval.mjs`; if you change one, change both.
+
+Exit 0 therefore has two readings and they are not the same claim: every changed
+path is a dataset document, **or** there was no change to judge. `--json` reports
+`changed` and `empty` so a caller can tell them apart. An anchor that cannot be
+resolved — no `refs/remotes/origin/main` in a shallow or single-branch clone, or
+a `HEAD` sharing no history with it — is exit 2, never a pass. A stale
+`refs/remotes/origin/main` only moves the anchor backwards, which widens the diff
+and can only add refusals.
+
 A refresh that trips this gate has not failed. It has correctly discovered work
 for a human: stop, and file an issue describing what it needed and why.
 
