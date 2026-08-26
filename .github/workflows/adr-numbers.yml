@@ -1,0 +1,58 @@
+name: ADR numbers
+
+# Refuses two files under docs/adr/ that claim the same four-digit number.
+#
+# Git compares paths, so `0003-one-title.md` and `0003-another-title.md` do not
+# touch and both merge clean -- which is how #145 and #146 nearly left two
+# contradictory ADR 0003s on main with no signal. "ADR 0003" then stops being a
+# unique reference, and an agent told to follow it finds two documents and no way
+# to tell which governs. The existing instruction-references check does not cover
+# this: it asserts a citation resolves, and both files exist, so both resolve.
+#
+# The checker is standard library only, so this job installs nothing and reaches
+# no network. It is path-filtered, and therefore reports no check at all on a
+# pull request that does not touch docs/adr/: it must not be added to branch
+# protection, because a required check that never reports leaves a pull request
+# pending forever. See .github/workflows/README.md.
+
+on:
+  pull_request:
+    paths:
+      - 'docs/adr/**'
+      - 'tools/adr_numbers/**'
+      - '.github/workflows/adr-numbers.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/adr/**'
+      - 'tools/adr_numbers/**'
+      - '.github/workflows/adr-numbers.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  adr-numbers:
+    name: adr-numbers
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # No arguments: the default target is docs/adr, so the job cannot be
+      # pointed at an emptier directory than the real one.
+      - name: Check that no two ADRs claim the same number
+        run: python tools/adr_numbers/check_adr_numbers.py

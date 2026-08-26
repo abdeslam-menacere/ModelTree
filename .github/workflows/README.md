@@ -9,8 +9,9 @@ the right ones.
 | Workflow | Triggers | Covers |
 |---|---|---|
 | [`web-ci.yml`](web-ci.yml) | `pull_request` (every one), `workflow_dispatch` | Validates and builds the Astro site under `web/` |
-| [`updater-tests.yml`](updater-tests.yml) | `pull_request` and `push` to `main`, path-filtered to `tools/updater/**` and `tools/instruction_refs/**` | The updater's pytest suite, which is also where this repository's stdlib-Python invariants are asserted |
+| [`updater-tests.yml`](updater-tests.yml) | `pull_request` and `push` to `main`, path-filtered to `tools/updater/**`, `tools/instruction_refs/**`, `tools/adr_numbers/**` and `docs/adr/**` | The updater's pytest suite, which is also where this repository's stdlib-Python invariants are asserted |
 | [`instruction-references.yml`](instruction-references.yml) | `pull_request` and `push` to `main`, path-filtered to `.github/copilot-instructions.md` and `tools/instruction_refs/**`, `workflow_dispatch` | Resolves every path, issue citation, and section marker in the instructions file |
+| [`adr-numbers.yml`](adr-numbers.yml) | `pull_request` and `push` to `main`, path-filtered to `docs/adr/**` and `tools/adr_numbers/**`, `workflow_dispatch` | Refuses two decision records under `docs/adr/` that claim the same four-digit number |
 | [`pages.yml`](pages.yml) | `push` to `main`, `workflow_dispatch` | Builds and deploys the site, reports a failed deploy, and resolves that report when the deploy recovers |
 | [`publish-updater-proposals.yml`](publish-updater-proposals.yml) | `workflow_dispatch` only | Files creator proposals as issues |
 
@@ -27,6 +28,7 @@ satisfied, because GitHub waits for a check that no longer reports.
 | `pytest (Python 3.11)` | `updater-tests.yml` | No — see below |
 | `pytest (Python 3.13)` | `updater-tests.yml` | No — see below |
 | `instruction-references` | `instruction-references.yml` | No — see below |
+| `adr-numbers` | `adr-numbers.yml` | No — see below |
 
 ### Why `web-ci` is safe to require
 
@@ -48,10 +50,10 @@ no `strategy.matrix`, so the reported name never varies per leg or per run.
 ### Why the `pytest` checks are not
 
 `updater-tests.yml` is path-filtered to `tools/updater/**` (and to
-`tools/instruction_refs/**`, whose behaviour the suite asserts), so it reports
-nothing on a pull request confined to `web/`. Requiring either leg would block
-every web change indefinitely. Its names also carry the Python version, so adding
-or dropping a version changes them.
+`tools/instruction_refs/**`, `tools/adr_numbers/**` and `docs/adr/**`, whose
+behaviour the suite asserts), so it reports nothing on a pull request confined to
+`web/`. Requiring either leg would block every web change indefinitely. Its names
+also carry the Python version, so adding or dropping a version changes them.
 
 ### Nor is `instruction-references`
 
@@ -66,6 +68,23 @@ only, so the whole job is a checkout, a Python, and one command. It takes no
 arguments, so it always resolves the governing file and cannot be pointed at
 something easier, and it has no `--skip` or `--force`. A genuine exception
 belongs in branch protection, where it is auditable.
+
+### Nor is `adr-numbers`
+
+The same trap again: `adr-numbers.yml` is path-filtered to `docs/adr/**`, and
+decision records change rarely, so it reports no check on almost every pull
+request. Making it required is issue #169 and needs the repository owner, because
+requiring a check that does not report is what deadlocks a pull request — not
+something this workflow can decide for itself.
+
+It is built to the same shape as `instruction-references`: standard library only,
+so the job is a checkout, a Python, and one command; no arguments, so it always
+examines `docs/adr/` and cannot be aimed at an emptier directory; and no `--skip`
+or `--force`. It fails when two files under `docs/adr/` share a leading
+four-digit number, naming both paths and the number. Gaps and ordering are out of
+scope — two pull requests each adding the next ADR would collide by construction
+under a contiguity rule, and a check that fires on correct work gets worked
+around rather than fixed.
 
 ### `drydock-gates` does not exist
 
@@ -85,8 +104,9 @@ start from a wider default. Write scopes are granted per job, never globally:
 | `pages.yml` → `report-recovery` | `issues: write` | Close the stale-site issue once a deploy succeeds |
 | `publish-updater-proposals.yml` → `publish` | `issues: write`, `id-token: write` | Write proposal issues; sign in with workload identity |
 
-`web-ci.yml`, `updater-tests.yml` and `instruction-references.yml` hold no write
-scope at all. Nothing in this directory can write repository content.
+`web-ci.yml`, `updater-tests.yml`, `instruction-references.yml` and
+`adr-numbers.yml` hold no write scope at all. Nothing in this directory can write
+repository content.
 
 ## A failed deploy is not a broken site
 
@@ -129,3 +149,9 @@ branch genuinely deploys that branch, and that must not resolve an alert about
 scope step matches, the stable job name, and the permission model. It runs as
 part of `npm run validate` from `web/`. If you change one of those properties on
 purpose, update the test and this file in the same change.
+
+`tools/updater/tests/test_adr_numbers.py` does the same job for `adr-numbers.yml`
+— its path filters, its job name, its permission model, and that it invokes the
+checker with no arguments. It also asserts `push.branches` is exactly `[main]`,
+because verifying a new workflow before it reaches `main` means adding a branch
+to that list for a commit, and a leftover entry is a trigger nobody expects.
