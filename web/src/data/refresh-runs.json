@@ -1,5 +1,835 @@
 [
   {
+    "id": "2026-08-27-ab1644",
+    "title": "Data refresh 2026-08-27",
+    "ranOn": "2026-08-27",
+    "outcome": "published",
+    "summary": "An agent-run, source-backed refresh under ADR 0003. Five scouts fetched and hashed 130 primary pages and proposed 104 claims; twelve blind reviewers cast 312 verdicts across three rubrics; six deterministic gates passed; 35 edits landed across four dataset documents and GitHub Pages deployed successfully. 51 claims were dropped, most of them to one scout-side fault that proposed new sources without the paired citation edit. No human reviewed any part of it.",
+    "scope": "Every creator in organizations.json, plus the long-tail profile sweep",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Clean tree, gh authenticated, no unmerged pull request from a previous refresh."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "Five bundles, one per creator profile plus a long-tail sweep. 130 page snapshots hashed. openai.com/news/ returned 403 and the RSS feed was used instead; ai.meta.com/blog/ returned 400; docs.anthropic.com now redirects to platform.claude.com."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Twelve reviewers, three rubrics over four bundles. The long-tail bundle had no claims to review. No threshold was lowered and no reviewer was re-run."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-evidence, gate-source-approval and check-bundle-pairing before applying anything; gate-dataset, npm run validate, and gate-scope after. The coupled drop set was iterated to a fixpoint over 3 passes."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "PR #417 opened with the full evidence trail across the body and two comments, and merged by GitHub on a green web-ci."
+      },
+      {
+        "stage": "deploy",
+        "status": "ran",
+        "note": "Pages deployed main @ 547691a successfully; the live site serves the new entities. No revert needed."
+      }
+    ],
+    "found": {
+      "scouts": 5,
+      "pagesFetched": 130,
+      "claimsProposed": 104,
+      "bundles": [
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 26
+        },
+        {
+          "creator": "anthropic",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 24
+        },
+        {
+          "creator": "google-deepmind",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 22
+        },
+        {
+          "creator": "meta",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 32
+        },
+        {
+          "creator": "long-tail sweep",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "add",
+          "count": 74,
+          "effect": "Proposed new records; 30 survived every stage."
+        },
+        {
+          "kind": "change",
+          "count": 8,
+          "effect": "Field corrections; 5 survived every stage."
+        },
+        {
+          "kind": "unchanged",
+          "count": 20,
+          "effect": "Re-verified against a primary source; no value changed. 11 records had verifiedAt moved forward."
+        },
+        {
+          "kind": "conflict",
+          "count": 2,
+          "effect": "Primary sources disagree; both sides recorded, no value changed. Neither reached the dataset."
+        }
+      ],
+      "notCovered": [
+        "Any creator outside the four pilot profiles and the long-tail catalogue.",
+        "openai.com/news/ returns 403 to this client; the RSS feed was read instead, so anything on the news pages but absent from the feed was not seen.",
+        "ai.meta.com/blog/ returns 400 to this client and was not read.",
+        "The OpenAI page budget was exhausted at 40 pages, so its catalogue was not read to the end.",
+        "The long-tail sweep returned zero claims. That is an honest zero, not a skipped stage — it was gated like every other bundle."
+      ]
+    },
+    "evaluated": {
+      "reviewers": 12,
+      "verdictsCast": 312,
+      "acceptedByPanel": 83,
+      "rejectedByPanel": 21,
+      "dissents": [
+        {
+          "claimId": "openai-gpt-5-1-family-add",
+          "rubric": "provenance",
+          "objection": "The RSS quote states GPT-5.1 was introduced for developers on 2025-11-13 and the docs quote states coding/agentic use and token limits, but no quote states the proposed family status \"legacy\" or the multimodal category. The proposed record therefore states more than the evidence quotes do."
+        },
+        {
+          "claimId": "openai-gpt-5-2-family-add",
+          "rubric": "provenance",
+          "objection": "The RSS quote states \"Introducing GPT-5.2\" with a 2025-12-11 pubDate, and the docs quote calls it a previous frontier model. No quote states the proposed family status \"legacy\" as a status value, so the record goes beyond the quoted evidence."
+        },
+        {
+          "claimId": "openai-gpt-5-3-codex-family-add",
+          "rubric": "provenance",
+          "objection": "The RSS quote gives the GPT-5.3-Codex introduction and date, and the docs quote says it is optimized for agentic coding. No quote states the proposed family status \"current\", so the proposed record adds an unstated field."
+        },
+        {
+          "claimId": "openai-gpt-image-family-add",
+          "rubric": "provenance",
+          "objection": "The dated announcement quote names \"ChatGPT Images 2.0\", not GPT-Image or GPT-Image-2. The GPT Image 2 docs quote states image generation/editing but not the 2026-04-21 introduction date for that entity."
+        },
+        {
+          "claimId": "anthropic-claude-4-6-family",
+          "rubric": "provenance",
+          "objection": "The quotes name Claude Opus 4.6 and Claude Sonnet 4.6 and describe their capabilities. They do not state a \"Claude 4.6\" generation family, the 2026-02-05 firstReleaseDate for that family, or its status."
+        },
+        {
+          "claimId": "anthropic-claude-4-7-family",
+          "rubric": "provenance",
+          "objection": "The quote states Opus 4.7 improves on Opus 4.6 in advanced software engineering. It does not state a broader \"Claude 4.7\" family, the proposed firstReleaseDate, or the status field."
+        },
+        {
+          "claimId": "anthropic-claude-4-8-family",
+          "rubric": "provenance",
+          "objection": "The quote states Anthropic is upgrading Claude Opus to Claude Opus 4.8. It does not state a broader \"Claude 4.8\" generation family, its firstReleaseDate, or its status."
+        },
+        {
+          "claimId": "meta-llama-4-maverick-original-source",
+          "rubric": "provenance",
+          "objection": "The quote says the repository contains original checkpoints for Meta's llama-stack codebase. It does not name meta-llama/Llama-4-Maverick-17B-128E-Instruct-Original, so the source title is not stated by the quote alone."
+        },
+        {
+          "claimId": "meta-llama-3-2-1b-release",
+          "rubric": "provenance",
+          "objection": "The quotes state Llama 3.2 1B details, 1.23B parameters, 128k context, release date, and the Llama 3.2 license title. No quote states the proposed \"legacy\" status or the downloadable/OSI license fields."
+        },
+        {
+          "claimId": "meta-llama-3-2-3b-release",
+          "rubric": "provenance",
+          "objection": "The quotes state Llama 3.2 3B details, 3.21B parameters, release date, and the Llama 3.2 license title. No quote states the proposed 128,000-token context window for this 3B claim or the \"legacy\" status."
+        },
+        {
+          "claimId": "meta-llama-3-2-11b-vision-release",
+          "rubric": "provenance",
+          "objection": "The quotes state Llama 3.2 Vision 11B details, 10.6B parameters, 128k context, release date, and the license title. No quote states the proposed \"legacy\" status or the downloadable/OSI license fields."
+        },
+        {
+          "claimId": "meta-llama-3-2-90b-vision-release",
+          "rubric": "provenance",
+          "objection": "The quotes state Llama 3.2 Vision 90B details, 88.8B parameters, 128k context, release date, and the license title. No quote states the proposed \"legacy\" status or the downloadable/OSI license fields."
+        },
+        {
+          "claimId": "meta-llama-4-maverick-api-aliases",
+          "rubric": "provenance",
+          "objection": "The first quote names meta-llama/Llama-4-Maverick-17B-128E, but the second only says \"original checkpoints\" without naming the exact Instruct-Original repository. Read alone, the quotes do not state both proposed aliases."
+        },
+        {
+          "claimId": "meta-llama-4-maverick-source-ids",
+          "rubric": "provenance",
+          "objection": "The first quote identifies the base Maverick repository, but the second only says \"original checkpoints\" without naming the exact original-checkpoint model card. The evidence therefore does not state both newly proposed source IDs."
+        }
+      ],
+      "gates": [
+        {
+          "gate": "gate-evidence",
+          "scope": "5 bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Three rubrics present per claim, no duplicate votes, no empty rationale, every claim at its profile threshold."
+        },
+        {
+          "gate": "gate-source-approval",
+          "scope": "5 bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "76 citations against anchor 052fb0d, selected by merge-base with refs/remotes/origin/main. requestedBase was null, so the run could not approve its own committed source. 16 approved origins, anchored on 61 sources already in the dataset and 5 reviewed profile catalogues. No new host admitted, and no source added to make a citation resolve."
+        },
+        {
+          "gate": "check-bundle-pairing",
+          "scope": "5 bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": false,
+          "detail": "Landed on main as #413 mid-run and was run from main copy rather than added to this branch, since adding it would be an out-of-class change gate-scope would rightly refuse. It named the same unpaired sources this run had already found independently."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "working tree",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "The dataset is internally coherent after the edits were applied: 80 sources, 19 families, 35 releases."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "branch vs anchor",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "changed: 4, outOfClass: [], empty: false. Exit 0 alone is ambiguous; the publish precondition is exit 0 and changed > 0."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "baseline and after",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "579 tests across 24 files, astro check 0 errors."
+        },
+        {
+          "gate": "web-ci",
+          "scope": "PR #417",
+          "outcome": "pass",
+          "required": true,
+          "detail": "Green. This is the check branch protection requires before a merge."
+        },
+        {
+          "gate": "skills-ci",
+          "scope": "PR #417",
+          "outcome": "pass",
+          "required": false,
+          "detail": "Green, unlike the 2026-08-25 run where it was red and non-blocking."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 35,
+      "documents": [
+        {
+          "document": "sources.json",
+          "recordsBefore": 61,
+          "recordsAfter": 80,
+          "note": "19 sources added."
+        },
+        {
+          "document": "families.json",
+          "recordsBefore": 12,
+          "recordsAfter": 19,
+          "note": "Seven families added."
+        },
+        {
+          "document": "releases.json",
+          "recordsBefore": 31,
+          "recordsAfter": 35,
+          "note": "Four releases added."
+        },
+        {
+          "document": "organizations.json",
+          "recordsBefore": 4,
+          "recordsAfter": 4,
+          "note": "Verification dates moved forward; no record added or removed."
+        }
+      ],
+      "records": [
+        {
+          "id": "openai-gpt-5-1",
+          "collection": "families",
+          "note": "New OpenAI family; carries a recorded provenance dissent."
+        },
+        {
+          "id": "openai-gpt-5-2",
+          "collection": "families",
+          "note": "New OpenAI family; carries a recorded provenance dissent."
+        },
+        {
+          "id": "openai-gpt-5-3-codex",
+          "collection": "families",
+          "note": "New OpenAI family; carries a recorded provenance dissent."
+        },
+        {
+          "id": "openai-gpt-image",
+          "collection": "families",
+          "note": "New OpenAI family; carries a recorded provenance dissent."
+        },
+        {
+          "id": "anthropic-claude-4-6",
+          "collection": "families",
+          "note": "New Anthropic generation family; carries a recorded provenance dissent."
+        },
+        {
+          "id": "anthropic-claude-4-7",
+          "collection": "families",
+          "note": "New Anthropic generation family; carries a recorded provenance dissent."
+        },
+        {
+          "id": "anthropic-claude-4-8",
+          "collection": "families",
+          "note": "New Anthropic generation family; carries a recorded provenance dissent."
+        },
+        {
+          "id": "meta-llama-3-2-1b",
+          "collection": "releases",
+          "note": "New release; carries a recorded provenance dissent on its status and license fields."
+        },
+        {
+          "id": "meta-llama-3-2-3b",
+          "collection": "releases",
+          "note": "New release; carries a recorded provenance dissent on its context window and status."
+        },
+        {
+          "id": "meta-llama-3-2-11b-vision",
+          "collection": "releases",
+          "note": "New release; carries a recorded provenance dissent on its status and license fields."
+        },
+        {
+          "id": "meta-llama-3-2-90b-vision",
+          "collection": "releases",
+          "note": "New release; carries a recorded provenance dissent on its status and license fields."
+        }
+      ]
+    },
+    "withheld": [
+      {
+        "id": "openai-gpt-5-1-release-add",
+        "category": "rejected-by-panel",
+        "detail": "OpenAI's API docs list GPT-5.1 as an API model for coding and agentic tasks. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "openai-gpt-5-2-release-add",
+        "category": "rejected-by-panel",
+        "detail": "OpenAI's API docs list GPT-5.2 as an API model for professional work. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "openai-gpt-5-3-codex-release-add",
+        "category": "rejected-by-panel",
+        "detail": "OpenAI's API docs list GPT-5.3-Codex as an agentic coding model. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "openai-gpt-5-4-mini-release-add",
+        "category": "rejected-by-panel",
+        "detail": "OpenAI's API docs list GPT-5.4 Mini as a faster GPT-5.4 variant for high-volume workloads. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "openai-gpt-5-4-nano-release-add",
+        "category": "rejected-by-panel",
+        "detail": "OpenAI's API docs list GPT-5.4 nano as a GPT-5.4-class model for simple high-volume tasks. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "openai-gpt-image-2-release-add",
+        "category": "rejected-by-panel",
+        "detail": "OpenAI's API docs list GPT-Image-2 as an image-generation model. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "anthropic-claude-sonnet-4-5-release",
+        "category": "rejected-by-panel",
+        "detail": "Claude Sonnet 4.5 should be added as an Anthropic Claude 4.5 release. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "anthropic-claude-opus-4-5-release",
+        "category": "rejected-by-panel",
+        "detail": "Claude Opus 4.5 should be added as an Anthropic Claude 4.5 release. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "anthropic-claude-opus-4-6-release",
+        "category": "rejected-by-panel",
+        "detail": "Claude Opus 4.6 should be added as an Anthropic Claude 4.6 release. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "anthropic-claude-sonnet-4-6-release",
+        "category": "rejected-by-panel",
+        "detail": "Claude Sonnet 4.6 should be added as an Anthropic Claude 4.6 release. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "anthropic-claude-opus-4-7-release",
+        "category": "rejected-by-panel",
+        "detail": "Claude Opus 4.7 should be added as an Anthropic Claude 4.7 release. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "anthropic-claude-opus-4-8-release",
+        "category": "rejected-by-panel",
+        "detail": "Claude Opus 4.8 should be added as an Anthropic Claude 4.8 release. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "google-gemini-2-5-flash-lite-add-release",
+        "category": "rejected-by-panel",
+        "detail": "Gemini 2.5 Flash-Lite should be added as a current Gemini 2.5 release dated July 22, 2025. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "google-gemini-3-flash-preview-add-release",
+        "category": "rejected-by-panel",
+        "detail": "Gemini 3 Flash Preview should be added as a preview Gemini 3 release dated December 17, 2025. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "google-gemini-3-1-flash-image-add-release",
+        "category": "rejected-by-panel",
+        "detail": "Gemini 3.1 Flash Image should be added as a current Gemini 3 release dated May 28, 2026. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "google-gemini-3-pro-image-add-release",
+        "category": "rejected-by-panel",
+        "detail": "Gemini 3 Pro Image should be added as a current Gemini 3 release dated May 28, 2026. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "google-gemini-2-5-flash-image-add-release",
+        "category": "rejected-by-panel",
+        "detail": "Gemini 2.5 Flash Image should be added as a current Gemini 2.5 release dated October 2, 2025. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "google-gemini-3-5-transcribe-add-release",
+        "category": "rejected-by-panel",
+        "detail": "Gemini 3.5 Transcribe should be added as a current Gemini 3 release dated to August 2026. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "google-gemini-3-5-live-translate-preview-add-release",
+        "category": "rejected-by-panel",
+        "detail": "Gemini 3.5 Live Translate Preview should be added as a preview Gemini 3 release dated to June 2026. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "google-gemini-3-1-flash-live-preview-add-release",
+        "category": "rejected-by-panel",
+        "detail": "Gemini 3.1 Flash Live Preview should be added as a preview Gemini 3 release dated March 11, 2026. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "google-gemini-3-1-flash-tts-preview-add-release",
+        "category": "rejected-by-panel",
+        "detail": "Gemini 3.1 Flash TTS Preview should be added as a preview Gemini 3 release dated April 13, 2026. Did not reach 2 of 3 accepts under the pilot policy.",
+        "blockedBy": [
+          "pilot policy (2-of-3)"
+        ]
+      },
+      {
+        "id": "source-openai-api-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Models | OpenAI API should be added as an OpenAI official-docs source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "source-openai-gpt-5-4-mini-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "GPT-5.4 Mini model documentation should be added as an OpenAI official-docs source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "source-openai-gpt-5-4-nano-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "GPT-5.4 nano model documentation should be added as an OpenAI official-docs source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "source-openai-daybreak-red-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Daybreak Red model documentation should be added as an OpenAI official-docs source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "source-openai-daybreak-blue-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Daybreak Blue model documentation should be added as an OpenAI official-docs source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "source-openai-gpt-realtime-mini-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "GPT-Realtime Mini model documentation should be added as an OpenAI official-docs source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "anthropic-fable-5-docs-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Claude Fable 5 should be added as an official Anthropic source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "anthropic-opus-5-docs-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Claude Opus 5 should be added as an official Anthropic source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "anthropic-haiku-4-5-docs-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Claude Haiku 4.5 should be added as an official Anthropic source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "anthropic-fable-5-biology-safeguards-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Improving Fable 5's biology safeguards should be added as an official Anthropic source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "anthropic-opus-4-5-announcement-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Introducing Claude Opus 4.5 should be added as an official Anthropic source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "source-google-gemini-2-5-flash-lite-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Add Gemini 2.5 Flash-Lite as an official Google AI source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "source-google-gemini-3-flash-preview-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Add Gemini 3 Flash preview as an official Google AI source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "source-google-gemini-3-1-flash-image-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Add Gemini 3.1 Flash image as an official Google AI source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "source-google-gemini-3-pro-image-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Add Gemini 3 Pro image as an official Google AI source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "source-google-gemini-2-5-flash-image-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Add Gemini 2.5 Flash image (Nano Banana) as an official Google AI source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "source-google-gemini-3-5-transcribe-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Add Gemini 3.5 Transcribe as an official Google AI source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "source-google-gemini-3-5-live-translate-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Add Gemini 3.5 Live translate as an official Google AI source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "source-google-gemini-3-1-flash-live-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Add Gemini 3.1 Flash live preview as an official Google AI source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "source-google-gemini-3-1-flash-tts-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Add Gemini 3.1 Flash TTS preview as an official Google AI source. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "meta-llama-guard-4-source",
+        "category": "dropped-after-acceptance",
+        "detail": "The source catalog should include meta-llama/Llama-Guard-4-12B. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "meta-llama-prompt-guard-2-86m-source",
+        "category": "dropped-after-acceptance",
+        "detail": "The source catalog should include meta-llama/Llama-Prompt-Guard-2-86M. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "meta-llama-prompt-guard-2-22m-source",
+        "category": "dropped-after-acceptance",
+        "detail": "The source catalog should include meta-llama/Llama-Prompt-Guard-2-22M. Accepted by the panel, then dropped: validate.test.ts refuses a source no record cites, and the scout proposed this source without the paired change claim that would wire it into a record sourceIds.",
+        "blockedBy": [
+          "validate.test.ts"
+        ]
+      },
+      {
+        "id": "openai-gpt-5-6-cyber-daybreak-red-alias",
+        "category": "source-refused",
+        "detail": "OpenAI's Daybreak Red model documentation lists daybreak-red-latest as an alias for gpt-5.6-cyber. Rests on a source withdrawn earlier in this same run, so gate-source-approval refused it. Writing the missing citation by hand would have been an unreviewed dataset edit, so the coupled set was withheld together.",
+        "blockedBy": [
+          "gate-source-approval.mjs"
+        ]
+      },
+      {
+        "id": "openai-gpt-5-6-sol-daybreak-blue-alias",
+        "category": "source-refused",
+        "detail": "OpenAI's Daybreak Blue model documentation lists daybreak-blue-latest as an alias for gpt-5.6-sol. Rests on a source withdrawn earlier in this same run, so gate-source-approval refused it. Writing the missing citation by hand would have been an unreviewed dataset edit, so the coupled set was withheld together.",
+        "blockedBy": [
+          "gate-source-approval.mjs"
+        ]
+      },
+      {
+        "id": "openai-gpt-realtime-mini-status-conflict",
+        "category": "source-refused",
+        "detail": "OpenAI's model catalog labels GPT-Realtime Mini deprecated, while its individual model page labels it default. Rests on a source withdrawn earlier in this same run, so gate-source-approval refused it. Writing the missing citation by hand would have been an unreviewed dataset edit, so the coupled set was withheld together.",
+        "blockedBy": [
+          "gate-source-approval.mjs"
+        ]
+      },
+      {
+        "id": "anthropic-claude-fable-5-intended-use-biology-caveat",
+        "category": "source-refused",
+        "detail": "Claude Fable 5's intended-use text should include Anthropic's caveat that dual-use biology requests still fall back to Opus 5. Rests on a source withdrawn earlier in this same run, so gate-source-approval refused it. Writing the missing citation by hand would have been an unreviewed dataset edit, so the coupled set was withheld together.",
+        "blockedBy": [
+          "gate-source-approval.mjs"
+        ]
+      },
+      {
+        "id": "anthropic-claude-haiku-4-5-status-active",
+        "category": "source-refused",
+        "detail": "Claude Haiku 4.5 remains an active latest Claude model. Rests on a source withdrawn earlier in this same run, so gate-source-approval refused it. Writing the missing citation by hand would have been an unreviewed dataset edit, so the coupled set was withheld together.",
+        "blockedBy": [
+          "gate-source-approval.mjs"
+        ]
+      },
+      {
+        "id": "anthropic-claude-haiku-4-5-context-window",
+        "category": "source-refused",
+        "detail": "Claude Haiku 4.5 still has a 200,000-token context window. Rests on a source withdrawn earlier in this same run, so gate-source-approval refused it. Writing the missing citation by hand would have been an unreviewed dataset edit, so the coupled set was withheld together.",
+        "blockedBy": [
+          "gate-source-approval.mjs"
+        ]
+      },
+      {
+        "id": "anthropic-claude-haiku-4-5-api-aliases",
+        "category": "source-refused",
+        "detail": "Claude Haiku 4.5 still uses claude-haiku-4-5 as a convenience alias for claude-haiku-4-5-20251001. Rests on a source withdrawn earlier in this same run, so gate-source-approval refused it. Writing the missing citation by hand would have been an unreviewed dataset edit, so the coupled set was withheld together.",
+        "blockedBy": [
+          "gate-source-approval.mjs"
+        ]
+      },
+      {
+        "id": "google-gemini-embedding-2-api-code-conflict",
+        "category": "conflict-recorded",
+        "detail": "Google sources disagree on whether the Gemini Embedding 2 API identifier is gemini-embedding-2 or gemini-embedding-2-preview. All three rubrics accepted it as a conflict; a conflict is recorded as a finding and never applied to the dataset.",
+        "blockedBy": [
+          "google-gemini-models-reference",
+          "google-gemini-deprecations"
+        ]
+      },
+      {
+        "id": "releases/openai-gpt-5.verifiedAt",
+        "category": "verification-held",
+        "detail": "Model fit statement fit-gpt-5-superseded rests on this release and was verified 2026-08-18. Moving verifiedAt to 2026-08-27 would make that guidance stale, and this run gathered no evidence about fit statements. Capping the date to fit the invariant would assert a verification that never happened.",
+        "blockedBy": [
+          "fit-gpt-5-superseded",
+          "validate.ts"
+        ]
+      },
+      {
+        "id": "releases/anthropic-claude-mythos-5.verifiedAt",
+        "category": "verification-held",
+        "detail": "Model fit statement fit-claude-mythos-5-limited-availability rests on this release and was verified 2026-08-15. Moving verifiedAt to 2026-08-27 would make that guidance stale, and this run gathered no evidence about fit statements. Capping the date to fit the invariant would assert a verification that never happened.",
+        "blockedBy": [
+          "fit-claude-mythos-5-limited-availability",
+          "validate.ts"
+        ]
+      },
+      {
+        "id": "releases/meta-llama-4-scout.verifiedAt",
+        "category": "verification-held",
+        "detail": "Model fit statement fit-llama-4-scout-self-hosting rests on this release and was verified 2026-08-15. Moving verifiedAt to 2026-08-27 would make that guidance stale, and this run gathered no evidence about fit statements. Capping the date to fit the invariant would assert a verification that never happened.",
+        "blockedBy": [
+          "fit-llama-4-scout-self-hosting",
+          "validate.ts"
+        ]
+      },
+      {
+        "id": "long-tail-creators",
+        "category": "blocked-by-policy",
+        "detail": "Qwen, zai-org, MiniMaxAI, deepseek-ai, moonshotai, sensenova, Lightricks and ornith-ai are trending on an approved origin, but organizationSchema requires website and releasePage URLs that no approved-origin page states, and each creator own host is not an approved origin. Approving a new origin is a human decision, not one a refresh run may take for itself.",
+        "blockedBy": [
+          "organizationSchema",
+          "approved-origin list"
+        ]
+      }
+    ],
+    "caveats": [
+      "No human reviewed the pull request. The evidence trail, the deterministic gates and the required web-ci check are the whole of the oversight.",
+      "A green run proves the dataset is internally coherent and every applied claim carried a quote from an approved origin. It does not prove the sources are right.",
+      "Half the proposed claims did not survive. The dataset is more complete than it was, not complete.",
+      "Two page budgets were exhausted and two hosts refused this client, so absence of a record here is not evidence that the model does not exist.",
+      "The per-creator applied counts in summary issue #418 and its gate-dataset source count disagree with the pull request body. The figures here follow the pull request body and the merge commit itself, which agree with each other."
+    ],
+    "followUps": [
+      "Scouts are not yet running check-bundle-pairing, which landed on main mid-run and would have caught this run largest failure class at bundle time.",
+      "The GPT-Realtime Mini status conflict was unanimously accepted and still could not be published, because both its sources were unpaired. The disagreement is real and remains unrecorded in the dataset.",
+      "Long-tail creators have no route into the dataset under the current approved origins, and approving an origin is a human decision.",
+      "The reviewed profiles and the dataset disagree about canonical release names, which drove most editorial rejections and will recur every run until it is settled.",
+      "Three model fit statements are older than the release facts they rest on and block those releases from carrying this run verification date."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "PR #417 — feat(data): refresh OpenAI, Anthropic, Google DeepMind, and Meta datasets",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/417",
+        "state": "merged"
+      },
+      {
+        "kind": "issue",
+        "label": "Issue #418 — Data refresh 2026-08-27 run summary",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/418",
+        "state": "open"
+      },
+      {
+        "kind": "commit",
+        "label": "Merge commit 547691a",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/547691aafd75a7a79eb2904470ef737d0ec62ce5",
+        "state": "on main"
+      },
+      {
+        "kind": "deployment",
+        "label": "Pages deploy run 33069599660",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/actions/runs/33069599660",
+        "state": "success"
+      }
+    ],
+    "recordedAt": "2026-08-27"
+  },
+  {
     "id": "2026-08-26-d5f729",
     "title": "Data refresh 2026-08-26",
     "ranOn": "2026-08-26",
