@@ -8,25 +8,30 @@ name: Skills CI
 # looking green while checking nothing, so the tests prove every rule still
 # fires by breaking real data in exactly the way that rule exists to catch.
 #
-# Path-filtered on purpose. Unlike `web-ci`, this check is NOT required on main,
-# so a pull request that never reports one is fine; filtering keeps it off the
-# many pull requests that touch neither the gates nor the data those gates read.
+# The job is deliberately NOT filtered by `on.pull_request.paths`. A trigger path
+# filter is all-or-nothing: a pull request touching none of the filtered paths
+# would report no check at all, and a required check that never reports leaves a
+# pull request pending forever rather than passing it. Until #294 this workflow
+# was filtered that way, which is why it could not be required however useful its
+# gates are — `gate-dataset` enforces rules `web-ci` does not, and an unrequired
+# check makes a bad data change visible without stopping it.
 #
-# The filter must therefore list both. `gate-dataset.mjs` reads exactly one
-# directory — `web/src/data` — so that path is what makes the dataset step below
-# able to fire at all.
+# So the job starts on every pull request, decides for itself whether the gates
+# have anything to read, and finishes green in seconds when they do not. That is
+# what makes the `skills-ci` check safe to mark required. It does not make it
+# required: see the comment on the dataset step below.
+#
+# The scope decision should cover everything the gates read, and one part of it
+# is pinned to its source: `gate-dataset.mjs` reads exactly one directory —
+# `web/src/data` — which is what lets the dataset step below fire on a data
+# change at all (#189), and a test derives that directory from the script rather
+# than restating it. The rest of the list is maintained by hand and is not known
+# to be exhaustive. The scope step below names a gap it is known to have.
 #
 # It uses no secrets and holds no write scope of any kind.
 
 on:
   pull_request:
-    paths:
-      - '.github/skills/**'
-      - '.github/scripts/**'
-      - '.github/workflows/skills-ci.yml'
-      # The dataset the gates are run against. Without this, the dataset step
-      # below could never fire on a data change (#189).
-      - 'web/src/data/**'
   workflow_dispatch:
 
 permissions:
@@ -37,18 +42,104 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # The job id and its name are both the literal `skills-ci`, and there is no
+  # matrix, so the reported status check is always exactly `skills-ci`. Renaming
+  # either of them breaks any branch protection rule that requires it.
   skills-ci:
     name: skills-ci
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    defaults:
+      run:
+        # The scope step below uses `set -o pipefail` and a here-string, so the
+        # shell is named rather than inherited from the runner's default.
+        shell: bash
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
+          # The scope step diffs against the base commit, which a shallow
+          # checkout would not contain.
+          fetch-depth: 0
           # This job never pushes.
           persist-credentials: false
 
+      - name: Decide whether the gates need to run
+        id: scope
+        env:
+          # Event data reaches the shell as environment variables, never
+          # interpolated into the script itself.
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          # A manual dispatch has no base to diff against, so it always runs.
+          if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
+            echo "Event is $GITHUB_EVENT_NAME; running the gates."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Fail safe. If the changed-file list cannot be computed, run the
+          # gates rather than skip them: a green check over a change no gate
+          # ever read is the exact failure this workflow exists to remove, and
+          # it is worse here than a wasted minute of runner time.
+          if ! changed="$(git diff --name-only "$BASE_SHA...$HEAD_SHA")"; then
+            echo "Could not diff $BASE_SHA...$HEAD_SHA; running the gates."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Changed files:"
+          echo "$changed"
+
+          # What the three steps below read, so far as this list goes: the gates
+          # and their self-tests, the skill documents the doc-count checker
+          # scans (`.github/skills/`), the checker itself (`.github/scripts/`),
+          # the dataset `gate-dataset.mjs` resolves (`web/src/data/`), and this
+          # workflow file, so that a change to it is verified by the workflow it
+          # changes.
+          #
+          # The list is maintained by hand and is NOT known to be exhaustive. It
+          # is the set the trigger `paths:` filter carried before #294, kept
+          # unchanged, so a path missing from it was already being skipped while
+          # this workflow was path-filtered; what #294 changed is that the skip
+          # now reports a conclusion instead of no check at all.
+          #
+          # One gap is known and measured: `gates.test.mjs` reads the committed
+          # `tools/updater/profiles/`, which nothing here matches. Renaming the
+          # creator id in one of those five profiles — measured on
+          # `openai.json` — turns a large block of the self-tests red, so a pull
+          # request confined to that directory skips gates the change would have
+          # failed. A green skip records that the gates did not run, never that
+          # they would have passed. Do not read one as coverage, and widen this
+          # pattern before trusting it as such.
+          #
+          # A change confined to `docs/`, or to this directory's own
+          # `README.md`, skips the gates too. Those two are genuine rather than
+          # assumed: neither path is read by any gate step, measured by gutting
+          # `.github/workflows/README.md` and re-running the gates unchanged.
+          #
+          # `web/tests/workflows/skills-ci.test.ts` reads this pattern out of
+          # the committed file and asserts it covers every dataset document
+          # `gate-dataset.mjs` actually loads, at the directory that script
+          # resolves — so a new document cannot be added without this decision
+          # following it.
+          #
+          # A here-string rather than a pipe: `grep -q` exits on its first match,
+          # which can leave the left-hand side of a pipe killed by SIGPIPE and
+          # the whole pipeline non-zero under `set -o pipefail`.
+          if grep -Eq '^(\.github/skills/|\.github/scripts/|\.github/workflows/skills-ci\.yml$|web/src/data/)' <<< "$changed"; then
+            echo "Gate inputs changed; running the gates."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No gate input changed; the gates have nothing to read."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Set up Node.js
+        if: steps.scope.outputs.run == 'true'
         uses: actions/setup-node@v4
         with:
           # Matches web-ci and pages.yml. The gate scripts are dependency-free,
@@ -59,31 +150,33 @@ jobs:
       # explicitly: `node --test <directory>` resolves differently and fails to
       # find the suite.
       - name: Run the gate self-tests
+        if: steps.scope.outputs.run == 'true'
         run: node --test .github/skills/modeltree-gates/scripts/gates.test.mjs
 
       # The gates are written against the dataset as it actually is, so this step
       # covers two distinct failures: a gate change that no longer matches the
       # data, and a data change that a gate refuses. The second is the reason
-      # `web/src/data/**` appears in the trigger paths above — until #189 it did
+      # `web/src/data/` appears in the scope pattern above — until #189 it did
       # not, so this step ran only when the *gates* changed and could never fire
       # on the data change it exists to catch.
       #
-      # What it does not do is block. `skills-ci` is not a required check, so a
-      # red run here is visible but does not stop auto-merge.
+      # What it does not do, today, is block. `skills-ci` is not a required
+      # check, so a red run here is visible but does not stop auto-merge.
       #
       # Making it required is a branch-protection change, so it is an owner
-      # action, and no issue in this repository files it. It is not #169 —
-      # `skills-ci` sits outside that issue's scope, which
+      # action, and no issue in this repository files that action. It is not
+      # #169 — `skills-ci` sits outside that issue's scope, which
       # `.github/workflows/README.md` states once under `### What issue #169
       # covers`, and that is where to read it, so this file and that one cannot
-      # drift into disagreeing again. #294 is the prerequisite rather than the
-      # outcome: it restructures this workflow on the `web-ci` pattern so the
-      # check always reports and is therefore safe to require, and its own text
-      # leaves requiring it to the owner. Landing it does not make this required.
+      # drift into disagreeing again. #294 was the prerequisite rather than the
+      # outcome: it restructured this workflow on the `web-ci` pattern so the
+      # check always reports and is therefore safe to require, and left
+      # requiring it to the owner. Landing it did not make this required.
       #
       # That same file records which of these rules `web-ci` already enforces and
       # which it does not, measured rule by rule.
       - name: Run the dataset gate against the live data
+        if: steps.scope.outputs.run == 'true'
         run: node .github/skills/modeltree-gates/scripts/gate-dataset.mjs
 
       # The suite above prints its own size on every run, so the documentation
@@ -102,4 +195,13 @@ jobs:
       # The checker proves its own detector fires before it reads a file, and
       # treats an empty scan as an error, so it cannot pass by matching nothing.
       - name: Refuse a hand-written test count in the skill documentation
+        if: steps.scope.outputs.run == 'true'
         run: node .github/scripts/check-skill-doc-test-counts.mjs
+
+      # The step that turns a skip into a *report*. Without it a pull request
+      # touching no gate input would run a job with every step skipped, and the
+      # point of the restructure is that the check always concludes.
+      - name: Record that no gate run was needed
+        if: steps.scope.outputs.run != 'true'
+        run: |
+          echo 'No gate, script, or dataset file changed, so the gates were not run.' >> "$GITHUB_STEP_SUMMARY"
