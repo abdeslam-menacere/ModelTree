@@ -866,6 +866,23 @@ def test_a_span_that_merely_looks_like_a_fence_is_not_one(document):
     assert references(report) == {"#8", "#9"}
 
 
+def test_a_fence_indented_four_spaces_is_not_recognised(document):
+    """A stated residual, pinned so the documentation cannot outrun the code.
+
+    Three spaces is the whole of the indentation the model allows, so a fence
+    nested deeper -- inside a list item, say -- is not seen as one. It fails
+    closed: the citation stays refused rather than being exempted by a block the
+    checker cannot make out, which is what makes this a residual and not a
+    defect. The control is the same block unindented, which must be exempt, so
+    the test cannot pass merely because nothing was exempted anywhere.
+    """
+    indented = document("Example:\n\n    ```\n    #42\n    ```\n")
+    control = document("Example:\n\n```\n#42\n```\n")
+
+    assert references(checker.check(indented, REPO_ROOT)) == {"#42"}
+    assert references(checker.check(control, REPO_ROOT)) == set()
+
+
 def test_an_indented_code_block_is_still_scanned(document):
     """Deliberate, and the opposite of what the fence decision does.
 

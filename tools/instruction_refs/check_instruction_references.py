@@ -157,6 +157,12 @@ string, and running to the end of the document when never closed. Modelling only
 the subset in use today would leave whoever first writes a four-backtick or
 tilde fence with precisely the surprise this removes.
 
+Three spaces is the whole of the indentation allowed, so a fence nested deeper
+-- inside a list item, say -- is not recognised as one. That is a residual and
+it is stated rather than left to be discovered, but it is a fail-closed one: an
+unrecognised fence leaves the citation rule exactly where it already was instead
+of exempting more than it should, and no covered document writes one today.
+
 Three limits, stated here rather than left to fall out of the implementation:
 
 **The delimiter lines stay in scope.** Only the content *between* the fences is
