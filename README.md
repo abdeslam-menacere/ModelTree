@@ -127,3 +127,5 @@ see [`docs/product/BACKLOG.md`](docs/product/BACKLOG.md).
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+<!-- probe for #294: this pull request touches no gate, no script, and no dataset file. -->
