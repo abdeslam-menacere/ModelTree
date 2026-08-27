@@ -235,7 +235,7 @@ product brief treats as non-negotiable:
 - **The composite-score refusal.** Zod object schemas here are not `.strict()`,
   so an unknown key is stripped rather than rejected. Adding `"score": 91` and
   `"overallRanking": "first"` to a release leaves `npm run validate` completely
-  green — 372 tests passing, `astro check` reporting 0 errors — while
+  green — every test passing, `astro check` reporting 0 errors — while
   `gate-dataset` reports two `no-composite-score` failures. This is the ADR 0003
   guardrail against a universal ranking, and `web-ci` does not enforce it.
 - **Source URL trustworthiness.** `z.url()` accepts any parseable URL, so
