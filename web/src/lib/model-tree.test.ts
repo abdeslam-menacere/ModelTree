@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
+import { datasetWithOtherCreators, expectedOtherCreatorIds } from './model-tree-fixture';
 import {
   buildModelTree,
   findModelTreePath,
@@ -62,10 +63,13 @@ describe('model tree', () => {
     ]);
   });
 
-  it('keeps Others visible and empty and resolves only valid release paths', () => {
+  it('keeps Others empty when every catalog creator has a featured release', () => {
     const tree = buildModelTree(dataset);
     const first = tree.featured[0].families[0].releases[0];
 
+    expect(dataset.organizations.every(({ id }) => (
+      dataset.releases.some((release) => release.organizationId === id && release.featured)
+    ))).toBe(true);
     expect(tree.others).toEqual([]);
     expect(findModelTreePath(tree, first.id)).toEqual({
       creatorId: first.organizationId,
@@ -98,5 +102,83 @@ describe('model tree', () => {
 
     expect([...withBoth]).toEqual(['first', 'second']);
     expect([...withoutFirst]).toEqual(['second']);
+  });
+});
+
+describe('model tree Others branch', () => {
+  const tree = buildModelTree(datasetWithOtherCreators);
+
+  it('collects every creator that has releases but no featured release', () => {
+    const expected = datasetWithOtherCreators.organizations
+      .filter(({ id }) => (
+        datasetWithOtherCreators.releases.some((release) => release.organizationId === id)
+        && !datasetWithOtherCreators.releases.some(
+          (release) => release.organizationId === id && release.featured,
+        )
+      ))
+      .map(({ id }) => id)
+      .sort();
+
+    expect(tree.others.map(({ organization }) => organization.id).sort()).toEqual(expected);
+    expect(tree.others.length).toBeGreaterThan(0);
+  });
+
+  it('places every creator in exactly one branch and keeps featured creators whole', () => {
+    const featuredIds = tree.featured.map(({ organization }) => organization.id);
+    const otherIds = tree.others.map(({ organization }) => organization.id);
+
+    expect(otherIds.filter((id) => featuredIds.includes(id))).toEqual([]);
+    // OpenAI carries non-featured releases; they stay with their featured creator.
+    const openai = tree.featured.find(({ organization }) => organization.id === 'openai')!;
+    const openaiReleaseIds = openai.families.flatMap(({ releases }) => releases.map(({ id }) => id));
+    const nonFeatured = datasetWithOtherCreators.releases
+      .filter(({ organizationId, featured }) => organizationId === 'openai' && !featured);
+
+    expect(nonFeatured.length).toBeGreaterThan(0);
+    for (const release of nonFeatured) expect(openaiReleaseIds).toContain(release.id);
+  });
+
+  it('orders others by creator name then id, families and releases newest first', () => {
+    expect(tree.others.map(({ organization }) => organization.id)).toEqual(expectedOtherCreatorIds);
+
+    const zulu = tree.others.find(({ organization }) => organization.id === 'other-zulu')!;
+
+    // other-zulu-void holds no releases and is dropped rather than rendered.
+    expect(zulu.families.map(({ family }) => family.id)).toEqual([
+      'other-zulu-nova',
+      'other-zulu-atlas',
+      'other-zulu-orion',
+    ]);
+    expect(zulu.families[0].releases.map(({ id }) => id)).toEqual([
+      'other-zulu-nova-one',
+      'other-zulu-nova-two',
+      'other-zulu-nova-old',
+    ]);
+  });
+
+  it('reports release ids from both branches exactly once', () => {
+    const ids = modelTreeReleaseIds(tree);
+    const featuredIds = tree.featured.flatMap(({ families }) => (
+      families.flatMap(({ releases }) => releases.map(({ id }) => id))
+    ));
+
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toContain('other-zulu-nova-one');
+    expect(ids).toContain('other-alpha-core-one');
+    expect(ids.length).toBe(featuredIds.length + 7);
+    expect(ids).toEqual(expect.arrayContaining(featuredIds));
+  });
+
+  it('resolves and restores a deep link to a release under others', () => {
+    expect(findModelTreePath(tree, 'other-zulu-atlas-one')).toEqual({
+      creatorId: 'other-zulu',
+      familyId: 'other-zulu-atlas',
+      releaseId: 'other-zulu-atlas-one',
+    });
+    expect(restoreModelTreeSelection(tree, 'other-zulu-atlas-one')).toEqual({
+      selectedReleaseId: 'other-zulu-atlas-one',
+      openCreatorIds: ['other-zulu'],
+      openFamilyIds: ['other-zulu-atlas'],
+    });
   });
 });
