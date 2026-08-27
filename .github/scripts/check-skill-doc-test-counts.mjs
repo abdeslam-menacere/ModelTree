@@ -32,6 +32,54 @@
 // bad and known good samples before it reads any file, and it treats an empty
 // scan as an error rather than a pass.
 //
+// ## The scan root, and why widening it is a decision rather than a tidy-up
+//
+// The root below is `.github/skills/` and nothing else. That bound is load
+// bearing, because there is one file it can never be widened to include:
+//
+//   A substring scanner cannot be pointed at the prose that documents it,
+//   because accurate documentation of a forbidden pattern necessarily contains
+//   the forbidden pattern.
+//
+// `.github/workflows/README.md` documents this check by quoting the shapes it
+// refuses, so a scan that reached it would refuse the description of itself.
+// That is a constraint on this whole family of checks rather than a fault in
+// this one: the ADR 0005 overclaim scan in
+// `.github/skills/modeltree-gates/scripts/gates.test.mjs` is held to
+// `gate-evidence.mjs` alone for the identical reason, and now says so in the
+// same words. Two scanners, one rule, previously written down at neither.
+//
+// #316 weighed widening the root and decided against it, on measurement rather
+// than taste. Widened to that README, this check reported exactly two lines --
+// the `skills-ci.yml` row, which is the prose describing these rules, and one
+// sentence that really did state a suite total. Only the second was a defect,
+// and correcting it needed no wider scan: it has been corrected, so a widened
+// run would now report the documentation and nothing else.
+//
+// What that remaining false positive would cost is what settled it:
+//
+// - An exemption marker is line granular, and that row runs past a thousand
+//   characters of exactly the prose most likely to acquire a real count later.
+//   Exempting it would open the hole at the precise spot the widening was for.
+// - Exempting backticked spans instead does not even work here. Of the two
+//   illustrations on that row that fire, one is written in backticks and one in
+//   quotation marks, so the row stays red and the exemption buys nothing.
+// - Rewriting the row to describe the rules without instancing them was the
+//   third option weighed. It trades a description a reader can check against
+//   this file for prose they cannot.
+//
+// Widening is permitted. Widening by accident is what this note exists to stop:
+// a change that moves the root has to answer the three points above first.
+//
+// ## What is promised, in the words it should be checked against
+//
+// No markdown **under `.github/skills/`** states a test count in any form the
+// patterns below recognise. That is the whole guarantee, and the path is part
+// of it. It is deliberately not the broader claim a reader may assume -- that
+// the repository's documentation states no count -- because
+// `.github/workflows/README.md`, `docs/` and every other tree sit outside the
+// scan by the decision above.
+//
 // Node built-ins only -- `skills-ci` installs nothing.
 //
 // Usage (no arguments, so the job cannot be pointed at an emptier tree):
@@ -45,6 +93,9 @@ import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = fileURLToPath(new URL("../../", import.meta.url));
+// Moving this is the decision argued in the header (#316), never a tidy-up: the
+// file that documents this check quotes what it forbids, so it cannot be read
+// by it.
 const SKILLS_DIR = join(REPO_ROOT, ".github", "skills");
 
 // A digit that counts tests, in either order: the number before the noun
@@ -332,7 +383,10 @@ for (const file of files) {
 }
 
 if (findings.length > 0) {
-  console.error("check-skill-doc-test-counts: a hand-written test count is stated in the skill documentation.\n");
+  console.error(
+    "check-skill-doc-test-counts: a hand-written test count is stated in the skill documentation " +
+      `under ${posix(relative(REPO_ROOT, SKILLS_DIR))}.\n`,
+  );
   for (const { path, line, text } of findings) {
     console.error(`  ${path}:${line}: ${text}`);
   }

@@ -2680,6 +2680,18 @@ describe('gate-scope ALLOWED_PATHS mirrors raw.ts', () => {
 // reference/claim-bundle.md state the same limit correctly and, in doing so,
 // use the forbidden phrasings, so scanning them would red honest text.
 //
+// That last point is a rule rather than a local convenience, and it is the same
+// rule the skill-doc count check states at its own scan root (#316):
+//
+//   A substring scanner cannot be pointed at the prose that documents it,
+//   because accurate documentation of a forbidden pattern necessarily contains
+//   the forbidden pattern.
+//
+// Both scans meet it, independently, and both answer it by staying narrow. So
+// widening this one past gate-evidence.mjs is a decision to be argued, not
+// housekeeping: ADR 0005 and reference/claim-bundle.md would go red on the day
+// it happened, and they would be right and the scan would be wrong.
+//
 // What this scan is not: a fixed vocabulary cannot recognise every way of
 // overclaiming, and phrasings outside it pass -- #278's QA demonstrated several.
 // A clean run means no *known* phrasing is present in this one file, never that
