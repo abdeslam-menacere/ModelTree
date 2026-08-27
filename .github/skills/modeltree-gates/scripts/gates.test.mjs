@@ -2633,10 +2633,12 @@ describe('gate-source-approval', () => {
   // The direction of the error is the bad one. A profile that loses its
   // catalogue in an edit stops contributing origins while the reported breadth
   // does not move: a run can narrow its own trust anchor and publish an
-  // identical-looking account of it. On live data the gap is real and is
-  // exactly one -- five profiles, four catalogues.
+  // identical-looking account of it. The gap is not hypothetical: measured on
+  // `a7cee47` the live profile tree listed one more profile than it had
+  // catalogues to read. The current numbers are whatever the tree now holds,
+  // and are derived by the gate rather than restated here.
   //
-  // **What the seven assertions already on this field do not cover.** #381 uses
+  // **What the assertions already on this field do not cover.** #381 uses
   // `profileCatalogues` as a proxy for *which tree the gate resolved* (1 from
   // the right root, 0 from the wrong one), which is a different question from
   // how many catalogues were consulted. Every one of those fixtures holds

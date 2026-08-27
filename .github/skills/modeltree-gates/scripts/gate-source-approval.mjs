@@ -567,10 +567,14 @@ function main() {
       // hides harm: a profile losing its catalogue narrows what the run may
       // trust while the reported breadth stays put (#344).
       //
-      // The gap is not quietly subtracted. A bare `4` fixes the arithmetic and
-      // buries the reason; the point is that a reader can tell "5 files, 4
-      // catalogues, 1 without one" from this block alone, so the files in the
+      // The gap is not quietly subtracted. Collapsing it to a single corrected
+      // number fixes the arithmetic and buries the reason; the point is that a
+      // reader can tell how many profiles were listed, how many were read, and
+      // *which* ones fell in between, from this block alone. So the files in the
       // gap are named, split by which of the two things happened to them.
+      // Measured on `a7cee47`, where this read 5 listed against 4 consulted,
+      // that is "5 files, 4 catalogues, 1 without one" - an illustration of the
+      // shape, not a count this comment undertakes to keep true.
       //
       // `profilesWithoutCatalogue` is the deliberate case: a profile is allowed
       // to configure no origins at all, and `generic/long-tail.json` is the
