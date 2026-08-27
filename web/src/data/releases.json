@@ -931,7 +931,9 @@
     "contextWindow": 1000000,
     "apiAliases": [
       "meta-llama/Llama-4-Maverick-17B-128E-Instruct",
-      "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+      "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+      "meta-llama/Llama-4-Maverick-17B-128E",
+      "meta-llama/Llama-4-Maverick-17B-128E-Instruct-Original"
     ],
     "predecessorIds": [],
     "successorIds": [],
@@ -944,9 +946,11 @@
     "sourceIds": [
       "meta-llama-4-maverick-model-card",
       "meta-llama-4-announcement",
-      "meta-llama-4-license"
+      "meta-llama-4-license",
+      "meta-llama-4-maverick-base-model-card",
+      "meta-llama-4-maverick-original-model-card"
     ],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-27"
   },
   {
     "id": "meta-llama-3-1-405b",
@@ -996,7 +1000,7 @@
       "meta-llama-3-1-model-card",
       "meta-llama-3-1-license"
     ],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-27"
   },
   {
     "id": "meta-llama-3-3-70b",
@@ -1045,7 +1049,7 @@
       "meta-llama-3-3-model-card",
       "meta-llama-3-3-license"
     ],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-27"
   },
   {
     "id": "openai-gpt-5-6-cyber",
@@ -1430,5 +1434,213 @@
       "meta-muse-image-video-announcement"
     ],
     "verifiedAt": "2026-08-26"
+  },
+  {
+    "id": "meta-llama-3-2-1b",
+    "slug": "llama-3-2-1b",
+    "canonicalName": "Llama 3.2 1B",
+    "displayName": "Llama 3.2 1B",
+    "organizationId": "meta",
+    "familyId": "meta-llama-3",
+    "version": "3.2",
+    "variant": "1B",
+    "releaseDate": "2024-09-25",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Llama 3.2 Community License Agreement",
+      "url": "https://github.com/meta-llama/llama-models/blob/main/models/llama3_2/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 1.23
+    },
+    "contextWindow": 128000,
+    "apiAliases": [
+      "meta-llama/Llama-3.2-1B-Instruct",
+      "meta-llama/Llama-3.2-1B"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "Llama 3.2 1B is a text-only Llama 3.2 model for multilingual dialogue, agentic retrieval, summarization, and writing tasks, with a 128,000-token context length.",
+    "intendedUse": "Assistant-style multilingual chat, agentic knowledge retrieval, summarization, mobile writing assistance, and query or prompt rewriting.",
+    "sourceIds": [
+      "meta-llama-3-2-1b-instruct-model-card",
+      "meta-llama-3-2-1b-base-model-card",
+      "meta-llama-3-2-license",
+      "meta-llama-collection"
+    ],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "meta-llama-3-2-3b",
+    "slug": "llama-3-2-3b",
+    "canonicalName": "Llama 3.2 3B",
+    "displayName": "Llama 3.2 3B",
+    "organizationId": "meta",
+    "familyId": "meta-llama-3",
+    "version": "3.2",
+    "variant": "3B",
+    "releaseDate": "2024-09-25",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Llama 3.2 Community License Agreement",
+      "url": "https://github.com/meta-llama/llama-models/blob/main/models/llama3_2/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 3.21
+    },
+    "contextWindow": 128000,
+    "apiAliases": [
+      "meta-llama/Llama-3.2-3B-Instruct",
+      "meta-llama/Llama-3.2-3B"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "Llama 3.2 3B is a text-only Llama 3.2 model for multilingual dialogue, agentic retrieval, summarization, and writing tasks, with a 128,000-token context length.",
+    "intendedUse": "Assistant-style multilingual chat, agentic knowledge retrieval, summarization, mobile writing assistance, and query or prompt rewriting.",
+    "sourceIds": [
+      "meta-llama-3-2-3b-instruct-model-card",
+      "meta-llama-3-2-3b-base-model-card",
+      "meta-llama-3-2-license",
+      "meta-llama-collection"
+    ],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "meta-llama-3-2-11b-vision",
+    "slug": "llama-3-2-11b-vision",
+    "canonicalName": "Llama 3.2 11B Vision",
+    "displayName": "Llama 3.2 11B Vision",
+    "organizationId": "meta",
+    "familyId": "meta-llama-3",
+    "version": "3.2",
+    "variant": "11B Vision",
+    "releaseDate": "2024-09-25",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Llama 3.2 Community License Agreement",
+      "url": "https://github.com/meta-llama/llama-models/blob/main/models/llama3_2/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 10.6
+    },
+    "contextWindow": 128000,
+    "apiAliases": [
+      "meta-llama/Llama-3.2-11B-Vision-Instruct",
+      "meta-llama/Llama-3.2-11B-Vision"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "Llama 3.2 11B Vision is a Llama 3.2 Vision model for image reasoning, visual recognition, captioning, and chat with images, with a 128,000-token context length.",
+    "intendedUse": "Visual recognition, image reasoning, image captioning, assistant-style chat with images, and other image reasoning tasks.",
+    "sourceIds": [
+      "meta-llama-3-2-11b-vision-instruct-model-card",
+      "meta-llama-3-2-11b-vision-base-model-card",
+      "meta-llama-3-2-license",
+      "meta-llama-collection"
+    ],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "meta-llama-3-2-90b-vision",
+    "slug": "llama-3-2-90b-vision",
+    "canonicalName": "Llama 3.2 90B Vision",
+    "displayName": "Llama 3.2 90B Vision",
+    "organizationId": "meta",
+    "familyId": "meta-llama-3",
+    "version": "3.2",
+    "variant": "90B Vision",
+    "releaseDate": "2024-09-25",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Llama 3.2 Community License Agreement",
+      "url": "https://github.com/meta-llama/llama-models/blob/main/models/llama3_2/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 88.8
+    },
+    "contextWindow": 128000,
+    "apiAliases": [
+      "meta-llama/Llama-3.2-90B-Vision-Instruct",
+      "meta-llama/Llama-3.2-90B-Vision"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "Llama 3.2 90B Vision is a Llama 3.2 Vision model for image reasoning, visual recognition, captioning, and chat with images, with a 128,000-token context length.",
+    "intendedUse": "Visual recognition, image reasoning, image captioning, assistant-style chat with images, and other image reasoning tasks.",
+    "sourceIds": [
+      "meta-llama-3-2-90b-vision-instruct-model-card",
+      "meta-llama-3-2-90b-vision-base-model-card",
+      "meta-llama-3-2-license",
+      "meta-llama-collection"
+    ],
+    "verifiedAt": "2026-08-27"
   }
 ]

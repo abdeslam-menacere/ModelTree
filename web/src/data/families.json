@@ -183,16 +183,17 @@
       "meta-llama-4-announcement",
       "meta-llama-collection"
     ],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-27"
   },
   {
     "id": "meta-llama-3",
     "slug": "llama-3",
     "organizationId": "meta",
     "name": "Llama 3",
-    "description": "Meta groups the whole Llama 3 line under History in its model collection. The two releases recorded here take text in and give text out; Llama 3.1 includes a 405-billion-parameter size and reads up to 128,000 tokens in one request.",
+    "description": "Meta groups the whole Llama 3 line under History in its model collection. The recorded releases include Llama 3.1 405B, Llama 3.2 text and vision sizes, and Llama 3.3 70B; the text releases take text in and return text, while Llama 3.2 Vision takes text and images in and returns text.",
     "categories": [
-      "language-reasoning"
+      "language-reasoning",
+      "multimodal-generalist"
     ],
     "firstReleaseDate": "2024-07-23",
     "status": "legacy",
@@ -200,7 +201,7 @@
       "meta-llama-collection",
       "meta-llama-3-1-model-card"
     ],
-    "verifiedAt": "2026-08-26"
+    "verifiedAt": "2026-08-27"
   },
   {
     "id": "meta-muse",
