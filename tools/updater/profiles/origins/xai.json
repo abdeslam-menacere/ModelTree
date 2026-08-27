@@ -1,0 +1,74 @@
+{
+  "catalog": {
+    "id": "origins-xai",
+    "kind": "approved-origins",
+    "creator_id": "xai",
+    "creator_name": "SpaceXAI",
+    "creator_name_note": "Recorded as the creator's own site states it on 2026-08-27, not as a naming decision for the dataset. creator_id is this catalog's own key, taken from the x.ai host so that the approval stays stable while the naming question below is open; it is not a proposed organization id and settles nothing. See the 'Organization identity' ambiguity.",
+    "applies_to": "The creator publishing on x.ai as the creator of the Grok model family."
+  },
+  "notes": [
+    "Human origin approval only. It records where this creator publishes primary release information; it adds no creator, family, release, product or deployment to the dataset, and it does not make it a pilot creator.",
+    "The organization's own name is in conflict with the name commonly used for it, and that conflict is left explicit below rather than resolved here. Approving an origin is a statement about a host, and this host is unambiguously the creator's own; it is not a statement about what the organization is called."
+  ],
+  "source_catalog": [
+    {
+      "id": "xai-news",
+      "owner": "SpaceXAI",
+      "url": "https://x.ai/news",
+      "kind": "official-announcement",
+      "allowed_paths": ["/news"],
+      "allowed_content_types": ["announcement", "research-post"],
+      "trust": "primary",
+      "trust_notes": "The creator's official announcement index; authoritative for its own model and company announcements. Company and funding posts sit in the same feed as model announcements, so a post here is not by itself a model release.",
+      "verified_at": "2026-08-27",
+      "verification": "Fetched 2026-08-27: HTTP 200 on the x.ai host, <title>News: Research, Product &amp; Company Updates | SpaceXAI</title>, with the page describing the organization as 'SpaceXAI — Creators of Grok, the AI Chatbot' and naming 'SpaceXAI LLC'."
+    },
+    {
+      "id": "xai-docs",
+      "owner": "SpaceXAI",
+      "url": "https://docs.x.ai/",
+      "kind": "official-docs",
+      "allowed_paths": ["/"],
+      "allowed_content_types": ["model-reference", "api-alias"],
+      "trust": "primary",
+      "trust_notes": "The Grok API documentation; authoritative for the model identifiers the API exposes. allowed_paths is the whole host because the host serves nothing but this documentation, the same arrangement as anthropic.json's docs entry.",
+      "verified_at": "2026-08-27",
+      "verification": "Fetched 2026-08-27: HTTP 200, <title>Grok API Documentation | SpaceXAI Docs</title>. The docs root 308-redirects to /overview, which carried grok-* model identifiers including dated snapshots and -latest aliases."
+    }
+  ],
+  "deferred_origins": [
+    {
+      "origin": "https://grok.com",
+      "decision": "not approved",
+      "reason": "The Grok product surface rather than the creator's publication channel. Approving it would put a product site inside the trust boundary for creator and model facts."
+    },
+    {
+      "origin": "https://x.com",
+      "decision": "not approved",
+      "reason": "A social platform on which the creator and its staff post. Posts there are not a reviewed publication channel, and the platform carries everyone else's claims about these models as well."
+    }
+  ],
+  "ambiguities": [
+    {
+      "topic": "Organization identity",
+      "note": "As checked on 2026-08-27 the creator's own site titles and body copy say 'SpaceXAI' and 'SpaceXAI LLC', while the name in common use, and the one the host x.ai reads as, is xAI. Nothing checked here states a rename, a merger, or any relationship to SpaceX; the two names were connected only by appearing on the same host.",
+      "guidance": "Record the name the source uses, and treat the relationship between the two names as an unresolved organization mapping for a human. Do not merge two names into one organization, do not assert a rename or a corporate relationship, and do not silently prefer the familiar name because it is familiar."
+    },
+    {
+      "topic": "Grok is a product and a family",
+      "note": "Grok names both the assistant users interact with and the model family behind it.",
+      "guidance": "Keep the product and the family as separate entities even though the creator uses one name for both. Attribute a capability to a release only where the source does."
+    },
+    {
+      "topic": "Dated snapshots against rolling aliases",
+      "note": "The API exposes both dated identifiers and -latest aliases, and an alias points at different snapshots over time.",
+      "guidance": "Take the dated identifier as the release and record the alias as an alias. Where the source does not state which snapshot an alias currently points at, leave the mapping for a human."
+    },
+    {
+      "topic": "Compute and partnership announcements",
+      "note": "The news feed carries infrastructure and partnership posts, including agreements with other model creators, alongside model releases.",
+      "guidance": "A commercial or compute agreement is not a lineage relationship and not a serving relationship. Do not attach another creator's models to this one, or the reverse, on the strength of one."
+    }
+  ]
+}

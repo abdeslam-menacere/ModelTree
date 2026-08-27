@@ -1,0 +1,101 @@
+{
+  "catalog": {
+    "id": "origins-microsoft",
+    "kind": "approved-origins",
+    "creator_id": "microsoft",
+    "creator_name": "Microsoft",
+    "applies_to": "Microsoft as a creator of model families Microsoft itself trains and announces. Not Azure as a serving platform, and not any Microsoft product surface."
+  },
+  "notes": [
+    "Human origin approval only. It records where Microsoft publishes primary release information so a later refresh run can cite those origins; it adds no creator, family, release, product or deployment to the dataset, and it does not make Microsoft a pilot creator.",
+    "Microsoft is the hardest entry in this directory precisely because it is three entities at once — a creator, a serving platform, and a product vendor. Every entry below is scoped to the first of those, and the ones turned down are recorded in deferred_origins rather than left to be re-proposed.",
+    "github.com is already a trusted origin, inherited from web/src/data/sources.json where it backs other creators' repositories. It is trusted as a code-hosting origin, not as Microsoft's model-announcement channel, and nothing here changes that. It is not listed below and must not be cited as a Microsoft announcement source."
+  ],
+  "source_catalog": [
+    {
+      "id": "microsoft-ai-blog",
+      "owner": "Microsoft AI",
+      "url": "https://microsoft.ai/blog/",
+      "kind": "official-announcement",
+      "allowed_paths": ["/blog/"],
+      "allowed_content_types": ["announcement", "research-post"],
+      "trust": "primary",
+      "trust_notes": "Microsoft AI's own announcement feed; authoritative for MAI-series model announcements published by Microsoft AI. Authoritative for what Microsoft says it built and released, not for how any third party serves it.",
+      "verified_at": "2026-08-27",
+      "verification": "Fetched 2026-08-27: HTTP 200, <title>Blog | Microsoft AI</title>, served under the Microsoft-owned microsoft.ai host with the Microsoft universal header. The index listed MAI-series posts including MAI-Image-2, MAI-Voice-2-Flash, MAI-Code-1, MAI-Transcribe-1 and MAI-Cyber-1-Flash. https://microsoft.ai/news/ redirects here, so /blog/ is the canonical path."
+    },
+    {
+      "id": "microsoft-research-blog",
+      "owner": "Microsoft Research",
+      "url": "https://www.microsoft.com/en-us/research/blog/",
+      "kind": "official-announcement",
+      "allowed_paths": ["/en-us/research/blog/"],
+      "allowed_content_types": ["announcement", "research-post"],
+      "trust": "primary",
+      "trust_notes": "Microsoft Research's blog; authoritative for Phi-family research announcements and the model releases Microsoft Research publishes. Deliberately bounded to /en-us/research/blog/: www.microsoft.com also carries product, marketing, support and licensing pages, none of which say who trained a model.",
+      "verified_at": "2026-08-27",
+      "verification": "Fetched 2026-08-27: HTTP 200 at the blog index, <title>Microsoft Research Blog - Microsoft Research</title>. A named Phi announcement under the approved path was fetched as a specific check — /en-us/research/blog/phi-2-the-surprising-power-of-small-language-models/ returned HTTP 200 carrying both 'Phi-2' and 'Microsoft Research'."
+    },
+    {
+      "id": "microsoft-huggingface",
+      "owner": "Microsoft (via Hugging Face)",
+      "url": "https://huggingface.co/microsoft",
+      "kind": "model-card",
+      "allowed_paths": ["/microsoft"],
+      "allowed_content_types": ["model-card", "repository"],
+      "trust": "primary",
+      "trust_notes": "The Microsoft organization on Hugging Face; authoritative for model cards and weights Microsoft itself publishes. Hosted by Hugging Face but the org is Microsoft's own, the same arrangement as meta.json's meta-llama entry. Adds no new origin — huggingface.co is already trusted — and exists to bound link-following to the org and to say what it is authoritative for.",
+      "verified_at": "2026-08-27",
+      "verification": "Fetched 2026-08-27: HTTP 200, and https://huggingface.co/api/organizations/microsoft/overview reported \"fullname\":\"Microsoft\" with \"isVerified\":true. The org listing carried microsoft/Phi-4, microsoft/Phi-3.5-mini-instruct, microsoft/phi-1, microsoft/bitnet-b1.58-2B-4T and microsoft/VibeVoice-1.5B."
+    }
+  ],
+  "deferred_origins": [
+    {
+      "origin": "https://azure.microsoft.com",
+      "decision": "not approved",
+      "reason": "Azure is a serving platform. Its blog announces availability of models on Azure, including models other creators trained — most prominently OpenAI's. Approving it would put the one origin most likely to be misread as evidence of authorship inside the trust boundary, which is the exact collapse this catalog is written to prevent. If Azure deployment facts are wanted later, they are deployment claims about a serving platform and should be approved as such, deliberately and separately."
+    },
+    {
+      "origin": "https://learn.microsoft.com",
+      "decision": "not approved",
+      "reason": "Azure AI Foundry and Azure OpenAI documentation. It mixes models Microsoft created with models Microsoft only serves, under one catalog and one naming scheme, so it cannot establish who created a model. Useful for serving and deployment facts; not usable for creator attribution, and not approved here."
+    },
+    {
+      "origin": "https://blogs.microsoft.com",
+      "decision": "not approved",
+      "reason": "Corporate and policy blog. Model releases are re-reported there rather than published there first, so it is a secondary channel for this purpose while microsoft.ai and Microsoft Research are primary."
+    },
+    {
+      "origin": "https://news.microsoft.com",
+      "decision": "not approved",
+      "reason": "Microsoft's press newsroom, including regional editions. Same reason as blogs.microsoft.com: it reports releases rather than being the release."
+    }
+  ],
+  "ambiguities": [
+    {
+      "topic": "Microsoft as creator vs Microsoft as serving platform",
+      "note": "Azure serves models Microsoft did not train, OpenAI's most visibly. A model appearing in Azure's catalog, pricing pages or documentation says only that Azure serves it.",
+      "guidance": "Attribute a model to Microsoft only where Microsoft announces it as its own on one of the approved origins above. Never attribute on the strength of Azure availability. Azure is a serving platform entity and is never a creator."
+    },
+    {
+      "topic": "Microsoft's commercial relationship with OpenAI",
+      "note": "Microsoft invests in OpenAI and serves OpenAI's models through Azure OpenAI. Sources describe the two together constantly.",
+      "guidance": "This is a commercial and serving relationship, not a lineage relationship. Do not record it as one. No OpenAI family or release is attributable to Microsoft, and no Microsoft family or release is attributable to OpenAI, on the strength of it."
+    },
+    {
+      "topic": "Copilot is a product, not a model",
+      "note": "Microsoft brands many product surfaces Copilot, and those surfaces run on models from more than one creator.",
+      "guidance": "Record Copilot as a product entity if it is recorded at all. Never as a model, a family or a release, and never as evidence about which model a surface runs on unless the source states it."
+    },
+    {
+      "topic": "Phi and MAI are two families with two publication channels",
+      "note": "Phi comes out of Microsoft Research and is announced on the research blog; the MAI series comes out of Microsoft AI and is announced on microsoft.ai.",
+      "guidance": "Use the creator's own family label for each and do not merge them into one Microsoft family. Which internal organization published a model is an attribute, not a separate creator: both are Microsoft."
+    },
+    {
+      "topic": "Microsoft-published derivatives of other creators' models",
+      "note": "The Microsoft Hugging Face org carries entries such as microsoft/MAI-DS-R1, which is a Microsoft-published variant built on DeepSeek's R1.",
+      "guidance": "A derivative is neither straightforwardly Microsoft's original model nor DeepSeek's release. Record only what the model card states, and leave the lineage between the base model and the variant as an unresolved mapping for a human. Do not attach the base model's creator, family or benchmark numbers to Microsoft, or the variant to DeepSeek."
+    }
+  ]
+}
