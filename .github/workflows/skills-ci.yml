@@ -21,9 +21,12 @@ name: Skills CI
 # what makes the `skills-ci` check safe to mark required. It does not make it
 # required: see the comment on the dataset step below.
 #
-# The scope decision must cover everything the gates read. `gate-dataset.mjs`
-# reads exactly one directory — `web/src/data` — so that path is what makes the
-# dataset step below able to fire on a data change at all (#189).
+# The scope decision should cover everything the gates read, and one part of it
+# is pinned to its source: `gate-dataset.mjs` reads exactly one directory —
+# `web/src/data` — which is what lets the dataset step below fire on a data
+# change at all (#189), and a test derives that directory from the script rather
+# than restating it. The rest of the list is maintained by hand and is not known
+# to be exhaustive. The scope step below names a gap it is known to have.
 #
 # It uses no secrets and holds no write scope of any kind.
 
@@ -91,13 +94,32 @@ jobs:
           echo "Changed files:"
           echo "$changed"
 
-          # Everything the three steps below read: the gates and their
-          # self-tests, the skill documents the doc-count checker scans
-          # (`.github/skills/`), the checker itself (`.github/scripts/`), the
-          # dataset `gate-dataset.mjs` resolves (`web/src/data/`), and this
+          # What the three steps below read, so far as this list goes: the gates
+          # and their self-tests, the skill documents the doc-count checker
+          # scans (`.github/skills/`), the checker itself (`.github/scripts/`),
+          # the dataset `gate-dataset.mjs` resolves (`web/src/data/`), and this
           # workflow file, so that a change to it is verified by the workflow it
-          # changes. Nothing else matches, so a pull request confined to
-          # `tools/updater/` or to `docs/` skips the gates entirely.
+          # changes.
+          #
+          # The list is maintained by hand and is NOT known to be exhaustive. It
+          # is the set the trigger `paths:` filter carried before #294, kept
+          # unchanged, so a path missing from it was already being skipped while
+          # this workflow was path-filtered; what #294 changed is that the skip
+          # now reports a conclusion instead of no check at all.
+          #
+          # One gap is known and measured: `gates.test.mjs` reads the committed
+          # `tools/updater/profiles/`, which nothing here matches. Renaming the
+          # creator id in one of those five profiles — measured on
+          # `openai.json` — turns a large block of the self-tests red, so a pull
+          # request confined to that directory skips gates the change would have
+          # failed. A green skip records that the gates did not run, never that
+          # they would have passed. Do not read one as coverage, and widen this
+          # pattern before trusting it as such.
+          #
+          # A change confined to `docs/`, or to this directory's own
+          # `README.md`, skips the gates too. Those two are genuine rather than
+          # assumed: neither path is read by any gate step, measured by gutting
+          # `.github/workflows/README.md` and re-running the gates unchanged.
           #
           # `web/tests/workflows/skills-ci.test.ts` reads this pattern out of
           # the committed file and asserts it covers every dataset document

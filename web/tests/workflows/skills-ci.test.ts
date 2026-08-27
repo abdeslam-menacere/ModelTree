@@ -170,6 +170,11 @@ describe('skills-ci.yml scope detection', () => {
   // Reporting green is now the skip path rather than an absent check, so what
   // matters here is that the expensive steps stay off a pull request with
   // nothing for them to read.
+  //
+  // `tools/updater/pyproject.toml` is here as one file, not as a claim about
+  // its directory: `gates.test.mjs` does read the committed
+  // `tools/updater/profiles/`, so that sibling is a real gap in the pattern
+  // rather than a benign skip. The workflow comment records it.
   it('skips the gates for a change that touches none of their inputs', () => {
     expect(matchesPath.test('tools/updater/pyproject.toml')).toBe(false);
     expect(matchesPath.test('docs/product/BACKLOG.md')).toBe(false);
@@ -180,6 +185,16 @@ describe('skills-ci.yml scope detection', () => {
   it('does not over-match a path that merely begins with a scoped prefix', () => {
     expect(matchesPath.test('webhooks/handler.ts')).toBe(false);
     expect(matchesPath.test('.github/workflows/skills-ci.yml.bak')).toBe(false);
+  });
+
+  // The pattern is anchored at `^`, and nothing else pinned that anchor: every
+  // other case here fails for a reason that survives its removal. A scoped
+  // prefix appearing further along a path is the one input that tells the two
+  // apart, so without these the anchor could be dropped silently.
+  it('matches a scoped prefix only at the start of the path', () => {
+    expect(matchesPath.test('vendor/web/src/data/releases.json')).toBe(false);
+    expect(matchesPath.test('vendor/.github/skills/modeltree-gates/SKILL.md')).toBe(false);
+    expect(matchesPath.test('third_party/.github/scripts/check.mjs')).toBe(false);
   });
 
   // A green check over a change no gate ever read is the exact failure this
