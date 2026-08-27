@@ -834,6 +834,37 @@ def test_a_longer_fence_is_not_closed_by_a_shorter_one(document):
     assert exemptions(report) == {"#123456"}
 
 
+@pytest.mark.parametrize(
+    "closing_line, swallowed",
+    [("```js", set()), ("``` #77", {"#77"})],
+    ids=["info string repeated", "text after the delimiter"],
+)
+def test_a_closing_delimiter_carrying_an_info_string_does_not_close(
+    document, closing_line, swallowed
+):
+    """A closing fence carries no info string -- CommonMark, and load-bearing.
+
+    The two sibling conjuncts of the same expression are pinned by
+    `test_a_tilde_line_does_not_close_a_backtick_fence` and
+    `test_a_longer_fence_is_not_closed_by_a_shorter_one`. This is the third, and
+    the one whose failure direction is fail-open, so it is the one worth pinning
+    hardest: repeating the info string on the closing line is an ordinary
+    authoring slip rather than an adversarial construction.
+
+    Without the conjunct that line closes the block early, and the damage is not
+    local. The tokens after it fall out into prose, the *next* delimiter opens a
+    fresh block instead of closing one, and every citation from there to the end
+    of the document is exempted -- while the run still exits 0, which is the
+    shape of fail-open this section exists to refuse. The control is `#44`,
+    outside the block on either reading, which must stay refused either way.
+    """
+    path = document(f"```js\n#22\n{closing_line}\n#33\n```\n\nAnd #44.\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert references(report) == {"#44"}
+    assert exemptions(report) == {"#22", "#33"} | swallowed
+
+
 def test_an_unclosed_fence_runs_to_the_end_of_the_document(document):
     """What CommonMark says, and therefore what a reader sees rendered.
 
