@@ -569,6 +569,15 @@
     "notes": "Lists the gpt-image-2 and gpt-image-2-2026-04-21 API identifiers, text and image input, image output, and image-generation endpoint support."
   },
   {
+    "id": "openai-models-catalog",
+    "url": "https://developers.openai.com/api/docs/models",
+    "title": "OpenAI model catalog",
+    "type": "official-docs",
+    "publisherId": "openai",
+    "lastCheckedDate": "2026-08-27",
+    "notes": "OpenAI's developer model catalogue. Names GPT-5.6 Sol as the flagship model and lists GPT-Image-2 as the current image-generation model."
+  },
+  {
     "id": "anthropic-sonnet-4-6-announcement",
     "url": "https://www.anthropic.com/news/claude-sonnet-4-6",
     "title": "Introducing Claude Sonnet 4.6",
