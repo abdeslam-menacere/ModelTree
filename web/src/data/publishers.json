@@ -49,5 +49,21 @@
       "sourceIds": ["google-deepmind-about", "alphabet-about"],
       "verifiedAt": "2026-08-15"
     }
+  },
+  {
+    "id": "tiger-lab",
+    "name": "TIGER-Lab"
+  },
+  {
+    "id": "gpqa-authors",
+    "name": "GPQA Benchmark Authors"
+  },
+  {
+    "id": "livecodebench",
+    "name": "LiveCodeBench"
+  },
+  {
+    "id": "mmmu-benchmark",
+    "name": "MMMU Benchmark"
   }
 ]

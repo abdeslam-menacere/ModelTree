@@ -1,4 +1,6 @@
 import families from './families.json';
+import benchmarks from './benchmarks.json';
+import benchmarkResults from './benchmark-results.json';
 import modelFitEvidenceGaps from './model-fit-evidence-gaps.json';
 import modelFitStatements from './model-fit-statements.json';
 import organizations from './organizations.json';
@@ -16,6 +18,8 @@ export const rawDataset = {
   organizations,
   families,
   releases,
+  benchmarks,
+  benchmarkResults,
   usageObservations,
   usageSyntheses,
   modelFitStatements,
