@@ -25,22 +25,63 @@ function creatorIdsWithoutFeaturedRelease(source: Dataset) {
     .sort();
 }
 
-describe('model tree', () => {
-  it('includes only creators with a featured release, then every release for those creators once', () => {
-    const tree = buildModelTree(dataset);
-    const expectedCreatorIds = [...new Set(
-      dataset.releases.filter(({ featured }) => featured).map(({ organizationId }) => organizationId),
-    )].sort();
-    const actualCreatorIds = tree.featured.map(({ organization }) => organization.id).sort();
-    const expectedReleaseIds = dataset.releases
-      .filter(({ organizationId }) => expectedCreatorIds.includes(organizationId))
-      .map(({ id }) => id)
-      .sort();
-    const actualReleaseIds = modelTreeReleaseIds(tree).sort();
+/**
+ * The releases `buildModelTree` renders, derived from the dataset independently
+ * of the builder: creator -> family -> release, for every creator that holds at
+ * least one release. This is the builder's own guarantee and nothing more: a
+ * release whose family is absent from the catalog, or whose family belongs to a
+ * creator that holds no releases of its own, is unreachable and does not render.
+ */
+function renderedReleaseIds(source: Dataset) {
+  const creatorIds = new Set(
+    source.organizations
+      .filter(({ id }) => source.releases.some((release) => release.organizationId === id))
+      .map(({ id }) => id),
+  );
+  const familyIds = new Set(
+    source.families
+      .filter(({ organizationId }) => creatorIds.has(organizationId))
+      .map(({ id }) => id),
+  );
 
-    expect(actualCreatorIds).toEqual(expectedCreatorIds);
-    expect(actualReleaseIds).toEqual(expectedReleaseIds);
-    expect(new Set(actualReleaseIds).size).toBe(actualReleaseIds.length);
+  return source.releases
+    .filter(({ familyId }) => familyIds.has(familyId))
+    .map(({ id }) => id)
+    .sort();
+}
+
+describe('model tree', () => {
+  it('features exactly the creators with a featured release and lists every release once', () => {
+    // `modelTreeReleaseIds` spans both branches (model-tree.ts:124-130 via
+    // :103-105), so comparing it against the featured creators' releases alone
+    // held only while Others was empty. Both datasets are held to one rule, and
+    // the fixture supplies the populated case.
+    for (const source of [dataset, datasetWithOtherCreators]) {
+      const tree = buildModelTree(source);
+      const expectedCreatorIds = [...new Set(
+        source.releases.filter(({ featured }) => featured).map(({ organizationId }) => organizationId),
+      )].sort();
+      const actualCreatorIds = tree.featured.map(({ organization }) => organization.id).sort();
+      const actualReleaseIds = modelTreeReleaseIds(tree).sort();
+
+      expect(actualCreatorIds).toEqual(expectedCreatorIds);
+      expect(actualReleaseIds).toEqual(renderedReleaseIds(source));
+      // Reachability is all the builder promises; validateDataset is what makes
+      // it the whole catalog, refusing a release whose familyId is missing or
+      // whose organizationId disagrees with its family (validate.ts:503-513).
+      // Asserted separately so a release silently vanishing from the tree is
+      // caught rather than mirrored by the derivation above.
+      expect(actualReleaseIds).toEqual(source.releases.map(({ id }) => id).sort());
+      expect(new Set(actualReleaseIds).size).toBe(actualReleaseIds.length);
+    }
+
+    // Guards the loop against going vacuous: unless the fixture actually feeds
+    // releases through Others, both iterations exercise the same empty-Others
+    // shape and prove nothing the old assertion did not.
+    const fixtureOtherReleaseIds = buildModelTree(datasetWithOtherCreators).others
+      .flatMap(({ families }) => families.flatMap(({ releases }) => releases.map(({ id }) => id)));
+
+    expect(fixtureOtherReleaseIds.length).toBeGreaterThan(0);
   });
 
   it('orders creators deterministically and families/releases newest first with ID ties', () => {
