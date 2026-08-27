@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import { buildModelTree } from '../lib/model-tree';
-import { datasetWithOtherCreators } from '../lib/model-tree-fixture';
+import { datasetWithOtherCreators } from '../../tests/fixtures/model-tree-dataset';
 import ModelTreeExplorer from './ModelTreeExplorer';
 
 const tree = buildModelTree(dataset);

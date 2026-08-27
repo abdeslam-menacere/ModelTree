@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { dataset } from '../data/dataset';
 import { buildModelTree, modelTreeReleaseIds } from '../lib/model-tree';
-import { datasetWithOtherCreators } from '../lib/model-tree-fixture';
+import { datasetWithOtherCreators } from '../../tests/fixtures/model-tree-dataset';
 import ModelTreeExplorer from './ModelTreeExplorer';
 
 vi.mock('react', async (importOriginal) => ({
@@ -35,12 +35,16 @@ describe('ModelTreeExplorer', () => {
     const markup = renderToStaticMarkup(
       <ModelTreeExplorer tree={tree} sourceByReleaseId={{}} basePath="/ModelTree/" />,
     );
+    // Scoped to the Others node: unrelated catalog prose must not be able to
+    // fail or pass this assertion.
+    const emptyNode = markup.match(/<div class="tree-empty-node">.*?<\/div>/)?.[0];
 
     expect(tree.others).toEqual([]);
-    expect(markup).toContain('<div class="tree-empty-node"><strong>Others</strong>');
-    expect(markup).toContain('No non-featured creators in the reviewed catalog');
-    for (const word of ['Awaiting', 'awaiting', 'Pending', 'pending', 'Coming soon', 'in progress']) {
-      expect(markup).not.toContain(word);
+    expect(emptyNode).toBeDefined();
+    expect(emptyNode).toContain('<strong>Others</strong>');
+    expect(emptyNode).toContain('No non-featured creators in the reviewed catalog');
+    for (const phrase of ['waiting', 'ending', 'Coming soon', 'in progress', 'queue', 'soon']) {
+      expect(emptyNode).not.toContain(phrase);
     }
     expect(markup).not.toContain('model-tree-other-creators');
   });

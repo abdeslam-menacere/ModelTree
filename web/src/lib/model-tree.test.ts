@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
-import { datasetWithOtherCreators, expectedOtherCreatorIds } from './model-tree-fixture';
+import { datasetWithOtherCreators, expectedOtherCreatorIds } from '../../tests/fixtures/model-tree-dataset';
 import {
   buildModelTree,
   findModelTreePath,

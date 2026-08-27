@@ -1,13 +1,14 @@
-import { dataset } from '../data/dataset';
-import type { Dataset, ModelFamily, ModelRelease, Organization } from '../data/schema';
-import { validateDataset } from '../data/validate';
+import { dataset } from '../../src/data/dataset';
+import type { Dataset, ModelFamily, ModelRelease, Organization } from '../../src/data/schema';
+import { validateDataset } from '../../src/data/validate';
 
 /**
- * Test-only scaffolding. Every organization in the reviewed catalog currently
- * has a featured release, so the real dataset exercises only the empty `Others`
- * branch. These records are synthetic and deliberately live outside
- * `src/data/*.json`: they exist to prove the derivation, never to assert a fact
- * about a real creator. Nothing in the site imports this module.
+ * Test-only scaffolding, deliberately outside `src/` so no page or component can
+ * reach it and no fabricated provenance sits in the site source graph. Every
+ * organization in the reviewed catalog currently has a featured release, so the
+ * real dataset exercises only the empty `Others` branch. These records are
+ * synthetic: they exist to prove the derivation, never to assert a fact about a
+ * real creator.
  *
  * The shape is chosen to exercise every ordering rule at once: two creators
  * sharing a name so the id tiebreak is observable, a creator whose name sorts
