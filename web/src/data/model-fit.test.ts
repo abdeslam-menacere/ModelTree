@@ -168,6 +168,38 @@ describe('seeded conditional-fit guidance', () => {
     expect(parsed.modelFitEvidenceGaps.length).toBeGreaterThan(0);
   });
 
+  // This test owns the statement and evidence-gap counts that web/README.md's
+  // "Data notes" section describes in prose. The README points here rather than
+  // restating the numbers, so adding a statement or a gap to the seed reddens
+  // this test instead of silently falsifying the prose (abdeslam-menacere/ModelTree#409,
+  // following the direction-of-authority pattern abdeslam-menacere/ModelTree#396 set for libc).
+  it('owns the seeded statement and evidence-gap counts the README describes', () => {
+    const statementsByRelease = new Map<string, number>();
+    for (const record of parsed.modelFitStatements) {
+      statementsByRelease.set(
+        record.releaseId,
+        (statementsByRelease.get(record.releaseId) ?? 0) + 1,
+      );
+    }
+    expect(parsed.modelFitStatements).toHaveLength(7);
+    expect(Object.fromEntries(statementsByRelease)).toEqual({
+      'meta-llama-4-scout': 3,
+      'anthropic-claude-mythos-5': 1,
+      'anthropic-claude-haiku-4-5': 2,
+      'openai-gpt-5': 1,
+    });
+
+    const gapsByRelease = new Map<string, number>();
+    for (const record of parsed.modelFitEvidenceGaps) {
+      gapsByRelease.set(record.releaseId, (gapsByRelease.get(record.releaseId) ?? 0) + 1);
+    }
+    expect(parsed.modelFitEvidenceGaps).toHaveLength(3);
+    expect(Object.fromEntries(gapsByRelease)).toEqual({
+      'meta-llama-4-scout': 2,
+      'openai-gpt-5': 1,
+    });
+  });
+
   it('files every seeded statement under exactly one classification', () => {
     for (const record of parsed.modelFitStatements) {
       expect(['good-fit-when', 'trade-off', 'avoid-when']).toContain(record.classification);
