@@ -237,7 +237,21 @@ function datasetAnchor(cwd, base) {
   return byId;
 }
 
-/** Every origin a reviewed creator profile configured. */
+/**
+ * Every origin a reviewed creator profile configured, and what the sweep
+ * actually managed to read.
+ *
+ * Listing a profile and consulting its catalogue are two different facts, and
+ * the gap between them is where the trust anchor silently narrows: a profile
+ * that loses its `source_catalog` in an edit, or stops parsing, contributes no
+ * origins while remaining just as countable as before. Reporting the listing as
+ * though it were the catalogues read let that happen with nothing in the output
+ * moving (#344), so the two are tracked apart here and the files in the gap are
+ * carried out by name rather than folded into a total.
+ *
+ * `urls` is unchanged by that bookkeeping. Which origins this anchor approves is
+ * decided exactly as before; only the account of how wide it was got honest.
+ */
 function catalogAnchor(cwd, base) {
   let listing;
   try {
@@ -245,25 +259,36 @@ function catalogAnchor(cwd, base) {
   } catch {
     // The profiles are an additive anchor. Their absence is reported in the
     // output rather than guessed at, and the dataset anchor still applies.
-    return { files: [], urls: [] };
+    return { files: [], urls: [], catalogues: [], withoutCatalogue: [], unreadable: [] };
   }
 
   const files = listing.split('\n').map((line) => line.trim()).filter((line) => line.endsWith('.json'));
   const urls = [];
+  // Consulted: parsed, and carried a `source_catalog` array the loop below read.
+  const catalogues = [];
+  // The two ways a listed profile contributes nothing, kept apart because one is
+  // a choice and the other is damage, and a reader has to be able to tell which.
+  const withoutCatalogue = [];
+  const unreadable = [];
   for (const file of files) {
     let profile;
     try {
       profile = JSON.parse(git(cwd, 'show', `${base}:${file}`));
     } catch {
+      unreadable.push(file);
       continue;
     }
     const catalog = profile?.source_catalog;
-    if (!Array.isArray(catalog)) continue;
+    if (!Array.isArray(catalog)) {
+      withoutCatalogue.push(file);
+      continue;
+    }
+    catalogues.push(file);
     for (const entry of catalog) {
       if (entry !== null && typeof entry === 'object' && typeof entry.url === 'string') urls.push(entry.url);
     }
   }
-  return { files, urls };
+  return { files, urls, catalogues, withoutCatalogue, unreadable };
 }
 
 /**
@@ -533,7 +558,45 @@ function main() {
     },
     anchors: {
       datasetSources: baseline.size,
-      profileCatalogues: catalog.files.length,
+      // How wide the profile anchor was, told as two numbers because it is two
+      // facts. `profileCatalogues` counts the profiles whose `source_catalog`
+      // this run actually consulted - what the name has always claimed - and
+      // `profileFiles` is the listing it was drawn from. Reporting the listing
+      // under the catalogue name overstated the anchor by every profile that
+      // was present but contributed nothing, and did so in the direction that
+      // hides harm: a profile losing its catalogue narrows what the run may
+      // trust while the reported breadth stays put (#344).
+      //
+      // The gap is not quietly subtracted. Collapsing it to a single corrected
+      // number fixes the arithmetic and buries the reason; the point is that a
+      // reader can tell how many profiles were listed, how many were read, and
+      // *which* ones fell in between, from this block alone. So the files in the
+      // gap are named, split by which of the two things happened to them.
+      // Measured on `a7cee47`, where this read 5 listed against 4 consulted,
+      // that is "5 files, 4 catalogues, 1 without one" - an illustration of the
+      // shape, not a count this comment undertakes to keep true.
+      //
+      // `profilesWithoutCatalogue` is the deliberate case: a profile is allowed
+      // to configure no origins at all, and `generic/long-tail.json` is the
+      // standing example. It is legitimate as it stands and is not something
+      // for a later run to go and "fix" - editing the data so the old count
+      // came true would be correcting the evidence to match the claim.
+      //
+      // `profilesUnreadable` is the damaged case, and it stays a skip rather
+      // than becoming a refusal. This anchor is additive: a wholly absent
+      // profile tree is already tolerated a few lines up, so one corrupt file
+      // being fatal while losing all five is fine would be incoherent, and it
+      // would hand any single unparseable profile a veto over runs that never
+      // cited it. The skip also fails in the safe direction - it can only
+      // withhold trust, never extend it, so it cannot approve anything it
+      // should not. What it must not do is stay invisible: being
+      // indistinguishable from a deliberate no-catalogue file is the defect
+      // itself, and naming the two separately settles that without moving the
+      // verdict a millimetre.
+      profileFiles: catalog.files.length,
+      profileCatalogues: catalog.catalogues.length,
+      profilesWithoutCatalogue: [...catalog.withoutCatalogue].sort(),
+      profilesUnreadable: [...catalog.unreadable].sort(),
       approvedOrigins: [...approvedOrigins].sort(),
     },
     citations,
