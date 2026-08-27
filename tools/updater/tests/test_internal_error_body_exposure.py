@@ -273,10 +273,12 @@ def _detail_cell_as_the_body_carries_it(detail_json: str) -> str:
     would take the marker with it and redden the test — though not, in general,
     the marker assertion itself; #364 measured which check actually fires for
     four such `_cell`s and recorded it at that call site. A `_cell` that merely
-    changed its escaping would not redden anything, and should not, because the
-    exposure being pinned would be unchanged. Redaction on the `_failure_row`
-    path (the #282 change) is caught either way, because `detail_json` is built
-    from the recorded failure rather than from anything the renderer returns."""
+    changed its escaping would not redden the marker assertions, and should not,
+    because the exposure being pinned would be unchanged; the escaping itself is
+    pinned by the rendering tests, and `test_publisher.py`'s row-breakout check
+    reddens when it changes. Redaction on the `_failure_row` path (the #282
+    change) is caught either way, because `detail_json` is built from the
+    recorded failure rather than from anything the renderer returns."""
     return _cell(detail_json)
 
 
