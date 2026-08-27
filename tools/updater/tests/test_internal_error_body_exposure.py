@@ -861,7 +861,15 @@ def test_a_syntax_error_message_reddens_only_the_location_check(
       line 1)`, which this pattern does not match, so the `message` cell
       contributes nothing. The `File "...", line 1` spelling exists only in
       `detail["traceback"]`. A reader who assumed the red came from the message
-      would strip the wrong channel and still be red."""
+      would strip the wrong channel and still be red.
+
+    The two literal assertions below read CPython's own `SyntaxError` rendering,
+    which is the one version-sensitive thing in this file. Verified on 3.11; CI
+    also runs 3.13. If a future interpreter reddens them, what changed is the
+    rendering and not this repository — re-read the #328 decision at
+    `_FRAME_LOCATION` and check whether its premise still holds, namely that a
+    `SyntaxError` still spells its location the way a traceback frame does,
+    before editing anything here."""
     error = _a_real_syntax_error()
     proposal = _proposal_from_a_crash(library, settings, error=error)
     failure = proposal.failures[0]
