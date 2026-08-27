@@ -5,10 +5,16 @@
     "organizationId": "openai",
     "name": "GPT-4.1",
     "description": "A three-model API family introduced together across capability, latency, and cost tiers.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
     "firstReleaseDate": "2025-04-14",
     "status": "current",
-    "sourceIds": ["openai-gpt-4-1-announcement"],
+    "sourceIds": [
+      "openai-gpt-4-1-announcement"
+    ],
     "verifiedAt": "2026-08-14"
   },
   {
@@ -17,10 +23,17 @@
     "organizationId": "openai",
     "name": "GPT-5.6",
     "description": "The current GPT-5 generation, released for general availability on 2026-07-09 after a limited preview of its flagship tier. In OpenAI's words the family spans three durable capability tiers: Sol (the flagship), Terra (a lower-cost model competitive with GPT-5.5), and Luna (the fastest and most affordable), where the number identifies the generation and the tier names can advance on their own cadence. It succeeds GPT-5.5.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
     "firstReleaseDate": "2026-07-09",
     "status": "current",
-    "sourceIds": ["openai-gpt-5-6-launch", "openai-gpt-5-6-sol-docs"],
+    "sourceIds": [
+      "openai-gpt-5-6-launch",
+      "openai-gpt-5-6-sol-docs"
+    ],
     "verifiedAt": "2026-08-18"
   },
   {
@@ -29,10 +42,17 @@
     "organizationId": "openai",
     "name": "GPT-5.5",
     "description": "The GPT-5 generation immediately preceding GPT-5.6, introduced in the API on 2026-04-23 as a frontier model for complex coding, research, and data-analysis work. OpenAI's GPT-5.6 documentation positions the Terra tier as competitive with GPT-5.5, and its model documentation still lists GPT-5.5 as available; GPT-5.6 is its successor generation.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
     "firstReleaseDate": "2026-04-23",
     "status": "legacy",
-    "sourceIds": ["openai-gpt-5-5-announcement", "openai-gpt-5-5-docs"],
+    "sourceIds": [
+      "openai-gpt-5-5-announcement",
+      "openai-gpt-5-5-docs"
+    ],
     "verifiedAt": "2026-08-18"
   },
   {
@@ -41,10 +61,17 @@
     "organizationId": "openai",
     "name": "GPT-5.4",
     "description": "An earlier GPT-5 generation, introduced on 2026-03-05 as OpenAI's frontier model for professional work, with state-of-the-art coding, computer use, and a roughly one-million-token context window. It precedes GPT-5.5 and GPT-5.6 in the GPT-5 line.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
     "firstReleaseDate": "2026-03-05",
     "status": "legacy",
-    "sourceIds": ["openai-gpt-5-4-announcement", "openai-gpt-5-4-docs"],
+    "sourceIds": [
+      "openai-gpt-5-4-announcement",
+      "openai-gpt-5-4-docs"
+    ],
     "verifiedAt": "2026-08-18"
   },
   {
@@ -53,10 +80,16 @@
     "organizationId": "openai",
     "name": "GPT-5",
     "description": "The first GPT-5 generation and the root of the line that GPT-5.4, GPT-5.5, and GPT-5.6 build on. Its date is taken from the pinned API snapshot gpt-5-2025-08-07; OpenAI's model documentation now labels GPT-5 a previous model and recommends GPT-5.6 in its place.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
     "firstReleaseDate": "2025-08-07",
     "status": "legacy",
-    "sourceIds": ["openai-gpt-5-docs"],
+    "sourceIds": [
+      "openai-gpt-5-docs"
+    ],
     "verifiedAt": "2026-08-18"
   },
   {
@@ -65,10 +98,17 @@
     "organizationId": "anthropic",
     "name": "Claude 5",
     "description": "The current Claude generation. Fable and Mythos share the same capabilities and specifications, but Fable is widely released while Mythos is restricted to approved customers. Opus is the tier Anthropic recommends for complex coding work that runs over many steps.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
     "firstReleaseDate": "2026-06-09",
     "status": "current",
-    "sourceIds": ["anthropic-models-overview", "anthropic-fable-5-mythos-5-docs"],
+    "sourceIds": [
+      "anthropic-models-overview",
+      "anthropic-fable-5-mythos-5-docs"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -77,10 +117,17 @@
     "organizationId": "anthropic",
     "name": "Claude 4.5",
     "description": "The 2025 Claude generation. Anthropic lists Sonnet 4.5 among legacy models while Haiku 4.5 is still documented as a current model.",
-    "categories": ["language-reasoning", "coding"],
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
     "firstReleaseDate": "2025-09-29",
     "status": "legacy",
-    "sourceIds": ["anthropic-models-overview", "anthropic-model-deprecations", "anthropic-sonnet-4-5-announcement"],
+    "sourceIds": [
+      "anthropic-models-overview",
+      "anthropic-model-deprecations",
+      "anthropic-sonnet-4-5-announcement"
+    ],
     "verifiedAt": "2026-08-15"
   },
   {
@@ -89,10 +136,17 @@
     "organizationId": "google-deepmind",
     "name": "Gemini 3",
     "description": "The current Gemini generation, spanning Pro, Flash, and Flash-Lite tiers across point releases that Google documents with individual release and shutdown dates.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
     "firstReleaseDate": "2025-11-18",
     "status": "current",
-    "sourceIds": ["google-gemini-deprecations", "google-gemini-3-guide"],
+    "sourceIds": [
+      "google-gemini-deprecations",
+      "google-gemini-3-guide"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -101,10 +155,16 @@
     "organizationId": "google-deepmind",
     "name": "Gemini 2.5",
     "description": "The preceding Gemini generation. Its stable Pro and Flash models remain generally available and share a single technical report.",
-    "categories": ["language-reasoning", "multimodal-generalist"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
     "firstReleaseDate": "2025-06-17",
     "status": "current",
-    "sourceIds": ["google-gemini-deprecations", "google-gemini-2-5-report"],
+    "sourceIds": [
+      "google-gemini-deprecations",
+      "google-gemini-2-5-report"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -113,23 +173,35 @@
     "organizationId": "meta",
     "name": "Llama 4",
     "description": "Meta's first generation built to handle text and images together rather than having image support added afterwards. Each token — one of the small chunks that text and images are broken into — is handled by only a fraction of the network rather than all of it. The weights can be downloaded under a community licence.",
-    "categories": ["language-reasoning", "multimodal-generalist"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
     "firstReleaseDate": "2025-04-05",
     "status": "current",
-    "sourceIds": ["meta-llama-4-announcement", "meta-llama-collection"],
-    "verifiedAt": "2026-08-15"
+    "sourceIds": [
+      "meta-llama-4-announcement",
+      "meta-llama-collection"
+    ],
+    "verifiedAt": "2026-08-27"
   },
   {
     "id": "meta-llama-3",
     "slug": "llama-3",
     "organizationId": "meta",
     "name": "Llama 3",
-    "description": "Meta groups the whole Llama 3 line under History in its model collection. The two releases recorded here take text in and give text out; Llama 3.1 includes a 405-billion-parameter size and reads up to 128,000 tokens in one request.",
-    "categories": ["language-reasoning"],
+    "description": "Meta groups the whole Llama 3 line under History in its model collection. The recorded releases include Llama 3.1 405B, Llama 3.2 text and vision sizes, and Llama 3.3 70B; the text releases take text in and return text, while Llama 3.2 Vision takes text and images in and returns text.",
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
     "firstReleaseDate": "2024-07-23",
     "status": "legacy",
-    "sourceIds": ["meta-llama-collection", "meta-llama-3-1-model-card"],
-    "verifiedAt": "2026-08-26"
+    "sourceIds": [
+      "meta-llama-collection",
+      "meta-llama-3-1-model-card"
+    ],
+    "verifiedAt": "2026-08-27"
   },
   {
     "id": "meta-muse",
@@ -137,10 +209,148 @@
     "organizationId": "meta",
     "name": "Muse",
     "description": "Muse is Meta Superintelligence Labs' family of proprietary, hosted models spanning multimodal reasoning (Muse Spark), image generation (Muse Image), and video generation (Muse Video).",
-    "categories": ["language-reasoning", "multimodal-generalist", "image", "video"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "image",
+      "video"
+    ],
     "firstReleaseDate": "2026-04-08",
     "status": "current",
-    "sourceIds": ["meta-muse-spark-announcement", "meta-muse-spark-1-1-announcement", "meta-muse-image-video-announcement"],
+    "sourceIds": [
+      "meta-muse-spark-announcement",
+      "meta-muse-spark-1-1-announcement",
+      "meta-muse-image-video-announcement"
+    ],
     "verifiedAt": "2026-08-26"
+  },
+  {
+    "id": "openai-gpt-5-1",
+    "slug": "gpt-5-1",
+    "organizationId": "openai",
+    "name": "GPT-5.1",
+    "description": "A GPT-5 generation introduced for developers on 2025-11-13 for coding and agentic tasks with configurable reasoning and non-reasoning effort.",
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "firstReleaseDate": "2025-11-13",
+    "status": "legacy",
+    "sourceIds": [
+      "openai-news-rss",
+      "openai-gpt-5-1-docs"
+    ],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "openai-gpt-5-2",
+    "slug": "gpt-5-2",
+    "organizationId": "openai",
+    "name": "GPT-5.2",
+    "description": "A GPT-5 generation introduced on 2025-12-11 for professional work with reasoning, long-context understanding, coding, and vision.",
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "firstReleaseDate": "2025-12-11",
+    "status": "legacy",
+    "sourceIds": [
+      "openai-news-rss",
+      "openai-gpt-5-2-docs"
+    ],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "openai-gpt-5-3-codex",
+    "slug": "gpt-5-3-codex",
+    "organizationId": "openai",
+    "name": "GPT-5.3-Codex",
+    "description": "A Codex-native GPT-5.3 coding family for agentic coding tasks and long-horizon technical work.",
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "firstReleaseDate": "2026-02-05",
+    "status": "current",
+    "sourceIds": [
+      "openai-news-rss",
+      "openai-gpt-5-3-codex-docs"
+    ],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "openai-gpt-image",
+    "slug": "gpt-image",
+    "organizationId": "openai",
+    "name": "GPT-Image",
+    "description": "OpenAI image-generation and editing models in the GPT naming line.",
+    "categories": [
+      "image"
+    ],
+    "firstReleaseDate": "2026-04-21",
+    "status": "current",
+    "sourceIds": [
+      "openai-news-rss",
+      "openai-gpt-image-2-docs"
+    ],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "anthropic-claude-4-6",
+    "slug": "claude-4-6",
+    "organizationId": "anthropic",
+    "name": "Claude 4.6",
+    "description": "A 2026 Claude generation represented by Opus 4.6 and Sonnet 4.6, with coding, computer-use, agentic, and long-context upgrades over preceding Claude 4 models.",
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "firstReleaseDate": "2026-02-05",
+    "status": "legacy",
+    "sourceIds": [
+      "anthropic-opus-4-6-announcement",
+      "anthropic-sonnet-4-6-announcement",
+      "anthropic-model-deprecations"
+    ],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "anthropic-claude-4-7",
+    "slug": "claude-4-7",
+    "organizationId": "anthropic",
+    "name": "Claude 4.7",
+    "description": "A 2026 Claude generation represented by Opus 4.7, with advanced software-engineering, long-running-task, and higher-resolution vision improvements over Opus 4.6.",
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "firstReleaseDate": "2026-04-16",
+    "status": "legacy",
+    "sourceIds": [
+      "anthropic-opus-4-7-announcement",
+      "anthropic-model-deprecations"
+    ],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "anthropic-claude-4-8",
+    "slug": "claude-4-8",
+    "organizationId": "anthropic",
+    "name": "Claude 4.8",
+    "description": "A 2026 Claude generation represented by Opus 4.8, which Anthropic says builds on Opus 4.7 with benchmark and collaboration improvements.",
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "firstReleaseDate": "2026-05-28",
+    "status": "legacy",
+    "sourceIds": [
+      "anthropic-opus-4-8-announcement",
+      "anthropic-model-deprecations"
+    ],
+    "verifiedAt": "2026-08-27"
   }
 ]

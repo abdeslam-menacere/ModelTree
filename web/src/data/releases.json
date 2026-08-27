@@ -13,19 +13,37 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "Seed release with an official launch announcement and current model documentation.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1047576,
     "maximumOutput": 32768,
-    "apiAliases": ["gpt-4.1", "gpt-4.1-2025-04-14"],
+    "apiAliases": [
+      "gpt-4.1",
+      "gpt-4.1-2025-04-14"
+    ],
     "predecessorIds": [],
     "successorIds": [],
-    "siblingIds": ["openai-gpt-4-1-mini-2025-04-14", "openai-gpt-4-1-nano-2025-04-14"],
+    "siblingIds": [
+      "openai-gpt-4-1-mini-2025-04-14",
+      "openai-gpt-4-1-nano-2025-04-14"
+    ],
     "summary": "A non-reasoning API model for instruction following, tool calling, and broad-domain work.",
     "intendedUse": "Complex API tasks that benefit from the most capable model in the GPT-4.1 family.",
-    "sourceIds": ["openai-gpt-4-1-announcement", "openai-gpt-4-1-docs"],
+    "sourceIds": [
+      "openai-gpt-4-1-announcement",
+      "openai-gpt-4-1-docs"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -42,19 +60,37 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "Seed release with an official launch announcement and current model documentation.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1047576,
     "maximumOutput": 32768,
-    "apiAliases": ["gpt-4.1-mini", "gpt-4.1-mini-2025-04-14"],
+    "apiAliases": [
+      "gpt-4.1-mini",
+      "gpt-4.1-mini-2025-04-14"
+    ],
     "predecessorIds": [],
     "successorIds": [],
-    "siblingIds": ["openai-gpt-4-1-2025-04-14", "openai-gpt-4-1-nano-2025-04-14"],
+    "siblingIds": [
+      "openai-gpt-4-1-2025-04-14",
+      "openai-gpt-4-1-nano-2025-04-14"
+    ],
     "summary": "A smaller, faster GPT-4.1 variant for instruction following and tool calling.",
     "intendedUse": "API tasks that prioritize lower latency while retaining instruction following and tool calling.",
-    "sourceIds": ["openai-gpt-4-1-announcement", "openai-gpt-4-1-mini-docs"],
+    "sourceIds": [
+      "openai-gpt-4-1-announcement",
+      "openai-gpt-4-1-mini-docs"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -71,20 +107,38 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "Seed release with an official launch announcement and current model documentation.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1047576,
     "maximumOutput": 32768,
-    "apiAliases": ["gpt-4.1-nano", "gpt-4.1-nano-2025-04-14"],
+    "apiAliases": [
+      "gpt-4.1-nano",
+      "gpt-4.1-nano-2025-04-14"
+    ],
     "predecessorIds": [],
     "successorIds": [],
-    "siblingIds": ["openai-gpt-4-1-2025-04-14", "openai-gpt-4-1-mini-2025-04-14"],
+    "siblingIds": [
+      "openai-gpt-4-1-2025-04-14",
+      "openai-gpt-4-1-mini-2025-04-14"
+    ],
     "summary": "The fastest, most cost-efficient GPT-4.1 variant for instruction following and tool calling.",
     "intendedUse": "Classification, autocompletion, and API tasks that prioritize speed and cost efficiency.",
-    "sourceIds": ["openai-gpt-4-1-announcement", "openai-gpt-4-1-nano-docs"],
-    "verifiedAt": "2026-08-14"
+    "sourceIds": [
+      "openai-gpt-4-1-announcement",
+      "openai-gpt-4-1-nano-docs"
+    ],
+    "verifiedAt": "2026-08-27"
   },
   {
     "id": "openai-gpt-5-6-sol",
@@ -100,21 +154,40 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "OpenAI's current flagship model, launched for general availability with an official announcement and dated API model documentation.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1050000,
     "maximumOutput": 128000,
-    "apiAliases": ["gpt-5.6-sol", "gpt-5.6"],
+    "apiAliases": [
+      "gpt-5.6-sol",
+      "gpt-5.6"
+    ],
     "predecessorIds": [],
     "successorIds": [],
-    "siblingIds": ["openai-gpt-5-6-terra", "openai-gpt-5-6-luna"],
+    "siblingIds": [
+      "openai-gpt-5-6-terra",
+      "openai-gpt-5-6-luna"
+    ],
     "derivedFromIds": [],
     "summary": "The flagship tier of the GPT-5.6 family and OpenAI's most capable model for complex professional, coding, and agentic work. Its API documentation lists a 1,050,000-token context window and a 2026-02-16 knowledge cutoff, and the gpt-5.6 alias routes to Sol.",
     "intendedUse": "Complex professional, coding, and agentic tasks that call for OpenAI's highest-capability model.",
-    "sourceIds": ["openai-gpt-5-6-launch", "openai-gpt-5-6-sol-docs", "openai-gpt-5-6-sol-preview"],
-    "verifiedAt": "2026-08-26"
+    "sourceIds": [
+      "openai-gpt-5-6-launch",
+      "openai-gpt-5-6-sol-docs",
+      "openai-gpt-5-6-sol-preview"
+    ],
+    "verifiedAt": "2026-08-27"
   },
   {
     "id": "openai-gpt-5-6-terra",
@@ -130,20 +203,38 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "Launched in the GPT-5.6 general-availability announcement with its own dated API model documentation.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1050000,
     "maximumOutput": 128000,
-    "apiAliases": ["gpt-5.6-terra"],
+    "apiAliases": [
+      "gpt-5.6-terra"
+    ],
     "predecessorIds": [],
     "successorIds": [],
-    "siblingIds": ["openai-gpt-5-6-sol", "openai-gpt-5-6-luna"],
+    "siblingIds": [
+      "openai-gpt-5-6-sol",
+      "openai-gpt-5-6-luna"
+    ],
     "derivedFromIds": [],
     "summary": "The balanced cost-and-performance tier of the GPT-5.6 family, which OpenAI positions as competitive with GPT-5.5 at a lower cost. Its API documentation lists a 1,050,000-token context window and a 2026-02-16 knowledge cutoff, and says it roughly corresponds to the mini tier of earlier GPT-5 families.",
     "intendedUse": "Everyday professional and coding workloads that balance capability against cost.",
-    "sourceIds": ["openai-gpt-5-6-launch", "openai-gpt-5-6-terra-docs", "openai-gpt-5-6-price-update"],
+    "sourceIds": [
+      "openai-gpt-5-6-launch",
+      "openai-gpt-5-6-terra-docs",
+      "openai-gpt-5-6-price-update"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -160,20 +251,38 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "Launched in the GPT-5.6 general-availability announcement with its own dated API model documentation.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1050000,
     "maximumOutput": 128000,
-    "apiAliases": ["gpt-5.6-luna"],
+    "apiAliases": [
+      "gpt-5.6-luna"
+    ],
     "predecessorIds": [],
     "successorIds": [],
-    "siblingIds": ["openai-gpt-5-6-sol", "openai-gpt-5-6-terra"],
+    "siblingIds": [
+      "openai-gpt-5-6-sol",
+      "openai-gpt-5-6-terra"
+    ],
     "derivedFromIds": [],
     "summary": "The most affordable, highest-throughput tier of the GPT-5.6 family. Its API documentation lists a 1,050,000-token context window and a 2026-02-16 knowledge cutoff, and says it roughly corresponds to the nano tier of earlier GPT-5 families.",
     "intendedUse": "Cost-sensitive, high-volume workloads that still need GPT-5.6-generation capability.",
-    "sourceIds": ["openai-gpt-5-6-launch", "openai-gpt-5-6-luna-docs", "openai-gpt-5-6-price-update"],
+    "sourceIds": [
+      "openai-gpt-5-6-launch",
+      "openai-gpt-5-6-luna-docs",
+      "openai-gpt-5-6-price-update"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -189,20 +298,35 @@
     "datePrecision": "day",
     "status": "legacy",
     "featured": false,
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1050000,
     "maximumOutput": 128000,
-    "apiAliases": ["gpt-5.5", "gpt-5.5-2026-04-23"],
+    "apiAliases": [
+      "gpt-5.5",
+      "gpt-5.5-2026-04-23"
+    ],
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
     "summary": "The GPT-5 generation before GPT-5.6, introduced in the API on 2026-04-23 for complex coding, research, and data-analysis work. Its API documentation lists a 1,050,000-token context window, a 2026-04-23 default snapshot, and a 2025-12-01 knowledge cutoff.",
     "intendedUse": "Complex coding, research, and professional workflows on the generation directly preceding GPT-5.6.",
-    "sourceIds": ["openai-gpt-5-5-announcement", "openai-gpt-5-5-docs"],
+    "sourceIds": [
+      "openai-gpt-5-5-announcement",
+      "openai-gpt-5-5-docs"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -218,20 +342,35 @@
     "datePrecision": "day",
     "status": "legacy",
     "featured": false,
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1050000,
     "maximumOutput": 128000,
-    "apiAliases": ["gpt-5.4", "gpt-5.4-2026-03-05"],
+    "apiAliases": [
+      "gpt-5.4",
+      "gpt-5.4-2026-03-05"
+    ],
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
     "summary": "An earlier GPT-5 generation, introduced on 2026-03-05 as OpenAI's frontier model for professional work, with state-of-the-art coding, computer use, and a roughly one-million-token context. Its API documentation lists a 1,050,000-token context window, a 2026-03-05 default snapshot, and a 2025-08-31 knowledge cutoff.",
     "intendedUse": "Professional coding and agentic work on the generation two steps before GPT-5.6.",
-    "sourceIds": ["openai-gpt-5-4-announcement", "openai-gpt-5-4-docs"],
+    "sourceIds": [
+      "openai-gpt-5-4-announcement",
+      "openai-gpt-5-4-docs"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -247,20 +386,34 @@
     "datePrecision": "day",
     "status": "legacy",
     "featured": false,
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 400000,
     "maximumOutput": 128000,
-    "apiAliases": ["gpt-5", "gpt-5-2025-08-07"],
+    "apiAliases": [
+      "gpt-5",
+      "gpt-5-2025-08-07"
+    ],
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
     "summary": "The first GPT-5 generation and the root of the line that GPT-5.4, GPT-5.5, and GPT-5.6 extend. Its release date is taken from the pinned API snapshot gpt-5-2025-08-07; OpenAI's documentation now labels GPT-5 a previous model and points users to GPT-5.6. The model documentation lists a 400,000-token context window and a 2024-09-30 knowledge cutoff.",
     "intendedUse": "Earlier-generation coding, reasoning, and agentic tasks; superseded by later GPT-5 generations.",
-    "sourceIds": ["openai-gpt-5-docs"],
+    "sourceIds": [
+      "openai-gpt-5-docs"
+    ],
     "verifiedAt": "2026-08-18"
   },
   {
@@ -277,20 +430,36 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "Anthropic's most capable widely released model, with a dated general-availability statement in the official model documentation.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1000000,
     "maximumOutput": 128000,
-    "apiAliases": ["claude-fable-5"],
+    "apiAliases": [
+      "claude-fable-5"
+    ],
     "predecessorIds": [],
     "successorIds": [],
-    "siblingIds": ["anthropic-claude-mythos-5"],
+    "siblingIds": [
+      "anthropic-claude-mythos-5"
+    ],
     "derivedFromIds": [],
     "summary": "Anthropic's most capable widely released model, with adaptive thinking always on.",
     "intendedUse": "Long-running agent work that needs the highest available Claude capability.",
-    "sourceIds": ["anthropic-models-overview", "anthropic-fable-5-mythos-5-docs"],
+    "sourceIds": [
+      "anthropic-models-overview",
+      "anthropic-fable-5-mythos-5-docs"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -306,20 +475,36 @@
     "datePrecision": "day",
     "status": "preview",
     "featured": false,
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1000000,
     "maximumOutput": 128000,
-    "apiAliases": ["claude-mythos-5"],
+    "apiAliases": [
+      "claude-mythos-5"
+    ],
     "predecessorIds": [],
     "successorIds": [],
-    "siblingIds": ["anthropic-claude-fable-5"],
+    "siblingIds": [
+      "anthropic-claude-fable-5"
+    ],
     "derivedFromIds": [],
     "summary": "Shares Claude Fable 5's capabilities and specifications, but without the safety classifiers that can decline a request. Offered only in limited availability.",
     "intendedUse": "Defensive cybersecurity workflows for customers approved through Anthropic's Project Glasswing.",
-    "sourceIds": ["anthropic-models-overview", "anthropic-fable-5-mythos-5-docs"],
+    "sourceIds": [
+      "anthropic-models-overview",
+      "anthropic-fable-5-mythos-5-docs"
+    ],
     "verifiedAt": "2026-08-15"
   },
   {
@@ -336,20 +521,34 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "The tier Anthropic recommends first for coding work that runs over many steps, with a dated launch announcement.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1000000,
     "maximumOutput": 128000,
-    "apiAliases": ["claude-opus-5"],
+    "apiAliases": [
+      "claude-opus-5"
+    ],
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
     "summary": "A hosted Claude model for complex agent-driven coding and enterprise work.",
     "intendedUse": "Complex, multi-step coding and enterprise workloads.",
-    "sourceIds": ["anthropic-models-overview", "anthropic-opus-5-announcement"],
+    "sourceIds": [
+      "anthropic-models-overview",
+      "anthropic-opus-5-announcement"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -366,20 +565,34 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "The only Claude 4.5 model still documented among current models, with a dated launch announcement.",
-    "categories": ["language-reasoning", "coding"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 200000,
     "maximumOutput": 64000,
-    "apiAliases": ["claude-haiku-4-5", "claude-haiku-4-5-20251001"],
+    "apiAliases": [
+      "claude-haiku-4-5",
+      "claude-haiku-4-5-20251001"
+    ],
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
     "summary": "The fastest Claude model, and the only current one that still takes an explicit flag to turn extended thinking on or off.",
     "intendedUse": "Latency-sensitive work that still needs strong reasoning.",
-    "sourceIds": ["anthropic-models-overview", "anthropic-haiku-4-5-announcement"],
+    "sourceIds": [
+      "anthropic-models-overview",
+      "anthropic-haiku-4-5-announcement"
+    ],
     "verifiedAt": "2026-08-15"
   },
   {
@@ -396,21 +609,39 @@
     "status": "preview",
     "featured": true,
     "featuredRationale": "The current Pro tier of the Gemini 3 generation, with a dated release record and a published model page.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
-    "inputModalities": ["text", "image", "audio", "video"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image",
+      "audio",
+      "video"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1048576,
     "maximumOutput": 65536,
-    "apiAliases": ["gemini-3.1-pro-preview", "gemini-3.1-pro-preview-customtools"],
+    "apiAliases": [
+      "gemini-3.1-pro-preview",
+      "gemini-3.1-pro-preview-customtools"
+    ],
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
     "summary": "Refines the Gemini 3 Pro series with better thinking, improved token efficiency, and more grounded, factually consistent output.",
     "intendedUse": "Software engineering and multi-step automated workflows that need precise tool use.",
-    "sourceIds": ["google-gemini-3-1-pro-preview-docs", "google-gemini-deprecations", "google-gemini-pro-page"],
-    "verifiedAt": "2026-08-26"
+    "sourceIds": [
+      "google-gemini-3-1-pro-preview-docs",
+      "google-gemini-deprecations",
+      "google-gemini-pro-page"
+    ],
+    "verifiedAt": "2026-08-27"
   },
   {
     "id": "google-gemini-3-1-flash-lite",
@@ -426,20 +657,38 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "Generally available with a dated release, a scheduled shutdown, and a named replacement, which makes its lineage documented rather than inferred.",
-    "categories": ["language-reasoning", "multimodal-generalist"],
-    "inputModalities": ["text", "image", "audio", "video"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image",
+      "audio",
+      "video"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1048576,
     "maximumOutput": 65536,
-    "apiAliases": ["gemini-3.1-flash-lite"],
+    "apiAliases": [
+      "gemini-3.1-flash-lite"
+    ],
     "predecessorIds": [],
-    "successorIds": ["google-gemini-3-5-flash-lite"],
+    "successorIds": [
+      "google-gemini-3-5-flash-lite"
+    ],
     "siblingIds": [],
     "derivedFromIds": [],
     "summary": "A fast, lightweight model that accepts text, images, audio, and video, built for high-frequency, simple tasks.",
     "intendedUse": "High-volume automated workflows and simple data extraction where response speed is the main constraint.",
-    "sourceIds": ["google-gemini-3-1-flash-lite-docs", "google-gemini-3-1-flash-lite-platform-docs", "google-gemini-deprecations"],
+    "sourceIds": [
+      "google-gemini-3-1-flash-lite-docs",
+      "google-gemini-3-1-flash-lite-platform-docs",
+      "google-gemini-deprecations"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -456,20 +705,38 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "The named replacement for Gemini 3.1 Flash-Lite, with a dated release and published limits.",
-    "categories": ["language-reasoning", "multimodal-generalist"],
-    "inputModalities": ["text", "image", "audio", "video"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image",
+      "audio",
+      "video"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1048576,
     "maximumOutput": 65536,
-    "apiAliases": ["gemini-3.5-flash-lite"],
-    "predecessorIds": ["google-gemini-3-1-flash-lite"],
+    "apiAliases": [
+      "gemini-3.5-flash-lite"
+    ],
+    "predecessorIds": [
+      "google-gemini-3-1-flash-lite"
+    ],
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
     "summary": "A fast, lightweight model that accepts text, images, audio, and video, built for high-throughput work and document parsing.",
     "intendedUse": "High-volume automated workflows, simple data extraction, and document understanding.",
-    "sourceIds": ["google-gemini-3-5-flash-lite-docs", "google-gemini-3-5-flash-lite-platform-docs", "google-gemini-deprecations"],
+    "sourceIds": [
+      "google-gemini-3-5-flash-lite-docs",
+      "google-gemini-3-5-flash-lite-platform-docs",
+      "google-gemini-deprecations"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -486,20 +753,38 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "Historically important: the generally available Pro tier of the generation that preceded Gemini 3, still documented with no announced shutdown on the Gemini API.",
-    "categories": ["language-reasoning", "multimodal-generalist"],
-    "inputModalities": ["text", "image", "audio", "video"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image",
+      "audio",
+      "video"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1048576,
     "maximumOutput": 65536,
-    "apiAliases": ["gemini-2.5-pro"],
+    "apiAliases": [
+      "gemini-2.5-pro"
+    ],
     "predecessorIds": [],
     "successorIds": [],
-    "siblingIds": ["google-gemini-2-5-flash"],
+    "siblingIds": [
+      "google-gemini-2-5-flash"
+    ],
     "derivedFromIds": [],
     "summary": "Google's most advanced Gemini 2.5 reasoning model, able to work across text, audio, images, video, and entire code repositories.",
     "intendedUse": "Complex reasoning over large datasets, codebases, and documents.",
-    "sourceIds": ["google-gemini-2-5-pro-platform-docs", "google-gemini-deprecations", "google-gemini-2-5-report"],
+    "sourceIds": [
+      "google-gemini-2-5-pro-platform-docs",
+      "google-gemini-deprecations",
+      "google-gemini-2-5-report"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -516,20 +801,38 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "Historically important: a reasoning-capable Flash model released to general availability alongside Gemini 2.5 Pro.",
-    "categories": ["language-reasoning", "multimodal-generalist"],
-    "inputModalities": ["text", "image", "audio", "video"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image",
+      "audio",
+      "video"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1048576,
     "maximumOutput": 65536,
-    "apiAliases": ["gemini-2.5-flash"],
+    "apiAliases": [
+      "gemini-2.5-flash"
+    ],
     "predecessorIds": [],
     "successorIds": [],
-    "siblingIds": ["google-gemini-2-5-pro"],
+    "siblingIds": [
+      "google-gemini-2-5-pro"
+    ],
     "derivedFromIds": [],
     "summary": "The balanced tier of Gemini 2.5, able to reason step by step before answering.",
     "intendedUse": "Large-scale, low-latency, high-volume tasks that still require thinking.",
-    "sourceIds": ["google-gemini-2-5-flash-platform-docs", "google-gemini-deprecations", "google-gemini-2-5-report"],
+    "sourceIds": [
+      "google-gemini-2-5-flash-platform-docs",
+      "google-gemini-deprecations",
+      "google-gemini-2-5-report"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -546,9 +849,17 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "Meta's current downloadable multimodal model, with a dated model card and a licence that states its own effective date.",
-    "categories": ["language-reasoning", "multimodal-generalist"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "open-weight",
     "license": {
       "name": "Llama 4 Community License Agreement",
@@ -561,14 +872,23 @@
       "activeBillions": 17
     },
     "contextWindow": 10000000,
-    "apiAliases": ["meta-llama/Llama-4-Scout-17B-16E-Instruct", "meta-llama/Llama-4-Scout-17B-16E"],
+    "apiAliases": [
+      "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+      "meta-llama/Llama-4-Scout-17B-16E"
+    ],
     "predecessorIds": [],
     "successorIds": [],
-    "siblingIds": ["meta-llama-4-maverick"],
+    "siblingIds": [
+      "meta-llama-4-maverick"
+    ],
     "derivedFromIds": [],
     "summary": "Accepts text and images together, and can read up to 10 million tokens in one request — a token is one of the small chunks that text and images are broken into. It is divided into 16 specialist sections, and each token is handled by only a fraction of the model: 17 billion of its 109 billion parameters.",
     "intendedUse": "Assistant-style chat and visual reasoning across the twelve languages the model card lists.",
-    "sourceIds": ["meta-llama-4-scout-model-card", "meta-llama-4-announcement", "meta-llama-4-license"],
+    "sourceIds": [
+      "meta-llama-4-scout-model-card",
+      "meta-llama-4-announcement",
+      "meta-llama-4-license"
+    ],
     "verifiedAt": "2026-08-15"
   },
   {
@@ -585,9 +905,18 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "Announced in the same launch as Llama 4 Scout, with its own model card and published weight formats.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "open-weight",
     "license": {
       "name": "Llama 4 Community License Agreement",
@@ -600,15 +929,28 @@
       "activeBillions": 17
     },
     "contextWindow": 1000000,
-    "apiAliases": ["meta-llama/Llama-4-Maverick-17B-128E-Instruct", "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"],
+    "apiAliases": [
+      "meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+      "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+      "meta-llama/Llama-4-Maverick-17B-128E",
+      "meta-llama/Llama-4-Maverick-17B-128E-Instruct-Original"
+    ],
     "predecessorIds": [],
     "successorIds": [],
-    "siblingIds": ["meta-llama-4-scout"],
+    "siblingIds": [
+      "meta-llama-4-scout"
+    ],
     "derivedFromIds": [],
     "summary": "Accepts text and images together. It is divided into 128 specialist sections plus one shared section, and each token — one of the small chunks that text and images are broken into — goes to the shared section and a single specialist, using 17 billion of its 400 billion parameters. Weights are published at two levels of numeric precision, BF16 and the smaller FP8.",
     "intendedUse": "Assistant-style chat, visual reasoning, and code generation.",
-    "sourceIds": ["meta-llama-4-maverick-model-card", "meta-llama-4-announcement", "meta-llama-4-license"],
-    "verifiedAt": "2026-08-15"
+    "sourceIds": [
+      "meta-llama-4-maverick-model-card",
+      "meta-llama-4-announcement",
+      "meta-llama-4-license",
+      "meta-llama-4-maverick-base-model-card",
+      "meta-llama-4-maverick-original-model-card"
+    ],
+    "verifiedAt": "2026-08-27"
   },
   {
     "id": "meta-llama-3-1-405b",
@@ -624,9 +966,15 @@
     "status": "legacy",
     "featured": true,
     "featuredRationale": "Historically important: the largest Llama 3.1 size, with a release date stated in both the model card and the licence.",
-    "categories": ["language-reasoning"],
-    "inputModalities": ["text"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "open-weight",
     "license": {
       "name": "Llama 3.1 Community License Agreement",
@@ -638,15 +986,21 @@
       "totalBillions": 405
     },
     "contextWindow": 128000,
-    "apiAliases": ["meta-llama/Llama-3.1-405B-Instruct", "meta-llama/Llama-3.1-405B"],
+    "apiAliases": [
+      "meta-llama/Llama-3.1-405B-Instruct",
+      "meta-llama/Llama-3.1-405B"
+    ],
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
     "summary": "The largest Llama 3.1 size. Text only, and it reads up to 128,000 tokens at once — a token is one of the small chunks that text is broken into.",
     "intendedUse": "Multilingual dialogue and natural language generation across the eight languages the model card lists.",
-    "sourceIds": ["meta-llama-3-1-model-card", "meta-llama-3-1-license"],
-    "verifiedAt": "2026-08-15"
+    "sourceIds": [
+      "meta-llama-3-1-model-card",
+      "meta-llama-3-1-license"
+    ],
+    "verifiedAt": "2026-08-27"
   },
   {
     "id": "meta-llama-3-3-70b",
@@ -662,9 +1016,15 @@
     "status": "legacy",
     "featured": true,
     "featuredRationale": "The model card and licence agree on its release date.",
-    "categories": ["language-reasoning"],
-    "inputModalities": ["text"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "open-weight",
     "license": {
       "name": "Llama 3.3 Community License Agreement",
@@ -676,15 +1036,20 @@
       "totalBillions": 70
     },
     "contextWindow": 128000,
-    "apiAliases": ["meta-llama/Llama-3.3-70B-Instruct"],
+    "apiAliases": [
+      "meta-llama/Llama-3.3-70B-Instruct"
+    ],
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
     "summary": "A text-only 70-billion-parameter model tuned to follow instructions rather than simply continue text, which Meta optimised for multilingual dialogue.",
     "intendedUse": "Assistant-style multilingual chat.",
-    "sourceIds": ["meta-llama-3-3-model-card", "meta-llama-3-3-license"],
-    "verifiedAt": "2026-08-15"
+    "sourceIds": [
+      "meta-llama-3-3-model-card",
+      "meta-llama-3-3-license"
+    ],
+    "verifiedAt": "2026-08-27"
   },
   {
     "id": "openai-gpt-5-6-cyber",
@@ -699,20 +1064,33 @@
     "datePrecision": "day",
     "status": "current",
     "featured": false,
-    "categories": ["language-reasoning", "coding"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 400000,
     "maximumOutput": 128000,
-    "apiAliases": ["gpt-5.6-cyber"],
+    "apiAliases": [
+      "gpt-5.6-cyber"
+    ],
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
     "summary": "A purpose-trained cybersecurity model in the GPT-5.6 family, offered as the gpt-5.6-cyber alias for approved defenders conducting authorized vulnerability research, exploit validation, and security testing. Access requires separate approval through OpenAI's Daybreak program and is served via the Daybreak Red channel. Its API documentation lists text and image input, text output, a 400,000-token context window, 128,000 max output tokens, and a 2026-02-16 knowledge cutoff, and it is offered on the Responses endpoint (Chat Completions is not supported). Its release date is taken from the 2026-08-10 announcement because the model documentation page carries no date.",
     "intendedUse": "Authorized, governed cybersecurity work - vulnerability research, exploit validation, and security testing - by defenders approved for OpenAI's Daybreak program.",
-    "sourceIds": ["openai-gpt-5-6-cyber-docs", "openai-news-rss"],
+    "sourceIds": [
+      "openai-gpt-5-6-cyber-docs",
+      "openai-news-rss"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -729,20 +1107,35 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "The current Sonnet-tier model in the Claude 5 lineup, with a dated general-availability launch and full specifications in Anthropic's model documentation.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1000000,
     "maximumOutput": 128000,
-    "apiAliases": ["claude-sonnet-5"],
+    "apiAliases": [
+      "claude-sonnet-5"
+    ],
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
     "summary": "A hosted Claude model that Anthropic positions as the best combination of speed and intelligence, and describes as its most agentic Sonnet model to date.",
     "intendedUse": "Agentic work such as planning, tool use, coding, and knowledge work where speed and cost matter alongside capability.",
-    "sourceIds": ["anthropic-models-overview", "anthropic-sonnet-5-docs", "anthropic-sonnet-5-announcement"],
+    "sourceIds": [
+      "anthropic-models-overview",
+      "anthropic-sonnet-5-docs",
+      "anthropic-sonnet-5-announcement"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -756,24 +1149,41 @@
     "variant": "Flash",
     "releaseDate": "2026-05-19",
     "datePrecision": "day",
-    "status": "current",
+    "status": "legacy",
     "featured": true,
     "featuredRationale": "A generally available Flash tier of the Gemini 3 generation, with a dated release, an announced retirement window, and published token limits.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
-    "inputModalities": ["text", "image", "audio", "video"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image",
+      "audio",
+      "video"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1048576,
     "maximumOutput": 65536,
-    "apiAliases": ["gemini-3.5-flash"],
+    "apiAliases": [
+      "gemini-3.5-flash"
+    ],
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
     "summary": "A Gemini 3 Flash model offering sustained frontier-level intelligence at higher speed and lower cost, with near-Pro coding proficiency and parallel agentic execution.",
     "intendedUse": "Sub-agent deployment, multi-step workflows, and long-horizon agentic and coding tasks at scale.",
-    "sourceIds": ["google-gemini-3-5-flash-docs", "google-gemini-3-5-flash-platform-docs", "google-gemini-deprecations"],
-    "verifiedAt": "2026-08-26"
+    "sourceIds": [
+      "google-gemini-3-5-flash-docs",
+      "google-gemini-3-5-flash-platform-docs",
+      "google-gemini-deprecations"
+    ],
+    "verifiedAt": "2026-08-27"
   },
   {
     "id": "google-gemini-3-6-flash",
@@ -789,20 +1199,38 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "A generally available Flash tier of the Gemini 3 generation, with a dated release and published token limits.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
-    "inputModalities": ["text", "image", "audio", "video"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image",
+      "audio",
+      "video"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1048576,
     "maximumOutput": 65536,
-    "apiAliases": ["gemini-3.6-flash"],
+    "apiAliases": [
+      "gemini-3.6-flash"
+    ],
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
     "summary": "A Gemini 3 Flash model optimized for multi-step orchestration, full-stack code refactoring, and general reasoning, with improved token efficiency over Gemini 3.5 Flash.",
     "intendedUse": "Multi-step orchestration, code refactoring, and agentic execution across coding and multimodal tasks.",
-    "sourceIds": ["google-gemini-3-6-flash-docs", "google-gemini-3-6-flash-platform-docs", "google-gemini-deprecations", "google-gemini-models-reference"],
+    "sourceIds": [
+      "google-gemini-3-6-flash-docs",
+      "google-gemini-3-6-flash-platform-docs",
+      "google-gemini-deprecations",
+      "google-gemini-models-reference"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -819,20 +1247,37 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "The newest generally available Flash tier of the Gemini 3 generation, with a dated release and published token limits.",
-    "categories": ["language-reasoning", "multimodal-generalist", "coding"],
-    "inputModalities": ["text", "image", "audio", "video"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image",
+      "audio",
+      "video"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1048576,
     "maximumOutput": 65536,
-    "apiAliases": ["gemini-3.7-flash"],
+    "apiAliases": [
+      "gemini-3.7-flash"
+    ],
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
     "summary": "The high-efficiency, cost-effective Flash model of the Gemini 3 family, delivering Pro-level agentic capabilities with strong code generation and terminal execution.",
     "intendedUse": "Primary agentic workhorse for high-throughput multimodal and coding workloads.",
-    "sourceIds": ["google-gemini-3-7-flash-docs", "google-gemini-3-7-flash-platform-docs", "google-gemini-deprecations"],
+    "sourceIds": [
+      "google-gemini-3-7-flash-docs",
+      "google-gemini-3-7-flash-platform-docs",
+      "google-gemini-deprecations"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -848,18 +1293,30 @@
     "datePrecision": "day",
     "status": "legacy",
     "featured": false,
-    "categories": ["language-reasoning", "multimodal-generalist"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "apiAliases": [],
     "predecessorIds": [],
-    "successorIds": ["meta-muse-spark-1-1"],
+    "successorIds": [
+      "meta-muse-spark-1-1"
+    ],
     "siblingIds": [],
     "derivedFromIds": [],
     "summary": "Muse Spark is the first model in Meta Superintelligence Labs' Muse family, described as a natively multimodal reasoning model with tool use, visual chain of thought, and multi-agent orchestration.",
     "intendedUse": "Multimodal reasoning with tool use and multi-agent orchestration.",
-    "sourceIds": ["meta-muse-spark-announcement"],
+    "sourceIds": [
+      "meta-muse-spark-announcement"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -876,19 +1333,31 @@
     "status": "current",
     "featured": true,
     "featuredRationale": "Meta Superintelligence Labs' latest Muse reasoning model, with a stated 1 million token context window and availability via the Meta Model API.",
-    "categories": ["language-reasoning", "multimodal-generalist"],
-    "inputModalities": ["text", "image"],
-    "outputModalities": ["text"],
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
     "accessType": "proprietary-hosted",
     "contextWindow": 1000000,
     "apiAliases": [],
-    "predecessorIds": ["meta-muse-spark"],
+    "predecessorIds": [
+      "meta-muse-spark"
+    ],
     "successorIds": [],
     "siblingIds": [],
     "derivedFromIds": [],
     "summary": "Muse Spark 1.1 is Meta Superintelligence Labs' multimodal reasoning model built for agentic tasks, with a context window of 1 million tokens, offered to developers via the Meta Model API.",
     "intendedUse": "Agentic, tool-using multimodal reasoning over long-context inputs.",
-    "sourceIds": ["meta-muse-spark-1-1-announcement"],
+    "sourceIds": [
+      "meta-muse-spark-1-1-announcement"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -904,18 +1373,28 @@
     "datePrecision": "day",
     "status": "current",
     "featured": false,
-    "categories": ["image"],
-    "inputModalities": ["text"],
-    "outputModalities": ["image"],
+    "categories": [
+      "image"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "image"
+    ],
     "accessType": "proprietary-hosted",
     "apiAliases": [],
     "predecessorIds": [],
     "successorIds": [],
-    "siblingIds": ["meta-muse-video"],
+    "siblingIds": [
+      "meta-muse-video"
+    ],
     "derivedFromIds": [],
     "summary": "Muse Image is Meta Superintelligence Labs' image generation model, available across the Meta AI app.",
     "intendedUse": "Text-to-image generation.",
-    "sourceIds": ["meta-muse-image-video-announcement"],
+    "sourceIds": [
+      "meta-muse-image-video-announcement"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -931,18 +1410,237 @@
     "datePrecision": "day",
     "status": "preview",
     "featured": false,
-    "categories": ["video"],
-    "inputModalities": ["text"],
-    "outputModalities": ["video", "audio"],
+    "categories": [
+      "video"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "video",
+      "audio"
+    ],
     "accessType": "proprietary-hosted",
     "apiAliases": [],
     "predecessorIds": [],
     "successorIds": [],
-    "siblingIds": ["meta-muse-image"],
+    "siblingIds": [
+      "meta-muse-image"
+    ],
     "derivedFromIds": [],
     "summary": "Muse Video is a video generation model built on the same pretraining base as Muse Image, with native audio support, announced as coming soon to creators and Meta AI.",
     "intendedUse": "Text-to-video generation with native audio.",
-    "sourceIds": ["meta-muse-image-video-announcement"],
+    "sourceIds": [
+      "meta-muse-image-video-announcement"
+    ],
     "verifiedAt": "2026-08-26"
+  },
+  {
+    "id": "meta-llama-3-2-1b",
+    "slug": "llama-3-2-1b",
+    "canonicalName": "Llama 3.2 1B",
+    "displayName": "Llama 3.2 1B",
+    "organizationId": "meta",
+    "familyId": "meta-llama-3",
+    "version": "3.2",
+    "variant": "1B",
+    "releaseDate": "2024-09-25",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Llama 3.2 Community License Agreement",
+      "url": "https://github.com/meta-llama/llama-models/blob/main/models/llama3_2/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 1.23
+    },
+    "contextWindow": 128000,
+    "apiAliases": [
+      "meta-llama/Llama-3.2-1B-Instruct",
+      "meta-llama/Llama-3.2-1B"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "Llama 3.2 1B is a text-only Llama 3.2 model for multilingual dialogue, agentic retrieval, summarization, and writing tasks, with a 128,000-token context length.",
+    "intendedUse": "Assistant-style multilingual chat, agentic knowledge retrieval, summarization, mobile writing assistance, and query or prompt rewriting.",
+    "sourceIds": [
+      "meta-llama-3-2-1b-instruct-model-card",
+      "meta-llama-3-2-1b-base-model-card",
+      "meta-llama-3-2-license",
+      "meta-llama-collection"
+    ],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "meta-llama-3-2-3b",
+    "slug": "llama-3-2-3b",
+    "canonicalName": "Llama 3.2 3B",
+    "displayName": "Llama 3.2 3B",
+    "organizationId": "meta",
+    "familyId": "meta-llama-3",
+    "version": "3.2",
+    "variant": "3B",
+    "releaseDate": "2024-09-25",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Llama 3.2 Community License Agreement",
+      "url": "https://github.com/meta-llama/llama-models/blob/main/models/llama3_2/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 3.21
+    },
+    "contextWindow": 128000,
+    "apiAliases": [
+      "meta-llama/Llama-3.2-3B-Instruct",
+      "meta-llama/Llama-3.2-3B"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "Llama 3.2 3B is a text-only Llama 3.2 model for multilingual dialogue, agentic retrieval, summarization, and writing tasks, with a 128,000-token context length.",
+    "intendedUse": "Assistant-style multilingual chat, agentic knowledge retrieval, summarization, mobile writing assistance, and query or prompt rewriting.",
+    "sourceIds": [
+      "meta-llama-3-2-3b-instruct-model-card",
+      "meta-llama-3-2-3b-base-model-card",
+      "meta-llama-3-2-license",
+      "meta-llama-collection"
+    ],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "meta-llama-3-2-11b-vision",
+    "slug": "llama-3-2-11b-vision",
+    "canonicalName": "Llama 3.2 11B Vision",
+    "displayName": "Llama 3.2 11B Vision",
+    "organizationId": "meta",
+    "familyId": "meta-llama-3",
+    "version": "3.2",
+    "variant": "11B Vision",
+    "releaseDate": "2024-09-25",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Llama 3.2 Community License Agreement",
+      "url": "https://github.com/meta-llama/llama-models/blob/main/models/llama3_2/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 10.6
+    },
+    "contextWindow": 128000,
+    "apiAliases": [
+      "meta-llama/Llama-3.2-11B-Vision-Instruct",
+      "meta-llama/Llama-3.2-11B-Vision"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "Llama 3.2 11B Vision is a Llama 3.2 Vision model for image reasoning, visual recognition, captioning, and chat with images, with a 128,000-token context length.",
+    "intendedUse": "Visual recognition, image reasoning, image captioning, assistant-style chat with images, and other image reasoning tasks.",
+    "sourceIds": [
+      "meta-llama-3-2-11b-vision-instruct-model-card",
+      "meta-llama-3-2-11b-vision-base-model-card",
+      "meta-llama-3-2-license",
+      "meta-llama-collection"
+    ],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "meta-llama-3-2-90b-vision",
+    "slug": "llama-3-2-90b-vision",
+    "canonicalName": "Llama 3.2 90B Vision",
+    "displayName": "Llama 3.2 90B Vision",
+    "organizationId": "meta",
+    "familyId": "meta-llama-3",
+    "version": "3.2",
+    "variant": "90B Vision",
+    "releaseDate": "2024-09-25",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Llama 3.2 Community License Agreement",
+      "url": "https://github.com/meta-llama/llama-models/blob/main/models/llama3_2/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 88.8
+    },
+    "contextWindow": 128000,
+    "apiAliases": [
+      "meta-llama/Llama-3.2-90B-Vision-Instruct",
+      "meta-llama/Llama-3.2-90B-Vision"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "Llama 3.2 90B Vision is a Llama 3.2 Vision model for image reasoning, visual recognition, captioning, and chat with images, with a 128,000-token context length.",
+    "intendedUse": "Visual recognition, image reasoning, image captioning, assistant-style chat with images, and other image reasoning tasks.",
+    "sourceIds": [
+      "meta-llama-3-2-90b-vision-instruct-model-card",
+      "meta-llama-3-2-90b-vision-base-model-card",
+      "meta-llama-3-2-license",
+      "meta-llama-collection"
+    ],
+    "verifiedAt": "2026-08-27"
   }
 ]
