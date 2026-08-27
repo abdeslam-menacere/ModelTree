@@ -467,15 +467,25 @@ describe('gate-dataset', () => {
   // non-empty tree exactly as it was. `usage-syntheses.json` is legitimately
   // empty in the live data, which is why the rule cannot be "every document is
   // non-empty".
+  //
+  // The documents emptied here are derived from `DATASET_DOCUMENTS` rather than
+  // hand-written, because a copy local to this test body is invisible to the
+  // drift check above -- that check computes `onlyInGate` and `onlyInTest`
+  // against the module-level constant only. A tenth document would therefore
+  // reach both the gate and the constant while this body went on emptying nine
+  // of ten, leaving the tenth populated and the tree trivially non-empty, and
+  // this test would keep its name and its green tick while testing less than it
+  // describes. It degrades quietly where `a wholesale-empty dataset is refused`
+  // degrades loudly, because its assertion is that nothing fires, and nothing
+  // firing is exactly what a narrowed test produces. Deriving closes the second
+  // half of the coupling: the drift check makes gate -> constant audible, and
+  // this makes constant -> test body automatic.
   test('a dataset emptied to a single record still passes, so the floor is not a per-document rule', () => {
     const result = gateMutatedDataset(({ read, write }) => {
       const sources = read('sources.json');
       const keptSource = sources[0];
-      for (const file of [
-        'publishers.json', 'organizations.json', 'families.json',
-        'releases.json', 'usage-observations.json', 'usage-syntheses.json',
-        'model-fit-statements.json', 'model-fit-evidence-gaps.json',
-      ]) {
+      const emptied = DATASET_DOCUMENTS.filter((file) => file !== 'sources.json');
+      for (const file of emptied) {
         write(file, []);
       }
       write('sources.json', [keptSource]);
