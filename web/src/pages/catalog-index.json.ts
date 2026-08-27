@@ -8,8 +8,9 @@ export const prerender = true;
 export const GET: APIRoute = () => {
   const index = buildCatalogIndex(dataset, import.meta.env.BASE_URL);
 
-  // Provider detail pages are not generated yet, so only model rows are held to
-  // an existing route until #17 adds them.
+  // Provider detail pages are not generated, so provider rows publish a null
+  // route. Passing no provider slugs holds every route in the index to a page
+  // this build actually generates.
   assertRoutesResolve(index, {
     models: modelStaticPaths().map((path) => path.params.slug),
   });
