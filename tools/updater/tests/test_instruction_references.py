@@ -637,9 +637,49 @@ def test_an_unpaired_backtick_still_resynchronises_at_the_line_end(document):
     backtick on the line below moves the swallowing rather than removing it:
     the reference on that next line is the one that would vanish, which is the
     same fail-open at a new address.
+
+    That backtick is what tells the two apart, and only because of what sits in
+    front of it. A wrap's closing backtick abuts its own last character, while a
+    backtick *opening* the next reference is preceded by whatever prose puts
+    there -- a space here, and a bracket or a quote in the case below. Widening
+    the wrap's fragments without asking that question was measured to lose
+    `truly/missing.md` from this input, which is the same fail-open the
+    whitespace-free rule was narrowed to refuse.
     """
     path = document(
         "See `an unpaired backtick\nand then `truly/missing.md` here.\n"
+    )
+    report = checker.check(path, REPO_ROOT)
+
+    assert not report.ok, report.render()
+    assert "truly/missing.md" in references(report)
+
+
+@pytest.mark.parametrize(
+    ("opener", "closer"),
+    [("(", ")"), ("[", "]"), ("{", "}"), ("<", ">"), ('"', '"'), ("'", "'")],
+    ids=["paren", "square", "brace", "angle", "double-quote", "single-quote"],
+)
+def test_a_delimiter_abutting_the_next_reference_does_not_close_a_wrap(
+    document, opener, closer
+):
+    """The address a fix that asked only about whitespace would open.
+
+    Prose does not always put a space in front of a code span; it puts a bracket
+    or a quote, in exactly the position a space would otherwise occupy. So each
+    of these reaches the backtick that opens `truly/missing.md` with a
+    non-whitespace character before it, and a rule that admitted any
+    non-whitespace character as a wrap's close would consume that reference
+    whole -- one the un-widened scan reported, so a regression against the merge
+    base rather than a residual carried forward.
+
+    Parametrised rather than written once because admitting any single
+    delimiter re-opens the swallowing for that shape alone, which is precisely
+    the kind of gap a worked example does not reveal.
+    """
+    path = document(
+        f"See `an unpaired backtick\nand then {opener}`truly/missing.md`"
+        f"{closer} here.\n"
     )
     report = checker.check(path, REPO_ROOT)
 
@@ -661,7 +701,7 @@ def test_a_wrap_does_not_close_on_the_next_lines_opening_backtick(
     a wrap close on nothing and it closes instead on the backtick that was
     *opening* the next reference, consuming it whole -- and that reference is
     one the un-widened scan reported, so admitting it would be a regression
-    against the merge base rather than a residual carried forward.
+    against the merge base rather than a residual.
 
     The indented case is here because indentation is skipped before the tail is
     read, so "empty" and "whitespace then a backtick" are the same hazard
@@ -675,34 +715,76 @@ def test_a_wrap_does_not_close_on_the_next_lines_opening_backtick(
     assert "truly/missing.md" in references(report)
 
 
-def test_a_wrapped_span_carrying_whitespace_is_a_disclosed_residual(document):
-    """Pins the limit, so the documentation cannot outrun the code.
+def test_a_wrapped_span_carrying_whitespace_is_paired(document):
+    """The wrap this repository actually contains, which used to go unmatched.
 
-    Only a wrap whose fragments are both whitespace-free is admitted, and a
-    wrapped command line is not that. Such a wrap still goes out of phase and
-    still swallows the reference after it -- the very fail-open this rule
-    narrows -- because that text is indistinguishable from a stray unpaired
-    backtick followed by prose, and admitting it was measured to lose a broken
-    path the narrower rule catches.
+    `.github/skills/modeltree-gates/SKILL.md` wraps
+    "`git merge-base\n  HEAD refs/remotes/origin/main`" across a line break, and
+    the space inside `git merge-base` meant neither alternative could match it:
+    the first cannot cross the newline, and the second used to require each
+    fragment to be a single whitespace-free token.
 
-    Asserted rather than described so the claim in `.github/workflows/README.md`
-    stays checkable: if a later change closes this, the test goes red and says
-    so, and the row it contradicts gets rewritten instead of quietly becoming
-    false. The control is the same reference unwrapped, which must be reported,
-    so the test cannot pass merely because the name resolved.
+    What that cost was not the wrapped span, which carries whitespace and so is
+    never a resolvable path either way. It was the reference *after* it, which
+    the out-of-phase pairing consumed -- in the live document, `--base` on the
+    line the tail lands on. So the assertion that matters here is the control:
+    `truly/missing.md` is reported, and wrapping the span above it does not
+    change that answer, which is the whole defect stated as a difference that
+    must no longer exist.
     """
-    swallowed = document(
-        "Run `git merge-base\nHEAD refs/heads/main` and `truly/missing.md` here.\n"
+    wrapped = checker.check(
+        document(
+            "Run `git merge-base\n  HEAD refs/remotes/origin/main` and "
+            "`truly/missing.md` here.\n"
+        ),
+        REPO_ROOT,
     )
-    report = checker.check(swallowed, REPO_ROOT)
+    unwrapped = checker.check(
+        document(
+            "Run `git merge-base HEAD refs/remotes/origin/main` and "
+            "`truly/missing.md` here.\n"
+        ),
+        REPO_ROOT,
+    )
 
-    assert report.ok, report.render()
-    assert "truly/missing.md" not in references(report)
+    assert not wrapped.ok, wrapped.render()
+    assert references(wrapped) == {"truly/missing.md"}
+    assert references(wrapped) == references(unwrapped)
+    assert wrapped.spans == unwrapped.spans == 2
+    # Seen, and still declined: what the document renders carries a space, so
+    # `is_path_candidate` refuses it exactly as it always has.
+    assert "git merge-base\n  HEAD refs/remotes/origin/main" not in wrapped.candidates
 
-    control = document("Run `git merge-base` and `truly/missing.md` here.\n")
-    control_report = checker.check(control, REPO_ROOT)
 
-    assert "truly/missing.md" in references(control_report)
+def test_a_blank_line_inside_a_span_is_a_paragraph_break_not_a_wrap(document):
+    """A wrap crosses one line ending. A paragraph break is not a wrap.
+
+    Admitting one would let a backtick pair with another an arbitrary distance
+    away, across content it has nothing to do with -- the unbounded version of
+    the swallowing this arm exists to prevent, rather than a wider version of
+    the wrap it exists to admit.
+
+    The control is the same text with the blank line closed up, which must pair.
+    Without it this passes just as well against a rule that never matched the
+    shape at all, which is how a test for an absence stops discriminating.
+    """
+    interrupted = checker.check(
+        document(
+            "Run `git merge-base\n\n  HEAD refs/remotes/origin/main` and "
+            "`truly/missing.md` here.\n"
+        ),
+        REPO_ROOT,
+    )
+    joined = checker.check(
+        document(
+            "Run `git merge-base\n  HEAD refs/remotes/origin/main` and "
+            "`truly/missing.md` here.\n"
+        ),
+        REPO_ROOT,
+    )
+
+    assert joined.spans == 2
+    assert interrupted.spans < joined.spans
 
 
 def test_a_fenced_block_does_not_pair_across_its_own_lines(document):

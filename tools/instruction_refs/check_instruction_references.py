@@ -270,46 +270,68 @@ PATH_EXTENSIONS = frozenset(
 # reference on the line the tail landed on. One wrap cost two references, and
 # the second was one the author had written in the ordinary way.
 #
-# So a span may also close one line down. Both fragments are required to be
-# non-empty and free of whitespace, and each half of that earns its keep:
+# So a span may also close one line down. Both fragments may carry internal
+# whitespace, and what keeps that from swallowing the line below is where each
+# fragment is allowed to *end*, not what it is allowed to contain:
 #
-# *Whitespace-free* is what stops an unpaired backtick followed by prose being
-# read as a wrap. Gluing it to the first backtick on the line below would
-# swallow that line's reference -- the same fail-open at a new address.
+# *The head opens on a non-whitespace character.* An opening backtick followed
+# by a space is not opening a span anybody wrote, so refusing it keeps that
+# shape from gluing itself to the next line.
 #
-# *Non-empty* is what stops the wrap closing on a backtick that was opening
-# something else. The tail quantifier was once `*`, and an empty tail let
-# "`docs/adr\n`truly/missing.md`" pair the wrap with the opening backtick of the
-# *next* reference and swallow it -- a reference the un-widened scan caught, so
-# a regression rather than a residual. Note that it takes both ends to state
-# this correctly: an empty tail arises when line one ends at a backtick, and
-# equally when line two begins with one.
+# *The tail closes on a non-whitespace character that is not an opening
+# delimiter.* This is the whole of the discrimination, and it is the flanking
+# idea CommonMark already applies to emphasis: a backtick with a space in front
+# of it is opening something, not closing it. In "`an unpaired backtick\nand
+# then `truly/missing.md`" the candidate tail can only end at the space before
+# that backtick, so the arm declines and the scan resynchronises onto the real
+# reference -- which is the fail-open this rule exists to refuse, kept refused.
+# An opening bracket or quote is read the same way, because prose puts one
+# exactly where it would otherwise put a space: "and then (`truly/missing.md`)"
+# reaches the same backtick with "(" in front of it, and it is opening the
+# reference there too.
+#
+# *Non-empty*, which both of those imply, is what stops the wrap closing on a
+# backtick that was opening something else. The tail quantifier was once `*`,
+# and an empty tail let "`docs/adr\n`truly/missing.md`" pair the wrap with the
+# opening backtick of the *next* reference and swallow it -- a reference the
+# un-widened scan caught, so a regression rather than a residual. It takes both
+# ends to state this correctly: an empty tail arises when line one ends at a
+# backtick, and equally when line two begins with one.
+#
+# Exactly one newline, and never a blank one. A span interrupted by a blank line
+# is a paragraph break rather than a wrap, and `[ \t]*` cannot cross one.
+#
+# Requiring each fragment to be a single whitespace-free token was the narrower
+# rule this replaces, and it refused the shape this repository actually contains
+# -- `.github/skills/modeltree-gates/SKILL.md` wraps "`git merge-base\n  HEAD
+# refs/remotes/origin/main`", whose head carries a space. The cost was not the
+# wrapped span. It was the phase error after it: that document's next reference,
+# `--base`, was consumed whole, and the count read 81 where the document carries
+# 82. Widening the fragments *without* the flanking guard was measured to lose a
+# broken path the narrower rule catches, in the unpaired-backtick shape and again
+# where an opening bracket abuts the reference, so the guard is what makes the
+# widening safe rather than a refinement of it.
 #
 # The wrapped span is then seen but not resolved. What the document renders is
-# the two fragments joined by a space, so the token it presents carries
-# whitespace and `is_path_candidate` declines it -- the same answer
-# `check_section_markers` has always given it through `normalise`. Joining the
-# fragments without the space would be a guess at what the author meant, and a
-# guess is the failure this file exists to prevent. Being in phase is what was
-# missing; resolving the wrap is a separate decision, and this is it, recorded
-# rather than taken.
+# the fragments joined by a space, so the token it presents carries whitespace
+# and `is_path_candidate` declines it -- the same answer `check_section_markers`
+# has always given it through `normalise`. Joining them without the space would
+# be a guess at what the author meant, and a guess is the failure this file
+# exists to prevent. Being in phase is what was missing; resolving the wrap is a
+# separate decision, and this is it, recorded rather than taken.
 #
-# What this deliberately does not fix, because the fix would cost more than it
-# buys: a wrapped span with whitespace in either fragment still goes out of
-# phase, and still swallows the next reference. That is the shape this
-# repository actually contains -- `.github/skills/modeltree-gates/SKILL.md`
-# wraps "`git merge-base\nHEAD refs/remotes/origin/main`" -- so the omission is
-# real rather than theoretical, and it is disclosed in
-# `.github/workflows/README.md` rather than left for a reader to discover. It
-# stays because a wrapped multi-word span and a stray unpaired backtick
-# followed by prose are the same text, and nothing local tells them apart:
-# admitting one admits the other, which was measured to lose a broken path the
-# narrower rule catches. Trading this miss for that one moves the fail-open
-# instead of closing it. Closing it properly means pairing backticks the way
-# CommonMark does, which is a scanner this file does not have and cannot grow
-# here without also deciding how fenced blocks are modelled -- a separate,
+# What this still does not fix: a stray unpaired backtick whose line below ends
+# on a character that is neither whitespace nor one of the delimiters above --
+# "and then--`truly/missing.md`" -- is admitted as a wrap and still swallows
+# that reference. It is a strictly narrower residual than the one it replaces
+# rather than a new address for it, it is pinned by a test so it cannot quietly
+# widen, and closing it properly still means pairing backticks the way
+# CommonMark does: a scanner this file does not have and cannot grow here
+# without also deciding how fenced blocks are modelled -- a separate,
 # deliberately separate question.
-CODE_SPAN_RE = re.compile(r"`([^`\n]+|[^`\s]+\n[ \t]*[^`\s]+)`")
+CODE_SPAN_RE = re.compile(
+    r"""`([^`\n]+|[^`\s][^`\n]*\n[ \t]*[^`\n]*[^`\s([{<"'])`"""
+)
 
 # A fenced code block delimiter: three or more backticks or tildes, indented no
 # more than three spaces, with whatever info string follows it.
