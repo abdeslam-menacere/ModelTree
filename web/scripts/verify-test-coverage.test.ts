@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  caseFoldCollisions,
   compareCoverage,
   emptyReportedFiles,
   executionCountsByFile,
@@ -16,6 +17,7 @@ import {
   formatFailureReport,
   formatUnexercisedNote,
   normaliseFile,
+  repoRelativeFile,
   reportedFilesFrom,
   testCountsByFile,
   unexecutedReportedFiles,
@@ -72,6 +74,89 @@ describe('normaliseFile', () => {
   // same string either way.
   it('normalises a POSIX-style absolute path the same way', () => {
     expect(normaliseFile('/repo/web/src/a.test.ts', '/repo/web')).toBe('src/a.test.ts');
+  });
+});
+
+// Issue #340. The fold `normaliseFile` applies is what every set in the script
+// is keyed on, so the pair below has to do two things at once: merge two
+// spellings of one file, and never merge two files. `repoRelativeFile` is the
+// half that still knows the difference.
+describe('repoRelativeFile', () => {
+  it('keeps the case the filesystem gave, where normaliseFile drops it', () => {
+    const root = resolve('repo', 'web');
+    const file = join(root, 'src', 'Foo.test.ts');
+
+    expect(repoRelativeFile(file, root)).toBe('src/Foo.test.ts');
+    expect(normaliseFile(file, root)).toBe('src/foo.test.ts');
+  });
+
+  it('forward-slashes a native path too, so case is the only difference between them', () => {
+    const root = resolve('repo', 'web');
+    const file = join(root, 'components', 'Deep', 'Nested.test.tsx');
+
+    const preserved = repoRelativeFile(file, root);
+
+    expect(preserved).toBe('components/Deep/Nested.test.tsx');
+    expect(preserved).not.toContain('\\');
+    // The invariant that keeps the two from drifting: one is the other, folded.
+    expect(preserved.toLowerCase()).toBe(normaliseFile(file, root));
+  });
+});
+
+describe('caseFoldCollisions', () => {
+  // The control, fixed in advance and expected to find nothing: paths that
+  // differ by more than case must never be reported, or the refusal would fire
+  // on every healthy run and the check would be useless in the other direction.
+  it('finds nothing among paths that differ by more than case', () => {
+    expect(
+      caseFoldCollisions(['src/a.test.ts', 'src/b.test.ts', 'src/nested/a.test.ts']),
+    ).toEqual([]);
+  });
+
+  it('finds nothing in an empty discovered set', () => {
+    expect(caseFoldCollisions([])).toEqual([]);
+  });
+
+  // vitest can list one module more than once. The same spelling twice has
+  // merged nothing, so it is not the state this refuses -- only two *different*
+  // spellings mean a file is about to become invisible.
+  it('does not treat the same path listed twice as a collision', () => {
+    expect(caseFoldCollisions(['src/a.test.ts', 'src/a.test.ts'])).toEqual([]);
+  });
+
+  it('names both paths when two discovered files differ only in case', () => {
+    expect(
+      caseFoldCollisions(['src/Foo.test.ts', 'src/other.test.ts', 'src/foo.test.ts']),
+    ).toEqual([{ key: 'src/foo.test.ts', paths: ['src/Foo.test.ts', 'src/foo.test.ts'] }]);
+  });
+
+  it('collects every spelling into one group rather than reporting pairs', () => {
+    expect(caseFoldCollisions(['src/FOO.test.ts', 'src/Foo.test.ts', 'src/foo.test.ts'])).toEqual([
+      {
+        key: 'src/foo.test.ts',
+        paths: ['src/FOO.test.ts', 'src/Foo.test.ts', 'src/foo.test.ts'],
+      },
+    ]);
+  });
+
+  // The fold is applied to the whole path, so the hazard is not confined to the
+  // file name -- two directories differing only in case merge everything under
+  // them, which is the larger version of the same loss.
+  it('catches a collision in a directory segment, not only in a file name', () => {
+    expect(caseFoldCollisions(['src/Lib/a.test.ts', 'src/lib/a.test.ts'])).toEqual([
+      { key: 'src/lib/a.test.ts', paths: ['src/Lib/a.test.ts', 'src/lib/a.test.ts'] },
+    ]);
+  });
+
+  it('reports several groups in a stable order', () => {
+    const groups = caseFoldCollisions([
+      'src/Zeta.test.ts',
+      'src/zeta.test.ts',
+      'src/Alpha.test.ts',
+      'src/alpha.test.ts',
+    ]);
+
+    expect(groups.map((group) => group.key)).toEqual(['src/alpha.test.ts', 'src/zeta.test.ts']);
   });
 });
 
@@ -156,6 +241,131 @@ describe('compareCoverage', () => {
 
     expect(result.ok).toBe(false);
     expect(result.problems.join('\n')).toContain('1 failed test suite(s)');
+  });
+});
+
+// Issue #340: the axis on which the cases above are all blind, because every
+// one of them varies *which* folded keys are in the two sets and none of them
+// varies whether a key stands for one file or two.
+//
+// These take path strings rather than a filesystem, which is the point. The
+// defect only bites where a filesystem can hold `src/Foo.test.ts` and
+// `src/foo.test.ts` at once, so a host that cannot hold both is unable to
+// observe it end to end -- but the comparison itself is pure, so the behaviour
+// it must have on such a host is fully assertable on any host. What these cases
+// therefore prove is the logic, on every platform; what they do not prove is
+// the discovery wiring, which is the end-to-end case's job.
+describe('discovered files that differ only in case', () => {
+  const greenReport = { success: true, numFailedTests: 0, numFailedTestSuites: 0 };
+  const collision = { key: 'src/foo.test.ts', paths: ['src/Foo.test.ts', 'src/foo.test.ts'] };
+
+  it('refuses the run and names both paths instead of merging them silently', () => {
+    const result = compareCoverage({
+      expected: ['src/foo.test.ts'],
+      reported: ['src/foo.test.ts'],
+      collisions: [collision],
+      report: greenReport,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.collisions).toEqual([collision]);
+    const problems = result.problems.join('\n');
+    expect(problems).toContain('differ only in case');
+    expect(problems).toContain('src/Foo.test.ts');
+    expect(problems).toContain('src/foo.test.ts');
+  });
+
+  // The scenario measured in the issue: both files discovered, only one of them
+  // reporting results. Before this, `missing` came back empty and the run
+  // exited 0 -- a dropped file, invisible to the check that exists to name it.
+  it('catches the dropped file the fold had hidden from set membership', () => {
+    const discovered = ['src/Foo.test.ts', 'src/foo.test.ts'];
+    const expected = [...new Set(discovered.map((file) => file.toLowerCase()))];
+
+    const result = compareCoverage({
+      expected,
+      reported: ['src/foo.test.ts'],
+      collisions: caseFoldCollisions(discovered),
+      report: greenReport,
+    });
+
+    // The merge is the real input here, not a strawman: two discovered files
+    // arrive as one key, and the set difference genuinely has nothing to say.
+    expect(expected).toEqual(['src/foo.test.ts']);
+    expect(result.missing).toEqual([]);
+    // And the run is refused all the same, which is the whole of the fix.
+    expect(result.ok).toBe(false);
+    expect(result.problems.join('\n')).toContain('src/Foo.test.ts');
+  });
+
+  // The opposite error, and the reason the fold is kept rather than deleted:
+  // one file that discovery and the report spell differently. On a
+  // case-insensitive filesystem that is a single healthy file, and calling it
+  // missing would refuse a run in which nothing whatsoever went wrong.
+  it('does not call one file missing when discovery and the report spell it differently', () => {
+    const root = resolve('repo', 'web');
+    const discovered = repoRelativeFile(join(root, 'src', 'Foo.test.ts'), root);
+
+    const result = compareCoverage({
+      expected: [discovered.toLowerCase()],
+      reported: [normaliseFile(join(root, 'src', 'foo.test.ts'), root)],
+      collisions: caseFoldCollisions([discovered]),
+      report: greenReport,
+    });
+
+    expect(result.missing).toEqual([]);
+    expect(result.collisions).toEqual([]);
+    expect(result.ok).toBe(true);
+  });
+
+  // Anti-spurious: the guard has to stay silent on the runs this repository
+  // actually has, or it trades a fail-open for a permanent red.
+  it('reports no collision, and stays ok, on a healthy run that has none', () => {
+    const discovered = ['src/a.test.ts', 'src/b.test.ts'];
+
+    const result = compareCoverage({
+      expected: discovered,
+      reported: discovered,
+      collisions: caseFoldCollisions(discovered),
+      report: greenReport,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.collisions).toEqual([]);
+    expect(result.problems).toEqual([]);
+  });
+
+  it('does not mask a real refusal raised in the same run, and is stated first', () => {
+    const result = compareCoverage({
+      expected: ['src/foo.test.ts', 'src/dropped.test.ts'],
+      reported: ['src/foo.test.ts'],
+      collisions: [collision],
+      report: greenReport,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.missing).toEqual(['src/dropped.test.ts']);
+    const problems = result.problems.join('\n');
+    expect(problems).toContain('differ only in case');
+    expect(problems).toContain('produced no result');
+    // Order is part of the message: a reader who is about to be handed a
+    // missing-file list has to be told first that the list is understated.
+    expect(problems.indexOf('differ only in case')).toBeLessThan(
+      problems.indexOf('produced no result'),
+    );
+  });
+
+  // The same discipline every other message in this file is held to: state the
+  // observation, never a cause the input cannot establish.
+  it('states what was observed without asserting how many files there really are', () => {
+    const result = compareCoverage({
+      expected: ['src/foo.test.ts'],
+      reported: ['src/foo.test.ts'],
+      collisions: [collision],
+      report: greenReport,
+    });
+
+    expect(result.problems.join('\n')).toContain('not established by this input');
   });
 });
 
@@ -1032,6 +1242,9 @@ describe('the script run as a process', () => {
     // emits for the source above. `null` means the report omits the file
     // entirely -- the dropped-worker shape from #218.
     statuses: string[] | null;
+    // The spelling the report uses for this file, when it has to differ from
+    // the spelling on disk (issue #340). Defaults to `name`.
+    reportedAs?: string;
   };
 
   const passingSource = "import { it, expect } from 'vitest';\nit('runs', () => expect(1).toBe(1));\n";
@@ -1056,7 +1269,7 @@ describe('the script run as a process', () => {
         continue;
       }
       testResults.push({
-        name: join(directory, file.name),
+        name: join(directory, file.reportedAs ?? file.name),
         status: 'passed',
         assertionResults: file.statuses.map((status, index) => ({
           title: `assertion ${index}`,
@@ -1257,6 +1470,99 @@ describe('the script run as a process', () => {
       expect(stderr).toContain('The test run must write it before this check runs.');
       expect(stdout).toBe('');
       expect(code).toBe(1);
+    },
+    60_000,
+  );
+
+  // Issue #340, the half the pure cases cannot reach: `expected` is built in
+  // `main` from vitest's own glob, so whether the case fold is applied before
+  // or after the collision is looked for is a property of that wiring alone.
+  //
+  // This is the reason the fold is kept. One file on disk, spelled one way by
+  // discovery and the other way by the report -- which is a legitimate input
+  // wherever the filesystem reaches a single file through both spellings, as
+  // was measured for this repository's development host. Without the fold the
+  // report's name matches nothing discovered and a perfectly healthy run is
+  // refused for a file that is sitting right there. The expectation is the same
+  // on either kind of filesystem, so nothing here is platform-conditional.
+  it(
+    'does not invent a missing file when the report spells a discovered one differently',
+    async () => {
+      const directory = await buildFixture(
+        [
+          {
+            name: 'Cased.test.js',
+            source: passingSource,
+            statuses: ['passed'],
+            reportedAs: 'cased.test.js',
+          },
+        ],
+        'report.json',
+      );
+
+      const { code, stdout, stderr } = await runScriptIn(directory, ['report.json']);
+
+      expect(stderr).toBe('');
+      expect(stdout.trim()).toBe(
+        'test-coverage check: all 1 discovered test file(s) reported results and all executed ' +
+          'at least one test (1 reported test(s): 1 executed, 0 not executed).',
+      );
+      expect(code).toBe(0);
+    },
+    60_000,
+  );
+
+  // The defect itself, end to end: two test files differing only in case, one
+  // of them dropped from the report. Against the pre-#340 script this exits 0
+  // -- both files fold to one key, the key is reported, `missing` is empty, and
+  // the dropped file is never named.
+  //
+  // Whether the fixture can even hold two such files is a property of the
+  // filesystem the test happens to run on, so the branch below is decided by
+  // *measuring* what the write actually produced rather than by consulting
+  // `process.platform` -- the platform is a proxy for the property, and the
+  // property is what the script's behaviour depends on. On a case-sensitive
+  // filesystem this exercises the real fail-open. On a case-insensitive one it
+  // proves the other half of the acceptance criteria, which is not a lesser
+  // thing to prove: the new refusal must be unreachable there, because the two
+  // spellings are one healthy file and refusing them would be a false positive.
+  // A green run on one kind of filesystem is not evidence about the other.
+  it(
+    'refuses a case-differing pair where the filesystem can hold both, and never otherwise',
+    async () => {
+      const directory = await buildFixture(
+        [
+          { name: 'Cased.test.js', source: passingSource, statuses: ['passed'] },
+          { name: 'cased.test.js', source: passingSource, statuses: null },
+        ],
+        'report.json',
+      );
+
+      const onDisk = (await readdir(directory)).filter((entry) => entry.endsWith('.test.js')).sort();
+      const { code, stdout, stderr } = await runScriptIn(directory, ['report.json']);
+
+      if (onDisk.length === 2) {
+        // Case-sensitive: two real files, one of them dropped from the report.
+        expect(onDisk).toEqual(['Cased.test.js', 'cased.test.js']);
+        expect(stderr).toContain('test-coverage check FAILED -- the run cannot be trusted:');
+        expect(stderr).toContain('differ only in case');
+        expect(stderr).toContain('Cased.test.js');
+        expect(stderr).toContain('cased.test.js');
+        // The count is taken before the fold, so the refusal cannot name two
+        // paths on one line and call them one discovered file on the next.
+        expect(stderr).toContain('Discovered 2 test file(s); the report holds results for 1.');
+        expect(stdout).toBe('');
+        expect(code).toBe(1);
+      } else {
+        // Case-insensitive: the second write reached the first file, so there
+        // is one file, it reported, and the run is healthy. The refusal must
+        // not fire here at all.
+        expect(onDisk).toEqual(['Cased.test.js']);
+        expect(stderr).toBe('');
+        expect(stdout).toContain('all 1 discovered test file(s) reported results');
+        expect(stdout).not.toContain('differ only in case');
+        expect(code).toBe(0);
+      }
     },
     60_000,
   );

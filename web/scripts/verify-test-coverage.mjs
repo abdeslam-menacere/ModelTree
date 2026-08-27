@@ -164,18 +164,136 @@
 // no tests -- a file of `.todo` tests, say -- is #270's decision, reported and
 // never refused, and it is untouched here. The defect is discovering nothing,
 // which is not the same thing as running nothing.
+//
+// -- Issue #340: the case fold merges two files into one --
+//
+// Every set in this file is keyed on `normaliseFile`, which lower-cases the
+// whole repo-relative path. On a case-sensitive filesystem -- which is what CI
+// runs on -- `src/Foo.test.ts` and `src/foo.test.ts` are two files, so the fold
+// turns two discovered entries into one key and `new Set()` keeps one of them.
+// If exactly one of the pair then reports results, `missing` comes back empty
+// and the run passes: the dropped file is invisible to the comparison that
+// exists to name it. That is the same failure class as #218 and #337 -- the
+// guard reporting success because it could not see what it had lost.
+//
+// The docstring on `normaliseFile` used to justify the fold by drive-letter
+// casing on Windows, and that reason does not survive measurement.
+// `path.win32.relative` resolves a mixed-case drive letter *and* a mixed-case
+// root segment on its own and leaves no colon in the result -- measured:
+// `relative('c:\\repo\\web', 'C:\\repo\\web\\src\\Foo.test.ts')` is
+// `src\\Foo.test.ts` -- so that case was already handled one call earlier and
+// the fold was doing none of it. The docstring now states the reason that does
+// survive.
+//
+// The fold is still not dead code, and deleting it would trade this fail-open
+// for a fail-closed on the other platform. Where the filesystem is
+// case-insensitive the two spellings are one file, so a path spelled one way by
+// vitest's glob and the other way by the JSON report has to compare equal or a
+// healthy run is refused over a file that never went missing. A single global
+// choice is wrong on one platform either way, and that is the actual defect:
+// fold, and a case-sensitive host cannot see a dropped file; do not fold, and a
+// case-insensitive one invents a missing file that is sitting right there.
+//
+// So the fold stays and is made safe. `caseFoldCollisions` refuses when folding
+// would merge two *distinct discovered* paths: discovery holds the real,
+// unfolded paths, so the merge is detectable exactly where it would otherwise
+// become silent, and a fail-open becomes a named refusal.
+//
+// Discovered-side only, and that asymmetry is chosen rather than overlooked.
+// `expected` comes from a filesystem glob, so two entries differing by case
+// alone are a fact about what discovery returned. Two *reported* entries
+// differing by case are not the same fact: on a case-insensitive host they are
+// one file addressed twice, and refusing there would manufacture precisely the
+// false positive that keeping the fold exists to avoid. The check is placed
+// where the input can support the conclusion drawn from it.
+//
+// It is raised before the missing/unexpected comparisons for #337's reason: it
+// is the state that makes them unreliable rather than one more way for them to
+// fail, and a reader who sees `missing` come back empty has to be told why that
+// set could not be trusted.
+//
+// What this rests on, stated rather than implied. The case-insensitive half was
+// verified only as far as the filesystem: both spellings were measured to reach
+// one file on such a host, which is what makes a mismatched-spelling input a
+// real one rather than an invented one. Whether vitest's discovery and its own
+// JSON report ever *do* spell a single file differently was not reproduced --
+// not here, and not in the issue. So the fold is kept as protection against a
+// hazard that is real in the filesystem and unobserved in the reporter, and no
+// stronger claim than that is made for it.
+//
+// On a case-insensitive filesystem the new refusal is unreachable by
+// construction, because the glob cannot return two paths differing only in case
+// when the filesystem cannot hold two such files. That is why the end-to-end
+// case for this branch measures what the filesystem actually did instead of
+// testing `process.platform`, and why a green run on a case-insensitive host is
+// not evidence about a case-sensitive one.
 
 import { readFile } from 'node:fs/promises';
 import { relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
+ * The repo-relative, forward-slashed form of an absolute path, with its case
+ * left exactly as the filesystem spelled it.
+ *
+ * This is the form discovery has to be inspected in before anything is folded
+ * (issue #340): a fold cannot be checked for collisions after it has already
+ * happened, because by then the two spellings are one string. `normaliseFile`
+ * is defined in terms of this so the two cannot drift apart.
+ */
+export function repoRelativeFile(absolutePath, root) {
+  return relative(root, absolutePath).replaceAll('\\', '/');
+}
+
+/**
  * Normalise an absolute path to a lower-cased, forward-slash path relative to
  * `root`, so a path from vitest's glob and a path from the JSON report compare
- * equal regardless of separator or drive-letter casing on Windows.
+ * equal when the two spell the same file differently.
+ *
+ * The fold is about the spelling of one file and not about drive letters. This
+ * docstring used to say the lower-casing made paths equal "regardless of
+ * separator or drive-letter casing on Windows"; `path.win32.relative` does that
+ * part by itself, for the drive letter and for a mixed-case root segment alike,
+ * and leaves no colon in what it returns, so the fold was credited with work
+ * that had already happened one call earlier (issue #340).
+ *
+ * What the fold actually does is let `src/Foo.test.ts` and `src/foo.test.ts`
+ * compare equal. That is correct where the filesystem holds them as one file
+ * and dangerous where it holds them as two, since it merges two discovered
+ * entries into one key and hides a dropped file. `caseFoldCollisions` is what
+ * makes keeping it safe; the header records the reasoning.
  */
 export function normaliseFile(absolutePath, root) {
-  return relative(root, absolutePath).replaceAll('\\', '/').toLowerCase();
+  return repoRelativeFile(absolutePath, root).toLowerCase();
+}
+
+/**
+ * The groups of distinct discovered paths that the case fold would merge into a
+ * single key -- the input on which every set comparison in this file stops
+ * being able to tell two files apart (issue #340).
+ *
+ * Exact duplicates are not a collision. vitest can list one module more than
+ * once, and the same path twice folds to the same key without anything having
+ * been merged; only two *different* spellings mean information is about to be
+ * lost. The set of spellings is what makes that distinction, so it is the set
+ * and not the count of paths that decides.
+ *
+ * @param {string[]} paths - case-preserved relative paths, as `repoRelativeFile` returns them
+ * @returns {{ key: string, paths: string[] }[]}
+ */
+export function caseFoldCollisions(paths) {
+  const byKey = new Map();
+  for (const path of paths) {
+    const key = path.toLowerCase();
+    const spellings = byKey.get(key) ?? new Set();
+    spellings.add(path);
+    byKey.set(key, spellings);
+  }
+
+  return [...byKey.entries()]
+    .filter(([, spellings]) => spellings.size > 1)
+    .map(([key, spellings]) => ({ key, paths: [...spellings].sort() }))
+    .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
 }
 
 /**
@@ -197,10 +315,24 @@ export function normaliseFile(absolutePath, root) {
  * is blind to emptiness; the header records why that state is refused outright
  * rather than made opt-outable.
  *
- * @param {{ expected: string[], reported: string[], empty?: string[], unexecuted?: string[], report: object }} input
- * @returns {{ ok: boolean, problems: string[], missing: string[], unexpected: string[], empty: string[], unexecuted: string[] }}
+ * `collisions` is the same shape of problem one level down (issue #340): the
+ * comparisons below are keyed on a case fold, so two discovered paths differing
+ * only in case arrive here already merged into one member of `expected`, and a
+ * dropped one of the pair cannot be named. It is taken as an argument rather
+ * than derived here because deriving it is impossible from this input -- by the
+ * time a path reaches `expected` it has been folded, and the evidence is gone.
+ *
+ * @param {{ expected: string[], reported: string[], empty?: string[], unexecuted?: string[], collisions?: { key: string, paths: string[] }[], report: object }} input
+ * @returns {{ ok: boolean, problems: string[], missing: string[], unexpected: string[], empty: string[], unexecuted: string[], collisions: { key: string, paths: string[] }[] }}
  */
-export function compareCoverage({ expected, reported, empty = [], unexecuted = [], report }) {
+export function compareCoverage({
+  expected,
+  reported,
+  empty = [],
+  unexecuted = [],
+  collisions = [],
+  report,
+}) {
   const expectedSet = new Set(expected);
   const reportedSet = new Set(reported);
 
@@ -208,6 +340,7 @@ export function compareCoverage({ expected, reported, empty = [], unexecuted = [
   const unexpected = [...reportedSet].filter((file) => !expectedSet.has(file)).sort();
   const emptyReported = [...new Set(empty)].sort();
   const unexecutedReported = [...new Set(unexecuted)].sort();
+  const foldCollisions = [...collisions];
 
   const problems = [];
 
@@ -224,6 +357,24 @@ export function compareCoverage({ expected, reported, empty = [], unexecuted = [
         'files; it does not establish why, because a broken include glob, a moved directory ' +
         'and the wrong working directory all produce this input and none of them is ' +
         'distinguishable in it.',
+    );
+  }
+
+  // Issue #340, and before the comparisons for #337's reason: this is the state
+  // that makes them unreliable, so a reader who sees `missing` come back empty
+  // has to be told that the set it was computed from had two files merged into
+  // one member.
+  if (foldCollisions.length > 0) {
+    const named = foldCollisions
+      .map(({ key, paths }) => `${key} <- ${paths.join(' + ')}`)
+      .join('; ');
+    problems.push(
+      `${foldCollisions.length} group(s) of discovered test files differ only in case, so the ` +
+        `case fold these comparisons are keyed on merges each group into a single entry and ` +
+        `cannot tell its members apart -- one of them going missing would not be named: ` +
+        `${named}. This states only that discovery returned paths differing by case alone; ` +
+        `whether they are separate files or one file spelled two ways is not established by ` +
+        `this input, and the comparison is unreliable either way.`,
     );
   }
 
@@ -274,6 +425,7 @@ export function compareCoverage({ expected, reported, empty = [], unexecuted = [
     unexpected,
     empty: emptyReported,
     unexecuted: unexecutedReported,
+    collisions: foldCollisions,
   };
 }
 
@@ -577,8 +729,27 @@ async function main() {
   const { createVitest } = await import('vitest/node');
   const vitest = await createVitest('test', { watch: false });
   let expected;
+  let collisions;
+  let discoveredFileCount;
   try {
     const specifications = await vitest.globTestSpecifications();
+    // Case-preserved first, folded second. Issue #340: the collision has to be
+    // read off the paths the filesystem actually gave, because folding is what
+    // destroys the evidence of it.
+    const discovered = specifications.map((spec) => repoRelativeFile(spec.moduleId, root));
+    collisions = caseFoldCollisions(discovered);
+    // Counted before the fold, because "Discovered N test file(s)" is a claim
+    // about discovery and not about how many comparison keys survived it. The
+    // two numbers differ only when a collision merged something, and printing
+    // the folded one there would have the refusal understate the very loss it
+    // is refusing over -- naming two paths on one line and calling them one
+    // file on the next.
+    discoveredFileCount = new Set(discovered).size;
+    // `normaliseFile` and not `discovered.map(toLowerCase)`: the reported side
+    // is keyed by `normaliseFile`, so writing the fold out a second time here
+    // would let the two sides of the comparison drift apart under any change to
+    // it -- the halves would still each be internally consistent, and the
+    // comparison between them would quietly stop meaning anything.
     expected = [...new Set(specifications.map((spec) => normaliseFile(spec.moduleId, root)))];
   } finally {
     await vitest.close();
@@ -588,10 +759,17 @@ async function main() {
   const empty = emptyReportedFiles(report, root);
   const unexecuted = unexecutedReportedFiles(report, root);
   const totals = executionTotals(report, root);
-  const { ok, problems } = compareCoverage({ expected, reported, empty, unexecuted, report });
+  const { ok, problems } = compareCoverage({
+    expected,
+    reported,
+    empty,
+    unexecuted,
+    collisions,
+    report,
+  });
 
   const summary = formatCoverageSummary({
-    expectedFileCount: expected.length,
+    expectedFileCount: discoveredFileCount,
     reportedFileCount: reported.length,
     totals,
     empty,
@@ -606,7 +784,7 @@ async function main() {
   console.error(
     formatFailureReport({
       problems,
-      expectedFileCount: expected.length,
+      expectedFileCount: discoveredFileCount,
       reportedFileCount: reported.length,
       unexecuted,
     }),
