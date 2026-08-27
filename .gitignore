@@ -22,6 +22,12 @@ __pycache__/
 
 # Drydock
 .drydock/tmp/
+# A dock's own working notes. `.github/copilot-instructions.md` describes a
+# `DOCK.md` at the worktree root as the normal state of a dock, and routes
+# assumptions and follow-ups into it, but nothing in the repository generates
+# one. An agent that creates one for its own notes must not thereby commit it
+# or redden the instruction-reference suite for every other checkout. See #395.
+DOCK.md
 
 # Local tooling
 .claude/settings.local.json

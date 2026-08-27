@@ -738,11 +738,29 @@ def check_paths(text: str, repo_root: Path, report: Report) -> None:
         if is_template(token):
             report.exempt.append(Finding(line, token, "naming template, not a path"))
             continue
+
+        stated = absence_statement(text, token)
+        # A documented absence beats an on-disk hit when the name is gitignored:
+        # a gitignored file is not repository content, and its transient presence
+        # in one working tree does not turn the document's statement into a lie.
+        # `DOCK.md` is the case in point -- the instructions describe it as the
+        # normal state of a dock worktree, nothing in the repo generates it, and
+        # an agent that creates one for its own notes must not thereby redden the
+        # suite for every other checkout. See issue #395.
+        if stated is not None and is_git_ignored(repo_root, token):
+            quote, where = stated
+            report.exempt.append(
+                Finding(
+                    line,
+                    token,
+                    f'the document states its absence at line {where}: "{quote}"',
+                )
+            )
+            continue
         if resolve_path(repo_root, token):
             report.resolved.append(Finding(line, token, "exists"))
             continue
 
-        stated = absence_statement(text, token)
         if stated is not None:
             quote, where = stated
             report.exempt.append(
