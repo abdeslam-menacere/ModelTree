@@ -1,0 +1,57 @@
+{
+  "runId": "2026-08-27-test-paired",
+  "creator": "openai",
+  "policy": "pilot",
+  "startedAt": "2026-08-27T00:00:00Z",
+  "sourcesConsulted": [],
+  "claims": [
+    {
+      "id": "openai-add-source-deprecations",
+      "kind": "add",
+      "collection": "sources",
+      "targetId": "openai-deprecations",
+      "currentValue": null,
+      "proposedValue": {
+        "id": "openai-deprecations",
+        "title": "OpenAI model deprecations page",
+        "publisher": "openai",
+        "url": "https://platform.openai.com/docs/deprecations",
+        "type": "official-documentation",
+        "lastCheckedDate": "2026-08-27"
+      },
+      "statement": "OpenAI publishes a deprecations page listing retired models.",
+      "evidence": [
+        {
+          "sourceId": "openai-deprecations",
+          "url": "https://platform.openai.com/docs/deprecations",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "fetchedAt": "2026-08-27",
+          "quote": "The following models are deprecated and will be retired.",
+          "retrieval": "fetch"
+        }
+      ]
+    },
+    {
+      "id": "openai-change-gpt-5-sources-cite-deprecations",
+      "kind": "change",
+      "collection": "releases",
+      "targetId": "openai-gpt-5",
+      "field": "sourceIds",
+      "currentValue": ["openai-gpt-5-announcement"],
+      "proposedValue": ["openai-gpt-5-announcement", "openai-deprecations"],
+      "statement": "GPT-5's sourceIds cite the deprecations page as evidence of its status.",
+      "evidence": [
+        {
+          "sourceId": "openai-deprecations",
+          "url": "https://platform.openai.com/docs/deprecations",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "fetchedAt": "2026-08-27",
+          "quote": "gpt-5 is deprecated and will be retired on 2027-01-01.",
+          "retrieval": "fetch"
+        }
+      ]
+    }
+  ],
+  "budget": { "pagesFetched": 1, "pageBudget": 40, "exhausted": false },
+  "incomplete": []
+}

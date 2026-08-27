@@ -61,7 +61,19 @@ For each creator, in this order:
    with fresh evidence, so `verifiedAt` can move forward honestly.
 4. **New sources** worth adding to `sources.json`, each proposed as its own
    claim — but only on an origin the dataset or a profile catalogue already
-   stands behind. See **Boundaries** below.
+   stands behind, and **never alone**. A `sources` add claim is incomplete on
+   its own: `web/src/data/validate.test.ts` treats an unreferenced source as
+   dead provenance (`expect(orphaned).toEqual([])`), so a lone source claim
+   cannot be applied without inventing an unreviewed edit to make some record
+   cite it. Every source-add must be paired with the `change` claim that wires
+   that source into a record's `sourceIds` — and the same applies to a
+   status/field change whose supporting quotes come only from a new source:
+   propose the source and propose the citation edit, so a reviewer can see and
+   vote on both. The two claims are reviewed independently but recorded as
+   coupled: if the reviewer rejects the citation edit, the paired source-add
+   must be withheld rather than applied and orphaned; if the reviewer rejects
+   the source-add, every claim citing it must be dropped for the same run. See
+   **Boundaries** below.
 5. **Conflicts.** Two sources disagreeing is a finding, not a problem to resolve.
    Record `kind: "conflict"` with both sides quoted, and let it stay explicit.
 
@@ -100,6 +112,14 @@ For each creator, in this order:
    Record exhaustion in `budget` and `incomplete`. A truncated run that says so
    is fine; one that does not is a silent lie about coverage.
 9. Write the bundle with **no** `verdicts`. Review fills those in.
+10. **Run the pairing check** before handing off:
+    `node .github/skills/modeltree-scout/scripts/check-bundle-pairing.mjs <bundle path>`.
+    It exits 0 when every source-add in the bundle is paired with a claim that
+    wires the source into some record's `sourceIds`, and exits 1 naming any
+    source id that is added but nothing in the same bundle cites. A non-zero
+    exit means the bundle is unappliable as written — add the missing citation
+    claim, or drop the source-add, and re-run. Never hand off a bundle the
+    check refused; that is the failure mode #403 exists to prevent.
 
 One creator failing does not stop the others. Record the failure and continue.
 
