@@ -491,6 +491,30 @@ function main() {
   });
 
   const result = {
+    // Which tree this verdict is about, and the field that makes a wrong one
+    // visible. `datasetAnchor` reads `git show <base>:web/src/data/sources.json`,
+    // a path git resolves from the top of the working tree no matter which
+    // subdirectory it was run in, so a root one directory off still finds the
+    // same dataset anchor and still exits 0. Only the catalogue anchor's
+    // pathspec is cwd-relative, and an absent catalogue is a tolerated state.
+    // Until this field existed, such a run's report was indistinguishable from a
+    // correct one, and a test that wanted to pin the resolved root had to infer
+    // it from `anchors.profileCatalogues` instead of reading it (#381).
+    //
+    // The name is `repo`, the spelling `gate-scope.mjs` already uses, because it
+    // is the same fact. `gate-dataset.mjs` reports `dataDir` and that is not an
+    // inconsistency to be tidied: it resolves a directory of documents from
+    // `--data`, never a repository, so `repo` would name something it does not
+    // have. The rule the four follow is that a gate resolving a repository root
+    // reports it as `repo`, and the one resolving a data directory reports
+    // `dataDir`.
+    //
+    // It is the resolved root the gate used, never the flag as given. The two
+    // cannot diverge here - `--repo` with no value exits 2 - but reporting `cwd`
+    // rather than `args.repo` is what keeps that true if that ever changes, and
+    // it is what makes the value a real absolute path rather than whatever
+    // string arrived.
+    repo: cwd,
     bundle: bundlePath,
     runId: bundle.runId ?? null,
     creator: bundle.creator ?? null,

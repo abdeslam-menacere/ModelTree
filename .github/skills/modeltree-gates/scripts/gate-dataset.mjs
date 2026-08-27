@@ -569,6 +569,11 @@ function main() {
   gateNoRanking(docs);
 
   if (args.json) {
+    // `dataDir`, not `repo`: this gate resolves a directory of documents from
+    // `--data <dir>`, runs no git, and has no repository root to name. The three
+    // gates that do resolve one report it as `repo`; this one names what it
+    // actually opened, which is the fact a reader needs here. The four spellings
+    // were reconciled to those two in #381 rather than to one.
     process.stdout.write(`${JSON.stringify({ dataDir, today, counts, passed: failures.length === 0, failures }, null, 2)}\n`);
   } else if (failures.length === 0) {
     const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
