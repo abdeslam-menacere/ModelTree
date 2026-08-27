@@ -206,7 +206,21 @@ describe('model tree Others branch', () => {
   });
 
   it('orders others by creator name then id, families and releases newest first', () => {
-    expect(tree.others.map(({ organization }) => organization.id)).toEqual(expectedOtherCreatorIds);
+    const otherIds = tree.others.map(({ organization }) => organization.id);
+    // The fixture derives from the live dataset (fixtures/model-tree-dataset.ts:1),
+    // so a non-featured creator in the catalog joins Others alongside the
+    // synthetic ones. Filtering to the synthetic ids keeps the claim exact
+    // without assuming the catalog contributes none: ordering is a total order,
+    // so relative position survives whatever interleaves with them, and these
+    // three still prove name ordering and the id tiebreak.
+    expect(otherIds.filter((id) => expectedOtherCreatorIds.includes(id)))
+      .toEqual(expectedOtherCreatorIds);
+
+    // The ordering rule itself, over whatever Others actually holds. `\0` sorts
+    // below any printable character, so this is name first, then id.
+    const orderKeys = tree.others.map(({ organization }) => `${organization.name}\0${organization.id}`);
+
+    expect(orderKeys).toEqual([...orderKeys].sort());
 
     const zulu = tree.others.find(({ organization }) => organization.id === 'other-zulu')!;
 
@@ -228,11 +242,22 @@ describe('model tree Others branch', () => {
     const featuredIds = tree.featured.flatMap(({ families }) => (
       families.flatMap(({ releases }) => releases.map(({ id }) => id))
     ));
+    const otherBranchIds = tree.others.flatMap(({ families }) => (
+      families.flatMap(({ releases }) => releases.map(({ id }) => id))
+    ));
+    // What the fixture adds on top of the live catalog, whatever the catalog
+    // itself now holds. The old `featuredIds.length + 7` assumed the catalog
+    // contributed nothing to Others, which is the assumption this issue removes.
+    const syntheticIds = datasetWithOtherCreators.releases
+      .filter(({ id }) => !dataset.releases.some((release) => release.id === id))
+      .map(({ id }) => id);
 
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids).toContain('other-zulu-nova-one');
     expect(ids).toContain('other-alpha-core-one');
-    expect(ids.length).toBe(featuredIds.length + 7);
+    expect(ids.length).toBe(featuredIds.length + otherBranchIds.length);
+    expect(syntheticIds.length).toBeGreaterThan(0);
+    expect(otherBranchIds).toEqual(expect.arrayContaining(syntheticIds));
     expect(ids).toEqual(expect.arrayContaining(featuredIds));
   });
 

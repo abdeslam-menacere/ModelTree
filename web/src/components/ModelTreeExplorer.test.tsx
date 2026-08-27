@@ -31,7 +31,11 @@ describe('ModelTreeExplorer', () => {
   });
 
   it('states the Others branch is empty without implying work in progress', () => {
-    const tree = buildModelTree(dataset);
+    // Construct the empty-Others condition rather than borrowing it from the
+    // catalog. The empty state is what #435 added, and it must keep rendering
+    // whenever Others is genuinely empty -- which stops being true of the live
+    // dataset the moment a non-featured creator lands.
+    const tree = { ...buildModelTree(dataset), others: [] };
     const markup = renderToStaticMarkup(
       <ModelTreeExplorer tree={tree} sourceByReleaseId={{}} basePath="/ModelTree/" />,
     );
