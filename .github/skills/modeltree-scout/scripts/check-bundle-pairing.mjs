@@ -36,7 +36,14 @@ import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { argv, exit, stderr, stdout } from 'node:process';
 
-/** The nine dataset collections that carry `sourceIds` today, per validate.ts. */
+/**
+ * The dataset collections that carry `sourceIds` today, per `validate.ts`.
+ * Kept as the set itself — deliberately no count in the prose, so nothing has
+ * to be updated when a collection is added or removed. The set is its own
+ * documentation, and `validate.ts`'s `addMissingReferences(..., 'sourceIds')`
+ * / `addMissingReferences(..., 'control.sourceIds')` sites are the ground
+ * truth this set mirrors.
+ */
 const SOURCE_ID_COLLECTIONS = new Set([
   'organizations',
   'families',
@@ -85,9 +92,13 @@ function citedSourceIdsFromChange(claim) {
 }
 
 /**
- * Analyse a parsed bundle. Returns { addedSources, citedSources, orphans }.
- * `orphans` is the list of source ids added by this bundle that nothing in the
- * same bundle cites — the failure mode this script exists to catch.
+ * Analyse a parsed bundle. Returns { addedSources, citedSources, orphans,
+ * unidentifiedSourceAdds }. `orphans` is the list of source ids added by this
+ * bundle that nothing in the same bundle cites — the failure mode this script
+ * exists to catch. `unidentifiedSourceAdds` is the list of claim indices for
+ * `sources` `add` claims that carry no usable id (neither `targetId` nor
+ * `proposedValue.id`), which the checker refuses fail-closed: it cannot vouch
+ * for pairing on a record it cannot identify.
  */
 export function analyseBundle(bundle) {
   if (!bundle || typeof bundle !== 'object' || !Array.isArray(bundle.claims)) {
@@ -96,8 +107,10 @@ export function analyseBundle(bundle) {
 
   const addedSources = new Set();
   const citedSources = new Set();
+  const unidentifiedSourceAdds = [];
 
-  for (const claim of bundle.claims) {
+  for (let index = 0; index < bundle.claims.length; index += 1) {
+    const claim = bundle.claims[index];
     if (!claim || typeof claim !== 'object') continue;
     if (!SOURCE_ID_COLLECTIONS.has(claim.collection) && claim.collection !== 'sources') {
       // Unknown collection is a gate concern, not this script's; skip it here
@@ -110,7 +123,16 @@ export function analyseBundle(bundle) {
       // sources.json. Fall back to targetId, which the bundle contract says
       // carries the same id.
       const id = claim.proposedValue?.id ?? claim.targetId;
-      if (typeof id === 'string' && id.length > 0) addedSources.add(id);
+      if (typeof id === 'string' && id.length > 0) {
+        addedSources.add(id);
+      } else {
+        // Fail closed. A sources add with no identifier is not something this
+        // checker can verify — it cannot know whether some record cites the
+        // source, because it does not know the source's name. Silently skipping
+        // it would let a broken bundle report `ok`, which is the failure class
+        // the checker exists to refuse.
+        unidentifiedSourceAdds.push(index);
+      }
     }
 
     if (claim.kind === 'add') {
@@ -121,7 +143,7 @@ export function analyseBundle(bundle) {
   }
 
   const orphans = [...addedSources].filter((id) => !citedSources.has(id)).sort();
-  return { addedSources, citedSources, orphans };
+  return { addedSources, citedSources, orphans, unidentifiedSourceAdds };
 }
 
 function main() {
@@ -153,6 +175,24 @@ function main() {
   } catch (error) {
     stderr.write(`bundle at ${bundlePath} is malformed: ${error.message}\n`);
     exit(2);
+  }
+
+  if (result.unidentifiedSourceAdds.length > 0) {
+    // Fail closed. Distinct from the orphan message so the operator can see
+    // that the checker refused, not that the bundle merely orphaned a source.
+    stderr.write(
+      `bundle carries sources add claim(s) with no identifier (neither ` +
+        `targetId nor proposedValue.id), so the checker cannot verify whether ` +
+        `anything cites them. Refusing fail-closed:\n`,
+    );
+    for (const index of result.unidentifiedSourceAdds) {
+      stderr.write(`  - claims[${index}]\n`);
+    }
+    stderr.write(
+      `every sources add must carry a targetId matching the id of the ` +
+        `source being added.\n`,
+    );
+    exit(1);
   }
 
   if (result.orphans.length === 0) {
