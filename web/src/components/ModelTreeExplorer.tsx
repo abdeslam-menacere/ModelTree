@@ -1,5 +1,5 @@
 import { startTransition, useEffect, useState } from 'react';
-import type { ModelTree } from '../lib/model-tree';
+import type { ModelTree, ModelTreeCreator } from '../lib/model-tree';
 import {
   modelTreeReleaseIds,
   restoreModelTreeSelection,
@@ -23,13 +23,14 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
   const [enhanced, setEnhanced] = useState(false);
   const [rootOpen, setRootOpen] = useState(true);
   const [featuredOpen, setFeaturedOpen] = useState(true);
+  const [othersOpen, setOthersOpen] = useState(true);
   const [openCreators, setOpenCreators] = useState<ReadonlySet<string>>(new Set());
   const [openFamilies, setOpenFamilies] = useState<ReadonlySet<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string>();
   const releaseIds = modelTreeReleaseIds(tree);
   const releaseKey = releaseIds.join('\0');
   const normalizedBase = basePath.endsWith('/') ? basePath : `${basePath}/`;
-  const selected = tree.featured
+  const selected = [...tree.featured, ...tree.others]
     .flatMap(({ organization, families }) => families.flatMap(({ family, releases }) => (
       releases.map((release) => ({ organization, family, release }))
     )))
@@ -58,6 +59,71 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
 
   function isOpen(items: ReadonlySet<string>, id: string) {
     return !enhanced || items.has(id);
+  }
+
+  // Featured and Others render the identical markup contract; a creator belongs
+  // to exactly one branch, so the generated element IDs stay unique.
+  function creatorBranches(creators: ModelTreeCreator[]) {
+    return creators.map(({ organization, families }) => {
+      const creatorOpen = isOpen(openCreators, organization.id);
+      const creatorContentId = `tree-creator-${organization.id}`;
+      return (
+        <li key={organization.id}>
+          <button
+            className="tree-disclosure tree-creator-node"
+            type="button"
+            aria-expanded={creatorOpen}
+            aria-controls={creatorContentId}
+            onClick={() => setOpenCreators((items) => toggleModelTreeBranch(items, organization.id))}
+          >
+            <span>{organization.name}</span>
+            <small>{families.length} {families.length === 1 ? 'family' : 'families'}</small>
+          </button>
+          <ul id={creatorContentId} hidden={!creatorOpen}>
+            {families.map(({ family, releases }) => {
+              const familyOpen = isOpen(openFamilies, family.id);
+              const familyContentId = `tree-family-${family.id}`;
+              return (
+                <li key={family.id}>
+                  <button
+                    className="tree-disclosure tree-family-node"
+                    type="button"
+                    aria-expanded={familyOpen}
+                    aria-controls={familyContentId}
+                    onClick={() => setOpenFamilies((items) => toggleModelTreeBranch(items, family.id))}
+                  >
+                    <span>{family.name}</span>
+                    <small>{releases.length} {releases.length === 1 ? 'release' : 'releases'}</small>
+                  </button>
+                  <ol id={familyContentId} className="tree-release-list" hidden={!familyOpen}>
+                    {releases.map((release) => (
+                      <li key={release.id}>
+                        <div
+                          className="tree-release-node"
+                          data-selected={release.id === selectedId ? 'true' : 'false'}
+                        >
+                          <button
+                            type="button"
+                            aria-pressed={release.id === selectedId}
+                            onClick={() => selectRelease(release.id)}
+                          >
+                            <strong>{release.displayName}</strong>
+                            <span>{formatDate(release.releaseDate)} · {statusLabel(release.status)}</span>
+                          </button>
+                          <a href={`${normalizedBase}models/${release.slug}/`}>
+                            Passport<span className="visually-hidden"> for {release.displayName}</span>
+                          </a>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </li>
+              );
+            })}
+          </ul>
+        </li>
+      );
+    });
   }
 
   return (
@@ -89,73 +155,32 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
                     <small>Editorially reviewed · not ranked</small>
                   </button>
                   <ul id="model-tree-featured-creators" hidden={!featuredOpen}>
-                    {tree.featured.map(({ organization, families }) => {
-                      const creatorOpen = isOpen(openCreators, organization.id);
-                      const creatorContentId = `tree-creator-${organization.id}`;
-                      return (
-                        <li key={organization.id}>
-                          <button
-                            className="tree-disclosure tree-creator-node"
-                            type="button"
-                            aria-expanded={creatorOpen}
-                            aria-controls={creatorContentId}
-                            onClick={() => setOpenCreators((items) => toggleModelTreeBranch(items, organization.id))}
-                          >
-                            <span>{organization.name}</span>
-                            <small>{families.length} {families.length === 1 ? 'family' : 'families'}</small>
-                          </button>
-                          <ul id={creatorContentId} hidden={!creatorOpen}>
-                            {families.map(({ family, releases }) => {
-                              const familyOpen = isOpen(openFamilies, family.id);
-                              const familyContentId = `tree-family-${family.id}`;
-                              return (
-                                <li key={family.id}>
-                                  <button
-                                    className="tree-disclosure tree-family-node"
-                                    type="button"
-                                    aria-expanded={familyOpen}
-                                    aria-controls={familyContentId}
-                                    onClick={() => setOpenFamilies((items) => toggleModelTreeBranch(items, family.id))}
-                                  >
-                                    <span>{family.name}</span>
-                                    <small>{releases.length} {releases.length === 1 ? 'release' : 'releases'}</small>
-                                  </button>
-                                  <ol id={familyContentId} className="tree-release-list" hidden={!familyOpen}>
-                                    {releases.map((release) => (
-                                      <li key={release.id}>
-                                        <div
-                                          className="tree-release-node"
-                                          data-selected={release.id === selectedId ? 'true' : 'false'}
-                                        >
-                                          <button
-                                            type="button"
-                                            aria-pressed={release.id === selectedId}
-                                            onClick={() => selectRelease(release.id)}
-                                          >
-                                            <strong>{release.displayName}</strong>
-                                            <span>{formatDate(release.releaseDate)} · {statusLabel(release.status)}</span>
-                                          </button>
-                                          <a href={`${normalizedBase}models/${release.slug}/`}>
-                                            Passport<span className="visually-hidden"> for {release.displayName}</span>
-                                          </a>
-                                        </div>
-                                      </li>
-                                    ))}
-                                  </ol>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        </li>
-                      );
-                    })}
+                    {creatorBranches(tree.featured)}
                   </ul>
                 </li>
                 <li>
-                  <div className="tree-empty-node">
-                    <strong>Others</strong>
-                    <span>Awaiting reviewed long-tail records</span>
-                  </div>
+                  {tree.others.length > 0 ? (
+                    <>
+                      <button
+                        className="tree-disclosure tree-others-node"
+                        type="button"
+                        aria-expanded={othersOpen}
+                        aria-controls="model-tree-other-creators"
+                        onClick={() => setOthersOpen((value) => !value)}
+                      >
+                        <span>Others</span>
+                        <small>Reviewed creators without a featured release</small>
+                      </button>
+                      <ul id="model-tree-other-creators" hidden={!othersOpen}>
+                        {creatorBranches(tree.others)}
+                      </ul>
+                    </>
+                  ) : (
+                    <div className="tree-empty-node">
+                      <strong>Others</strong>
+                      <span>No non-featured creators in the reviewed catalog</span>
+                    </div>
+                  )}
                 </li>
               </ul>
             </li>
