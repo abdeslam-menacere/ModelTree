@@ -295,5 +295,61 @@
       "openai-gpt-image-2-docs"
     ],
     "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "anthropic-claude-4-6",
+    "slug": "claude-4-6",
+    "organizationId": "anthropic",
+    "name": "Claude 4.6",
+    "description": "A 2026 Claude generation represented by Opus 4.6 and Sonnet 4.6, with coding, computer-use, agentic, and long-context upgrades over preceding Claude 4 models.",
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "firstReleaseDate": "2026-02-05",
+    "status": "legacy",
+    "sourceIds": [
+      "anthropic-opus-4-6-announcement",
+      "anthropic-sonnet-4-6-announcement",
+      "anthropic-model-deprecations"
+    ],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "anthropic-claude-4-7",
+    "slug": "claude-4-7",
+    "organizationId": "anthropic",
+    "name": "Claude 4.7",
+    "description": "A 2026 Claude generation represented by Opus 4.7, with advanced software-engineering, long-running-task, and higher-resolution vision improvements over Opus 4.6.",
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "firstReleaseDate": "2026-04-16",
+    "status": "legacy",
+    "sourceIds": [
+      "anthropic-opus-4-7-announcement",
+      "anthropic-model-deprecations"
+    ],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "anthropic-claude-4-8",
+    "slug": "claude-4-8",
+    "organizationId": "anthropic",
+    "name": "Claude 4.8",
+    "description": "A 2026 Claude generation represented by Opus 4.8, which Anthropic says builds on Opus 4.7 with benchmark and collaboration improvements.",
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "firstReleaseDate": "2026-05-28",
+    "status": "legacy",
+    "sourceIds": [
+      "anthropic-opus-4-8-announcement",
+      "anthropic-model-deprecations"
+    ],
+    "verifiedAt": "2026-08-27"
   }
 ]

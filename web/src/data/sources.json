@@ -567,5 +567,41 @@
     "publisherId": "openai",
     "lastCheckedDate": "2026-08-27",
     "notes": "Lists the gpt-image-2 and gpt-image-2-2026-04-21 API identifiers, text and image input, image output, and image-generation endpoint support."
+  },
+  {
+    "id": "anthropic-sonnet-4-6-announcement",
+    "url": "https://www.anthropic.com/news/claude-sonnet-4-6",
+    "title": "Introducing Claude Sonnet 4.6",
+    "type": "official-announcement",
+    "publisherId": "anthropic",
+    "lastCheckedDate": "2026-08-27",
+    "publishedDate": "2026-02-17"
+  },
+  {
+    "id": "anthropic-opus-4-8-announcement",
+    "url": "https://www.anthropic.com/news/claude-opus-4-8",
+    "title": "Introducing Claude Opus 4.8",
+    "type": "official-announcement",
+    "publisherId": "anthropic",
+    "lastCheckedDate": "2026-08-27",
+    "publishedDate": "2026-05-28"
+  },
+  {
+    "id": "anthropic-opus-4-7-announcement",
+    "url": "https://www.anthropic.com/news/claude-opus-4-7",
+    "title": "Introducing Claude Opus 4.7",
+    "type": "official-announcement",
+    "publisherId": "anthropic",
+    "lastCheckedDate": "2026-08-27",
+    "publishedDate": "2026-04-16"
+  },
+  {
+    "id": "anthropic-opus-4-6-announcement",
+    "url": "https://www.anthropic.com/news/claude-opus-4-6",
+    "title": "Introducing Claude Opus 4.6",
+    "type": "official-announcement",
+    "publisherId": "anthropic",
+    "lastCheckedDate": "2026-08-27",
+    "publishedDate": "2026-02-05"
   }
 ]
