@@ -9,7 +9,7 @@ the right ones.
 | Workflow | Triggers | Covers |
 |---|---|---|
 | [`web-ci.yml`](web-ci.yml) | `pull_request` (every one), `workflow_dispatch` | Validates and builds the Astro site under `web/` |
-| [`skills-ci.yml`](skills-ci.yml) | `pull_request`, path-filtered to `.github/skills/**`, `.github/scripts/**`, `.github/workflows/skills-ci.yml` and `web/src/data/**`, `workflow_dispatch` | The data-refresh gates' self-tests, `gate-dataset` run against the live dataset, and a refusal of a hand-written test count in the skill documentation — a numeral described as tests, self-tests, test cases or assertions, in either order, with markdown emphasis tolerated around the numeral, and a table column whose heading is one of those nouns and whose body cell is a bare number. Noun-first needs a real separator, of the kind a label or a table cell supplies (`tests: 103`), so the verb reading — "the gate tests 4 kinds of emptiness" — is not a count, and nor is a year after `in` or `since`, a written-out number, a singular `N test`, or `N checks`, which in this repository usually means a status check. It reads one line at a time, so a count split across two lines of prose is not seen, and where it errs it over-matches: "adds 3 tests" is flagged although it sizes a change rather than the suite. The script header carries the same list with the reasoning |
+| [`skills-ci.yml`](skills-ci.yml) | `pull_request` (every one), `workflow_dispatch`; scoped **inside the job** to `.github/skills/**`, `.github/scripts/**`, `.github/workflows/skills-ci.yml` and `web/src/data/**` | The data-refresh gates' self-tests, `gate-dataset` run against the live dataset, and a refusal of a hand-written test count in the skill documentation — a numeral described as tests, self-tests, test cases or assertions, in either order, with markdown emphasis tolerated around the numeral, and a table column whose heading is one of those nouns and whose body cell is a bare number. Noun-first needs a real separator, of the kind a label or a table cell supplies (`tests: 103`), so the verb reading — "the gate tests 4 kinds of emptiness" — is not a count, and nor is a year after `in` or `since`, a written-out number, a singular `N test`, or `N checks`, which in this repository usually means a status check. It reads one line at a time, so a count split across two lines of prose is not seen, and where it errs it over-matches: "adds 3 tests" is flagged although it sizes a change rather than the suite. The script header carries the same list with the reasoning |
 | [`updater-tests.yml`](updater-tests.yml) | `pull_request` and `push` to `main`, path-filtered to `tools/updater/**`, `.github/workflows/updater-tests.yml`, `.github/workflows/publish-updater-proposals.yml`, `tools/instruction_refs/**`, `.github/skills/**`, `.github/workflows/instruction-references.yml`, `tools/adr_numbers/**`, `.github/workflows/adr-numbers.yml` and `docs/adr/**`, `workflow_dispatch` | The updater's pytest suite, which is also where this repository's stdlib-Python invariants are asserted |
 | [`instruction-references.yml`](instruction-references.yml) | `pull_request` and `push` to `main`, path-filtered to `.github/copilot-instructions.md`, `.github/skills/**`, `tools/instruction_refs/**` and `.github/workflows/instruction-references.yml`, `workflow_dispatch` | Resolves the paths, issue citations, and section markers in the instructions file, and every issue citation in the skill documents. A `#NNN` inside a fenced code block is not read as a citation — it is sample content such as a colour or a quoted shell argument — and each is reported as a named exemption rather than skipped in silence. The delimiter lines stay in scope, so a citation in an info string, or on the line above or below a block, is still refused; indented code blocks and inline `` `#N` `` spans are deliberately still scanned, for reasons the checker's module docstring records. Only the citation rule consults that fence model, so a broken path inside a fenced example is still reported. Not every path, and the shortfall has two parts worth stating separately. A backticked reference the file wraps across two lines is read as one span when neither fragment carries whitespace, which keeps the backtick pairing in phase so the reference after it is still checked; the wrapped one is not itself resolved, because what the document renders is its two fragments joined by a space, which is not a path, and joining them without the space would be a guess at what the author meant. Where either fragment does carry whitespace — a wrapped command line, say, which is the shape this repository actually contains today — the pairing still goes out of phase and the next reference on that line is still missed, unreported rather than reported wrong. That one stays open because such a wrap and a stray unpaired backtick followed by prose are the same text, and admitting the first admits the second, which was measured to lose a broken path the narrower rule catches |
 | [`adr-numbers.yml`](adr-numbers.yml) | `pull_request` and `push` to `main`, path-filtered to `docs/adr/**`, `tools/adr_numbers/**` and `.github/workflows/adr-numbers.yml`, `workflow_dispatch` | Refuses two decision records under `docs/adr/` that claim the same four-digit number, and a record whose `# ADR NNNN:` heading disagrees with the number in its filename |
@@ -30,7 +30,7 @@ satisfied, because GitHub waits for a check that no longer reports.
 | `pytest (Python 3.13)` | `updater-tests.yml` | No — see below |
 | `instruction-references` | `instruction-references.yml` | No — see below |
 | `adr-numbers` | `adr-numbers.yml` | No — see below |
-| `skills-ci` | `skills-ci.yml` | No — see below |
+| `skills-ci` | `skills-ci.yml` | **Yes** — but not required today, see below |
 
 ### Why `web-ci` is safe to require
 
@@ -99,30 +99,39 @@ scope — two pull requests each adding the next ADR would collide by constructi
 under a contiguity rule, and a check that fires on correct work gets worked
 around rather than fixed.
 
-### Nor is `skills-ci`
+### `skills-ci` is now safe to require, and is not yet required
 
-Same trap again. `skills-ci.yml` is path-filtered to `.github/skills/**`,
-`.github/scripts/**`, `.github/workflows/skills-ci.yml` and `web/src/data/**`,
-so it reports no check at all on a pull request that touches none of them — a
-documentation-only or `tools/updater/`-only change, for instance — and each of
-those would sit pending forever if the check were required. Making it required
-is a branch-protection change, and branch protection is an owner action.
+It was trigger-path-filtered until #294, which is why older text lists it with
+the three above as the same trap. That reason has stopped being true.
+`skills-ci.yml` carries no `on.pull_request.paths` filter, starts on **every**
+pull request, and decides inside the job — by diffing the pull request against
+its base, which is the shape `web-ci` already uses — whether the gates have
+anything to read. A pull request touching none of `.github/skills/`,
+`.github/scripts/`, `.github/workflows/skills-ci.yml` or `web/src/data/` gets a
+green `skills-ci` in a few seconds without setting up Node, and says in its job
+summary that no gate was run. The check always reports, so requiring it cannot
+deadlock a pull request.
+
+The job id and its `name:` are both the literal string `skills-ci`, and the job
+has no `strategy.matrix`, so the reported name never varies per leg or per run.
+
+**It is not required today.** Adding it to `required_status_checks.contexts` is a
+branch-protection change, and branch protection is an owner action. No issue in
+this repository files that action — the *action*, specifically. The problem
+family it belongs to is discussed on #80, #163 and #169, and being discussed
+there is not the same as being filed. #294 made the workflow requirable and
+deliberately stopped there; it is the prerequisite, not the outcome.
 
 It is **not** covered by #169, despite being the same family of problem: #169
 places `skills-ci` expressly outside its own scope, as a related decision to be
 settled alongside it rather than inside it. What #169 *does* cover is stated
 once below, under **What issue #169 covers**.
 
-The consequence is worth stating plainly rather than leaving implied: because
-`skills-ci` is **not** required and `web-ci` is the only required context, a red
-`gate-dataset` run makes a bad data change *visible* on the pull request but does
-**not** stop it merging. Running is not blocking.
-
-`web-ci` shows the shape of the fix — no trigger filter, an in-job diff that
-decides whether the real work is needed, so the check always reports and is
-therefore safe to require. Restructuring `skills-ci` the same way would make it
-requirable without the deadlock. That is a proposal recorded here, not something
-this file enacts.
+Until it is required, the consequence is worth stating plainly rather than
+leaving implied: because `skills-ci` is **not** required and `web-ci` is the only
+required context, a red `gate-dataset` run makes a bad data change *visible* on
+the pull request but does **not** stop it merging. Running is not blocking, and
+being requirable is not being required.
 
 ### What issue #169 covers
 
@@ -307,9 +316,10 @@ branch genuinely deploys that branch, and that must not resolve an alert about
 `pages.yml`: their triggers, the absence of a trigger path filter, the paths the
 scope step matches, the stable job name, and the permission model.
 `web/tests/workflows/skills-ci.test.ts` does the same for `skills-ci.yml`, and
-additionally reads the dataset documents out of `gate-dataset.mjs` to assert the
-trigger filter covers every one of them — so a new dataset document cannot be
-added without the gate's trigger following it. Both run as part of
+additionally reads the data directory and the dataset documents out of
+`gate-dataset.mjs` to assert the in-job scope decision covers every one of them
+— so a new dataset document cannot be added without the gate's scope following
+it. Both run as part of
 `npm run validate` from `web/`. If you change one of those properties on
 purpose, update the test and this file in the same change.
 
