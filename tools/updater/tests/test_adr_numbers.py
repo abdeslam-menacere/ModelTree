@@ -79,6 +79,19 @@ and a name cp1252 *can* carry has to keep printing or the encoding test is
 pinning "non-ASCII" -- which is not the trigger and never was. `run_cli` exists
 because `capsys` carries any `str` and so cannot see the defect at all.
 
+`one path, one spelling` sits between them and is #367. It is about the same
+output read a third way: the scanned directory was named `str()` by the
+`Checking` line and `as_posix()` by the UNNUMBERED and EMPTY refusals, so one
+run printed `Checking docs\\product` above `under docs/product` and the default
+run printed an absolute path above an inventory of repo-relative ones. Every
+test there pins the *repo-relative* form rather than only pinning that the
+sites agree, and that is deliberate: `str()` and `as_posix()` are the same
+string for a POSIX path, so an agreement-only test is green on the CI runner
+against the unfixed checker. The three `no such directory:` tests are the other
+half -- outside the repository, inside it, and a path the platform will not
+resolve -- because a rule that only answered for paths under the checkout would
+not be a rule, and that message must name what it looked for in all three.
+
 The checker lives outside the updater package because it is not an updater
 concern, and is loaded by path for the same reason -- the arrangement
 `test_instruction_references.py` already uses. Its tests live here because this is
@@ -1455,6 +1468,170 @@ def test_spelling_a_name_twice_changes_nothing_the_second_time():
     once = checker.spelled(f"0002-x.md\n\n{FORGED_OK}")
 
     assert checker.spelled(once) == once
+
+
+# --- output: one path, one spelling ------------------------------------------
+
+
+def checking_line(rendered: str) -> str:
+    """The directory the report says it is checking, as it says it."""
+    first = rendered.splitlines()[0]
+    assert first.startswith("Checking "), first
+    return first[len("Checking ") :]
+
+
+# Line enders that a *directory* can actually be named with on both platforms
+# this suite runs on. The wider `LINE_ENDERS` list above needs no filesystem,
+# because it is exercised against records built in memory; these tests need a
+# real directory on disk, and Windows refuses every character below U+0020 in a
+# name. C1 NEL, LINE SEPARATOR and PARAGRAPH SEPARATOR are all accepted by NTFS
+# and by ext4, all split a line under `str.splitlines()`, and all match
+# `UNRENDERABLE_RE` -- so the property can be demonstrated end to end from
+# either machine rather than reasoned about on one of them.
+NAMEABLE_LINE_ENDERS = ["\x85", "\u2028", "\u2029"]
+
+
+def test_one_run_names_the_scanned_directory_exactly_one_way(adr_dir, tmp_path):
+    """The defect: `Checking docs\\product` above `under docs/product`, four
+    lines apart in one report, and `Checking C:\\...\\docs\\adr` above an
+    inventory of `docs/adr/...` on the default run.
+
+    Both halves are asserted, and the second is what stops this being vacuous.
+    Agreement alone is satisfied on a POSIX runner by the *unfixed* checker,
+    because `str()` and `as_posix()` are the same string for a POSIX path -- so
+    a test that only compared the two forms would have been green on CI while
+    the defect was live. Pinning the shared form to the repo-relative one is
+    what fails on the old code everywhere: it printed the directory absolute.
+    """
+    directory = adr_dir("notes.md")
+
+    report = checker.check(directory, tmp_path)
+    named = checking_line(report.render())
+
+    assert named == "adr"
+    unnumbered = problems_of(report, checker.UNNUMBERED)
+    assert len(unnumbered) == 1, report.render()
+    assert f"under {named} that is neither" in unnumbered[0].message
+
+
+def test_the_empty_refusal_names_the_directory_the_checking_line_named(tmp_path):
+    """The fourth site, and the one a reader reaches with no file paths beside
+    it to compare against -- an empty directory renders no inventory, so the
+    refusal's spelling of the directory is the only path in the report."""
+    directory = tmp_path / "adr"
+    directory.mkdir()
+
+    report = checker.check(directory, tmp_path)
+    named = checking_line(report.render())
+
+    assert named == "adr"
+    empty = problems_of(report, checker.EMPTY)
+    assert len(empty) == 1, report.render()
+    assert f"under {named}." in empty[0].message
+
+
+def test_the_directory_is_named_the_way_the_inventory_names_its_files(
+    adr_dir, tmp_path
+):
+    """The rule is not "some agreed form" but the one the rest of the report
+    already used, so the header and the lines under it share a prefix a reader
+    can follow. The default run used to print an absolute Windows path above
+    `docs/adr/...` entries, which is the same directory written two ways with
+    no overlap at all."""
+    directory = adr_dir("0001-a.md", "0002-b.md")
+
+    report = checker.check(directory, tmp_path)
+    named = checking_line(report.render())
+
+    assert named == "adr"
+    assert [adr.path for adr in report.adrs] == ["adr/0001-a.md", "adr/0002-b.md"]
+
+
+def test_a_missing_directory_inside_the_repository_is_named_repo_relative(capsys):
+    """`no such directory:` follows the same rule as the report it never gets
+    to print, so an operator who mistypes an argument reads the answer in the
+    notation every other path here uses.
+
+    Named by an absolute path deliberately: the argument is resolved before it
+    is rendered, so this asserts the *rule* rather than that the checker echoed
+    back what it was handed. It is also what makes the test independent of the
+    directory pytest happens to be invoked from.
+    """
+    missing = REPO_ROOT / "docs" / "adrs-typo"
+
+    assert checker.main([str(missing)]) == 2
+    assert "no such directory: docs/adrs-typo" in capsys.readouterr().err
+
+
+def test_a_missing_directory_outside_the_repository_is_still_named(tmp_path, capsys):
+    """A rule that only worked for paths under the repository would not be one,
+    and this message is where that bites: its argument may name anywhere.
+
+    There is no repo-relative form of a path outside the checkout, so the
+    fallback is absolute POSIX -- still one notation, still slash-separated,
+    and above all still a name. Withholding it is not available here: the
+    module refuses at exit 2 with no verdict to hold back, so an unnamed
+    directory would leave the operator with nothing at all.
+    """
+    missing = tmp_path / "nowhere"
+
+    assert checker.main([str(missing)]) == 2
+    err = capsys.readouterr().err
+    assert f"no such directory: {missing.resolve().as_posix()}" in err
+    assert "\\" not in err
+
+
+def test_a_directory_the_platform_cannot_resolve_is_still_named(capsys):
+    """The third case that message has to answer, and the one that turns a rule
+    into a traceback if it is not answered.
+
+    Rendering resolves the argument, and `Path.resolve()` raises on an embedded
+    NUL -- while `Path.is_dir()` answers False for one without raising, so this
+    refusal is reachable carrying it. A refusal that dies in its own render is
+    the defect this module keeps removing, so the unresolved argument is named
+    instead. Unreachable through a real argv, which cannot carry a NUL, and
+    reachable through `main(argv)`, which the suite calls directly.
+    """
+    assert checker.main(["a\x00b"]) == 2
+    assert "no such directory: a<U+0000>b" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("ender", NAMEABLE_LINE_ENDERS)
+def test_a_line_ender_in_the_directorys_own_name_is_spelled_by_every_message(
+    ender, tmp_path, capsys
+):
+    """#303's guarantee, re-proved at all four sites after they were rerouted.
+
+    The directory no longer reaches the report through `spelled()` written at
+    the call site; it reaches it through `scanned()`, which spells what it
+    returns -- by way of `display()` on the ordinary path and explicitly on the
+    fallback. That is a claim about behaviour, so it is demonstrated against a
+    directory really named with a line ender rather than asserted about the
+    source: each message is checked to hold the spelled name, and the whole of
+    each output is checked to hold no surviving ender at all.
+    """
+    spelled_name = f"adr<U+{ord(ender):04X}>dir"
+    directory = tmp_path / f"adr{ender}dir"
+    directory.mkdir()
+
+    empty = checker.check(directory, tmp_path)
+    assert checking_line(empty.render()) == spelled_name
+    assert f"under {spelled_name}." in problems_of(empty, checker.EMPTY)[0].message
+    assert ender not in empty.render()
+
+    (directory / "notes.md").write_text("# notes\n", encoding="utf-8")
+    unnumbered = checker.check(directory, tmp_path)
+    assert checking_line(unnumbered.render()) == spelled_name
+    assert (
+        f"under {spelled_name} that is neither"
+        in problems_of(unnumbered, checker.UNNUMBERED)[0].message
+    )
+    assert ender not in unnumbered.render()
+
+    assert checker.main([str(tmp_path / f"gone{ender}dir")]) == 2
+    err = capsys.readouterr().err
+    assert f"gone<U+{ord(ender):04X}>dir" in err
+    assert ender not in err
 
 
 # --- output: a report this stdout cannot carry -------------------------------
