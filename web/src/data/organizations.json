@@ -8,7 +8,10 @@
     "website": "https://openai.com/",
     "releasePage": "https://openai.com/news/product-releases/",
     "description": "Creator of the GPT-4.1 API family and the GPT-5 line (GPT-5, GPT-5.4, GPT-5.5, and the current GPT-5.6 family of Sol, Terra, and Luna).",
-    "sourceIds": ["openai-gpt-4-1-announcement", "openai-gpt-5-6-launch"],
+    "sourceIds": [
+      "openai-gpt-4-1-announcement",
+      "openai-gpt-5-6-launch"
+    ],
     "verifiedAt": "2026-08-18"
   },
   {
@@ -20,7 +23,9 @@
     "website": "https://www.anthropic.com/",
     "releasePage": "https://www.anthropic.com/news",
     "description": "Creator of the Claude models, offered only as a hosted service through the Claude API and partner clouds.",
-    "sourceIds": ["anthropic-models-overview"],
+    "sourceIds": [
+      "anthropic-models-overview"
+    ],
     "verifiedAt": "2026-08-26"
   },
   {
@@ -32,8 +37,10 @@
     "website": "https://deepmind.google/",
     "releasePage": "https://ai.google.dev/gemini-api/docs/models",
     "description": "The Google research team that builds the Gemini models, formed by combining Google Brain and DeepMind.",
-    "sourceIds": ["google-deepmind-about"],
-    "verifiedAt": "2026-08-15"
+    "sourceIds": [
+      "google-deepmind-about"
+    ],
+    "verifiedAt": "2026-08-27"
   },
   {
     "id": "meta",
@@ -44,7 +51,10 @@
     "website": "https://www.llama.com/",
     "releasePage": "https://huggingface.co/meta-llama",
     "description": "Creator of the Llama models, published as downloadable weights under Meta's own community licences.",
-    "sourceIds": ["meta-llama-collection", "meta-llama-4-announcement"],
+    "sourceIds": [
+      "meta-llama-collection",
+      "meta-llama-4-announcement"
+    ],
     "verifiedAt": "2026-08-15"
   }
 ]

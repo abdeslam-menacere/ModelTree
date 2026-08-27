@@ -641,7 +641,7 @@
       "google-gemini-deprecations",
       "google-gemini-pro-page"
     ],
-    "verifiedAt": "2026-08-26"
+    "verifiedAt": "2026-08-27"
   },
   {
     "id": "google-gemini-3-1-flash-lite",
@@ -1145,7 +1145,7 @@
     "variant": "Flash",
     "releaseDate": "2026-05-19",
     "datePrecision": "day",
-    "status": "current",
+    "status": "legacy",
     "featured": true,
     "featuredRationale": "A generally available Flash tier of the Gemini 3 generation, with a dated release, an announced retirement window, and published token limits.",
     "categories": [
@@ -1179,7 +1179,7 @@
       "google-gemini-3-5-flash-platform-docs",
       "google-gemini-deprecations"
     ],
-    "verifiedAt": "2026-08-26"
+    "verifiedAt": "2026-08-27"
   },
   {
     "id": "google-gemini-3-6-flash",
