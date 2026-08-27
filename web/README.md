@@ -23,8 +23,8 @@ Run commands from `web/`:
 ### The lockfile resolves through a mirror, with SHA-1 integrity
 
 Every `resolved` URL in `package-lock.json` points at an Azure DevOps
-`1es-public` mirror, and all 493 entries carry `sha1-` integrity rather than
-npm's default `sha512-`. This is a **known and accepted constraint, not an
+`1es-public` mirror, and each of those entries carries `sha1-` integrity rather
+than npm's default `sha512-`. This is a **known and accepted constraint, not an
 oversight**: the mirror publishes no `integrity` field at all, only a SHA-1
 `shasum`, so npm has no `sha512` to record. Regenerating the lockfile cannot
 change this.
@@ -34,15 +34,35 @@ Two consequences to expect:
 - **`npm install` on a different registry rewrites the whole file.** If your npm
   is not pointed at that mirror, expect a full-tree diff on any dependency
   change. Keep it in its own commit so a real change is not lost in the noise.
-- **npm 11.9.0 strips `libc` selectors.** The lockfile carries 34 (22 `glibc`,
-  12 `musl`) that drive binary selection on glibc versus musl runners. After any
-  command that rewrites the lockfile, diff for dropped
-  `"libc": ["glibc"]` / `["musl"]` entries and restore any that were lost.
+- **npm 11.9.0 strips `libc` selectors.** The native Linux packages carry a
+  `libc` selector, and it is what npm chooses a glibc or a musl binary on.
+  Losing one is silent where it happens and surfaces as a wrong or missing
+  native package on some other platform, so a command that rewrites the lockfile
+  is the risk event. Checking for that by hand is no longer the mechanism:
+  `tests/lockfile/libc-selectors.test.ts` runs in `npm test`, reads the
+  committed lockfile, and names the offending package and the direction when a
+  selector is dropped, swapped to the wrong C library, written in a shape npm
+  does not read, or added to a package the expectation list does not know about.
+
+Neither bullet states a count, and that is deliberate rather than an omission.
+A number that measures the lockfile is correct only against one merge-base: two
+branches that each add a native Linux package can both state a correct total and
+still merge to a wrong one, with no pull request left to notice. So the packages
+are enumerated in `tests/lockfile/libc-selectors.ts`, which is compared against
+the lockfile on every run and therefore cannot quietly disagree with it, and the
+number is left to that list rather than restated in prose nothing checks.
+`.github/scripts/check-skill-doc-test-counts.mjs` refuses hand-written test
+counts in the skill documentation on the same reasoning. A *chosen threshold* is
+a different thing from a *measurement* and is safe to write down, because it
+moves only when someone decides to move it and never as a side effect of
+unrelated work.
 
 Do not hand-write `integrity` values, and do not change the registry as a
 side-effect of a dependency bump. The reasoning, the evidence, and the full
 guardrails are in
-[ADR 0004](../docs/adr/0004-sha-1-lockfile-integrity-is-a-mirror-constraint.md).
+[ADR 0004](../docs/adr/0004-sha-1-lockfile-integrity-is-a-mirror-constraint.md),
+which records its measurements as dated observations. Read a count there as
+evidence for the decision it supports, not as a claim about the lockfile today.
 
 ## Data
 
@@ -293,7 +313,12 @@ generated artifacts, never an editable source of truth.
 - Every model row must resolve to a generated detail route or the build fails.
   `src/lib/routes.ts` is the single list the model route and that check share.
 - Budget: **600 bytes per model row**, keeping a 24-row catalog page under 20 KB.
-  Current measurement is 557 bytes per row across 16 models.
+  `src/lib/catalog.test.ts` measures the real dataset and enforces both. The
+  budget is a chosen threshold, so it is stated here; the measurement it passes
+  with is not, because that figure moves with every release added and nothing in
+  this file could keep it true. The pair of numbers this bullet used to quote had
+  already drifted on both counts before they were removed, which is the argument
+  for not restating them.
 
 `planPagination` slices a sorted slug list into fixed page boundaries, so adding
 a record that sorts onto the end leaves earlier pages unchanged.
