@@ -42,6 +42,19 @@ is accepted and the pattern is *not* narrowed — is recorded at `_FRAME_LOCATIO
 below, beside the pattern, where a reader meeting the red will be looking. The
 two tests at the end of this file hold the code to it.
 
+#364 then found that #334's own two hunks disagreed with each other. The guard
+finding 1 added to `_body_without_the_detail_cell` fires *before* the assertion
+the exposure test's docstring said a severed detail would redden, so the named
+assertion was never reached, the message assertion said to survive green beside
+it was never evaluated, and the failure a reader would meet pointed at the strip
+helper rather than at the severed channel. The guard is right and is untouched;
+what was wrong was the prose describing it. The corrected account lives in
+`test_the_exception_message_and_detail_reach_the_published_body_verbatim`'s
+docstring, and — because a claim about which check fires is worth no more than a
+claim about coverage unless it is executed — two new tests hold it to the code:
+`test_severing_the_detail_reddens_the_strip_guard_before_these_assertions` and
+`test_an_empty_rendered_detail_cell_is_refused_by_the_no_op_guard`.
+
 Scope: this reads through `run_creators` and `publisher.render_body`; it does
 not touch `test_budget_time_guard_invariant.py` (#248/#266 own that) nor
 `publisher.py` (held by other docks).
@@ -52,6 +65,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+from dataclasses import replace
 
 import pytest
 
@@ -256,10 +270,14 @@ def _detail_cell_as_the_body_carries_it(detail_json: str) -> str:
     cannot, by itself, notice that code changing. That hole is closed at the call
     sites, which additionally assert the sensitive marker survives *into* the
     rendered expectation. A `_cell` that began redacting or dropping the payload
-    would take the marker with it and redden those assertions; a `_cell` that
-    merely changed its escaping would not, and should not, because the exposure
-    being pinned would be unchanged. Redaction on the `_failure_row` path (the
-    #282 change) is caught either way, because `detail_json` is built from the
+    would take the marker with it and redden the test — though not, in general,
+    the marker assertion itself; #364 measured which check actually fires for
+    four such `_cell`s and recorded it at that call site. A `_cell` that merely
+    changed its escaping would not redden the marker assertions, and should not,
+    because the exposure being pinned would be unchanged; the escaping itself is
+    pinned by the rendering tests, and `test_publisher.py`'s row-breakout check
+    reddens when it changes. Redaction on the `_failure_row` path (the #282
+    change) is caught either way, because `detail_json` is built from the
     recorded failure rather than from anything the renderer returns."""
     return _cell(detail_json)
 
@@ -366,10 +384,37 @@ def test_the_exception_message_and_detail_reach_the_published_body_verbatim(
       *not* wrapped in the detail's JSON is the message channel's signature.
     - The detail cell renders as `json.dumps({"traceback": ...})`, so the
       `{"traceback": "<marker>"}` wrapper is a substring the message cell never
-      produces. Severing the detail (`detail={}` -> cell becomes the em dash)
-      removes it while the message copy survives, so this assertion — and only
-      this one — goes red. That is the `detail -> body` link, genuinely bound:
-      #282 cannot bound or drop either channel without failing here.
+      produces. That is the `detail -> body` link, genuinely bound: #282 cannot
+      bound or drop either channel without failing here.
+
+    What severing the detail *does* to this test is not what this docstring used
+    to say, and #364 corrects it. The old wording claimed the detail assertion
+    below — "and only this one" — went red while the message assertion survived
+    green beside it. Both halves were false, and the thing that falsified them
+    was the guard added by the same change (#334 finding 1). `detail={}` renders
+    the cell as the em dash while `_detail_json` still returns `"{}"`, so
+    `_body_without_the_detail_cell` — called first, before either detail
+    assertion is reached — refuses to strip a cell it cannot find, and the test
+    stops there. Three consequences, all measured:
+
+    - The red is at that guard, not at the detail assertion.
+    - Its message names the *strip helper* ("removing it would remove nothing"),
+      which reads as a broken fixture rather than as the severed channel it is
+      actually reporting.
+    - The message assertion below is never evaluated, so it cannot be observed
+      to survive under the very mutation that was cited for it.
+
+    "Only this one" was also wrong on its own terms: set the guard aside and
+    `detail={}` falsifies the detail assertion *and* both assertions after it.
+    What stays true is the substance — severing the detail really does redden
+    this test, and the message channel's copy really does survive in the body.
+    Both are now asserted where control reaches them, by
+    `test_severing_the_detail_reddens_the_strip_guard_before_these_assertions`.
+
+    The guard is correct and is deliberately left alone: catching a severed
+    detail at the strip is the right order, because a scan that ran on an
+    unstripped body would be the fail-open #334 removed. What was wrong here was
+    the attribution, not the code.
 
     Both halves are stated in the *body's* alphabet rather than in the raw
     serialisation's, per the #334 decision at
@@ -390,14 +435,107 @@ def test_the_exception_message_and_detail_reach_the_published_body_verbatim(
     assert SENSITIVE_MARKER in body_without_detail
     # The detail channel reaches the body too, via a signature the message cell
     # cannot produce: the rendered `{"traceback": "<marker>"}` JSON wrapper. This
-    # binds `detail -> body` on its own — severing the detail cell fails this
-    # assertion while leaving the message assertion above green.
+    # binds `detail -> body` on its own: `detail={}` falsifies it. It is not what
+    # *reddens* under a severed detail, though — the strip above fires first and
+    # this line is never reached (#364; see the docstring, and
+    # `test_severing_the_detail_reddens_the_strip_guard_before_these_assertions`).
     assert _detail_cell_as_the_body_carries_it(detail_json) in body
     # ...and the exposure survives that rendering. Without this, the assertion
-    # above could go green against an expectation `_cell` had itself redacted;
-    # with it, a `_cell` that dropped the payload reddens here.
+    # above could go green against an expectation `_cell` had itself redacted.
+    #
+    # Which check a payload-dropping `_cell` reddens is *not* this one, in
+    # general. #364 measured four of them rather than leaving the claim
+    # standing, and three redden something earlier: a `_cell` returning `""`
+    # reddens the strip's no-op guard, because an empty cell is "in" every body
+    # and so passes the membership guard ahead of it — pinned by
+    # `test_an_empty_rendered_detail_cell_is_refused_by_the_no_op_guard`. A
+    # `_cell` that redacts every cell — including one redacting only the marker,
+    # which is #282's likely shape — reddens the message-channel assertion
+    # above, because the marker leaves the message cell with it. Only a `_cell`
+    # redacting the serialised *detail* alone reaches this line. So the
+    # tautology hole is closed — all four are caught — but by the test as a
+    # whole rather than by this assertion.
     assert SENSITIVE_MARKER in _detail_cell_as_the_body_carries_it(detail_json)
     assert SENSITIVE_MARKER in detail_json
+
+
+def _with_the_detail_severed(proposal):
+    """`proposal` with its recorded failure detail emptied: the `detail={}` case.
+
+    Built here rather than by hand-editing `runner._failed_proposal`, so the
+    severed case is pinned by the suite instead of by a mutation each reader has
+    to perform for themselves. Faithful by measurement, not by argument: the
+    body this renders is character-for-character (3000 of them) the body the
+    production mutation produces."""
+    failure = proposal.failures[0]
+    return replace(proposal, failures=(replace(failure, detail={}),))
+
+
+def test_severing_the_detail_reddens_the_strip_guard_before_these_assertions(
+    library, settings
+) -> None:
+    """#364: what `detail={}` actually does to the test above.
+
+    That test's docstring claimed the detail assertion — "and only this one" —
+    went red under a severed detail, with the message assertion surviving green
+    beside it. Neither half held: `_body_without_the_detail_cell` runs first and
+    its membership guard refuses a cell the body does not carry, so the run stops
+    two lines short of the assertion being described.
+
+    What is asserted here is the *outcome*: which of the helper's guards
+    refuses, and what the two assertions the old wording got wrong actually
+    evaluate to. The *ordering* — that the sibling strips before it asserts —
+    is stated and not asserted: this test calls `_body_without_the_detail_cell`
+    itself and never observes the sibling's line order, so reordering those two
+    lines would leave this test green. Labelled rather than quietly relied on,
+    as `CRASH_SITE_LOCAL` is above, because an unlabelled gap presented as
+    coverage is the defect this file was opened to correct.
+
+    This is a statement about *which* check fires, so it is deliberately not
+    satisfied by "something went red". `match` names the guard, and the two
+    assertions the old wording got wrong are checked where control reaches
+    them."""
+    severed = _with_the_detail_severed(_proposal_from_a_crash(library, settings))
+    body = render_body(severed)
+    detail_json = _detail_json(severed)
+
+    # The premise the old docstring had right: the cell becomes the em dash
+    # while the raw serialisation is still `"{}"`, so the two cannot match.
+    #
+    # Scoped to the failure row, because the em dash is not distinctive. The
+    # body already carries three of them with no bearing on this test — the
+    # `Supersedes run` cell and two in the budget prose — so a bare
+    # `"—" in body` is satisfied by those alone: it is true of the *unsevered*
+    # body, and would stay true if the em dash stopped being what an empty cell
+    # renders as. That is the very defect #364 reports, and writing it into
+    # #364's own fix is not a mistake this file can afford twice. The marker
+    # occurs exactly once in a severed body — the message cell, the detail cell
+    # having been emptied — so it names this row and no other.
+    assert detail_json == "{}"
+    carrying_the_marker = [line for line in body.splitlines() if SENSITIVE_MARKER in line]
+    assert len(carrying_the_marker) == 1
+    assert carrying_the_marker[0].rstrip().endswith("| — |"), (
+        "the severed detail cell is not the em dash the body's last column renders it as"
+    )
+    assert _detail_cell_as_the_body_carries_it(detail_json) not in body
+
+    # And this is what it costs: the *strip guard* fires, not the detail
+    # assertion. `match` pins which of the helper's three guards it was — a bare
+    # `pytest.raises(AssertionError)` would be satisfied by any of them, which is
+    # precisely the imprecision this test exists to remove.
+    with pytest.raises(AssertionError, match="removing it would remove nothing"):
+        _body_without_the_detail_cell(body, detail_json)
+
+    # The one true half of the old claim, made demonstrable. The message copy
+    # does survive a severed detail — and here it cannot be the detail's copy
+    # being seen, because the detail cell is now the em dash and carries nothing.
+    assert SENSITIVE_MARKER in body
+
+    # "Only this one" was wrong on its own terms too. Set the guard aside and
+    # `detail={}` falsifies both assertions that follow the detail assertion, so
+    # even reached, it would not have been the only red.
+    assert SENSITIVE_MARKER not in _detail_cell_as_the_body_carries_it(detail_json)
+    assert SENSITIVE_MARKER not in detail_json
 
 
 def test_no_stack_frame_reaches_the_published_body(library, settings) -> None:
@@ -630,6 +768,35 @@ def test_the_guarded_strip_refuses_to_remove_nothing(library, settings) -> None:
     # ...and the guarded one is a failure.
     with pytest.raises(AssertionError, match="removing it would remove nothing"):
         _body_without_the_detail_cell(body, not_what_the_body_carries)
+
+
+def test_an_empty_rendered_detail_cell_is_refused_by_the_no_op_guard(
+    library, settings
+) -> None:
+    """The helper's *second* guard, which its docstring describes and nothing
+    pinned — and #364's acceptance criterion 4, answered.
+
+    The marker-survives assertion in
+    `test_the_exception_message_and_detail_reach_the_published_body_verbatim`
+    carried a comment saying a `_cell` that dropped its payload reddened *that*
+    assertion. Measured against a `_cell` returning `""` for every cell, it does
+    not: it reddens the guard exercised here, three checks earlier. An empty
+    rendered cell is the one case the membership guard cannot catch, because
+    `"" in body` is true for every body and `body.replace("", "")` returns it
+    unchanged — so the emptiness passes the first guard and only the no-op guard
+    refuses it.
+
+    Both facts are asserted rather than described, and `match` names which guard
+    fired, for the reason the test above gives."""
+    proposal = _proposal_from_a_crash(library, settings)
+    body = render_body(proposal)
+
+    # An empty expectation defeats the membership guard, twice over...
+    assert "" in body
+    assert body.replace("", "") == body
+    # ...so the no-op guard is what refuses it, with its own distinct message.
+    with pytest.raises(AssertionError, match="changed nothing"):
+        _body_without_the_detail_cell(body, "")
 
 
 # Rendered frame names, in the forms a leak would take by the time it reaches
