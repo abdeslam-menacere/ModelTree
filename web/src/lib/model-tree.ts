@@ -46,7 +46,9 @@ function newestFamilyReleaseDate(dataset: Dataset, familyId: string) {
  * drift apart.
  */
 function buildCreators(dataset: Dataset, organizations: Organization[]): ModelTreeCreator[] {
-  return organizations
+  // Copy before sorting: the caller passes a filtered view of dataset.organizations
+  // and must not have its own array reordered underneath it.
+  return [...organizations]
     .sort((a, b) => compare(a.name, b.name) || compare(a.id, b.id))
     .map((organization) => ({
       organization,
