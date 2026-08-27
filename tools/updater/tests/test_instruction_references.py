@@ -34,6 +34,15 @@ of phase and swallowed the next real reference on the line the wrap's tail lande
 on. Those tests bracket the fix from both sides, because an over-broad one moves
 that swallowing onto the line below an unpaired backtick rather than removing it.
 
+The "fenced code blocks" section pins a decision rather than a defect. A
+`#`-prefixed token inside a fence is sample content -- `#123456` is a colour --
+and the citation rule now says so. Those tests come in pairs on purpose: an
+implementation that stops refusing real citations is worse than the false
+positive it removes, so every "this is exempt" is matched by the same token one
+line outside the block still being refused. The two deliberate non-changes,
+indented blocks and inline code spans, are asserted there too, so the decision
+recorded in the checker's docstring cannot outrun the code.
+
 The checker lives outside the updater package because it is not an updater
 concern, and is loaded by path for the same reason. Its tests live here because
 this is already where the repository's stdlib-Python invariants are asserted --
@@ -84,6 +93,10 @@ def document(tmp_path):
 
 def references(report) -> set[str]:
     return {finding.reference for finding in report.problems}
+
+
+def exemptions(report) -> set[str]:
+    return {finding.reference for finding in report.exempt}
 
 
 # --- the guard itself -------------------------------------------------------
@@ -676,6 +689,281 @@ def test_markdown_headings_are_not_issue_citations(document):
     report = checker.check(path, REPO_ROOT)
 
     assert report.ok, report.render()
+
+
+# --- fenced code blocks -------------------------------------------------------
+#
+# A `#`-prefixed token inside a fence is sample content: a colour, a comment, a
+# command line. The citation rule used to read every one of them as a citation,
+# which was harmless only because nothing in the covered set had yet written one
+# -- and the covered set had just grown to eight example-heavy skill documents
+# carrying 36 fence markers between them.
+#
+# These bracket the change from both sides on purpose. An implementation that
+# stops refusing real citations is a worse defect than the one being fixed, so
+# for every test that asserts something is now exempt there is one asserting
+# that the same token, one line outside the block, is still refused.
+
+
+def test_a_css_colour_in_a_fenced_block_is_not_a_citation(document):
+    """`#123456` is a colour. It has never pointed at an issue anywhere."""
+    path = document("Palette:\n\n```css\n.a { color: #123456; }\n```\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert report.ok, report.render()
+    assert "#123456" not in references(report)
+
+
+def test_a_quoted_shell_argument_in_a_fenced_block_is_not_a_citation(document):
+    """The second shape the issue names: a `#` that is an argument, not a link."""
+    path = document("Search:\n\n```bash\ngrep '#42' notes.txt\n```\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert report.ok, report.render()
+    assert "#42" not in references(report)
+
+
+def test_a_bare_citation_outside_a_fence_is_still_refused(document):
+    """The other side of the bracket, in a document that also has a fence.
+
+    The exemption is the block, not the document. If the presence of a fence
+    anywhere relaxed the rule for everything, the check would go quiet on
+    exactly the documents it was widened to cover.
+    """
+    path = document(
+        "The rationale is in #3.\n\n```css\n.a { color: #123456; }\n```\n\n"
+        "The schema work is in #4.\n"
+    )
+    report = checker.check(path, REPO_ROOT)
+
+    assert references(report) == {"#3", "#4"}
+
+
+def test_a_citation_beside_a_fenced_block_is_still_refused(document):
+    """Adjacency does not exempt: the delimiter lines are the boundary.
+
+    Written with no blank line either side, so the citations are as close to the
+    block as Markdown allows without being in it. An off-by-one in the range
+    ends -- taking the opening line's newline, or stopping one line late --
+    shows up here and nowhere else.
+    """
+    path = document("Before #11\n```\n#123456\n```\nAfter #12\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert references(report) == {"#11", "#12"}
+    assert exemptions(report) == {"#123456"}
+
+
+def test_a_citation_in_the_info_string_is_still_refused(document):
+    """The opening delimiter is a line of the document, not of the block."""
+    path = document("```text #13\n#123456\n```\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert references(report) == {"#13"}
+
+
+def test_the_fenced_exemption_is_reported_rather_than_silent(document):
+    """Every other exemption here prints its evidence, and so does this one.
+
+    A skip nobody can see in the CI log is the fail-open this checker exists to
+    avoid: it would leave a reader unable to tell a document with nothing to
+    report from a rule that quietly stopped looking. The message names the
+    delimiter line rather than the citation's own line, because the fence is the
+    fact being asserted about.
+    """
+    path = document("A\nB\n```\n#123456\n```\n")
+    report = checker.check(path, REPO_ROOT)
+
+    exemption = next(
+        (f for f in report.exempt if f.reference == "#123456"), None
+    )
+
+    assert exemption is not None, report.render()
+    assert exemption.line == 4
+    assert "line 3" in exemption.message
+
+
+def test_the_exemption_holds_under_the_narrowed_coverage(document):
+    """Skill documents are checked for citations only, and they hold the fences.
+
+    The narrowed coverage is the whole reason this matters: every document that
+    carries a fenced block in this repository is checked under it.
+    """
+    path = document("```css\n.a { color: #123456; }\n```\n\nAnd #4 after it.\n")
+    report = checker.check(path, REPO_ROOT, checker.CITATIONS_ONLY)
+
+    assert references(report) == {"#4"}
+    assert exemptions(report) == {"#123456"}
+
+
+def test_a_tilde_fence_is_a_fence(document):
+    """CommonMark's other delimiter, modelled even though nothing writes it yet.
+
+    A fence model that handles the syntax in use today and not the rest leaves
+    whoever first writes `~~~` with the exact surprise this removes, and the
+    repository does already use four-backtick fences elsewhere, so the wider
+    syntax is not hypothetical.
+    """
+    path = document("~~~css\n.a { color: #123456; }\n~~~\n\nAnd #7 after.\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert references(report) == {"#7"}
+    assert exemptions(report) == {"#123456"}
+
+
+def test_a_tilde_line_does_not_close_a_backtick_fence(document):
+    """A closing delimiter is the same character as the one that opened."""
+    path = document("```\n#111\n~~~\n#222\n```\n\nAnd #7 after.\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert references(report) == {"#7"}
+    assert exemptions(report) == {"#111", "#222"}
+
+
+def test_a_longer_fence_is_not_closed_by_a_shorter_one(document):
+    """A four-backtick fence is how a document shows a three-backtick one.
+
+    If the shorter inner delimiter closed the block, the second half of the
+    example would fall outside it and every token in it would be read as prose
+    -- and the block after that would be inside out.
+    """
+    path = document("````markdown\n```\n#123456\n```\n````\n\nAnd #7 after.\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert references(report) == {"#7"}
+    assert exemptions(report) == {"#123456"}
+
+
+@pytest.mark.parametrize(
+    "closing_line, swallowed",
+    [("```js", set()), ("``` #77", {"#77"})],
+    ids=["info string repeated", "text after the delimiter"],
+)
+def test_a_closing_delimiter_carrying_an_info_string_does_not_close(
+    document, closing_line, swallowed
+):
+    """A closing fence carries no info string -- CommonMark, and load-bearing.
+
+    The two sibling conjuncts of the same expression are pinned by
+    `test_a_tilde_line_does_not_close_a_backtick_fence` and
+    `test_a_longer_fence_is_not_closed_by_a_shorter_one`. This is the third, and
+    the one whose failure direction is fail-open, so it is the one worth pinning
+    hardest: repeating the info string on the closing line is an ordinary
+    authoring slip rather than an adversarial construction.
+
+    Without the conjunct that line closes the block early, and the damage is not
+    local. The tokens after it fall out into prose, the *next* delimiter opens a
+    fresh block instead of closing one, and every citation from there to the end
+    of the document is exempted -- while the run still exits 0, which is the
+    shape of fail-open this section exists to refuse. The control is `#44`,
+    outside the block on either reading, which must stay refused either way.
+    """
+    path = document(f"```js\n#22\n{closing_line}\n#33\n```\n\nAnd #44.\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert references(report) == {"#44"}
+    assert exemptions(report) == {"#22", "#33"} | swallowed
+
+
+def test_an_unclosed_fence_runs_to_the_end_of_the_document(document):
+    """What CommonMark says, and therefore what a reader sees rendered.
+
+    Ruling the other way -- an unpaired delimiter is inert -- was considered and
+    rejected: it would make this checker disagree with every renderer about
+    where the code is, which trades one surprise for a subtler one. The control
+    is the citation *before* the fence, which must still be refused, so the test
+    cannot pass by exempting the whole document.
+    """
+    path = document("Intro #1 here.\n\n```\n#123456\nand #99 too\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert references(report) == {"#1"}
+    assert exemptions(report) == {"#123456", "#99"}
+
+
+def test_a_span_that_merely_looks_like_a_fence_is_not_one(document):
+    """A backtick fence's info string may not itself contain a backtick.
+
+    ``` `x` ``` on a line of its own is how CommonMark writes a code span that
+    contains backticks. Read as an opening delimiter it would never close, and
+    would exempt every line beneath it -- so the guard declining it is the
+    difference between exempting one block and exempting the rest of the
+    document. The second line is the easier half of the same question: a
+    delimiter has to begin its line to be one at all.
+    """
+    path = document("``` `x` ```\n\nProse ``` `y` ``` and then #8.\n\nAlso #9.\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert references(report) == {"#8", "#9"}
+
+
+def test_a_fence_indented_four_spaces_is_not_recognised(document):
+    """A stated residual, pinned so the documentation cannot outrun the code.
+
+    Three spaces is the whole of the indentation the model allows, so a fence
+    nested deeper -- inside a list item, say -- is not seen as one. It fails
+    closed: the citation stays refused rather than being exempted by a block the
+    checker cannot make out, which is what makes this a residual and not a
+    defect. The control is the same block unindented, which must be exempt, so
+    the test cannot pass merely because nothing was exempted anywhere.
+    """
+    indented = document("Example:\n\n    ```\n    #42\n    ```\n")
+    indented_report = checker.check(indented, REPO_ROOT)
+
+    assert references(indented_report) == {"#42"}
+
+    control = document("Example:\n\n```\n#42\n```\n")
+    control_report = checker.check(control, REPO_ROOT)
+
+    assert references(control_report) == set()
+    assert exemptions(control_report) == {"#42"}
+
+
+def test_an_indented_code_block_is_still_scanned(document):
+    """Deliberate, and the opposite of what the fence decision does.
+
+    Four-space indentation cannot be told from a list continuation or from
+    indented prose without the block-structure parser this file does not have,
+    and these documents indent prose far more often than code. Exempting it
+    would relax the rule over most of a document to catch a case that has not
+    arisen -- widening the fail-open rather than closing it. Recorded as a
+    decision in the checker's docstring, and asserted here so the documentation
+    cannot outrun the code.
+    """
+    path = document("Example:\n\n    See #42 for the rationale.\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert references(report) == {"#42"}
+
+
+def test_a_backticked_citation_is_still_refused(document):
+    """The other half of the same deliberate answer.
+
+    A code span is inline content inside a paragraph: "see `#42`" is prose, and
+    backticks change the typeface rather than the meaning, so it misdirects a
+    reader exactly as the unbackticked form does. Exempting it would also hand
+    every author a one-character way to silence the rule -- while the rule's own
+    remedy says to write owner/repo#N *unbackticked*.
+    """
+    path = document("See `#42` for the rationale.\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert references(report) == {"#42"}
+
+
+def test_the_fence_model_did_not_reach_the_path_rule(document):
+    """Only the citation rule consults it, and the two now answer differently.
+
+    A broken path inside a fenced example is still a path a reader may copy, so
+    it is still reported. That divergence is the decision, not an unfinished
+    half of one, and asserting both answers off the same document is what stops
+    a later change quietly extending the exemption to paths.
+    """
+    path = document("```\nSee `truly/missing.md`, tracked in #42.\n```\n")
+    report = checker.check(path, REPO_ROOT)
+
+    assert references(report) == {"truly/missing.md"}
+    assert exemptions(report) == {"#42"}
 
 
 # --- section markers --------------------------------------------------------

@@ -133,6 +133,66 @@ author to write owner/repo#N and this file backticks such things by house style
 -- so without it the checker would flag its own prescribed remedy as a dangling
 path, and punish compliance with its own instruction.
 
+Fenced code blocks, and what is still scanned inside one
+--------------------------------------------------------
+
+A `#NNN` inside a fenced code block is not a citation. `#123456` is a colour and
+`grep '#42'` is a command line, and neither sends a reader anywhere. So the
+citation rule skips them -- and says so, reporting each as an exemption naming
+the fence it sits in, on the same principle as the exemptions above: a skip
+nobody can see in the log is the fail-open this file exists to avoid.
+
+Nothing was failing when this was decided. The reason to decide it was that the
+covered set had just grown to the skill documents, which carry 36 fence markers
+across six of their eight files, and a `#`-prefixed token that is not a citation
+lives naturally in exactly that kind of content. The rule fails closed, so the
+cost of leaving it was not a wrong answer today but a confusing first encounter
+later: a failure naming a document and a token that looks nothing like a
+citation.
+
+Fences are modelled as CommonMark defines them, which is more syntax than this
+repository currently writes: three or more backticks *or* tildes, indented up to
+three spaces, closed by at least as many of the same character with no info
+string, and running to the end of the document when never closed. Modelling only
+the subset in use today would leave whoever first writes a four-backtick or
+tilde fence with precisely the surprise this removes.
+
+Three spaces is the whole of the indentation allowed, so a fence nested deeper
+-- inside a list item, say -- is not recognised as one. That is a residual and
+it is stated rather than left to be discovered, but it is a fail-closed one: an
+unrecognised fence leaves the citation rule exactly where it already was instead
+of exempting more than it should, and no covered document writes one today.
+
+Three limits, stated here rather than left to fall out of the implementation:
+
+**The delimiter lines stay in scope.** Only the content *between* the fences is
+exempt. A citation in the opening line's info string, or on the line above or
+below the block, is still refused. The exemption is a block of sample content,
+not a neighbourhood around one.
+
+**Indented code blocks are still scanned.** Four-space indentation exempts
+nothing. It cannot be told from a list continuation, or from the indented prose
+these documents use far more often than indented code, without the
+block-structure parser this file does not have -- the two quoted sentences under
+"Documented absence" above are themselves an indented block of prose, not code.
+Reading every indented line as code would exempt most of a document to catch a
+case that has not yet arisen, which widens the fail-open instead of closing it.
+
+**An inline `#42` span is still refused.** A code span is inline content inside a
+paragraph: "see `#42`" is prose, and it misdirects a reader exactly as the
+unbackticked form does, because backticks change the typeface and not the
+meaning. Exempting it would also hand every author a one-character way to
+silence the rule, while the rule's own remedy says to write owner/repo#N
+*unbackticked*. That is the line between the two cases: a fenced block is a run
+of content not addressed to the reader as prose, and a code span is.
+
+Only the citation rule consults the fence model. Paths and section markers are
+still resolved inside a fenced block, and that is a decision rather than an
+unfinished half of this one: a broken path in a fenced example is still a path a
+reader may copy, and a test already pins that a fence does not change the path
+rule's answer. Whether it should is a question about the path rule's scope, not
+about how fences are modelled, and it is recorded rather than taken.
+
 Standard library only, and no network: `pip install` fails on the development
 machine.
 
@@ -250,6 +310,25 @@ PATH_EXTENSIONS = frozenset(
 # here without also deciding how fenced blocks are modelled -- a separate,
 # deliberately separate question.
 CODE_SPAN_RE = re.compile(r"`([^`\n]+|[^`\s]+\n[ \t]*[^`\s]+)`")
+
+# A fenced code block delimiter: three or more backticks or tildes, indented no
+# more than three spaces, with whatever info string follows it.
+#
+# Line-based, and deliberately not wired into `CODE_SPAN_RE`. That scanner pairs
+# backticks and knows nothing about blocks; this one knows about blocks and pairs
+# nothing. Keeping them apart is what lets the citation rule gain a fence model
+# while every answer the path rule gives stays byte-identical -- including the
+# one a test pins, that a fence delimiter stays inert for span pairing.
+#
+# It is also the piece the wrapped-span defect was told to wait for. Closing that
+# properly needs backticks paired the way CommonMark pairs them, which cannot be
+# decided without first deciding how fenced blocks are modelled, because a fence
+# delimiter is three backticks and a naive pairer reads it as one and a half
+# spans. This answers that question and hands back a reusable one: offsets a
+# future pairer can exclude before it starts, rather than a rule baked into the
+# one caller that needs it today.
+FENCE_LINE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})[ \t]*(.*?)[ \t]*$")
+
 TEMPLATE_RE = re.compile(r"[<>{}]|([A-Z])\1{2,}")
 # Not preceded by a word character, so `owner/repo#3` -- which does say which
 # repository it means -- is left alone; and not by "/" or "#", so a URL fragment
@@ -695,16 +774,88 @@ def check_paths(text: str, repo_root: Path, report: Report) -> None:
         )
 
 
+def fenced_code_ranges(text: str) -> list[tuple[int, int]]:
+    """Half-open offset ranges covering the *content* of fenced code blocks.
+
+    The delimiter lines are not inside the ranges they open and close. That is
+    the fail-closed half of the decision: a citation written into an info string
+    or on the line under a closing fence is ordinary document text and is still
+    refused, so the exemption cannot creep outwards into the prose around a
+    block.
+
+    An unclosed fence runs to the end of the document, which is what CommonMark
+    says and therefore what a reader sees rendered. Ruling instead that an
+    unpaired delimiter is inert would make this checker disagree with every
+    renderer about where the code is, which trades one surprise for a subtler
+    one.
+
+    Ranges rather than a boolean test on a token, because offsets are the form a
+    later caller can reuse -- notably one that wants to know where *not* to pair
+    backticks -- and because a token can appear both inside a block and outside
+    it in the same document.
+    """
+    ranges: list[tuple[int, int]] = []
+    limit = len(text)
+    offset = 0
+    fence = ""
+    start = 0
+    for raw in text.split("\n"):
+        match = FENCE_LINE_RE.match(raw.rstrip("\r"))
+        delimiter = match.group(1) if match is not None else ""
+        info = match.group(2) if match is not None else ""
+        if fence:
+            closes = (
+                delimiter[:1] == fence[:1]
+                and len(delimiter) >= len(fence)
+                and not info
+            )
+            if closes:
+                ranges.append((start, min(offset, limit)))
+                fence = ""
+        elif delimiter and not (delimiter[0] == "`" and "`" in info):
+            # A backtick fence's info string may not itself contain a backtick:
+            # ``` `x` ``` is a span on one line, not a block that never closes.
+            fence = delimiter
+            start = min(offset + len(raw) + 1, limit)
+        offset += len(raw) + 1
+    if fence:
+        ranges.append((min(start, limit), limit))
+    return ranges
+
+
 def check_issue_citations(text: str, report: Report) -> None:
     linked = [match.span() for match in ISSUE_LINK_RE.finditer(text)]
+    fenced = fenced_code_ranges(text)
     for match in BARE_ISSUE_RE.finditer(text):
         if any(
             start <= match.start() and match.end() <= end for start, end in linked
         ):
             continue
+        line = line_of(text, match.start())
+
+        block = next(
+            (
+                (low, high)
+                for low, high in fenced
+                if low <= match.start() and match.end() <= high
+            ),
+            None,
+        )
+        if block is not None:
+            report.exempt.append(
+                Finding(
+                    line,
+                    match.group(0),
+                    "inside the fenced code block opened at line "
+                    f"{line_of(text, block[0]) - 1}: sample content, not a "
+                    "reference a reader is being sent to follow.",
+                )
+            )
+            continue
+
         report.problems.append(
             Finding(
-                line_of(text, match.start()),
+                line,
                 match.group(0),
                 "bare issue citation. #3 and #4 in this repository resolve to "
                 "closed, unrelated issues, so a bare number sends a reader "
