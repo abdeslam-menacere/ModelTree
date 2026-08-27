@@ -8,7 +8,7 @@ the right ones.
 
 | Workflow | Triggers | Covers |
 |---|---|---|
-| [`web-ci.yml`](web-ci.yml) | `pull_request` (every one), `workflow_dispatch` | Validates and builds the Astro site under `web/` |
+| [`web-ci.yml`](web-ci.yml) | `pull_request` (every one) and `push` to `main`, both scoped **inside the job** to `web/**` and `.github/workflows/web-ci.yml`; `workflow_dispatch` | Validates and builds the Astro site under `web/`, as three separately-named steps — the vitest suite, the Astro and TypeScript diagnostics, and the production build — so a red run names which one failed |
 | [`skills-ci.yml`](skills-ci.yml) | `pull_request` (every one), `workflow_dispatch`; scoped **inside the job** to `.github/skills/**`, `.github/scripts/**`, `.github/workflows/skills-ci.yml` and `web/src/data/**` | The data-refresh gates' self-tests, `gate-dataset` run against the live dataset, and a refusal of a hand-written test count in the skill documentation — a numeral described as tests, self-tests, test cases or assertions, in either order, with markdown emphasis tolerated around the numeral, and a table column whose heading is one of those nouns and whose body cell is a bare number. Noun-first needs a real separator, of the kind a label or a table cell supplies (`tests: 103`), so the verb reading — "the gate tests 4 kinds of emptiness" — is not a count, and nor is a year after `in` or `since`, a written-out number, a singular `N test`, or `N checks`, which in this repository usually means a status check. It reads one line at a time, so a count split across two lines of prose is not seen, and where it errs it over-matches: "adds 3 tests" is flagged although it sizes a change rather than the suite. The script header carries the same list with the reasoning |
 | [`updater-tests.yml`](updater-tests.yml) | `pull_request` and `push` to `main`, path-filtered to `tools/updater/**`, `.github/workflows/updater-tests.yml`, `.github/workflows/publish-updater-proposals.yml`, `tools/instruction_refs/**`, `.github/skills/**`, `.github/workflows/instruction-references.yml`, `tools/adr_numbers/**`, `.github/workflows/adr-numbers.yml` and `docs/adr/**`, `workflow_dispatch` | The updater's pytest suite, which is also where this repository's stdlib-Python invariants are asserted |
 | [`instruction-references.yml`](instruction-references.yml) | `pull_request` and `push` to `main`, path-filtered to `.github/copilot-instructions.md`, `.github/skills/**`, `tools/instruction_refs/**` and `.github/workflows/instruction-references.yml`, `workflow_dispatch` | Resolves the paths, issue citations, and section markers in the instructions file, and every issue citation in the skill documents. A `#NNN` inside a fenced code block is not read as a citation — it is sample content such as a colour or a quoted shell argument — and each is reported as a named exemption rather than skipped in silence. The delimiter lines stay in scope, so a citation in an info string, or on the line above or below a block, is still refused; indented code blocks and inline `` `#N` `` spans are deliberately still scanned, for reasons the checker's module docstring records. Only the citation rule consults that fence model, so a broken path inside a fenced example is still reported. Not every path, and the shortfall is narrower than it was. A backticked reference the file wraps across one line break is read as one span whether or not either fragment carries whitespace, so the backtick pairing stays in phase and the reference after it is still checked; the wrapped one is not itself resolved, because what the document renders is its fragments joined by a space, which is not a path, and joining them without the space would be a guess at what the author meant. A blank line inside a span is a paragraph break rather than a wrap, and is still not paired. What separates a wrap from a stray unpaired backtick followed by prose is the character immediately before the closing backtick: a wrap closes on its own last character, whereas a backtick *opening* the next reference is preceded by whatever prose puts there, which is a space or an opening bracket or quote, and each of those is refused. The residual is the case where that prose ends on some other non-whitespace character — `and then--` before a reference, say — which is still read as a wrap, so the pairing goes out of phase and the next reference on that line is missed, unreported rather than reported wrong. Closing that means pairing backticks the way CommonMark does, which the checker's module docstring records as a separate decision |
@@ -48,6 +48,21 @@ report unconditionally so it can be required without that trap.
 
 The job id and its `name:` are both the literal string `web-ci`, and the job has
 no `strategy.matrix`, so the reported name never varies per leg or per run.
+
+It also runs on **pushes to `main`**, which overlaps `pages.yml` — that workflow
+builds `main` on every push too. The overlap is deliberate. `pages.yml`'s build
+is a step of a *deployment*: its `deploy` job is gated on `github.repository`, so
+on a fork `main` is verified by nothing at all, and when the job goes red the run
+name cannot say whether the site is wrong or whether publishing is wrong. Those
+have different owners and different fixes. A status called `web-ci` on the commit
+itself answers "was this commit of `main` verified?" without the reader having to
+know the answer lives inside a deploy workflow, and it covers a direct push to
+`main`, which branch protection still permits for administrators.
+
+The duplicate cost is paid down rather than accepted whole: the same in-job scope
+step diffs a push's own range, so a `main` push that touched nothing under `web/`
+finishes green in seconds and only a push that really changed the site builds
+twice.
 
 ### Why the `pytest` checks are not
 
@@ -314,7 +329,12 @@ branch genuinely deploys that branch, and that must not resolve an alert about
 
 `web/tests/workflows/web-ci.test.ts` asserts the structure of `web-ci.yml` and
 `pages.yml`: their triggers, the absence of a trigger path filter, the paths the
-scope step matches, the stable job name, and the permission model.
+scope step matches, the stable job name, and the permission model. It also
+expands `web/package.json`'s scripts and asserts that `web-ci.yml`'s three
+verification steps decompose to exactly the `npm run build` the deploy gates on —
+neither side is restated in the test, so adding a stage to `validate` without
+adding a step to the workflow fails there rather than silently leaving the check
+weaker than the deploy.
 `web/tests/workflows/skills-ci.test.ts` does the same for `skills-ci.yml`, and
 additionally reads the data directory and the dataset documents out of
 `gate-dataset.mjs` to assert the in-job scope decision covers every one of them

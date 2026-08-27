@@ -1,7 +1,7 @@
 name: Web CI
 
-# Verifies the Astro site under web/ on every pull request, running exactly what
-# the Pages deploy gates on.
+# Verifies the Astro site under web/ on every pull request and on every push to
+# main, running exactly what the Pages deploy gates on.
 #
 # Before this workflow existed, web verification ran only inside pages.yml, on
 # push to main, after the merge. A failing data change therefore merged clean and
@@ -16,10 +16,35 @@ name: Web CI
 # whether the build is needed, and finishes green in seconds when it is not.
 # That is what makes the `web-ci` check safe to mark required.
 #
+# The push trigger overlaps pages.yml, which also builds main on every push, and
+# that overlap was deliberately avoided here until now: a second full build per
+# merge is real cost for a build that is already happening. Issue #5 asks for it,
+# and the reasons hold up on their own:
+#
+#   * pages.yml's build is a step of a deployment, not a check. Its deploy job is
+#     gated on `github.repository`, so on a fork main is verified by nothing at
+#     all; and when that job goes red the run name says the deploy failed, which
+#     is also what it says when Pages itself is broken. "The site is wrong" and
+#     "publishing is wrong" have different owners and different fixes, and one
+#     red X cannot mean both.
+#   * A status named `web-ci` that exists only on pull requests cannot answer
+#     "was this commit of main verified?" unless the reader already knows the
+#     answer lives inside a deploy workflow. A direct push to main -- which
+#     branch protection still permits for administrators -- gets no pull request
+#     check at all.
+#
+# That cost is paid down rather than accepted whole. The scope step below runs on
+# a push exactly as it does on a pull request, diffing the pushed range, so the
+# duplicate build happens only on a main push that actually touched web/. A
+# docs-only or tools-only merge finishes green in seconds.
+#
 # It uses no secrets and holds no write scope of any kind.
 
 on:
   pull_request:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 # Least privilege, set at the top so no job can start from a wider default. This
@@ -29,6 +54,9 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
+  # Superseded pull request runs are cancelled, because only the head commit's
+  # verdict is ever read. Main runs are not: every commit on main is verified on
+  # its own, and cancelling one would leave a commit whose check never reported.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -43,6 +71,15 @@ jobs:
       run:
         shell: bash
         working-directory: web
+    # The site variables pages.yml builds with. They sit at job level rather than
+    # on one step because the deploy sets them once for a single `npm run build`
+    # that runs the tests, the diagnostics and the build together; splitting that
+    # into three steps here must not quietly hand one of them a different
+    # environment. At job level a new verification step inherits them by
+    # construction instead of by whoever adds it remembering to.
+    env:
+      SITE_URL: https://abdeslam-menacere.github.io
+      BASE_PATH: /ModelTree/
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -60,23 +97,39 @@ jobs:
         env:
           # Event data reaches the shell as environment variables, never
           # interpolated into the script itself.
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
         run: |
           set -euo pipefail
 
-          # A manual dispatch has no base to diff against, so it always builds.
-          if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
-            echo "Event is $GITHUB_EVENT_NAME; running the full web build."
-            echo "run=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          # The range to diff. A pull request compares its head against its base;
+          # a push compares against whatever the branch pointed at before it.
+          case "$GITHUB_EVENT_NAME" in
+            pull_request)
+              base="$PR_BASE_SHA"
+              head="$PR_HEAD_SHA"
+              ;;
+            push)
+              base="$PUSH_BEFORE_SHA"
+              head="$GITHUB_SHA"
+              ;;
+            *)
+              # A manual dispatch has no base to diff against, so it always builds.
+              echo "Event is $GITHUB_EVENT_NAME, which has no base; running the full web build."
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+          esac
 
           # Fail safe. If the changed-file list cannot be computed, build rather
           # than skip: reporting green for work that was never verified is the
-          # exact failure this workflow exists to remove.
-          if ! changed="$(git diff --name-only "$BASE_SHA...$HEAD_SHA")"; then
-            echo "Could not diff $BASE_SHA...$HEAD_SHA; running the full web build."
+          # exact failure this workflow exists to remove. A push that creates a
+          # branch carries an all-zero "before" naming no commit, and a
+          # force-push can leave one that is no longer an ancestor; both land
+          # here rather than skipping.
+          if ! changed="$(git diff --name-only "$base...$head")"; then
+            echo "Could not diff $base...$head; running the full web build."
             echo "run=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -114,17 +167,55 @@ jobs:
         if: steps.scope.outputs.run == 'true'
         run: npm ci
 
-      # `npm run build` is `npm run validate && astro build`, so this single
-      # command runs the vitest suite, the Astro and TypeScript diagnostics, and
-      # the static build. It is precisely what pages.yml gates the deploy on,
-      # with the same site variables, so a green check here means main can
-      # actually deploy.
-      - name: Validate and build the site
+      # The three steps below are one check each, so a red run names what broke
+      # instead of reporting a single opaque `npm run build`.
+      #
+      # They are not free-hand commands, and the equivalence they rest on is not
+      # a claim of this comment. `npm run build` is `npm run validate && astro
+      # build`, and `npm run validate` is `npm run test && npm run check`, so
+      # test, then check, then build executes precisely the command list the
+      # deploy executes. `web/tests/workflows/web-ci.test.ts` expands
+      # web/package.json's scripts and asserts these steps decompose to exactly
+      # `npm run build` -- so adding a stage to `validate`, or reordering these,
+      # fails the suite rather than letting this check drift away from what
+      # pages.yml gates the deploy on. That drift is the precise failure this
+      # workflow exists to prevent, so keep one npm script per step and let that
+      # test tell you when package.json has moved underneath it.
+      - name: Run the web test suite
         if: steps.scope.outputs.run == 'true'
-        run: npm run build
-        env:
-          SITE_URL: https://abdeslam-menacere.github.io
-          BASE_PATH: /ModelTree/
+        run: npm run test
+
+      - name: Check Astro and TypeScript diagnostics
+        if: steps.scope.outputs.run == 'true'
+        run: npm run check
+
+      # `npm run astro -- build` rather than a bare `astro build`: npm appends
+      # what follows `--` to the `astro` script, so this resolves the same local
+      # binary through the same script runner that `npm run build` uses for its
+      # own trailing `astro build`.
+      - name: Build the production site
+        if: steps.scope.outputs.run == 'true'
+        run: npm run astro -- build
+
+      # The vitest JSON report is the one artefact the console log does not
+      # already carry: per-file results, and the exact input
+      # verify-test-coverage.mjs judged when it decides a discovered file
+      # produced no results. Nothing is uploaded by a green run.
+      #
+      # `path` is relative to the workspace root, not to the job's
+      # working-directory default, which applies only to `run` steps.
+      - name: Upload test diagnostics
+        if: failure() && steps.scope.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-ci-test-report
+          path: web/.vitest/report.json
+          # A failure in the diagnostics or build step leaves the report from the
+          # green test step in place, but a failure before the suite ran leaves
+          # none. Missing diagnostics must not turn an already-red run into a
+          # second, more confusing failure.
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Record that no web build was needed
         if: steps.scope.outputs.run != 'true'
