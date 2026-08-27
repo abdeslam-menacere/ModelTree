@@ -1,0 +1,67 @@
+{
+  "catalog": {
+    "id": "origins-cohere",
+    "kind": "approved-origins",
+    "creator_id": "cohere",
+    "creator_name": "Cohere",
+    "applies_to": "Cohere as a creator of the model families it trains and announces."
+  },
+  "notes": [
+    "Human origin approval only. It records where Cohere publishes primary release information; it adds no creator, family, release, product or deployment to the dataset, and it does not make Cohere a pilot creator."
+  ],
+  "source_catalog": [
+    {
+      "id": "cohere-blog",
+      "owner": "Cohere",
+      "url": "https://cohere.com/blog",
+      "kind": "official-announcement",
+      "allowed_paths": ["/blog"],
+      "allowed_content_types": ["announcement", "research-post"],
+      "trust": "primary",
+      "trust_notes": "Cohere's official blog; authoritative for its model and research announcements.",
+      "verified_at": "2026-08-27",
+      "verification": "Fetched 2026-08-27: HTTP 200, <title>The Cohere Blog</title>, on the Cohere-owned cohere.com host. The index carried Command A, Command A+ and Aya posts and linked docs.cohere.com."
+    },
+    {
+      "id": "cohere-docs",
+      "owner": "Cohere",
+      "url": "https://docs.cohere.com/",
+      "kind": "official-docs",
+      "allowed_paths": ["/docs/"],
+      "allowed_content_types": ["model-reference", "api-alias"],
+      "trust": "primary",
+      "trust_notes": "Cohere's developer documentation; authoritative for the API model identifiers it exposes and their stated limits. Bounded to /docs/, the section checked.",
+      "verified_at": "2026-08-27",
+      "verification": "Fetched 2026-08-27: HTTP 200 at the docs root, <title>Cohere Documentation | Cohere</title>. /docs/models returned HTTP 200 and carried command-* identifiers including dated forms such as command-a-03-2025 and command-r-08-2024."
+    }
+  ],
+  "deferred_origins": [
+    {
+      "origin": "https://huggingface.co/CohereLabs",
+      "decision": "not approved",
+      "reason": "Checked on 2026-08-27 and reported \"fullname\":\"Cohere Labs\" with \"isVerified\":false. Every other Hugging Face organization approved in this directory is verified, and this one is not, so nothing here establishes that it is Cohere's own org rather than a name anyone could take. Its research models are reachable through the approved cohere.com and docs.cohere.com origins in any case. Approving it needs evidence this batch does not have — a first-party statement from Cohere naming the org would be enough."
+    },
+    {
+      "origin": "https://dashboard.cohere.com",
+      "decision": "not approved",
+      "reason": "Authenticated dashboard. Not reachable as a public primary source, so nothing about it could be verified."
+    }
+  ],
+  "ambiguities": [
+    {
+      "topic": "Command and Aya are not one family",
+      "note": "Cohere publishes the Command line of enterprise models and the Aya line of multilingual research models, and the research work is associated with Cohere Labs rather than being marketed alongside Command.",
+      "guidance": "Use Cohere's own family label for each and do not merge them. Which internal group published a model is an attribute, not a separate creator, unless a source presents Cohere Labs as a distinct organization — in which case that is an organization mapping for a human, not an inference to make here."
+    },
+    {
+      "topic": "Command naming carries generation, size and date at once",
+      "note": "Identifiers such as command-a, command-r, command-r-plus and command-a-03-2025 encode a line, a tier and a snapshot date in one string.",
+      "guidance": "Take the dated identifier from the documentation as the release and record the dateless form as an alias. Do not derive a tier or a generation the source does not state."
+    },
+    {
+      "topic": "Third-party serving",
+      "note": "Cohere's models are served through major cloud platforms as well as Cohere's own API, and those platforms publish their own model identifiers.",
+      "guidance": "Record third-party serving as a separate serving-platform or deployment entity, and keep platform-specific identifiers on the deployment rather than on the release's canonical name. Availability on a platform is never evidence about who trained the model."
+    }
+  ]
+}

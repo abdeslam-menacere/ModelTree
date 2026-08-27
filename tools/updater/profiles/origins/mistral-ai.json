@@ -1,0 +1,79 @@
+{
+  "catalog": {
+    "id": "origins-mistral-ai",
+    "kind": "approved-origins",
+    "creator_id": "mistral-ai",
+    "creator_name": "Mistral AI",
+    "applies_to": "Mistral AI as a creator of the model families it trains and announces."
+  },
+  "notes": [
+    "Human origin approval only. It records where Mistral AI publishes primary release information; it adds no creator, family, release, product or deployment to the dataset, and it does not make Mistral AI a pilot creator."
+  ],
+  "source_catalog": [
+    {
+      "id": "mistral-news",
+      "owner": "Mistral AI",
+      "url": "https://mistral.ai/news/",
+      "kind": "official-announcement",
+      "allowed_paths": ["/news/"],
+      "allowed_content_types": ["announcement", "research-post"],
+      "trust": "primary",
+      "trust_notes": "Mistral AI's official news index; authoritative for its model and research announcements.",
+      "verified_at": "2026-08-27",
+      "verification": "Fetched 2026-08-27: HTTP 200, <title>Latest news | Mistral</title>, on the Mistral-owned mistral.ai host. The index carried Mistral, Magistral, Devstral and Pixtral posts. https://mistral.ai/news redirects to the trailing-slash form, which is why the canonical path is recorded with it."
+    },
+    {
+      "id": "mistral-docs",
+      "owner": "Mistral AI",
+      "url": "https://docs.mistral.ai/",
+      "kind": "official-docs",
+      "allowed_paths": ["/getting-started/"],
+      "allowed_content_types": ["model-reference", "api-alias"],
+      "trust": "primary",
+      "trust_notes": "Mistral AI's developer documentation; authoritative for the API model identifiers it exposes and their stated limits. allowed_paths is bounded to /getting-started/, the section that carries the model overview and the only one checked; widening it is a further human decision, not a run's.",
+      "verified_at": "2026-08-27",
+      "verification": "Fetched 2026-08-27: HTTP 200 at the docs root, <title>Documentation - Mistral AI</title>. /getting-started/models/models_overview/ returned HTTP 200 and carried mistral-* model identifiers."
+    },
+    {
+      "id": "mistral-huggingface",
+      "owner": "Mistral AI (via Hugging Face)",
+      "url": "https://huggingface.co/mistralai",
+      "kind": "model-card",
+      "allowed_paths": ["/mistralai"],
+      "allowed_content_types": ["model-card", "repository"],
+      "trust": "primary",
+      "trust_notes": "The Mistral AI organization on Hugging Face; authoritative for the model cards and open weights Mistral publishes itself. Adds no new origin — huggingface.co is already trusted — and exists to bound link-following to the org. Third-party re-uploads of Mistral weights are not first-party and are not covered.",
+      "verified_at": "2026-08-27",
+      "verification": "Fetched 2026-08-27: HTTP 200, and https://huggingface.co/api/organizations/mistralai/overview reported \"name\":\"mistralai\", \"fullname\":\"Mistral AI_\" with \"isVerified\":true. The org listing carried mistralai/Mistral-Large-3-675B-Base-2512, mistralai/Ministral-3-8B-Instruct-2512 and mistralai/Devstral-2-123B-Instruct-2512."
+    }
+  ],
+  "deferred_origins": [
+    {
+      "origin": "https://console.mistral.ai",
+      "decision": "not approved",
+      "reason": "Authenticated console. Not reachable as a public primary source, so nothing about it could be verified."
+    }
+  ],
+  "ambiguities": [
+    {
+      "topic": "'Mistral' names both the organization and a family",
+      "note": "Mistral AI is the creator; Mistral 7B and Mistral Large are models. The two share a word and sources use it loosely.",
+      "guidance": "Keep the organization and the family as separate entities. Do not fold a release into the organization because the name matches."
+    },
+    {
+      "topic": "Open-weight releases and API-only releases sit side by side",
+      "note": "Some Mistral models ship weights on Hugging Face; others exist only behind the API, and the two sets overlap without being identical.",
+      "guidance": "Record availability from the source that states it. Absence of a model from the Hugging Face org is not evidence that it is API-only, and presence there is not evidence that it is the same release the API exposes under a similar name."
+    },
+    {
+      "topic": "Le Chat is a product",
+      "note": "Le Chat is an assistant built on Mistral models and is often discussed as though it were one.",
+      "guidance": "Record it as a product entity, separate from any release. Attribute capabilities to a specific model only where the source does."
+    },
+    {
+      "topic": "Third-party serving",
+      "note": "Mistral models are served by cloud platforms other than Mistral's own API.",
+      "guidance": "A serving platform is a separate entity from the creator and from the model. Being served somewhere is never evidence of who trained the model."
+    }
+  ]
+}
