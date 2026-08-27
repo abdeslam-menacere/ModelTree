@@ -190,9 +190,10 @@ reports deadlocks every pull request. Do not add it to branch protection.
 ## What gates a dataset change
 
 Two different checks read `web/src/data/`, and they do not enforce the same
-rules. `web-ci` runs `npm run validate` (the vitest suite plus the Astro and
-TypeScript diagnostics), which validates the dataset through Zod and
-`web/src/data/validate.ts`. `skills-ci` runs
+rules. `web-ci` runs the vitest suite and the Astro and TypeScript diagnostics
+as separate steps, which together are exactly what `npm run validate` runs, and
+which validate the dataset through Zod and `web/src/data/validate.ts`.
+`skills-ci` runs
 `.github/skills/modeltree-gates/scripts/gate-dataset.mjs`, the deterministic
 gate ADR 0003 places between an unattended refresh and Pages.
 

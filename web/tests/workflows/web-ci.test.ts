@@ -227,6 +227,17 @@ describe('web-ci.yml scope detection', () => {
   const pattern = script.match(/grep -Eq '([^']+)'/)?.[1];
   const matchesPath = new RegExp(pattern ?? '(?!)');
 
+  /**
+   * One arm of the scope step's `case`, so an assertion about a range endpoint
+   * is tied to the event whose data computes it. A substring check against the
+   * whole script would also pass if the two arms were cross-wired.
+   */
+  const caseArm = (event: string): string => {
+    const start = script.indexOf(`${event})`);
+
+    return start === -1 ? '' : script.slice(start, script.indexOf(';;', start));
+  };
+
   it('greps for the paths that matter', () => {
     expect(pattern).toBeDefined();
   });
@@ -249,8 +260,19 @@ describe('web-ci.yml scope detection', () => {
       PR_HEAD_SHA: '${{ github.event.pull_request.head.sha }}',
       PUSH_BEFORE_SHA: '${{ github.event.before }}',
     });
-    expect(script).toContain('base="$PUSH_BEFORE_SHA"');
-    expect(script).toContain('head="$GITHUB_SHA"');
+    expect(caseArm('push')).toContain('base="$PUSH_BEFORE_SHA"');
+    expect(caseArm('push')).toContain('head="$GITHUB_SHA"');
+  });
+
+  // The env block above pins what the two pull request variables hold; this
+  // pins which end of the range each is bound to, which nothing else covers.
+  // Swapping these two lines diffs head...base, and because base is an
+  // ancestor of head that range is empty rather than an error -- so the
+  // fail-safe above never fires, run=false, no build happens, and web-ci (the
+  // only required check on main) reports green for an unverified commit.
+  it('scopes a pull request to its base...head range, in that order', () => {
+    expect(caseArm('pull_request')).toContain('base="$PR_BASE_SHA"');
+    expect(caseArm('pull_request')).toContain('head="$PR_HEAD_SHA"');
   });
 
   it('builds for any change under web/', () => {
