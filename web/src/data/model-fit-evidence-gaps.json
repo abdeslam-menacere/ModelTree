@@ -1,6 +1,8 @@
 [
   {
     "id": "gap-llama-4-scout-benchmarks",
+    "score": 91,
+    "overallRanking": "first",
     "releaseId": "meta-llama-4-scout",
     "dimension": "measured-benchmark-evidence",
     "reason": "no-qualifying-source",
