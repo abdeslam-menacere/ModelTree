@@ -184,8 +184,8 @@ export const fitGapReasonGlossary: GlossaryEntry<FitGapReason>[] =
 // as "configuration that decides whether two results may be compared at all"
 // (schema.ts). Each `field` below is a real key on `benchmarkResultSchema` —
 // `methodology.test.ts` asserts it. The descriptions state what a field records,
-// not a comparability verdict: no code transforms results into a comparison, and
-// the dataset currently holds no benchmark results (see `deferredToImplementation`).
+// not a comparability verdict: no code transforms results into a comparison
+// (see `deferredToImplementation`).
 // ---------------------------------------------------------------------------
 
 export interface BenchmarkConfigField {
@@ -235,7 +235,7 @@ export const deferredToImplementation: DeferredPolicy[] = [
     area: 'Benchmark comparability and evidence transformations',
     issue: 'https://github.com/abdeslam-menacere/ModelTree/issues/22',
     note:
-      'How benchmark results are normalised or transformed to be compared across models — beyond recording each result’s configuration and refusing duplicate results under an identical setup — is not implemented, and the dataset currently holds no benchmark results. That policy is issue #22, which itself depends on #21 for benchmark seed data. Until it lands, this page records the benchmark terminology and configuration the schema captures but states no rule for comparing results, because none yet exists to describe.',
+      'How benchmark results are normalised or transformed to be compared across models — beyond recording each result’s configuration and refusing duplicate results under an identical setup — is not implemented. That policy is issue #22, which itself depends on #21 for benchmark seed data. Until it lands, this page records the benchmark terminology and configuration the schema captures but states no rule for comparing results, because none yet exists to describe.',
   },
 ];
 

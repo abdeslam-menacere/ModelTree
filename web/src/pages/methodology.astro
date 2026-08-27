@@ -228,7 +228,9 @@ const sectionNumber = (index: number) => String(index + 1).padStart(2, '0');
               Priority is enforced where it matters: a featured release must cite at least one
               primary source, and a usage figure a creator published about its own model is refused
               unless it carries a primary source. Among several primary sources describing one
-              release, official documentation is preferred.
+              release, official documentation is preferred — this last preference is editorial
+              policy, not a rule enforced in code: no source-ordering logic exists in the schema or
+              validators.
             </p>
 
             <h3 id="conflicts">Conflicting and incomparable evidence</h3>
