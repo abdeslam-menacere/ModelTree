@@ -68,7 +68,7 @@ web/               the Astro site
   src/lib/         data loading, validation, URL state
 tools/updater/     proposal-only data updater (Python, run separately)
 .github/skills/    the agent skills that refresh the data end to end
-docs/product/      product brief, information architecture, backlog
+docs/product/      product brief, information architecture, backlog, deployment runbook
 docs/adr/          architecture decision records
 .github/           agent contracts, issue forms, workflows
 ```

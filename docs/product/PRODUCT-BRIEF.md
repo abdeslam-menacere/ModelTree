@@ -96,6 +96,14 @@ performance budgets, accepted community corrections, and stable shareable URLs.
 
 ## Known Launch Constraint
 
-The GitHub repository is private as of 2026-08-14. Public visibility and Pages
-settings are repository-owner decisions and must be enabled before an open-source
-launch; no implementation issue should silently change them.
+Resolved. The repository was private as of 2026-08-14, when this brief was
+written, which blocked the public launch: public visibility and Pages settings
+are repository-owner decisions, and no implementation issue may silently change
+them.
+
+The owner has since made both changes. As of 2026-08-27 the repository is public
+and GitHub Pages is enabled with GitHub Actions as the source, serving
+`https://abdeslam-menacere.github.io/ModelTree/`. The rule the constraint
+expressed still stands — visibility, Pages settings, and branch protection remain
+owner decisions that no implementation issue may change. See
+[`DEPLOYMENT-RUNBOOK.md`](DEPLOYMENT-RUNBOOK.md).
