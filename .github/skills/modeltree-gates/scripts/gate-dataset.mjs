@@ -57,10 +57,34 @@ function fail(gate, message, where) {
 
 function parseArgs(argv) {
   const args = { data: null, today: null, json: false, help: false };
+  // A flag whose value is missing is refused here rather than carried onward as
+  // `undefined`, because every consumer below turns `undefined` into a default:
+  // `--data` falls back to this repository's own `web/src/data` at main() and
+  // `--today` falls back to the wall clock. Either substitution gates an input
+  // the caller never named and exits 0 -- a green verdict about something else,
+  // which is the one failure this gate set exists to prevent (#372). An empty
+  // string is the same defect arriving without anyone typing a malformed
+  // command: PowerShell strips embedded double quotes from native-command
+  // arguments, so `--data ""` reaches here as a value-less flag.
+  //
+  // This is a fourth copy of the closure `gate-scope.mjs` and
+  // `gate-source-approval.mjs` already carry, not an import, and deliberately
+  // so: these four scripts share no module and import only `node:` builtins, the
+  // same reason `PUBLISHED_REF` is duplicated between two of them on purpose.
+  // The idiom is copied verbatim rather than varied -- a third parsing style is
+  // what #168 is open on.
+  const value = (i, flag) => {
+    const next = argv[i];
+    if (typeof next !== 'string' || next.length === 0) {
+      process.stderr.write(`gate-dataset: ${flag} needs a value\n`);
+      process.exit(2);
+    }
+    return next;
+  };
   for (let i = 2; i < argv.length; i += 1) {
     const flag = argv[i];
-    if (flag === '--data') args.data = argv[++i];
-    else if (flag === '--today') args.today = argv[++i];
+    if (flag === '--data') args.data = value(++i, '--data');
+    else if (flag === '--today') args.today = value(++i, '--today');
     else if (flag === '--json') args.json = true;
     else if (flag === '--help' || flag === '-h') args.help = true;
     else {
