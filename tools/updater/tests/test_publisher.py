@@ -22,6 +22,7 @@ from modeltree_updater.github_issues import MAX_BODY_CHARS, Issue
 from modeltree_updater.parsing import proposal_from_dict
 from modeltree_updater.publisher import (
     MEASURED_RESOURCE,
+    NOT_RENDERED,
     UNREADABLE_RUN,
     PublicationAction,
     PublicationError,
@@ -898,6 +899,158 @@ def test_an_integer_and_a_float_seconds_limit_render_identically(
     float_cell = re.search(pattern, as_float)
     assert int_cell is not None and float_cell is not None
     assert int_cell.group(1) == float_cell.group(1) == "5"
+
+
+# ---------------------------------------------------------------------------
+# `MEASURED_RESOURCE` and the names the body spells by hand
+# ---------------------------------------------------------------------------
+
+# `MEASURED_RESOURCE` and the places `publisher.py` spells the measured resource
+# by hand are a hand-maintained mirror: the budget table's row label, the budget
+# note's prose, and the unnumbered fallback in the rebuilt exhaustion sentence.
+# Nothing enforced that they stay equal, and the dangerous direction is the one
+# that fails open — the constant moving while a twin keeps the value the
+# constant no longer has. `_failure_row`'s predicate and the sentence it builds
+# both read the constant, so after such an edit the body announces that the
+# *new* budget was exhausted directly beneath a table whose only redacted row is
+# still called by the *old* name, and beneath a note that explains the omission
+# under that old name too. The published document contradicts itself and every
+# check stays green, which is the asymmetry #237 recorded for `ALLOWED_PATHS`.
+#
+# The opposite direction is already covered and deliberately left where it is: a
+# twin edited alone reddens the literal row assertions above — `| seconds |
+# _not rendered_ | ... |` and the two regexes beside them — which is exactly why
+# those stay literal rather than becoming interpolations. What they cannot catch
+# is a constant-only edit, because it leaves the rendered row spelled precisely
+# as they spell it. The three tests below are that missing half and nothing more.
+#
+# Both sides are DERIVED, never restated: the resource name appears in none of
+# them. The rendered side is located structurally — the budget row by its
+# redacted `Used` cell, the two prose sites by the words around them, none of
+# which name a resource — and is compared against the imported constant. So
+# interpolating `MEASURED_RESOURCE` into the expectation cannot satisfy these:
+# the value under test is read back out of the published document, and the
+# document is rendered from the twin.
+#
+# One nearby literal is deliberately *not* mirrored. The numbered branch of the
+# same sentence says "its 120 second limit", where `second` is the English unit
+# belonging to the number beside it, not the name of the budget. A resource
+# renamed to `elapsed` would still be measured in seconds, so coupling that word
+# to the constant would be wrong rather than merely redundant. It stays prose,
+# and `test_a_boolean_seconds_limit_falls_back_to_the_unnumbered_phrasing` above
+# already pins it against the bool path that would corrupt it.
+
+
+def _budget_table(body: str) -> list[dict[str, str]]:
+    """The published budget table, one dict per row keyed by its column heading.
+
+    Parsed from the table's own header row, so neither the column order nor any
+    resource name is restated here. Fails closed at every step: a body with no
+    budget section, no table, or a ragged row raises rather than returning an
+    empty list, which would otherwise satisfy a caller vacuously by containing
+    no row that disagrees with anything.
+    """
+    heading = "## Budget usage"
+    assert body.count(heading) == 1, body
+    section = body.split(heading, 1)[1].split("\n## ", 1)[0]
+    rows = [line for line in section.splitlines() if line.startswith("|")]
+    assert len(rows) >= 3, section
+    headers = [cell.strip() for cell in rows[0].strip("|").split("|")]
+    # `rows[1]` is the `|---|` delimiter, which carries no data.
+    return [
+        dict(
+            zip(
+                headers,
+                [cell.strip() for cell in row.strip("|").split("|")],
+                strict=True,
+            )
+        )
+        for row in rows[2:]
+    ]
+
+
+def test_the_only_redacted_budget_row_is_the_one_the_constant_names(
+    proposal_factory,
+) -> None:
+    """The budget table's row label and `MEASURED_RESOURCE` must agree.
+
+    The row is selected by the property that *makes* it the measured one — its
+    `Used` cell is the redaction sentinel — and never by its name, so the label
+    is read out of the rendered table rather than looked up by the value under
+    test. Redacting a second row, or redacting one the constant does not name,
+    both fail here.
+    """
+    proposal = proposal_factory(
+        MATERIAL, budget=CreatorBudget(max_seconds=DISCRIMINATING_LIMIT)
+    )
+    body = render_body(_with_elapsed(proposal, 47.31597))
+
+    rows = _budget_table(body)
+
+    # Anti-vacuity: the counted resources are in the table too, so "exactly one
+    # redacted row" is a fact about this table rather than about a thin parse.
+    assert len(rows) > 1, rows
+
+    redacted = [row for row in rows if row["Used"] == NOT_RENDERED]
+    assert len(redacted) == 1, rows
+    assert redacted[0]["Resource"] == MEASURED_RESOURCE
+
+
+def test_the_budget_note_explains_the_omission_under_the_constants_name(
+    proposal_factory,
+) -> None:
+    """The note under the table names the budget whose row it is explaining.
+
+    It is the reader's only account of why one `Used` cell is empty, so a note
+    that names a resource the table has no row for is the same self-contradiction
+    as a mislabelled row, reached one paragraph later.
+    """
+    body = render_body(proposal_factory(MATERIAL))
+
+    named = re.findall(r"a run that reaches its (\S+) limit", body)
+
+    # An exact list, so a note that stopped saying this at all fails here rather
+    # than passing on an empty comparison.
+    assert named == [MEASURED_RESOURCE], body
+
+
+def test_the_unnumbered_exhaustion_fallback_names_the_constants_resource(
+    proposal_factory,
+) -> None:
+    """Both halves of the rebuilt sentence must name one resource.
+
+    The sentence opens from the constant and, when the recorded limit is not a
+    number, finishes from a hand-spelled phrase. Those are two sources for one
+    noun in one sentence, so this pins them to each other *and* to the constant:
+    "X budget exhausted: this run reached its Y budget" is nonsense for X != Y,
+    however plausible either word looks alone.
+    """
+    real = _overrunning(proposal_factory)
+    # A bool limit takes the unnumbered branch, which is the only one that spells
+    # the resource a second time; the numbered branch prints a unit instead.
+    failures = tuple(
+        dataclasses.replace(failure, detail={**failure.detail, "limit": True})
+        if failure.detail.get("resource") == MEASURED_RESOURCE
+        else failure
+        for failure in real.failures
+    )
+    proposal = dataclasses.replace(real, failures=failures)
+
+    # Anti-vacuity: a seconds failure really is carrying the non-numeric limit,
+    # so the fallback branch is the one being rendered below.
+    assert any(
+        failure.detail.get("limit") is True
+        for failure in proposal.failures
+        if failure.detail.get("resource") == MEASURED_RESOURCE
+    )
+
+    body = render_body(proposal)
+
+    stated = set(
+        re.findall(r"(\S+) budget exhausted: this run reached its (\S+) budget", body)
+    )
+
+    assert stated == {(MEASURED_RESOURCE, MEASURED_RESOURCE)}, body
 
 
 def test_a_run_stopped_by_the_token_limit_still_prints_its_count(
