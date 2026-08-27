@@ -5,8 +5,9 @@ import { formatDate } from '../lib/format';
 import { buildHomepageHierarchy, firstHomepageRelease } from '../lib/homepage';
 import {
   accessTypeGlossary,
-  benchmarkComparabilityExamples,
+  benchmarkConfigurationFields,
   categoryGlossary,
+  deferredToImplementation,
   fitClassificationGlossary,
   fitGapReasonGlossary,
   lifecycleStatusGlossary,
@@ -102,8 +103,8 @@ const sectionNumber = (index: number) => String(index + 1).padStart(2, '0');
           <div class="method-body">
             <h3 id="separate-entities">Separate entities</h3>
             <p>
-              A single model name blurs together several distinct things. ModelTree keeps them as
-              separate records and never collapses one into another:
+              A single model name blurs together several distinct things. ModelTree models them as
+              separate entity types and never collapses one into another:
             </p>
             <ul>
               <li><strong>Creator (organization)</strong> — who built the model.</li>
@@ -119,6 +120,13 @@ const sectionNumber = (index: number) => String(index + 1).padStart(2, '0');
               that silently reassigns authorship. Publisher identity is resolved by id and ownership
               rather than by display name, so two corporate siblings collapse to one voice and two
               unrelated publishers that share a name stay distinct.
+            </p>
+            <p>
+              Keeping the types separate is a schema guarantee, not a claim that each is populated
+              today. Organizations, families, releases, publishers, and sources carry records now;
+              <strong>products</strong> and <strong>serving platforms</strong> are defined in the
+              schema — each defaulting to an empty list — and currently hold no data. The absence is
+              recorded honestly rather than filled with guesses.
             </p>
 
             <h3 id="lifecycle">Lifecycle statuses</h3>
@@ -280,27 +288,34 @@ const sectionNumber = (index: number) => String(index + 1).padStart(2, '0');
 
             <h3 id="benchmarks">Benchmark comparability</h3>
             <p>
-              Benchmarks are contextual evidence, not universal truth. Whether two results may be
-              compared is decided by the recorded configuration — the benchmark version, whether
-              tools were enabled, the reasoning mode, the harness, and whether the result is official
-              or independent — not by the score alone. There is no composite or universal score; a
-              deterministic gate refuses any field that reads as a ranking anywhere in the dataset.
+              Benchmarks are contextual evidence, not universal truth. There is no composite or
+              universal score; a deterministic gate refuses any field that reads as a ranking
+              anywhere in the dataset. The schema records the configuration below on every benchmark
+              result — its own comment marks these as “configuration that decides whether two results
+              may be compared at all” — and the validator refuses two results for the same model
+              under an identical disclosed setup and requires a result’s unit to match its benchmark’s
+              unit.
             </p>
             <table class="method-glossary method-examples">
-              <caption>Comparable and non-comparable benchmark cases</caption>
+              <caption>Configuration recorded on each benchmark result</caption>
               <thead>
-                <tr><th scope="col">Comparable?</th><th scope="col">Scenario</th><th scope="col">Why</th></tr>
+                <tr><th scope="col">Field</th><th scope="col">What it records</th></tr>
               </thead>
               <tbody>
-                {benchmarkComparabilityExamples.map((example) => (
+                {benchmarkConfigurationFields.map((entry) => (
                   <tr>
-                    <th scope="row">{example.comparable ? 'Comparable' : 'Not comparable'}</th>
-                    <td>{example.scenario}</td>
-                    <td>{example.reason}</td>
+                    <th scope="row"><code>{entry.field}</code></th>
+                    <td>{entry.records}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            {deferredToImplementation.map((deferred) => (
+              <p class="method-deferred">
+                <strong>Not yet enforced.</strong> {deferred.note} See{' '}
+                <a href={deferred.issue}>{deferred.area} (#22)</a>.
+              </p>
+            ))}
 
             <h3 id="usage">Usage evidence</h3>
             <p>

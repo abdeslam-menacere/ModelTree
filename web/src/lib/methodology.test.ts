@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   accessType,
+  benchmarkResultSchema,
   lifecycleStatus,
   modelCategory,
   sourceSchema,
@@ -19,8 +20,9 @@ import { usageProvenanceLabel } from './usage-evidence';
 import {
   accessTypeGlossary,
   allMethodologyDefinitions,
-  benchmarkComparabilityExamples,
+  benchmarkConfigurationFields,
   categoryGlossary,
+  deferredToImplementation,
   fitClassificationGlossary,
   fitGapReasonGlossary,
   lifecycleStatusGlossary,
@@ -146,16 +148,45 @@ describe('methodology outline', () => {
   });
 });
 
-describe('methodology benchmark examples', () => {
-  it('shows at least one comparable and one non-comparable case', () => {
-    expect(benchmarkComparabilityExamples.some((example) => example.comparable)).toBe(true);
-    expect(benchmarkComparabilityExamples.some((example) => !example.comparable)).toBe(true);
+describe('methodology benchmark configuration', () => {
+  // Documenting a field the schema does not record would describe a capability
+  // that does not exist. Every documented field must be a real key on the
+  // benchmark-result schema.
+  const schemaKeys = Object.keys(benchmarkResultSchema.shape);
+
+  it('documents only real benchmark-result fields', () => {
+    for (const entry of benchmarkConfigurationFields) {
+      expect(schemaKeys).toContain(entry.field);
+    }
   });
 
-  it('gives every example a scenario and a reason', () => {
-    for (const example of benchmarkComparabilityExamples) {
-      expect(example.scenario.trim().length).toBeGreaterThan(0);
-      expect(example.reason.trim().length).toBeGreaterThan(0);
+  it('describes what every documented field records', () => {
+    for (const entry of benchmarkConfigurationFields) {
+      expect(entry.records.trim().length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('methodology deferred work', () => {
+  // The page must name unimplemented policy and its owning issue rather than
+  // inventing it. Benchmark comparability transformations are issue #22.
+  it('defers benchmark comparability to its owning issue', () => {
+    const benchmark = deferredToImplementation.find((entry) =>
+      entry.area.toLowerCase().includes('benchmark'),
+    );
+    expect(benchmark).toBeDefined();
+    const url = new URL(benchmark!.issue);
+    expect(url.protocol).toBe('https:');
+    expect(url.hostname).toBe('github.com');
+    expect(url.pathname).toBe('/abdeslam-menacere/ModelTree/issues/22');
+    expect(benchmark!.note.trim().length).toBeGreaterThan(0);
+  });
+
+  it('gives every deferred entry an area, issue url, and note', () => {
+    for (const entry of deferredToImplementation) {
+      expect(entry.area.trim().length).toBeGreaterThan(0);
+      expect(entry.note.trim().length).toBeGreaterThan(0);
+      expect(new URL(entry.issue).hostname).toBe('github.com');
     }
   });
 });
@@ -189,5 +220,10 @@ describe('methodology page source', () => {
 
   it('links the correction path', () => {
     expect(page).toContain('methodologyReferences.correctionPath');
+  });
+
+  it('marks deferred benchmark policy rather than inventing it', () => {
+    expect(page).toContain('deferredToImplementation');
+    expect(page).not.toContain('benchmarkComparabilityExamples');
   });
 });

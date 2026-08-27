@@ -179,44 +179,63 @@ export const fitGapReasonGlossary: GlossaryEntry<FitGapReason>[] =
   }));
 
 // ---------------------------------------------------------------------------
-// Benchmark comparability examples. Comparability is decided by the recorded
-// configuration fields on a benchmark result, not by the score alone.
+// Benchmark configuration fields. The schema records this configuration on every
+// benchmark result so that setups can be told apart; its own comment marks these
+// as "configuration that decides whether two results may be compared at all"
+// (schema.ts). Each `field` below is a real key on `benchmarkResultSchema` —
+// `methodology.test.ts` asserts it. The descriptions state what a field records,
+// not a comparability verdict: no code transforms results into a comparison, and
+// the dataset currently holds no benchmark results (see `deferredToImplementation`).
 // ---------------------------------------------------------------------------
 
-export interface ComparabilityExample {
-  comparable: boolean;
-  scenario: string;
-  reason: string;
+export interface BenchmarkConfigField {
+  field: string;
+  records: string;
 }
 
-export const benchmarkComparabilityExamples: ComparabilityExample[] = [
+export const benchmarkConfigurationFields: BenchmarkConfigField[] = [
   {
-    comparable: true,
-    scenario:
-      'Two models on the same benchmark and dataset version, each run with tools disabled and the same harness.',
-    reason:
-      'Same benchmark version, same harness, same tool setting — the recorded configuration matches, so the scores describe the same test.',
+    field: 'benchmarkVersion',
+    records:
+      'Which version of the benchmark a score is from. Two versions are not the same set of questions.',
   },
   {
-    comparable: false,
-    scenario:
-      'The same benchmark, but one result was produced with tools enabled and the other with tools disabled.',
-    reason:
-      'A tool-enabled run and a tool-free run measure different things. The schema records `toolsEnabled` precisely so this difference is never hidden.',
+    field: 'reasoningMode',
+    records: 'The reasoning setting the model ran under, when the source discloses it.',
   },
   {
-    comparable: false,
-    scenario:
-      'The same benchmark reported at two different dataset versions.',
-    reason:
-      '`benchmarkVersion` differs, so the questions are not the same set. The site does not compare across versions.',
+    field: 'toolsEnabled',
+    records: 'Whether the model could call tools during the run.',
   },
   {
-    comparable: false,
-    scenario:
-      'An official self-reported score set beside an independent evaluation.',
-    reason:
-      '`resultType` differs (`official` versus `independent`). Both are shown, labelled, and not merged into one comparison.',
+    field: 'harness',
+    records: 'The evaluation harness that produced the score.',
+  },
+  {
+    field: 'resultType',
+    records: 'Whether the score is an official self-report or an independent evaluation.',
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Deferred work. Policy this page deliberately does NOT specify, because the
+// system does not implement it yet. Naming the owning issue keeps the gap honest
+// rather than smoothing it over — the same posture the dataset takes toward
+// unknown and conflicting facts.
+// ---------------------------------------------------------------------------
+
+export interface DeferredPolicy {
+  area: string;
+  issue: string;
+  note: string;
+}
+
+export const deferredToImplementation: DeferredPolicy[] = [
+  {
+    area: 'Benchmark comparability and evidence transformations',
+    issue: 'https://github.com/abdeslam-menacere/ModelTree/issues/22',
+    note:
+      'How benchmark results are normalised or transformed to be compared across models — beyond recording each result’s configuration and refusing duplicate results under an identical setup — is not implemented, and the dataset currently holds no benchmark results. That policy is issue #22, which itself depends on #21 for benchmark seed data. Until it lands, this page records the benchmark terminology and configuration the schema captures but states no rule for comparing results, because none yet exists to describe.',
   },
 ];
 
