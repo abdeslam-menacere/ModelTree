@@ -51,8 +51,9 @@ helper rather than at the severed channel. The guard is right and is untouched;
 what was wrong was the prose describing it. The corrected account lives in
 `test_the_exception_message_and_detail_reach_the_published_body_verbatim`'s
 docstring, and — because a claim about which check fires is worth no more than a
-claim about coverage unless it is executed — the two tests named there hold it
-to the code.
+claim about coverage unless it is executed — two new tests hold it to the code:
+`test_severing_the_detail_reddens_the_strip_guard_before_these_assertions` and
+`test_an_empty_rendered_detail_cell_is_refused_by_the_no_op_guard`.
 
 Scope: this reads through `run_creators` and `publisher.render_body`; it does
 not touch `test_budget_time_guard_invariant.py` (#248/#266 own that) nor
