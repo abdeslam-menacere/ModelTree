@@ -1050,12 +1050,14 @@ def test_the_production_run_invocation_no_longer_reports_a_path_nobody_wrote(
 ) -> None:
     """The exact command that failed, in the exact shape the workflow sends it.
 
-    `run` is what run 32808297418 executed, and `run` is what the other tests
-    here did not cover: with the shared loader reverted on this one call site,
-    every other assertion in this file still passed. So this pins the command
-    rather than the code path — same subcommand, same flags, same installed
-    layout, with only `--fixtures` removed, which is precisely the difference
-    between the failing run and the fixed one.
+    `run` is what run 32808297418 executed, and the shape is what this pins
+    rather than the code path underneath it: the workflow's own argv — a
+    `--creator` flag per creator, then `--run-id` and `--output` — with only
+    `--fixtures` removed, which is precisely the difference between the failing
+    run and the fixed one. The assertions follow from that. What such an
+    invocation reports is the flag to pass and the directory in the checkout to
+    pass it, never the prefix path and never a traceback; what it leaves behind
+    at the `--output` path it was handed is nothing at all.
     """
     result = _python(
         installed_package,
