@@ -438,9 +438,18 @@ function main() {
   // one is refused, naming both, rather than silently overridden: a run that
   // believes it is publishing under the wrong policy is itself a defect worth
   // surfacing.
+  //
+  // The root this gate resolves its inputs against, computed once here so the
+  // report below can name the root that was actually *used*. `--repo` is
+  // advertised and accepted, but a flag whose value went missing falls through
+  // to the fallback (#372 - its own issue, and not fixed by this line), so
+  // echoing `args.repo` back would name a tree the gate never read. Resolving it
+  // also makes the reported value a real absolute path rather than whatever
+  // string arrived.
+  const repo = args.repo ? resolve(args.repo) : repoRoot();
   let reviewed;
   try {
-    reviewed = reviewedCreatorIds(args.repo ? resolve(args.repo) : repoRoot());
+    reviewed = reviewedCreatorIds(repo);
   } catch (error) {
     process.stderr.write(`gate-evidence: ${error.message}\n`);
     return 2;
@@ -507,6 +516,21 @@ function main() {
   });
 
   const result = {
+    // Which tree this verdict is about. This gate takes a repository location as
+    // input and, until #381, produced a report that never said which one it
+    // used - so a reader could not answer "which tree was this about?" from the
+    // report at all. That matters most on the path where the two differ: a
+    // `--repo` whose value went missing is not honoured, it falls back (#372),
+    // and the report has to name the fallback it used rather than the argument
+    // it ignored.
+    //
+    // The name is `repo`, the spelling `gate-scope.mjs` already uses, because it
+    // is the same fact. `gate-dataset.mjs` reports `dataDir` and that is not an
+    // inconsistency to be tidied: it resolves a directory of documents from
+    // `--data`, never a repository. The rule the four follow is that a gate
+    // resolving a repository root reports it as `repo`, and the one resolving a
+    // data directory reports `dataDir`.
+    repo,
     bundle: path,
     runId: bundle.runId ?? null,
     creator: bundle.creator ?? null,

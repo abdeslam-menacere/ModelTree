@@ -1328,6 +1328,99 @@ describe('gate-evidence', () => {
     }
   });
 
+  // Which root the verdict was about (#381). `--repo` selects the tree this gate
+  // reads its reviewed set from, and until now the report never said which tree
+  // that was -- so a run pointed at the wrong one produced a report identical in
+  // every field to a run pointed at the right one.
+  //
+  // Presence is not the claim; the value is. The two roots below hold *identical
+  // contents* and differ only in path, so every other field of the two reports
+  // is equal and the assertion can only be carried by `repo` itself. A field
+  // hard-wired to any one value fails here rather than passing twice.
+  test('the evidence report names the root the reviewed set was read from', () => {
+    const bundle = { runId: 'r1', creator: 'acme-labs', policy: 'pilot', claims: [claim()] };
+    const profiles = { 'acme.json': { creator: { id: 'acme-labs' } } };
+    const first = repoWithProfiles(profiles);
+    const second = repoWithProfiles(profiles);
+    try {
+      const a = gateBundleWithArgs(bundle, ['--today', TODAY, '--repo', first]);
+      const b = gateBundleWithArgs(bundle, ['--today', TODAY, '--repo', second]);
+      assert.equal(a.code, 0, `the first root must be gateable:\n${a.stdout}`);
+      assert.equal(b.code, 0, `the second root must be gateable:\n${b.stdout}`);
+
+      const reportA = JSON.parse(a.stdout);
+      const reportB = JSON.parse(b.stdout);
+      assert.equal(typeof reportA.repo, 'string', `the report must name a root:\n${a.stdout}`);
+      assert.equal(typeof reportB.repo, 'string', `the report must name a root:\n${b.stdout}`);
+      assert.equal(reportA.repo, resolve(first), 'the reported root must be the one --repo selected');
+      assert.equal(reportB.repo, resolve(second), 'the reported root must be the one --repo selected');
+      assert.notEqual(
+        reportA.repo,
+        reportB.repo,
+        'two runs over two different roots must not report the same root',
+      );
+
+      // And it is the resolved path the gate used, not the argument it was
+      // handed: spelled through a directory that does not exist and back out
+      // again, so an echo of `args.repo` and the resolved root cannot be the
+      // same string. `resolve` is lexical, so the missing segment is normalised
+      // away before anything opens it.
+      const detour = `${first}/nowhere/..`;
+      const wobbly = gateBundleWithArgs(bundle, ['--today', TODAY, '--repo', detour]);
+      assert.equal(wobbly.code, 0, `the same root spelled differently must still gate:\n${wobbly.stdout}`);
+      const reportWobbly = JSON.parse(wobbly.stdout);
+      assert.equal(reportWobbly.repo, resolve(first), 'the report must name the resolved root');
+      assert.notEqual(reportWobbly.repo, detour, 'the report must not echo the argument as given');
+    } finally {
+      rmSync(first, { recursive: true, force: true });
+      rmSync(second, { recursive: true, force: true });
+    }
+  });
+
+  // The sharper half of #381, and the one case in these four scripts where the
+  // root a gate was *told* to use and the root it *did* use can genuinely
+  // diverge: this gate's `--repo` takes its value with `argv[++i]`, so a flag
+  // written last carries `undefined`, is not refused, and falls through to the
+  // fallback root (#372). The report has to name the fallback it used, never the
+  // argument it ignored -- that divergence is precisely the failure mode a
+  // report naming no root conceals.
+  //
+  // #372 is a defect of its own and is deliberately not fixed here. If it lands,
+  // this invocation will exit 2 and this test will go red rather than quietly
+  // stop proving anything: update it to the new refusal, do not delete it, since
+  // the claim it makes about the *report* outlives the fallback.
+  //
+  // That the fallback root was genuinely read, and not merely named, is carried
+  // by the policy: `acme-labs` has a reviewed profile only in the planted tree,
+  // so any other root derives `long-tail`, contradicts the declared `pilot`, and
+  // exits 2 with no report at all.
+  test('an ignored --repo is reported as the fallback root the gate used, not as the argument', () => {
+    const result = fallbackRepo(GATE_EVIDENCE, ({ dir }) => {
+      mkdirSync(join(dir, 'tools', 'updater', 'profiles'), { recursive: true });
+      writeFileSync(
+        join(dir, 'tools', 'updater', 'profiles', 'acme.json'),
+        JSON.stringify({ creator: { id: 'acme-labs' } }),
+      );
+      const bundle = join(dir, 'claims.json');
+      writeFileSync(
+        bundle,
+        JSON.stringify({ runId: 'r1', creator: 'acme-labs', policy: 'pilot', claims: [claim()] }, null, 2),
+      );
+      // `--repo` last, so there is no next argument to be its value.
+      return ['--claims', bundle, '--today', TODAY, '--json', '--repo'];
+    });
+    assert.equal(result.code, 0, `the fallback root must be gateable:\n${result.stdout}`);
+    const report = JSON.parse(result.stdout);
+    assert.equal(typeof report.repo, 'string', `the report must name a root:\n${result.stdout}`);
+    assert.equal(
+      resolve(report.repo),
+      result.root,
+      `the report must name the fallback root, not the argument that was dropped:\n${result.stdout}`,
+    );
+    assert.equal(report.policy, 'pilot', 'the fallback root must be the tree actually read');
+    assert.equal(report.threshold, 2, 'and the threshold must follow from that tree');
+  });
+
   // The reviewed-profile **directory**, in its three states (#312). **Absent** is
   // the test above, which cannot `readdirSync` it at all. **Present-but-stale**
   // is not a state it has: it is read once per run, straight from disk, and
@@ -2019,6 +2112,124 @@ describe('gate-source-approval', () => {
       'the fallback must anchor trust in the repository the script sits in, not in another tree',
     );
     assert.equal(report.anchors.datasetSources, 1, 'the fallback root must be the tree actually read');
+  });
+
+  // The identity field this block previously had to infer (#381). `--repo`
+  // selects the root, and until now nothing in the report said which root that
+  // was -- the test above pins it through `anchors.profileCatalogues`, a count,
+  // precisely because there was no field naming the thing it cares about.
+  //
+  // The wrong root here is a real directory *inside the same git repository*,
+  // which is the failure mode rather than an invented one. `datasetAnchor` reads
+  // `git show <base>:web/src/data/sources.json`, a path git resolves from the
+  // top of the working tree no matter which subdirectory it ran in, so the wrong
+  // root finds the same dataset anchor. Both runs below exit 0 and both report
+  // `passed: true`; measured on the same fixture, the reports differ in exactly
+  // two fields, and one of them is an incidental count. Only `repo` answers
+  // "which tree was this verdict about".
+  test('the approval report names the root it resolved against, so a wrong root is visible in it', () => {
+    const bundle = {
+      runId: 'r1',
+      creator: 'someone',
+      policy: 'pilot',
+      claims: [claim({ evidence: [evidence(ANCHORED.id, ANCHORED.url)] })],
+    };
+    let root = null;
+    let wrong = null;
+    let wobbly = null;
+
+    const right = approvalRepo(({ dir, writeSources, commit, publish }) => {
+      writeSources([ANCHORED]);
+      writeCatalogue(dir, `${CATALOGUED}/newsroom`);
+      commit('the reviewed dataset and its catalogue');
+      publish();
+      root = dir;
+
+      const path = join(dir, 'inside.json');
+      writeFileSync(path, JSON.stringify(bundle, null, 2));
+      const at = (repo) => run(GATE_SOURCE_APPROVAL, ['--claims', path, '--repo', repo, '--json']);
+
+      // A directory that exists and sits inside the same repository, which is
+      // what a miscounted `repoRoot()` or a wrapper passing the wrong path lands
+      // on. `.github` is exactly the directory one segment short resolves to.
+      mkdirSync(join(dir, '.github'), { recursive: true });
+      wrong = at(join(dir, '.github'));
+
+      // The right root, spelled through a directory that does not exist and back
+      // out again, so an echo of the argument and the resolved path cannot be
+      // the same string. `resolve` is lexical, so nothing opens the gap.
+      wobbly = at(`${dir}/nowhere/..`);
+    }, bundle);
+
+    assert.equal(right.code, 0, `the right root must be gateable:\n${right.stdout}`);
+    assert.equal(wrong.code, 0, `the wrong root exits 0 too, which is the whole problem:\n${wrong.stdout}`);
+    assert.equal(wobbly.code, 0, `the same root spelled differently must still gate:\n${wobbly.stdout}`);
+
+    const rightReport = JSON.parse(right.stdout);
+    const wrongReport = JSON.parse(wrong.stdout);
+    assert.equal(typeof rightReport.repo, 'string', `the report must name a root:\n${right.stdout}`);
+    assert.equal(typeof wrongReport.repo, 'string', `the report must name a root:\n${wrong.stdout}`);
+    assert.equal(rightReport.repo, resolve(root), 'the reported root must be the one --repo selected');
+    assert.equal(
+      wrongReport.repo,
+      resolve(join(root, '.github')),
+      'a run over the wrong root must say so rather than reporting the tree it accidentally read from',
+    );
+    assert.notEqual(
+      rightReport.repo,
+      wrongReport.repo,
+      'two runs over two different roots must not report the same root',
+    );
+
+    // The verdict cannot separate them, which is why the field is needed.
+    assert.equal(rightReport.passed, true);
+    assert.equal(wrongReport.passed, true);
+    // And the two really did read different trees: only the right root's
+    // catalogue pathspec matched.
+    assert.equal(rightReport.anchors.profileCatalogues, 1, 'the right root reads its catalogue');
+    assert.equal(wrongReport.anchors.profileCatalogues, 0, 'the wrong root silently reads none');
+
+    const wobblyReport = JSON.parse(wobbly.stdout);
+    assert.equal(wobblyReport.repo, resolve(root), 'the report must name the resolved root');
+    assert.notEqual(wobblyReport.repo, `${root}/nowhere/..`, 'the report must not echo the argument as given');
+  });
+
+  // The fallback arm of the same field, and the one place the reported root
+  // cannot be an echo of anything: with no `--repo` at all the gate resolves its
+  // own location, and the report has to name the root it arrived at. Without
+  // this, a `repo` field spelled `args.repo` rather than the resolved root would
+  // report `null` here and every test above would still pass.
+  //
+  // The fixture is the one directly above this block, on purpose: that test
+  // proves the fallback landed on the right root by way of the catalogue count,
+  // and this one asserts the same fact directly, which is what #381 makes
+  // possible. Both are kept -- the count is a separate claim, and #344 is open
+  // on how it is computed.
+  test('with no --repo at all the approval report names the fallback root it used', () => {
+    const good = { id: 'good-source', url: 'https://good.example/a', title: 'G', type: 'official-announcement', publisherId: 'p', lastCheckedDate: TODAY };
+    const result = fallbackRepo(GATE_SOURCE_APPROVAL, ({ dir, commit, publish }) => {
+      writeFileSync(join(dir, 'web', 'src', 'data', 'sources.json'), JSON.stringify([good], null, 2));
+      writeCatalogue(dir, `${CATALOGUED}/newsroom`);
+      commit('the reviewed dataset and its catalogue');
+      publish();
+      const bundle = join(dir, 'claims.json');
+      writeFileSync(bundle, JSON.stringify({
+        runId: 'r1',
+        creator: 'someone',
+        policy: 'pilot',
+        claims: [claim({ evidence: [evidence(good.id, good.url)] })],
+      }, null, 2));
+      return ['--claims', bundle, '--json'];
+    });
+    assert.equal(result.code, 0, `the fallback root must be gateable:\n${result.stdout}`);
+    const report = JSON.parse(result.stdout);
+    assert.equal(typeof report.repo, 'string', `the report must name a root:\n${result.stdout}`);
+    assert.equal(
+      resolve(report.repo),
+      result.root,
+      `the report must name the fallback root the gate resolved for itself:\n${result.stdout}`,
+    );
+    assert.equal(report.anchors.profileCatalogues, 1, 'and that root must be the tree actually read');
   });
 
   test('a repository with no published main cannot be gated', () => {
