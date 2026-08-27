@@ -3011,3 +3011,193 @@ describe('gate-evidence claims no retrieval it cannot perform (ADR 0005)', () =>
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// check-skill-doc-test-counts.mjs: SKILLS_DIR is the whole scope of that check
+//
+// `SKILLS_DIR` is a scan root, which is the same shape of constant as
+// gate-scope's ALLOWED_PATHS above, and #237's asymmetry applies to it
+// unchanged: the constant *is* the entire extent of what the check guarantees,
+// so nothing about a green run distinguishes a correct root from a wrong one.
+// Until #388 nothing in this repository named it, so no test could notice.
+//
+// ## Which direction fails open, and why that is the one this block exists for
+//
+// NARROWING. A root reaching fewer files produces a green run over less of the
+// tree, and that is indistinguishable from a clean repository: the exit code is
+// 0 either way, and the only trace is a file count inside a success message.
+// Measured on this repository at cbef9e7, before this block existed -- pointing
+// the root at `.github/skills/modeltree-gates` took the scan from eight markdown
+// files to two while the checker still exited 0 and this suite still passed
+// whole. Those numbers are evidence at that commit, never a live claim about
+// what the tree holds now. The checker still exits 0 under that edit today; what
+// changed is that this suite no longer does.
+//
+// Widening is loud today, but only by accident, and the difference matters.
+// `.github/workflows/README.md` currently states counts, so a root reaching it
+// exits 1. That is a fact about that file's present contents rather than a
+// guarantee -- the checker's own header records that it does not read that file
+// and so cannot keep any claim about it true. Correct those lines and widening
+// goes quiet too. The pin below is therefore on the exact value in both
+// directions, never a floor.
+//
+// ## What is pinned, and what is deliberately not
+//
+// Pinned: the declared value of `SKILLS_DIR`, derived from the checker's source
+// rather than restated, and the scan root the checker *names to a reader*, taken
+// from the live process rather than from its source. The messages are IN SCOPE
+// (#388 AC 5). Every message that names the root renders it through
+// `posix(relative(REPO_ROOT, SKILLS_DIR))`, so today they follow the constant
+// for free; pinning them is what catches the single edit that would separate the
+// two, which is a message rewritten to name a root it no longer computes. A
+// reader told the scan covered `.github/skills` when it did not is the same
+// fail-open failure one level up, in the only channel anyone actually reads.
+//
+// Not pinned: what the checker scans. #316 weighed widening this root and chose
+// to keep it narrow; that decision stands and #388 does not disturb it. This
+// block turns "widening is a deliberate act" from an aspiration into a
+// mechanism, and moves nothing.
+//
+// The derivation reads one declaration and never the whole file, so an unrelated
+// edit to the checker leaves it green -- an assertion that fired on every change
+// to that file would be pinning the file, not the constant. That property is a
+// test below rather than a claim here.
+// ---------------------------------------------------------------------------
+describe('check-skill-doc-test-counts SKILLS_DIR is pinned to .github/skills', () => {
+  const SKILL_DOC_CHECK = join(REPO, '.github', 'scripts', 'check-skill-doc-test-counts.mjs');
+
+  // The only literal expectation in this block. A change that moves the root has
+  // to edit this line, which is the whole mechanism.
+  const PINNED_SEGMENTS = ['.github', 'skills'];
+  const PINNED_ROOT = PINNED_SEGMENTS.join('/');
+
+  // Fails closed: a source that cannot be read, or that is empty, throws rather
+  // than yielding text from which no declaration is found for the wrong reason.
+  function sourceOf(file) {
+    let text;
+    try {
+      text = readFileSync(file, 'utf8');
+    } catch (error) {
+      throw new Error(`cannot read ${file}: ${error.message}`);
+    }
+    if (text.length === 0) throw new Error(`${file} is empty`);
+    return text;
+  }
+
+  // The path segments named in `const SKILLS_DIR = join(REPO_ROOT, ...)`,
+  // derived from that declaration and nothing else. Every way of not finding an
+  // answer throws: a missing declaration, a base that is not REPO_ROOT, and a
+  // join naming no segments would each otherwise produce a value that could
+  // compare equal to something by accident.
+  function skillsDirSegmentsFrom(source) {
+    const decl = /const\s+SKILLS_DIR\s*=\s*join\(([^)]*)\)/.exec(source);
+    if (!decl) throw new Error('no const SKILLS_DIR = join(...) declaration found');
+    const args = decl[1];
+    const base = args.split(',')[0].trim();
+    if (base !== 'REPO_ROOT') throw new Error(`SKILLS_DIR is not anchored at REPO_ROOT but at ${base}`);
+    const segments = [...args.matchAll(/['"]([^'"]*)['"]/g)].map((m) => m[1]);
+    if (segments.length === 0) throw new Error('SKILLS_DIR names no path segments below REPO_ROOT');
+    return segments;
+  }
+
+  // One pattern per message the checker uses to name its scan root -- success,
+  // refusal, and empty scan -- so this reads whichever the live tree produces
+  // and is deliberately not coupled to the skill docs being clean today: a real
+  // count landing in a skill doc must red that checker, not this block as well.
+  // Naming no root at all throws rather than being read as agreement.
+  const ROOT_NAMED = [
+    /markdown file\(s\) under (.+?) state no test count/,
+    /is stated in the skill documentation under (.+?)\.\n/,
+    /found no markdown under (.+?)\. A scan of nothing/,
+  ];
+
+  function scanRootNamedByChecker() {
+    const { code, stdout } = run(SKILL_DOC_CHECK, []);
+    for (const pattern of ROOT_NAMED) {
+      const match = pattern.exec(stdout);
+      if (match) return match[1];
+    }
+    throw new Error(`the checker named no scan root (exit ${code}): ${stdout.trim().slice(0, 400)}`);
+  }
+
+  test('the declared SKILLS_DIR is exactly .github/skills', () => {
+    assert.deepEqual(
+      skillsDirSegmentsFrom(sourceOf(SKILL_DOC_CHECK)),
+      PINNED_SEGMENTS,
+      'check-skill-doc-test-counts.mjs SKILLS_DIR has moved. That constant is the entire scope of ' +
+        'the check, and narrowing it yields a green run over fewer files that reads exactly like a ' +
+        'clean repository. #316 weighed widening this root and chose to keep it narrow; read that ' +
+        'decision in the checker header, and re-measure it, before editing this expectation.',
+    );
+  });
+
+  test('the scan root the checker names to a reader is the one it is pinned to', () => {
+    assert.equal(
+      scanRootNamedByChecker(),
+      PINNED_ROOT,
+      'the checker reports a scan root other than the pinned one, so what it tells a reader and ' +
+        'what it actually reads can no longer be read as the same claim',
+    );
+  });
+
+  test('a moved root is detected rather than absorbed, in both directions', () => {
+    // The fail-open direction first, since it is the one nothing else catches.
+    const narrowed = 'const SKILLS_DIR = join(REPO_ROOT, ".github", "skills", "modeltree-gates");';
+    assert.deepEqual(skillsDirSegmentsFrom(narrowed), ['.github', 'skills', 'modeltree-gates']);
+    assert.notDeepEqual(skillsDirSegmentsFrom(narrowed), PINNED_SEGMENTS);
+    const widened = 'const SKILLS_DIR = join(REPO_ROOT, ".github");';
+    assert.deepEqual(skillsDirSegmentsFrom(widened), ['.github']);
+    assert.notDeepEqual(skillsDirSegmentsFrom(widened), PINNED_SEGMENTS);
+  });
+
+  test('an unrelated edit to the checker leaves the derived value alone', () => {
+    // The control #388 AC 3 asks for. An assertion that fired on every edit to
+    // the checker would be pinning the file rather than the constant, and would
+    // red on any honest change to it.
+    //
+    // Stated as a relationship between two derivations rather than against
+    // PINNED_SEGMENTS, deliberately: compared to the pinned value it would also
+    // red whenever the constant moved, which would make it a second copy of the
+    // pin above instead of a control on it. It has to stay green under exactly
+    // the mutation that reds the pin, and it does.
+    const source = sourceOf(SKILL_DOC_CHECK);
+    const lines = source.split('\n');
+    const at = lines.findIndex((line) => line.includes('const SKILLS_DIR = join('));
+    assert.notEqual(at, -1, 'the declaration this control edits around is not present');
+    // Comments directly above and directly below the declaration and nothing
+    // else: the most adversarial innocent edit available, because every line
+    // around the constant moves while the constant itself does not.
+    const innocent = [
+      ...lines.slice(0, at),
+      '// an unrelated comment directly above the declaration',
+      lines[at],
+      '// an unrelated comment directly below it',
+      ...lines.slice(at + 1),
+    ].join('\n');
+    // The control on the control: an innocent edit that edited nothing would
+    // prove nothing.
+    assert.notEqual(innocent, source, 'the innocent edit changed nothing, so this control proves nothing');
+    assert.deepEqual(
+      skillsDirSegmentsFrom(innocent),
+      skillsDirSegmentsFrom(source),
+      'an edit that never touched the SKILLS_DIR declaration changed the value derived from it',
+    );
+  });
+
+  test('the derivation reads the join arguments in order, in either quote style', () => {
+    assert.deepEqual(skillsDirSegmentsFrom('const SKILLS_DIR = join(REPO_ROOT, ".a", \'b\', "c");'), ['.a', 'b', 'c']);
+  });
+
+  test('the derivation fails closed rather than returning a value that could compare equal', () => {
+    assert.throws(
+      () => skillsDirSegmentsFrom('const OTHER_DIR = join(REPO_ROOT, ".github", "skills");'),
+      /no const SKILLS_DIR/,
+    );
+    assert.throws(
+      () => skillsDirSegmentsFrom('const SKILLS_DIR = join(HERE, ".github", "skills");'),
+      /not anchored at REPO_ROOT/,
+    );
+    assert.throws(() => skillsDirSegmentsFrom('const SKILLS_DIR = join(REPO_ROOT);'), /names no path segments/);
+    assert.throws(() => sourceOf(join(REPO, 'no', 'such', 'file.mjs')), /cannot read/);
+  });
+});
