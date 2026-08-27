@@ -877,10 +877,15 @@ def test_a_fence_indented_four_spaces_is_not_recognised(document):
     the test cannot pass merely because nothing was exempted anywhere.
     """
     indented = document("Example:\n\n    ```\n    #42\n    ```\n")
-    control = document("Example:\n\n```\n#42\n```\n")
+    indented_report = checker.check(indented, REPO_ROOT)
 
-    assert references(checker.check(indented, REPO_ROOT)) == {"#42"}
-    assert references(checker.check(control, REPO_ROOT)) == set()
+    assert references(indented_report) == {"#42"}
+
+    control = document("Example:\n\n```\n#42\n```\n")
+    control_report = checker.check(control, REPO_ROOT)
+
+    assert references(control_report) == set()
+    assert exemptions(control_report) == {"#42"}
 
 
 def test_an_indented_code_block_is_still_scanned(document):
