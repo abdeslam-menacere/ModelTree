@@ -1,0 +1,57 @@
+---
+import ModelCatalog from '../../components/ModelCatalog';
+import { dataset } from '../../data/dataset';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { buildCatalogIndex } from '../../lib/catalog';
+import { formatDate } from '../../lib/format';
+
+const base = import.meta.env.BASE_URL;
+const index = buildCatalogIndex(dataset, base);
+const { models, facets } = index;
+
+// A page per query combination would be unbounded, so the view is resolved from
+// the query string in the browser against this one prerendered page. Without
+// JavaScript the same records stay reachable through the static passport links
+// listed below.
+const firstModel = models[0];
+if (!firstModel) throw new Error('Model catalog requires at least one release');
+const passportHref = firstModel.route;
+---
+
+<BaseLayout
+  title="Model catalog | ModelTree"
+  description="Search and filter the full catalog of reviewed AI model releases by creator, family, category, modality, access, status, year, context tier, and price availability."
+  passportHref={passportHref}
+  verifiedAt={formatDate(index.latestVerifiedAt)}
+  currentPage="catalog"
+>
+  <main id="main-content" class="catalog-page">
+    <header class="catalog-intro">
+      <div>
+        <span class="eyebrow">Model directory</span>
+        <h1>Search the model catalog.</h1>
+      </div>
+      <p>
+        Filter {models.length} reviewed releases by creator, family, category, modality, access,
+        status, year, context tier, and whether a price is published. Every result links to its
+        source-backed Model Passport.
+      </p>
+    </header>
+
+    <ModelCatalog client:load models={models} facets={facets} />
+
+    <noscript>
+      <section class="catalog-noscript">
+        <h2>All reviewed releases</h2>
+        <p>Every release has a static Model Passport:</p>
+        <ul>
+          {models.map((model) => (
+            <li>
+              <a href={model.route}>{model.name}</a> — {model.organizationName} · {model.familyName}
+            </li>
+          ))}
+        </ul>
+      </section>
+    </noscript>
+  </main>
+</BaseLayout>
