@@ -423,9 +423,21 @@ const sectionNumber = (index: number) => String(index + 1).padStart(2, '0');
 </BaseLayout>
 
 <style>
-/* Page-scoped styles for /methodology. Kept in this component rather than global.css
-   so the page owns its own surface and does not edit shared chrome. Uses the
-   global --cp-* design tokens defined on :root. */
+/*
+ * Page-scoped styles for /methodology. DELIBERATE DEPARTURE FROM CONVENTION:
+ * every other page on `main` puts its rules in the shared web/src/styles/global.css.
+ * This page keeps its rules here instead, for two reasons:
+ *   1. Isolation — these `.method-*` rules are used by exactly one page and no
+ *      other surface, so scoping them to the component keeps global.css free of
+ *      single-use selectors and lets the page own its own surface.
+ *   2. Shared-chrome contention — appending to global.css at EOF collides with
+ *      other in-flight pages doing the same, whereas a scoped block does not
+ *      touch shared files at all.
+ * The rules are otherwise unchanged and still consume the global --cp-* design
+ * tokens defined on :root, so nothing about the visual system forks. If review
+ * prefers the established single-stylesheet convention, this block moves back to
+ * global.css verbatim with no other change.
+ */
 .method-page {
   padding-bottom: 80px;
 }
