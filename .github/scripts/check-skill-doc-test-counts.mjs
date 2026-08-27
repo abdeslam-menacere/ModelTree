@@ -41,8 +41,9 @@
 //   because accurate documentation of a forbidden pattern necessarily contains
 //   the forbidden pattern.
 //
-// `.github/workflows/README.md` documents this check by quoting the shapes it
-// refuses, so a scan that reached it would refuse the description of itself.
+// So long as `.github/workflows/README.md` documents this check by quoting the
+// shapes it refuses -- which is what that file is for -- a scan reaching it
+// would refuse the description of itself.
 // That is a constraint on this whole family of checks rather than a fault in
 // this one: the ADR 0005 overclaim scan in
 // `.github/skills/modeltree-gates/scripts/gates.test.mjs` is held to
@@ -50,26 +51,43 @@
 // same words. Two scanners, one rule, previously written down at neither.
 //
 // #316 weighed widening the root and decided against it, on measurement rather
-// than taste. Widened to that README, this check reported exactly two lines --
-// the `skills-ci.yml` row, which is the prose describing these rules, and one
-// sentence that really did state a suite total. Only the second was a defect,
-// and correcting it needed no wider scan: it has been corrected, so a widened
-// run would now report the documentation and nothing else.
+// than taste. Those measurements were taken at `743a2054`, and they are
+// recorded here as the evidence that settled the question -- never as claims
+// about what that README holds now. This check does not read it, which is the
+// whole decision, so nothing here could keep such a claim true and no run of
+// this check could catch it going stale.
 //
-// What that remaining false positive would cost is what settled it:
+// Pointed at that file, this check separated two kinds of line:
 //
-// - An exemption marker is line granular, and that row runs past a thousand
-//   characters of exactly the prose most likely to acquire a real count later.
-//   Exempting it would open the hole at the precise spot the widening was for.
-// - Exempting backticked spans instead does not even work here. Of the two
-//   illustrations on that row that fire, one is written in backticks and one in
-//   quotation marks, so the row stays red and the exemption buys nothing.
+// - The `skills-ci.yml` row: the prose describing these very rules, and so a
+//   permanent false positive by the constraint above. No edit retires it,
+//   because the row is doing its job.
+// - A sentence stating a suite total: a real defect, of exactly the kind this
+//   check refuses, and the one live argument for widening the root.
+//
+// #316 deliberately did not correct the second. It lay in a file this check
+// does not scan and several branches contend for, correcting it was not needed
+// to settle the scope question, and #316's acceptance criteria said as much
+// outright. It is written down here as a known gap rather than quietly closed,
+// and it belongs to a change of its own. A gap on the record is worth more
+// than a gap tidied away, because the record is what the next person reads.
+//
+// What the permanent false positive would cost is what settled the choice:
+//
+// - An exemption marker is line granular, and the row it would have to cover
+//   measured over a thousand characters -- of exactly the prose most likely to
+//   acquire a real count later. Exempting it would open the hole at the precise
+//   spot the widening was for.
+// - Exempting backticked spans instead does not reach it. Of the two
+//   illustrations on that row that fired, one was written in backticks and one
+//   in quotation marks, so the row stayed red and the exemption bought nothing.
 // - Rewriting the row to describe the rules without instancing them was the
 //   third option weighed. It trades a description a reader can check against
 //   this file for prose they cannot.
 //
 // Widening is permitted. Widening by accident is what this note exists to stop:
-// a change that moves the root has to answer the three points above first.
+// a change that moves the root has to answer the three points above first, and
+// has to re-measure rather than trust the observations recorded here.
 //
 // ## What is promised, in the words it should be checked against
 //
