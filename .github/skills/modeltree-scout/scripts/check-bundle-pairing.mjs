@@ -4,7 +4,7 @@
 // A source added to `sources.json` is only useful if some record cites it. The
 // dataset test `web/src/data/validate.test.ts` treats an unreferenced source as
 // dead provenance and refuses to load a dataset with one. That check is correct
-// and out of scope for this script (see #403); the point of this script is to
+// and out of scope for this script (see abdeslam-menacere/ModelTree#403); the point of this script is to
 // catch the same failure earlier — at bundle time, before review — so a scout
 // cannot ship a source-add claim without the paired `sourceIds` edit that wires
 // it into a record.

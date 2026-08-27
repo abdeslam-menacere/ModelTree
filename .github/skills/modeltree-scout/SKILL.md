@@ -119,7 +119,7 @@ For each creator, in this order:
     source id that is added but nothing in the same bundle cites. A non-zero
     exit means the bundle is unappliable as written — add the missing citation
     claim, or drop the source-add, and re-run. Never hand off a bundle the
-    check refused; that is the failure mode #403 exists to prevent.
+    check refused; that is the failure mode abdeslam-menacere/ModelTree#403 exists to prevent.
 
 One creator failing does not stop the others. Record the failure and continue.
 
