@@ -59,6 +59,46 @@ function issueLookup(script: string, label: string): string {
   return found[0].replace(/\\\n\s*/g, ' ').replace(/\s+/g, ' ');
 }
 
+/**
+ * The body of one arm of the scope step's `case`, so an assertion about a range
+ * endpoint is tied to the event whose data computes it: a substring check against
+ * the whole script passes just as well when the two arms are cross-wired.
+ *
+ * Throws rather than returning a best guess, like every other extractor above.
+ * This one guards which commits get verified at all, so it has to fail closed.
+ * `;&` and `;;&` are valid bash that fall through into the next arm, and an arm
+ * missing its terminator runs into the next one; in either case a slice that
+ * simply ran to the next `;;` would hand these assertions the values of a
+ * different event and pass. Rejecting a fall-through is deliberate even where
+ * bash allows it, because an arm that does more than its own body says is not
+ * something these assertions can describe.
+ */
+function caseArm(script: string, event: string): string {
+  const opened = script.indexOf(`${event})`);
+  const closed = script.indexOf('esac', opened);
+
+  if (opened === -1 || closed === -1) {
+    throw new Error(`Expected the scope step to handle ${event} inside a case statement`);
+  }
+
+  const terminator = script.slice(opened, closed).match(/;;&|;&|;;/);
+
+  if (terminator?.[0] !== ';;') {
+    throw new Error(
+      `Expected the ${event} arm to end in ';;', found ${terminator?.[0] ?? 'no terminator'}`,
+    );
+  }
+
+  const arm = script.slice(opened, opened + (terminator.index ?? 0));
+
+  // A terminator found beyond the next label is that arm's, not this one's.
+  if (/^[ \t]*[^\s)]+\)[ \t]*$/m.test(arm.slice(`${event})`.length))) {
+    throw new Error(`Expected the ${event} arm to end before the next arm begins`);
+  }
+
+  return arm;
+}
+
 /** Every `permissions:` block in a document, top level and per job. */
 function permissionBlocks(document: YamlMapping): YamlMapping[] {
   const blocks: YamlMapping[] = [];
@@ -227,17 +267,6 @@ describe('web-ci.yml scope detection', () => {
   const pattern = script.match(/grep -Eq '([^']+)'/)?.[1];
   const matchesPath = new RegExp(pattern ?? '(?!)');
 
-  /**
-   * One arm of the scope step's `case`, so an assertion about a range endpoint
-   * is tied to the event whose data computes it. A substring check against the
-   * whole script would also pass if the two arms were cross-wired.
-   */
-  const caseArm = (event: string): string => {
-    const start = script.indexOf(`${event})`);
-
-    return start === -1 ? '' : script.slice(start, script.indexOf(';;', start));
-  };
-
   it('greps for the paths that matter', () => {
     expect(pattern).toBeDefined();
   });
@@ -260,8 +289,8 @@ describe('web-ci.yml scope detection', () => {
       PR_HEAD_SHA: '${{ github.event.pull_request.head.sha }}',
       PUSH_BEFORE_SHA: '${{ github.event.before }}',
     });
-    expect(caseArm('push')).toContain('base="$PUSH_BEFORE_SHA"');
-    expect(caseArm('push')).toContain('head="$GITHUB_SHA"');
+    expect(caseArm(script, 'push')).toContain('base="$PUSH_BEFORE_SHA"');
+    expect(caseArm(script, 'push')).toContain('head="$GITHUB_SHA"');
   });
 
   // The env block above pins what the two pull request variables hold; this
@@ -271,8 +300,8 @@ describe('web-ci.yml scope detection', () => {
   // fail-safe above never fires, run=false, no build happens, and web-ci (the
   // only required check on main) reports green for an unverified commit.
   it('scopes a pull request to its base...head range, in that order', () => {
-    expect(caseArm('pull_request')).toContain('base="$PR_BASE_SHA"');
-    expect(caseArm('pull_request')).toContain('head="$PR_HEAD_SHA"');
+    expect(caseArm(script, 'pull_request')).toContain('base="$PR_BASE_SHA"');
+    expect(caseArm(script, 'pull_request')).toContain('head="$PR_HEAD_SHA"');
   });
 
   it('builds for any change under web/', () => {
@@ -307,9 +336,7 @@ describe('web-ci.yml scope detection', () => {
   });
 
   it('builds on a manual dispatch, which has no base to diff against', () => {
-    const branch = script.slice(script.indexOf('*)'));
-
-    expect(branch.slice(0, branch.indexOf(';;'))).toContain('run=true');
+    expect(caseArm(script, '*')).toContain('run=true');
   });
 });
 
