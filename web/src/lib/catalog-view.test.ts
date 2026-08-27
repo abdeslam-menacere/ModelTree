@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../data/validate';
 import { buildCatalogIndex } from './catalog';
-import type { CatalogFacets, CatalogIndex } from './catalog';
+import type { CatalogFacets, CatalogIndex, ModelIndexRow } from './catalog';
 import {
   activeFilters,
   CATALOG_PAGE_SIZE,
@@ -17,6 +17,7 @@ import {
   serializeCatalogState,
   toggleFilterValue,
   type CatalogViewState,
+  type FilterKey,
 } from './catalog-view';
 
 function release(
@@ -148,7 +149,7 @@ function makeIndex(overrides: Record<string, unknown> = {}): CatalogIndex {
         categories: ['image'],
         accessType: 'both',
         inputModalities: ['text', 'image'],
-        outputModalities: ['image'],
+        outputModalities: ['image', 'audio'],
         contextWindow: 2_000_000,
         license: { name: 'Llama-3', weightsDownloadable: true, osiApproved: false },
         verifiedAt: '2026-01-10',
@@ -299,6 +300,33 @@ describe('filterAndSortModels', () => {
     });
   }
 
+  // Hand-pinned expectations: the expected slug set for each dimension is a
+  // literal, NOT computed from `dimension.values` (the accessor under test).
+  // The loop above can only falsify the filter plumbing; a wrong `values`
+  // accessor — e.g. `modalities` reading input but not output modalities —
+  // stays green there because both sides use the same wrong function. These
+  // literals catch that class of fault. `modalities: 'audio'` in particular
+  // is carried only by an output modality, so it fails if outputs are dropped.
+  const PINNED_FILTER_CASES: ReadonlyArray<{ key: FilterKey; value: string; expected: string[] }> = [
+    { key: 'creators', value: 'alpha', expected: ['alpha-code', 'alpha-lang'] },
+    { key: 'families', value: 'beta-one', expected: ['beta-image', 'beta-legacy'] },
+    { key: 'categories', value: 'image', expected: ['beta-image', 'beta-legacy'] },
+    { key: 'modalities', value: 'audio', expected: ['beta-image'] },
+    { key: 'accessTypes', value: 'open-weight', expected: ['alpha-code'] },
+    { key: 'statuses', value: 'current', expected: ['alpha-lang', 'beta-image'] },
+    { key: 'releaseYears', value: '2025', expected: ['alpha-lang', 'beta-image'] },
+    { key: 'contextTiers', value: '1m-and-above', expected: ['beta-image'] },
+    { key: 'priceAvailability', value: 'published', expected: ['alpha-lang'] },
+  ];
+
+  for (const testCase of PINNED_FILTER_CASES) {
+    it(`selects the literal rows for "${testCase.key}=${testCase.value}"`, () => {
+      const state = stateWith({ filters: { [testCase.key]: [testCase.value] } as never });
+      const result = filterAndSortModels(rows, state);
+      expect(result.map((row) => row.slug).sort()).toEqual(testCase.expected);
+    });
+  }
+
   it('treats multiple values in one dimension as OR', () => {
     const state = stateWith({ filters: { accessTypes: ['open-weight', 'both'] } as never });
     const result = filterAndSortModels(rows, state);
@@ -325,6 +353,14 @@ describe('filterAndSortModels', () => {
     expect(filterAndSortModels(rows, stateWith({ search: 'two alpha' }))).toHaveLength(0);
     expect(filterAndSortModels(rows, stateWith({ search: 'Alpha Two' })).map((row) => row.slug))
       .toEqual(['alpha-code']);
+  });
+
+  it('matches search on the creator name alone, case-insensitively', () => {
+    // "Labs" appears only in the organization name "Alpha Labs" — not in any
+    // model name ("alpha-lang"/"alpha-code") or family name ("Alpha One"/"Two").
+    // So this isolates the creator-name clause of the search predicate.
+    expect(filterAndSortModels(rows, stateWith({ search: 'LABS' })).map((row) => row.slug).sort())
+      .toEqual(['alpha-code', 'alpha-lang']);
   });
 
   it('orders results by each supported sort', () => {
@@ -379,6 +415,25 @@ describe('deriveCatalogResults', () => {
     expect(CATALOG_PAGE_SIZE).toBeGreaterThan(0);
     const result = deriveCatalogResults(rows, defaultCatalogState(), facets);
     expect(result.pageRows.length).toBeLessThanOrEqual(CATALOG_PAGE_SIZE);
+  });
+
+  it('stays bounded and responsive on a fixture far larger than any page', () => {
+    const many: ModelIndexRow[] = Array.from({ length: 5_000 }, (_, i) => ({
+      ...rows[i % rows.length],
+      id: `bulk-${i}`,
+      slug: `bulk-${i}`,
+    }));
+
+    const started = performance.now();
+    const result = deriveCatalogResults(many, stateWith({ page: 3 }), facets, CATALOG_PAGE_SIZE);
+    const elapsedMs = performance.now() - started;
+
+    expect(result.total).toBe(5_000);
+    expect(result.pageCount).toBe(Math.ceil(5_000 / CATALOG_PAGE_SIZE));
+    expect(result.pageRows.length).toBe(CATALOG_PAGE_SIZE);
+    expect(result.page).toBe(3);
+    // Generous guard against an accidental super-linear regression, not a benchmark.
+    expect(elapsedMs).toBeLessThan(1_000);
   });
 });
 

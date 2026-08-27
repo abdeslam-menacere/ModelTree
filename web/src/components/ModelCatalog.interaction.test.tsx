@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -105,8 +107,18 @@ describe('ModelCatalog', () => {
     await waitFor(() => expect(screen.getByRole('status').textContent).toContain(String(total)));
   });
 
-  it('paginates with the keyboard, keeps focus, and stays bounded', async () => {
-    if (total <= CATALOG_PAGE_SIZE) return;
+  it('wraps the results table in a horizontally scrollable region for mobile overflow', async () => {
+    renderCatalog();
+    await waitFor(() => screen.getByRole('table'));
+
+    const scroll = screen.getByRole('table').closest('.catalog-table-scroll');
+    expect(scroll).not.toBeNull();
+
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/global.css'), 'utf8');
+    expect(css).toMatch(/\.catalog-table-scroll\s*\{[^}]*overflow-x:\s*auto/);
+  });
+
+  it.skipIf(total <= CATALOG_PAGE_SIZE)('paginates with the keyboard, keeps focus, and stays bounded', async () => {
     const user = userEvent.setup();
     renderCatalog();
     await waitFor(() => screen.getByRole('status'));
