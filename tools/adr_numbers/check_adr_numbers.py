@@ -1,4 +1,4 @@
-"""Refuse two ADRs that claim the same number.
+"""Refuse two ADRs that claim the same number, or one that misstates its own.
 
 Nothing in git notices this. #145 added
 `docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md`; #146's branch
@@ -75,10 +75,57 @@ Finding **no ADRs at all** is likewise a failure. A duplicate check that passes
 because it never located the directory's contents is the vacuous-pass defect in
 its purest form, so an empty result is reported as one.
 
-Validating ADR *content* is out of scope: this reads filenames only and never
-opens a decision record, so it cannot object to what one says. In particular it
-does not compare the number in the filename with the number in the `# ADR NNNN:`
-heading inside it.
+The number appears **twice per decision record** -- once in the filename and
+once in the `# ADR NNNN:` heading -- and until #286 nothing kept the two in
+sync. That is a hand-maintained mirror, the defect class this repository has
+been retiring, and its realistic trigger is the remedy this very checker
+prescribes: told to "renumber all but one of these", someone renames the file
+and does not touch the heading, so the fix for one ambiguity introduces another.
+The consequence is a duplicate's consequence, because no citation of an ADR in
+this repository resolves through a link. They are bare numbers, and a reader
+resolves one by looking for the record that says it is that number -- so a
+record that says the wrong number makes `ADR 0003` stop identifying one
+document just as surely as a second ADR 0003 would.
+
+So this checker now **opens each decision record and reads one line of it**.
+That is a real change of character, and it was chosen over the alternative --
+leave this tool filename-only and add a second one -- for this issue's own
+argument turned on itself: a second tool needs its own copy of the walk, the
+name pattern and above all `COMPANION_NAMES`, and two allowlists that have to
+agree is another hand-maintained mirror. One tool, one allowlist, one place to
+look. The cost is paid in this docstring, which no longer gets to claim the
+"never opens a decision record" property it used to state here.
+
+What is read is the **first ATX H1 in the document**, which must be
+`# ADR NNNN:` carrying the same four ASCII digits the filename does. Precisely
+that, and each qualification closes a silent skip:
+
+- The *first* H1, not any matching line anywhere in the file. A record whose
+  opening heading is wrong is not rescued by citing the right number further
+  down, and a search-anywhere rule would let it be.
+- Lines inside a fenced code block are not headings. An example `# ADR 0003:`
+  quoted in a fence is not the document's own claim, and reporting it as one
+  would be a refusal that misstates what the file says -- the failure this
+  module keeps finding elsewhere.
+- ASCII `[0-9]{4}`, for the reason `ADR_NAME_RE` spells it that way: `\\d` in a
+  `str` pattern is the whole Unicode `Nd` category. `# ADR 3:` is therefore
+  *unreadable* rather than a mismatch, because admitting a second spelling of
+  the number is how a mirror starts drifting.
+- A record with **no readable heading is refused, not skipped** -- the rule the
+  filename branch already follows, for the reason given there: a check that
+  quietly declines to examine what it was pointed at is worse than no check.
+- A file whose bytes are not UTF-8, or that cannot be opened at all, is a
+  reported problem rather than a traceback out of the codec. Same discipline as
+  the unprintable-report refusal below: the operator is told the situation.
+
+A record whose heading disagrees is **still admitted to the duplicate check**
+under its filename's number. Withholding it would let a mismatch hide a
+collision, which is the failure this file exists to prevent. A file can be wrong
+about itself and contested by another file at the same time, and both are said.
+
+Everything else a decision record contains stays out of scope. This reads one
+heading, not the prose: the required sections, the metadata list and the status
+are not checked, and an ADR may still say anything it likes below its title.
 
 Two things about a *name* can stop the report being read as what it is, and both
 are settled where a name becomes report text rather than where the report is
@@ -189,6 +236,35 @@ ADR_NAME_RE = re.compile(r"^([0-9]{4})-.+\Z")
 # one: it is a decision record, and allowlisting it would exempt it for good.
 NON_ASCII_NUMBER_RE = re.compile(r"^(\d{4})-.+\Z")
 
+# The heading a decision record must open with. Four ASCII digits again, and
+# `[0-9]` rather than `\d` for the reason spelled out above -- a fullwidth or
+# Arabic-Indic `0003` in a heading reads as ADR 3 to a person and matches no
+# filename's number, which is the same trap in a second place.
+#
+# Up to three leading spaces and at least one space or tab after the `#`,
+# because that is what an ATX heading is; `#Heading` is not one.
+ADR_HEADING_RE = re.compile(r"^ {0,3}#[ \t]+ADR[ \t]+([0-9]{4})[ \t]*:")
+
+# Any ATX H1 -- the one line `ADR_HEADING_RE` is asked about. A bare `#` is an
+# empty H1 and matches here, so a document opening with one is refused for
+# stating no readable number rather than quietly passed over in favour of some
+# later heading. `##` is an H2 and `#word` is not a heading at all; neither
+# matches, so neither can stand in for the title line.
+H1_RE = re.compile(r"^ {0,3}#(?:[ \t]|\Z)")
+
+# A fenced code block delimiter, opening or closing. Lines inside a fence are
+# not headings, so an example `# ADR 0003:` shown in one cannot be read as the
+# document's own claim and reported as a disagreement with a number the file
+# never asserted.
+FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
+
+# How much of an unreadable heading a refusal quotes back. A heading is one
+# line and a Markdown file may be one very long line, so without a limit a
+# single malformed document floods the report an operator has to read. Clipping
+# is marked with a trailing "..." so a truncated quote cannot be mistaken for
+# the whole of what the file says.
+HEADING_QUOTE_LIMIT = 120
+
 # Markdown files a decision-record directory legitimately carries that are not
 # decision records. Compared case-insensitively; every match is named in the
 # output, so an exemption is never invisible.
@@ -233,6 +309,30 @@ def spelled(text: str) -> str:
     that call it cannot disagree about a name they both handle.
     """
     return _as_codepoints(text, UNRENDERABLE_RE.match)
+
+
+def quoted(text: str) -> str:
+    """`text` as report-safe text: outside printable ASCII spelled, then clipped.
+
+    A third boundary, and a different question from the two above. `spelled()`
+    asks what a *name* may do to the report and `carried()` asks what a *stream*
+    can take; this one asks how to quote a line **out of a document** back to
+    the reader in a refusal about that line.
+
+    Every character outside printable ASCII, not just the line enders, because
+    the character that makes a heading unreadable is very often one that looks
+    like an ordinary digit: a fullwidth or Arabic-Indic `0003` is
+    indistinguishable from `0003` in most editors, so quoting it as itself would
+    produce a refusal that says the number in the heading is not the number in
+    the heading. Spelled, the reader sees the codepoints and the message
+    explains itself.
+
+    Strictly wider than `spelled()` -- every line ender is outside printable
+    ASCII -- so a quoted heading cannot forge a report line either.
+    """
+    clipped = text[:HEADING_QUOTE_LIMIT]
+    shown = _as_codepoints(clipped, lambda char: not (" " <= char <= "~"))
+    return f"{shown}..." if len(text) > HEADING_QUOTE_LIMIT else shown
 
 
 def carried(text: str, encoding: str | None) -> str:
@@ -280,13 +380,19 @@ class Adr:
     path: str
 
 
-# The four diagnoses this checker can reach, named once. `Problem.kind` is the
+# The seven diagnoses this checker can reach, named once. `Problem.kind` is the
 # label the report prints and the label a test selects on, and spelling either
 # of them by hand at a call site is how the two drift apart.
 DUPLICATE = "DUPLICATE"
 UNNUMBERED = "UNNUMBERED"
 NON_ASCII_NUMBER = "NON-ASCII NUMBER"
 EMPTY = "EMPTY"
+# The three from #286, all about what a record says its own number is. Kept
+# distinct rather than folded together because they take different repairs:
+# edit one of the two numbers, add a heading, or fix the file itself.
+HEADING_MISMATCH = "HEADING MISMATCH"
+UNREADABLE_HEADING = "UNREADABLE HEADING"
+UNREADABLE_FILE = "UNREADABLE FILE"
 
 
 @dataclass(frozen=True)
@@ -295,9 +401,12 @@ class Problem:
 
     `kind` is which refusal this is, `number` the ADR number it concerns (the
     contested one for a `DUPLICATE`, the number a non-ASCII name *reads* as for
-    a `NON-ASCII NUMBER`, and None where no number could be read at all),
-    `paths` the files the diagnosis is about, and `message` the sentence that
-    explains it. A test asserts against those fields; nothing in them is
+    a `NON-ASCII NUMBER`, the number the *filename* claims for the three
+    heading diagnoses, and None where no number could be read at all),
+    `heading_number` the number the document's own heading states -- set only
+    for a `HEADING MISMATCH`, which is the one diagnosis about two numbers at
+    once -- `paths` the files the diagnosis is about, and `message` the sentence
+    that explains it. A test asserts against those fields; nothing in them is
     reachable from the inventory `Report.render()` prints above the problems
     block, which is the entire point of holding them this way.
 
@@ -306,6 +415,12 @@ class Problem:
     says so in a sentence. Its stated count is `len(self.paths)`, computed here
     rather than carried, so the count and the list are the same fact rendered
     twice and cannot disagree.
+
+    `HEADING MISMATCH` gets its sentence built here for the same reason, from
+    `number` and `heading_number` rather than from a string composed at the call
+    site: a message that states one pair of numbers over a record holding
+    another is then not a thing this code can express. `message` carries only
+    the advice.
 
     Paths and the number are spelled on the way out for the reason `Adr.path`
     is: both are `str`, so a caller may put a line ender in one, and `render()`
@@ -318,6 +433,7 @@ class Problem:
     message: str
     number: str | None = None
     paths: tuple[str, ...] = ()
+    heading_number: str | None = None
 
     def render(self) -> str:
         if self.kind == DUPLICATE:
@@ -328,6 +444,13 @@ class Problem:
                     *(f"      {spelled(path)}" for path in self.paths),
                     f"      {self.message}",
                 ]
+            )
+        if self.kind == HEADING_MISMATCH:
+            return (
+                f"  {self.kind}: "
+                f"{spelled(self.paths[0] if self.paths else '')} is filed as "
+                f"ADR {spelled(self.number or '')} and its heading says ADR "
+                f"{spelled(self.heading_number or '')}. {self.message}"
             )
         return f"  {self.kind}: {self.message}"
 
@@ -388,7 +511,7 @@ class Report:
             lines.append("")
             lines.append(
                 f"OK: {len(self.adrs)} ADRs, every number claimed by exactly "
-                "one file."
+                "one file, every heading agreeing with its filename."
             )
         return "\n".join(lines)
 
@@ -417,6 +540,128 @@ def display(path: Path, *bases: Path) -> str:
     else:
         shown = resolved.as_posix()
     return spelled(shown)
+
+
+HEADING_ADVICE = (
+    "An ADR is cited as a bare `ADR NNNN`, resolved by looking for the record "
+    "that says it is that number, so the filename and the heading have to "
+    "agree. Edit whichever of the two is wrong."
+)
+
+
+def first_heading(text: str) -> str | None:
+    """The document's first ATX H1, or None when it has none.
+
+    Fenced code blocks are skipped: a fence opens on a run of at least three
+    backticks or tildes and closes on a run of the same character at least as
+    long, which is CommonMark's rule and enough to keep an example heading out
+    of the answer. An unclosed fence swallows the rest of the file, exactly as
+    a Markdown renderer would -- so a document that opens a fence and never
+    shuts it has no readable heading, and is refused rather than credited with
+    whatever line happens to follow.
+    """
+    fence = ""
+    for line in text.splitlines():
+        marker = FENCE_RE.match(line)
+        delimiter = marker.group(1) if marker is not None else ""
+        if fence:
+            if (
+                delimiter
+                and delimiter[0] == fence[0]
+                and len(delimiter) >= len(fence)
+            ):
+                fence = ""
+            continue
+        if delimiter:
+            fence = delimiter
+            continue
+        if H1_RE.match(line):
+            return line.rstrip()
+    return None
+
+
+def read_failure(error: Exception) -> str:
+    """A short, printable reason a decision record could not be read.
+
+    `UnicodeDecodeError` carries `reason` ("invalid start byte") and `OSError`
+    carries `strerror` ("Permission denied"); both are worth having and neither
+    is worth a traceback. Quoted, because `strerror` is text the operating
+    system chose and may hold anything -- including a line ender, which would
+    let the filesystem's error message forge a report line.
+    """
+    reason = getattr(error, "reason", None) or getattr(error, "strerror", None)
+    name = type(error).__name__
+    return quoted(f"{name}: {reason}" if reason else name)
+
+
+def heading_problem(path: Path, shown: str, number: str) -> Problem | None:
+    """What `path` gets wrong about its own number, or None when it agrees.
+
+    `shown` is the already-displayed path, so the message names the file the
+    way every other message in this report names one, and `number` is what the
+    filename claims. Returning None is the whole of "this record is consistent";
+    there is no separate success value to keep in step with it.
+    """
+    try:
+        # utf-8-sig, not utf-8: a byte-order mark left by a Windows editor sits
+        # in front of the `#` and would turn a perfectly correct record into an
+        # unreadable one, which is a refusal about the checker rather than
+        # about the file.
+        text = path.read_text(encoding="utf-8-sig")
+    except (OSError, UnicodeDecodeError) as error:
+        return Problem(
+            kind=UNREADABLE_FILE,
+            number=number,
+            paths=(shown,),
+            message=(
+                f"{shown} is named as a decision record but could not be read "
+                f"as UTF-8 text ({read_failure(error)}), so the number in its "
+                f"heading cannot be compared with the ADR {number} its name "
+                "claims. Reported rather than skipped: a file this check could "
+                "not open is not a file this check has cleared."
+            ),
+        )
+    heading = first_heading(text)
+    if heading is None:
+        return Problem(
+            kind=UNREADABLE_HEADING,
+            number=number,
+            paths=(shown,),
+            message=(
+                f"{shown} contains no `# ` heading at all, so it states no "
+                f"number of its own to check against the ADR {number} its "
+                f"filename claims. Give it a `# ADR {number}: Title` heading. "
+                "Refused rather than skipped, because a record that never says "
+                "which decision it is leaves its number resting on the "
+                "filename alone -- the single point of failure this check "
+                "exists to remove."
+            ),
+        )
+    found = ADR_HEADING_RE.match(heading)
+    if found is None:
+        return Problem(
+            kind=UNREADABLE_HEADING,
+            number=number,
+            paths=(shown,),
+            message=(
+                f"{shown} opens with `{quoted(heading)}`, which carries no "
+                f"`# ADR NNNN:` number, so nothing in it can be checked "
+                f"against the ADR {number} its filename claims. The heading "
+                f"has to read `# ADR {number}: Title`, with four ASCII digits "
+                "0-9. Any character in the quoted heading outside printable "
+                "ASCII is spelled by codepoint, because a digit from another "
+                "script reads as an ASCII one and matches nothing."
+            ),
+        )
+    if found.group(1) != number:
+        return Problem(
+            kind=HEADING_MISMATCH,
+            number=number,
+            heading_number=found.group(1),
+            paths=(shown,),
+            message=HEADING_ADVICE,
+        )
+    return None
 
 
 def check(directory: Path, base: Path = REPO_ROOT) -> Report:
@@ -499,7 +744,16 @@ def check(directory: Path, base: Path = REPO_ROOT) -> Report:
                 )
             )
             continue
-        report.adrs.append(Adr(number=match.group(1), path=shown))
+        number = match.group(1)
+        report.adrs.append(Adr(number=number, path=shown))
+        # Recorded *as well as* admitting the file above, never instead of it.
+        # A record that misstates its own number is still a claim on the number
+        # in its filename, so withholding it here would let a mismatch hide a
+        # collision -- one file quietly dropped out of the bucket its name puts
+        # it in, and the duplicate it was contesting reported as unique.
+        mismatch = heading_problem(path, shown, number)
+        if mismatch is not None:
+            report.problems.append(mismatch)
 
     report.adrs.sort(key=lambda adr: (adr.number, adr.path))
 

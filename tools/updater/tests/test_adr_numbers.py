@@ -53,6 +53,21 @@ The two `render()` pins that remain,
 because the text is what the workflow shows a reader and restructuring how a
 problem is *held* must not move it.
 
+`the record's own number` is #286, and it is where this file stops being about
+filenames alone. An ADR's number lives in the filename *and* in the
+`# ADR NNNN:` heading, with nothing keeping the two in step -- a hand-maintained
+mirror whose realistic trigger is the advice this very checker gives, to
+renumber one of a colliding pair. Every test in that section asserts a refusal
+or names the one file diagnosed; none asserts that a correct record still
+passes, because that is satisfied by a checker which reads no heading at all.
+Where one has to show something is *not* diagnosed -- a `# ADR 0003:` quoted
+inside a code fence, a byte-order mark in front of the `#` -- a genuinely
+mismatched record sits beside it as the control, so the test cannot go green by
+the heading check having quietly stopped running. `adr_dir` derives each
+fixture's heading from its own filename for the same reason: a fixture built to
+exercise the duplicate rule then stays silent about headings by construction,
+and a test that wants the two to disagree writes that file itself.
+
 The last two sections are #303, and both are about output that misstates what
 happened rather than about the duplicate rule. A filename holding a newline used
 to claim a line of the report and put a forged `OK:` above the genuine `FAIL:`;
@@ -116,8 +131,18 @@ checker = _load_checker()
 
 @pytest.fixture()
 def adr_dir(tmp_path):
-    """Build a directory of ADR files. Names only -- the checker never reads
-    a decision record's contents, so a one-line body is enough."""
+    """Build a directory of ADR files, each opening with the heading its own
+    name implies.
+
+    The checker reads the first heading of every decision record since #286, so
+    a file whose name says ADR 0001 has to say `# ADR 0001:` inside or every
+    test in this file would trip the heading refusal instead of the behaviour it
+    means to pin. The heading is *derived from the name* rather than passed in,
+    so a fixture built to exercise the duplicate rule stays silent about
+    headings by construction and cannot drift out of agreement with itself. A
+    test that wants the two to disagree writes that file itself, which is what
+    the heading section below does.
+    """
 
     def build(*names: str) -> Path:
         directory = tmp_path / "adr"
@@ -125,10 +150,27 @@ def adr_dir(tmp_path):
         for name in names:
             target = directory / name
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(f"# {name}\n", encoding="utf-8")
+            target.write_text(adr_body(name), encoding="utf-8")
         return directory
 
     return build
+
+
+def adr_body(name: str) -> str:
+    """The contents a file called `name` needs in order to be a sound ADR.
+
+    A well-formed heading when the name carries an ASCII ADR number, and a plain
+    one otherwise -- `README.md`, `0001-diagram.png` and a name whose digits are
+    fullwidth are all deliberately not decision records, and giving them an
+    `# ADR NNNN:` heading would state a claim the test is asserting they do not
+    make. The number is taken from the checker's own `ADR_NAME_RE`, so the
+    fixture admits exactly the files the checker admits.
+    """
+    stem = Path(name).stem
+    match = checker.ADR_NAME_RE.match(stem)
+    if Path(name).suffix.lower() == ".md" and match is not None:
+        return f"# ADR {match.group(1)}: {stem}\n"
+    return f"# {name}\n"
 
 
 def numbers(report) -> set[str]:
@@ -386,11 +428,22 @@ def test_a_gap_is_not_a_failure(adr_dir):
     assert report.ok, report.render()
 
 
-def test_the_number_inside_the_document_is_never_read(adr_dir):
-    """Filenames only. Content validation is a different check and a different
-    decision, and this one must not start making claims about prose."""
+def test_prose_below_the_heading_is_still_not_read(adr_dir):
+    """The boundary of #286. One heading is read; the rest of the record is not.
+
+    This replaces `test_the_number_inside_the_document_is_never_read`, which
+    asserted that a file named `0002-b.md` saying `# ADR 0001:` was fine. That
+    was the behaviour #286 removed, so the test had to go with it -- but the
+    limit it was guarding still exists one level in, and something has to hold
+    it. A decision record may say anything it likes below its title, including
+    citing other ADRs by number, and none of it is the checker's business.
+    """
     directory = adr_dir("0001-a.md")
-    (directory / "0002-b.md").write_text("# ADR 0001: mislabelled\n", encoding="utf-8")
+    (directory / "0002-b.md").write_text(
+        "# ADR 0002: correct heading\n\nThis record supersedes ADR 0001 and\n"
+        "## ADR 0009: is not one\n",
+        encoding="utf-8",
+    )
 
     report = checker.check(directory, REPO_ROOT)
 
@@ -521,7 +574,9 @@ def test_an_adr_named_directory_containing_a_collision_still_fails(adr_dir):
     directory = adr_dir("0003-real-decision.md")
     decoy = directory / "0003-decoy.md"
     decoy.mkdir()
-    (decoy / "0003-inside.md").write_text("# inside\n", encoding="utf-8")
+    (decoy / "0003-inside.md").write_text(
+        adr_body("0003-inside.md"), encoding="utf-8"
+    )
 
     report = checker.check(directory, REPO_ROOT)
 
@@ -567,7 +622,9 @@ def test_the_cli_exits_one_on_a_collision_inside_an_adr_named_directory(
     directory = adr_dir("0003-real-decision.md")
     decoy = directory / "0003-decoy.md"
     decoy.mkdir()
-    (decoy / "0003-inside.md").write_text("# inside\n", encoding="utf-8")
+    (decoy / "0003-inside.md").write_text(
+        adr_body("0003-inside.md"), encoding="utf-8"
+    )
 
     assert checker.main([str(directory)]) == 1
     out = capsys.readouterr().out
@@ -765,6 +822,387 @@ def test_a_non_markdown_suffix_is_still_not_an_adr(adr_dir):
     ]
 
 
+# --- the record's own number -------------------------------------------------
+#
+# #286. An ADR's number lives in two places -- the filename and the
+# `# ADR NNNN:` heading -- and nothing kept them in sync. That is a
+# hand-maintained mirror whose realistic trigger is this checker's own advice to
+# renumber a colliding file: the remedy for one ambiguity introduces another.
+#
+# Every test below asserts a *refusal* or names the one file diagnosed. None of
+# them asserts that a correct record still passes, because that is satisfied by
+# a checker which reads no heading at all -- the state these tests exist to
+# leave behind. Where a test has to show something is *not* diagnosed, a
+# genuinely broken file sits beside it as the control, so the test cannot go
+# green by the heading check having quietly stopped running.
+
+
+# A filename and a heading that disagree, left as a half-finished renumber
+# leaves them: the file was renamed 0003 -> 0007 and the heading was not.
+RENUMBERED = "0007-renamed-but-not-inside.md"
+STALE_HEADING = "# ADR 0003: Left behind by a renumber\n"
+
+
+def write(directory: Path, name: str, body: str) -> Path:
+    """One decision record with a body the `adr_dir` fixture would not produce.
+
+    The fixture derives every heading from the filename, which is what keeps the
+    rest of this file silent about headings. A test in this section is about the
+    two disagreeing, so it has to write the body itself.
+    """
+    target = directory / name
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(body, encoding="utf-8")
+    return target
+
+
+def mismatch(report):
+    """The one HEADING MISMATCH record on `report`.
+
+    Asserting there is exactly one is kept from `duplicate()` above and for the
+    same reason: two records for one file would let a test pick whichever
+    happened to agree with it.
+    """
+    found = problems_of(report, checker.HEADING_MISMATCH)
+    assert len(found) == 1, (
+        f"expected exactly one HEADING MISMATCH record, found {len(found)}:\n"
+        f"{report.render()}"
+    )
+    return found[0]
+
+
+def test_a_heading_that_disagrees_with_the_filename_fails(adr_dir):
+    """The defect stated directly. If this passes, #286 is not closed."""
+    directory = adr_dir("0001-a.md")
+    write(directory, RENUMBERED, STALE_HEADING)
+
+    report = checker.check(directory, REPO_ROOT)
+
+    assert not report.ok, report.render()
+    assert mismatch(report).paths == (RENUMBERED,)
+
+
+def test_the_mismatch_record_carries_both_numbers_and_the_path(adr_dir):
+    """Criterion 1: both values and the path, asserted on the record.
+
+    Structurally rather than through the rendered text, for the reason the
+    DUPLICATE assertions are: `render()` lists every examined ADR above the
+    problems block, so `"0007" in report.render()` is answered by the inventory
+    whatever the diagnosis says. `number` and `heading_number` *are* the
+    diagnosis and the inventory is not reachable from them.
+
+    Both expected values are literals, so a mutation cannot move both sides of
+    a comparison at once.
+    """
+    directory = adr_dir("0001-a.md")
+    write(directory, RENUMBERED, STALE_HEADING)
+
+    problem = mismatch(checker.check(directory, REPO_ROOT))
+
+    assert problem.number == "0007"
+    assert problem.heading_number == "0003"
+    assert problem.paths == (RENUMBERED,)
+
+
+def test_the_mismatch_renders_the_line_the_workflow_prints(adr_dir):
+    """The text pin, spelled in full for the reason the DUPLICATE one is:
+    `render()` is what `.github/workflows/adr-numbers.yml` puts in front of
+    whoever opens the failed job, and both numbers have to survive into it.
+
+    They are interpolated from the record's own fields rather than from a
+    sentence composed at the call site, so a line stating one pair of numbers
+    over a record holding another is unrepresentable rather than merely
+    untested -- the property `Problem.render()` already gives "claimed by N
+    files".
+    """
+    directory = adr_dir("0001-a.md")
+    write(directory, RENUMBERED, STALE_HEADING)
+
+    rendered = mismatch(checker.check(directory, REPO_ROOT)).render()
+
+    assert rendered == (
+        f"  HEADING MISMATCH: {RENUMBERED} is filed as ADR 0007 and its "
+        "heading says ADR 0003. An ADR is cited as a bare `ADR NNNN`, "
+        "resolved by looking for the record that says it is that number, so "
+        "the filename and the heading have to agree. Edit whichever of the "
+        "two is wrong."
+    )
+    assert len(rendered.splitlines()) == 1
+
+
+def test_a_mismatch_does_not_hide_a_collision(adr_dir):
+    """A record that misstates its own number is still a claim on the number in
+    its name.
+
+    Withholding it from the duplicate bucket would be this module's own silent
+    skip wearing a new hat: the file drops out of the collision check and the
+    duplicate it was contesting gets reported as unique. Both diagnoses, not one
+    instead of the other -- so the DUPLICATE has to name *both* files.
+    """
+    directory = adr_dir("0003-real-decision.md")
+    write(directory, "0003-also-real.md", "# ADR 0004: wrong about itself\n")
+
+    report = checker.check(directory, REPO_ROOT)
+
+    assert duplicate(report, "0003").paths == (
+        "0003-also-real.md",
+        "0003-real-decision.md",
+    )
+    assert numbers_reported(report) == {"0003"}
+    assert mismatch(report).paths == ("0003-also-real.md",)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "",
+        "no heading at all, just prose\n",
+        "## ADR 0008: an H2 is not the title\n",
+        "# Static-First Architecture\n",
+        "# ADR 8: too few digits\n",
+        "# ADR 00008: too many digits\n",
+        "# ADR0008: no space after ADR\n",
+        "#ADR 0008: no space after the hash\n",
+        "#\n",
+    ],
+)
+def test_a_record_whose_heading_states_no_number_is_refused(adr_dir, body):
+    """Criterion 2, and the rule the filename branch already follows.
+
+    A check that quietly declines to examine the file it was pointed at is
+    worse than no check. Every body here leaves the number resting on the
+    filename alone, which is the single point of failure #286 is about, and
+    several of them -- `# ADR 8:` especially -- read as a number to a person
+    while matching nothing. Refusing a second spelling of the number is
+    deliberate: admitting one is how a mirror starts drifting.
+    """
+    directory = adr_dir("0001-a.md")
+    write(directory, "0008-x.md", body)
+
+    report = checker.check(directory, REPO_ROOT)
+    refusals = problems_of(report, checker.UNREADABLE_HEADING)
+
+    assert not report.ok, report.render()
+    assert [problem.paths for problem in refusals] == [("0008-x.md",)]
+
+
+def test_the_unreadable_heading_refusal_names_the_number_to_write(adr_dir):
+    """A refusal a reader cannot act on sends them somewhere else. The number
+    is already known -- it is in the filename -- so the message spells the
+    heading that would fix it rather than describing the shape in the abstract.
+    """
+    directory = adr_dir("0001-a.md")
+    write(directory, "0008-x.md", "# Not a numbered title\n")
+
+    refusals = problems_of(
+        checker.check(directory, REPO_ROOT), checker.UNREADABLE_HEADING
+    )
+
+    assert [problem.paths for problem in refusals] == [("0008-x.md",)]
+    assert "# ADR 0008: Title" in refusals[0].message
+
+
+@pytest.mark.parametrize("script", sorted(NON_ASCII_0003))
+def test_a_heading_number_in_another_script_is_spelled_by_codepoint(
+    adr_dir, script
+):
+    """The filename trap in its second location, and why the quote is spelled.
+
+    A fullwidth `0003` is not distinguishable from ASCII `0003` in most
+    editors, so a refusal quoting the heading as itself reads as "0003 is not
+    0003" and sends the reader looking for a checker bug. Asserted on the
+    codepoints *and* on the glyphs being gone, which is the only form that can
+    tell the two apart -- an assertion that the message merely mentions the file
+    passes whether the quote was spelled or not.
+    """
+    digits = NON_ASCII_0003[script]
+    directory = adr_dir("0001-a.md")
+    write(directory, "0003-x.md", f"# ADR {digits}: impostor\n")
+
+    refusals = problems_of(
+        checker.check(directory, REPO_ROOT), checker.UNREADABLE_HEADING
+    )
+
+    assert [problem.paths for problem in refusals] == [("0003-x.md",)]
+    assert all(f"U+{ord(char):04X}" in refusals[0].message for char in digits)
+    assert digits not in refusals[0].message
+
+
+def test_an_example_heading_in_a_code_fence_is_not_the_records_own_claim(
+    adr_dir,
+):
+    """A `# ADR 0003:` shown inside a fence is an example, not a claim.
+
+    Reported as a disagreement it would be a refusal that misstates what the
+    file says, which is the failure this module keeps finding elsewhere. The
+    genuinely mismatched file beside it is the control: without it this test
+    goes green against a checker that reads no headings at all.
+    """
+    directory = adr_dir("0001-a.md")
+    write(
+        directory,
+        "0002-quotes-an-example.md",
+        "```md\n# ADR 0003: an example\n```\n\n# ADR 0002: the real heading\n",
+    )
+    write(directory, RENUMBERED, STALE_HEADING)
+
+    report = checker.check(directory, REPO_ROOT)
+
+    assert mismatch(report).paths == (RENUMBERED,)
+    assert [problem.paths for problem in report.problems] == [(RENUMBERED,)]
+
+
+def test_a_fence_that_is_never_closed_leaves_no_heading(adr_dir):
+    """An unclosed fence swallows the rest of the file, exactly as a Markdown
+    renderer would. Giving up on the fence and taking the next `# ` line
+    instead would credit the record with a heading its own renderer never
+    shows."""
+    directory = adr_dir("0001-a.md")
+    write(directory, "0002-unclosed.md", "```\n# ADR 0002: inside a fence\n")
+
+    report = checker.check(directory, REPO_ROOT)
+    refusals = problems_of(report, checker.UNREADABLE_HEADING)
+
+    assert [problem.paths for problem in refusals] == [("0002-unclosed.md",)]
+
+
+def test_a_correct_heading_further_down_does_not_rescue_a_wrong_first_one(
+    adr_dir,
+):
+    """The *first* H1, not any matching line in the file.
+
+    A search-anywhere rule would let a record whose title states the wrong
+    number pass on the strength of citing the right one in its prose -- and the
+    title is what a reader sees.
+    """
+    directory = adr_dir("0001-a.md")
+    write(
+        directory,
+        "0002-b.md",
+        "# ADR 0009: the title\n\n# ADR 0002: mentioned lower down\n",
+    )
+
+    problem = mismatch(checker.check(directory, REPO_ROOT))
+
+    assert problem.paths == ("0002-b.md",)
+    assert problem.heading_number == "0009"
+
+
+def test_a_numbered_heading_below_an_unnumbered_title_does_not_rescue_it(
+    adr_dir,
+):
+    """The other half of "the *first* H1", and the half that actually
+    distinguishes the rule from a search-anywhere one.
+
+    Its sibling above pins a first heading carrying the *wrong* number -- which
+    a rule scanning for any `# ADR NNNN:` line finds first too, so that test
+    cannot tell the two rules apart and a mutation swapping them survives it.
+    Here the title carries no number at all and the matching one sits below:
+    under "first H1" the record is refused, under "any matching line" it passes
+    clean. Only this shape separates them, and it is the realistic one -- a
+    record retitled in prose while a stale `# ADR NNNN:` lingers further down.
+    """
+    directory = adr_dir("0001-a.md")
+    write(
+        directory,
+        "0002-b.md",
+        "# The Title Of This Decision\n\n# ADR 0002: only mentioned here\n",
+    )
+
+    report = checker.check(directory, REPO_ROOT)
+    refusals = problems_of(report, checker.UNREADABLE_HEADING)
+
+    assert not report.ok, report.render()
+    assert [problem.paths for problem in refusals] == [("0002-b.md",)]
+
+
+def test_a_byte_order_mark_does_not_make_a_correct_record_unreadable(adr_dir):
+    """A Windows editor leaves a BOM in front of the `#`.
+
+    Read as plain UTF-8 that codepoint sits where the heading marker should be
+    and turns a perfectly correct decision record into a refusal -- a complaint
+    about the checker in the costume of a complaint about the file. The
+    mismatched record beside it is the control, so this cannot pass by the
+    heading check having stopped working.
+    """
+    directory = adr_dir("0001-a.md")
+    write(directory, "0002-bom.md", "\ufeff# ADR 0002: with a byte order mark\n")
+    write(directory, RENUMBERED, STALE_HEADING)
+
+    report = checker.check(directory, REPO_ROOT)
+
+    assert [problem.paths for problem in report.problems] == [(RENUMBERED,)]
+
+
+def test_a_record_that_is_not_utf8_is_reported_rather_than_crashing(adr_dir):
+    """`read_text` raises `UnicodeDecodeError` on these bytes, and a traceback
+    out of the codec tells the operator about this checker and `codecs.py`
+    rather than about the decision record that could not be read.
+
+    The same refuse-don't-crash discipline the unprintable-report path already
+    follows, and reported rather than skipped for the same reason everything
+    else here is: a file the check could not open is not a file it has cleared.
+    """
+    directory = adr_dir("0001-a.md")
+    (directory / "0002-latin1.md").write_bytes(b"# ADR 0002: caf\xe9\n")
+
+    report = checker.check(directory, REPO_ROOT)
+    refusals = problems_of(report, checker.UNREADABLE_FILE)
+
+    assert not report.ok, report.render()
+    assert [problem.paths for problem in refusals] == [("0002-latin1.md",)]
+    assert "UnicodeDecodeError" in refusals[0].message
+
+
+def test_a_very_long_unreadable_heading_is_clipped(adr_dir):
+    """A Markdown file may be one very long line, and a refusal quoting the
+    whole of it floods the report an operator has to read. Clipped, and marked
+    as clipped, so a truncated quote cannot be taken for the whole of what the
+    file says."""
+    directory = adr_dir("0001-a.md")
+    write(directory, "0002-long.md", "# " + "x" * 500 + "\n")
+
+    refusals = problems_of(
+        checker.check(directory, REPO_ROOT), checker.UNREADABLE_HEADING
+    )
+
+    assert [problem.paths for problem in refusals] == [("0002-long.md",)]
+    assert "x" * checker.HEADING_QUOTE_LIMIT not in refusals[0].message
+    assert "..." in refusals[0].message
+
+
+def test_the_cli_exits_one_on_a_heading_mismatch(adr_dir, capsys):
+    """End to end: the exit code CI reads and the diagnosis a reader gets."""
+    directory = adr_dir("0001-a.md")
+    write(directory, RENUMBERED, STALE_HEADING)
+
+    assert checker.main([str(directory)]) == 1
+    out = capsys.readouterr().out
+    assert "HEADING MISMATCH" in out
+    assert "OK:" not in out
+
+
+def test_the_committed_adrs_agree_with_their_own_headings():
+    """The live guard, and the counterpart to
+    `test_the_committed_adrs_are_unique`: a pull request that renumbers a
+    decision record and leaves its heading behind turns this red.
+
+    The heading is read back out of each file here rather than taken from the
+    checker, so this and the checker are two independent readings of the same
+    five documents. The list is asserted non-empty first, because a loop over
+    nothing passes -- the anti-vacuity pin this file applies everywhere else.
+    """
+    directory = REPO_ROOT / checker.DEFAULT_DIRECTORY
+    on_disk = sorted(directory.glob("[0-9][0-9][0-9][0-9]-*.md"))
+
+    assert on_disk, "docs/adr holds no decision records at all"
+    for path in on_disk:
+        first = path.read_text(encoding="utf-8-sig").splitlines()[0]
+        assert first.startswith(f"# ADR {path.name[:4]}:"), (
+            f"{path.name} opens with {first!r}"
+        )
+
+
 # --- anti-vacuity -----------------------------------------------------------
 
 
@@ -839,7 +1277,10 @@ def test_the_cli_takes_no_flags_that_could_skip_the_check(capsys):
 # `Report` and `Adr` and calling `render()`. No filesystem is involved because
 # none is needed: `Adr.path` is a `str`, which is what makes this reachable, and
 # Windows cannot create a file whose name holds a newline anyway.
-FORGED_OK = "OK: 9 ADRs, every number claimed by exactly one file."
+FORGED_OK = (
+    "OK: 9 ADRs, every number claimed by exactly one file, every heading "
+    "agreeing with its filename."
+)
 GENUINE_FAIL = "FAIL: an ADR number does not identify exactly one decision record."
 
 # Every character `str.splitlines()` treats as ending a line. A test that pinned

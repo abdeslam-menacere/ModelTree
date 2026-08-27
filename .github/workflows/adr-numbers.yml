@@ -1,6 +1,7 @@
 name: ADR numbers
 
-# Refuses two files under docs/adr/ that claim the same four-digit number.
+# Refuses two files under docs/adr/ that claim the same four-digit number, and a
+# decision record whose `# ADR NNNN:` heading disagrees with its own filename.
 #
 # Git compares paths, so `0003-one-title.md` and `0003-another-title.md` do not
 # touch and both merge clean -- which is how #145 and #146 nearly left two
@@ -54,5 +55,5 @@ jobs:
 
       # No arguments: the default target is docs/adr, so the job cannot be
       # pointed at an emptier directory than the real one.
-      - name: Check that no two ADRs claim the same number
+      - name: Check that no two ADRs claim the same number, and each agrees with its own
         run: python tools/adr_numbers/check_adr_numbers.py
