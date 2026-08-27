@@ -141,6 +141,7 @@ function makeIndex(overrides: Record<string, unknown> = {}): CatalogIndex {
         categories: ['coding'],
         status: 'preview',
         accessType: 'open-weight',
+        inputModalities: ['text', 'video'],
         contextWindow: 500_000,
         license: { name: 'Apache-2.0', weightsDownloadable: true, osiApproved: false },
         verifiedAt: '2026-01-15',
@@ -284,10 +285,13 @@ describe('filterAndSortModels', () => {
     expect(filterAndSortModels(rows, defaultCatalogState())).toHaveLength(rows.length);
   });
 
-  // Boundary coverage: for every filter dimension, selecting a single facet
-  // value must return exactly the rows that carry that value and no others.
+  // The generic loop below can only prove the filter is wired into the pipeline
+  // (a row that carries the value survives) — it CANNOT prove the value accessor
+  // is right, because it computes its own expectation from `dimension.values`,
+  // the very function under test. Exact-set correctness is pinned separately in
+  // PINNED_FILTER_CASES against hand-written literals.
   for (const dimension of FILTER_DIMENSIONS) {
-    it(`filters the "${dimension.key}" dimension to matching rows only`, () => {
+    it(`wires the "${dimension.key}" filter into the pipeline`, () => {
       const value = index.facets[dimension.facet][0].value;
       const state = stateWith({ filters: { [dimension.key]: [value] } as never });
       const result = filterAndSortModels(rows, state);
@@ -305,13 +309,18 @@ describe('filterAndSortModels', () => {
   // The loop above can only falsify the filter plumbing; a wrong `values`
   // accessor — e.g. `modalities` reading input but not output modalities —
   // stays green there because both sides use the same wrong function. These
-  // literals catch that class of fault. `modalities: 'audio'` in particular
-  // is carried only by an output modality, so it fails if outputs are dropped.
+  // literals catch that class of fault, and each guards a specific direction:
+  // `categories=multimodal-generalist` is carried by a NON-first category value
+  // (rows sort categories), so it fails if only the first is read;
+  // `modalities=audio` is an output-only value and `modalities=video` an
+  // input-only value, so dropping either side of the modality union reddens one.
   const PINNED_FILTER_CASES: ReadonlyArray<{ key: FilterKey; value: string; expected: string[] }> = [
     { key: 'creators', value: 'alpha', expected: ['alpha-code', 'alpha-lang'] },
     { key: 'families', value: 'beta-one', expected: ['beta-image', 'beta-legacy'] },
     { key: 'categories', value: 'image', expected: ['beta-image', 'beta-legacy'] },
+    { key: 'categories', value: 'multimodal-generalist', expected: ['beta-legacy'] },
     { key: 'modalities', value: 'audio', expected: ['beta-image'] },
+    { key: 'modalities', value: 'video', expected: ['alpha-code'] },
     { key: 'accessTypes', value: 'open-weight', expected: ['alpha-code'] },
     { key: 'statuses', value: 'current', expected: ['alpha-lang', 'beta-image'] },
     { key: 'releaseYears', value: '2025', expected: ['alpha-lang', 'beta-image'] },
@@ -361,6 +370,14 @@ describe('filterAndSortModels', () => {
     // So this isolates the creator-name clause of the search predicate.
     expect(filterAndSortModels(rows, stateWith({ search: 'LABS' })).map((row) => row.slug).sort())
       .toEqual(['alpha-code', 'alpha-lang']);
+  });
+
+  it('matches search on the model name alone, case-insensitively', () => {
+    // "lang" appears only in the model name "alpha-lang" — not in its family
+    // ("Alpha One") or creator ("Alpha Labs"), and in no other row. So this
+    // isolates the model-name clause; deleting it would make this return [].
+    expect(filterAndSortModels(rows, stateWith({ search: 'LANG' })).map((row) => row.slug))
+      .toEqual(['alpha-lang']);
   });
 
   it('orders results by each supported sort', () => {
