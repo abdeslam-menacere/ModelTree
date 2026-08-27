@@ -38,8 +38,15 @@ falling back to the homepage.
 
 A route that has not been built yet returns `404`, which is correct rather than
 broken: GitHub Pages offers no arbitrary SPA fallback, so every supported route
-must be generated at build time. `/ModelTree/models/` and `/ModelTree/methodology/`
-are `404` today because the issues that add those pages have not landed.
+must be generated at build time.
+
+Which routes those are is a moving target, and this document deliberately does
+not try to enumerate them — the list changes every time a page-adding issue
+lands, and a stale enumeration here would be exactly the kind of unsourced,
+undated claim ModelTree exists to avoid. As of 2026-08-27, `/ModelTree/models/`
+returns `200` (it landed with the catalog issue earlier the same day) and
+`/ModelTree/methodology/` returns `404` because the issue that adds it has not
+landed. Check the live site rather than trusting this paragraph.
 
 ## The private-repository limitation, and why it no longer applies
 
