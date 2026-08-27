@@ -478,8 +478,16 @@ def test_severing_the_detail_reddens_the_strip_guard_before_these_assertions(
     went red under a severed detail, with the message assertion surviving green
     beside it. Neither half held: `_body_without_the_detail_cell` runs first and
     its membership guard refuses a cell the body does not carry, so the run stops
-    two lines short of the assertion being described. Every clause of the
-    correction is asserted here, so the attribution cannot drift back.
+    two lines short of the assertion being described.
+
+    What is asserted here is the *outcome*: which of the helper's guards
+    refuses, and what the two assertions the old wording got wrong actually
+    evaluate to. The *ordering* — that the sibling strips before it asserts —
+    is stated and not asserted: this test calls `_body_without_the_detail_cell`
+    itself and never observes the sibling's line order, so reordering those two
+    lines would leave this test green. Labelled rather than quietly relied on,
+    as `CRASH_SITE_LOCAL` is above, because an unlabelled gap presented as
+    coverage is the defect this file was opened to correct.
 
     This is a statement about *which* check fires, so it is deliberately not
     satisfied by "something went red". `match` names the guard, and the two
@@ -491,8 +499,22 @@ def test_severing_the_detail_reddens_the_strip_guard_before_these_assertions(
 
     # The premise the old docstring had right: the cell becomes the em dash
     # while the raw serialisation is still `"{}"`, so the two cannot match.
+    #
+    # Scoped to the failure row, because the em dash is not distinctive. The
+    # body already carries three of them with no bearing on this test — the
+    # `Supersedes run` cell and two in the budget prose — so a bare
+    # `"—" in body` is satisfied by those alone: it is true of the *unsevered*
+    # body, and would stay true if the em dash stopped being what an empty cell
+    # renders as. That is the very defect #364 reports, and writing it into
+    # #364's own fix is not a mistake this file can afford twice. The marker
+    # occurs exactly once in a severed body — the message cell, the detail cell
+    # having been emptied — so it names this row and no other.
     assert detail_json == "{}"
-    assert "—" in body
+    carrying_the_marker = [line for line in body.splitlines() if SENSITIVE_MARKER in line]
+    assert len(carrying_the_marker) == 1
+    assert carrying_the_marker[0].rstrip().endswith("| — |"), (
+        "the severed detail cell is not the em dash the body's last column renders it as"
+    )
     assert _detail_cell_as_the_body_carries_it(detail_json) not in body
 
     # And this is what it costs: the *strip guard* fires, not the detail
