@@ -33,6 +33,15 @@ companion failed *open* when it did not. And the frame-*name* half of the
 counterweight had no positive control, unlike the location half. Both fixes live
 below, at `_detail_cell_as_the_body_carries_it` and at `_FRAME_NAME`.
 
+#328 then put a different question to the location half — not whether a leak can
+slip past it, but what *honest* content could wear the shape it keys on. A
+`SyntaxError` can: `format_exception_only` renders its file and line with the
+same `File "<path>", line N` idiom a traceback frame uses, so the check reddens
+on a body that leaked no frame at all. The decision taken there — that the red
+is accepted and the pattern is *not* narrowed — is recorded at `_FRAME_LOCATION`
+below, beside the pattern, where a reader meeting the red will be looking. The
+two tests at the end of this file hold the code to it.
+
 Scope: this reads through `run_creators` and `publisher.render_body`; it does
 not touch `test_budget_time_guard_invariant.py` (#248/#266 own that) nor
 `publisher.py` (held by other docks).
@@ -83,6 +92,61 @@ CRASH_SITE_LOCAL = "a_local_that_only_the_stack_frame_would_show"
 # content — as broken as one that never fires. A file paired with a line number
 # is specifically a frame location, not prose.
 _FRAME_LOCATION = re.compile(r'\.py(?:\\*", line |:)\d+')
+
+# THE #328 DECISION, recorded where the next reader meets it.
+#
+# If you are here because this check went red and you cannot find the leak: look
+# at what the exception *was*. A `SyntaxError` reddens this line while leaking
+# nothing, and that is accepted behaviour rather than a defect to fix.
+#
+# `traceback.format_exception_only` renders a `SyntaxError` as
+#
+#     File "contoso_config.py", line 1
+#         x = (1
+#             ^
+#     SyntaxError: '(' was never closed
+#
+# The file and the line there are the exception's *own* message — not a stack
+# frame the redaction failed to remove. Measured through the pipeline, the shape
+# reaches the body by the `detail` channel alone, as `.py\\", line 1`: the
+# `message` channel carries `str(error)`, which for a `SyntaxError` is the comma
+# form `'(' was never closed (contoso_config.py, line 1)` and matches nothing
+# here.
+#
+# So the failure fingerprint is one red of three — this check fires while both
+# frame-*name* checks stay at baseline, because `_FRAME_NAME` does not match and
+# the text carries no `discover`. A genuine frame leak reddens the name checks
+# too (`test_a_rendered_frame_name_reddens_the_frame_name_checks`). That
+# asymmetry is the diagnostic, and
+# `test_a_syntax_error_message_reddens_only_the_location_check` pins it.
+#
+# The pattern is deliberately **not** narrowed to exclude the shape, for three
+# reasons:
+#
+# 1. The two are not separable by shape. A `SyntaxError`'s location and a
+#    traceback frame's are emitted by the same rendering code in the same
+#    spelling, so nothing in that text *alone* tells them apart. The only
+#    separators are context — a preceding `Traceback (most recent call last):`,
+#    or a trailing `, in <name>` — and requiring `, in <name>` makes this
+#    pattern a strict subset of `_FRAME_NAME`, destroying the one gap it exists
+#    to close: a location leak that names no frame (`extract_tb`, a
+#    `co_filename:tb_lineno` walk, a fresh `detail["location"]` key).
+# 2. The two directions of failure do not cost the same. A spurious red costs
+#    one reading of this comment; a pattern narrowed until it misses a real
+#    location leak publishes paths and line numbers. The bias is chosen.
+# 3. The content really is disclosed. This check is body-scoped: it asks what
+#    the published body *carries*, not how it got there. A `SyntaxError`-derived
+#    `INTERNAL_ERROR` does publish a filesystem path, a line number and the
+#    offending line of source into a public issue body. The red is therefore a
+#    true positive about the content, and a false positive only about the causal
+#    story the counterweight's *name* tells. Bounding that content is #282's
+#    job, not this check's — and if #282 lands a bound or a redaction on the
+#    `INTERNAL_ERROR` detail, this red may disappear as a side effect rather
+#    than needing anything done here.
+#
+# Do not widen it either. The block above declines a bare `.py` for the mirror
+# image of reason 2, and `test_the_raw_frame_location_idioms_still_match` fails
+# on a narrowing in either direction.
 
 # A rendered stack-frame *name* in a frame's own context — the #334 finding-2
 # half. `body.count("discover") == 1` below binds on the bare word, which cannot
@@ -228,19 +292,30 @@ def _body_without_the_detail_cell(body: str, detail_json: str) -> str:
     return stripped
 
 
-def _proposal_from_a_crash(library, settings, *, message: str = SENSITIVE_MARKER):
+def _proposal_from_a_crash(
+    library, settings, *, message: str = SENSITIVE_MARKER, error: BaseException | None = None
+):
     """Run one creator whose source provider raises, and return its proposal.
 
     `message` is the text of the raised `RuntimeError`; it defaults to the
     path-and-URL `SENSITIVE_MARKER` the exposure tests care about, and can be
     overridden with an ordinary path-free string for the positive control that
-    proves the body-scoped `.py` check does not fire on legitimate content."""
+    proves the body-scoped `.py` check does not fire on legitimate content.
+
+    `error`, when given, is raised in place of that `RuntimeError` and `message`
+    is ignored. It exists for the #328 case, which needs a real `SyntaxError`
+    rather than a `RuntimeError` whose text imitates one: the whole question
+    there is what `format_exception_only` does with the genuine article, and it
+    renders a `SyntaxError` specially, reading attributes only a real one
+    carries."""
 
     class Exploding:
         name = "exploding:sources"
 
         async def discover(self, creator, *, limit):
             a_local_that_only_the_stack_frame_would_show = CRASH_SITE_LOCAL  # noqa: F841
+            if error is not None:
+                raise error
             raise RuntimeError(message)
 
         async def fetch(self, candidate):  # pragma: no cover - never reached
@@ -389,7 +464,8 @@ def test_no_stack_frame_reaches_the_published_body(library, settings) -> None:
     # `detail` cell has been through `json.dumps` and `_cell`); the baseline body
     # carries none. This catches location leaks that add no frame name, which the
     # count above would miss, while a bare `.py` in a legitimate message does not
-    # trip it.
+    # trip it. See the #328 decision at `_FRAME_LOCATION`: a `SyntaxError` reddens
+    # this assertion while leaking no frame, which is accepted rather than fixed.
     assert _FRAME_LOCATION.search(body) is None
     # Supporting, at the source: the narrow formatter puts no frame in `detail`.
     assert "discover" not in proposal.failures[0].detail["traceback"]
@@ -682,4 +758,140 @@ def test_a_newline_in_the_message_is_rendered_as_a_break_not_a_row_split(
     row = carrying_the_marker[0]
     assert tail in row, "the message cell was split across two markdown rows"
     assert row.rstrip().endswith("|")
+
+
+# Rendered frame *locations*, in the raw forms a leak wears before any cell
+# rendering: the two `format_exception` spellings and the terser `extract_tb`
+# one. The flag records whether the `detail` route double-escapes the row's
+# quote, which is the difference between the two halves of `_FRAME_LOCATION`'s
+# alternation — the colon form carries no quote to escape and so exercises the
+# other branch.
+_RAW_FRAME_LOCATIONS = {
+    "extract_tb colon form": ("tests/test_x.py:84", False),
+    "format_exception posix": (
+        'File "/srv/app/modeltree_updater/runner.py", line 118, in discover',
+        True,
+    ),
+    "format_exception windows": (
+        r'File "C:\workspace\tools\updater\tests\test_x.py", line 84, in discover',
+        True,
+    ),
+}
+
+
+@pytest.mark.parametrize("case", sorted(_RAW_FRAME_LOCATIONS))
+def test_the_raw_frame_location_idioms_still_match(library, settings, case) -> None:
+    """#328 acceptance criterion 3's evidence half: the idioms this pattern must
+    keep catching, pinned so that narrowing it goes red.
+
+    The #328 decision recorded at `_FRAME_LOCATION` is to leave the pattern
+    alone, so nothing here changes any behaviour today. These rows exist for the
+    *next* edit. Widening and narrowing this pattern have each already broken it
+    once, and criterion 4's instruction not to weaken the location check is only
+    worth something if something actually fails when it is weakened. The obvious
+    way to exclude the `SyntaxError` shape — requiring `, in <name>` after the
+    line number — reddens the colon row below, which carries no frame name at
+    all and is exactly the leak the location check exists to catch.
+
+    Each idiom is checked on both routes into the body, because they are not the
+    same string. Raw is what the `message` cell carries. The `detail` cell is
+    put through `json.dumps`, which turns `"` into `\\"`, and then `_cell`, which
+    doubles the backslash — so the body carries `.py\\\\", line N`, and a pattern
+    that handled only the raw spelling would miss precisely the `detail`-routed
+    location leak. The `doubles_the_quote` flag asserts which branch each row
+    actually exercised, so a row cannot quietly pass on the wrong one.
+
+    Distinct from `test_a_rendered_frame_name_reddens_the_frame_name_checks`,
+    which covers two frame-*name* leaks and reads the location flag only in
+    passing: it exercises neither the Windows form, nor the colon form, nor the
+    raw-versus-rendered split."""
+    raw, doubles_the_quote = _RAW_FRAME_LOCATIONS[case]
+
+    # The `message` channel's spelling.
+    assert _FRAME_LOCATION.search(raw) is not None
+
+    # The `detail` channel's, taken from the real pipeline rather than
+    # hand-escaped, so the escaping under test is the one production performs.
+    proposal = _proposal_from_a_crash(library, settings, message=raw)
+    rendered_detail = _detail_cell_as_the_body_carries_it(_detail_json(proposal))
+    assert _FRAME_LOCATION.search(rendered_detail) is not None
+
+    # And it matched the branch this row is here to exercise: the quoted forms
+    # arrive double-escaped, the colon form arrives untouched. Without this, all
+    # three rows could be passing on the raw spelling alone.
+    assert (r'.py\\", line' in rendered_detail) is doubles_the_quote
+
+
+def _a_real_syntax_error() -> SyntaxError:
+    """A genuine `SyntaxError`, carrying the attributes the interpreter sets.
+
+    Built by `compile` rather than constructed by hand, because
+    `format_exception_only` renders a `SyntaxError` from its `filename`,
+    `lineno` and `text` attributes; an instance raised as
+    `SyntaxError("...")` has none of them and renders as an ordinary exception.
+    That version of this test would pass for the wrong reason or not at all."""
+    try:
+        compile("x = (1", "contoso_config.py", "exec")
+    except SyntaxError as error:
+        return error
+    raise AssertionError("compile() accepted a deliberately unclosed bracket")
+
+
+def test_a_syntax_error_message_reddens_only_the_location_check(
+    library, settings
+) -> None:
+    """#328, pinned: the accepted false positive, and the fingerprint that
+    identifies it.
+
+    This is the test to read if `_FRAME_LOCATION` has gone red and the leak
+    cannot be found. The decision and its reasoning live at `_FRAME_LOCATION`;
+    what is asserted here is that the code still behaves the way that decision
+    describes, so the two cannot drift apart silently — which is the whole point
+    of recording a decision next to the thing it is about.
+
+    Three things are bound, and the third is what makes this more than a
+    restatement of the issue:
+
+    - **Nothing leaked.** `format_exception_only` renders no frame from the
+      crash site, so the frame name `discover` does not reach the body and
+      `_FRAME_NAME` finds nothing. Both name checks sit at their baseline.
+    - **The location check fires anyway**, on the exception's own message.
+    - **It fires through the `detail` channel alone.** `str()` of a
+      `SyntaxError` is the comma form `'(' was never closed (contoso_config.py,
+      line 1)`, which this pattern does not match, so the `message` cell
+      contributes nothing. The `File "...", line 1` spelling exists only in
+      `detail["traceback"]`. A reader who assumed the red came from the message
+      would strip the wrong channel and still be red."""
+    error = _a_real_syntax_error()
+    proposal = _proposal_from_a_crash(library, settings, error=error)
+    failure = proposal.failures[0]
+    body = render_body(proposal)
+
+    assert failure.kind is FailureKind.INTERNAL_ERROR
+    # The exception's own message names a file and a line...
+    assert 'File "contoso_config.py", line 1' in failure.detail["traceback"]
+    # ...and, measured rather than assumed, carries a line of source with it.
+    # That contradicts the "no source line reaches the body" reading of
+    # `format_exception_only`, and it is #282's exposure to bound, not something
+    # this counterweight can do anything about.
+    assert "x = (1" in failure.detail["traceback"]
+
+    # No frame leaked: both frame-*name* checks hold exactly where
+    # `test_no_stack_frame_reaches_the_published_body` leaves them.
+    assert body.count("discover") == 1
+    assert _FRAME_NAME.search(body) is None
+
+    # The location check fires regardless. Accepted, per the decision above.
+    assert _FRAME_LOCATION.search(body) is not None
+
+    # ...and it fires by the `detail` route only. The message channel carries
+    # the comma spelling, which this pattern does not see.
+    assert failure.message == f"SyntaxError: {error}"
+    assert _FRAME_LOCATION.search(_cell(failure.message)) is None
+    assert (
+        _FRAME_LOCATION.search(
+            _detail_cell_as_the_body_carries_it(_detail_json(proposal))
+        )
+        is not None
+    )
 
