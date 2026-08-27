@@ -389,18 +389,33 @@ def _climbs_from_file_root(module_source: str, *, depth: int = 0) -> list[str]:
     nesting, a ``'../..'`` join, or text surgery on the path itself — note the
     asymmetry that ``Path(f'{__file__}')`` is matched as a *root* while a climb
     spelled inside that same string, ``Path(f'{__file__}/../..')``, is not seen; a
-    constructor this cannot recognise as ``Path``, which is ``PurePath`` and ``Path``
-    imported under an alias — one limit with two spellings rather than two limits,
-    since the root is unrecognisable for the same reason either way, and closing
-    either without the other would be arbitrary; a binding chain read backwards
-    (``b = a`` written above ``a = __file__``, which the single pre-pass below
-    resolves in the other direction only); and a climb assembled across a
-    function-call boundary. It is a stronger net than the literal grep, not a proof
-    of the negative. ``GUARD_KNOWN_LIMITS`` below runs every one of these, so the
-    list is measured rather than asserted and goes red if one is ever closed
-    silently. That claim is only worth what its coverage is: every construct named
-    in this block has a row in that table, and a construct named here without one
-    would be exactly the failure this paragraph exists to prevent (#273).
+    constructor this cannot recognise as ``Path``, which is ``PurePath``, ``Path``
+    imported under an alias, and a subclass of ``Path`` — one limit with three
+    spellings rather than three limits, since the root is unrecognisable for the
+    same reason in each and closing one without the others would be arbitrary; a
+    binding chain read backwards (``b = a`` written above ``a = __file__``, which
+    the single pre-pass below resolves in the other direction only); a root wrapped
+    in a walrus (``(p := Path(__file__).resolve()).parents[2]``), which the level
+    counter has no case for and which the pre-passes do not record because they
+    learn bindings only from ``Assign``/``AnnAssign``; a root read back off a class
+    object (``class C: p = Path(__file__).resolve()`` then ``C.p.parents[2]``),
+    where the binding *is* recorded under the bare name ``p`` but the counter
+    resolves a bare ``Name`` and never an attribute of one; and a climb assembled
+    across a function-call boundary. It is a stronger net than the literal grep,
+    not a proof of the negative. ``GUARD_KNOWN_LIMITS`` below runs every one of
+    these, so the list is measured rather than asserted and goes red if one is ever
+    closed silently. That claim is only worth what its coverage is: every construct
+    named in this block has a row in that table, and a construct named here without
+    one would be exactly the failure this paragraph exists to prevent (#273).
+
+    That coupling runs one way only, and #317 is what reading it the other way
+    looks like. A row for every construct named here is not a row for every
+    construct that is open: the three constructs #317 named — the subclass, the
+    walrus and the class object — sat open with nothing naming them, while the
+    table's evident rigour invited the conclusion that it was a survey of the gap
+    rather than a sample of it. Naming them closes that particular hole and does
+    not change the shape of the claim, so neither this block nor the table below
+    should be read as bounding what escapes.
 
     Two widenings are deliberate rather than incidental (#273), and are recorded
     here so the next reader meets them as decisions rather than surprises.
@@ -679,14 +694,29 @@ GUARD_NON_OFFENDERS = {
 #
 # What a row asserts is narrow and worth stating: the guard does not flag this
 # source. It does not assert that every row is a working escape. Executing all
-# sixteen in a throwaway package showed fourteen genuinely landing outside it,
-# and two that do not: "binding chain read backwards" raises ``NameError`` as
+# nineteen in a throwaway package showed sixteen genuinely landing outside it,
+# and three that do not: "binding chain read backwards" raises ``NameError`` as
 # written, so it documents the pre-pass's single-direction ordering rather than a
-# runnable attack, and "climb by string surgery" splits on ``'/'``, so it climbs
-# three levels on POSIX and is a no-op on a Windows path. Both are still real
-# blind spots in the matcher; neither is a live exploit on every platform, and
+# runnable attack; "climb by string surgery" splits on ``'/'``, so it climbs
+# three levels on POSIX and is a no-op on a Windows path; and "a subclass of
+# Path" raises ``AttributeError: type object 'MyPath' has no attribute
+# '_flavour'`` on 3.11, the floor ``requires-python`` declares, because pathlib
+# supports subclassing ``Path`` only from 3.12 on. All three are still real blind
+# spots in the matcher; none is a live exploit on every supported version, and
 # saying so here costs a sentence and keeps this table from making the same
 # oversized claim #273 was filed about.
+#
+# This is a sample of the forms that are open, and never a survey of them (#317).
+# The rows are the forms somebody thought to try; the thing they sample is every
+# source the guard does not flag, which is not a finite set and so cannot be
+# enumerated here or anywhere. A form's absence from this table is therefore
+# evidence about who has probed the guard and no evidence at all about the guard.
+# #317 was filed because the opposite reading is the natural one — a measured,
+# evidently-tested table reads as exhaustive — and it was filed about three forms
+# that had sat open with nothing naming them. They are rows now, which changes
+# how much of the gap is written down and does not change that it is a sample.
+# The next form found open belongs here too, and is a row to add rather than a
+# contradiction of anything this table ever claimed.
 GUARD_KNOWN_LIMITS = {
     # The globals() channel is a dict read, and a dict read is not a finite set of
     # spellings. These are the ways the key text never appears in this module.
@@ -721,11 +751,28 @@ GUARD_KNOWN_LIMITS = {
     "PurePath instead of Path": (
         "from pathlib import PurePath\nroot = PurePath(__file__).parents[2]"
     ),
+    # And the third spelling of it (#317). `Path` subclassed is unrecognisable for
+    # exactly the reason the two above are: `_is_file_root` asks whether the
+    # constructor is spelled `Path`, not whether it produces a path. Runnable from
+    # 3.12 on; see the note above for what it does on the 3.11 floor.
+    "a subclass of Path": (
+        "class MyPath(Path):\n    pass\nroot = MyPath(__file__).parents[2]"
+    ),
     "binding chain read backwards": (
         "b = a\na = __file__\nroot = Path(b).resolve().parents[2]"
     ),
     "assembled across a function boundary": (
         "def here():\n    return Path(__file__).resolve()\nroot = here().parents[2]"
+    ),
+    # Root and climb are both plainly legible in these two; what is missing is the
+    # link between them. The pre-passes learn bindings only from `Assign` and
+    # `AnnAssign` targets, so a walrus binds nothing they see, and `_levels_and_rooted`
+    # resolves a bare `Name` against `rooted_vars` and never an attribute of one, so
+    # the class-body binding it does record under `p` is unreachable when the read
+    # is spelled `C.p`. Both were probed for #317 rather than reasoned about.
+    "walrus-bound root": "root = (p := Path(__file__).resolve()).parents[2]",
+    "class attribute read off the class": (
+        "class C:\n    p = Path(__file__).resolve()\nroot = C.p.parents[2]"
     ),
 }
 
