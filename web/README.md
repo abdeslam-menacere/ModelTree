@@ -279,10 +279,13 @@ reading and the disagreement is written down here rather than resolved silently.
   availability maps to `preview`, and the docs' "Legacy models" section maps to
   `legacy`. On Hugging Face, Meta's "Current" and "History" groupings map to
   `current` and `legacy`.
-- **Conditional fit guidance is seeded, not exhaustive.** Seven statements are
-  recorded, across Llama 4 Scout, Claude Mythos 5, Claude Haiku 4.5, and GPT-5.
-  Each is derived from facts already recorded here and cites only sources those
-  facts already carry, so guidance introduces no new external claim and every
+- **Conditional fit guidance is seeded, not exhaustive.** The statements recorded
+  span Llama 4 Scout, Claude Mythos 5, Claude Haiku 4.5, and GPT-5. Their count and
+  per-release breakdown are owned by `src/data/model-fit.test.ts`, which reads the
+  live seed and reddens when a statement is added or removed; this note points at
+  that test rather than restating a number nothing checks. Each statement is
+  derived from facts already recorded here and cites only sources those facts
+  already carry, so guidance introduces no new external claim and every
   statement's `verifiedAt` is the verification date of the evidence beneath it. A
   release with no statement is a release where no derivable guidance was found,
   not one judged unsuitable.
@@ -292,10 +295,12 @@ reading and the disagreement is written down here rather than resolved silently.
   Claude 4.5 note above). Both readings are published as conflicting statements,
   linked reciprocally, and neither is marked correct. This is the intended
   behaviour of the conflict state, not an error awaiting correction.
-- **Two evidence gaps are recorded for Llama 4 Scout and one for GPT-5.** Each
-  names a rubric dimension that was looked at and could not be supported — no
-  benchmark result and no usage observation are recorded for those releases — so
-  the absence is visible rather than silent.
+- **Evidence gaps are recorded for Llama 4 Scout and GPT-5.** Their count and
+  per-release breakdown are owned by `src/data/model-fit.test.ts` alongside the
+  statement counts, so this note names the releases without restating a number
+  nothing checks. Each gap names a rubric dimension that was looked at and could
+  not be supported — no benchmark result and no usage observation are recorded
+  for those releases — so the absence is visible rather than silent.
 
 ## Catalog indexes
 
