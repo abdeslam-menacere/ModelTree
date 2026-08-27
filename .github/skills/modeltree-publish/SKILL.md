@@ -123,7 +123,13 @@ if what merged is fully legible afterwards. Include:
   commit and how it was chosen** (`anchor.commit` and `anchor.selectedBy` — for
   a normal run, the merge base with `refs/remotes/origin/main`), the number of
   approved origins it anchored on and where they came from
-  (`anchors.datasetSources` / `anchors.profileCatalogues`), every source cited
+  (`anchors.datasetSources` / `anchors.profileCatalogues`), **any profile the
+  anchor listed but did not draw on** (`anchors.profileFiles` against
+  `anchors.profileCatalogues`, with the difference named in
+  `anchors.profilesWithoutCatalogue` and `anchors.profilesUnreadable`) — a
+  profile that configures no origins is a choice and one that will not parse is
+  damage, and a narrowed anchor that nobody reported reads exactly like a full
+  one — every source cited
   split into **inherited** (already in the dataset) and **proposed** (added by
   this run) with the origin each sits on, and any source the gate refused. This
   is the one part of the body that says which sources the run was *allowed* to

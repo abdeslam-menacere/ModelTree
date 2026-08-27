@@ -2502,14 +2502,18 @@ describe('gate-source-approval', () => {
   //
   //   absent  -- every other test in this block, which is why the dataset anchor
   //              carries them alone; the gate reports `profileCatalogues: 0`.
-  //   unknown -- **not covered, and not N/A.** A catalogue that is present at
-  //              the anchor but unparseable is swallowed by the `catch { continue }`
-  //              in `catalogAnchor` (`gate-source-approval.mjs:257`) and skipped
-  //              with nobody told, so a typo silently narrows the trust boundary
-  //              instead of refusing. It fails closed, which is why it is left
-  //              open here rather than closed with the rest, but it is a real
-  //              gap and is recorded as one on #312 -- not a state this input
-  //              lacks. Do not read the two tests below as covering it.
+  //   unknown -- present at the anchor but unparseable. Still **not refused**,
+  //              and since #344 that is a recorded decision rather than an
+  //              oversight: the `catch` in `catalogAnchor` skips it because this
+  //              anchor is additive, so a skip can only withhold trust and never
+  //              extend it. What has changed is that it is no longer swallowed
+  //              with nobody told -- the file is named in
+  //              `anchors.profilesUnreadable`, so a typo that narrows the trust
+  //              boundary is legible in the report instead of silent. The
+  //              reporting is covered, by the second of the two #344 tests at
+  //              the end of this block. **Refusing is still not covered**,
+  //              because it is still not done; that remains open on #312, and
+  //              the two tests directly below do not cover it either.
   //   stale   -- present, but not at the anchor: only in the working tree, or
   //              committed by this branch after it left published history. The
   //              second test below. This is the cell that fails open.
@@ -2616,6 +2620,146 @@ describe('gate-source-approval', () => {
       JSON.parse(committed.stdout).anchors.profileCatalogues,
       0,
       'a catalogue committed on this branch is not at the merge base',
+    );
+  });
+
+  // -------------------------------------------------------------------------
+  // #344. `profileCatalogues` was assigned `catalog.files.length` -- the list
+  // `git ls-tree` returned -- while the loop that reads those files drops any
+  // that will not parse and any without a `source_catalog` array, and neither
+  // exit reduced the count. So the gate reported how many profiles were
+  // *there*, under a name that claims how many it *consulted*.
+  //
+  // The direction of the error is the bad one. A profile that loses its
+  // catalogue in an edit stops contributing origins while the reported breadth
+  // does not move: a run can narrow its own trust anchor and publish an
+  // identical-looking account of it. On live data the gap is real and is
+  // exactly one -- five profiles, four catalogues.
+  //
+  // **What the seven assertions already on this field do not cover.** #381 uses
+  // `profileCatalogues` as a proxy for *which tree the gate resolved* (1 from
+  // the right root, 0 from the wrong one), which is a different question from
+  // how many catalogues were consulted. Every one of those fixtures holds
+  // exactly one profile, with a valid catalogue, so "listed" and "read" cannot
+  // disagree there and no miscount can redden them. They are untouched and
+  // still pass; they simply never had to distinguish the two. The two tests
+  // below are the first fixture in this file where the numbers differ.
+  // -------------------------------------------------------------------------
+
+  /**
+   * Three profiles at the anchor, one of which yields origins: the smallest
+   * fixture in which listed, read, deliberate-empty and damaged are four
+   * different facts.
+   */
+  function mixedProfiles(dir) {
+    const profiles = join(dir, 'tools', 'updater', 'profiles');
+    mkdirSync(join(profiles, 'generic'), { recursive: true });
+    // Read: parses, and carries a catalogue.
+    writeFileSync(
+      join(profiles, 'acme.json'),
+      JSON.stringify({ creator: { id: 'acme-labs' }, source_catalog: [{ url: `${CATALOGUED}/newsroom` }] }, null, 2),
+    );
+    // A choice: parses, configures no origins. The `generic/long-tail.json`
+    // case, which is legitimate as it stands and must not be edited to make a
+    // count come true.
+    writeFileSync(
+      join(profiles, 'generic', 'long-tail.json'),
+      JSON.stringify({ creator: { id: 'long-tail' }, notes: 'no origin list' }, null, 2),
+    );
+    // Damage: present at the anchor, and not parseable.
+    writeFileSync(join(profiles, 'broken.json'), '{ "creator": { "id": "broken" ');
+  }
+
+  /** A bundle citing a new page on the origin only `acme.json` stands behind. */
+  const MIXED_BUNDLE = {
+    runId: 'r1',
+    creator: 'someone',
+    policy: 'pilot',
+    claims: [addSource('acme-launch', `${CATALOGUED}/launch`)],
+  };
+
+  test('the approval report counts catalogues it read, not profiles it listed', () => {
+    const result = scratchRepo(({ dir, writeSources, commit, publish }) => {
+      writeSources([ANCHORED]);
+      mixedProfiles(dir);
+      commit('three profiles, one of which has a catalogue');
+      publish();
+    }, MIXED_BUNDLE);
+    assert.equal(result.code, 0, `a catalogued origin is inherited trust:\n${result.stdout}`);
+    const report = JSON.parse(result.stdout);
+
+    // The field named for catalogues counts catalogues. One of the three
+    // profiles was consulted; the old assignment reported three.
+    assert.equal(report.anchors.profileCatalogues, 1, `one profile carried a catalogue:\n${result.stdout}`);
+    // The listing is still reported, under its own name, because it is a real
+    // fact about the anchor and losing it would trade one blind spot for
+    // another.
+    assert.equal(report.anchors.profileFiles, 3, `three profiles were listed:\n${result.stdout}`);
+    // The two must actually differ here, so neither assertion above can be
+    // satisfied by a gate that reports the same number twice.
+    assert.notEqual(
+      report.anchors.profileCatalogues,
+      report.anchors.profileFiles,
+      'this fixture exists precisely because the two numbers disagree',
+    );
+
+    // And every listed profile is accounted for, so the gap cannot be reported
+    // as a smaller total with the reason quietly dropped.
+    assert.equal(
+      report.anchors.profileCatalogues
+        + report.anchors.profilesWithoutCatalogue.length
+        + report.anchors.profilesUnreadable.length,
+      report.anchors.profileFiles,
+      `every listed profile must land in exactly one bucket:\n${result.stdout}`,
+    );
+  });
+
+  test('a listed profile that contributes no origins is named, with damage told apart from choice', () => {
+    const result = scratchRepo(({ dir, writeSources, commit, publish }) => {
+      writeSources([ANCHORED]);
+      mixedProfiles(dir);
+      commit('three profiles, one of which has a catalogue');
+      publish();
+    }, MIXED_BUNDLE);
+    assert.equal(result.code, 0, `a catalogued origin is inherited trust:\n${result.stdout}`);
+    const report = JSON.parse(result.stdout);
+
+    // Sorted by the gate, so these are whole sets rather than subsets, and each
+    // names a path a reader can go and open.
+    assert.deepEqual(
+      report.anchors.profilesWithoutCatalogue,
+      ['tools/updater/profiles/generic/long-tail.json'],
+      `a profile that configures no origins must be named:\n${result.stdout}`,
+    );
+    assert.deepEqual(
+      report.anchors.profilesUnreadable,
+      ['tools/updater/profiles/broken.json'],
+      `a profile that would not parse must be named:\n${result.stdout}`,
+    );
+    // The whole point of two lists rather than one: a deliberate no-catalogue
+    // profile and a damaged one are different events, and a reader who cannot
+    // tell them apart cannot tell a design choice from a typo.
+    assert.notDeepEqual(
+      report.anchors.profilesWithoutCatalogue,
+      report.anchors.profilesUnreadable,
+      'choice and damage must not be reported as the same thing',
+    );
+
+    // The recorded decision on the unparseable profile (#344): it is a skip,
+    // not a refusal. This anchor is additive -- an absent profile tree is
+    // already tolerated -- so a skip can only withhold trust, never extend it,
+    // and refusing would give one corrupt file a veto over runs that never
+    // cited it. Pinned here so that flipping it is a deliberate act with a test
+    // to change, rather than a quiet edit.
+    assert.equal(report.passed, true, `an unparseable profile does not fail the gate:\n${result.stdout}`);
+    assert.deepEqual(report.failures, [], `and contributes no failure:\n${result.stdout}`);
+
+    // Which origins are approved has not moved: the readable catalogue still
+    // anchors trust, and neither skipped profile added or removed anything.
+    assert.deepEqual(
+      report.anchors.approvedOrigins,
+      [CATALOGUED, 'https://good.example'],
+      `the skipped profiles must not change the trust boundary:\n${result.stdout}`,
     );
   });
 
