@@ -48,7 +48,8 @@ export interface ProviderIndexRow {
   releaseCount: number;
   categories: string[];
   verifiedAt: string;
-  route: string;
+  /** Null while no provider detail page is generated, so no row advertises a 404. */
+  route: string | null;
 }
 
 export interface AliasIndexRow {
@@ -111,6 +112,10 @@ export function modelRoute(base: string, slug: string) {
   return `${normalizeBase(base)}models/${slug}/`;
 }
 
+/**
+ * The shape a provider detail route takes. Nothing publishes it yet: the build
+ * generates no provider pages, so provider rows carry a null route until it does.
+ */
 export function providerRoute(base: string, slug: string) {
   return `${normalizeBase(base)}providers/${slug}/`;
 }
@@ -240,7 +245,9 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
         releaseCount: releases.length,
         categories: [...new Set(families.flatMap((item) => item.categories))].sort(compare),
         verifiedAt: organization.verifiedAt,
-        route: providerRoute(base, organization.slug),
+        // No provider detail page is generated, so publishing a route here would
+        // advertise a 404. Null until those pages exist.
+        route: null,
       };
     })
     .sort((a, b) => compare(a.name, b.name) || compare(a.slug, b.slug));
@@ -265,10 +272,9 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
     addAlias(family.name, 'family', family.slug, family.name, null);
   }
   for (const organization of dataset.organizations) {
-    const route = providerRoute(base, organization.slug);
     const names = new Set([organization.name, organization.shortName]);
     for (const alias of names) {
-      addAlias(alias, 'organization', organization.slug, organization.name, route);
+      addAlias(alias, 'organization', organization.slug, organization.name, null);
     }
   }
   for (const product of dataset.products) {
@@ -398,12 +404,17 @@ export function planPagination(slugs: readonly string[], pageSize: number): Pagi
 /**
  * Index rows promise a detail page. Callers pass the slugs their routes actually
  * generate, so an index row for a page nobody builds fails the build instead.
+ *
+ * Every non-null route in the index is checked, including alias rows. A caller
+ * that omits `providers` is not opting out of the provider check: it is stating
+ * that no provider page is generated, so any provider route at all is a 404.
  */
 export function assertRoutesResolve(
   index: CatalogIndex,
   available: { models: Iterable<string>; providers?: Iterable<string> },
 ) {
   const modelSlugs = new Set(available.models);
+  const providerSlugs = new Set(available.providers ?? []);
   const issues: string[] = [];
 
   for (const model of index.models) {
@@ -412,12 +423,26 @@ export function assertRoutesResolve(
     }
   }
 
-  if (available.providers) {
-    const providerSlugs = new Set(available.providers);
-    for (const provider of index.providers) {
-      if (!providerSlugs.has(provider.slug)) {
-        issues.push(`provider index row "${provider.slug}" has no generated detail route`);
-      }
+  for (const provider of index.providers) {
+    if (provider.route !== null && !providerSlugs.has(provider.slug)) {
+      issues.push(`provider index row "${provider.slug}" has no generated detail route`);
+    }
+  }
+
+  // Entities absent from this map generate no pages at all, so any route they
+  // publish is a 404 by definition.
+  const aliasTargets: Partial<Record<AliasEntity, Set<string>>> = {
+    model: modelSlugs,
+    organization: providerSlugs,
+  };
+
+  for (const alias of index.aliases) {
+    if (alias.route === null) continue;
+    if (!aliasTargets[alias.entity]?.has(alias.targetSlug)) {
+      issues.push(
+        `alias row "${alias.alias}" routes to ${alias.entity} "${alias.targetSlug}", `
+        + 'which has no generated detail route',
+      );
     }
   }
 

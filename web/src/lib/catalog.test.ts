@@ -7,6 +7,7 @@ import {
   CatalogIndexError,
   measureIndexSize,
   planPagination,
+  providerRoute,
   sortModels,
 } from './catalog';
 
@@ -291,21 +292,70 @@ describe('pagination planning', () => {
 });
 
 describe('route resolution and payload budget', () => {
-  it('fails when an index row has no detail route to land on', () => {
+  it('publishes no provider route while no provider page is generated', () => {
     const index = buildCatalogIndex(makeDataset());
-    const models = index.models.map((model) => model.slug);
 
-    expect(() => assertRoutesResolve(index, { models, providers: ['alpha'] }))
-      .toThrow(/provider index row "beta" has no generated detail route/);
+    expect(index.providers).not.toHaveLength(0);
+    expect(index.providers.map((provider) => provider.route)).toEqual([null, null]);
+
+    const organizationAliases = index.aliases.filter((alias) => alias.entity === 'organization');
+    expect(organizationAliases).not.toHaveLength(0);
+    for (const alias of organizationAliases) expect(alias.route).toBeNull();
   });
 
-  it('passes when every row has a route', () => {
+  it('fails when a model index row has no detail route to land on', () => {
+    const index = buildCatalogIndex(makeDataset());
+
+    expect(() => assertRoutesResolve(index, { models: ['alpha-new'] }))
+      .toThrow(/model index row "alpha-old" has no generated detail route/);
+  });
+
+  it('fails when a provider row republishes a route the build does not generate', () => {
+    const index = buildCatalogIndex(makeDataset());
+    index.providers[0].route = providerRoute('/', index.providers[0].slug);
+
+    // No providers key: the caller states it generates no provider page, so the
+    // guard must still refuse the row rather than skip the whole check.
+    expect(() => assertRoutesResolve(index, { models: index.models.map((model) => model.slug) }))
+      .toThrow(/provider index row "alpha" has no generated detail route/);
+  });
+
+  it('fails when a published provider route falls outside the generated slugs', () => {
+    const index = buildCatalogIndex(makeDataset());
+    for (const provider of index.providers) {
+      provider.route = providerRoute('/', provider.slug);
+    }
+
+    expect(() => assertRoutesResolve(index, {
+      models: index.models.map((model) => model.slug),
+      providers: ['alpha'],
+    })).toThrow(/provider index row "beta" has no generated detail route/);
+  });
+
+  it('fails when an alias republishes a route to a page nobody builds', () => {
+    const index = buildCatalogIndex(makeDataset());
+    const [alias] = index.aliases.filter((row) => row.entity === 'organization');
+    alias.route = providerRoute('/', alias.targetSlug);
+
+    expect(() => assertRoutesResolve(index, { models: index.models.map((model) => model.slug) }))
+      .toThrow(/alias row ".+" routes to organization "\w+", which has no generated detail route/);
+  });
+
+  it('passes when every published route has a generated page', () => {
     const index = buildCatalogIndex(makeDataset());
 
     expect(assertRoutesResolve(index, {
       models: index.models.map((model) => model.slug),
-      providers: index.providers.map((provider) => provider.slug),
     })).toBe(index);
+  });
+
+  it('holds the real dataset index to the routes the build generates', () => {
+    const index = buildCatalogIndex(seedDataset, '/ModelTree');
+
+    expect(assertRoutesResolve(index, {
+      models: seedDataset.releases.map((release) => release.slug),
+    })).toBe(index);
+    expect(index.providers.every((provider) => provider.route === null)).toBe(true);
   });
 
   it('keeps the real dataset index within its payload budget', () => {
@@ -333,6 +383,6 @@ describe('route resolution and payload budget', () => {
     const index = buildCatalogIndex(seedDataset, '/ModelTree');
 
     expect(index.models[0].route.startsWith('/ModelTree/models/')).toBe(true);
-    expect(index.providers[0].route.startsWith('/ModelTree/providers/')).toBe(true);
+    expect(providerRoute('/ModelTree', 'openai')).toBe('/ModelTree/providers/openai/');
   });
 });
