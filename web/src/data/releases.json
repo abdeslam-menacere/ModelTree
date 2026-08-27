@@ -1094,6 +1094,174 @@
     "verifiedAt": "2026-08-26"
   },
   {
+    "id": "openai-gpt-5-1",
+    "slug": "gpt-5-1",
+    "canonicalName": "GPT-5.1",
+    "displayName": "GPT-5.1",
+    "organizationId": "openai",
+    "familyId": "openai-gpt-5-1",
+    "version": "5.1",
+    "variant": "Standard",
+    "releaseDate": "2025-11-13",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 400000,
+    "maximumOutput": 128000,
+    "apiAliases": [
+      "gpt-5.1",
+      "gpt-5.1-2025-11-13"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "The single release of the GPT-5.1 generation. Its release date is taken from the pinned API snapshot gpt-5.1-2025-11-13, the same way the GPT-5 record is dated, because the model documentation page carries no launch date. That page lists a 400,000-token context window, 128,000 max output tokens, text and image input, text output, and a 2024-09-30 knowledge cutoff. The page still describes GPT-5.1 as OpenAI's flagship model while the model catalogue names GPT-5.6 Sol as the flagship; that disagreement is recorded as an unresolved conflict rather than smoothed over.",
+    "intendedUse": "Coding and agentic tasks with configurable reasoning and non-reasoning effort, on a generation OpenAI no longer lists in its current model catalogue.",
+    "sourceIds": [
+      "openai-gpt-5-1-docs"
+    ],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "openai-gpt-5-2",
+    "slug": "gpt-5-2",
+    "canonicalName": "GPT-5.2",
+    "displayName": "GPT-5.2",
+    "organizationId": "openai",
+    "familyId": "openai-gpt-5-2",
+    "version": "5.2",
+    "variant": "Standard",
+    "releaseDate": "2025-12-11",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 400000,
+    "maximumOutput": 128000,
+    "apiAliases": [
+      "gpt-5.2",
+      "gpt-5.2-2025-12-11"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "The single release of the GPT-5.2 generation, which OpenAI's model documentation calls its previous frontier model for complex professional work and points to GPT-5.6 instead. Its release date is taken from the pinned API snapshot gpt-5.2-2025-12-11. The documentation lists a 400,000-token context window, 128,000 max output tokens, text and image input, text output, and a 2025-08-31 knowledge cutoff.",
+    "intendedUse": "Complex professional work with configurable reasoning effort, on a generation OpenAI documents as superseded by GPT-5.6.",
+    "sourceIds": [
+      "openai-gpt-5-2-docs"
+    ],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "openai-gpt-5-3-codex",
+    "slug": "gpt-5-3-codex",
+    "canonicalName": "GPT-5.3-Codex",
+    "displayName": "GPT-5.3-Codex",
+    "organizationId": "openai",
+    "familyId": "openai-gpt-5-3-codex",
+    "version": "5.3",
+    "variant": "Codex",
+    "releaseDate": "2026-02-05",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 400000,
+    "maximumOutput": 128000,
+    "apiAliases": [
+      "gpt-5.3-codex"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "A Codex-native model optimized for agentic coding tasks in Codex or similar environments. Its release date is taken from the OpenAI news item 'Introducing GPT-5.3-Codex', which carries pubDate 5 February 2026, because the model documentation page lists only the dateless gpt-5.3-codex identifier and no dated snapshot. The documentation lists a 400,000-token context window, 128,000 max output tokens, text and image input, text output, and a 2025-08-31 knowledge cutoff.",
+    "intendedUse": "Agentic coding tasks in Codex or similar environments, and long-horizon technical work.",
+    "sourceIds": [
+      "openai-gpt-5-3-codex-docs",
+      "openai-news-rss"
+    ],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "openai-gpt-image-2",
+    "slug": "gpt-image-2",
+    "canonicalName": "GPT-Image-2",
+    "displayName": "GPT-Image-2",
+    "organizationId": "openai",
+    "familyId": "openai-gpt-image",
+    "version": "2",
+    "variant": "Standard",
+    "releaseDate": "2026-04-21",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "image"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "image"
+    ],
+    "accessType": "proprietary-hosted",
+    "apiAliases": [
+      "gpt-image-2",
+      "gpt-image-2-2026-04-21"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "OpenAI's image generation and editing model, listed in the model catalogue as the current image model. Its release date is taken from the pinned API snapshot gpt-image-2-2026-04-21 because the model documentation page carries no launch date. The documentation lists text and image input and image output, and states no context window or maximum output, so neither is recorded.",
+    "intendedUse": "Fast, high-quality image generation and editing, including edits from multiple high-fidelity image inputs.",
+    "sourceIds": [
+      "openai-gpt-image-2-docs",
+      "openai-models-catalog"
+    ],
+    "verifiedAt": "2026-08-27"
+  },
+  {
     "id": "anthropic-claude-sonnet-5",
     "slug": "claude-sonnet-5",
     "canonicalName": "Claude Sonnet 5",
