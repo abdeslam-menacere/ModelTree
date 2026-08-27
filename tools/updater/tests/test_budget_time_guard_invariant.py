@@ -92,6 +92,44 @@ refusal: `test_the_guard_rule_reaches_every_function_inside_the_ledger_class`
 compares what the guard rule walks against every function the class contains, so
 the shape cannot arrive quietly — it arrives red.
 
+*Another ledger's counters.* A second receiver, and a third rule. Until #373 a
+`BudgetLedger` method writing `other.pages_fetched` was read by neither of the
+two rules above — inside the class, so the module rule skips it; not a write to
+`self`, so the guard rule ignored it — and the whole suite stayed green on it.
+That was latent rather than live, because `budgets.py` writes every one of its
+counters on a bare `self`, which is the only reason it is recorded here as a
+decision rather than as a defect.
+
+The decision is that a charge is what the *counter* says it is, not what the
+receiver says it is, so the write is reported. The assertion that used to hold
+the opposite gave a reason that argues against its own conclusion:
+`other.tokens_used` is "that ledger's methods' business" — which is the case
+for *refusing* it here, not for ignoring it. The counters belong to the ledger,
+and the fix for such a site is a method on the ledger that owns them —
+`other.charge_tokens(n)`, which consults `other`'s clock and routes `other`'s
+limit through `other._exhaust`.
+
+Refusal, not guarding, for the same reason the module rule refuses one scope
+out. `self.check_time()` reads `self._started_at` and `self.budget.max_seconds`;
+`other` has its own of each. A guard on `self` therefore restores nothing
+whatever about `other`, and widening the *guard* rule to match any receiver
+would have been worse than the gap it closed: a method that called
+`self.check_time()` and then spent `other.pages_fetched` would come back clear,
+and a false negative that reads as covered is the one outcome this file exists
+to prevent.
+
+`NOT_SELF` is the complement of `SELF` over the same expressions rather than a
+second list of shapes, so a receiver reached *through* self is still not self
+and `self.parent.pages_fetched += n` — the parent/child rollup — is read. The
+cost is the name-based one the module rule already accepts, accepted here for
+the same reason: `report.pages_fetched = ...` on an object that merely borrows a
+counter's name reads as a charge, which in a module this small is worth a look
+either way, and the failure names the site. The rule exempts neither `__init__`
+nor `record_retry`: both of those exemptions are about the clock, and the clock
+is not what makes this a violation. Both in-class rules walk the same functions
+via `_ledger_method_nodes`, so the coverage check above is one statement about
+both of them and the nested-class seam stays the only seam.
+
 *Dynamic writes.* An attribute write has spellings that are not attribute
 syntax, and a rule reading only `ast.Attribute` targets is walked around by
 picking one. `self.__dict__["pages_fetched"] += n` spends the same counter as
@@ -130,7 +168,9 @@ conspicuously reflective in a module this small.
 Both new forms inherit the receiver-blindness recorded above rather than
 widening it. Outside the ledger the module rule matches any receiver, so
 `vars(anything)["pages_fetched"] = n` is reported exactly as
-`anything.pages_fetched = n` already was, and for the same reason.
+`anything.pages_fetched = n` already was, and for the same reason. Inside it
+they are read on the receiver axis too, so `vars(other)["tokens_used"] = n` is
+the cross-ledger charge `other.tokens_used = n` is.
 """
 
 from __future__ import annotations
@@ -177,12 +217,17 @@ INSTANCE_DICT = "__dict__"
 VARS = "vars"
 DICT_UPDATE = "update"
 
-# Which receiver a write has to be on to count. The guard rule inside the class
-# means `self` and only `self` — `other.tokens_used` is another run's budget and
-# that ledger's methods' business, which the counterweights below pin. The
-# module rule outside the class has no `self` to key on and nothing to learn
-# from the object being written to, so it matches any receiver.
+# Which receiver a write has to be on for a rule to see it. Three rules, three
+# answers, and between them every receiver a write can name.
+#
+# `SELF` is the guard rule inside the class: spend, but guard the clock first.
+# `NOT_SELF` is the foreign-receiver rule, also inside the class, and it refuses
+# rather than guards — a guard on `self` says nothing about another object's
+# clock or limit. `ANY_RECEIVER` is the module rule outside the class, which has
+# no `self` to key on and nothing to learn from the object being written to.
+# See *Another ledger's counters* in the module docstring, and #373.
 SELF = "self"
+NOT_SELF = "<not-self>"
 ANY_RECEIVER = "<any>"
 
 # What a charge outside every function is reported against.
@@ -215,51 +260,64 @@ def _ledger_class(source: str) -> ast.ClassDef:
     return _ledger_class_in(ast.parse(source))
 
 
+def _ledger_method_nodes(
+    ledger: ast.ClassDef,
+) -> list[ast.FunctionDef | ast.AsyncFunctionDef]:
+    """The class body's own methods: the functions both in-class rules analyse.
+
+    Shared so the guard rule and the foreign-receiver rule cannot drift apart on
+    which functions they cover, which is what lets
+    `test_the_guard_rule_reaches_every_function_inside_the_ledger_class` be one
+    statement about both of them rather than about the older of the two.
+    """
+    return [child for child in ledger.body if isinstance(child, _METHOD_NODES)]
+
+
 def _ledger_methods(source: str) -> dict[str, ast.AST]:
     """Every method defined on the ledger class, keyed by name."""
-    return {
-        child.name: child
-        for child in _ledger_class(source).body
-        if isinstance(child, _METHOD_NODES)
-    }
+    return {child.name: child for child in _ledger_method_nodes(_ledger_class(source))}
 
 
 # --- What counts as writing to the ledger ------------------------------------
+
+
+def _matches_receiver(node: ast.AST | None, receiver: str) -> bool:
+    """True when `node` is the receiver expression a rule matches writes on.
+
+    The one place a receiver is recognised, so the three rules cannot drift
+    apart on what "the object being written to" means, and so the instance
+    dictionary forms below — which have to identify a receiver with no attribute
+    hanging off it to read — ask the same question the attribute forms do.
+
+    `NOT_SELF` is the complement of `SELF` over the same expressions rather than
+    a second list of shapes. A ledger reached *through* self is still not self,
+    so `self.parent.pages_fetched` is matched by it and `self.pages_fetched` is
+    not.
+    """
+    if node is None:
+        return False
+    if receiver == ANY_RECEIVER:
+        return True
+    if receiver == NOT_SELF:
+        return not (isinstance(node, ast.Name) and node.id == SELF)
+    return isinstance(node, ast.Name) and node.id == receiver
 
 
 def _receiver_attr(node: ast.AST | None, receiver: str) -> str | None:
     """`<receiver>.<name>` -> `<name>`; anything else -> None.
 
     `ANY_RECEIVER` matches whatever the write is made on, including a chained
-    expression like `run.ledger.pages_fetched`. Both rules read attributes
-    through here so that neither can learn a form the other has not.
+    expression like `run.ledger.pages_fetched`. All three rules read attributes
+    through here so that none can learn a form the others have not.
     """
     if not isinstance(node, ast.Attribute):
         return None
-    if receiver == ANY_RECEIVER:
-        return node.attr
-    if isinstance(node.value, ast.Name) and node.value.id == receiver:
-        return node.attr
-    return None
+    return node.attr if _matches_receiver(node.value, receiver) else None
 
 
 def _self_attr(node: ast.AST | None) -> str | None:
     """`self.<name>` -> `<name>`; anything else -> None."""
     return _receiver_attr(node, SELF)
-
-
-def _is_receiver(node: ast.AST | None, receiver: str) -> bool:
-    """True when `node` names the object a rule matches writes on.
-
-    The receiver half of `_receiver_attr`, on its own, because the instance
-    dictionary forms below have to identify the receiver with no attribute
-    hanging off it to read.
-    """
-    if node is None:
-        return False
-    if receiver == ANY_RECEIVER:
-        return True
-    return isinstance(node, ast.Name) and node.id == receiver
 
 
 def _is_instance_dict(node: ast.AST | None, receiver: str) -> bool:
@@ -272,14 +330,14 @@ def _is_instance_dict(node: ast.AST | None, receiver: str) -> bool:
     docstring for what that leaves open and why.
     """
     if isinstance(node, ast.Attribute) and node.attr == INSTANCE_DICT:
-        return _is_receiver(node.value, receiver)
+        return _matches_receiver(node.value, receiver)
     return (
         isinstance(node, ast.Call)
         and isinstance(node.func, ast.Name)
         and node.func.id == VARS
         and len(node.args) == 1
         and not node.keywords
-        and _is_receiver(node.args[0], receiver)
+        and _matches_receiver(node.args[0], receiver)
     )
 
 
@@ -336,9 +394,7 @@ def _setattr_attrs(node: ast.Call, receiver: str) -> set[str]:
         return set()
     if len(node.args) < 2:
         return set()
-    if receiver != ANY_RECEIVER and not (
-        isinstance(node.args[0], ast.Name) and node.args[0].id == receiver
-    ):
+    if not _matches_receiver(node.args[0], receiver):
         return set()
     name = node.args[1]
     if isinstance(name, ast.Constant) and isinstance(name.value, str):
@@ -618,20 +674,19 @@ def _charges_outside_the_ledger(source: str) -> frozenset[OutsideCharge]:
 
 
 def _ledger_function_coverage(source: str) -> tuple[set[int], set[int]]:
-    """`(functions the guard rule walks, functions the ledger class contains)`.
+    """`(functions the in-class rules walk, functions the ledger class contains)`.
 
-    Read off one parse, because they are compared by node identity. The guard
-    rule starts from the class body's own methods and follows `ast.walk` into
+    Read off one parse, because they are compared by node identity. Both
+    in-class rules start from `_ledger_method_nodes` and follow `ast.walk` into
     each, so a function the ledger holds some other way — inside a nested class,
-    say — is in the second set and not the first, and is analysed by neither
-    rule. That difference is what the coverage test refuses.
+    say — is in the second set and not the first, and is analysed by none of the
+    three rules. That difference is what the coverage test refuses.
     """
     tree = ast.parse(source)
     ledger = _ledger_class_in(tree)
     walked = {
         id(node)
-        for child in ledger.body
-        if isinstance(child, _METHOD_NODES)
+        for child in _ledger_method_nodes(ledger)
         for node in ast.walk(child)
         if isinstance(node, _METHOD_NODES)
     }
@@ -639,10 +694,58 @@ def _ledger_function_coverage(source: str) -> tuple[set[int], set[int]]:
     return walked, contained
 
 
+# --- Charges on a receiver that is not `self` --------------------------------
+#
+# The third rule, and the receiver half of the first one. The guard rule asks
+# what these same functions spend on `self`; this asks what they spend on
+# anything else, and refuses it rather than guarding it. See *Another ledger's
+# counters* in the module docstring for why guarding is the wrong frame, and
+# #373 for the gap this closes.
+
+
+@dataclass(frozen=True, order=True)
+class ForeignCharge:
+    """A spending counter a ledger method writes on something that is not `self`."""
+
+    scope: str
+    counter: str
+
+
+def _charges_on_another_receiver(source: str) -> frozenset[ForeignCharge]:
+    """Every counter a ledger method writes on a receiver other than `self`.
+
+    Walks `_ledger_method_nodes`, exactly as the guard rule does, so neither
+    in-class rule can cover a function the other does not; and reads write forms
+    through the same `_written_attrs`, so neither can learn a spelling the other
+    has not. `NOT_SELF` does the rest, which is why nothing here enumerates a
+    shape.
+
+    Exempts neither `__init__` nor `record_retry`. Both of those exemptions are
+    about the clock — a ledger cannot overrun a clock it is starting, and a retry
+    does not consume wall-clock budget — and neither has anything to say about
+    spending an object that is not this one.
+    """
+    tree = ast.parse(source)
+    counters = _spending_counters(source)
+    scopes = _scopes(tree)
+    return frozenset(
+        ForeignCharge(scopes[id(node)], attr)
+        for method in _ledger_method_nodes(_ledger_class_in(tree))
+        for node in ast.walk(method)
+        for attr in _written_attrs(node, NOT_SELF)
+        if attr in counters or attr == COMPUTED
+    )
+
+
 def _report(
     source: str,
-) -> tuple[frozenset[Charge], frozenset[Charge], frozenset[OutsideCharge]]:
-    """`(never guarded, guarded too late, spent outside the ledger)`."""
+) -> tuple[
+    frozenset[Charge],
+    frozenset[Charge],
+    frozenset[OutsideCharge],
+    frozenset[ForeignCharge],
+]:
+    """`(never guarded, guarded late, spent outside the ledger, spent on another)`."""
     methods = _ledger_methods(source)
     counters = _spending_counters(source)
     charges: set[Charge] = set()
@@ -671,6 +774,7 @@ def _report(
         frozenset(unguarded),
         frozenset(charges - unguarded),
         _charges_outside_the_ledger(source),
+        _charges_on_another_receiver(source),
     )
 
 
@@ -819,6 +923,85 @@ _READS_A_COUNTER = """
 _WRITES_ANOTHER_LEDGER = """
     def copy_widgets_into(self, other: "BudgetLedger") -> None:
         other.tokens_used += self.tokens_used
+"""
+
+# --- Another ledger's counters. The fixture above is the one #373 names, and it
+# is a *positive* now rather than a counterweight; these are the other spellings
+# the same decision covers, and the counterweights that keep the rule from
+# crying wolf on the receiver axis. See *Another ledger's counters* above.
+
+# The decision itself, in one fixture: the clock is guarded and the write is
+# still refused, because `self.check_time()` reads `self._started_at` and
+# `self.budget`, neither of which is `other`'s.
+_FOREIGN_GUARDED = """
+    def copy_widgets_into(self, other: "BudgetLedger") -> None:
+        self.check_time()
+        other.tokens_used += self.tokens_used
+"""
+
+_FOREIGN_ASSIGN = """
+    def copy_widgets_into(self, other: "BudgetLedger") -> None:
+        other.tokens_used = self.tokens_used
+"""
+
+_FOREIGN_SETATTR = """
+    def copy_widgets_into(self, other: "BudgetLedger") -> None:
+        setattr(other, "tokens_used", self.tokens_used)
+"""
+
+_FOREIGN_COMPUTED_SETATTR = """
+    def copy_widgets_into(self, other: "BudgetLedger", name: str) -> None:
+        setattr(other, name, self.tokens_used)
+"""
+
+_FOREIGN_DICT_AUG = """
+    def copy_widgets_into(self, other: "BudgetLedger") -> None:
+        other.__dict__["tokens_used"] += self.tokens_used
+"""
+
+_FOREIGN_VARS_ASSIGN = """
+    def copy_widgets_into(self, other: "BudgetLedger") -> None:
+        vars(other)["tokens_used"] = self.tokens_used
+"""
+
+_FOREIGN_DICT_UPDATE_KEYWORD = """
+    def copy_widgets_into(self, other: "BudgetLedger") -> None:
+        other.__dict__.update(tokens_used=self.tokens_used)
+"""
+
+# The parent/child rollup #373 names, and the shape a receiver rule written as
+# "a bare name that is not `self`" would miss: the ledger being spent is reached
+# *through* `self` and is still not `self`.
+_FOREIGN_CHAINED = """
+    def roll_up(self, count: int) -> None:
+        self.parent.pages_fetched += count
+"""
+
+# Both receivers bound by one statement. A rule built by subtracting the `self`
+# writes from the any-receiver writes cancels to nothing here, because the two
+# targets carry the same attribute name; `NOT_SELF` resolves each target on its
+# own, so the foreign half survives. The `self` half is guarded, so this variant
+# reports on exactly one axis and cannot pass by reddening the other.
+_FOREIGN_AND_SELF_TUPLE = """
+    def split_widgets(self, other: "BudgetLedger", count: int) -> None:
+        self.check_time()
+        self.tokens_used, other.tokens_used = count, count
+"""
+
+_FOREIGN_READ = """
+    def widgets_behind(self, other: "BudgetLedger") -> int:
+        return other.tokens_used - self.tokens_used
+"""
+
+_FOREIGN_OTHER_ATTRIBUTE = """
+    def label_other(self, other: "BudgetLedger", note: str) -> None:
+        other.note = note
+"""
+
+_FOREIGN_LOCAL_MAPPING = """
+    def stash_widgets_for(self, other: "BudgetLedger") -> None:
+        counts = {}
+        counts["tokens_used"] = other.tokens_used
 """
 
 _WRITES_A_PRIVATE_ATTRIBUTE = """
@@ -1112,6 +1295,20 @@ def _variants() -> dict[str, str]:
         "guarded_helper": _extend_ledger(real, _GUARDED_HELPER),
         "reads_a_counter": _extend_ledger(real, _READS_A_COUNTER),
         "writes_another_ledger": _extend_ledger(real, _WRITES_ANOTHER_LEDGER),
+        "foreign_guarded": _extend_ledger(real, _FOREIGN_GUARDED),
+        "foreign_assign": _extend_ledger(real, _FOREIGN_ASSIGN),
+        "foreign_setattr": _extend_ledger(real, _FOREIGN_SETATTR),
+        "foreign_computed_setattr": _extend_ledger(real, _FOREIGN_COMPUTED_SETATTR),
+        "foreign_dict_aug": _extend_ledger(real, _FOREIGN_DICT_AUG),
+        "foreign_vars_assign": _extend_ledger(real, _FOREIGN_VARS_ASSIGN),
+        "foreign_dict_update_keyword": _extend_ledger(
+            real, _FOREIGN_DICT_UPDATE_KEYWORD
+        ),
+        "foreign_chained": _extend_ledger(real, _FOREIGN_CHAINED),
+        "foreign_and_self_tuple": _extend_ledger(real, _FOREIGN_AND_SELF_TUPLE),
+        "foreign_read": _extend_ledger(real, _FOREIGN_READ),
+        "foreign_other_attribute": _extend_ledger(real, _FOREIGN_OTHER_ATTRIBUTE),
+        "foreign_local_mapping": _extend_ledger(real, _FOREIGN_LOCAL_MAPPING),
         "writes_a_private_attribute": _extend_ledger(real, _WRITES_A_PRIVATE_ATTRIBUTE),
         "new_counter_seeded": with_counter,
         "new_counter_unguarded": _extend_ledger(with_counter, _NEW_COUNTER_UNGUARDED),
@@ -1182,7 +1379,12 @@ VARIANTS = _variants()
 
 def _injected(
     variant: str,
-) -> tuple[frozenset[Charge], frozenset[Charge], frozenset[OutsideCharge]]:
+) -> tuple[
+    frozenset[Charge],
+    frozenset[Charge],
+    frozenset[OutsideCharge],
+    frozenset[ForeignCharge],
+]:
     """What one injection adds to whatever `budgets.py` already reports.
 
     Every variant is the real module plus a single edit, so subtracting the
@@ -1191,9 +1393,14 @@ def _injected(
     instead of turning every proof and counterweight red at the same time and
     burying which idiom actually stopped working.
     """
-    real_unguarded, real_late, real_outside = _report(_read_source())
-    unguarded, late, outside = _report(VARIANTS[variant])
-    return unguarded - real_unguarded, late - real_late, outside - real_outside
+    real_unguarded, real_late, real_outside, real_foreign = _report(_read_source())
+    unguarded, late, outside, foreign = _report(VARIANTS[variant])
+    return (
+        unguarded - real_unguarded,
+        late - real_late,
+        outside - real_outside,
+        foreign - real_foreign,
+    )
 
 
 def _injected_unguarded(variant: str) -> set[str]:
@@ -1208,11 +1415,21 @@ def _injected_outside(variant: str) -> set[tuple[str, str]]:
     return {(charge.scope, charge.counter) for charge in _injected(variant)[2]}
 
 
+def _injected_foreign(variant: str) -> set[tuple[str, str]]:
+    return {(charge.scope, charge.counter) for charge in _injected(variant)[3]}
+
+
 def _injected_paths(variant: str) -> set[tuple[str, str]]:
     return {(charge.entry, charge.method) for charge in _injected(variant)[0]}
 
 
-NOTHING: tuple[frozenset[Charge], frozenset[Charge], frozenset[OutsideCharge]] = (
+NOTHING: tuple[
+    frozenset[Charge],
+    frozenset[Charge],
+    frozenset[OutsideCharge],
+    frozenset[ForeignCharge],
+] = (
+    frozenset(),
     frozenset(),
     frozenset(),
     frozenset(),
@@ -1359,8 +1576,10 @@ def test_the_constructor_seeds_every_counter_and_is_not_a_charge() -> None:
 
 def test_the_current_module_is_clean_under_the_whole_detector() -> None:
     """The live `budgets.py` has no unguarded charge outside the exemption, no
-    charge that runs ahead of its guard, and nothing spending a counter from
-    outside the ledger class."""
+    charge that runs ahead of its guard, nothing spending a counter from outside
+    the ledger class, and no ledger method spending a counter on anything but
+    itself. All four claims at once, which is what makes this the test a real
+    regression in `budgets.py` fails on."""
     assert _report(_read_source()) == NOTHING
 
 
@@ -1533,10 +1752,35 @@ def test_reading_a_counter_is_not_a_charge() -> None:
     assert _injected("reads_a_counter") == NOTHING
 
 
-def test_writing_another_ledger_s_counter_is_not_a_charge() -> None:
-    """The write has to be to `self`; `other.tokens_used` spends another run's
-    budget and is that ledger's methods' business."""
-    assert _injected("writes_another_ledger") == NOTHING
+def test_writing_another_ledger_s_counter_is_a_charge() -> None:
+    """The decision #373 asked for, recorded where the old assertion stood.
+
+    This test used to be `test_writing_another_ledger_s_counter_is_not_a_charge`
+    and asserted `NOTHING`, on the reasoning that `other.tokens_used` "spends
+    another run's budget and is that ledger's methods' business". The premise
+    was right and the conclusion did not follow from it: if those counters are
+    that ledger's methods' business, then a method of *this* ledger writing them
+    directly is the encapsulation break the module rule refuses one scope out,
+    and the remedy is the same one — `other.charge_tokens(n)`, which consults
+    `other`'s clock and routes `other`'s limit through `other._exhaust`.
+
+    So a charge is what the *counter* says it is, not what the receiver says it
+    is. Reported by the third rule, which refuses rather than guards; the guard
+    rule is deliberately not the vehicle, because a guard on `self` restores
+    nothing about `other` and widening it would have let a `self.check_time()`
+    clear a cross-ledger spend. This test is what catches that mistake: the
+    fixture is unguarded, so a widened guard rule reports it and the second
+    assertion below goes red. Kept as the inverse of the assertion it replaces
+    rather than deleted, so the reversal is visible in the diff.
+    """
+    assert _injected_foreign("writes_another_ledger") == {
+        ("BudgetLedger.copy_widgets_into", "tokens_used")
+    }
+    assert _injected("writes_another_ledger")[:3] == NOTHING[:3], (
+        "a cross-ledger charge must be reported by the foreign-receiver rule "
+        "alone; the guard rule keys on `self` and the module rule skips the "
+        "class, and neither claim should have moved"
+    )
 
 
 def test_writing_a_private_attribute_is_not_a_charge() -> None:
@@ -1632,6 +1876,24 @@ def test_the_live_module_spends_no_counter_outside_the_ledger_class() -> None:
         "spending counter(s) are written outside BudgetLedger, which bypasses "
         "the clock guard and _exhaust together: "
         f"{sorted((charge.scope, charge.counter) for charge in outside)}"
+    )
+
+
+def test_the_live_module_charges_no_counter_on_another_receiver() -> None:
+    """The sibling invariant on the receiver axis, and the one #373 asks for.
+
+    Verified independently against `main` before the rule existed: every one of
+    the writes in `budgets.py` is on a bare `self`, so this was latent rather
+    than a live fail-open. It goes red the moment a ledger method starts
+    spending an object that is not itself — a merge, a transfer, or the
+    parent/child rollup — which is the shape no rule could see before.
+    """
+    foreign = _charges_on_another_receiver(_read_source())
+    assert foreign == frozenset(), (
+        "BudgetLedger method(s) write a spending counter on a receiver that is "
+        "not `self`, which bypasses that ledger's clock guard and its _exhaust "
+        "together; the fix is a method on the ledger that owns the counter: "
+        f"{sorted((charge.scope, charge.counter) for charge in foreign)}"
     )
 
 
@@ -1841,6 +2103,152 @@ def test_an_unrelated_keyword_update_outside_the_class_is_not_a_charge() -> None
     any *mapping*, and this is what holds that distinction for the keyword
     limb — it goes red on a detector widened until `update` alone is enough."""
     assert _injected("outside_unrelated_update_keyword") == NOTHING
+
+
+# --- Another ledger's counters: the receiver axis ----------------------------
+#
+# The third rule's own proofs. The write forms come from the same
+# `_written_attrs` the other two rules read, so these pin that the shared helper
+# is actually reached with `NOT_SELF` rather than resting on coverage no test
+# measures — the unenforced-coverage shape #355 records.
+
+
+def test_a_cross_ledger_charge_is_refused_even_when_it_guards_the_clock() -> None:
+    """The decision, held by a test so it cannot erode into a habit. It is the
+    exact counterpart, one scope in, of the out-of-class rule that refuses a
+    charge site even when that site calls the guard.
+
+    This method calls `self.check_time()` and is still refused, because that
+    guard reads `self._started_at` and `self.budget.max_seconds` while the
+    counter being spent belongs to `other`, which has its own of each — and
+    because `charge_tokens` also tests `max_tokens` through `_exhaust`, which no
+    guard on `self` performs for `other` either.
+
+    This variant is also why the fix could not be "widen the guard rule's
+    receiver", and that is measured rather than argued. Under such a change the
+    guard here runs *before* the write, so the widened guard rule clears this
+    site and reports nothing whatever — a false negative that reads as covered,
+    which is strictly worse than the silence #373 started from. The refusal rule
+    reports it either way, which is what the first assertion pins.
+
+    The second assertion pins that the guard rule stays out of it, and is
+    deliberately not claimed to catch the widening: a site the widened rule
+    cleared and a site that was never the guard rule's business look identical
+    from here. What catches the widening is the *unguarded* fixture in
+    `test_writing_another_ledger_s_counter_is_a_charge`, which a widened guard
+    rule does report and which therefore goes red. Probed, not assumed."""
+    assert _injected_foreign("foreign_guarded") == {
+        ("BudgetLedger.copy_widgets_into", "tokens_used")
+    }
+    assert _injected("foreign_guarded")[:3] == NOTHING[:3], (
+        "a cross-ledger charge is the refusal rule's business alone: the guard "
+        "rule keys on `self` and the module rule skips the class"
+    )
+
+
+def test_a_cross_ledger_plain_reassignment_is_detected() -> None:
+    """A plain assign is no more a bypass on the receiver axis than it is on the
+    other two, because all three read `_written_attrs`."""
+    assert _injected_foreign("foreign_assign") == {
+        ("BudgetLedger.copy_widgets_into", "tokens_used")
+    }
+
+
+def test_a_cross_ledger_setattr_is_detected() -> None:
+    """`setattr(other, "tokens_used", ...)` names the counter as a string."""
+    assert _injected_foreign("foreign_setattr") == {
+        ("BudgetLedger.copy_widgets_into", "tokens_used")
+    }
+
+
+def test_a_cross_ledger_setattr_with_a_computed_name_is_detected() -> None:
+    """An attribute name the rule cannot read is treated as a charge here for
+    the same reason it is in the other two rules: it is the shape a deliberate
+    bypass takes, and `budgets.py` has no legitimate computed `setattr`."""
+    assert _injected_foreign("foreign_computed_setattr") == {
+        ("BudgetLedger.copy_widgets_into", COMPUTED)
+    }
+
+
+def test_a_cross_ledger_instance_dict_charge_is_detected() -> None:
+    """#347's forms on #373's axis. `other.__dict__["tokens_used"] += n` spends
+    the counter `other.tokens_used` names, so it is the same charge — and a
+    rule that closed the receiver axis for attribute syntax only would have
+    re-created #347's defect one receiver over."""
+    assert _injected_foreign("foreign_dict_aug") == {
+        ("BudgetLedger.copy_widgets_into", "tokens_used")
+    }
+
+
+def test_a_cross_ledger_vars_charge_is_detected() -> None:
+    """`vars(other)` is `other.__dict__` under a second name, out here too."""
+    assert _injected_foreign("foreign_vars_assign") == {
+        ("BudgetLedger.copy_widgets_into", "tokens_used")
+    }
+
+
+def test_a_cross_ledger_dict_update_keyword_is_detected() -> None:
+    """#355's keyword limb on the receiver axis, asserted by counter name so it
+    cannot pass on a rule that merely notices the call: the keyword has to
+    resolve to `tokens_used` rather than to `COMPUTED`."""
+    assert _injected_foreign("foreign_dict_update_keyword") == {
+        ("BudgetLedger.copy_widgets_into", "tokens_used")
+    }
+
+
+def test_a_charge_on_a_ledger_reached_through_self_is_detected() -> None:
+    """The parent/child rollup, and the reason `NOT_SELF` is the complement of
+    `SELF` rather than a check for a bare name that is not `self`.
+    `self.parent.pages_fetched += n` reaches another ledger *through* self, and
+    a rule keyed on the receiver being a plain `Name` other than `self` would
+    have read this as covered while it spent a whole second budget."""
+    assert _injected_foreign("foreign_chained") == {
+        ("BudgetLedger.roll_up", "pages_fetched")
+    }
+
+
+def test_a_statement_writing_both_receivers_still_reports_the_foreign_half() -> None:
+    """`self.tokens_used, other.tokens_used = count, count` binds one counter
+    name on two receivers in one statement.
+
+    The obvious way to build this rule — take the any-receiver writes and
+    subtract the `self` writes — cancels to nothing here, because both halves
+    contribute the same attribute name and set difference cannot tell them
+    apart. Resolving each target against `NOT_SELF` on its own is what survives
+    it. The `self` half is guarded, so the guard rule stays quiet and this
+    variant reports on exactly one axis rather than passing because something
+    else went red."""
+    assert _injected_foreign("foreign_and_self_tuple") == {
+        ("BudgetLedger.split_widgets", "tokens_used")
+    }
+    assert _injected("foreign_and_self_tuple")[:3] == NOTHING[:3]
+
+
+# --- Counterweights on the receiver axis: what must stay quiet ---------------
+
+
+def test_reading_another_ledger_s_counter_is_not_a_charge() -> None:
+    """A method comparing itself against another ledger spends nothing. The
+    rule keys on writes here exactly as the other two do, or every method that
+    took a second ledger as a parameter would be a violation."""
+    assert _injected("foreign_read") == NOTHING
+
+
+def test_writing_a_non_counter_attribute_on_another_object_is_not_a_charge() -> None:
+    """The rule is receiver-blind, not attribute-blind: the attribute still has
+    to resolve to a derived counter, so `other.note = ...` stays quiet. This is
+    the bracket on the broad side — the positives above go red when the rule is
+    too narrow, and this goes red when it is widened until any write on any
+    other object is a charge."""
+    assert _injected("foreign_other_attribute") == NOTHING
+
+
+def test_a_subscript_write_to_a_local_mapping_is_not_a_cross_ledger_charge() -> None:
+    """`counts["tokens_used"] = ...` on an ordinary local dict is not a write to
+    any object's instance dictionary, so it is not a charge on the receiver axis
+    either. `NOT_SELF` widens which receivers are matched and must not widen
+    what counts as a *write*, which is what this holds."""
+    assert _injected("foreign_local_mapping") == NOTHING
 
 
 # --- The write forms that stay open, held open by measurement ----------------
