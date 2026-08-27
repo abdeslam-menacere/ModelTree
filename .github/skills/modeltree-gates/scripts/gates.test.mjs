@@ -466,7 +466,10 @@ describe('gate-dataset', () => {
   // is accepted, so this is a pure widening of refusal that leaves every
   // non-empty tree exactly as it was. `usage-syntheses.json` is legitimately
   // empty in the live data, which is why the rule cannot be "every document is
-  // non-empty".
+  // non-empty", and `sources.json` is the document chosen to hold the single
+  // surviving record -- any one of them would do and the choice is arbitrary,
+  // but it has to be named, because the emptying below is defined as
+  // "everything except it".
   //
   // The documents emptied here are derived from `DATASET_DOCUMENTS` rather than
   // hand-written, because a copy local to this test body is invisible to the
@@ -475,16 +478,35 @@ describe('gate-dataset', () => {
   // reach both the gate and the constant while this body went on emptying nine
   // of ten, leaving the tenth populated and the tree trivially non-empty, and
   // this test would keep its name and its green tick while testing less than it
-  // describes. It degrades quietly where `a wholesale-empty dataset is refused`
-  // degrades loudly, because its assertion is that nothing fires, and nothing
-  // firing is exactly what a narrowed test produces. Deriving closes the second
-  // half of the coupling: the drift check makes gate -> constant audible, and
-  // this makes constant -> test body automatic.
+  // describes. Deriving closes the second half of the coupling: the drift check
+  // makes gate -> constant audible, and this makes constant -> test body
+  // automatic.
+  //
+  // Deriving alone was not enough (#423). The assertion below is that nothing
+  // fires, and nothing firing is also what a *narrowed setup* produces, so the
+  // derivation could be sliced or re-filtered and the suite would stay green --
+  // measured: `.slice(0, 2)` on `emptied` left the whole suite passing. So the
+  // completeness of the emptying is now asserted directly, in the setup, which
+  // is what makes this degrade loudly where it used to degrade quietly.
   test('a dataset emptied to a single record still passes, so the floor is not a per-document rule', () => {
     const result = gateMutatedDataset(({ read, write }) => {
       const sources = read('sources.json');
       const keptSource = sources[0];
       const emptied = DATASET_DOCUMENTS.filter((file) => file !== 'sources.json');
+      // What this setup claims about itself, checked rather than assumed. The
+      // gate's silence cannot carry it: a body that empties two documents
+      // produces exactly the silence a body that empties eight produces, so
+      // without this line a narrowed derivation is indistinguishable from a
+      // complete one. Set equality rather than a count, because all three edits
+      // that narrow this -- slicing, short-circuiting, and re-filtering on a
+      // different document -- have to be caught, and only the first two change
+      // the length.
+      assert.deepEqual(
+        [...emptied, 'sources.json'].sort(),
+        [...DATASET_DOCUMENTS].sort(),
+        'the floor test must empty every dataset document except sources.json, '
+          + 'which holds the single surviving record',
+      );
       for (const file of emptied) {
         write(file, []);
       }
