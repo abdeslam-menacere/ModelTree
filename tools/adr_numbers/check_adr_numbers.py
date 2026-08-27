@@ -127,9 +127,10 @@ Everything else a decision record contains stays out of scope. This reads one
 heading, not the prose: the required sections, the metadata list and the status
 are not checked, and an ADR may still say anything it likes below its title.
 
-Two things about a *name* can stop the report being read as what it is, and both
+Three things about a *name* can stop the report being read as what it is. Two
 are settled where a name becomes report text rather than where the report is
-printed, because that is the one place every name passes through.
+printed, because that is the one place every name passes through; the third is
+settled in the single helper every path is rendered by.
 
 **A name cannot introduce a line.** `Adr.path` is a `str` and `render()` joins
 with "\\n", so a filename holding a newline claims a line of its own:
@@ -163,6 +164,31 @@ is already a refusal at exit 2, so there is no verdict to hold back and
 withholding would leave the operator with nothing at all. Every refusal goes to
 stderr through one function that spells for *stderr*, which need not share
 stdout's encoding.
+
+**A path is written one way per run**, and this is the one a reader notices
+first. Every *file* path here goes through `display()` --
+repo-relative, slash-separated -- and the scanned directory used to bypass it,
+by two different routes that disagreed with each other. A failing run against a
+relative argument printed `Checking docs\\product` and then, four lines down,
+`is a Markdown file under docs/product`; the default run printed an absolute
+`Checking C:\\...\\docs\\adr` above an inventory of `docs/adr/...` entries. Those
+are the same directory twice, and nothing that reads output -- a person
+comparing it against what is on disk during a failure, a `grep`, a diff between
+a Windows and a Linux runner -- can tell that for free. So the directory now
+goes through `scanned()` at all four places that name it, which is `display()`
+given the repository as its only base. One notation, learned once: the argument
+this file already makes about `<U+XXXX>`, applied to paths.
+
+Repo-relative POSIX wins because it was already the incumbent for every other
+path in this report and because it is the only form that reads identically from
+a Windows checkout and from CI. Being a rule rather than a preference, it has to
+answer the paths it cannot make relative, and `no such directory:` is exactly
+those: an argument that may name somewhere outside the checkout, or nowhere at
+all. Both fall back to absolute POSIX, and a path the platform will not resolve
+falls back to the unresolved argument -- so that message keeps naming what it
+looked for in every case, which is what the paragraph above requires of it. The
+repository root asked about directly renders as `.`, because the alternative is
+its own directory name, and that differs between two clones of one commit.
 
 A problem is held as **what it is, not as the line it prints**. `render()`
 concatenates an inventory of every examined ADR with the problems block into one
@@ -486,8 +512,16 @@ class Report:
         # `display()` spells the names it produces too; this is the same
         # function, applied where text becomes lines rather than where a path
         # becomes text, and it covers the entries a caller built directly.
+        #
+        # The directory goes through `scanned()`, which is `display()` with the
+        # repository as its only base, so this line names it in the same form
+        # as the entries below name their files. It used to print `str()` --
+        # `Checking docs\product` above a problem paragraph saying
+        # `docs/product`, and `Checking C:\...\docs\adr` above an inventory of
+        # `docs/adr/...`. `scanned()` spells what it returns, so the guarantee
+        # that no interpolated value can claim a line of its own is unchanged.
         lines = [
-            f"Checking {spelled(str(self.directory))}",
+            f"Checking {scanned(self.directory, self.base)}",
             f"  {len(self.adrs)} ADR files examined, "
             f"{len(self.ignored)} files ignored",
         ]
@@ -540,6 +574,56 @@ def display(path: Path, *bases: Path) -> str:
     else:
         shown = resolved.as_posix()
     return spelled(shown)
+
+
+def scanned(directory: Path, base: Path = REPO_ROOT) -> str:
+    """The scanned directory as report text: `display()`'s rule, one base.
+
+    The single place the directory's spelling is decided, so that the four
+    messages naming it cannot disagree. They used to. `Checking` printed
+    `str(directory)` -- platform separators, and absolute whenever the argument
+    was -- while the UNNUMBERED and EMPTY refusals printed `as_posix()`, so one
+    run said `Checking docs\\product` and then `under docs/product` four lines
+    below it, and the default run put `Checking C:\\...\\docs\\adr` above an
+    inventory of `docs/adr/...` entries. Two strings for one directory is a
+    difference a reader, a `grep` and a diff between a Windows and a Linux
+    runner all have to reconcile before they can say the run was consistent.
+
+    `display()` rather than a second rule, because every *file* path in the
+    report already goes through it and the whole defect was the directory
+    taking a different route onto the same page. Repo-relative POSIX wins for
+    the reason stated there: it is the only form that reads the same from a
+    Windows checkout as from the CI runner.
+
+    Only the repository is offered as a base, unlike the file walk, which
+    offers the scanned directory as a second one. Handed itself as a base a
+    directory renders as `.`, which would make the rule answer "the directory
+    you asked about" for every input and say nothing. The repository root asked
+    about directly is the one input that still lands there, and `.` is the
+    right answer for it: naming it by its own directory name would put a string
+    in the report that differs between two clones of the same commit, which is
+    the property this rule exists to protect.
+
+    A directory **outside** the checkout, or one that **does not exist**, has
+    no repo-relative form and comes back as absolute POSIX. The rule has to
+    hold for `no such directory:`, whose whole job is naming a path that is
+    very often neither, and a rule that only worked under the repository would
+    not be one. Where the platform will not resolve the path at all -- an
+    embedded NUL, which `Path.is_dir()` answers False for without raising, so
+    that refusal is reachable carrying one -- the unresolved path is named
+    instead of resolving being allowed to raise. Never nothing: `no such
+    directory:` is already a refusal at exit 2, so there is no verdict to
+    withhold, and a refusal that cannot say what it looked for leaves the
+    operator with less than no check at all.
+
+    Spelled on the way out like every other name, by `display()` or by the
+    fallback -- the directory arrives from argv, so on any filesystem that
+    permits the name it is as untrusted as the files under it.
+    """
+    try:
+        return display(directory, base.resolve())
+    except (OSError, ValueError):
+        return spelled(directory.as_posix())
 
 
 HEADING_ADVICE = (
@@ -735,7 +819,7 @@ def check(directory: Path, base: Path = REPO_ROOT) -> Report:
                     paths=(shown,),
                     message=(
                         f"{shown} is a Markdown file under "
-                        f"{spelled(directory.as_posix())} that is neither "
+                        f"{scanned(directory, report.base)} that is neither "
                         "named NNNN-title.md nor a known companion, so no "
                         "number can be read from it and it cannot be checked "
                         "for a collision. Rename it, or add its name to "
@@ -781,9 +865,9 @@ def check(directory: Path, base: Path = REPO_ROOT) -> Report:
                 kind=EMPTY,
                 message=(
                     f"no ADR files were found under "
-                    f"{spelled(directory.as_posix())}. A duplicate check that "
-                    "examines nothing passes for the wrong reason, so this is "
-                    "reported as a failure rather than a clean run."
+                    f"{scanned(directory, report.base)}. A duplicate check "
+                    "that examines nothing passes for the wrong reason, so "
+                    "this is reported as a failure rather than a clean run."
                 ),
             )
         )
@@ -844,7 +928,13 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     directory = Path(args[0]) if args else REPO_ROOT / DEFAULT_DIRECTORY
     if not directory.is_dir():
-        refuse(f"no such directory: {spelled(str(directory))}")
+        # Named in the same form the report would have used, and named
+        # whatever that form turns out to be: this argument is the one path
+        # here that may sit outside the checkout or not exist at all, so
+        # `scanned()` falls back to absolute POSIX rather than to silence. A
+        # refusal that cannot say what it looked for is worse than the typo it
+        # is reporting.
+        refuse(f"no such directory: {scanned(directory)}")
         return 2
     report = check(directory, REPO_ROOT)
     rendered = report.render()
