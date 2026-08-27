@@ -531,5 +531,41 @@
     "publisherId": "meta",
     "publishedDate": "2026-07-07",
     "lastCheckedDate": "2026-08-26"
+  },
+  {
+    "id": "openai-gpt-5-1-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-5.1",
+    "title": "GPT-5.1 model documentation",
+    "type": "official-docs",
+    "publisherId": "openai",
+    "lastCheckedDate": "2026-08-27",
+    "notes": "Lists the gpt-5.1 and gpt-5.1-2025-11-13 API identifiers, text and image input, text output, a 400,000-token context window, and 128,000 max output tokens."
+  },
+  {
+    "id": "openai-gpt-5-2-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-5.2",
+    "title": "GPT-5.2 model documentation",
+    "type": "official-docs",
+    "publisherId": "openai",
+    "lastCheckedDate": "2026-08-27",
+    "notes": "Lists the gpt-5.2 and gpt-5.2-2025-12-11 API identifiers, text and image input, text output, a 400,000-token context window, and 128,000 max output tokens."
+  },
+  {
+    "id": "openai-gpt-5-3-codex-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-5.3-codex",
+    "title": "GPT-5.3-Codex model documentation",
+    "type": "official-docs",
+    "publisherId": "openai",
+    "lastCheckedDate": "2026-08-27",
+    "notes": "Lists the gpt-5.3-codex API identifier, text and image input, text output, a 400,000-token context window, and 128,000 max output tokens."
+  },
+  {
+    "id": "openai-gpt-image-2-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-image-2",
+    "title": "GPT-Image-2 model documentation",
+    "type": "official-docs",
+    "publisherId": "openai",
+    "lastCheckedDate": "2026-08-27",
+    "notes": "Lists the gpt-image-2 and gpt-image-2-2026-04-21 API identifiers, text and image input, image output, and image-generation endpoint support."
   }
 ]
