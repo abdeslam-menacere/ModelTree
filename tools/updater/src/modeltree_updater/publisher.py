@@ -806,7 +806,7 @@ def _budget_section(proposal: CreatorProposal) -> _Section:
             # the same run, so printing it here would make every re-render an
             # edit. The limit stays, because a run stopped by it has to be
             # readable against something. The note below says so in the body.
-            ["seconds", NOT_RENDERED, _seconds_limit(budget.max_seconds)],
+            [MEASURED_RESOURCE, NOT_RENDERED, _seconds_limit(budget.max_seconds)],
             ["retries", str(budget.retries_used), str(budget.max_retries)],
         ],
     )
