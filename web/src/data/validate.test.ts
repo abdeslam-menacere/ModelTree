@@ -151,8 +151,9 @@ describe('benchmark seed corpus', () => {
   it('accepts the source-backed benchmark corpus', () => {
     const data = validateDataset(copyDataset());
 
-    // Named rather than counted, so deleting a seed record fails loudly while
-    // adding one does not force an unrelated edit here.
+    // Named rather than counted, so deleting one of these named records fails
+    // loudly while adding one does not force an unrelated edit here. The other
+    // results are covered structurally, not asserted by name.
     const benchmarkIds = new Set(data.benchmarks.map((benchmark) => benchmark.id));
     for (const expected of ['mmlu-pro', 'gpqa-diamond', 'livecodebench', 'mmmu']) {
       expect(benchmarkIds).toContain(expected);

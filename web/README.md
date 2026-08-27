@@ -299,8 +299,8 @@ reading and the disagreement is written down here rather than resolved silently.
   per-release breakdown are owned by `src/data/model-fit.test.ts` alongside the
   statement counts, so this note names the releases without restating a number
   nothing checks. Each gap names a rubric dimension that was looked at and could
-  not be supported — no benchmark result and no usage observation are recorded
-  for those releases — so the absence is visible rather than silent.
+  not be supported — a missing usage observation for Llama 4 Scout, a missing
+  benchmark result for GPT-5 — so the absence is visible rather than silent.
 
 ## Catalog indexes
 
