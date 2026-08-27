@@ -21,6 +21,7 @@ from modeltree_updater.contracts import FailureKind, ProposalStatus
 from modeltree_updater.github_issues import MAX_BODY_CHARS, Issue
 from modeltree_updater.parsing import proposal_from_dict
 from modeltree_updater.publisher import (
+    MEASURED_RESOURCE,
     UNREADABLE_RUN,
     PublicationAction,
     PublicationError,
@@ -318,12 +319,19 @@ RESUME_LIMIT = DISCRIMINATING_LIMIT
 
 
 def _measured_values(proposal) -> list[float]:
-    """Every wall-clock measurement the run recorded, ledger and failures alike."""
+    """Every measurement of the redacted resource this run recorded.
+
+    That is the budget ledger's elapsed time, plus the `used` detail of each
+    `MEASURED_RESOURCE` exhaustion. Failures of other kinds, and exhaustions of
+    the counted resources, carry no wall-clock measurement and are deliberately
+    not selected: this is the predicate `_failure_row` redacts on, so the values
+    collected here are exactly the ones the published body must not contain.
+    """
     return [proposal.budget.elapsed_seconds] + [
         failure.detail["used"]
         for failure in proposal.failures
         if failure.kind is FailureKind.BUDGET_EXHAUSTED
-        and failure.detail.get("resource") == "seconds"
+        and failure.detail.get("resource") == MEASURED_RESOURCE
     ]
 
 
@@ -339,7 +347,12 @@ def _overrunning(
     # Anti-vacuity. Without these, a run that quietly never overran would satisfy
     # every "the measurement is absent" assertion below for the wrong reason.
     assert proposal.status is not ProposalStatus.COMPLETE
-    assert proposal.budget.exhausted_by == ("seconds",)
+    # Expressed with the constant deliberately. `exhausted_by` is built in
+    # `budgets.py`, which names the resource with its own separate literal, so
+    # this stays a two-sided assertion rather than a tautology: it fires if the
+    # ledger and the publisher ever disagree, including on a `MEASURED_RESOURCE`
+    # that names a resource the ledger never exhausts.
+    assert proposal.budget.exhausted_by == (MEASURED_RESOURCE,)
     assert proposal.budget.elapsed_seconds >= limit
     assert len(_measured_values(proposal)) > 1
     return proposal
@@ -436,7 +449,7 @@ def test_a_run_stopped_by_the_time_limit_says_so_without_the_measurement(
     # cell is pinned positively — the field is present and is exactly the
     # sentinel, once per failure that carries one.
     stopped_by_seconds = [
-        f for f in proposal.failures if f.detail.get("resource") == "seconds"
+        f for f in proposal.failures if f.detail.get("resource") == MEASURED_RESOURCE
     ]
     assert stopped_by_seconds
     assert body.count('"used": "not rendered"') == len(stopped_by_seconds)
@@ -482,7 +495,10 @@ def test_the_stated_limit_is_the_one_that_stopped_the_run_not_the_proposals(
                 )
             except RuntimeError:
                 continue  # a terminal checkpoint has nothing left to finish
-            if any(f.detail.get("resource") == "seconds" for f in resumed.failures):
+            if any(
+                f.detail.get("resource") == MEASURED_RESOURCE
+                for f in resumed.failures
+            ):
                 return resumed
         return None
 
@@ -491,7 +507,9 @@ def test_the_stated_limit_is_the_one_that_stopped_the_run_not_the_proposals(
     # Anti-vacuity: the two limits must genuinely disagree, or this proves nothing.
     assert resumed is not None, "no checkpoint carried a seconds failure forward"
     enforced = {
-        f.detail["limit"] for f in resumed.failures if f.detail.get("resource") == "seconds"
+        f.detail["limit"]
+        for f in resumed.failures
+        if f.detail.get("resource") == MEASURED_RESOURCE
     }
     assert enforced == {RESUME_LIMIT}
     assert resumed.budget.max_seconds != RESUME_LIMIT
@@ -523,7 +541,7 @@ def test_the_measurement_is_redacted_even_when_the_limit_is_not_recorded(
             failure,
             detail={k: v for k, v in failure.detail.items() if k != "limit"},
         )
-        if failure.detail.get("resource") == "seconds"
+        if failure.detail.get("resource") == MEASURED_RESOURCE
         else failure
         for failure in real.failures
     )
@@ -554,7 +572,9 @@ def test_a_run_stopped_exactly_on_its_limit_says_reached_not_passed(
         step=DISCRIMINATING_LIMIT / 2,
         limit=DISCRIMINATING_LIMIT,
     )
-    exhausted = [f for f in proposal.failures if f.detail.get("resource") == "seconds"]
+    exhausted = [
+        f for f in proposal.failures if f.detail.get("resource") == MEASURED_RESOURCE
+    ]
 
     # Anti-vacuity: this is the boundary case only if the two are actually equal.
     assert (
@@ -715,7 +735,7 @@ def test_the_published_clock_cells_are_redacted_and_the_counter_cells_are_not(
     # exhaustion. Counted, so a redaction that silently stopped covering one of
     # several failures is caught rather than masked by the others.
     stopped_by_seconds = [
-        f for f in proposal.failures if f.detail.get("resource") == "seconds"
+        f for f in proposal.failures if f.detail.get("resource") == MEASURED_RESOURCE
     ]
     assert stopped_by_seconds
     assert body.count('"used": "not rendered"') == len(stopped_by_seconds)
@@ -741,7 +761,7 @@ def _with_seconds_limit(proposal, limit: float):
     """
     failures = tuple(
         dataclasses.replace(failure, detail={**failure.detail, "limit": limit})
-        if failure.detail.get("resource") == "seconds"
+        if failure.detail.get("resource") == MEASURED_RESOURCE
         else failure
         for failure in proposal.failures
     )
@@ -824,7 +844,7 @@ def test_a_boolean_seconds_limit_falls_back_to_the_unnumbered_phrasing(
     real = _overrunning(proposal_factory)
     failures = tuple(
         dataclasses.replace(failure, detail={**failure.detail, "limit": limit})
-        if failure.detail.get("resource") == "seconds"
+        if failure.detail.get("resource") == MEASURED_RESOURCE
         else failure
         for failure in real.failures
     )
@@ -835,7 +855,7 @@ def test_a_boolean_seconds_limit_falls_back_to_the_unnumbered_phrasing(
     assert any(
         failure.detail.get("limit") is limit
         for failure in proposal.failures
-        if failure.detail.get("resource") == "seconds"
+        if failure.detail.get("resource") == MEASURED_RESOURCE
     )
 
     body = render_body(proposal)
