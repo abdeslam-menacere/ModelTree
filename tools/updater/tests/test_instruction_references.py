@@ -100,6 +100,30 @@ def exemptions(report) -> set[str]:
     return {finding.reference for finding in report.exempt}
 
 
+def _one_exemption_for(report, reference: str):
+    """Return the single exemption naming `reference`, or fail with a message
+    naming the file that was expected.
+
+    Written to replace a bare `next(f for f in report.exempt if ...)` whose
+    exhaustion raised `StopIteration` inside a generator expression -- under
+    PEP 479 that becomes `RuntimeError: generator raised StopIteration`, and
+    the file the check was looking for never appears in the error at all.
+    """
+    matches = [f for f in report.exempt if f.reference == reference]
+    if not matches:
+        raise AssertionError(
+            f"no exemption for {reference!r} in report; "
+            f"exempt: {sorted(exemptions(report))!r}, "
+            f"problems: {sorted(references(report))!r}, "
+            f"resolved: {sorted({f.reference for f in report.resolved})!r}"
+        )
+    assert len(matches) == 1, (
+        f"expected one exemption for {reference!r}, got {len(matches)}: "
+        f"{[f.message for f in matches]!r}"
+    )
+    return matches[0]
+
+
 # --- the guard itself -------------------------------------------------------
 
 
@@ -196,7 +220,7 @@ def test_the_absence_statement_is_quoted_in_the_report(document):
     path = document("There is no `DOCK.md` here.\n")
     report = checker.check(path, REPO_ROOT)
 
-    exemption = next(f for f in report.exempt if f.reference == "DOCK.md")
+    exemption = _one_exemption_for(report, "DOCK.md")
     assert "no `DOCK.md`" in exemption.message
 
 
@@ -215,6 +239,121 @@ def test_a_negation_that_is_not_adjacent_does_not_exempt(document):
 
     assert not report.ok
     assert "SPEC.md" in references(report)
+
+
+# --- false positive three: a documented-absent gitignored file that exists --
+#
+# `DOCK.md` is described by `.github/copilot-instructions.md` as the normal
+# state of a dock worktree. Nothing in the repository generates it, so an
+# agent that creates one for its own notes is the only way it appears -- and
+# every agent working on this repository is instructed to. The file is
+# gitignored (see `.gitignore`) so its presence in one working tree is not
+# repository content, and the documented absence continues to hold for every
+# clean checkout. See issue #395.
+
+
+def test_a_present_dock_md_still_reads_as_a_documented_absence(
+    document, tmp_path, monkeypatch
+):
+    """AC1: pin the interaction directly. With a `DOCK.md` at the repo root
+    the citation still resolves as a documented absence, not as a fresh
+    problem the checker just noticed."""
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    (repo_root / ".gitignore").write_text("DOCK.md\n", encoding="utf-8")
+    subprocess.run(["git", "init", "--quiet"], cwd=repo_root, check=True)
+    (repo_root / "DOCK.md").write_text("agent notes\n", encoding="utf-8")
+
+    doc = repo_root / "instructions.md"
+    doc.write_text("If there is no `DOCK.md`, read the next paragraph.\n", encoding="utf-8")
+    report = checker.check(doc, repo_root)
+
+    assert report.ok, report.render()
+    exemption = _one_exemption_for(report, "DOCK.md")
+    assert "no `DOCK.md`" in exemption.message
+
+
+def test_removing_the_dock_md_changes_nothing_about_that_exemption(
+    document, tmp_path
+):
+    """AC1's non-vacuity clause: with the file gone the expectation is the
+    same -- documented absence, exempt. The two arms of the decision must
+    agree, otherwise the guarantee turns on whether an untracked file
+    happens to be on disk right now."""
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    (repo_root / ".gitignore").write_text("DOCK.md\n", encoding="utf-8")
+    subprocess.run(["git", "init", "--quiet"], cwd=repo_root, check=True)
+
+    doc = repo_root / "instructions.md"
+    doc.write_text("If there is no `DOCK.md`, read the next paragraph.\n", encoding="utf-8")
+    report = checker.check(doc, repo_root)
+
+    assert report.ok, report.render()
+    exemption = _one_exemption_for(report, "DOCK.md")
+    assert "no `DOCK.md`" in exemption.message
+
+
+def test_dock_md_is_gitignored_in_this_repository():
+    """AC2's `.gitignore` half. A future edit that removed the entry would
+    reintroduce the trap -- so pin it here rather than trusting the file."""
+    result = subprocess.run(
+        ["git", "check-ignore", "--quiet", "--", "DOCK.md"],
+        cwd=REPO_ROOT,
+        check=False,
+    )
+    assert result.returncode == 0, (
+        "DOCK.md must stay in .gitignore; see issue #395 for why "
+        f"(got exit {result.returncode})"
+    )
+
+
+def test_a_present_non_gitignored_documented_absent_file_is_still_flagged(
+    tmp_path,
+):
+    """AC5: the exemption is scoped to gitignored names on purpose. A
+    documented-absent file that is *not* gitignored and *does* exist is a
+    contradiction between the document and the tree, and the checker must
+    still surface it -- otherwise "the document says it is absent" becomes
+    a silent bypass for any live path."""
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    (repo_root / ".gitignore").write_text("\n", encoding="utf-8")
+    subprocess.run(["git", "init", "--quiet"], cwd=repo_root, check=True)
+    (repo_root / "README.md").write_text("hi\n", encoding="utf-8")
+
+    doc = repo_root / "instructions.md"
+    doc.write_text("There is no `README.md` here.\n", encoding="utf-8")
+    report = checker.check(doc, repo_root)
+
+    # README.md exists and is not gitignored, so the on-disk fact wins:
+    # it is `resolved`, not exempted as an absence.
+    assert any(f.reference == "README.md" for f in report.resolved), report.render()
+    assert "README.md" not in exemptions(report)
+
+
+def test_another_untracked_root_file_an_agent_might_create_is_also_covered(
+    tmp_path,
+):
+    """AC5 generalisation: `DOCK.md` was the specific case in the report,
+    but the same trap fires for any file (a) named as an absence by the
+    instructions, (b) gitignored, and (c) created by an agent. Pin that
+    the mechanism, not the name, is what carries the exemption -- so a
+    future addition to `.gitignore` (say `NOTES.md`) is protected the same
+    way without a second code change."""
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    (repo_root / ".gitignore").write_text("NOTES.md\n", encoding="utf-8")
+    subprocess.run(["git", "init", "--quiet"], cwd=repo_root, check=True)
+    (repo_root / "NOTES.md").write_text("scratch\n", encoding="utf-8")
+
+    doc = repo_root / "instructions.md"
+    doc.write_text("There is no `NOTES.md` in this repository.\n", encoding="utf-8")
+    report = checker.check(doc, repo_root)
+
+    assert report.ok, report.render()
+    exemption = _one_exemption_for(report, "NOTES.md")
+    assert "no `NOTES.md`" in exemption.message
 
 
 # --- false positive two: the gitignored worktree directory ------------------
