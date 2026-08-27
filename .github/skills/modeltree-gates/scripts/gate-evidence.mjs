@@ -88,11 +88,32 @@ function fail(gate, message, where) {
 
 function parseArgs(argv) {
   const args = { claims: null, today: null, json: false, repo: null, help: false };
+  // The same guard, for the same reason, as `gate-dataset.mjs`'s: a flag whose
+  // value is missing must not survive into a default. Here `--repo` falls back
+  // to `repoRoot()` and `--today` to the wall clock, so a value that went
+  // missing would have this gate read a reviewed-profile set the caller never
+  // named -- and derive a policy threshold from it -- while reporting a pass
+  // (#372). `--claims` was already refused, but as "required" rather than as a
+  // flag given no value; it goes through the same helper so all three refusals
+  // say what actually happened.
+  //
+  // A fourth copy of the closure `gate-scope.mjs` and `gate-source-approval.mjs`
+  // carry, not an import: these four scripts share no module and import only
+  // `node:` builtins. Copied verbatim rather than varied, since a third parsing
+  // style is what #168 is open on.
+  const value = (i, flag) => {
+    const next = argv[i];
+    if (typeof next !== 'string' || next.length === 0) {
+      process.stderr.write(`gate-evidence: ${flag} needs a value\n`);
+      process.exit(2);
+    }
+    return next;
+  };
   for (let i = 2; i < argv.length; i += 1) {
     const flag = argv[i];
-    if (flag === '--claims') args.claims = argv[++i];
-    else if (flag === '--today') args.today = argv[++i];
-    else if (flag === '--repo') args.repo = argv[++i];
+    if (flag === '--claims') args.claims = value(++i, '--claims');
+    else if (flag === '--today') args.today = value(++i, '--today');
+    else if (flag === '--repo') args.repo = value(++i, '--repo');
     else if (flag === '--json') args.json = true;
     else if (flag === '--help' || flag === '-h') args.help = true;
     else {
@@ -440,11 +461,12 @@ function main() {
   // surfacing.
   //
   // The root this gate resolves its inputs against, computed once here so the
-  // report below can name the root that was actually *used*. `--repo` is
-  // advertised and accepted, but a flag whose value went missing falls through
-  // to the fallback (#372 - its own issue, and not fixed by this line), so
-  // echoing `args.repo` back would name a tree the gate never read. Resolving it
-  // also makes the reported value a real absolute path rather than whatever
+  // report below can name the root that was actually *used*. Since #372 the two
+  // can no longer diverge through a dropped `--repo` value -- a value-less flag
+  // exits 2 at `parseArgs` rather than falling through here -- so this is now
+  // the narrower claim it always should have been: `null` means the flag was
+  // absent, and the fallback is then the tree this script sits in. Resolving the
+  // supplied value also makes the reported path absolute rather than whatever
   // string arrived.
   const repo = args.repo ? resolve(args.repo) : repoRoot();
   let reviewed;
@@ -519,10 +541,11 @@ function main() {
     // Which tree this verdict is about. This gate takes a repository location as
     // input and, until #381, produced a report that never said which one it
     // used - so a reader could not answer "which tree was this about?" from the
-    // report at all. That matters most on the path where the two differ: a
-    // `--repo` whose value went missing is not honoured, it falls back (#372),
-    // and the report has to name the fallback it used rather than the argument
-    // it ignored.
+    // report at all. That still matters when `--repo` is absent: the fallback
+    // root is a path the caller never wrote down, and naming it is the only way
+    // a reader can tell which reviewed-profile set the policy was derived from.
+    // (A `--repo` whose value went missing used to reach that fallback too; it
+    // exits 2 at `parseArgs` since #372.)
     //
     // The name is `repo`, the spelling `gate-scope.mjs` already uses, because it
     // is the same fact. `gate-dataset.mjs` reports `dataDir` and that is not an

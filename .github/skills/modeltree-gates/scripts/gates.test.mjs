@@ -710,8 +710,14 @@ describe('gate-dataset', () => {
   // comparison against `startOf(today)`, and `startOf("tomorrow")` is NaN. NaN
   // loses every comparison, so an unvalidated `--today` does not shift the clock
   // by a day, it deletes the entire future-date gate while still exiting 0.
+  //
+  // `''` used to sit in the list below and no longer does. It is not a day that
+  // failed to parse -- it is the flag arriving with no value at all, which #372
+  // moved earlier, to `parseArgs`, where it exits 2 naming the flag rather than
+  // the date. The case is still asserted, in `--today with no value exits 2
+  // rather than falling back to the wall clock`; it changed owner, not verdict.
   test('--today that is not a real date exits 2 rather than disabling every future-date rule', () => {
-    for (const bad of ['not-a-date', 'tomorrow', '2026-13-01', '2026-02-30', '26-08-25', '']) {
+    for (const bad of ['not-a-date', 'tomorrow', '2026-13-01', '2026-02-30', '26-08-25']) {
       const result = run(GATE_DATASET, ['--data', DATA, '--today', bad, '--json']);
       assert.equal(result.code, 2, `--today ${JSON.stringify(bad)} must not be accepted:\n${result.stdout}`);
       assert.ok(
@@ -783,6 +789,83 @@ describe('gate-dataset', () => {
   test('a missing data directory exits 2 rather than passing', () => {
     const result = run(GATE_DATASET, ['--data', join(tmpdir(), 'modeltree-does-not-exist'), '--json']);
     assert.equal(result.code, 2, 'a gate that cannot run must not report success');
+  });
+
+  // `--data` in a fourth state, and the only one of the four that failed open:
+  // **supplied, but carrying nothing**. `argv[++i]` on a flag written last is
+  // `undefined`, which is falsy, so the fallback arm two tests up ran and gated
+  // this repository's own `web/src/data` -- a directory the caller never named
+  // -- and exited 0. A green verdict about a different input is indistinguishable
+  // from a green verdict, which is the failure this gate set exists to prevent
+  // occurring in the gate set itself (#372).
+  //
+  // The exit code alone cannot state that, which is why the third assertion is
+  // here rather than implied: the fallback dataset *passes*, so the defect's
+  // signature is `code === 0` **plus a report about a directory nobody asked
+  // for**, and a gate that refuses must produce no verdict at all. `"dataDir"`
+  // is the key every `--json` report carries, so its absence is that claim.
+  // Asserting the path itself instead would not survive JSON's backslash
+  // escaping on Windows -- the substring would be absent either way, and the
+  // assertion would pass while proving nothing.
+  //
+  // `''` is the same state reached without anyone typing a malformed command:
+  // PowerShell strips embedded double quotes from native-command arguments, so
+  // `--data ""` arrives here as an empty string.
+  test('--data with no value exits 2 rather than falling back to this repository', () => {
+    for (const argv of [['--json', '--data'], ['--data', '', '--json']]) {
+      const result = run(GATE_DATASET, argv);
+      assert.equal(result.code, 2, `${JSON.stringify(argv)} must never be a pass:\n${result.stdout}`);
+      assert.match(result.stdout, /gate-dataset: --data needs a value/);
+      assert.ok(
+        !result.stdout.includes('"dataDir"'),
+        `a refused invocation must report no verdict about any directory:\n${result.stdout}`,
+      );
+    }
+
+    // Positive control, expected to pass: the guard must refuse a value-less
+    // flag without making the flag unusable. No `--today` here, per the
+    // two-clock rule at the top of this file.
+    const control = run(GATE_DATASET, ['--data', DATA, '--json']);
+    assert.equal(control.code, 0, `--data with a real value must still gate:\n${control.stdout}`);
+    assert.equal(
+      resolve(JSON.parse(control.stdout).dataDir),
+      resolve(DATA),
+      'and must gate the directory it was given',
+    );
+  });
+
+  // The same defect on this gate's other value-taking flag, and a quieter one:
+  // `--today` has no directory to name, so a value that went missing left
+  // `undefined` for `args.today ?? new Date()...` to replace with the wall
+  // clock. The gate then judged the dataset against a day the caller never
+  // chose and exited 0 -- which, on a run pinning an older day on purpose, is
+  // the future-date rule silently evaluated at the wrong instant (#372).
+  //
+  // `"today"` is the report key that carries the claim: a refused invocation
+  // must not have reported a day at all. Note the second argv exits 2 either
+  // way -- an empty string reached `isRealDate` before the fix -- so the code
+  // assertion cannot separate them and the message is what does.
+  test('--today with no value exits 2 rather than falling back to the wall clock', () => {
+    for (const argv of [['--data', DATA, '--json', '--today'], ['--data', DATA, '--today', '', '--json']]) {
+      const result = run(GATE_DATASET, argv);
+      assert.equal(result.code, 2, `${JSON.stringify(argv)} must never be a pass:\n${result.stdout}`);
+      assert.match(result.stdout, /gate-dataset: --today needs a value/);
+      assert.ok(
+        !result.stdout.includes('"today"'),
+        `a refused invocation must report no verdict against any day:\n${result.stdout}`,
+      );
+    }
+
+    // Positive control, expected to pass. Tomorrow is a day simulated on
+    // purpose, which is what a supplied clock means in this file -- never
+    // "today" -- and every live record is dated on or before today, so this
+    // passes for as long as the first test in this block does. The reported day
+    // is asserted because it is what separates "the value was carried through"
+    // from "the wall clock was used and happened to agree".
+    const simulated = shiftDays(realToday(), 1);
+    const control = run(GATE_DATASET, ['--data', DATA, '--today', simulated, '--json']);
+    assert.equal(control.code, 0, `--today with a real value must still gate:\n${control.stdout}`);
+    assert.equal(JSON.parse(control.stdout).today, simulated, 'and must be judged on the day it was given');
   });
 });
 
@@ -1124,8 +1207,13 @@ describe('gate-evidence', () => {
   // `startOf("soon")` is NaN. NaN loses every comparison, so an unvalidated
   // `--today` would not shift the clock, it would delete the rule while still
   // reporting a pass.
+  //
+  // `''` left this list in #372 for the reason given on the `gate-dataset`
+  // sibling above: an empty value is the flag carrying nothing, refused at
+  // `parseArgs` and asserted by its own test below, not a date that failed to
+  // parse.
   test('--today that is not a real date exits 2 rather than being carried into the comparison', () => {
-    for (const bad of ['soon', 'not-a-date', '2026-13-01', '2026-02-30', '26-08-25', '']) {
+    for (const bad of ['soon', 'not-a-date', '2026-13-01', '2026-02-30', '26-08-25']) {
       const result = gateBundleWithArgs(
         { runId: 'r1', creator: DEFAULT_PILOT_CREATOR, policy: 'pilot', claims: [claim()] },
         ['--today', bad],
@@ -1154,6 +1242,90 @@ describe('gate-evidence', () => {
         `the refusal must name the flag it did not recognise:\n${result.stdout}`,
       );
     }
+  });
+
+  // The three flags this gate takes a value for, each refused when the value is
+  // missing rather than replaced by a default (#372). Split one test per flag,
+  // because the defaults differ and so does what each substitution costs.
+  //
+  // `--repo` is the expensive one: it selects the reviewed-profile set the
+  // policy threshold is *derived* from, so a value that went missing had this
+  // gate hold a bundle to a threshold computed from a tree the caller never
+  // named, and report a pass. The report key `"passed"` is the claim that no
+  // verdict was reached at all; asserting the root path instead would not
+  // survive JSON's backslash escaping on Windows and would pass vacuously.
+  test('--repo with no value exits 2 rather than falling back to the tree this script sits in', () => {
+    const bundle = { runId: 'r1', creator: DEFAULT_PILOT_CREATOR, policy: 'pilot', claims: [claim()] };
+    for (const args of [['--today', TODAY, '--repo'], ['--today', TODAY, '--repo', '']]) {
+      const result = gateBundleWithArgs(bundle, args);
+      assert.equal(result.code, 2, `${JSON.stringify(args)} must never be a pass:\n${result.stdout}`);
+      assert.match(result.stdout, /gate-evidence: --repo needs a value/);
+      assert.ok(
+        !result.stdout.includes('"passed"'),
+        `a refused invocation must reach no verdict about any tree:\n${result.stdout}`,
+      );
+    }
+
+    // Positive control, expected to pass: the flag still selects a root when it
+    // is given one, and the report still names it.
+    const control = gateBundleWithArgs(bundle, ['--today', TODAY, '--repo', REPO]);
+    assert.equal(control.code, 0, `--repo with a real value must still gate:\n${control.stdout}`);
+    assert.equal(resolve(JSON.parse(control.stdout).repo), resolve(REPO), 'and must gate the tree it was given');
+  });
+
+  // `--today`'s missing value fell through to the wall clock, so a run pinning a
+  // day on purpose would have had its date rules evaluated at some other
+  // instant and still exited 0. The second argv exited 2 before the fix as well
+  // -- an empty string reached `isRealDate` -- so the message is what separates
+  // the two refusals, not the code.
+  test('--today with no value exits 2 rather than falling back to the wall clock', () => {
+    const bundle = { runId: 'r1', creator: DEFAULT_PILOT_CREATOR, policy: 'pilot', claims: [claim()] };
+    for (const args of [['--today'], ['--today', '']]) {
+      const result = gateBundleWithArgs(bundle, args);
+      assert.equal(result.code, 2, `${JSON.stringify(args)} must never be a pass:\n${result.stdout}`);
+      assert.match(result.stdout, /gate-evidence: --today needs a value/);
+      assert.ok(
+        !result.stdout.includes('"passed"'),
+        `a refused invocation must reach no verdict at all:\n${result.stdout}`,
+      );
+    }
+
+    // Positive control, expected to pass, on the pinned fixture clock.
+    const control = gateBundleWithArgs(bundle, ['--today', TODAY]);
+    assert.equal(control.code, 0, `--today with a real value must still gate:\n${control.stdout}`);
+  });
+
+  // `--claims` is the honest exception in this group, and the test says so
+  // rather than borrowing credit from its siblings: this flag never had a
+  // default to fall back to, so nothing here was failing open and the exit code
+  // was 2 before the fix as well. What changed is that the refusal now names
+  // what happened. "`--claims <path>` is required" is what a caller who omitted
+  // the flag entirely is told, and reporting that to a caller who *did* pass it
+  // -- whose value expanded to nothing under a shell that strips quotes -- sends
+  // them looking for the wrong bug. The message assertion is therefore the whole
+  // test; an exit-code-only assertion here could not fail and would be one more
+  // check that cannot fail.
+  test('--claims with no value is refused as a value-less flag, not as an absent one', () => {
+    for (const argv of [['--json', '--claims'], ['--claims', '', '--json']]) {
+      const result = run(GATE_EVIDENCE, argv);
+      assert.equal(result.code, 2, `${JSON.stringify(argv)} must never be a pass:\n${result.stdout}`);
+      assert.match(result.stdout, /gate-evidence: --claims needs a value/);
+      assert.ok(
+        !result.stdout.includes('is required'),
+        `a flag that was passed must not be reported as one that was omitted:\n${result.stdout}`,
+      );
+    }
+
+    // The refusal the message above must stay distinct from: the flag genuinely
+    // absent. A control in the other direction, and the reason the assertion
+    // above is worth making.
+    const omitted = run(GATE_EVIDENCE, ['--json']);
+    assert.equal(omitted.code, 2, `an absent --claims must still be refused:\n${omitted.stdout}`);
+    assert.match(omitted.stdout, /gate-evidence: --claims <path> is required/);
+
+    // Positive control, expected to pass: a real bundle path still gates.
+    const control = gateBundle({ runId: 'r1', policy: 'pilot', claims: [claim()] });
+    assert.equal(control.code, 0, `--claims with a real value must still gate:\n${control.stdout}`);
   });
 
   test('an unknown policy exits 2 rather than falling back to the loose one', () => {
@@ -1377,24 +1549,27 @@ describe('gate-evidence', () => {
     }
   });
 
-  // The sharper half of #381, and the one case in these four scripts where the
-  // root a gate was *told* to use and the root it *did* use can genuinely
-  // diverge: this gate's `--repo` takes its value with `argv[++i]`, so a flag
-  // written last carries `undefined`, is not refused, and falls through to the
-  // fallback root (#372). The report has to name the fallback it used, never the
-  // argument it ignored -- that divergence is precisely the failure mode a
-  // report naming no root conceals.
+  // The sharper half of #381: the report must name the root the gate *used*, and
+  // the one root a caller cannot read off their own command line is the fallback
+  // one -- `repoRoot()`, four `..` segments counted by hand. It is also the way
+  // `.github/workflows` and the skill documentation invoke this gate, and every
+  // other `gate-evidence` test here supplies `--repo`, so without this test that
+  // arm is executed by nothing.
   //
-  // #372 is a defect of its own and is deliberately not fixed here. If it lands,
-  // this invocation will exit 2 and this test will go red rather than quietly
-  // stop proving anything: update it to the new refusal, do not delete it, since
-  // the claim it makes about the *report* outlives the fallback.
+  // This test used to reach the fallback by writing `--repo` last and letting
+  // #372's silent substitution carry it there, and its own note said to update
+  // it to the new refusal rather than delete it when that defect was fixed.
+  // Done: the argv below omits `--repo` altogether, which is the same branch at
+  // `gate-evidence.mjs`'s `args.repo ? ... : repoRoot()` reached honestly, and
+  // every claim the test made about the *report* is unchanged. The refusal it
+  // used to depend on is asserted by `--repo with no value exits 2 rather than
+  // falling back to the repository this script sits in` below.
   //
   // That the fallback root was genuinely read, and not merely named, is carried
   // by the policy: `acme-labs` has a reviewed profile only in the planted tree,
   // so any other root derives `long-tail`, contradicts the declared `pilot`, and
   // exits 2 with no report at all.
-  test('an ignored --repo is reported as the fallback root the gate used, not as the argument', () => {
+  test('with no --repo at all the evidence gate reports the fallback root it used', () => {
     const result = fallbackRepo(GATE_EVIDENCE, ({ dir }) => {
       mkdirSync(join(dir, 'tools', 'updater', 'profiles'), { recursive: true });
       writeFileSync(
@@ -1406,8 +1581,8 @@ describe('gate-evidence', () => {
         bundle,
         JSON.stringify({ runId: 'r1', creator: 'acme-labs', policy: 'pilot', claims: [claim()] }, null, 2),
       );
-      // `--repo` last, so there is no next argument to be its value.
-      return ['--claims', bundle, '--today', TODAY, '--json', '--repo'];
+      // No `--repo`, which is how the workflows and the skill docs call it.
+      return ['--claims', bundle, '--today', TODAY, '--json'];
     });
     assert.equal(result.code, 0, `the fallback root must be gateable:\n${result.stdout}`);
     const report = JSON.parse(result.stdout);
@@ -1415,7 +1590,7 @@ describe('gate-evidence', () => {
     assert.equal(
       resolve(report.repo),
       result.root,
-      `the report must name the fallback root, not the argument that was dropped:\n${result.stdout}`,
+      `the report must name the fallback root the gate resolved for itself:\n${result.stdout}`,
     );
     assert.equal(report.policy, 'pilot', 'the fallback root must be the tree actually read');
     assert.equal(report.threshold, 2, 'and the threshold must follow from that tree');
