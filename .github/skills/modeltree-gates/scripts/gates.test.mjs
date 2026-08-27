@@ -169,8 +169,34 @@ function reverified(entry, day) {
   return moved;
 }
 
-/** Asserts the gate failed, and failed for the stated reason rather than any reason. */
-function assertFailed(result, gate, fragment) {
+/**
+ * Asserts the gate failed, that it failed for the stated reason rather than any
+ * reason, and -- the upper bound -- that no gate this test did not name failed
+ * alongside it (#369).
+ *
+ * Without that upper bound every assertion here is existential: `report.failures`
+ * is filtered down to `gate` and everything outside the filter is discarded
+ * unexamined, so a report carrying the expected failure *plus* two unexpected
+ * ones satisfies the helper exactly as well as a clean one. The test then proves
+ * something weaker than its name advertises -- "this mutation causes at least
+ * this failure, among an unknown number of others" rather than "this mutation
+ * causes this failure".
+ *
+ * The harm is realised, not theoretical. During #318 the harness pinned a clock
+ * the live dataset had moved past, so every test routing through
+ * `gateMutatedDataset` gated genuinely-future-dated data and carried a spurious
+ * `dates` failure beside the failure it was proving -- and stayed green. The
+ * outage surfaced only through the tests that assert `code === 0`, which is why
+ * it presented as a couple of failures rather than as the twenty-odd it was.
+ *
+ * A test that legitimately provokes more than one gate declares the others in
+ * `alsoFails`, and a declaration is checked in **both** directions: an
+ * undeclared gate that fires fails, and a declared gate that does *not* fire
+ * fails too. That second half is what stops `alsoFails` decaying into the
+ * wildcard this helper exists to remove -- a declaration whose cause has gone is
+ * deleted rather than left standing as permanent permission to fail.
+ */
+function assertFailed(result, gate, fragment, { alsoFails = [] } = {}) {
   assert.equal(result.code, 1, `expected exit 1, got ${result.code}:\n${result.stdout}`);
   const report = JSON.parse(result.stdout);
   assert.equal(report.passed, false);
@@ -185,6 +211,27 @@ function assertFailed(result, gate, fragment) {
       `expected a "${gate}" failure mentioning "${fragment}", got:\n${matching.map((f) => f.message).join('\n')}`,
     );
   }
+
+  const fired = new Set(report.failures.map((failure) => failure.gate));
+  const stale = alsoFails.filter((extra) => !fired.has(extra));
+  assert.deepEqual(
+    stale,
+    [],
+    `alsoFails declares ${stale.join(', ')}, but nothing failed under that name. `
+      + `Gates that did fail: ${[...fired].join(', ') || '(none)'}. `
+      + 'A declaration whose cause has gone is deleted, not left standing.',
+  );
+
+  const declared = new Set([gate, ...alsoFails]);
+  const undeclared = report.failures.filter((failure) => !declared.has(failure.gate));
+  assert.deepEqual(
+    undeclared.map((failure) => failure.gate),
+    [],
+    `the run also failed ${undeclared.length} gate failure(s) this test never declared, so its "${gate}" `
+      + 'result is not attributable to its own mutation:\n'
+      + undeclared.map((failure) => `  ${failure.gate}: ${failure.message}`).join('\n')
+      + `\nDeclared: ${[...declared].join(', ')}. If these are genuinely expected, name them in alsoFails.`,
+  );
 }
 
 /**
@@ -242,6 +289,53 @@ function fallbackRepo(script, build) {
 }
 
 // ---------------------------------------------------------------------------
+
+/**
+ * The helper the rest of this file leans on, exercised against synthetic reports
+ * rather than by running a gate: what is under test is `assertFailed`'s own
+ * arithmetic over `report.failures`, and spawning a real gate would make that
+ * slower and less controllable without making it more true. An upper bound that
+ * is never itself exercised is the same unproved claim this suite exists to
+ * refuse -- a guard that has only ever been seen to pass is indistinguishable
+ * from a guard that cannot fire (#369).
+ */
+describe('assertFailed', () => {
+  const report = (...gates) => ({
+    code: 1,
+    stdout: JSON.stringify({
+      passed: false,
+      failures: gates.map((gate) => ({ gate, message: `${gate} went wrong` })),
+    }),
+  });
+
+  test('a report carrying only the expected gate still passes, so the bound is not blanket', () => {
+    assertFailed(report('dates'), 'dates');
+    assertFailed(report('dates'), 'dates', 'went wrong');
+  });
+
+  test('an undeclared second gate is refused, and the refusal names it', () => {
+    assert.throws(
+      () => assertFailed(report('dates', 'references'), 'dates'),
+      (error) => error.message.includes('references') && error.message.includes('never declared'),
+      'an undeclared failure must be reported by name rather than filtered away unexamined',
+    );
+  });
+
+  test('a second gate the test declares is accepted', () => {
+    assertFailed(report('dates', 'references'), 'dates', undefined, { alsoFails: ['references'] });
+  });
+
+  test('a declaration that no longer fires is refused, so alsoFails cannot rot into a wildcard', () => {
+    assert.throws(
+      () => assertFailed(report('dates'), 'dates', undefined, { alsoFails: ['references'] }),
+      /alsoFails declares references/,
+    );
+  });
+
+  test('the expected gate still has to have failed at all', () => {
+    assert.throws(() => assertFailed(report('references'), 'dates'), /expected a "dates" failure/);
+  });
+});
 
 describe('gate-dataset', () => {
   test('the repository dataset passes as it stands', () => {
@@ -431,7 +525,16 @@ describe('gate-dataset', () => {
       releases[1].releaseDate = '2000-01-01';
       write('releases.json', releases);
     });
-    assertFailed(result, 'dates', 'precedes predecessor');
+    assertFailed(result, 'dates', 'precedes predecessor', {
+      // Declared rather than tolerated (#369). Backdating the second release is
+      // not a single-gate mutation: it also makes that release a lineage
+      // neighbour of a family sibling, which `lineage` refuses on its own terms.
+      // Both failures are consequences of this one edit, so both are the test's
+      // to state -- and the declaration is checked in both directions, so if the
+      // lineage consequence ever stops arriving this line fails rather than
+      // standing as permanent permission.
+      alsoFails: ['lineage'],
+    });
   });
 
   test('a release that is its own predecessor is caught', () => {
@@ -526,7 +629,14 @@ describe('gate-dataset', () => {
       cpSync(DATA, dir, { recursive: true });
       writeFileSync(join(dir, 'releases.json'), '{not json');
       const result = run(GATE_DATASET, ['--data', dir, '--json']);
-      assertFailed(result, 'well-formed', 'not valid JSON');
+      assertFailed(result, 'well-formed', 'not valid JSON', {
+        // Declared rather than tolerated (#369). An unparseable `releases.json`
+        // loads as no releases at all, so every record in the other documents
+        // that points at a release dangles and `references` fires a dozen times
+        // over. That cascade is the direct consequence of this mutation, not
+        // noise from somewhere else, so the test states it.
+        alsoFails: ['references'],
+      });
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
