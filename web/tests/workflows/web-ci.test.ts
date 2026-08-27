@@ -59,6 +59,46 @@ function issueLookup(script: string, label: string): string {
   return found[0].replace(/\\\n\s*/g, ' ').replace(/\s+/g, ' ');
 }
 
+/**
+ * The body of one arm of the scope step's `case`, so an assertion about a range
+ * endpoint is tied to the event whose data computes it: a substring check against
+ * the whole script passes just as well when the two arms are cross-wired.
+ *
+ * Throws rather than returning a best guess, like every other extractor above.
+ * This one guards which commits get verified at all, so it has to fail closed.
+ * `;&` and `;;&` are valid bash that fall through into the next arm, and an arm
+ * missing its terminator runs into the next one; in either case a slice that
+ * simply ran to the next `;;` would hand these assertions the values of a
+ * different event and pass. Rejecting a fall-through is deliberate even where
+ * bash allows it, because an arm that does more than its own body says is not
+ * something these assertions can describe.
+ */
+function caseArm(script: string, event: string): string {
+  const opened = script.indexOf(`${event})`);
+  const closed = script.indexOf('esac', opened);
+
+  if (opened === -1 || closed === -1) {
+    throw new Error(`Expected the scope step to handle ${event} inside a case statement`);
+  }
+
+  const terminator = script.slice(opened, closed).match(/;;&|;&|;;/);
+
+  if (terminator?.[0] !== ';;') {
+    throw new Error(
+      `Expected the ${event} arm to end in ';;', found ${terminator?.[0] ?? 'no terminator'}`,
+    );
+  }
+
+  const arm = script.slice(opened, opened + (terminator.index ?? 0));
+
+  // A terminator found beyond the next label is that arm's, not this one's.
+  if (/^[ \t]*[^\s)]+\)[ \t]*$/m.test(arm.slice(`${event})`.length))) {
+    throw new Error(`Expected the ${event} arm to end before the next arm begins`);
+  }
+
+  return arm;
+}
+
 /** Every `permissions:` block in a document, top level and per job. */
 function permissionBlocks(document: YamlMapping): YamlMapping[] {
   const blocks: YamlMapping[] = [];
@@ -94,6 +134,50 @@ const workflowDocs = readFileSync(
   'utf8',
 );
 
+/** web/package.json's scripts, the one definition every command below expands from. */
+const webScripts = (
+  JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
+    scripts: Record<string, string>;
+  }
+).scripts;
+
+/**
+ * The leaf commands a shell command actually runs, following every
+ * `npm run <name>` indirection through web/package.json.
+ *
+ * This is what makes web-ci.yml's split verification steps provable rather than
+ * merely plausible. `npm run build` is what pages.yml gates the deploy on, and
+ * splitting it into a step per check buys failure attribution at the risk of the
+ * CI path drifting away from the deploy path -- the precise failure web-ci.yml
+ * exists to prevent. Expanding both sides to leaves and comparing them removes
+ * the risk: neither side is restated here, so editing any script in package.json
+ * moves the expectation rather than invalidating it silently.
+ */
+function leafCommands(command: string): string[] {
+  return command
+    .split('&&')
+    .map((part) => part.trim())
+    .flatMap((part) => {
+      const invocation = part.match(/^npm run ([A-Za-z0-9:_-]+)(?:\s+--\s+(.+))?$/);
+
+      if (invocation === null) return [part];
+
+      const [, name, forwarded] = invocation;
+      const body = webScripts[name];
+
+      if (body === undefined) throw new Error(`web/package.json defines no script "${name}"`);
+
+      const expanded = leafCommands(body);
+
+      if (forwarded === undefined) return expanded;
+
+      // `npm run x -- args` appends args to the command the script ends with.
+      return expanded.map((leaf, index) =>
+        index === expanded.length - 1 ? `${leaf} ${forwarded}` : leaf,
+      );
+    });
+}
+
 const webCiJob = job(webCi.document, 'web-ci');
 const deployJob = job(pages.document, 'deploy');
 const reportJob = job(pages.document, 'report-failure');
@@ -113,12 +197,21 @@ describe('web-ci.yml triggers', () => {
   // happens inside the job instead, so the check always reports.
   it('carries no trigger-level path filter, so the check reports on every pull request', () => {
     expect(triggers.pull_request).toBeNull();
+    expect(mapping(triggers.push, 'on.push').paths).toBeUndefined();
   });
 
-  // pages.yml already builds main on every push, and now fails loudly. A second
-  // full build per merge would be duplication.
-  it('leaves main to pages.yml', () => {
-    expect(Object.keys(triggers)).not.toContain('push');
+  // Reversed deliberately by #5. This asserted the opposite until then, on the
+  // grounds that pages.yml already builds main on every push and a second build
+  // per merge is duplication. The duplication is real and is now accepted:
+  // pages.yml's build is a step of a deployment, skipped entirely on a fork by
+  // its `github.repository` guard, and reported under a name that cannot tell a
+  // broken site apart from broken publishing -- so it is not a check on main.
+  // The cost is paid down rather than swallowed, because the scope step below
+  // diffs a push exactly as it diffs a pull request: only a main push that
+  // actually touched web/ builds twice.
+  it('also runs on pushes to main, so main carries the check by name', () => {
+    expect(Object.keys(triggers)).toContain('push');
+    expect(mapping(triggers.push, 'on.push').branches).toEqual(['main']);
   });
 });
 
@@ -182,7 +275,33 @@ describe('web-ci.yml scope detection', () => {
     const checkout = stepNamed(webCiJob, 'jobs.web-ci', 'Check out repository');
 
     expect(mapping(checkout.with, 'checkout.with')['fetch-depth']).toBe(0);
-    expect(script).toContain('git diff --name-only "$BASE_SHA...$HEAD_SHA"');
+    expect(script).toContain('git diff --name-only "$base...$head"');
+  });
+
+  // What makes the push trigger affordable. pages.yml rebuilds main on every
+  // push regardless, so a skip here leaves main no less verified than before,
+  // while a main push that touches only docs or tools/ stops costing a second
+  // full build. Event data still reaches the shell as environment variables
+  // rather than being interpolated into the script.
+  it('scopes a push by its own range, not by always rebuilding main', () => {
+    expect(mapping(mapping(scope ?? null, 'the scope step').env, 'scope.env')).toMatchObject({
+      PR_BASE_SHA: '${{ github.event.pull_request.base.sha }}',
+      PR_HEAD_SHA: '${{ github.event.pull_request.head.sha }}',
+      PUSH_BEFORE_SHA: '${{ github.event.before }}',
+    });
+    expect(caseArm(script, 'push')).toContain('base="$PUSH_BEFORE_SHA"');
+    expect(caseArm(script, 'push')).toContain('head="$GITHUB_SHA"');
+  });
+
+  // The env block above pins what the two pull request variables hold; this
+  // pins which end of the range each is bound to, which nothing else covers.
+  // Swapping these two lines diffs head...base, and because base is an
+  // ancestor of head that range is empty rather than an error -- so the
+  // fail-safe above never fires, run=false, no build happens, and web-ci (the
+  // only required check on main) reports green for an unverified commit.
+  it('scopes a pull request to its base...head range, in that order', () => {
+    expect(caseArm(script, 'pull_request')).toContain('base="$PR_BASE_SHA"');
+    expect(caseArm(script, 'pull_request')).toContain('head="$PR_HEAD_SHA"');
   });
 
   it('builds for any change under web/', () => {
@@ -217,30 +336,59 @@ describe('web-ci.yml scope detection', () => {
   });
 
   it('builds on a manual dispatch, which has no base to diff against', () => {
-    const branch = script.slice(script.indexOf('!= "pull_request"'));
-
-    expect(branch.slice(0, branch.indexOf('fi'))).toContain('run=true');
+    expect(caseArm(script, '*')).toContain('run=true');
   });
 });
 
-describe('web-ci.yml build steps', () => {
-  const build = stepNamed(webCiJob, 'jobs.web-ci', 'Validate and build the site');
+describe('web-ci.yml verification steps', () => {
   const deployBuild = stepNamed(deployJob, 'jobs.deploy', 'Build Astro site');
+
+  /** One check per step, in the order web-ci.yml runs them. */
+  const verificationSteps = [
+    'Run the web test suite',
+    'Check Astro and TypeScript diagnostics',
+    'Build the production site',
+  ];
 
   it('installs strictly from the lockfile', () => {
     expect(String(stepNamed(webCiJob, 'jobs.web-ci', 'Install dependencies').run)).toContain('npm ci');
   });
 
-  // npm run build is npm run validate && astro build, so one command covers the
-  // vitest suite, the Astro and TypeScript diagnostics, and the static build. A
-  // green check here therefore means main can actually deploy.
-  it('runs the same command the deploy gates on', () => {
-    expect(String(build.run)).toContain('npm run build');
+  // A single `npm run build` step covered the vitest suite, the Astro and
+  // TypeScript diagnostics and the static build at once, so a red run said only
+  // that one of the three had failed (#5).
+  it('gives each check a step of its own, so a red run names what broke', () => {
+    for (const name of verificationSteps) {
+      const run = String(stepNamed(webCiJob, 'jobs.web-ci', name).run).trim();
+
+      // A step chaining two commands reports one failure for either, which is
+      // exactly the attribution this split exists to restore.
+      expect(run.split('\n'), `${name} must run exactly one command`).toHaveLength(1);
+      expect(run, `${name} must run exactly one command`).not.toContain('&&');
+    }
+  });
+
+  // Splitting is only safe while the split still runs what the deploy runs.
+  // Both sides are expanded out of web/package.json rather than restated, so
+  // adding a stage to `validate` fails here instead of quietly leaving this
+  // check weaker than the deploy it is supposed to predict.
+  it('runs exactly the commands the deploy gates on, in the same order', () => {
+    const inCi = verificationSteps.flatMap((name) =>
+      leafCommands(String(stepNamed(webCiJob, 'jobs.web-ci', name).run).trim()),
+    );
+
+    expect(inCi).toEqual(leafCommands('npm run build'));
+  });
+
+  it('leaves the deploy on the single command those steps decompose', () => {
     expect(String(deployBuild.run)).toContain('npm run build');
   });
 
+  // At job level rather than per step: the deploy sets these once for one
+  // command that runs all three checks, so every step of the split must see the
+  // same environment, including a step added later.
   it('builds the real site, with the variables the deploy uses', () => {
-    expect(build.env).toEqual(deployBuild.env);
+    expect(webCiJob.env).toEqual(deployBuild.env);
   });
 
   it('builds on the Node version the deploy uses', () => {
@@ -253,9 +401,22 @@ describe('web-ci.yml build steps', () => {
   });
 
   it('gates every expensive step on the scope decision', () => {
-    for (const name of ['Set up Node.js', 'Install dependencies', 'Validate and build the site']) {
+    for (const name of ['Set up Node.js', 'Install dependencies', ...verificationSteps]) {
       expect(stepNamed(webCiJob, 'jobs.web-ci', name).if).toBe("steps.scope.outputs.run == 'true'");
     }
+  });
+
+  it('uploads test diagnostics only when a run has actually failed', () => {
+    const upload = stepNamed(webCiJob, 'jobs.web-ci', 'Upload test diagnostics');
+    const options = mapping(upload.with, 'upload-artifact.with');
+
+    expect(String(upload.if)).toContain('failure()');
+    // Relative to the workspace root: `defaults.run.working-directory` applies
+    // to run steps, never to an action.
+    expect(options.path).toBe('web/.vitest/report.json');
+    // A failure before the suite ran leaves no report, and missing diagnostics
+    // must not turn an already-red run into a second, more confusing failure.
+    expect(options['if-no-files-found']).toBe('ignore');
   });
 });
 
