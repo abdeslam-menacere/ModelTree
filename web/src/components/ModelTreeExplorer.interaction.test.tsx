@@ -5,9 +5,11 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import { buildModelTree } from '../lib/model-tree';
+import { datasetWithOtherCreators } from '../../tests/fixtures/model-tree-dataset';
 import ModelTreeExplorer from './ModelTreeExplorer';
 
 const tree = buildModelTree(dataset);
+const otherTree = buildModelTree(datasetWithOtherCreators);
 const selectedRelease = dataset.releases.find(({ id }) => id === 'anthropic-claude-opus-5')!;
 
 function renderExplorer() {
@@ -108,5 +110,54 @@ describe('ModelTreeExplorer interactions', () => {
     expect(document.querySelector('[aria-pressed="true"]')).toBeNull();
     expect(window.location.search).toBe('?model=not-a-release&view=tree');
     expect(window.location.hash).toBe('#safe');
+  });
+
+  it('selects a release under Others and fills the details panel', async () => {
+    const user = userEvent.setup();
+    render(<ModelTreeExplorer tree={otherTree} sourceByReleaseId={{}} basePath="/ModelTree/" />);
+    const others = screen.getByRole('button', { name: /^Others/ });
+
+    await waitFor(() => expect(creatorButton('Zenith Labs').getAttribute('aria-expanded')).toBe('false'));
+    expect(others.getAttribute('aria-expanded')).toBe('true');
+
+    await user.click(creatorButton('Zenith Labs'));
+    await user.click(screen.getByRole('button', { name: /^Zenith Core/ }));
+    const releaseButton = screen.getByRole('button', { name: /^Zenith Flagship/ });
+    await user.click(releaseButton);
+
+    const details = document.querySelector('.tree-details') as HTMLElement;
+    expect(within(details).getByRole('heading', { name: 'Zenith Flagship' })).toBeTruthy();
+    expect(within(details).getByText('Zenith Labs / Zenith Core')).toBeTruthy();
+    expect(releaseButton.getAttribute('aria-pressed')).toBe('true');
+    expect(window.location.search).toBe('?model=other-alpha-core-one');
+  });
+
+  it('restores a deep link to an Others release by opening its creator and family', async () => {
+    window.history.replaceState({}, '', '/ModelTree/tree/?model=other-zulu-atlas-one');
+    render(<ModelTreeExplorer tree={otherTree} sourceByReleaseId={{}} basePath="/ModelTree/" />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^Zulu Atlas/ }).getAttribute('aria-expanded')).toBe('true');
+    });
+    expect(screen.getByRole('button', { name: /^Atlas Prime/ }).getAttribute('aria-pressed')).toBe('true');
+    expect(within(document.querySelector('.tree-details') as HTMLElement).getByRole(
+      'heading',
+      { name: 'Atlas Prime' },
+    )).toBeTruthy();
+  });
+
+  it('collapses the Others branch on demand like any other disclosure', async () => {
+    const user = userEvent.setup();
+    render(<ModelTreeExplorer tree={otherTree} sourceByReleaseId={{}} basePath="/ModelTree/" />);
+    const others = screen.getByRole('button', { name: /^Others/ });
+
+    await waitFor(() => expect(creatorButton('Zenith Labs').getAttribute('aria-expanded')).toBe('false'));
+    await user.click(others);
+
+    expect(others.getAttribute('aria-expanded')).toBe('false');
+    expect(document.getElementById('model-tree-other-creators')?.hasAttribute('hidden')).toBe(true);
+    expect(screen.getByRole('button', { name: /^Featured ecosystems/ }).getAttribute(
+      'aria-expanded',
+    )).toBe('true');
   });
 });

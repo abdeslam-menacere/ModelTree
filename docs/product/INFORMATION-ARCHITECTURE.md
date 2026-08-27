@@ -28,10 +28,13 @@ not a marketing gate.
 
 `/` remains the broad signature experience and catalog overview. `/tree/` is a
 complementary, focused hierarchy for mind-map-style progressive disclosure:
-AI Model Ecosystem → Featured ecosystems → creator → model family → model release, with an
-empty `Others` branch reserved for reviewed long-tail coverage. It derives
-featured membership from reviewed catalog flags and does not imply popularity
-or rank. The complete hierarchy is server-rendered; client JavaScript enhances
+AI Model Ecosystem → Featured ecosystems → creator → model family → model release.
+An `Others` branch sits beside Featured and is derived the same way from the same
+catalog: it holds every creator that has reviewed releases but no featured one,
+rendered as the same expandable creator → family → release disclosures, and it
+shows a factual empty state only while no such creator exists. Both branches
+derive membership from reviewed catalog flags and neither implies popularity or
+rank. The complete hierarchy is server-rendered; client JavaScript enhances
 disclosure, selection, and stable `?model=<release-id>` deep links.
 
 ## Homepage Composition

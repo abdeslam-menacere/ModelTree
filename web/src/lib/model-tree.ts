@@ -12,7 +12,7 @@ export interface ModelTreeCreator {
 
 export interface ModelTree {
   featured: ModelTreeCreator[];
-  others: never[];
+  others: ModelTreeCreator[];
 }
 
 export interface ModelTreePath {
@@ -40,13 +40,15 @@ function newestFamilyReleaseDate(dataset: Dataset, familyId: string) {
     ), '');
 }
 
-export function buildModelTree(dataset: Dataset): ModelTree {
-  const featuredCreatorIds = new Set(
-    dataset.releases.filter(({ featured }) => featured).map(({ organizationId }) => organizationId),
-  );
-
-  const featured = dataset.organizations
-    .filter(({ id }) => featuredCreatorIds.has(id))
+/**
+ * Both branches are the same shape and obey the same ordering rules; only the
+ * membership test differs. Keeping one builder is what guarantees they cannot
+ * drift apart.
+ */
+function buildCreators(dataset: Dataset, organizations: Organization[]): ModelTreeCreator[] {
+  // Copy before sorting: the caller passes a filtered view of dataset.organizations
+  // and must not have its own array reordered underneath it.
+  return [...organizations]
     .sort((a, b) => compare(a.name, b.name) || compare(a.id, b.id))
     .map((organization) => ({
       organization,
@@ -70,8 +72,36 @@ export function buildModelTree(dataset: Dataset): ModelTree {
         }))
         .filter(({ releases }) => releases.length > 0),
     }));
+}
 
-  return { featured, others: [] };
+export function buildModelTree(dataset: Dataset): ModelTree {
+  // Featured membership is decided at creator level, not release level: one
+  // featured release makes the whole creator featured, and every one of its
+  // releases stays with it rather than being split across the two branches.
+  const featuredCreatorIds = new Set(
+    dataset.releases.filter(({ featured }) => featured).map(({ organizationId }) => organizationId),
+  );
+  const creatorIdsWithReleases = new Set(
+    dataset.releases.map(({ organizationId }) => organizationId),
+  );
+
+  return {
+    featured: buildCreators(
+      dataset,
+      dataset.organizations.filter(({ id }) => featuredCreatorIds.has(id)),
+    ),
+    others: buildCreators(
+      dataset,
+      dataset.organizations.filter(
+        ({ id }) => creatorIdsWithReleases.has(id) && !featuredCreatorIds.has(id),
+      ),
+    ),
+  };
+}
+
+/** Every creator branch in render order: featured first, then others. */
+function modelTreeCreators(tree: ModelTree): ModelTreeCreator[] {
+  return [...tree.featured, ...tree.others];
 }
 
 export function findModelTreePath(
@@ -80,7 +110,7 @@ export function findModelTreePath(
 ): ModelTreePath | undefined {
   if (!releaseId) return undefined;
 
-  for (const { organization, families } of tree.featured) {
+  for (const { organization, families } of modelTreeCreators(tree)) {
     for (const { family, releases } of families) {
       if (releases.some(({ id }) => id === releaseId)) {
         return { creatorId: organization.id, familyId: family.id, releaseId };
@@ -92,7 +122,9 @@ export function findModelTreePath(
 }
 
 export function modelTreeReleaseIds(tree: ModelTree) {
-  return tree.featured.flatMap(({ families }) => (
+  // A creator belongs to exactly one branch, so concatenating the two cannot
+  // repeat a release.
+  return modelTreeCreators(tree).flatMap(({ families }) => (
     families.flatMap(({ releases }) => releases.map(({ id }) => id))
   ));
 }

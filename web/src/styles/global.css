@@ -1624,6 +1624,10 @@ main {
   border-left-color: var(--cp-success);
 }
 
+.tree-others-node {
+  border-left-color: var(--cp-border-strong);
+}
+
 .tree-empty-node {
   border-left-color: var(--cp-border-strong);
   background: var(--cp-surface-soft);
