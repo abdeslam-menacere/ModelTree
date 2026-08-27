@@ -124,9 +124,24 @@ function gateDatasetCopy(edit, clockArgs) {
 }
 
 /**
- * Every document `gate-dataset.mjs` loads. Named once because two tests need the
- * whole set, and a second hand-written copy of a list another file owns is the
- * defect class #276 closed.
+ * Every document `gate-dataset.mjs` loads, exactly as its own `DOCUMENTS` map
+ * names them. This *is* a second hand-written copy of a list that file owns, and
+ * saying so is the point: `gate-dataset.mjs:23` states its own coupling to
+ * `web/src/data/raw.ts` rather than denying it, and this comment used to claim
+ * the opposite about itself. What the constant buys is de-duplication between
+ * the two tests below that need the whole set; that does not stop it being a
+ * copy.
+ *
+ * The copy drifts in two directions and only one of them used to be audible. If
+ * the gate gains a document this list does not name, `a wholesale-empty dataset
+ * is refused` fails loudly -- it empties only the documents this list names, the
+ * gate still finds records in the one it does not, and the expected `non-empty`
+ * failure never arrives. But `a dataset refreshed on a later day still passes`
+ * would re-verify only the documents it knows, leave the new one's dates in the
+ * past where they are comfortably below the simulated day, and stay green while
+ * covering less: the 400-day forward guard narrowing without a sound. `the
+ * document list still matches the one gate-dataset.mjs owns` below is what makes
+ * that half audible.
  */
 const DATASET_DOCUMENTS = [
   'sources.json', 'publishers.json', 'organizations.json', 'families.json',
@@ -136,8 +151,12 @@ const DATASET_DOCUMENTS = [
 
 /**
  * `entry` as a refresh dated `day` would leave it: the fields a refresh rewrites
- * move to that day, and nothing else does. `releaseDate` and `publishedDate` are
- * facts about the past, so moving them would test a dataset no refresh produces.
+ * move to that day, and nothing else does. Three fields move, not two --
+ * `verifiedAt` and `lastCheckedDate` at the top level, and the *nested*
+ * `control.verifiedAt`. A second nested date-bearing structure would have to be
+ * handled here too, or the dataset this returns would only look refreshed.
+ * `releaseDate` and `publishedDate` are facts about the past, so moving them
+ * would test a dataset no refresh produces.
  */
 function reverified(entry, day) {
   const moved = { ...entry };
@@ -229,13 +248,19 @@ describe('gate-dataset', () => {
     // No `--today`: the live dataset is judged on the gate's own clock. The
     // sampled comparison below is the guard against this quietly being re-pinned
     // -- a frozen constant here passes only until the data moves past it, which
-    // is #318. A one-day slip either side absorbs the UTC midnight race between
-    // this sample and the gate's own `new Date()`.
+    // is #318. The UTC midnight race between this sample and the gate's own
+    // `new Date()` runs one way only, so the tolerance is one-sided: `sampled` is
+    // taken before the gate is spawned, and both clocks are UTC -- `realToday()`
+    // here, `new Date().toISOString().slice(0, 10)` at `gate-dataset.mjs` -- so
+    // the gate's day is never earlier than the sample. Only `sampled` and the day
+    // after it are reachable. A third arm for the day *before* would cost the one
+    // thing this assertion exists to do: a `--today` re-pinned to yesterday would
+    // satisfy it, which is #318 arriving again through its own tripwire.
     const sampled = realToday();
     const result = run(GATE_DATASET, ['--data', DATA, '--json']);
     const report = JSON.parse(result.stdout);
     assert.ok(
-      [shiftDays(sampled, -1), sampled, shiftDays(sampled, 1)].includes(report.today),
+      [sampled, shiftDays(sampled, 1)].includes(report.today),
       `the live dataset must be gated on the real clock, but ran at "${report.today}" against a real ${sampled}`,
     );
     assert.deepEqual(report.failures, [], 'the live dataset must pass its own gates');
@@ -261,6 +286,55 @@ describe('gate-dataset', () => {
       write('releases.json', releases);
     });
     assert.equal(result.code, 0, result.stdout);
+  });
+
+  // `DATASET_DOCUMENTS` is a copy of a list `gate-dataset.mjs` owns, and one
+  // direction of that copy drifting is silent (see the note on the constant).
+  // This is what makes it audible: the gate's `DOCUMENTS` map is scraped back
+  // out of its own source and compared against the copy.
+  //
+  // Compared as a directional diff rather than in order, because both consumers
+  // iterate with `for..of`, where order carries no meaning -- membership is the
+  // whole coupling, so reordering the gate's map is not drift and must not fail
+  // here. The message names which side each stray document sits on, since
+  // "a document was added to the gate" and "a document was removed from this
+  // file" need different fixes.
+  //
+  // The scrape refuses rather than returning an empty list, the same way
+  // `allowedPathsFrom` does further down: two empty lists compare equal, so a
+  // parser that silently matched nothing would leave this guard green while
+  // checking nothing -- the exact failure mode the constant's comment used to
+  // have. The synthetic sources at the end hold the parser to its claim and
+  // prove both refusals fire, so this test cannot pass vacuously. It asserts on
+  // the parsed list, never on an exit code: gates in this file exit 0 while
+  // broken, and no gate is run here at all.
+  test('the document list still matches the one gate-dataset.mjs owns', () => {
+    const documentsFrom = (source) => {
+      const decl = /const\s+DOCUMENTS\s*=\s*\{([\s\S]*?)\}\s*;/.exec(source);
+      if (!decl) throw new Error('no DOCUMENTS = { ... } declaration found');
+      const files = [...decl[1].matchAll(/['"]([^'"]+\.json)['"]/g)].map((m) => m[1]);
+      if (files.length === 0) throw new Error('DOCUMENTS declaration names no documents');
+      return files;
+    };
+
+    const owned = documentsFrom(readFileSync(GATE_DATASET, 'utf8'));
+    const onlyInGate = owned.filter((file) => !DATASET_DOCUMENTS.includes(file)).sort();
+    const onlyInTest = DATASET_DOCUMENTS.filter((file) => !owned.includes(file)).sort();
+    assert.deepEqual(
+      { onlyInGate, onlyInTest },
+      { onlyInGate: [], onlyInTest: [] },
+      'DATASET_DOCUMENTS has drifted from the DOCUMENTS map gate-dataset.mjs owns -- '
+        + `loaded by the gate but not named here: ${onlyInGate.join(', ') || '(none)'}; `
+        + `named here but not loaded by the gate: ${onlyInTest.join(', ') || '(none)'}`,
+    );
+
+    // The parser reads what it claims to, and fails closed when it does not.
+    assert.deepEqual(
+      documentsFrom("const DOCUMENTS = {\n  a: 'a.json',\n  b: \"b.json\",\n};\n"),
+      ['a.json', 'b.json'],
+    );
+    assert.throws(() => documentsFrom('const OTHER = 1;'), /no DOCUMENTS/);
+    assert.throws(() => documentsFrom('const DOCUMENTS = {};'), /names no documents/);
   });
 
   // The other half of #318: the suite has to survive the *next* refresh, not
