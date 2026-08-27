@@ -107,6 +107,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CHECKER_PATH = REPO_ROOT / "tools" / "adr_numbers" / "check_adr_numbers.py"
@@ -1829,7 +1830,6 @@ def test_an_unknown_encoding_does_not_become_a_refusal_of_its_own():
 
 @pytest.fixture(scope="module")
 def workflow() -> dict:
-    yaml = pytest.importorskip("yaml", reason="PyYAML is part of the dev extra")
     return yaml.safe_load(WORKFLOW_PATH.read_text(encoding="utf-8"))
 
 

@@ -20,9 +20,25 @@ foundry = [
 ]
 dev = [
   "pytest>=8.0.0",
-  # Only used by the tests that assert the publication workflow's permission
-  # model. Parsing the YAML is what makes "least privilege" machine-checked
-  # instead of a claim in prose.
+  # A hard requirement of the suite, not an optional nicety (#357). Three test
+  # modules assert properties of `.github/workflows/*.yml` -- the publication
+  # workflow's permission model, and the path filters that decide whether the
+  # ADR-numbering and instruction-reference guards run at all -- by parsing the
+  # YAML, which is what makes "least privilege" and "this guard is triggered"
+  # machine-checked instead of claims in prose.
+  #
+  # Those modules used to open with `pytest.importorskip("yaml", ...)`, so an
+  # environment without PyYAML turned every one of them into a skip and still
+  # exited 0. A guard whose job is to catch CI silently not checking something
+  # must not itself be able to silently not run, so they now `import yaml`
+  # unconditionally and its absence is a collection error.
+  #
+  # Hard-requiring it here rather than in `[project].dependencies` is the whole
+  # decision: `yaml` appears nowhere under `src/`, so it is test-only and has no
+  # business in the installed wheel. This asks nothing new of contributors --
+  # `pip install -e ".[dev]"` (README) and `pip install '.[dev]'`
+  # (`.github/workflows/updater-tests.yml`) already install it, so the only
+  # environment this newly refuses is one the project never claimed to support.
   "PyYAML>=6.0",
 ]
 

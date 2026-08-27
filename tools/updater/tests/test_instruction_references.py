@@ -58,6 +58,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CHECKER_PATH = (
@@ -1248,7 +1249,6 @@ def test_the_workflow_runs_on_every_covered_document():
     decision: widening the first without the second would leave a skill change
     unchecked on every pull request that touched only skills.
     """
-    yaml = pytest.importorskip("yaml", reason="PyYAML is part of the dev extra")
     workflow = yaml.safe_load(
         (
             REPO_ROOT / ".github" / "workflows" / "instruction-references.yml"
@@ -1493,7 +1493,6 @@ def test_the_suite_reruns_when_what_it_asserts_changes():
     exactly that. The same argument covers the instruction-reference workflow,
     whose own path filter this suite asserts.
     """
-    yaml = pytest.importorskip("yaml", reason="PyYAML is part of the dev extra")
     workflow = yaml.safe_load(
         (
             REPO_ROOT / ".github" / "workflows" / "updater-tests.yml"

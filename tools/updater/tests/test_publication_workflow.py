@@ -13,8 +13,7 @@ import re
 from pathlib import Path
 
 import pytest
-
-yaml = pytest.importorskip("yaml", reason="PyYAML is part of the dev extra")
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "publish-updater-proposals.yml"
