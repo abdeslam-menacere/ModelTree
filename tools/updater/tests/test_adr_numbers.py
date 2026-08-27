@@ -1572,12 +1572,19 @@ def test_a_missing_directory_outside_the_repository_is_still_named(tmp_path, cap
     and above all still a name. Withholding it is not available here: the
     module refuses at exit 2 with no verdict to hold back, so an unnamed
     directory would leave the operator with nothing at all.
+
+    The argument carries a `..` it does not need, which is what keeps this
+    honest on a POSIX runner. The old code echoed `str(argument)`, and for an
+    absolute POSIX path that is the same string `as_posix()` gives -- so
+    without a segment only resolution removes, this test would have been green
+    on CI against the checker it was written to fail.
     """
-    missing = tmp_path / "nowhere"
+    missing = tmp_path / "sub" / ".." / "nowhere"
 
     assert checker.main([str(missing)]) == 2
     err = capsys.readouterr().err
-    assert f"no such directory: {missing.resolve().as_posix()}" in err
+    assert f"no such directory: {(tmp_path / 'nowhere').as_posix()}" in err
+    assert ".." not in err
     assert "\\" not in err
 
 
