@@ -68,6 +68,40 @@ def test_time_budget_uses_the_injected_clock() -> None:
     assert error.value.resource == "seconds"
 
 
+def test_the_ledgers_time_resource_name_is_the_publishers_measured_resource() -> None:
+    """The producer/owner coupling for the measured resource, pinned for its own sake.
+
+    `budgets.py` *produces* the measured-resource name into `exhausted_by`; the
+    constant `publisher.MEASURED_RESOURCE` *owns* it, and every
+    `detail.get("resource") == MEASURED_RESOURCE` predicate in production and in
+    the publisher tests reads that owner. Nothing else asserts the two agree by
+    construction rather than by coincidence of spelling: before this test the pair
+    was caught only incidentally, by a `test_publisher.py` assertion whose stated
+    subject is exhaustion rendering, not this coupling. Deleting *this* test
+    removes that guarantee visibly, which is the whole point of giving it its own
+    name — see abdeslam-menacere/ModelTree#411.
+
+    Both sides are DERIVED, never restated: the resource name appears nowhere in
+    this test. The produced side is read back out of a ledger genuinely exhausted
+    by its time limit, and compared against the imported constant. A unilateral
+    edit of either side — the ledger's literal or the constant — breaks the
+    equality and reddens here, in either direction.
+    """
+    from modeltree_updater.publisher import MEASURED_RESOURCE
+
+    ticks = iter([0.0, 5.0, 5.0])
+    ledger = BudgetLedger(CreatorBudget(max_seconds=2.0), clock=lambda: next(ticks))
+
+    with pytest.raises(BudgetExhausted) as error:
+        ledger.check_time()
+
+    # Anti-vacuity: the ledger really did stop on the time budget, so the name
+    # under test is the one the producer emits for an exhausted seconds limit
+    # rather than an unset default.
+    assert error.value.resource in ledger.snapshot().exhausted_by
+    assert error.value.resource == MEASURED_RESOURCE
+
+
 def test_state_round_trip_keeps_spending_the_same_budget() -> None:
     ledger = BudgetLedger(CreatorBudget(max_pages=2), clock=lambda: 0.0)
     ledger.charge_pages(1)
