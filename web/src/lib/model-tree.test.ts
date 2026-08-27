@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import { datasetWithOtherCreators, expectedOtherCreatorIds } from '../../tests/fixtures/model-tree-dataset';
+import type { Dataset } from '../data/schema';
 import {
   buildModelTree,
   findModelTreePath,
@@ -8,6 +9,21 @@ import {
   restoreModelTreeSelection,
   toggleModelTreeBranch,
 } from './model-tree';
+
+/**
+ * The membership rule `buildModelTree` implements for `others`, derived from the
+ * dataset independently of the builder: a creator that holds releases but none
+ * marked featured. A creator with no releases at all belongs to neither branch.
+ */
+function creatorIdsWithoutFeaturedRelease(source: Dataset) {
+  return source.organizations
+    .filter(({ id }) => (
+      source.releases.some((release) => release.organizationId === id)
+      && !source.releases.some((release) => release.organizationId === id && release.featured)
+    ))
+    .map(({ id }) => id)
+    .sort();
+}
 
 describe('model tree', () => {
   it('includes only creators with a featured release, then every release for those creators once', () => {
@@ -63,14 +79,24 @@ describe('model tree', () => {
     ]);
   });
 
-  it('keeps Others empty when every catalog creator has a featured release', () => {
+  it('puts exactly the creators that hold releases but none featured in Others', () => {
+    // Asserting only against the live catalog would prove nothing: its Others is
+    // empty today, so a broken derivation would pass too. The fixture carries the
+    // populated case, and both datasets are held to the same rule.
+    for (const source of [dataset, datasetWithOtherCreators]) {
+      const tree = buildModelTree(source);
+
+      expect(tree.others.map(({ organization }) => organization.id).sort())
+        .toEqual(creatorIdsWithoutFeaturedRelease(source));
+    }
+
+    expect(creatorIdsWithoutFeaturedRelease(datasetWithOtherCreators).length).toBeGreaterThan(0);
+  });
+
+  it('resolves a deep link to a release and rejects ids outside the tree', () => {
     const tree = buildModelTree(dataset);
     const first = tree.featured[0].families[0].releases[0];
 
-    expect(dataset.organizations.every(({ id }) => (
-      dataset.releases.some((release) => release.organizationId === id && release.featured)
-    ))).toBe(true);
-    expect(tree.others).toEqual([]);
     expect(findModelTreePath(tree, first.id)).toEqual({
       creatorId: first.organizationId,
       familyId: first.familyId,
