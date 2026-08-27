@@ -1,0 +1,408 @@
+---
+import { dataset } from '../data/dataset';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { formatDate } from '../lib/format';
+import { buildHomepageHierarchy, firstHomepageRelease } from '../lib/homepage';
+import {
+  accessTypeGlossary,
+  benchmarkComparabilityExamples,
+  categoryGlossary,
+  fitClassificationGlossary,
+  fitGapReasonGlossary,
+  lifecycleStatusGlossary,
+  methodologyReferences,
+  methodologySections,
+  methodologyTableOfContents,
+  sourceTypeGlossary,
+  usageProvenanceGlossary,
+} from '../lib/methodology';
+
+const latestVerification = [...dataset.releases.map(({ verifiedAt }) => verifiedAt)].sort().at(-1)!;
+const base = import.meta.env.BASE_URL;
+const passportHref = `${base}models/${firstHomepageRelease(buildHomepageHierarchy(dataset)).slug}/`;
+const refreshHref = `${base}${methodologyReferences.dataRefreshRoute}`;
+const treeHref = `${base}tree/`;
+const sectionNumber = (index: number) => String(index + 1).padStart(2, '0');
+---
+
+<BaseLayout
+  title="Methodology and evidence policy | ModelTree"
+  description="How ModelTree decides what to record: editorial inclusion, terminology, source priority, pricing, benchmark comparability, freshness, and corrections — each traced to what the repository actually enforces."
+  passportHref={passportHref}
+  verifiedAt={formatDate(latestVerification)}
+  currentPage="methodology"
+>
+  <main id="main-content" class="method-page">
+    <header class="method-hero">
+      <span class="eyebrow">Methodology and evidence policy</span>
+      <h1>How ModelTree decides what to record.</h1>
+      <p>
+        This page documents the rules the product actually uses — how records earn inclusion,
+        how terms and statuses are defined, which sources take priority, and when evidence may be
+        compared. Each rule is traceable to something in this repository: a schema constraint, a
+        deterministic gate, the dataset validator, or an architecture decision record. Where a rule
+        is <em>not</em> yet enforced by code, this page says so plainly rather than implying it is.
+      </p>
+    </header>
+
+    <nav class="method-toc" aria-label="On this page">
+      <h2>On this page</h2>
+      <ol>
+        {methodologyTableOfContents.map((link) => (
+          <li><a href={link.href}>{link.title}</a></li>
+        ))}
+      </ol>
+    </nav>
+
+    {methodologySections.map((section, index) => (
+      <section id={section.id} class="method-section" aria-labelledby={`${section.id}-title`}>
+        <div class="section-heading">
+          <span class="section-number">{sectionNumber(index)}</span>
+          <div>
+            <h2 id={`${section.id}-title`}>{section.title}</h2>
+            <p class="method-section-summary">{section.summary}</p>
+          </div>
+        </div>
+
+        {section.id === 'inclusion' && (
+          <div class="method-body">
+            <h3 id="featured-vs-complete">Featured versus complete coverage</h3>
+            <p>
+              Coverage is deliberately incomplete. Complete historical coverage is a stated
+              non-goal at launch, so a model’s absence is not a judgement about it. The homepage
+              and <a href={treeHref}>Model Tree</a> present a curated slice under the labels
+              <strong>“Featured ecosystems”</strong> and <strong>“Widely used model families”</strong>,
+              never an unsupported usage ranking.
+            </p>
+            <p>
+              “Featured” is a per-release editorial flag, not a score. The schema requires any
+              release marked <code>featured</code> to carry a written <code>featuredRationale</code>,
+              and the dataset validator requires a featured release to cite at least one primary
+              source. Featured placement is editorial and non-ranked; it derives from reviewed
+              catalog flags and does not imply popularity or rank.
+            </p>
+            <p>
+              Editorial inclusion may consider consumer reach, API availability, cloud
+              distribution, open-weight adoption, developer-tool integration, and sustained release
+              activity. None of these is combined into a number.
+            </p>
+
+            <h3 id="reviewed-set">A reviewed set, not a ranking</h3>
+            <p>
+              Beyond the featured ecosystems, long-tail creators are a <em>reviewed set</em>, not an
+              open crawl: ADR 0002 records that a long-tail profile is a reviewed artefact of this
+              repository rather than operator input. The Model Tree reserves an empty “Others”
+              branch for that reviewed long-tail coverage. Inclusion is a reviewable repository
+              change like any other fact here.
+            </p>
+          </div>
+        )}
+
+        {section.id === 'entities' && (
+          <div class="method-body">
+            <h3 id="separate-entities">Separate entities</h3>
+            <p>
+              A single model name blurs together several distinct things. ModelTree keeps them as
+              separate records and never collapses one into another:
+            </p>
+            <ul>
+              <li><strong>Creator (organization)</strong> — who built the model.</li>
+              <li><strong>Model family</strong> — the line a release belongs to.</li>
+              <li><strong>Release</strong> — one dated, versioned model variant.</li>
+              <li><strong>Product</strong> — a user-facing offering, which may route between models rather than name one.</li>
+              <li><strong>Serving platform</strong> — where a model is served, usually operated by someone other than the creator.</li>
+              <li><strong>Publisher</strong> — who stands behind a source, an entity in its own right rather than a free-text label.</li>
+            </ul>
+            <p>
+              These boundaries are enforced, not just described. A deterministic gate rejects a
+              release attributed to one organization while its family belongs to another, because
+              that silently reassigns authorship. Publisher identity is resolved by id and ownership
+              rather than by display name, so two corporate siblings collapse to one voice and two
+              unrelated publishers that share a name stay distinct.
+            </p>
+
+            <h3 id="lifecycle">Lifecycle statuses</h3>
+            <p>
+              Every release carries exactly one lifecycle status, drawn from the schema’s
+              <code>lifecycleStatus</code> enum and shown with the same label the rest of the site
+              renders. Note that <code>current</code> displays as “Available”.
+            </p>
+            <table class="method-glossary">
+              <caption>Lifecycle statuses</caption>
+              <thead>
+                <tr><th scope="col">Label</th><th scope="col">Value</th><th scope="col">Definition</th></tr>
+              </thead>
+              <tbody>
+                {lifecycleStatusGlossary.map((entry) => (
+                  <tr>
+                    <th scope="row">{entry.label}</th>
+                    <td><code>{entry.value}</code></td>
+                    <td>{entry.definition}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <h3 id="access">Access and licensing</h3>
+            <p>
+              Access and licence are separate claims. Downloadable weights and an OSI-approved
+              licence are recorded as two independent booleans on the licence record, so
+              <strong>open-weight does not imply open-source</strong>. The schema enforces the
+              coupling that does hold: a release whose access type claims weights must carry a
+              licence marked downloadable, and an OSI-approved claim needs an SPDX id or a licence
+              URL as evidence.
+            </p>
+            <table class="method-glossary">
+              <caption>Access types</caption>
+              <thead>
+                <tr><th scope="col">Label</th><th scope="col">Value</th><th scope="col">Definition</th></tr>
+              </thead>
+              <tbody>
+                {accessTypeGlossary.map((entry) => (
+                  <tr>
+                    <th scope="row">{entry.label}</th>
+                    <td><code>{entry.value}</code></td>
+                    <td>{entry.definition}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p>
+              Categories describe a release’s documented focus. They are labels, never summed or
+              weighted into a ranking.
+            </p>
+            <table class="method-glossary">
+              <caption>Model categories</caption>
+              <thead>
+                <tr><th scope="col">Label</th><th scope="col">Value</th><th scope="col">Definition</th></tr>
+              </thead>
+              <tbody>
+                {categoryGlossary.map((entry) => (
+                  <tr>
+                    <th scope="row">{entry.label}</th>
+                    <td><code>{entry.value}</code></td>
+                    <td>{entry.definition}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {section.id === 'provenance' && (
+          <div class="method-body">
+            <h3 id="source-types">Source types and priority</h3>
+            <p>
+              Every important fact carries a source and a verification date; the evidence gate
+              rejects a sourced record that carries no source id or no usable <code>verifiedAt</code>.
+              A source’s URL must be HTTPS, free of embedded credentials, and not a local or internal
+              host. Sources fall into two tiers: <strong>primary</strong> sources — the creator’s own
+              announcements, docs, model cards, and repositories — and everything else. The split
+              below is read from the validator’s own <code>PRIMARY_SOURCE_TYPES</code> set.
+            </p>
+            <table class="method-glossary">
+              <caption>Source types, and whether each is primary</caption>
+              <thead>
+                <tr><th scope="col">Type</th><th scope="col">Value</th><th scope="col">Primary?</th><th scope="col">Definition</th></tr>
+              </thead>
+              <tbody>
+                {sourceTypeGlossary.map((entry) => (
+                  <tr>
+                    <th scope="row">{entry.label}</th>
+                    <td><code>{entry.value}</code></td>
+                    <td>{entry.primary ? 'Primary' : 'Not primary'}</td>
+                    <td>{entry.definition}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p>
+              Priority is enforced where it matters: a featured release must cite at least one
+              primary source, and a usage figure a creator published about its own model is refused
+              unless it carries a primary source. Among several primary sources describing one
+              release, official documentation is preferred.
+            </p>
+
+            <h3 id="conflicts">Conflicting and incomparable evidence</h3>
+            <p>
+              Disagreement stays explicit. Conflicting readings are linked to each other and shown
+              side by side; nothing picks a winner. A cross-source usage synthesis may report that
+              readings <em>agree</em> or <em>conflict</em>, but it may not resolve the conflict, and
+              it requires at least two independent non-creator publishers — counted by controlling
+              company, so an arm of the creator is not independent and two unrelated publishers that
+              share a name are not merged. Two figures that measure different metrics, units, or
+              populations are treated as <em>incomparable</em> rather than contradictory, because
+              recording them as a conflict would imply a shared scale they do not have.
+            </p>
+
+            <h3 id="dates">Dates and partial precision</h3>
+            <p>
+              A date is recorded only at the precision a source states. The schema accepts
+              <code>YYYY</code>, <code>YYYY-MM</code>, or <code>YYYY-MM-DD</code> and records which,
+              so a year is never silently read as 1 January. Deterministic date gates reject
+              impossible dates, dates in the future, a last-checked date earlier than a published
+              date, a release earlier than its family’s first release, and a release earlier than a
+              model it descends from.
+            </p>
+
+            <h3 id="freshness">Verification and freshness</h3>
+            <p>
+              Every sourced record carries a <code>verifiedAt</code> date — the day the fact was last
+              checked against its source — and the site footer shows the most recent one. A Model
+              Passport marks a figure stale against the build date rather than the day it happens to
+              be read, so freshness does not drift silently.
+            </p>
+            <p>
+              What this page will <strong>not</strong> promise is a fixed verification cadence the
+              maintainers cannot guarantee. ADR 0003 authorises an automated daily refresh, and each
+              run is recorded under <a href={refreshHref}>Data refresh</a>, but that is a capability,
+              not a service-level guarantee. Trust the per-record verification date, not a schedule.
+              The evidence gate is also honest about its own limit (ADR 0005): it checks that a
+              citation is well-formed — a quote of sufficient length and a correctly-shaped content
+              hash — but it fetches nothing, so it cannot confirm the quote appears on the page or
+              that the hash is the page’s. What compensates is the pull-request trail, the revert
+              path, the dataset-only scope of automated changes, and human review after the fact.
+            </p>
+          </div>
+        )}
+
+        {section.id === 'evidence' && (
+          <div class="method-body">
+            <h3 id="pricing">Pricing</h3>
+            <p>
+              A price is recorded with everything needed to read it correctly and nothing that would
+              distort it. Each pricing record preserves its <strong>currency</strong> (a three-letter
+              ISO 4217 code), its <strong>unit</strong> (such as per-1M-tokens or per-image), its
+              <strong>processing tier</strong>, its <strong>region</strong>, and its
+              <strong>effective dates</strong>. Rates are never converted between currencies or units;
+              a figure is shown as its source stated it.
+            </p>
+
+            <h3 id="benchmarks">Benchmark comparability</h3>
+            <p>
+              Benchmarks are contextual evidence, not universal truth. Whether two results may be
+              compared is decided by the recorded configuration — the benchmark version, whether
+              tools were enabled, the reasoning mode, the harness, and whether the result is official
+              or independent — not by the score alone. There is no composite or universal score; a
+              deterministic gate refuses any field that reads as a ranking anywhere in the dataset.
+            </p>
+            <table class="method-glossary method-examples">
+              <caption>Comparable and non-comparable benchmark cases</caption>
+              <thead>
+                <tr><th scope="col">Comparable?</th><th scope="col">Scenario</th><th scope="col">Why</th></tr>
+              </thead>
+              <tbody>
+                {benchmarkComparabilityExamples.map((example) => (
+                  <tr>
+                    <th scope="row">{example.comparable ? 'Comparable' : 'Not comparable'}</th>
+                    <td>{example.scenario}</td>
+                    <td>{example.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <h3 id="usage">Usage evidence</h3>
+            <p>
+              Usage figures are labelled by how they were produced, and the label is a provenance
+              statement, never a quality ranking of the source. Creator self-reports are kept in
+              their own labelled list and never counted toward a cross-source synthesis.
+            </p>
+            <table class="method-glossary">
+              <caption>Usage provenance categories</caption>
+              <thead>
+                <tr><th scope="col">Label</th><th scope="col">Value</th><th scope="col">Definition</th></tr>
+              </thead>
+              <tbody>
+                {usageProvenanceGlossary.map((entry) => (
+                  <tr>
+                    <th scope="row">{entry.label}</th>
+                    <td><code>{entry.value}</code></td>
+                    <td>{entry.definition}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <h3 id="guidance">Model-fit guidance and no universal ranking</h3>
+            <p>
+              ModelTree offers conditional model-fit guidance, never a verdict. Every statement is
+              filed as exactly one of three kinds, each tied to a condition and backed by facts the
+              dataset already records. The schema rejects universal-winner language outright, and
+              this page’s own prose is held to the same filter.
+            </p>
+            <table class="method-glossary">
+              <caption>Model-fit guidance kinds</caption>
+              <thead>
+                <tr><th scope="col">Label</th><th scope="col">Value</th><th scope="col">Definition</th></tr>
+              </thead>
+              <tbody>
+                {fitClassificationGlossary.map((entry) => (
+                  <tr>
+                    <th scope="row">{entry.label}</th>
+                    <td><code>{entry.value}</code></td>
+                    <td>{entry.definition}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p>
+              Where a rubric dimension has no qualifying evidence, the gap is recorded with a reason
+              rather than left to read as a silent negative.
+            </p>
+            <table class="method-glossary">
+              <caption>Recorded evidence-gap reasons</caption>
+              <thead>
+                <tr><th scope="col">Label</th><th scope="col">Value</th><th scope="col">Definition</th></tr>
+              </thead>
+              <tbody>
+                {fitGapReasonGlossary.map((entry) => (
+                  <tr>
+                    <th scope="row">{entry.label}</th>
+                    <td><code>{entry.value}</code></td>
+                    <td>{entry.definition}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {section.id === 'corrections' && (
+          <div class="method-body">
+            <h3 id="correction-path">Reporting a correction</h3>
+            <p>
+              A data correction is an ordinary pull request — that is the point of treating data as
+              reviewable repository content. If you cannot open a pull request, file an issue: be
+              specific about what is wrong, cite a primary source, and say what is explicitly out of
+              scope.
+            </p>
+            <p>
+              <a href={methodologyReferences.correctionPath}>Report a correction or contribution</a>
+              on the project repository. Every accepted change lands as a reviewable diff, and every
+              automated run is transcribed under <a href={refreshHref}>Data refresh</a>.
+            </p>
+
+            <h3 id="automation-review">How automated changes are reviewed</h3>
+            <p>
+              Most changes reach <code>main</code> only after a human merges them. One bounded class
+              is different: under ADR 0003, a source-backed dataset refresh produced by the review
+              skill set may open a pull request and auto-merge without a human approving it — but
+              only the dataset JSON documents may change that way, and every other change keeps the
+              human merge. That authorisation is not a loosening of review:
+            </p>
+            <ul>
+              <li>Three reviewer sub-agents with distinct rubrics judge each claim against its fetched evidence — acceptance is two-of-three for a reviewed creator and unanimous for a long-tail one.</li>
+              <li>Deterministic gates run after review and cannot be outvoted: unsafe URLs, malformed records, impossible or future dates, broken references, entity-boundary and lineage violations, an unapproved source, or any composite-score vocabulary each fail the run.</li>
+              <li>GitHub performs the merge once the required checks are green; the agent never pushes to <code>main</code>, and a failed deploy is reverted.</li>
+            </ul>
+            <p>
+              So automation removes the <em>human reviewer</em> for one narrow class, not review
+              itself. Everything outside that class takes the ordinary path.
+            </p>
+          </div>
+        )}
+      </section>
+    ))}
+  </main>
+</BaseLayout>
