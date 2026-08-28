@@ -314,7 +314,7 @@ than a guessed deep link. No seed URL is fabricated to look complete.
 
 ## The generic long-tail profile
 
-Four creators have a reviewed dedicated profile. Everyone else — the minor and niche
+A small set of creators has a reviewed dedicated profile. Everyone else — the minor and niche
 creators that make up most of the field — is covered by **one** generic profile,
 `profiles/generic/long-tail.json`, loaded by `longtail.py`. It is a profile, driven
 through the same executors, the same three lenses, the same deterministic hard gates, and

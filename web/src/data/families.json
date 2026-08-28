@@ -483,5 +483,79 @@
       "hugging-face-deepseek-v3-2-hub-record"
     ],
     "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "qwen3-8",
+    "slug": "qwen3-8",
+    "organizationId": "alibaba-cloud",
+    "name": "Qwen3.8",
+    "description": "Alibaba Cloud’s Qwen3.8 generation, published as downloadable weights on Hugging Face Hub and ModelScope: a sparse mixture-of-experts flagship alongside a dense vision-language model. Qwen is the family; the clouds that offer it, including Amazon’s, are separate entities recorded as serving platforms.",
+    "categories": [
+      "language-reasoning",
+      "coding",
+      "multimodal-generalist"
+    ],
+    "firstReleaseDate": "2026-08-12",
+    "status": "current",
+    "sourceIds": [
+      "qwen3-8-repository",
+      "qwen-hugging-face-organization"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "microsoft-mai",
+    "slug": "microsoft-mai",
+    "organizationId": "microsoft",
+    "name": "MAI",
+    "description": "The in-house model line built by Microsoft AI, opened in August 2025 with MAI-Voice-1 and MAI-1-preview and catalogued by Microsoft AI as foundational models across reasoning, coding, image, voice and transcription. These are models Microsoft created. Microsoft Copilot, the product some of them are placed inside, and Microsoft Foundry, the platform they are served on, are recorded separately and are not part of this family.",
+    "categories": [
+      "language-reasoning",
+      "coding",
+      "audio-speech",
+      "image"
+    ],
+    "firstReleaseDate": "2025-08-28",
+    "status": "current",
+    "sourceIds": [
+      "microsoft-two-in-house-models",
+      "microsoft-ai-models-page"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "microsoft-fara",
+    "slug": "microsoft-fara",
+    "organizationId": "microsoft",
+    "name": "Fara",
+    "description": "Microsoft Research AI Frontiers’ line of computer-use agent models for web browsers, published with downloadable weights under the MIT licence. It is a different line from the MAI models Microsoft AI builds: the same creator company, a different team, and separate evidence. Its models are fine-tuned from open-weight base models created by other organizations, which changes nothing about who created the Fara models themselves.",
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "firstReleaseDate": "2025-11-24",
+    "status": "current",
+    "sourceIds": [
+      "microsoft-fara-1-5-27b-model-card",
+      "microsoft-fara-7b-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "amazon-nova-2",
+    "slug": "amazon-nova-2",
+    "organizationId": "amazon",
+    "name": "Amazon Nova 2",
+    "description": "Amazon’s second generation of Nova foundation models, announced by AWS in December 2025 as \"our next generation of general models\" and built, per Amazon, on technologies originally developed for Amazon’s own applications. Nova is a family Amazon created; Amazon Bedrock, where it is served alongside hundreds of other companies’ models, is a serving platform and is recorded separately.",
+    "categories": [
+      "language-reasoning",
+      "audio-speech"
+    ],
+    "firstReleaseDate": "2025-12-02",
+    "status": "current",
+    "sourceIds": [
+      "amazon-nova-2-bedrock-announcement",
+      "amazon-nova-overview"
+    ],
+    "verifiedAt": "2026-08-28"
   }
 ]

@@ -256,26 +256,45 @@ describe('tables are navigable', () => {
   });
 });
 
-describe('the shipped dataset renders its absent branch on every release', () => {
-  it('produces markup with no availability, pricing, or history section', () => {
+describe('the shipped dataset renders both branches across its releases', () => {
+  it('renders availability and history only where a record backs them', () => {
     expect(dataset.releases.length).toBeGreaterThan(0);
+
+    let present = 0;
+    let absent = 0;
 
     for (const release of dataset.releases) {
       const html = renderReal(release.id);
+      const deployed = dataset.deployments.some((item) => item.releaseId === release.id);
+      const evented = dataset.releaseEvents.some((item) => item.releaseId === release.id);
 
-      // Positive control: identity always renders, so the absences below are
-      // about those sections and not about a render that failed.
+      // Positive control: identity always renders, so a presence or an absence
+      // below is about that section and not about a render that failed.
       expect(html, `${release.slug} should render identity`).toContain('id="identity-title"');
-      expect(html).not.toContain('id="availability-title"');
-      expect(html).not.toContain('id="pricing-title"');
-      expect(html).not.toContain('id="history-title"');
-      expect(html).toContain('id="not-recorded-title"');
+      expect(html.includes('id="availability-title"'), release.slug).toBe(deployed);
+      expect(html.includes('id="history-title"'), release.slug).toBe(evented);
+      // No release carries a sourced price, so this section never renders and
+      // something is therefore always left unrecorded.
+      expect(html, release.slug).not.toContain('id="pricing-title"');
+      expect(html, release.slug).toContain('id="not-recorded-title"');
+
+      if (deployed && evented) present += 1;
+      if (!deployed && !evented) absent += 1;
     }
+
+    // Both branches must be reached, or the per-release assertions above are
+    // satisfied by data that only ever exercises one of them.
+    expect(present).toBeGreaterThan(0);
+    expect(absent).toBeGreaterThan(0);
   });
 
-  it('never renders a table, because no record backs one', () => {
+  it('renders a table exactly when a deployment backs one', () => {
+    // Availability and pricing are the only sections built as tables
+    // (ModelPassport.tsx:291 and :350), and no release has a sourced price, so
+    // a deployment is the whole of what puts a table on the page.
     for (const release of dataset.releases) {
-      expect(count(renderReal(release.id), /<table/g), `${release.slug}`).toBe(0);
+      const deployed = dataset.deployments.some((item) => item.releaseId === release.id);
+      expect(count(renderReal(release.id), /<table/g), `${release.slug}`).toBe(deployed ? 1 : 0);
     }
   });
 

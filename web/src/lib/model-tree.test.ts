@@ -231,7 +231,15 @@ describe('model tree', () => {
  * those documents "are **not** profiles, and they join neither reviewed set" and
  * that adding a creator there "does **not** promote it to a pilot creator".
  */
-const CREATORS_WITH_A_REVIEWED_PROFILE = ['anthropic', 'google-deepmind', 'meta', 'openai'];
+const CREATORS_WITH_A_REVIEWED_PROFILE = [
+  'alibaba-cloud',
+  'amazon',
+  'anthropic',
+  'google-deepmind',
+  'meta',
+  'microsoft',
+  'openai',
+];
 
 /** Catalog creators that hold releases but no reviewed source profile. */
 const CREATORS_WITHOUT_A_REVIEWED_PROFILE = ['deepseek', 'mistral-ai', 'xai'];
@@ -242,12 +250,20 @@ describe('featured membership follows the reviewed source profile set', () => {
 
   it('features exactly the creators with a reviewed source profile', () => {
     // Render order, not a sorted comparison: `buildCreators` orders by creator
-    // name then id (model-tree.ts:52), which here reads Anthropic, Google
-    // DeepMind, Meta, OpenAI.
+    // name then id (model-tree.ts:52), which here reads Alibaba Cloud, Amazon,
+    // Anthropic, Google DeepMind, Meta, Microsoft, OpenAI.
     expect(tree.featured.map(({ organization }) => organization.id))
       .toEqual(CREATORS_WITH_A_REVIEWED_PROFILE);
     expect(tree.featured.map(({ organization }) => organization.name))
-      .toEqual(['Anthropic', 'Google DeepMind', 'Meta', 'OpenAI']);
+      .toEqual([
+        'Alibaba Cloud',
+        'Amazon',
+        'Anthropic',
+        'Google DeepMind',
+        'Meta',
+        'Microsoft',
+        'OpenAI',
+      ]);
   });
 
   it('puts every catalog creator without a reviewed profile under Others', () => {
@@ -315,8 +331,15 @@ describe('featured membership follows the reviewed source profile set', () => {
     // And the criterion has not quietly emptied the other branch: the page
     // invariant at tree.astro:21 needs a featured release to exist at all.
     expect(dataset.releases.some(({ featured }) => featured)).toBe(true);
-    expect(CREATORS_WITH_A_REVIEWED_PROFILE.map(creatorName))
-      .toEqual(['Anthropic', 'Google DeepMind', 'Meta', 'OpenAI']);
+    expect(CREATORS_WITH_A_REVIEWED_PROFILE.map(creatorName)).toEqual([
+      'Alibaba Cloud',
+      'Amazon',
+      'Anthropic',
+      'Google DeepMind',
+      'Meta',
+      'Microsoft',
+      'OpenAI',
+    ]);
   });
 });
 

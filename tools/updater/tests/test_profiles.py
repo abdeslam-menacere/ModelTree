@@ -1,6 +1,6 @@
 """Creator profiles load through one shared path, with real https source seeds.
 
-These tests hold down the "one shared implementation, four profiles" rule: the four
+These tests hold down the "one shared implementation, many profiles" rule: the
 creators differ only in version-controlled data, the loader has no per-creator branch,
 and every trusted source seed is a secure, real-looking origin with verification
 metadata. They never reach the network — a profile only *describes* a source.
@@ -32,8 +32,16 @@ from modeltree_updater.profiles import (
     load_profile_library,
 )
 
-EXPECTED_CREATORS = {"openai", "anthropic", "google-deepmind", "meta"}
-# The four creators are data, never a code path. No module in the package may steer on
+EXPECTED_CREATORS = {
+    "alibaba-cloud",
+    "amazon",
+    "anthropic",
+    "google-deepmind",
+    "meta",
+    "microsoft",
+    "openai",
+}
+# The creators are data, never a code path. No module in the package may steer on
 # a specific creator id; the differences live in profiles/<id>.json.
 SHARED_MODULES = ("profiles.py", "scout.py")
 
@@ -43,9 +51,9 @@ def library():
     return load_profile_library()
 
 
-def test_the_four_creator_profiles_load_through_one_shared_path(library) -> None:
+def test_every_creator_profile_loads_through_one_shared_path(library) -> None:
     assert set(library.creator_ids) == EXPECTED_CREATORS
-    assert len(library) == 4
+    assert len(library) == len(EXPECTED_CREATORS)
 
 
 def test_every_trusted_source_seed_is_a_real_https_origin(library) -> None:

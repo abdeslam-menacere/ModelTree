@@ -1,0 +1,19 @@
+[
+  {
+    "id": "microsoft-copilot",
+    "slug": "microsoft-copilot",
+    "name": "Microsoft Copilot",
+    "organizationId": "microsoft",
+    "description": "Microsoft’s consumer AI assistant. Copilot is a product, not a model family: Microsoft AI describes models being placed inside it — MAI-Voice-1 \"is available in Copilot Daily and Podcasts\" — and describes features such as Copilot Health as \"a separate, secure space within Copilot\". Neither its name nor its capabilities make it a model, and no family record in this dataset corresponds to it.",
+    "modelSelection": "unknown",
+    "releaseIds": [],
+    "availabilityNotes": "Which model answers a given Copilot request is not disclosed by any source recorded here. Microsoft AI names individual models it has placed in particular Copilot experiences, and states that \"orchestrating a range of specialized models serving different user intents and use cases will unlock immense value\", but no consulted source documents the routing itself. Model selection is therefore recorded as undisclosed rather than as routed, because routed would assert a selection behaviour the sources do not describe.",
+    "effectiveFrom": "2024-10-01",
+    "sourceIds": [
+      "microsoft-copilot-companion-announcement",
+      "microsoft-two-in-house-models",
+      "microsoft-copilot-health-announcement"
+    ],
+    "verifiedAt": "2026-08-28"
+  }
+]
