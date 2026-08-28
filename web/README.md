@@ -2,10 +2,12 @@
 
 Static Astro application for **ModelTree - AI Model Lineage**.
 
-The first vertical slice renders one source-backed OpenAI family as an
-interactive lineage and generates a Model Passport for each seeded release.
-Astro renders the full hierarchy to HTML; one React island enhances model
-selection and stable `?model=<slug>` state.
+The homepage renders the featured ecosystems the reviewed catalog defines as an
+interactive lineage, and every seeded release gets a Model Passport. Astro
+renders the full hierarchy to HTML; React islands enhance creator and model
+selection and keep `?provider=<slug>&model=<slug>` state shareable. Which
+creators and families appear is derived from the records at build time, so
+seeding a creator adds it to the explorer without a code change.
 
 ## Commands
 
