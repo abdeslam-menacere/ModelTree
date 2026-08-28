@@ -1,33 +1,15 @@
 ---
-import {
-  ArrowLeft,
-  ArrowUpRight,
-  CalendarDays,
-  CheckCircle2,
-  Cloud,
-  GitBranch,
-} from 'lucide-react';
-import SourceList from '../../components/SourceList.astro';
+import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import ModelFit from '../../components/ModelFit';
+import ModelPassport from '../../components/ModelPassport';
+import SourceList from '../../components/SourceList.astro';
 import UsageEvidence from '../../components/UsageEvidence';
-import {
-  dataset,
-  familyById,
-  organizationById,
-  releaseById,
-  sourceById,
-} from '../../data/dataset';
-import type { ModelRelease, SourceReference } from '../../data/schema';
+import { dataset, releaseById, sourceById } from '../../data/dataset';
+import type { SourceReference } from '../../data/schema';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import {
-  accessLabel,
-  categoryLabel,
-  formatDate,
-  formatNumber,
-  statusLabel,
-} from '../../lib/format';
-import { modelStaticPaths } from '../../lib/routes';
 import { buildModelFitGuidance } from '../../lib/model-fit';
+import { buildModelPassport, type PassportSectionId } from '../../lib/passport';
+import { modelStaticPaths } from '../../lib/routes';
 import { buildUsageEvidence } from '../../lib/usage-evidence';
 
 export const getStaticPaths = modelStaticPaths;
@@ -40,122 +22,94 @@ const { releaseId } = Astro.props;
 const release = releaseById.get(releaseId);
 if (!release) throw new Error(`Unknown release ${releaseId}`);
 
-const organization = organizationById.get(release.organizationId);
-const family = familyById.get(release.familyId);
-if (!organization || !family) throw new Error(`Incomplete identity for ${release.id}`);
+const base = import.meta.env.BASE_URL;
+// The build date, so a figure verified long ago is marked stale in the output
+// rather than depending on when the page is read.
+const buildDate = new Date().toISOString().slice(0, 10);
+
+const view = buildModelPassport(dataset, release.id, base, buildDate);
+const usageEvidence = buildUsageEvidence(dataset, release.id, buildDate);
+const fitGuidance = buildModelFitGuidance(dataset, release.id, buildDate);
+
+// Section numbers are assigned over the sections that actually render, so the
+// three components that own their own headings are told where they landed
+// rather than each assuming a fixed position.
+const sectionOf = (id: PassportSectionId) => {
+  const section = view.sections.find((candidate) => candidate.id === id);
+  if (!section) throw new Error(`Passport section ${id} is missing for ${release.id}`);
+  return section;
+};
+const usageSection = sectionOf('usage');
+const fitSection = sectionOf('fit');
+const sourcesSection = sectionOf('sources');
 
 const sources = release.sourceIds
   .map((sourceId) => sourceById.get(sourceId))
   .filter((source): source is SourceReference => Boolean(source));
-const siblings = release.siblingIds
-  .map((siblingId) => releaseById.get(siblingId))
-  .filter((sibling): sibling is ModelRelease => Boolean(sibling));
-// The build date, so a figure verified long ago is marked stale in the output
-// rather than depending on when the page is read.
-const buildDate = new Date().toISOString().slice(0, 10);
-const usageEvidence = buildUsageEvidence(dataset, release.id, buildDate);
-const fitGuidance = buildModelFitGuidance(dataset, release.id, buildDate);
-const base = import.meta.env.BASE_URL;
+
 const homeHref = `${base}#explorer`;
-const passportHref = `${base}models/${release.slug}/`;
+const catalogHref = `${base}models/`;
 ---
 
 <BaseLayout
-  title={`${release.displayName} Model Passport | ModelTree`}
-  description={`${release.displayName}: release identity, family position, access, intended use, and primary sources.`}
-  passportHref={passportHref}
-  verifiedAt={formatDate(release.verifiedAt)}
+  title={`${view.displayName} Model Passport | ModelTree`}
+  description={`${view.displayName}: release identity, lineage, access, licensing, availability, pricing, evidence, and primary sources.`}
+  passportHref={view.canonicalRoute}
+  verifiedAt={view.verifiedAt}
   currentPage="passport"
 >
   <main id="main-content" class="passport-page">
-    <a class="back-link" href={homeHref}><ArrowLeft size={17} aria-hidden="true" /> Back to lineage</a>
+    <div class="passport-breadcrumbs">
+      <a class="back-link" href={homeHref}><ArrowLeft size={17} aria-hidden="true" /> Back to lineage</a>
+      <a class="back-link" href={catalogHref}>All models</a>
+    </div>
 
     <header class="passport-hero">
       <div>
-        <span class="eyebrow">Model Passport / {organization.name}</span>
-        <h1>{release.displayName}</h1>
-        <p>{release.summary}</p>
+        <span class="eyebrow">Model Passport / {view.organization.name} / {view.family.name}</span>
+        <h1>{view.displayName}</h1>
+        <p>{view.summary}</p>
       </div>
-      <div class="passport-stamp" aria-label={`Status: ${statusLabel(release.status)}`}>
+      <div class="passport-stamp" aria-label={`Status: ${view.statusLabel}`}>
         <CheckCircle2 size={21} aria-hidden="true" />
-        <span><strong>{statusLabel(release.status)}</strong><small>Checked {formatDate(release.verifiedAt)}</small></span>
+        <span><strong>{view.statusLabel}</strong><small>Checked {view.verifiedAt}</small></span>
       </div>
     </header>
 
-    <section class="passport-section identity-section" aria-labelledby="identity-title">
-      <div class="section-heading">
-        <span class="section-number">01</span>
-        <div><span class="eyebrow">Identity</span><h2 id="identity-title">What it is</h2></div>
-      </div>
-      <div class="passport-grid">
-        <dl class="passport-facts">
-          <div><dt>Creator</dt><dd>{organization.name}</dd></div>
-          <div><dt>Family</dt><dd>{family.name}</dd></div>
-          <div><dt>Variant</dt><dd>{release.variant}</dd></div>
-          <div><dt>Version</dt><dd>{release.version}</dd></div>
-          <div><dt><CalendarDays size={15} aria-hidden="true" /> Released</dt><dd>{formatDate(release.releaseDate)}</dd></div>
-          <div><dt><Cloud size={15} aria-hidden="true" /> Access</dt><dd>{accessLabel(release.accessType)}</dd></div>
-        </dl>
-        <div class="purpose-block">
-          <span>When to use it</span>
-          <p>{release.intendedUse}</p>
-          <a href={sources[0].url}>Open primary announcement <ArrowUpRight size={16} aria-hidden="true" /></a>
-        </div>
-      </div>
-    </section>
+    <ModelPassport view={view} />
 
-    <section class="passport-section" aria-labelledby="lineage-title">
-      <div class="section-heading">
-        <span class="section-number">02</span>
-        <div><span class="eyebrow">Lineage</span><h2 id="lineage-title">Where it fits</h2></div>
-      </div>
-      <div class="family-trail">
-        <span>{organization.name}</span>
-        <GitBranch size={18} aria-hidden="true" />
-        <span>{family.name}</span>
-        <GitBranch size={18} aria-hidden="true" />
-        <strong>{release.displayName}</strong>
-      </div>
-      <p class="lineage-disclosure">This seed records family membership and sibling variants only. It does not infer a predecessor, successor, or shared architecture.</p>
-      <div class="sibling-links" aria-label="Sibling releases">
-        <span>Sibling variants</span>
-        {siblings.map((sibling) => <a href={`${base}models/${sibling.slug}/`}>{sibling.displayName}</a>)}
-      </div>
-    </section>
+    <UsageEvidence
+      evidence={usageEvidence}
+      releaseName={view.displayName}
+      headingId={usageSection.headingId}
+      sectionNumber={usageSection.number ?? undefined}
+    />
 
-    <section class="passport-section" aria-labelledby="technical-title">
+    <ModelFit
+      guidance={fitGuidance}
+      releaseName={view.displayName}
+      headingId={fitSection.headingId}
+      sectionNumber={fitSection.number ?? undefined}
+    />
+
+    <section class="passport-section sources-section" aria-labelledby={sourcesSection.headingId}>
       <div class="section-heading">
-        <span class="section-number">03</span>
-        <div><span class="eyebrow">Technical record</span><h2 id="technical-title">Documented limits</h2></div>
-      </div>
-      <dl class="technical-facts">
-        <div><dt>Input</dt><dd>{release.inputModalities.join(', ')}</dd></div>
-        <div><dt>Output</dt><dd>{release.outputModalities.join(', ')}</dd></div>
-        <div><dt>Context window</dt><dd>{release.contextWindow ? `${formatNumber(release.contextWindow)} tokens` : 'Unknown'}</dd></div>
-        <div><dt>Maximum output</dt><dd>{release.maximumOutput ? `${formatNumber(release.maximumOutput)} tokens` : 'Unknown'}</dd></div>
-      </dl>
-      <div class="tag-groups">
+        <span class="section-number">{sourcesSection.number}</span>
         <div>
-          <span>Categories</span>
-          <ul>{release.categories.map((category) => <li>{categoryLabel(category)}</li>)}</ul>
+          <span class="eyebrow">{sourcesSection.eyebrow}</span>
+          <h2 id={sourcesSection.headingId}>{sourcesSection.title}</h2>
         </div>
-        <div>
-          <span>API IDs</span>
-          <ul class="api-aliases">{release.apiAliases.map((alias) => <li><code>{alias}</code></li>)}</ul>
-        </div>
-      </div>
-    </section>
-
-    <UsageEvidence evidence={usageEvidence} releaseName={release.displayName} />
-
-    <ModelFit guidance={fitGuidance} releaseName={release.displayName} />
-
-    <section class="passport-section sources-section" aria-labelledby="sources-title">
-      <div class="section-heading">
-        <span class="section-number">06</span>
-        <div><span class="eyebrow">Provenance</span><h2 id="sources-title">Primary sources</h2></div>
       </div>
       <SourceList sources={sources} />
+      <p class="correction-note">
+        Found something wrong on this page?
+        <a href={view.correctionUrl}>Report incorrect data for {view.slug}</a>.
+        Corrections are filed against the record slug so the fix lands on the right release.
+      </p>
+      <p class="verification-note">
+        Every fact above is recorded with the primary source it came from and the date it was last
+        checked. This record was last verified on {view.verifiedAt}.
+      </p>
     </section>
   </main>
 </BaseLayout>

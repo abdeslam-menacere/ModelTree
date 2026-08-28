@@ -1022,6 +1022,309 @@ main {
   font-size: 12px;
 }
 
+/* Model Passport: actions, progressive detail, and the volatile data tables. */
+
+.passport-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+
+.passport-actions {
+  padding-top: 28px;
+}
+
+.passport-actions ul {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+}
+
+.passport-actions li {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.passport-action {
+  display: inline-flex;
+  min-height: 44px;
+  padding: 11px 16px;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 0.625rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--cp-surface);
+  color: var(--cp-text);
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.passport-action:hover,
+.passport-action:focus-visible {
+  border-color: var(--cp-accent);
+  color: var(--cp-accent);
+}
+
+.passport-action-description {
+  color: var(--cp-text-muted);
+  font-size: 13px;
+}
+
+.passport-summary {
+  max-width: 760px;
+  margin-bottom: 34px;
+}
+
+.passport-summary-text {
+  margin: 0 0 14px;
+  font-size: 19px;
+}
+
+.passport-purpose {
+  margin: 0 0 12px;
+  color: var(--cp-text-muted);
+}
+
+.passport-featured {
+  display: flex;
+  margin: 0;
+  align-items: center;
+  gap: 8px;
+  color: var(--cp-text-muted);
+  font-size: 14px;
+}
+
+.passport-names h3,
+.relationship-group h3,
+.licence-block h3 {
+  margin: 0 0 12px;
+  font-size: 20px;
+}
+
+.passport-names .passport-facts {
+  grid-template-columns: 1fr;
+}
+
+.tag-block {
+  margin-top: 22px;
+}
+
+.tag-block h4 {
+  margin: 0 0 8px;
+  color: var(--cp-text-muted);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.relationship-group {
+  padding: 22px 0;
+  border-top: 1px solid var(--cp-border);
+}
+
+.access-summary {
+  max-width: 760px;
+  font-size: 17px;
+}
+
+.access-methodology {
+  margin-bottom: 30px;
+}
+
+.licence-block {
+  padding-top: 12px;
+}
+
+/* Wide data tables scroll sideways rather than squeezing a price into two
+   characters. A scroll container has to be reachable without a pointer, so the
+   markup makes it focusable and this gives that focus a visible ring. */
+.passport-table-scroll {
+  overflow-x: auto;
+}
+
+.passport-table-scroll:focus-visible {
+  outline: 2px solid var(--cp-accent);
+  outline-offset: 3px;
+}
+
+.passport-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: left;
+}
+
+.passport-table caption {
+  margin-bottom: 14px;
+  color: var(--cp-text-muted);
+  font-size: 13px;
+  text-align: left;
+}
+
+.passport-table th,
+.passport-table td {
+  padding: 14px 18px 14px 0;
+  border-top: 1px solid var(--cp-border);
+  vertical-align: top;
+}
+
+.passport-table thead th {
+  border-top: 0;
+  border-bottom: 1px solid var(--cp-border-strong);
+  color: var(--cp-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.passport-table tbody th {
+  font-weight: 600;
+}
+
+.cell-note {
+  display: block;
+  margin-top: 4px;
+  color: var(--cp-text-muted);
+  font-size: 12px;
+}
+
+.pricing-disclosure {
+  display: flex;
+  max-width: 760px;
+  margin-bottom: 26px;
+  align-items: start;
+  gap: 10px;
+  color: var(--cp-text-muted);
+  font-size: 14px;
+}
+
+.pricing-rates {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  gap: 4px;
+}
+
+.pricing-rates li {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.pricing-rate-label {
+  color: var(--cp-text-muted);
+}
+
+.pricing-rate-amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.row-sources {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  gap: 8px;
+}
+
+.row-sources a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--cp-link);
+}
+
+.row-source-meta {
+  display: block;
+  color: var(--cp-text-muted);
+  font-size: 12px;
+}
+
+.passport-history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.passport-history li {
+  padding: 20px 0;
+  border-top: 1px solid var(--cp-border);
+}
+
+.history-headline {
+  display: flex;
+  margin: 0 0 6px;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.history-type {
+  font-weight: 600;
+}
+
+.history-headline time {
+  color: var(--cp-text-muted);
+  font-size: 13px;
+}
+
+.passport-unknown {
+  color: var(--cp-text-muted);
+}
+
+.passport-stale {
+  display: inline-flex;
+  margin-top: 4px;
+  align-items: center;
+  gap: 5px;
+  color: var(--cp-warning);
+  font-size: 12px;
+}
+
+.not-recorded-intro {
+  max-width: 760px;
+  color: var(--cp-text-muted);
+}
+
+.not-recorded-list {
+  margin: 22px 0 0;
+}
+
+.not-recorded-list div {
+  padding: 18px 0;
+  border-top: 1px solid var(--cp-border);
+}
+
+.not-recorded-list dt {
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.not-recorded-list dd {
+  max-width: 760px;
+  margin: 0;
+  color: var(--cp-text-muted);
+  font-size: 14px;
+}
+
+.correction-note,
+.verification-note {
+  max-width: 760px;
+  margin-top: 24px;
+  color: var(--cp-text-muted);
+  font-size: 14px;
+}
+
 .usage-flags {
   display: flex;
   margin: 0 0 28px;
