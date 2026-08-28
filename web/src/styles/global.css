@@ -327,36 +327,53 @@ main {
 
 .ecosystem-selector {
   display: flex;
-  min-height: 70px;
   margin: 26px 0 30px;
   padding: 12px 0;
   border-bottom: 1px solid var(--cp-border);
-  align-items: center;
+  align-items: stretch;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
-.ecosystem-selector > span {
-  color: var(--cp-text-muted);
-  font-size: 12px;
-  text-transform: uppercase;
-}
-
-.release-node {
+.ecosystem-option {
+  display: grid;
+  max-width: 100%;
+  padding: 10px 16px;
   border: 1px solid var(--cp-border);
   border-radius: 0.625rem;
   background: var(--cp-surface);
   color: var(--cp-text);
   font: inherit;
+  text-align: left;
   cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
-.ecosystem-selector strong {
+.ecosystem-option svg {
+  grid-row: span 2;
+  margin-right: 8px;
+  align-self: center;
+}
+
+.ecosystem-option strong {
+  grid-column: 2;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
-.ecosystem-selector small {
-  margin-left: auto;
+.ecosystem-option small {
+  grid-column: 2;
   color: var(--cp-text-muted);
+  font-size: 12px;
+}
+
+.ecosystem-option[data-selected="true"] {
+  border-color: var(--cp-accent);
+  box-shadow: 0 0 0 3px var(--cp-accent-soft);
+}
+
+.ecosystem-option:hover {
+  border-color: var(--cp-border-strong);
 }
 
 .lineage-stage {
@@ -368,21 +385,25 @@ main {
 .lineage-directory {
   display: grid;
   min-width: 0;
+  max-width: 100%;
   gap: 34px;
 }
 
 .organization-branch {
+  min-width: 0;
   padding-top: 18px;
   border-top: 1px solid var(--cp-border-strong);
 }
 
 .tree-level {
   display: grid;
-  width: max-content;
-  min-width: 190px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   padding: 14px 18px;
   border-left: 3px solid var(--cp-accent);
   background: var(--cp-bg-elevated);
+  overflow-wrap: anywhere;
 }
 
 .tree-level :is(strong, h3) {
@@ -409,33 +430,71 @@ main {
   gap: 5px;
 }
 
+/*
+ * `auto-fit` with a `min()` track keeps large featured families readable without
+ * a horizontal scrollbar: the columns collapse to one as soon as a single card
+ * would no longer fit, at any viewport, with no breakpoint to keep in sync.
+ */
 .family-list {
   display: grid;
+  min-width: 0;
   margin: 18px 0 0 28px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: 24px 18px;
 }
 
-.release-nodes {
+.family-branch {
+  min-width: 0;
+}
+
+.lineage-note {
+  margin: 10px 0 0;
+  color: var(--cp-text-muted);
+  font-size: 13px;
+}
+
+.lineage-branch {
   display: grid;
+  min-width: 0;
   margin: 0;
   padding: 10px 0 0;
   list-style: none;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
-.release-nodes li {
+/*
+ * Nesting is the connecting line: an item is indented and rule-marked only when
+ * the catalog records a predecessor for it. Per-level indentation shrinks as the
+ * chain deepens, so a deep family stays inside its column instead of pushing the
+ * page sideways.
+ */
+.lineage-branch--nested {
+  padding-inline-start: max(0.5rem, calc(1.5rem - var(--lineage-depth, 1) * 0.25rem));
+  border-left: 2px solid var(--cp-border-strong);
+}
+
+.lineage-branch li {
   position: relative;
+  min-width: 0;
 }
 
 .release-node {
   display: grid;
   width: 100%;
-  min-height: 126px;
+  min-width: 0;
+  max-width: 100%;
   padding: 16px;
+  border: 1px solid var(--cp-border);
+  border-radius: 0.625rem;
+  background: var(--cp-surface);
+  color: var(--cp-text);
+  gap: 4px;
+  font: inherit;
   text-align: left;
   text-decoration: none;
+  overflow-wrap: anywhere;
+  cursor: pointer;
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
@@ -444,9 +503,26 @@ main {
   transform: translateY(-2px);
 }
 
-.release-node[data-selected="true"] {
+/*
+ * Emphasis only repeats what the node already says in words: every related node
+ * carries a `.node-relation` chip, and status and access are spelled out too, so
+ * nothing here is conveyed by colour alone.
+ */
+.release-node[data-relation="selected"] {
   border-color: var(--cp-accent);
   box-shadow: 0 0 0 3px var(--cp-accent-soft);
+}
+
+.release-node:is(
+  [data-relation="ancestor"],
+  [data-relation="successor"],
+  [data-relation="sibling"]
+) {
+  border-color: var(--cp-border-strong);
+}
+
+.release-node[data-relation="unrelated"] {
+  opacity: 0.72;
 }
 
 .release-node strong {
@@ -460,14 +536,34 @@ main {
   color: var(--cp-text-muted);
 }
 
-.node-link {
+.node-relation {
+  justify-self: start;
+  margin-top: 6px;
+  padding: 3px 9px;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.node-access {
   display: inline-flex;
-  margin-top: 10px;
   align-items: center;
   gap: 5px;
-  color: var(--cp-accent);
+  color: var(--cp-text-muted);
   font-size: 12px;
-  font-weight: 700;
+}
+
+.node-aside {
+  margin: 6px 0 0;
+  color: var(--cp-text-muted);
+  font-size: 12px;
+}
+
+.lineage-longtail {
+  margin: 0;
+  color: var(--cp-text-muted);
+  font-size: 13px;
 }
 
 .node-status {
@@ -477,17 +573,31 @@ main {
   font-weight: 650;
 }
 
-.node-status > span {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--cp-success);
-}
-
-.relationship-note {
-  margin: 17px 0 0;
+.summary-lineage {
+  margin: 22px 0;
   color: var(--cp-text-muted);
   font-size: 13px;
+}
+
+.summary-lineage > span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.summary-lineage dl {
+  display: grid;
+  margin: 8px 0 0;
+  gap: 6px;
+}
+
+.summary-lineage dt {
+  font-weight: 700;
+}
+
+.summary-lineage dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .model-summary {
@@ -2569,11 +2679,6 @@ span.log-page-step {
     flex-wrap: wrap;
   }
 
-  .ecosystem-selector small {
-    width: 100%;
-    margin-left: 0;
-  }
-
   .family-list {
     margin-left: 0;
   }
@@ -2584,14 +2689,8 @@ span.log-page-step {
     margin-left: 0;
   }
 
-  .release-nodes {
-    display: grid;
+  .lineage-branch {
     padding: 10px 0 0;
-    grid-template-columns: 1fr;
-  }
-
-  .release-node {
-    min-height: 112px;
   }
 
   .summary-facts,
@@ -2674,10 +2773,6 @@ span.log-page-step {
 }
 
 @media (max-width: 430px) {
-  .family-list {
-    grid-template-columns: 1fr;
-  }
-
   .summary-facts,
   .passport-facts,
   .technical-facts,
