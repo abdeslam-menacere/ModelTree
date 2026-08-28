@@ -248,8 +248,9 @@ reading and the disagreement is written down here rather than resolved silently.
   give a retirement date of 2026-10-20. Both models are recorded as `current`
   and no shutdown date is asserted.
 - **Gemini 3.7 Flash is excluded.** Its documentation gives only "August 2026".
-  `releaseDate` is a full ISO date, so a month-only release cannot be represented
-  without inventing a day. Tracked as issue #48.
+  The model was kept out when a release date had to carry a day, since a
+  month-only announcement could not be recorded without inventing one. That is
+  the limitation issue #48 describes. No sourced record has been added since.
 - **Llama 4 Maverick parameter count.** The model card's own table gives 400B
   total, while the Hugging Face repository metadata on the same page reports
   402B. The model card figure is recorded, because it is the count Meta states in
