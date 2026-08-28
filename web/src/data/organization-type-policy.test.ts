@@ -51,6 +51,9 @@ describe('organization type policy', () => {
     expect(policy).toContain('one standalone institution or');
     expect(policy).toContain('named unit controls releases');
     expect(policy).toContain('exists primarily for research');
+    expect(policy).toContain('does not');
+    expect(policy).toContain('sell model products or access under its name');
+    expect(policy).toContain("a parent's sales do not");
     const categoryOffsets = ['`community`', '`research-lab`', '`nonprofit`', '`company`'].map(
       (category) => policy!.indexOf(category),
     );

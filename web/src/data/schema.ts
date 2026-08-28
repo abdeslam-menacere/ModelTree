@@ -156,10 +156,11 @@ export const organizationSchema = z.object({
   // match: `community` when independent contributors outside any one entity's
   // employment or appointment chain can initiate and decide its model releases,
   // not merely submit work; `research-lab` when one standalone institution or
-  // named unit controls releases and exists primarily for research (a parent
-  // does not override that function); `nonprofit` when a centrally governed
-  // nonprofit is neither such a lab nor a seller of model products or access;
-  // otherwise `company` when a commercial operator runs or sells the model work.
+  // named unit controls releases, exists primarily for research, and does not
+  // sell model products or access under its name (a parent's sales do not
+  // override that function); `nonprofit` when a centrally governed nonprofit is
+  // neither such a lab nor a seller of model products or access; otherwise
+  // `company` when a commercial operator runs or sells the model work.
   type: z.enum(['company', 'research-lab', 'nonprofit', 'community']),
   website: z.url(),
   releasePage: z.url(),
