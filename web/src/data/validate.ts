@@ -10,7 +10,7 @@ import {
 } from './schema';
 import { RUBRIC_DIMENSION_SUPPORT } from './model-fit-rubric';
 
-const PRIMARY_SOURCE_TYPES = new Set<SourceReference['type']>([
+export const PRIMARY_SOURCE_TYPES = new Set<SourceReference['type']>([
   'official-announcement',
   'official-docs',
   'model-card',

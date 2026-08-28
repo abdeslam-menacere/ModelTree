@@ -166,6 +166,10 @@ export function fitDimensionLabel(dimension: FitRubricDimension) {
   return DIMENSION_LABELS[dimension];
 }
 
+export function fitGapReasonLabel(reason: ModelFitEvidenceGap['reason']) {
+  return GAP_REASON_LABELS[reason];
+}
+
 /** The full disclosed rubric, for the methodology block. */
 export function fitRubric(): FitRubricView[] {
   return (Object.keys(RUBRIC_DIMENSION_SUPPORT) as FitRubricDimension[]).map((dimension) => ({
