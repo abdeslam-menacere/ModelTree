@@ -114,11 +114,31 @@ export function modelRoute(base: string, slug: string) {
 }
 
 /**
- * The shape a provider detail route takes. Nothing publishes it yet: the build
- * generates no provider pages, so provider rows carry a null route until it does.
+ * The shape a provider detail route takes. A page is generated only for some
+ * organizations (see {@link buildProviderRouteResolver}), so rows that resolve
+ * to no page carry a null route rather than pointing this shape at a 404.
  */
 export function providerRoute(base: string, slug: string) {
   return `${normalizeBase(base)}providers/${slug}/`;
+}
+
+/**
+ * The single "does this organization have a generated provider page" rule,
+ * exported so every caller resolves the same way instead of re-deriving it.
+ *
+ * A provider page is generated for exactly the organizations
+ * `buildLineageEcosystems` returns (the featured creators -- see routes.ts), so
+ * the returned resolver hands back the canonical provider route for those slugs
+ * and `null` for every other, meaning no caller can advertise a route the build
+ * does not generate. Both the catalog index and the A-Z directory read this, so
+ * the two cannot drift.
+ */
+export function buildProviderRouteResolver(dataset: Dataset, base = '/') {
+  const routedProviderSlugs = new Set(
+    buildLineageEcosystems(dataset).map((ecosystem) => ecosystem.organization.slug),
+  );
+  return (slug: string): string | null =>
+    routedProviderSlugs.has(slug) ? providerRoute(base, slug) : null;
 }
 
 export function contextTierOf(contextWindow?: number): ContextTier {
@@ -186,12 +206,7 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
   // row or an organization alias publishes a canonical route only when a page
   // stands behind it; every other organization keeps a null route so no row ever
   // advertises a 404. `assertRoutesResolve` holds this to the generated slugs.
-  const routedProviderSlugs = new Set(
-    buildLineageEcosystems(dataset).map((ecosystem) => ecosystem.organization.slug),
-  );
-  const providerRouteFor = (slug: string) => (
-    routedProviderSlugs.has(slug) ? providerRoute(base, slug) : null
-  );
+  const providerRouteFor = buildProviderRouteResolver(dataset, base);
 
   const pricedDeploymentIds = new Set(dataset.pricing.map((price) => price.deploymentId));
   const pricedReleaseIds = new Set(

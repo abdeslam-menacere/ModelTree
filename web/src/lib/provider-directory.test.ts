@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { dataset as seedDataset } from '../data/dataset';
 import type { Dataset } from '../data/schema';
 import { validateDataset } from '../data/validate';
-import { buildCatalogIndex } from './catalog';
+import { buildCatalogIndex, providerRoute } from './catalog';
 import { parseCatalogState } from './catalog-view';
+import { providerStaticPaths } from './routes';
 import {
   buildDirectoryLetters,
   buildProviderDirectory,
@@ -408,15 +409,44 @@ describe('where a row leads', () => {
   it('produces a link the catalog itself restores to that creator filter', () => {
     // End-to-end against the catalog's own parser: if the emitted query key or
     // value ever stopped matching what the catalog reads, this fails rather than
-    // silently linking to an unfiltered catalog.
+    // silently linking to an unfiltered catalog. Uses a creator with no generated
+    // provider page, since those are the ones that fall back to the catalog link
+    // -- a creator that does have a page links there instead.
     const index = buildCatalogIndex(seedDataset, '/');
-    const entry = group(seedDataset, 'creators').entries[0] as CreatorEntry;
+    const routed = new Set(providerStaticPaths().map((path) => path.params.slug));
+    const entry = group(seedDataset, 'creators').entries.find(
+      (candidate): candidate is CreatorEntry =>
+        candidate.kind === 'creator' && !routed.has(candidate.slug) && candidate.href !== null,
+    );
+    if (!entry) throw new Error('expected a pageless creator that links to the catalog');
     const href = entry.href;
     if (!href) throw new Error('seed creator should link to the catalog');
 
     const state = parseCatalogState(new URL(href, 'https://example.test').search, index.facets);
 
     expect(state.filters.creators).toEqual([entry.slug]);
+  });
+
+  it('links every organization that has a generated provider page to that page', () => {
+    // The gap this whole issue closes: the directory must route readers to the
+    // per-organization pages the build actually produces. The expected set is
+    // derived independently, from the route source of truth (`providerStaticPaths`,
+    // which the Astro page reads), not from `buildProviderDirectory` -- so a bug
+    // that broke the directory's link wiring could not hide by agreeing with itself.
+    const base = '/';
+    const directory = buildProviderDirectory(seedDataset, base);
+    const linkedHrefs = new Set(
+      directory.groups
+        .flatMap((entryGroup) => entryGroup.entries)
+        .map((entry) => entry.href)
+        .filter((href): href is string => href !== null),
+    );
+
+    const generatedRoutes = providerStaticPaths().map((path) => providerRoute(base, path.params.slug));
+    expect(generatedRoutes.length).toBeGreaterThan(0);
+
+    const missing = generatedRoutes.filter((route) => !linkedHrefs.has(route));
+    expect(missing).toEqual([]);
   });
 
   it('links nothing and says why when a creator has no release yet', () => {
