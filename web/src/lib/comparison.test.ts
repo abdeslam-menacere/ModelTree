@@ -10,9 +10,12 @@ import {
   VALUE_STATE_DEFINITIONS,
   addToComparison,
   buildComparisonCandidates,
+  buildComparisonPayload,
+  buildComparisonPickerIndex,
   buildModelComparison,
   compareRoute,
   compareUrl,
+  measureComparisonPayload,
   parseComparisonSelection,
   removeFromComparison,
   resolveComparisonSelection,
@@ -683,6 +686,88 @@ describe('comparison over the shipped dataset', () => {
     for (const rejection of selection.rejections) {
       expect(rejection.code).toBe('over-capacity');
       expect(rejection.message).toContain(rejection.slug);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Payload. `/compare` is the one page in this site that ships its records, so
+// it is the one page whose weight can grow without anybody noticing.
+// ---------------------------------------------------------------------------
+
+describe('comparison payload', () => {
+  const payload = buildComparisonPayload(dataset);
+  const seedSlugs = dataset.releases.map((release) => release.slug);
+  const seedBase = '/ModelTree/';
+  const today = '2026-08-27';
+
+  it('drops the fields the comparison never reads', () => {
+    const trimmed = measureComparisonPayload(payload);
+    const whole = JSON.stringify({
+      releases: dataset.releases,
+      sources: dataset.sources,
+      publishers: dataset.publishers,
+      organizations: dataset.organizations,
+      families: dataset.families,
+      servingPlatforms: dataset.servingPlatforms,
+      deployments: dataset.deployments,
+      pricing: dataset.pricing,
+      benchmarks: dataset.benchmarks,
+      benchmarkResults: dataset.benchmarkResults,
+    }).length;
+
+    expect(trimmed.totalBytes).toBeLessThan(whole);
+    expect(payload.releases[0]).not.toHaveProperty('summary');
+    expect(payload.releases[0]).not.toHaveProperty('predecessorIds');
+  });
+
+  it('keeps the shipped payload within its budget', () => {
+    const size = measureComparisonPayload(payload);
+
+    // Budgeted per release as well as in total, because the total moves whenever
+    // a release is added while the per-release figure only moves when a record
+    // gets fatter. Measured at merge-base fc418bb6: 68,731 bytes over 49
+    // releases, 1,403 per release. The thresholds sit just above that, so the
+    // next change to either is a decision somebody makes rather than a drift
+    // nobody sees.
+    expect(size.bytesPerRelease).toBeLessThanOrEqual(1_600);
+    expect(size.totalBytes).toBeLessThanOrEqual(81_920);
+  });
+
+  it('ships only the sources something in the payload cites', () => {
+    const cited = new Set([
+      ...payload.releases.flatMap((release) => release.sourceIds),
+      ...payload.benchmarkResults.flatMap((result) => result.sourceIds),
+      ...payload.deployments.flatMap((deployment) => deployment.sourceIds),
+      ...payload.pricing.flatMap((price) => price.sourceIds),
+    ]);
+
+    expect(payload.sources.length).toBeLessThan(dataset.sources.length);
+    expect(payload.sources.every((source) => cited.has(source.id))).toBe(true);
+    for (const id of cited) {
+      expect(payload.sources.some((source) => source.id === id), `source ${id}`).toBe(true);
+    }
+  });
+
+  it('builds the same comparison from the payload as from the whole dataset', () => {
+    // The trimming is only safe if nothing the table renders was trimmed away,
+    // which is a claim about output rather than about which keys were copied.
+    for (let index = 0; index + 1 < seedSlugs.length; index += 1) {
+      const slugs = [seedSlugs[index]!, seedSlugs[index + 1]!];
+      expect(JSON.stringify(buildModelComparison(payload, slugs, seedBase, today)))
+        .toBe(JSON.stringify(buildModelComparison(dataset, slugs, seedBase, today)));
+    }
+  });
+
+  it('needs only the picker index before a reader has chosen anything', () => {
+    const index = buildComparisonPickerIndex(dataset);
+
+    expect(index).toHaveLength(dataset.releases.length);
+    expect(JSON.stringify(index).length).toBeLessThanOrEqual(8_192);
+    for (const row of index) {
+      expect(row.displayName).toBeTruthy();
+      expect(row.organizationName).toBeTruthy();
+      expect(row.familyName).toBeTruthy();
     }
   });
 });

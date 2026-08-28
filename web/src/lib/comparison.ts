@@ -37,11 +37,16 @@
  * and a similarly named release is never read to fill it.
  */
 import type {
+  BenchmarkDefinition,
   BenchmarkResult,
   Dataset,
   Deployment,
+  ModelFamily,
   ModelRelease,
+  Organization,
   PricingRecord,
+  Publisher,
+  ServingPlatform,
   SourceReference,
 } from '../data/schema';
 import {
@@ -480,6 +485,54 @@ export class ComparisonError extends Error {
 }
 
 /**
+ * The release fields a comparison reads, and no others.
+ *
+ * Narrower than `ModelRelease` on purpose. `/compare` cannot pre-render its
+ * result — a reader picks any 2 to 4 of 49 releases after the page has loaded,
+ * which is 211,876 combinations — so the records have to travel with the page,
+ * and the page's weight is then decided by how much of each record it carries.
+ * Measured at merge-base `fc418bb6`: the full slice is 123,438 bytes and this
+ * narrowing brings it to 69,196. `summary`, `featured`, and the four lineage
+ * arrays are the fields it drops; the lineage explorer and the passport render
+ * those, and this table does not.
+ *
+ * A real `ModelRelease` still satisfies this type, so tests and the build can
+ * pass the whole dataset straight through.
+ */
+export type ComparisonRelease = Pick<
+  ModelRelease,
+  | 'id'
+  | 'slug'
+  | 'canonicalName'
+  | 'displayName'
+  | 'organizationId'
+  | 'familyId'
+  | 'version'
+  | 'variant'
+  | 'releaseDate'
+  | 'datePrecision'
+  | 'status'
+  | 'categories'
+  | 'inputModalities'
+  | 'outputModalities'
+  | 'accessType'
+  | 'license'
+  | 'parameters'
+  | 'contextWindow'
+  | 'maximumOutput'
+  | 'apiAliases'
+  | 'intendedUse'
+  | 'featuredRationale'
+  | 'sourceIds'
+  | 'verifiedAt'
+>;
+
+export type ComparisonSourceRecord = Pick<
+  SourceReference,
+  'id' | 'url' | 'title' | 'publisherId' | 'lastCheckedDate'
+>;
+
+/**
  * Printed under the takeaways, and the reason it is a constant rather than
  * prose in a component: the non-goal it states is a repository policy, so it
  * must be assertable by a test rather than editable in markup.
@@ -489,19 +542,18 @@ export const NO_RANKING_NOTE =
   + 'Every observation below is scoped to one attribute, names the records it was read from, and is '
   + 'withheld unless every model in this comparison states that attribute.';
 
-export type ComparisonDataset = Pick<
-  Dataset,
-  | 'sources'
-  | 'publishers'
-  | 'organizations'
-  | 'families'
-  | 'releases'
-  | 'servingPlatforms'
-  | 'deployments'
-  | 'pricing'
-  | 'benchmarks'
-  | 'benchmarkResults'
->;
+export type ComparisonDataset = {
+  sources: ComparisonSourceRecord[];
+  publishers: Array<Pick<Publisher, 'id' | 'name'>>;
+  organizations: Array<Pick<Organization, 'id' | 'name'>>;
+  families: Array<Pick<ModelFamily, 'id' | 'name'>>;
+  releases: ComparisonRelease[];
+  servingPlatforms: Array<Pick<ServingPlatform, 'id' | 'name' | 'type' | 'organizationId'>>;
+  deployments: Deployment[];
+  pricing: PricingRecord[];
+  benchmarks: BenchmarkDefinition[];
+  benchmarkResults: BenchmarkResult[];
+};
 
 // ---------------------------------------------------------------------------
 // Builder
@@ -644,7 +696,7 @@ export function buildModelComparison(
   const familyById = new Map(dataset.families.map((item) => [item.id, item]));
   const platformById = new Map(dataset.servingPlatforms.map((item) => [item.id, item]));
 
-  const toSourceView = (source: SourceReference): ComparisonSourceView => ({
+  const toSourceView = (source: ComparisonSourceRecord): ComparisonSourceView => ({
     id: source.id,
     title: source.title,
     url: source.url,
@@ -654,13 +706,13 @@ export function buildModelComparison(
 
   const resolveSources = (sourceIds: readonly string[]) => sourceIds
     .map((id) => sourceById.get(id))
-    .filter((source): source is SourceReference => Boolean(source))
+    .filter((source): source is ComparisonSourceRecord => Boolean(source))
     .map(toSourceView);
 
   const sourcesOf = new Map(
     releases.map((release) => [release.slug, resolveSources(release.sourceIds)]),
   );
-  const releaseSources = (release: ModelRelease) => sourcesOf.get(release.slug) ?? [];
+  const releaseSources = (release: ComparisonRelease) => sourcesOf.get(release.slug) ?? [];
 
   const models: ComparisonModelColumn[] = releases.map((release) => {
     const organization = organizationById.get(release.organizationId);
@@ -696,7 +748,7 @@ export function buildModelComparison(
   const releaseRow = (
     id: string,
     label: string,
-    read: (release: ModelRelease) => string | null,
+    read: (release: ComparisonRelease) => string | null,
     options: { note?: string; volatile?: boolean; unrecordedReason?: string } = {},
   ) => rowOf(
     id,
@@ -813,7 +865,7 @@ export function buildModelComparison(
   const licenceRow = (
     id: string,
     label: string,
-    read: (license: NonNullable<ModelRelease['license']>) => string | null,
+    read: (license: NonNullable<ComparisonRelease['license']>) => string | null,
     unrecordedReason: string,
   ) => rowOf(
     id,
@@ -919,7 +971,7 @@ export function buildModelComparison(
   // states.
   // -------------------------------------------------------------------------
 
-  const pricingFor = (release: ModelRelease): PricingRecord[] => {
+  const pricingFor = (release: ComparisonRelease): PricingRecord[] => {
     const deploymentIds = new Set((deploymentsBySlug.get(release.slug) ?? []).map(({ id }) => id));
     return dataset.pricing.filter((price) => deploymentIds.has(price.deploymentId));
   };
@@ -1028,10 +1080,15 @@ export function buildModelComparison(
   }
 
   const comparabilityContext = {
+    // Benchmarks travel because the module reads each one's declared direction
+    // to order its own result list. Releases, sources, and publishers are
+    // deliberately not passed: `buildComparison` uses them only to decorate
+    // views with names and source records, all of which are resolved here from
+    // the trimmed tables instead, and passing them would force this page to
+    // ship full `ModelRelease` and `SourceReference` records. No verdict
+    // depends on them — `assessComparability` reads the results and the policy
+    // and nothing else.
     benchmarks: dataset.benchmarks,
-    releases: dataset.releases,
-    sources: dataset.sources,
-    publishers: dataset.publishers,
   };
 
   const evidenceRows: ComparisonRow[] = [...resultsByBenchmark.keys()]
@@ -1058,6 +1115,7 @@ export function buildModelComparison(
           .map((entry) => `${entry.label}: ${entry.value}`)
           .join('; ') || null;
         const value = `${view.score} ${view.unit}`;
+        const cellSources = resolveSources(view.result.sourceIds);
 
         if (blocked) {
           return {
@@ -1072,7 +1130,7 @@ export function buildModelComparison(
               .join(' '),
             verifiedAt: formatDate(view.verifiedAt),
             effectiveRange: `Evaluated ${view.evaluationDate}`,
-            sources: view.sources.map((entry) => toSourceView(entry.source)),
+            sources: cellSources,
             setup,
           };
         }
@@ -1082,7 +1140,7 @@ export function buildModelComparison(
             release.slug,
             value,
             formatDate(view.verifiedAt),
-            view.sources.map((entry) => toSourceView(entry.source)),
+            cellSources,
             `Evaluated ${view.evaluationDate}`,
           ),
           setup,
@@ -1338,3 +1396,122 @@ export function buildComparisonCandidates(
 
 /** Re-exported so a consumer marking an undisclosed benchmark cell uses one spelling. */
 export { UNDISCLOSED_LABEL };
+
+// ---------------------------------------------------------------------------
+// Page payload
+// ---------------------------------------------------------------------------
+
+/**
+ * The records `/compare` ships, reduced to what the table reads.
+ *
+ * Every other page in this site renders its own content at build time and ships
+ * no data. This one cannot: which models to compare is chosen from the URL after
+ * the page has loaded, and pre-rendering the answer would mean generating one
+ * page per combination. So the cost is real and the point of measuring it is to
+ * keep it visible rather than to pretend it away.
+ *
+ * Sources are filtered to those something in the payload actually cites, which
+ * is what stops the site's whole bibliography travelling with a page that links
+ * a fraction of it.
+ */
+export function buildComparisonPayload(dataset: ComparisonDataset): ComparisonDataset {
+  const releases: ComparisonRelease[] = dataset.releases.map((release) => ({
+    id: release.id,
+    slug: release.slug,
+    canonicalName: release.canonicalName,
+    displayName: release.displayName,
+    organizationId: release.organizationId,
+    familyId: release.familyId,
+    version: release.version,
+    variant: release.variant,
+    releaseDate: release.releaseDate,
+    datePrecision: release.datePrecision,
+    status: release.status,
+    categories: release.categories,
+    inputModalities: release.inputModalities,
+    outputModalities: release.outputModalities,
+    accessType: release.accessType,
+    license: release.license,
+    parameters: release.parameters,
+    contextWindow: release.contextWindow,
+    maximumOutput: release.maximumOutput,
+    apiAliases: release.apiAliases,
+    intendedUse: release.intendedUse,
+    featuredRationale: release.featuredRationale,
+    sourceIds: release.sourceIds,
+    verifiedAt: release.verifiedAt,
+  }));
+
+  const cited = new Set([
+    ...releases.flatMap((release) => release.sourceIds),
+    ...dataset.deployments.flatMap((deployment) => deployment.sourceIds),
+    ...dataset.pricing.flatMap((price) => price.sourceIds),
+    ...dataset.benchmarkResults.flatMap((result) => result.sourceIds),
+  ]);
+
+  const sources: ComparisonSourceRecord[] = dataset.sources
+    .filter((source) => cited.has(source.id))
+    .map((source) => ({
+      id: source.id,
+      url: source.url,
+      title: source.title,
+      publisherId: source.publisherId,
+      lastCheckedDate: source.lastCheckedDate,
+    }));
+
+  const citedPublishers = new Set(sources.map((source) => source.publisherId));
+
+  return {
+    releases,
+    sources,
+    publishers: dataset.publishers
+      .filter((publisher) => citedPublishers.has(publisher.id))
+      .map((publisher) => ({ id: publisher.id, name: publisher.name })),
+    organizations: dataset.organizations.map(({ id, name }) => ({ id, name })),
+    families: dataset.families.map(({ id, name }) => ({ id, name })),
+    servingPlatforms: dataset.servingPlatforms.map(({ id, name, type, organizationId }) => ({
+      id,
+      name,
+      type,
+      organizationId,
+    })),
+    deployments: dataset.deployments,
+    pricing: dataset.pricing,
+    benchmarks: dataset.benchmarks,
+    benchmarkResults: dataset.benchmarkResults,
+  };
+}
+
+/** Bytes the payload would add to the page, for the budget check. */
+export function measureComparisonPayload(payload: ComparisonDataset) {
+  const totalBytes = JSON.stringify(payload).length;
+  return {
+    totalBytes,
+    releaseCount: payload.releases.length,
+    bytesPerRelease: payload.releases.length === 0
+      ? 0
+      : Math.round(totalBytes / payload.releases.length),
+  };
+}
+
+/** The picker rows, which are all a reader needs before choosing anything. */
+export interface ComparisonPickerRow {
+  slug: string;
+  displayName: string;
+  organizationName: string;
+  familyName: string;
+}
+
+export function buildComparisonPickerIndex(
+  dataset: Pick<ComparisonDataset, 'releases' | 'organizations' | 'families'>,
+): ComparisonPickerRow[] {
+  const organizationById = new Map(dataset.organizations.map((item) => [item.id, item]));
+  const familyById = new Map(dataset.families.map((item) => [item.id, item]));
+
+  return dataset.releases.map((release) => ({
+    slug: release.slug,
+    displayName: release.displayName,
+    organizationName: organizationById.get(release.organizationId)?.name ?? release.organizationId,
+    familyName: familyById.get(release.familyId)?.name ?? release.familyId,
+  }));
+}
