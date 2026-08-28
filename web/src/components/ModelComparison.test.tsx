@@ -285,11 +285,33 @@ describe('against the shipped dataset, which is sparse', () => {
   const slugs = seedSlugs.slice(0, 3);
   const html = renderWith(seedPayload, slugs, '2026-08-27');
 
-  it('renders without pricing or availability records existing at all', () => {
-    expect(seedPayload.pricing).toHaveLength(0);
-    expect(seedPayload.deployments).toHaveLength(0);
-    expect(html).toContain('What this comparison does not show');
-    expect(html).toContain('Pricing');
+  it('never renders pricing or availability blank, whatever the dataset holds', () => {
+    // Keyed on what the dataset holds rather than on a measured snapshot. At
+    // merge-base fc418bb6 `raw.ts` composed neither pricing nor deployment JSON
+    // and both groups read `not-collected`; operational records are exactly what
+    // a data refresh lands, and an assertion pinned to the empty shape would fail
+    // on the data rather than on the behaviour. What has to hold either way is
+    // that neither section is silently blank: it renders rows, or it is named in
+    // the open with the state that says why it is missing.
+    const view = buildModelComparison(seedPayload, slugs, COMPARISON_BASE, '2026-08-27');
+    const backing = { pricing: seedPayload.pricing, availability: seedPayload.deployments } as const;
+
+    for (const id of ['pricing', 'availability'] as const) {
+      const group = [...view.presentGroups, ...view.absentGroups].find((g) => g.id === id);
+      expect(group, `${id} must appear in the view at all`).toBeDefined();
+
+      if (group!.rows.length > 0) {
+        expect(group!.absence, `${id} shows rows, so it must claim no absence`).toBeNull();
+        expect(html).toContain(group!.title);
+        continue;
+      }
+
+      const expected = backing[id].length === 0 ? 'not-collected' : 'unrecorded';
+      expect(group!.absence, `${id} has no rows, so it must say why`).not.toBeNull();
+      expect(group!.absence!.state).toBe(expected);
+      expect(html).toContain('What this comparison does not show');
+      expect(html).toMatch(new RegExp(`data-group="${id}"\\s+data-state="${expected}"`));
+    }
   });
 
   it('still gives every stated cell a source and a date', () => {

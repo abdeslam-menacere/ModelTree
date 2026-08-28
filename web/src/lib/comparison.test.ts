@@ -24,6 +24,10 @@ import {
   type ComparisonView,
 } from './comparison';
 import {
+  defaultComparabilityPolicy,
+  resolveEvaluationSpreadMonths,
+} from './comparability-policy';
+import {
   ATLAS_EXTRA,
   ATLAS_MINI,
   ATLAS_OPEN,
@@ -461,7 +465,14 @@ describe('comparison benchmark rows', () => {
     const view = build([ATLAS_PRO, BOREALIS_AIR]);
     const window = rowOf(view, `benchmark-${COMPARABLE_BENCHMARK}`).evidence?.evaluationWindow;
 
-    expect(window?.allowedSpreadMonths).toBe(12);
+    // Bound to the policy rather than reciting its number. The window is #22's
+    // to set in `comparability-policy.ts`, so a literal here would turn a
+    // legitimate policy change into a failure in this file; resolving it through
+    // the policy's own helper also means a per-benchmark override is honoured.
+    const allowed = resolveEvaluationSpreadMonths(defaultComparabilityPolicy, COMPARABLE_BENCHMARK);
+    expect(allowed, 'the policy must resolve a real window for this to assert anything').toBeGreaterThan(0);
+
+    expect(window?.allowedSpreadMonths).toBe(allowed);
     expect(window?.earliest).toBe('2026-02-15');
   });
 
