@@ -1,0 +1,464 @@
+name: Source link health
+
+# Reports primary source URLs in `web/src/data/sources.json` that no longer
+# resolve as recorded, and never changes them.
+#
+# ModelTree's claim is that every important fact carries a primary source and a
+# verification date. When a link rots the evidence evaporates while the site goes
+# on asserting the fact, which is a silent failure and the worst kind here.
+#
+# The reason this workflow is shaped the way it is: a naive link check reddens on
+# a rate limit, and a check that reddens on things nobody can fix is one people
+# learn to ignore. The dataset's two largest host groups are `huggingface.co` and
+# `github.com`, both of which rate-limit and serve anti-bot responses to
+# unfamiliar clients, so 429 and 403 are the ordinary case rather than an edge.
+# The checker keeps "the server refused us" and "we got no answer" apart from
+# "the resource is gone", and only the last of those is ever treated as
+# actionable. Issue #29's non-goals require exactly that.
+#
+# ## This is advisory. Do not make `source-link-health` a required check.
+#
+# Its verdict depends on third parties. Requiring it would let somebody else's
+# outage block every merge in this repository, which is a strictly worse failure
+# than the one it exists to catch. `.github/workflows/README.md` records this
+# alongside the checks that *are* safe to require.
+#
+# Both jobs nevertheless always report a conclusion. Neither is filtered by
+# `on.pull_request.paths`; each decides inside the job whether it has anything to
+# do and finishes green in seconds when it does not. That is the shape `web-ci`
+# and `skills-ci` already use, and the reason is the same: a check that never
+# reports is worse than one that fails, because a pull request cannot tell the
+# difference between "not applicable" and "still running".
+#
+# ## Nothing here writes to the dataset
+#
+# No job holds `contents: write`, the checker refuses an output path inside
+# `web/src/data/`, and `lastCheckedDate` is deliberately untouched -- it is a
+# claim that a human verified a source, and a link checker is not a human.
+
+on:
+  schedule:
+    # Weekly, off the hour. Link rot is a slow failure and a daily sweep would
+    # spend eighty requests a day to learn the same thing.
+    - cron: '37 6 * * 1'
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      file_issue:
+        description: 'Open or update the maintenance issue with this run''s findings'
+        type: boolean
+        default: false
+
+# Nothing by default, so a job that forgets to declare a scope gets none. Each
+# job below widens this for itself and no further.
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# The alert's identity, defined once for the whole workflow, the way `pages.yml`
+# does it. `maintenance-issue` files under this exact title and `resolve-issue`
+# closes what matches it exactly, so the two look up the same issue by
+# construction and cannot drift into closing somebody else's.
+env:
+  LINK_HEALTH_ISSUE_TITLE: 'Source link health - primary sources that no longer resolve as recorded'
+
+jobs:
+  # The hermetic half. No network, no dataset dependency beyond reading it, and a
+  # deterministic verdict. It is safe to require and is not required; requiring it
+  # is a branch-protection change and therefore an owner action, which this
+  # workflow does not take and cannot take for itself.
+  source-link-health-tests:
+    name: source-link-health-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          # The scope step diffs against the base commit, which a shallow
+          # checkout would not contain.
+          fetch-depth: 0
+          # This job never pushes.
+          persist-credentials: false
+
+      - name: Decide whether the checker's tests need to run
+        id: scope
+        env:
+          # Event data reaches the shell as environment variables, never
+          # interpolated into the script itself.
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
+            echo "Event is $GITHUB_EVENT_NAME; running the tests."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Fail safe. A changed-file list that cannot be computed runs the tests
+          # rather than skipping them: a green check over a change nothing read
+          # is the failure this shape exists to remove.
+          if ! changed="$(git diff --name-only "$PR_BASE_SHA...$PR_HEAD_SHA")"; then
+            echo "Could not diff $PR_BASE_SHA...$PR_HEAD_SHA; running the tests."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Changed files:"
+          echo "$changed"
+
+          # What the suite reads: the checker and its own tests, this workflow
+          # file so a change to it is verified by the workflow it changes, and
+          # `sources.json`, because one test extracts targets from the committed
+          # dataset and would not otherwise notice a record it cannot use.
+          #
+          # A here-string rather than a pipe: `grep -q` exits on its first match,
+          # which can leave the left of a pipe killed by SIGPIPE and the whole
+          # pipeline non-zero under `set -o pipefail`.
+          if grep -Eq '^(\.github/scripts/source-link-health/|\.github/workflows/source-link-health\.yml$|web/src/data/sources\.json$)' <<< "$changed"; then
+            echo "Checker inputs changed; running the tests."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No checker input changed."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Node.js
+        if: steps.scope.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          # Matches web-ci, skills-ci and pages.yml. The checker is
+          # dependency-free, so there is nothing to install and no lockfile to
+          # cache.
+          node-version: 22
+
+      # Node's own test runner, no dependencies. The file path is passed
+      # explicitly: `node --test <directory>` resolves differently.
+      - name: Run the link-health tests
+        if: steps.scope.outputs.run == 'true'
+        run: node --test .github/scripts/source-link-health/link-health.test.mjs
+
+      # The extraction dry run over the committed dataset, which issue #29 asks
+      # for by name. It makes no request; it proves every source record reduces
+      # to a URL something could be asked about.
+      - name: Dry-run extraction over the seed dataset
+        if: steps.scope.outputs.run == 'true'
+        run: node .github/scripts/source-link-health/check-source-links.mjs --dry-run
+
+      # The step that turns a skip into a report. Without it, a pull request
+      # touching no checker input would run a job with every step skipped, and
+      # the point of the shape is that the check always concludes.
+      - name: Record that no test run was needed
+        if: steps.scope.outputs.run != 'true'
+        run: |
+          echo 'No link-health script, test, workflow or source record changed, so the checker tests were not run.' >> "$GITHUB_STEP_SUMMARY"
+
+  # The half that reaches the network. Advisory, always.
+  source-link-health:
+    name: source-link-health
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      # Read the dataset. Nothing else: this job cannot write repository content
+      # and cannot touch issues.
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      ran: ${{ steps.check.outputs.ran }}
+      actionable: ${{ steps.check.outputs.actionable }}
+      findings: ${{ steps.check.outputs.findings }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          # The scope step diffs against the base commit and reads the base
+          # revision of `sources.json`, neither of which a shallow checkout has.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Decide what to check
+        id: scope
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          # A schedule or a manual dispatch sweeps everything. There is no base
+          # to diff against and no reason to narrow.
+          if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
+            echo "Event is $GITHUB_EVENT_NAME; sweeping every source URL."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "baseline=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # On a pull request the check is targeted: the author is answerable for
+          # the sources they added or re-pointed, and re-checking eighty untouched
+          # URLs on every data change is how a check earns a reputation for
+          # flaking on things nobody wrote.
+          if ! changed="$(git diff --name-only "$PR_BASE_SHA...$PR_HEAD_SHA")"; then
+            # Fail safe in the *quiet* direction here, unlike the tests job.
+            # Sweeping every external URL because a diff failed would hit third
+            # parties harder on a pull request that may not touch sources at all,
+            # and this job is advisory. The skip is recorded, not hidden.
+            echo "Could not diff $PR_BASE_SHA...$PR_HEAD_SHA; not checking links on this run."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if ! grep -Fxq 'web/src/data/sources.json' <<< "$changed"; then
+            echo "No source record changed; there is no new URL to check."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # The base revision of the dataset, so the checker can tell a URL this
+          # pull request introduced from one that was already there. A pull
+          # request that adds the file outright has no base revision, and an
+          # empty baseline means "everything here is new", which is correct.
+          if ! git show "$PR_BASE_SHA:web/src/data/sources.json" > "$RUNNER_TEMP/baseline-sources.json" 2>/dev/null; then
+            echo '[]' > "$RUNNER_TEMP/baseline-sources.json"
+          fi
+
+          echo "Source records changed; checking the URLs this pull request introduced."
+          echo "run=true" >> "$GITHUB_OUTPUT"
+          echo "baseline=$RUNNER_TEMP/baseline-sources.json" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node.js
+        if: steps.scope.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the source links
+        id: check
+        if: steps.scope.outputs.run == 'true'
+        env:
+          BASELINE: ${{ steps.scope.outputs.baseline }}
+        run: |
+          # Deliberately not `set -e`: exit 1 means "found something actionable",
+          # which is a result rather than a failure, and the difference between
+          # that and exit 2 ("the checker could not run") is the whole point of
+          # capturing the code by hand.
+          set -uo pipefail
+
+          args=(--report "$RUNNER_TEMP/link-health.md" --json "$RUNNER_TEMP/link-health.json")
+          if [ -n "$BASELINE" ]; then
+            args+=(--baseline "$BASELINE")
+          fi
+
+          node .github/scripts/source-link-health/check-source-links.mjs "${args[@]}"
+          code=$?
+
+          if [ "$code" -ge 2 ]; then
+            echo "::error::The link checker could not run (exit $code). This is a fault in the checker or its inputs, not a finding about a source."
+            exit 1
+          fi
+
+          {
+            echo "ran=true"
+            echo "actionable=$(jq -r '.actionableUrls // 0' "$RUNNER_TEMP/link-health.json")"
+            echo "findings<<LINK_HEALTH_FINDINGS_EOF"
+            jq -c '.findings // []' "$RUNNER_TEMP/link-health.json"
+            echo "LINK_HEALTH_FINDINGS_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          cat "$RUNNER_TEMP/link-health.md" >> "$GITHUB_STEP_SUMMARY"
+
+      # The report as a downloadable artefact, so a scheduled run's full detail
+      # outlives the step summary and the maintenance issue can stay concise.
+      - name: Upload the report
+        if: always() && steps.check.outputs.ran == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-link-health-report
+          path: |
+            ${{ runner.temp }}/link-health.md
+            ${{ runner.temp }}/link-health.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+      # A pull request is answerable for the URLs it introduced, so this is the
+      # one place the check can go red -- and only ever for a source that is
+      # definitively gone, permanently moved, or unusable as a URL at all. A rate
+      # limit, an anti-bot 403, a timeout and a 5xx are all classified out of the
+      # actionable set by construction and cannot reach here, which is what makes
+      # this safe to run on pull requests without becoming noise.
+      #
+      # It stays advisory: this check is not required, so a red run is visible
+      # without blocking the merge.
+      - name: Report on the URLs this pull request introduced
+        if: github.event_name == 'pull_request' && steps.check.outputs.ran == 'true' && steps.check.outputs.actionable != '0'
+        run: |
+          echo "::error::This pull request introduces ${{ steps.check.outputs.actionable }} source URL(s) that are definitively broken or permanently moved. See the job summary; nothing was changed in the dataset."
+          exit 1
+
+      - name: Record that no link check was needed
+        if: steps.scope.outputs.run != 'true'
+        run: |
+          echo 'No change to `web/src/data/sources.json`, so no source URL needed checking.' >> "$GITHUB_STEP_SUMMARY"
+
+  # Opening and updating one maintenance issue, per issue #29's scope.
+  #
+  # The guard is deliberately narrow, and every clause earns its place:
+  #
+  #   * `github.event_name == 'schedule'` or an explicit opt-in on a manual
+  #     dispatch. A pull request run can never file an issue, however red it is,
+  #     so developing and testing this workflow cannot put anything into the
+  #     tracker.
+  #   * `github.repository`, so a fork's scheduled run files into its own
+  #     tracker or, more usually, nothing at all.
+  #   * `needs...ran == 'true'`, so a skipped check cannot report an empty
+  #     finding set as news.
+  #   * `actionable != '0'`, so the issue is opened only when there is something
+  #     a person can act on. Rate limits and timeouts are already excluded
+  #     upstream by the classifier.
+  maintenance-issue:
+    name: Open or update the link-health issue
+    needs: source-link-health
+    if: >-
+      github.repository == 'abdeslam-menacere/ModelTree' &&
+      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.file_issue)) &&
+      needs.source-link-health.outputs.ran == 'true' &&
+      needs.source-link-health.outputs.actionable != '0'
+    runs-on: ubuntu-latest
+    permissions:
+      # File and update the link-health issue, and nothing else. Every scope left
+      # out of a job-level block is `none`, so this job cannot read repository
+      # contents -- it never checks out -- and cannot write any.
+      issues: write
+    steps:
+      - name: Open or update the link-health issue
+        env:
+          # The job token, scoped by the permissions block above to issues only.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          FINDINGS: ${{ needs.source-link-health.outputs.findings }}
+          ACTIONABLE: ${{ needs.source-link-health.outputs.actionable }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          findings="${FINDINGS:-[]}"
+
+          {
+            echo "The source link-health sweep found $ACTIONABLE primary source URL(s) that no"
+            echo "longer resolve as recorded. **Nothing in the dataset has been changed** -"
+            echo "replacing a source URL is a reviewed human edit, and this workflow never makes"
+            echo "one."
+            echo
+            echo "- Sweep: $RUN_URL"
+            echo "- Full report: the \`source-link-health-report\` artefact on that run."
+            echo
+            echo "Rate limits, anti-bot refusals, timeouts and server errors are **not** listed"
+            echo "here. They say nothing about whether a source still exists, so they stay in the"
+            echo "report and out of this issue."
+            echo
+            echo "## Definitively broken"
+            echo
+            printf '%s' "$findings" | jq -r '
+              [.[] | select(.state == "broken")]
+              | if length == 0 then "None."
+                else .[] | "- [\(.title // .url)](\(.url)) - HTTP \(.status)\n  - Affected source records: \(.recordIds | map("`\(.)`") | join(", "))"
+                end'
+            echo
+            echo "## Permanently moved"
+            echo
+            printf '%s' "$findings" | jq -r '
+              [.[] | select(.state == "redirected")]
+              | if length == 0 then "None."
+                else .[] | "- [\(.title // .url)](\(.url)) - now at \(.finalUrl)\n  - Affected source records: \(.recordIds | map("`\(.)`") | join(", "))"
+                end'
+            echo
+            echo "## Expired exclusions"
+            echo
+            printf '%s' "$findings" | jq -r '
+              [.[] | select(.exclusionExpiredOn != null)]
+              | if length == 0 then "None."
+                else .[] | "- [\(.title // .url)](\(.url)) - exclusion expired \(.exclusionExpiredOn)\n  - Affected source records: \(.recordIds | map("`\(.)`") | join(", "))"
+                end'
+          } > "$RUNNER_TEMP/link-health-issue.md"
+
+          # Narrow with search, then match the title exactly, so a repeated sweep
+          # comments on the open report instead of filing a duplicate every week.
+          # This is the lookup `pages.yml` uses, deliberately character for
+          # character.
+          existing="$(gh issue list --repo "$REPO" --state open --search "\"$LINK_HEALTH_ISSUE_TITLE\" in:title" --json number,title \
+            | jq -r --arg t "$LINK_HEALTH_ISSUE_TITLE" 'map(select(.title == $t)) | .[0].number // empty')"
+
+          if [ -n "$existing" ]; then
+            echo "Commenting on existing issue #$existing."
+            gh issue comment "$existing" --repo "$REPO" --body-file "$RUNNER_TEMP/link-health-issue.md"
+          else
+            echo "Opening a new link-health issue."
+            gh issue create --repo "$REPO" --title "$LINK_HEALTH_ISSUE_TITLE" --body-file "$RUNNER_TEMP/link-health-issue.md"
+          fi
+
+  # An alert that never resolves is one you learn to ignore, which this
+  # repository has already paid for once in `pages.yml`. A sweep that finds
+  # nothing actionable answers the alert its predecessor raised.
+  #
+  # The same guard as above, for the same reasons, with `actionable == '0'`
+  # instead. A pull request run cannot reach here either: its check is targeted
+  # at the URLs that pull request introduced, so a clean one is no evidence at
+  # all about the rest of the dataset and must never close a sweep's alert.
+  #
+  # One limitation, stated rather than hidden: a URL that has stopped answering
+  # rather than recovering also produces `actionable == 0`, because a timeout is
+  # deliberately not a finding. That closes the alert a week early, and the next
+  # conclusive sweep reopens it. Refusing to close while any URL is unresolved
+  # would be the alternative, and on this dataset -- whose largest host groups
+  # rate-limit by default -- it would mean the alert essentially never closes,
+  # which is the failure being fixed rather than a safer version of it.
+  resolve-issue:
+    name: Resolve the link-health issue
+    needs: source-link-health
+    if: >-
+      github.repository == 'abdeslam-menacere/ModelTree' &&
+      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.file_issue)) &&
+      needs.source-link-health.outputs.ran == 'true' &&
+      needs.source-link-health.outputs.actionable == '0'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Close the link-health issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          existing="$(gh issue list --repo "$REPO" --state open --search "\"$LINK_HEALTH_ISSUE_TITLE\" in:title" --json number,title \
+            | jq -r --arg t "$LINK_HEALTH_ISSUE_TITLE" 'map(select(.title == $t)) | .[0].number // empty')"
+
+          if [ -z "$existing" ]; then
+            echo "No link-health issue is open; nothing to resolve."
+            exit 0
+          fi
+
+          {
+            echo "The source link-health sweep found nothing actionable: no recorded primary"
+            echo "source is definitively broken or permanently moved."
+            echo
+            echo "- Sweep: $RUN_URL"
+            echo
+            echo "A URL that has stopped answering altogether would also produce this result,"
+            echo "because a timeout is deliberately not treated as a finding. If that is what"
+            echo "happened, the next sweep reopens this."
+          } > "$RUNNER_TEMP/link-health-resolved.md"
+
+          echo "Resolving issue #$existing."
+          gh issue comment "$existing" --repo "$REPO" --body-file "$RUNNER_TEMP/link-health-resolved.md"
+          gh issue close "$existing" --repo "$REPO" --reason completed
