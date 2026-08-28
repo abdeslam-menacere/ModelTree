@@ -91,6 +91,9 @@ describe('organization type policy', () => {
       xai: 'company',
       'mistral-ai': 'company',
       deepseek: 'company',
+      'alibaba-cloud': 'company',
+      microsoft: 'company',
+      amazon: 'company',
     });
   });
 
@@ -162,6 +165,33 @@ describe('organization type policy', () => {
       },
       deepseek: {
         facts: { offersPaidModelProductsOrAccess: true },
+        type: 'company',
+        clause: 'paid-company',
+      },
+      'alibaba-cloud': {
+        facts: {
+          offersPaidModelProductsOrAccess: true,
+          institutionControlsReleases: true,
+          primarilyResearch: false,
+        },
+        type: 'company',
+        clause: 'paid-company',
+      },
+      microsoft: {
+        facts: {
+          offersPaidModelProductsOrAccess: true,
+          institutionControlsReleases: true,
+          primarilyResearch: false,
+        },
+        type: 'company',
+        clause: 'paid-company',
+      },
+      amazon: {
+        facts: {
+          offersPaidModelProductsOrAccess: true,
+          institutionControlsReleases: true,
+          primarilyResearch: false,
+        },
         type: 'company',
         clause: 'paid-company',
       },
