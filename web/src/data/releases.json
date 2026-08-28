@@ -171,7 +171,8 @@
     "maximumOutput": 128000,
     "apiAliases": [
       "gpt-5.6-sol",
-      "gpt-5.6"
+      "gpt-5.6",
+      "gpt-daybreak-blue-latest"
     ],
     "predecessorIds": [],
     "successorIds": [],
@@ -185,9 +186,10 @@
     "sourceIds": [
       "openai-gpt-5-6-launch",
       "openai-gpt-5-6-sol-docs",
-      "openai-gpt-5-6-sol-preview"
+      "openai-gpt-5-6-sol-preview",
+      "openai-gpt-daybreak-blue-docs"
     ],
-    "verifiedAt": "2026-08-27"
+    "verifiedAt": "2026-08-28"
   },
   {
     "id": "openai-gpt-5-6-terra",
@@ -1079,7 +1081,8 @@
     "contextWindow": 400000,
     "maximumOutput": 128000,
     "apiAliases": [
-      "gpt-5.6-cyber"
+      "gpt-5.6-cyber",
+      "gpt-daybreak-red-latest"
     ],
     "predecessorIds": [],
     "successorIds": [],
@@ -1089,9 +1092,10 @@
     "intendedUse": "Authorized, governed cybersecurity work - vulnerability research, exploit validation, and security testing - by defenders approved for OpenAI's Daybreak program.",
     "sourceIds": [
       "openai-gpt-5-6-cyber-docs",
-      "openai-news-rss"
+      "openai-news-rss",
+      "openai-gpt-daybreak-red-docs"
     ],
-    "verifiedAt": "2026-08-26"
+    "verifiedAt": "2026-08-28"
   },
   {
     "id": "openai-gpt-5-1",
@@ -1446,7 +1450,7 @@
       "google-gemini-3-7-flash-platform-docs",
       "google-gemini-deprecations"
     ],
-    "verifiedAt": "2026-08-26"
+    "verifiedAt": "2026-08-28"
   },
   {
     "id": "meta-muse-spark",
@@ -2297,6 +2301,316 @@
     "sourceIds": [
       "deepseek-v3-2-model-card",
       "hugging-face-deepseek-v3-2-hub-record"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "anthropic-claude-opus-4-6",
+    "slug": "claude-opus-4-6",
+    "canonicalName": "Claude Opus 4.6",
+    "displayName": "Claude Opus 4.6",
+    "organizationId": "anthropic",
+    "familyId": "anthropic-claude-4-6",
+    "version": "4.6",
+    "variant": "Opus",
+    "releaseDate": "2026-02-05",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 1000000,
+    "apiAliases": [
+      "claude-opus-4-6"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "The Opus tier of the Claude 4.6 generation, announced on 5 February 2026. Anthropic describes it as improving on its predecessor for coding, planning, longer agentic tasks, larger codebases, code review, and debugging, and states that it carries a 1M token context window in beta. It is served through the Claude API as claude-opus-4-6 and is listed as Active, with a tentative retirement no sooner than 5 February 2027. Input and output modalities are recorded as text only because the announcement does not state image input for this release.",
+    "intendedUse": "Coding, agentic work over longer horizons, and everyday knowledge-work tasks such as financial analysis, research, and working with documents, spreadsheets, and presentations.",
+    "sourceIds": [
+      "anthropic-opus-4-6-announcement",
+      "anthropic-model-deprecations"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "anthropic-claude-opus-4-7",
+    "slug": "claude-opus-4-7",
+    "canonicalName": "Claude Opus 4.7",
+    "displayName": "Claude Opus 4.7",
+    "organizationId": "anthropic",
+    "familyId": "anthropic-claude-4-7",
+    "version": "4.7",
+    "variant": "Opus",
+    "releaseDate": "2026-04-16",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "apiAliases": [
+      "claude-opus-4-7"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "The Opus tier of the Claude 4.7 generation, announced as generally available on 16 April 2026. Anthropic describes gains in advanced software engineering, long-running task handling, instruction following, and self-verification, and states that the model can see images in greater resolution, which is the basis for recording image input. It is served through the Claude API as claude-opus-4-7 and is listed as Active, with a tentative retirement no sooner than 16 April 2027. No context window is recorded because the announcement does not state one.",
+    "intendedUse": "Advanced software engineering and complex, long-running agentic tasks, including work involving higher-resolution image input.",
+    "sourceIds": [
+      "anthropic-opus-4-7-announcement",
+      "anthropic-model-deprecations"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "alibaba-qwen3-8-2-4t-a95b",
+    "slug": "qwen3-8-2-4t-a95b",
+    "canonicalName": "Qwen3.8-2.4T-A95B",
+    "displayName": "Qwen3.8-2.4T-A95B",
+    "organizationId": "alibaba-cloud",
+    "familyId": "qwen3-8",
+    "version": "3.8",
+    "variant": "2.4T-A95B",
+    "releaseDate": "2026-08-12",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": true,
+    "featuredRationale": "Alibaba Cloud’s flagship Qwen3.8 release and the anchor for the creator record that keeps Qwen attributed to Alibaba Cloud rather than to any cloud that hosts it.",
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Qwen3.8-Max License",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 2400,
+      "activeBillions": 95
+    },
+    "contextWindow": 262144,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [
+      "alibaba-qwen3-8-27b"
+    ],
+    "derivedFromIds": [],
+    "summary": "The flagship Qwen3.8 model, a sparse mixture-of-experts system its card states as \"2.4T in total and 95B activated\" parameters with a native context length of 262,144 tokens, published as downloadable weights under a licence of Alibaba Cloud’s own drafting. The card distinguishes these weights from Qwen3.8-Max, a hosted version with additional features; only the weights are recorded here.",
+    "intendedUse": "Text generation, coding and long-context work, run from the published weights rather than from a hosted endpoint.",
+    "sourceIds": [
+      "qwen3-8-2-4t-a95b-model-card",
+      "qwen3-8-repository"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "alibaba-qwen3-8-27b",
+    "slug": "qwen3-8-27b",
+    "canonicalName": "Qwen3.8-27B",
+    "displayName": "Qwen3.8-27B",
+    "organizationId": "alibaba-cloud",
+    "familyId": "qwen3-8",
+    "version": "3.8",
+    "variant": "27B",
+    "releaseDate": "2026-08-14",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": true,
+    "featuredRationale": "The dense Qwen3.8 vision-language release, and the model Amazon’s own announcement calls \"Alibaba’s Qwen 3.8-27B\" while offering it on Amazon SageMaker JumpStart — the clearest evidence in this dataset that availability is not authorship.",
+    "categories": [
+      "multimodal-generalist",
+      "coding",
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 27
+    },
+    "contextWindow": 262144,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [
+      "alibaba-qwen3-8-2-4t-a95b"
+    ],
+    "derivedFromIds": [],
+    "summary": "A dense 27B vision-language model in the Qwen3.8 generation, released under Apache-2.0 with a native context length of 262,144 tokens. Its card gives an image-text-to-text pipeline, which is what this record states; Amazon’s hosting announcement also claims video understanding, and the creator’s narrower statement is preferred.",
+    "intendedUse": "Multimodal understanding over text and images, coding and agentic tasks, either from the published weights or through a platform that hosts them.",
+    "sourceIds": [
+      "qwen3-8-27b-model-card",
+      "qwen3-8-repository"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "microsoft-mai-thinking-1",
+    "slug": "mai-thinking-1",
+    "canonicalName": "MAI-Thinking-1",
+    "displayName": "MAI-Thinking-1",
+    "organizationId": "microsoft",
+    "familyId": "microsoft-mai",
+    "version": "1",
+    "variant": "Thinking",
+    "releaseDate": "2026-08-12",
+    "datePrecision": "day",
+    "status": "preview",
+    "featured": true,
+    "featuredRationale": "Microsoft AI’s own reasoning model, and the record that shows what a Microsoft-created model looks like next to the Copilot product and the Microsoft Foundry platform.",
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "parameters": {
+      "activeBillions": 35
+    },
+    "contextWindow": 256000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "Microsoft AI’s reasoning model, announced as \"a 35B-active, ~1T-total parameters, sparse Mixture of Experts model\" supporting \"a 256k token window\" and available in public preview on Microsoft Foundry. The approximate total parameter count is not recorded, because the announcement gives it only as an approximation and this dataset does not round a hedge into a number.",
+    "intendedUse": "Reasoning over mathematics, knowledge and agentic coding tasks through a hosted endpoint.",
+    "sourceIds": [
+      "microsoft-mai-thinking-1-announcement"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "microsoft-fara-1-5-27b",
+    "slug": "fara-1-5-27b",
+    "canonicalName": "Fara1.5-27B",
+    "displayName": "Fara1.5-27B",
+    "organizationId": "microsoft",
+    "familyId": "microsoft-fara",
+    "version": "1.5",
+    "variant": "27B",
+    "releaseDate": "2026-05-21",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "MIT License",
+      "spdxId": "MIT",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 27
+    },
+    "contextWindow": 262144,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "A computer-use agent model from Microsoft Research AI Frontiers that takes a text goal plus screenshots and emits reasoning followed by a tool call, released under the MIT licence with a 262,144-token context length. Its card states it was \"supervised fine-tuned from Qwen3.5-27B\", a model created by Alibaba Cloud; Microsoft created Fara1.5-27B and Alibaba Cloud created the base it started from, and neither fact makes either the author of the other’s work. Qwen3.5-27B is not recorded in this dataset, so the derivation is stated here rather than linked.",
+    "intendedUse": "Completing end-to-end web tasks from screenshots, inside the agent harness its card recommends.",
+    "sourceIds": [
+      "microsoft-fara-1-5-27b-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "amazon-nova-2-sonic",
+    "slug": "amazon-nova-2-sonic",
+    "canonicalName": "Amazon Nova 2 Sonic",
+    "displayName": "Amazon Nova 2 Sonic",
+    "organizationId": "amazon",
+    "familyId": "amazon-nova-2",
+    "version": "2",
+    "variant": "Sonic",
+    "releaseDate": "2025-12-02",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": true,
+    "featuredRationale": "Amazon’s own speech-to-speech model, recorded to show that Amazon creates model families as well as operating the Bedrock platform on which hundreds of other companies’ models are served.",
+    "categories": [
+      "audio-speech"
+    ],
+    "inputModalities": [
+      "audio",
+      "text"
+    ],
+    "outputModalities": [
+      "audio",
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 1000000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "Amazon’s speech-to-speech model for real-time conversational AI, which AWS says \"unifies speech understanding and generation into a single model\" and which adds \"cross-modal interaction, allowing users to seamlessly switch between voice and text in the same session\" with \"a one-million token context window\". It is served through Amazon Bedrock, which Amazon also operates; the model and the platform are separate records here even though one company is behind both.",
+    "intendedUse": "Real-time voice applications built on a bidirectional streaming API, such as conversational assistants and voice-driven support.",
+    "sourceIds": [
+      "amazon-nova-2-sonic-announcement",
+      "amazon-nova-models-page"
     ],
     "verifiedAt": "2026-08-28"
   }

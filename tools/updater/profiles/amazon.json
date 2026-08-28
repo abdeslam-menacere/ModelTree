@@ -1,0 +1,121 @@
+{
+  "creator": {
+    "id": "amazon",
+    "name": "Amazon",
+    "type": "company",
+    "aliases": ["Amazon Web Services", "AWS"]
+  },
+  "notes": [
+    "Reviewed creator profile for Amazon, the creator of the Nova family. Seeds are canonical Amazon-owned URLs; the tool describes and never fetches them.",
+    "Amazon is the hardest case in this set for the availability-is-not-ownership rule, because the same host publishes both its authorship claims and its catalogue of other companies' models. The source catalog below states, per origin, which of the two it is approved for."
+  ],
+  "terminology": {
+    "family": "Amazon's model family is Nova, versioned by generation: Nova, then Nova 2. The name Amazon Nova also covers a wider portfolio that includes services, which are not models.",
+    "release": "A named model within a generation, e.g. Amazon Nova 2 Sonic or Amazon Nova 2 Lite. The suffix is a role within the generation, not a separate family.",
+    "product": "Nova Act and Nova Forge are services built on Nova models. They carry the Nova name and are products, not releases.",
+    "serving": "Amazon Bedrock is Amazon's platform for serving foundation models, its own and other companies'. Amazon SageMaker JumpStart is a model hub that offers other creators' weights for deployment."
+  },
+  "naming_rules": [
+    {
+      "subject": "family",
+      "rule": "The family is the Nova generation. Record the role models within it as releases.",
+      "example": "Nova 2 Lite, Nova 2 Pro and Nova 2 Sonic are all releases in the Amazon Nova 2 family."
+    },
+    {
+      "subject": "release",
+      "rule": "Use the full name AWS writes, including the Amazon prefix.",
+      "example": "Amazon Nova 2 Sonic, not Nova Sonic 2 — the announcement itself uses both orders, and the product page's order is the canonical one."
+    },
+    {
+      "subject": "product",
+      "rule": "A Nova-named service is not a release, even when a source names the model behind it.",
+      "example": "Nova Act is described as \"powered by a custom Nova 2 Lite model\"; that is a fact about the product, not a new model."
+    },
+    {
+      "subject": "serving-platform",
+      "rule": "Bedrock and SageMaker JumpStart are serving platforms operated by Amazon. Their catalogues never make Amazon the creator of what they list.",
+      "example": "Qwen 3.8-27B on SageMaker JumpStart is a deployment of an Alibaba Cloud release."
+    }
+  ],
+  "source_catalog": [
+    {
+      "id": "aws-whats-new",
+      "owner": "Amazon Web Services",
+      "url": "https://aws.amazon.com/about-aws/whats-new/",
+      "kind": "official-announcement",
+      "allowed_paths": ["/about-aws/whats-new"],
+      "allowed_content_types": ["announcement", "model-release"],
+      "trust": "primary",
+      "trust_notes": "AWS's dated announcement feed. Authoritative for release dates, regional availability and the capabilities an announcement states. Each item carries an explicit posted date on the page.",
+      "verified_at": "2026-08-28",
+      "verification": "Reached 2026-08-28. Items are also queryable at https://aws.amazon.com/api/dirs/items/search?item.directoryId=whats-new-v2, which returns a postDateTime per item and is the reliable way to date one."
+    },
+    {
+      "id": "aws-nova",
+      "owner": "Amazon Web Services",
+      "url": "https://aws.amazon.com/nova/",
+      "kind": "official-docs",
+      "allowed_paths": ["/nova"],
+      "allowed_content_types": ["model-reference", "product-overview"],
+      "trust": "primary",
+      "trust_notes": "Amazon's Nova pages. Authoritative for which Nova models are current and for Amazon's own authorship statement. It presents models and services on the same page, so read the wording rather than the Nova name.",
+      "verified_at": "2026-08-28",
+      "verification": "Reached 2026-08-28; /nova/models/ lists Nova 2 Lite, Nova 2 Sonic and Nova Multimodal Embeddings, and /nova/ states the portfolio is \"built on AI technologies originally developed for Amazon's internal applications\"."
+    },
+    {
+      "id": "aws-serving-platforms",
+      "owner": "Amazon Web Services",
+      "url": "https://aws.amazon.com/bedrock/",
+      "kind": "official-docs",
+      "allowed_paths": ["/bedrock", "/sagemaker/ai/jumpstart"],
+      "allowed_content_types": ["platform-reference"],
+      "trust": "primary",
+      "trust_notes": "Approved for platform and deployment facts only, and explicitly not for authorship. Bedrock's own page offers \"hundreds of FMs from leading AI companies\", so a model's presence here says who serves it and nothing about who built it.",
+      "verified_at": "2026-08-28",
+      "verification": "Reached 2026-08-28. https://aws.amazon.com/sagemaker/jumpstart/ redirects to https://aws.amazon.com/sagemaker/ai/jumpstart/, which is the path recorded here."
+    }
+  ],
+  "extraction_rules": {
+    "entity_kinds": [
+      "organization",
+      "family",
+      "release",
+      "product",
+      "serving-platform",
+      "deployment"
+    ],
+    "notes": [
+      "Take dates from the posted-on line of a What's New item, never from the year and month in its URL path; the two disagree in practice.",
+      "Record a release only where a source states its input and output modalities. Several Nova 2 models are announced without them and are left out rather than guessed at.",
+      "Record Bedrock regional availability on the deployment, using the region names the announcement writes rather than translating them into region codes.",
+      "Another creator's model appearing in Bedrock or SageMaker JumpStart yields a deployment against an existing serving platform, and never an organization or a family."
+    ]
+  },
+  "ambiguities": [
+    {
+      "topic": "Amazon versus AWS as the announcing entity",
+      "note": "The same feed writes \"Today AWS announces Amazon Nova 2\" and \"Today, Amazon announces the availability of Amazon Nova 2 Sonic\". AWS is Amazon's cloud arm and publishes the material.",
+      "guidance": "One creator record for Amazon, with Amazon Web Services recorded as the publisher. Do not create a second organization for AWS."
+    },
+    {
+      "topic": "Nova names a portfolio, not only models",
+      "note": "The Nova overview page describes \"a portfolio of AI offerings\" that includes Nova Forge and Nova Act, which are services.",
+      "guidance": "Only entries the page presents as foundation models become releases. The rest are products, if they are recorded at all."
+    },
+    {
+      "topic": "Models announced without modalities",
+      "note": "Nova 2 Lite and Nova 2 Pro are announced with a context window, tool support and thinking levels, but with no explicit input or output modality.",
+      "guidance": "Withhold the release. The schema has no unknown modality, and a chat-shaped description is not a modality statement."
+    },
+    {
+      "topic": "URL path date disagrees with the posted date",
+      "note": "The SageMaker JumpStart item announcing Qwen 3.8-27B sits under a /2026/01/ path while the page reads \"Posted on: Aug 27, 2026\".",
+      "guidance": "Trust the stated date. The path segment is not a publication date and must never be read as one."
+    },
+    {
+      "topic": "Page content hashes are unstable",
+      "note": "aws.amazon.com returns a different body hash on each request for the same unchanged page, at the same byte length.",
+      "guidance": "Do not treat an AWS content hash as evidence a page changed. Compare the stated dates and the extracted text instead."
+    }
+  ]
+}

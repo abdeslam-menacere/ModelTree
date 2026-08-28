@@ -102,5 +102,50 @@
       "deepseek-v4-pro-model-card"
     ],
     "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "alibaba-cloud",
+    "slug": "alibaba-cloud",
+    "name": "Alibaba Cloud",
+    "shortName": "Alibaba Cloud",
+    "type": "company",
+    "website": "https://qwen.ai/",
+    "releasePage": "https://github.com/QwenLM/Qwen3.8",
+    "description": "The creator of the Qwen model family. The Qwen team’s own Hugging Face organization states that Qwen \"refers to the large language model family built by Alibaba Cloud\", and this dataset records Alibaba Cloud as the creator on that basis. The team does not write the attribution identically everywhere: the QwenLM/Qwen3.8 repository credits \"Qwen team, Alibaba Group\", the parent company, while the Hugging Face profile credits Alibaba Cloud. That conflict is recorded rather than resolved. Qwen models are offered by clouds Alibaba Cloud does not operate, including Amazon SageMaker JumpStart; being served somewhere is never evidence of who built the model.",
+    "sourceIds": [
+      "qwen-hugging-face-organization",
+      "qwen3-8-repository"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "microsoft",
+    "slug": "microsoft",
+    "name": "Microsoft",
+    "shortName": "Microsoft",
+    "type": "company",
+    "website": "https://microsoft.ai/",
+    "releasePage": "https://microsoft.ai/blog/",
+    "description": "A company that occupies three roles this dataset keeps apart. It creates model families, through Microsoft AI, which builds the MAI line, and through Microsoft Research, which publishes the Fara line; those are the only Microsoft records treated as models. It ships Microsoft Copilot, which is a product and is recorded as one. It operates Microsoft Foundry, which is a serving platform and is recorded as one. A model appearing in Microsoft Foundry is a deployment fact and never evidence that Microsoft created it.",
+    "sourceIds": [
+      "microsoft-ai-models-page",
+      "microsoft-mai-thinking-1-announcement"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "amazon",
+    "slug": "amazon",
+    "name": "Amazon",
+    "shortName": "Amazon",
+    "type": "company",
+    "website": "https://aws.amazon.com/",
+    "releasePage": "https://aws.amazon.com/nova/models/",
+    "description": "The creator of the Amazon Nova model family, which AWS states is \"built on AI technologies originally developed for Amazon’s internal applications\". Amazon also operates Amazon Bedrock and Amazon SageMaker JumpStart, which serve models created by other organizations — Bedrock’s own page offers \"hundreds of FMs from leading AI companies\" — and this dataset records those as serving platforms, never as evidence of authorship. Amazon’s announcements are published by Amazon Web Services, whose wording alternates between naming Amazon and naming AWS as the announcing entity.",
+    "sourceIds": [
+      "amazon-nova-overview",
+      "amazon-nova-2-bedrock-announcement"
+    ],
+    "verifiedAt": "2026-08-28"
   }
 ]
