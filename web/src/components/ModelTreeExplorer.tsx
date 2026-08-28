@@ -5,7 +5,7 @@ import {
   restoreModelTreeSelection,
   toggleModelTreeBranch,
 } from '../lib/model-tree';
-import { accessLabel, formatDate, statusLabel } from '../lib/format';
+import { accessLabel, formatDate, formatReleaseDate, statusLabel } from '../lib/format';
 import { createModelSelectionUrl, readOptionalSelectedModel } from '../lib/selection';
 
 interface SourceSummary {
@@ -108,7 +108,7 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
                             onClick={() => selectRelease(release.id)}
                           >
                             <strong>{release.displayName}</strong>
-                            <span>{formatDate(release.releaseDate)} · {statusLabel(release.status)}</span>
+                            <span>{formatReleaseDate(release.releaseDate, release.datePrecision)} · {statusLabel(release.status)}</span>
                           </button>
                           <a href={`${normalizedBase}models/${release.slug}/`}>
                             Passport<span className="visually-hidden"> for {release.displayName}</span>
@@ -195,7 +195,7 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
               <h2 id="model-tree-heading">{selected.release.displayName}</h2>
               <p>{selected.release.summary}</p>
               <dl>
-                <div><dt>Released</dt><dd>{formatDate(selected.release.releaseDate)}</dd></div>
+                <div><dt>Released</dt><dd>{formatReleaseDate(selected.release.releaseDate, selected.release.datePrecision)}</dd></div>
                 <div><dt>Status</dt><dd>{statusLabel(selected.release.status)}</dd></div>
                 <div><dt>Access</dt><dd>{accessLabel(selected.release.accessType)}</dd></div>
                 <div><dt>Verified</dt><dd>{formatDate(selected.release.verifiedAt)}</dd></div>

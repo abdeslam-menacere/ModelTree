@@ -1,4 +1,5 @@
-import type { Dataset } from '../data/schema';
+import type { Dataset, DatePrecision } from '../data/schema';
+import { comparePartialDatesDescending } from '../data/partial-date';
 import { accessLabel, categoryLabel, statusLabel } from './format';
 import { buildLineageEcosystems } from './lineage-view';
 
@@ -25,6 +26,7 @@ export interface ModelIndexRow {
   familySlug: string;
   familyName: string;
   releaseDate: string;
+  datePrecision: DatePrecision;
   status: string;
   accessType: string;
   categories: string[];
@@ -83,6 +85,7 @@ export interface CatalogFacets {
 export interface ReleaseDateRow {
   slug: string;
   releaseDate: string;
+  datePrecision: DatePrecision;
   year: number;
   route: string;
 }
@@ -168,7 +171,8 @@ function countFacet(
 }
 
 const MODEL_COMPARATORS: Record<ModelSort, (a: ModelIndexRow, b: ModelIndexRow) => number> = {
-  'release-date': (a, b) => compare(b.releaseDate, a.releaseDate) || compare(a.slug, b.slug),
+  'release-date': (a, b) => comparePartialDatesDescending(a.releaseDate, b.releaseDate)
+    || compare(a.slug, b.slug),
   name: (a, b) => compare(a.name, b.name) || compare(a.slug, b.slug),
   'recently-verified': (a, b) => compare(b.verifiedAt, a.verifiedAt) || compare(a.slug, b.slug),
 };
@@ -220,6 +224,7 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
       familySlug: family.slug,
       familyName: family.name,
       releaseDate: release.releaseDate,
+      datePrecision: release.datePrecision,
       status: release.status,
       accessType: release.accessType,
       categories: [...release.categories].sort(compare),
@@ -350,6 +355,9 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
   const releaseDates: ReleaseDateRow[] = sortedModels.map((model) => ({
     slug: model.slug,
     releaseDate: model.releaseDate,
+    datePrecision: model.datePrecision,
+    // The year is the first four characters at every precision, so this reads
+    // the same fact from `2026`, `2026-03` and `2026-03-14` alike.
     year: Number(model.releaseDate.slice(0, 4)),
     route: model.route,
   }));
