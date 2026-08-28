@@ -6,6 +6,13 @@ interface Props {
   evidence: UsageEvidenceView;
   releaseName: string;
   headingId?: string;
+  /**
+   * Position in the passport's section sequence. Passed in because sections
+   * ahead of this one disappear when they hold no records, so a number fixed
+   * here would leave a gap in the sequence a reader sees. The default preserves
+   * the position this section had when it was the fourth of six.
+   */
+  sectionNumber?: string;
 }
 
 function formatWindow(start: string, end: string) {
@@ -125,11 +132,16 @@ function EvidenceGroup({ group }: { group: UsageEvidenceGroup }) {
   );
 }
 
-export default function UsageEvidence({ evidence, releaseName, headingId = 'usage-title' }: Props) {
+export default function UsageEvidence({
+  evidence,
+  releaseName,
+  headingId = 'usage-title',
+  sectionNumber = '04',
+}: Props) {
   return (
     <section className="passport-section usage-section" aria-labelledby={headingId}>
       <div className="section-heading">
-        <span className="section-number">04</span>
+        <span className="section-number">{sectionNumber}</span>
         <div>
           <span className="eyebrow">Usage evidence</span>
           <h2 id={headingId}>Who reports using it</h2>
