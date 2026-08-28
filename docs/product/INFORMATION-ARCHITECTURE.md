@@ -126,10 +126,12 @@ model, or open-weight into open-source.
 
 An organization's required `type` is an editorial functional category, not a
 sourced statement of legal form and not a ranking. The first matching category
-wins: `community` when open contributors govern release decisions instead of one
-organization; `research-lab` when the recorded entity is a dedicated research
-unit, even inside a company; `nonprofit` when a centrally governed nonprofit is
-neither such a lab nor a seller of model products or access; otherwise `company`
-when a commercial operator runs the model work or sells it under its name. The
-review rubric applies this observable decision procedure without requiring a
-primary-source quote to use the category's exact words.
+wins: `community` when independent contributors outside any one entity's
+employment or appointment chain can initiate and decide its model releases, not
+merely submit work; `research-lab` when one standalone institution or named unit
+controls releases and exists primarily for research, even inside a parent
+company; `nonprofit` when a centrally governed nonprofit is neither such a lab
+nor a seller of model products or access; otherwise `company` when a commercial
+operator runs or sells the model work. The review rubric applies this observable
+decision procedure without requiring a primary-source quote to use the
+category's exact words.

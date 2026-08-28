@@ -45,6 +45,12 @@ describe('organization type policy', () => {
     expect(policy).toBeDefined();
     expect(policy).toContain('not a sourced claim');
     expect(policy).toContain('Choose the first');
+    expect(policy).toContain("outside any one entity's");
+    expect(policy).toContain('can initiate and decide its model releases');
+    expect(policy).toContain('not merely submit work');
+    expect(policy).toContain('one standalone institution or');
+    expect(policy).toContain('named unit controls releases');
+    expect(policy).toContain('exists primarily for research');
     const categoryOffsets = ['`community`', '`research-lab`', '`nonprofit`', '`company`'].map(
       (category) => policy!.indexOf(category),
     );
