@@ -522,6 +522,7 @@
       "multimodal-generalist"
     ],
     "firstReleaseDate": "2026-08-12",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "qwen3-8-repository",
@@ -542,6 +543,7 @@
       "image"
     ],
     "firstReleaseDate": "2025-08-28",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "microsoft-two-in-house-models",
@@ -559,6 +561,7 @@
       "multimodal-generalist"
     ],
     "firstReleaseDate": "2025-11-24",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "microsoft-fara-1-5-27b-model-card",
@@ -577,6 +580,7 @@
       "audio-speech"
     ],
     "firstReleaseDate": "2025-12-02",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "amazon-nova-2-bedrock-announcement",
