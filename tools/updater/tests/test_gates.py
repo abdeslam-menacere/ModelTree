@@ -82,12 +82,12 @@ def _claim(**overrides) -> ClaimCandidate:
     return ClaimCandidate(evidence=evidence, **values)
 
 
-def _run(claim: ClaimCandidate, *, approved=frozenset({"contoso-ai-notes"}), sources=None):
+def _run(claim: ClaimCandidate, *, approved=frozenset({"contoso-ai-notes"}), sources=None, claims=None):
     return run_claim_gates(
         claim,
         creator=CREATOR,
         sources=sources if sources is not None else [_source()],
-        claims=[claim],
+        claims=claims if claims is not None else [claim],
         approved_source_ids=approved,
         checked_at=CHECKED_AT,
     )
@@ -138,10 +138,105 @@ def test_an_unsafe_evidence_url_fails_the_url_gate() -> None:
     assert _gate(results, GATE_URL_SAFETY).status is GateStatus.FAILED
 
 
-def test_an_imprecise_date_fails_both_schema_and_date_gates() -> None:
+def test_a_prose_date_fails_both_schema_and_date_gates() -> None:
+    """Prose is refused because reading it means guessing. `2026-03` is not prose."""
     results = _run(_claim(field_path="releaseDate", value="March 2026"))
 
     assert _gate(results, GATE_SCHEMA).status is GateStatus.FAILED
+    assert _gate(results, GATE_DATES).status is GateStatus.FAILED
+
+
+def test_a_date_a_source_stated_to_the_month_or_year_passes() -> None:
+    """The rule this issue exists to change. `2026-03` is a fact; `2026-03-01` is not."""
+    for field_path, entity_kind in (
+        ("releaseDate", EntityKind.RELEASE),
+        ("firstReleaseDate", EntityKind.FAMILY),
+    ):
+        for value in ("2026", "2026-03", "2026-03-14"):
+            results = _run(
+                _claim(entity_kind=entity_kind, field_path=field_path, value=value)
+            )
+
+            assert _gate(results, GATE_DATES).status is GateStatus.PASSED, (field_path, value)
+            assert _gate(results, GATE_SCHEMA).status is GateStatus.PASSED, (field_path, value)
+
+
+def test_a_less_precise_date_is_still_held_to_the_plausible_range() -> None:
+    """Widening precision must not widen the window. Both bounds read the year."""
+    ancient = _run(_claim(field_path="releaseDate", value="1900"))
+    distant = _run(_claim(field_path="releaseDate", value="2099"))
+    fine = _run(_claim(field_path="releaseDate", value="2027"))
+
+    assert _gate(ancient, GATE_DATES).status is GateStatus.FAILED
+    assert _gate(distant, GATE_DATES).status is GateStatus.FAILED
+    assert _gate(fine, GATE_DATES).status is GateStatus.PASSED
+
+
+def test_an_impossible_partial_date_is_refused() -> None:
+    for value in ("2026-13", "2026-00"):
+        results = _run(_claim(field_path="releaseDate", value=value))
+
+        assert _gate(results, GATE_DATES).status is GateStatus.FAILED, value
+
+
+def _date_and_precision(date_value: str, precision: str):
+    """One entity proposing a date and its precision, as a scout would emit them."""
+    date_claim = _claim(
+        id="contoso-ai-atlas-3-release-date", field_path="releaseDate", value=date_value
+    )
+    precision_claim = _claim(
+        id="contoso-ai-atlas-3-date-precision", field_path="datePrecision", value=precision
+    )
+    return date_claim, precision_claim
+
+
+def test_a_date_and_its_precision_must_agree_and_both_claims_fail_if_not() -> None:
+    """The invented-day path: `2026-03-14` labelled `month` states a day nobody published.
+
+    Both claims are checked, because approving either alone would land the very
+    disagreement this refuses.
+    """
+    date_claim, precision_claim = _date_and_precision("2026-03-14", "month")
+    batch = [date_claim, precision_claim]
+
+    assert _gate(_run(date_claim, claims=batch), GATE_DATES).status is GateStatus.FAILED
+    assert _gate(_run(precision_claim, claims=batch), GATE_DATES).status is GateStatus.FAILED
+
+
+def test_a_date_matching_its_declared_precision_passes() -> None:
+    """The positive control: without it the test above would pass on a broken gate."""
+    for value, precision in (("2026", "year"), ("2026-03", "month"), ("2026-03-14", "day")):
+        date_claim, precision_claim = _date_and_precision(value, precision)
+        batch = [date_claim, precision_claim]
+
+        assert _gate(_run(date_claim, claims=batch), GATE_DATES).status is GateStatus.PASSED, value
+        assert (
+            _gate(_run(precision_claim, claims=batch), GATE_DATES).status is GateStatus.PASSED
+        ), value
+
+
+def test_a_date_claim_alone_in_its_batch_is_not_faulted_for_a_missing_precision() -> None:
+    """The updater never reads the committed dataset, so absence proves nothing here.
+
+    A revision proposing only the date is judged against the record by the dataset
+    gate and by Zod, which do see whole records.
+    """
+    date_claim, _ = _date_and_precision("2026-03", "month")
+
+    assert _gate(_run(date_claim, claims=[date_claim]), GATE_DATES).status is GateStatus.PASSED
+
+
+def test_dates_we_observe_ourselves_are_still_exact() -> None:
+    """Only the two source-stated fields moved; evidence dates did not."""
+    evidence = Evidence(
+        source_id="contoso-ai-notes",
+        url="https://www.example.com/contoso-ai/releases",
+        quote="q",
+        content_hash="sha256:abc",
+        verified_at="2026-05",
+    )
+    results = _run(_claim(evidence=(evidence,)))
+
     assert _gate(results, GATE_DATES).status is GateStatus.FAILED
 
 

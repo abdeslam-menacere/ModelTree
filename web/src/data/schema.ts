@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DATE_PRECISIONS } from './partial-date';
 import {
   FAMILY_FACT_FIELDS,
   FIT_CLASSIFICATIONS,
@@ -32,7 +33,7 @@ export const partialDate = z.string().regex(/^\d{4}(-\d{2}(-\d{2})?)?$/).refine(
     && date.getUTCDate() === day;
 }, 'must be a real date written as YYYY, YYYY-MM, or YYYY-MM-DD');
 
-export const datePrecision = z.enum(['year', 'month', 'day']);
+export const datePrecision = z.enum(DATE_PRECISIONS);
 
 /**
  * `lifecycleStatus`, `modelCategory`, `accessType` and `modality` are a
@@ -189,6 +190,22 @@ export const organizationSchema = z.object({
   verifiedAt: isoDate,
 });
 
+/**
+ * `firstReleaseDate` is a date a *source* stated, so it is a `partialDate` and
+ * carries the precision that source supported. A creator that announces a
+ * family in month-precision prose is recorded at month precision rather than
+ * withheld, and the day is never filled in to satisfy the type.
+ *
+ * The companion is named `datePrecision`, matching `releaseSchema` below and
+ * `releaseEventSchema` further down. Both name the companion for the idea, not
+ * for the field beside it (`date` there, `releaseDate` here), so the shared
+ * name is the existing convention rather than a third one. A family holds
+ * exactly one source-stated date — `verifiedAt` is ours, and always a day — so
+ * there is nothing for the shorter name to be ambiguous between.
+ *
+ * `validateDataset` requires the value's shape and the declared precision to
+ * agree, which is what stops a `month` record from carrying an invented day.
+ */
 export const familySchema = z.object({
   id: entityId,
   slug,
@@ -196,7 +213,8 @@ export const familySchema = z.object({
   name: z.string().min(1),
   description: z.string().min(1),
   categories: z.array(modelCategory).min(1),
-  firstReleaseDate: isoDate,
+  firstReleaseDate: partialDate,
+  datePrecision,
   status: lifecycleStatus,
   sourceIds: z.array(entityId).min(1),
   verifiedAt: isoDate,
@@ -211,7 +229,7 @@ export const releaseSchema = z.object({
   familyId: entityId,
   version: z.string().min(1),
   variant: z.string().min(1),
-  releaseDate: isoDate,
+  releaseDate: partialDate,
   datePrecision,
   status: lifecycleStatus,
   featured: z.boolean(),
@@ -581,6 +599,7 @@ export const datasetSchema = z.object({
 });
 
 export type SourceReference = z.infer<typeof sourceSchema>;
+export type DatePrecision = z.infer<typeof datePrecision>;
 export type Publisher = z.infer<typeof publisherSchema>;
 export type Organization = z.infer<typeof organizationSchema>;
 export type ModelFamily = z.infer<typeof familySchema>;

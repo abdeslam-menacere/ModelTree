@@ -9,6 +9,14 @@ import {
   type UsageObservation,
 } from './schema';
 import { RUBRIC_DIMENSION_SUPPORT } from './model-fit-rubric';
+import {
+  earliestDay,
+  isDefinitelyAfter,
+  isDefinitelyBefore,
+  latestDay,
+  precisionMatchesValue,
+  type DatePrecision,
+} from './partial-date';
 
 export const PRIMARY_SOURCE_TYPES = new Set<SourceReference['type']>([
   'official-announcement',
@@ -29,21 +37,23 @@ export function comparabilityKey(observation: UsageObservation) {
   ].join('|');
 }
 
-/** The earliest and latest day a partial date could mean, so YYYY is not read as 1 January. */
-function earliestDay(value: string) {
-  const [year, month] = value.split('-');
-  return `${year}-${month ?? '01'}-01`;
-}
-
-function latestDay(value: string) {
-  const parts = value.split('-');
-  if (parts.length === 3) return value;
-  if (parts.length === 2) {
-    const [year, month] = parts.map(Number);
-    const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
-    return `${parts[0]}-${parts[1]}-${String(lastDay).padStart(2, '0')}`;
+/**
+ * A record that declares one precision and carries another states a date no
+ * source gave. Families, releases and release events all pair a `partialDate`
+ * with a `datePrecision`, and all three are held to this one rule rather than
+ * to three copies of it. This is what closes the invented-day path: a `month`
+ * record cannot smuggle a day in and then label it as though it had not.
+ */
+function addPrecisionIssue(
+  issues: string[],
+  owner: string,
+  field: string,
+  value: string,
+  precision: DatePrecision,
+) {
+  if (!precisionMatchesValue(value, precision)) {
+    issues.push(`${owner} ${field} "${value}" does not match precision "${precision}"`);
   }
-  return `${parts[0]}-12-31`;
 }
 
 /**
@@ -497,6 +507,16 @@ export function validateDataset(input: unknown): Dataset {
     if (!organizationById.has(family.organizationId)) {
       issues.push(`family ${family.id}.organizationId references missing id "${family.organizationId}"`);
     }
+    addPrecisionIssue(
+      issues,
+      `family ${family.id}`,
+      'firstReleaseDate',
+      family.firstReleaseDate,
+      family.datePrecision,
+    );
+    if (isDefinitelyAfter(family.firstReleaseDate, family.verifiedAt)) {
+      issues.push(`family ${family.id} was verified before its first release date`);
+    }
     addMissingReferences(issues, `family ${family.id}`, 'sourceIds', family.sourceIds, sourceIds);
   }
 
@@ -511,11 +531,22 @@ export function validateDataset(input: unknown): Dataset {
       if (family.organizationId !== release.organizationId) {
         issues.push(`release ${release.id} organization does not match family ${family.id}`);
       }
-      if (release.releaseDate < family.firstReleaseDate) {
+      // Only a *definite* contradiction is reported. Where the two intervals
+      // overlap — a day-precision release inside its family's month-precision
+      // first release — the sources leave the order open, and an open question
+      // is not an error to raise.
+      if (isDefinitelyBefore(release.releaseDate, family.firstReleaseDate)) {
         issues.push(`release ${release.id} predates family ${family.id}`);
       }
     }
-    if (release.releaseDate > release.verifiedAt) {
+    addPrecisionIssue(
+      issues,
+      `release ${release.id}`,
+      'releaseDate',
+      release.releaseDate,
+      release.datePrecision,
+    );
+    if (isDefinitelyAfter(release.releaseDate, release.verifiedAt)) {
       issues.push(`release ${release.id} was verified before its release date`);
     }
     addMissingReferences(issues, `release ${release.id}`, 'sourceIds', release.sourceIds, sourceIds);
@@ -642,12 +673,8 @@ export function validateDataset(input: unknown): Dataset {
     }
     addMissingReferences(issues, `release event ${event.id}`, 'sourceIds', event.sourceIds, sourceIds);
 
-    const segments = event.date.split('-').length;
-    const expected = { year: 1, month: 2, day: 3 }[event.datePrecision];
-    if (segments !== expected) {
-      issues.push(`release event ${event.id} date "${event.date}" does not match precision "${event.datePrecision}"`);
-    }
-    if (event.date > event.verifiedAt) {
+    addPrecisionIssue(issues, `release event ${event.id}`, 'date', event.date, event.datePrecision);
+    if (isDefinitelyAfter(event.date, event.verifiedAt)) {
       issues.push(`release event ${event.id} was verified before it happened`);
     }
   }
@@ -672,7 +699,7 @@ export function validateDataset(input: unknown): Dataset {
     if (earliestDay(observation.windowEnd) > observation.verifiedAt) {
       issues.push(`${owner} was verified before its measurement window ended`);
     }
-    if (release && latestDay(observation.windowStart) < release.releaseDate) {
+    if (release && isDefinitelyBefore(observation.windowStart, release.releaseDate)) {
       issues.push(`${owner} measures a window that precedes release ${release.id}`);
     }
 

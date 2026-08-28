@@ -11,6 +11,7 @@
       "coding"
     ],
     "firstReleaseDate": "2025-04-14",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "openai-gpt-4-1-announcement"
@@ -29,6 +30,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-07-09",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "openai-gpt-5-6-launch",
@@ -48,6 +50,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-04-23",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "openai-gpt-5-5-announcement",
@@ -67,6 +70,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-03-05",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "openai-gpt-5-4-announcement",
@@ -86,6 +90,7 @@
       "coding"
     ],
     "firstReleaseDate": "2025-08-07",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "openai-gpt-5-docs"
@@ -104,6 +109,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-06-09",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "anthropic-models-overview",
@@ -122,6 +128,7 @@
       "coding"
     ],
     "firstReleaseDate": "2025-09-29",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "anthropic-models-overview",
@@ -142,6 +149,7 @@
       "coding"
     ],
     "firstReleaseDate": "2025-11-18",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "google-gemini-deprecations",
@@ -160,6 +168,7 @@
       "multimodal-generalist"
     ],
     "firstReleaseDate": "2025-06-17",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "google-gemini-deprecations",
@@ -178,6 +187,7 @@
       "multimodal-generalist"
     ],
     "firstReleaseDate": "2025-04-05",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "meta-llama-4-announcement",
@@ -196,6 +206,7 @@
       "multimodal-generalist"
     ],
     "firstReleaseDate": "2024-07-23",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "meta-llama-collection",
@@ -216,6 +227,7 @@
       "video"
     ],
     "firstReleaseDate": "2026-04-08",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "meta-muse-spark-announcement",
@@ -236,6 +248,7 @@
       "coding"
     ],
     "firstReleaseDate": "2025-11-13",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "openai-news-rss",
@@ -255,6 +268,7 @@
       "coding"
     ],
     "firstReleaseDate": "2025-12-11",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "openai-news-rss",
@@ -273,6 +287,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-02-05",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "openai-news-rss",
@@ -290,6 +305,7 @@
       "image"
     ],
     "firstReleaseDate": "2026-04-21",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "openai-news-rss",
@@ -308,6 +324,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-02-05",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "anthropic-opus-4-6-announcement",
@@ -328,6 +345,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-04-16",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "anthropic-opus-4-7-announcement",
@@ -346,6 +364,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-05-28",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "anthropic-opus-4-8-announcement",
@@ -365,6 +384,7 @@
       "multimodal-generalist"
     ],
     "firstReleaseDate": "2025-07-09",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "xai-grok-4-announcement",
@@ -386,6 +406,7 @@
       "coding"
     ],
     "firstReleaseDate": "2025-12-02",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "mistral-3-announcement",
@@ -404,6 +425,7 @@
       "multimodal-generalist"
     ],
     "firstReleaseDate": "2025-12-02",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "mistral-3-announcement",
@@ -422,6 +444,7 @@
       "language-reasoning"
     ],
     "firstReleaseDate": "2025-12-09",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "mistral-devstral-2-announcement",
@@ -441,6 +464,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-03-16",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "mistral-small-4-announcement",
@@ -459,6 +483,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-04-22",
+    "datePrecision": "day",
     "status": "preview",
     "sourceIds": [
       "deepseek-v4-pro-model-card",
@@ -477,6 +502,7 @@
       "coding"
     ],
     "firstReleaseDate": "2025-12-01",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "deepseek-v3-2-model-card",
@@ -496,6 +522,7 @@
       "multimodal-generalist"
     ],
     "firstReleaseDate": "2026-08-12",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "qwen3-8-repository",
@@ -516,6 +543,7 @@
       "image"
     ],
     "firstReleaseDate": "2025-08-28",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "microsoft-two-in-house-models",
@@ -533,6 +561,7 @@
       "multimodal-generalist"
     ],
     "firstReleaseDate": "2025-11-24",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "microsoft-fara-1-5-27b-model-card",
@@ -551,6 +580,7 @@
       "audio-speech"
     ],
     "firstReleaseDate": "2025-12-02",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "amazon-nova-2-bedrock-announcement",

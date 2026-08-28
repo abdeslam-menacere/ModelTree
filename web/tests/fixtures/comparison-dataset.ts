@@ -56,6 +56,7 @@ import type {
   SourceReference,
 } from '../../src/data/schema';
 import type { ComparisonDataset } from '../../src/lib/comparison';
+import { precisionOf } from '../../src/data/partial-date';
 
 /** The build date every fixture-driven expectation is computed against. */
 export const COMPARISON_TODAY = '2026-08-27';
@@ -151,6 +152,7 @@ const families: ModelFamily[] = [
     description: 'A fictional family used only by tests.',
     categories: ['language-reasoning'],
     firstReleaseDate: '2025-06-01',
+    datePrecision: precisionOf('2025-06-01'),
     status: 'current',
     sourceIds: ['northwind-docs'],
     verifiedAt: '2026-08-01',
@@ -163,6 +165,7 @@ const families: ModelFamily[] = [
     description: 'A second fictional family, so a comparison can cross families.',
     categories: ['language-reasoning'],
     firstReleaseDate: '2025-02-01',
+    datePrecision: precisionOf('2025-02-01'),
     status: 'legacy',
     sourceIds: ['northwind-docs'],
     verifiedAt: '2026-08-01',

@@ -1,4 +1,5 @@
 import type { Dataset, ModelFamily, ModelRelease, Organization } from '../data/schema';
+import { comparePartialDates, comparePartialDatesDescending } from '../data/partial-date';
 
 export interface ModelTreeFamily {
   family: ModelFamily;
@@ -36,7 +37,9 @@ function newestFamilyReleaseDate(dataset: Dataset, familyId: string) {
   return dataset.releases
     .filter((release) => release.familyId === familyId)
     .reduce((newest, release) => (
-      compare(release.releaseDate, newest) > 0 ? release.releaseDate : newest
+      newest === '' || comparePartialDates(release.releaseDate, newest) > 0
+        ? release.releaseDate
+        : newest
     ), '');
 }
 
@@ -55,9 +58,9 @@ function buildCreators(dataset: Dataset, organizations: Organization[]): ModelTr
       families: dataset.families
         .filter(({ organizationId }) => organizationId === organization.id)
         .sort((a, b) => (
-          compare(
-            newestFamilyReleaseDate(dataset, b.id),
+          comparePartialDatesDescending(
             newestFamilyReleaseDate(dataset, a.id),
+            newestFamilyReleaseDate(dataset, b.id),
           )
           || compare(a.id, b.id)
         ))
@@ -66,7 +69,7 @@ function buildCreators(dataset: Dataset, organizations: Organization[]): ModelTr
           releases: dataset.releases
             .filter(({ familyId }) => familyId === family.id)
             .sort((a, b) => (
-              compare(b.releaseDate, a.releaseDate)
+              comparePartialDatesDescending(a.releaseDate, b.releaseDate)
               || compare(a.id, b.id)
             )),
         }))

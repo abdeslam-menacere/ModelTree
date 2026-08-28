@@ -258,9 +258,10 @@ reading and the disagreement is written down here rather than resolved silently.
   announced for Gemini 2.5 Pro and Flash, while the Cloud platform model pages
   give a retirement date of 2026-10-20. Both models are recorded as `current`
   and no shutdown date is asserted.
-- **Gemini 3.7 Flash is excluded.** Its documentation gives only "August 2026".
-  `releaseDate` is a full ISO date, so a month-only release cannot be represented
-  without inventing a day. Tracked as issue #48.
+- **Gemini 3.7 Flash release date precision.** The Gemini API documentation
+  announces "August 2026" without a day, while the Gemini Enterprise Agent
+  Platform documentation gives 2026-08-13. The platform date is recorded at `day`
+  precision, and that source is cited for it.
 - **Llama 4 Maverick parameter count.** The model card's own table gives 400B
   total, while the Hugging Face repository metadata on the same page reports
   402B. The model card figure is recorded, because it is the count Meta states in
