@@ -546,7 +546,96 @@ describe('gate-dataset', () => {
       releases[0].releaseDate = '2026-02-30';
       write('releases.json', releases);
     });
-    assertFailed(result, 'dates', 'is not a real YYYY-MM-DD date');
+    // `releaseDate` is a partial-date field since #468, so the message no longer
+    // names the `YYYY-MM-DD` shape. What it rejects is unchanged: 30 February is
+    // not a real day at any precision.
+    assertFailed(result, 'dates', 'is not a real date');
+  });
+
+  test('a release date coarser than the precision recorded beside it is caught', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      releases[0].releaseDate = releases[0].releaseDate.slice(0, 7);
+      write('releases.json', releases);
+    });
+    // The record still says `day` while carrying only a month, so a reader would
+    // be told a day exists that the value does not contain.
+    assertFailed(result, 'dates', 'does not state the precision "day" recorded beside it');
+  });
+
+  test('a release date finer than the precision recorded beside it is caught', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      releases[0].datePrecision = 'month';
+      write('releases.json', releases);
+    });
+    // The invented-day path in the direction that actually ships: a full day
+    // sitting behind a `month` claim. Nothing in the old gate could see this,
+    // because `datePrecision` was never compared to anything.
+    assertFailed(result, 'dates', 'does not state the precision "month" recorded beside it');
+  });
+
+  test('a family first-release date that disagrees with its precision is caught', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const families = read('families.json');
+      families[0].datePrecision = 'year';
+      write('families.json', families);
+    });
+    assertFailed(result, 'dates', 'does not state the precision "year" recorded beside it');
+  });
+
+  test('a precision that is not one of year, month, day is caught', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      releases[0].datePrecision = 'quarter';
+      write('releases.json', releases);
+    });
+    assertFailed(result, 'dates', 'is not one of year, month, day');
+  });
+
+  test('a sourced partial release date passes', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      releases[0].releaseDate = releases[0].releaseDate.slice(0, 7);
+      releases[0].datePrecision = 'month';
+      write('releases.json', releases);
+    });
+    // The point of the whole change. A month the source actually stated is a
+    // recordable fact, where before it could only reach the dataset wearing an
+    // invented day.
+    assert.equal(result.code, 0, result.stdout);
+  });
+
+  test('a release that predates its predecessor is still caught when stated as a year', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      releases[1].predecessorIds = [releases[0].id];
+      releases[1].releaseDate = '2000';
+      releases[1].datePrecision = 'year';
+      write('releases.json', releases);
+    });
+    // The ordering check reads intervals now, so this proves the relaxation did
+    // not buy its breadth by going blind: every day the year 2000 could mean is
+    // before the predecessor, so it is still a contradiction and still caught.
+    assertFailed(result, 'dates', 'precedes predecessor', { alsoFails: ['lineage'] });
+  });
+
+  test('a partial date that merely overlaps its predecessor is not called a contradiction', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      releases[1].predecessorIds = [releases[0].id];
+      // The predecessor's own year. The sources do not settle which came first
+      // inside it, and "unsettled" is not "impossible" -- reporting it as a
+      // contradiction would be the gate inventing a fact of its own.
+      releases[1].releaseDate = releases[0].releaseDate.slice(0, 4);
+      releases[1].datePrecision = 'year';
+      write('releases.json', releases);
+    });
+    const report = JSON.parse(result.stdout);
+    const ordering = report.failures.filter(
+      (failure) => failure.gate === 'dates' && failure.message.includes('precedes predecessor'),
+    );
+    assert.deepEqual(ordering, [], `an overlap is not a contradiction:\n${result.stdout}`);
   });
 
   test('a release that predates the model it descends from is caught', () => {

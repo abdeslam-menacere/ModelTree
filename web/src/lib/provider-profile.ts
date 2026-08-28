@@ -7,6 +7,7 @@ import type {
   ServingPlatform,
   SourceReference,
 } from '../data/schema';
+import { comparePartialDatesDescending } from '../data/partial-date';
 
 /**
  * The normalized view model behind a `/providers/[slug]` page.
@@ -96,7 +97,7 @@ function modelRoute(base: string, slug: string) {
 
 /** Newest first, with an id tiebreak so equal dates never reorder between builds. */
 function byNewestRelease(a: ModelRelease, b: ModelRelease) {
-  return compare(b.releaseDate, a.releaseDate) || compare(a.id, b.id);
+  return comparePartialDatesDescending(a.releaseDate, b.releaseDate) || compare(a.id, b.id);
 }
 
 /**

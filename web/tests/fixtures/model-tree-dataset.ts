@@ -1,4 +1,5 @@
 import { dataset } from '../../src/data/dataset';
+import { precisionOf } from '../../src/data/partial-date';
 import type { Dataset, ModelFamily, ModelRelease, Organization } from '../../src/data/schema';
 import { validateDataset } from '../../src/data/validate';
 
@@ -64,6 +65,7 @@ function family(
     description: `Synthetic family ${id} used only to exercise the Others branch.`,
     categories: ['language-reasoning'],
     firstReleaseDate,
+    datePrecision: precisionOf(firstReleaseDate),
     status: 'current',
     sourceIds: [SYNTHETIC_SOURCE_ID],
     verifiedAt: VERIFIED_AT,

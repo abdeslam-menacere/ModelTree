@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import date
 from typing import Any, Mapping, Sequence
 
 from .contracts import (
@@ -19,9 +20,30 @@ from .contracts import (
     ValidationStatus,
 )
 
-__all__ = ["FIELD_REGISTRY", "FieldSpec", "validate_claim", "validate_claims"]
+__all__ = [
+    "DATE_PRECISIONS",
+    "FIELD_REGISTRY",
+    "FieldSpec",
+    "PARTIAL_DATE",
+    "PRECISION_SEGMENTS",
+    "partial_date_is_real",
+    "validate_claim",
+    "validate_claims",
+]
 
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+# A date a source stated only to the year or month. The dataset stores these for
+# `firstReleaseDate` and `releaseDate` because a source that announced "March 2026"
+# gave no day, and inventing one to satisfy an exact-date rule records a fact nobody
+# published. `ISO_DATE` above stays the rule for every date *we* observe —
+# `verifiedAt`, `lastCheckedDate`, licence windows — where the day is always known.
+PARTIAL_DATE = re.compile(r"^\d{4}(-\d{2}(-\d{2})?)?$")
+
+# How much of a date a source actually gave, and how many `-`-separated segments a
+# value carries at each precision.
+DATE_PRECISIONS = ("year", "month", "day")
+PRECISION_SEGMENTS = {"year": 1, "month": 2, "day": 3}
 
 LIFECYCLE_STATUS = (
     "preview",
@@ -49,7 +71,8 @@ ORGANIZATION_TYPE = ("company", "research-lab", "nonprofit", "community")
 class FieldSpec:
     """What the dataset will accept for one proposable field."""
 
-    kind: str  # text | url | date | integer | number | boolean | enum | enum-list | text-list
+    # text | url | date | partial-date | integer | number | boolean | enum | enum-list | text-list
+    kind: str
     allowed: tuple[str, ...] = ()
 
 
@@ -67,7 +90,8 @@ FIELD_REGISTRY: Mapping[EntityKind, Mapping[str, FieldSpec]] = {
         "name": FieldSpec("text"),
         "description": FieldSpec("text"),
         "categories": FieldSpec("enum-list", MODEL_CATEGORY),
-        "firstReleaseDate": FieldSpec("date"),
+        "firstReleaseDate": FieldSpec("partial-date"),
+        "datePrecision": FieldSpec("enum", DATE_PRECISIONS),
         "status": FieldSpec("enum", LIFECYCLE_STATUS),
         "verifiedAt": FieldSpec("date"),
     },
@@ -75,7 +99,8 @@ FIELD_REGISTRY: Mapping[EntityKind, Mapping[str, FieldSpec]] = {
         "displayName": FieldSpec("text"),
         "canonicalName": FieldSpec("text"),
         "version": FieldSpec("text"),
-        "releaseDate": FieldSpec("date"),
+        "releaseDate": FieldSpec("partial-date"),
+        "datePrecision": FieldSpec("enum", DATE_PRECISIONS),
         "status": FieldSpec("enum", LIFECYCLE_STATUS),
         "categories": FieldSpec("enum-list", MODEL_CATEGORY),
         "accessType": FieldSpec("enum", ACCESS_TYPE),
@@ -120,6 +145,24 @@ FIELD_REGISTRY: Mapping[EntityKind, Mapping[str, FieldSpec]] = {
 }
 
 
+def partial_date_is_real(value: str) -> bool:
+    """Whether a `YYYY`, `YYYY-MM` or `YYYY-MM-DD` value names days that exist.
+
+    Only the segments a source actually gave are checked. `2026-02` is real because
+    February 2026 exists; asking whether its *day* is real would mean picking one.
+    """
+    segments = value.split("-")
+    if len(segments) >= 2 and not 1 <= int(segments[1]) <= 12:
+        return False
+    if len(segments) < 3:
+        return True
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
 def _value_issues(spec: FieldSpec, field_path: str, value: Any) -> list[str]:
     issues: list[str] = []
     if spec.kind == "text":
@@ -131,6 +174,11 @@ def _value_issues(spec: FieldSpec, field_path: str, value: Any) -> list[str]:
     elif spec.kind == "date":
         if not isinstance(value, str) or not ISO_DATE.match(value):
             issues.append(f"{field_path} must be a YYYY-MM-DD date")
+    elif spec.kind == "partial-date":
+        if not isinstance(value, str) or not PARTIAL_DATE.match(value):
+            issues.append(f"{field_path} must be a YYYY, YYYY-MM or YYYY-MM-DD date")
+        elif not partial_date_is_real(value):
+            issues.append(f"{field_path} is not a real date: {value!r}")
     elif spec.kind == "integer":
         if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
             issues.append(f"{field_path} must be a positive integer")
