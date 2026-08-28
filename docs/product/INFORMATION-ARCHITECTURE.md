@@ -12,7 +12,7 @@
 | `/providers/[slug]` | Organization profile | Explore family tree, releases, products, and platforms |
 | `/benchmarks` | Benchmark evidence | Compare source-backed results within compatible contexts |
 | `/compare` | Two-to-four-model comparison | Compare facts and comparable evidence without a winner |
-| `/updates` | Chronological release view | Filter verified changes by date, creator, and category |
+| `/timeline` | Chronological release view | Group releases and release events by period; filter by creator, category, and access |
 | `/methodology` | Editorial and data policy | Understand inclusion, terminology, and verification |
 
 All user selections that define a useful view use stable query parameters. The
@@ -22,7 +22,7 @@ evidence uses `models=<slug,slug>` plus optional `domain` and `benchmark`.
 ## Navigation
 
 The compact global header contains ModelTree, Explore, Model Tree, Models, Providers,
-Evidence, Updates, and Methodology. On small screens, the same links use a
+Evidence, Timeline, and Methodology. On small screens, the same links use a
 keyboard-accessible disclosure menu. The homepage is the product experience,
 not a marketing gate.
 
