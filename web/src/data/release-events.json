@@ -1,0 +1,62 @@
+[
+  {
+    "id": "qwen3-8-2-4t-a95b-weights-published",
+    "releaseId": "alibaba-qwen3-8-2-4t-a95b",
+    "type": "generally-available",
+    "date": "2026-08-12",
+    "datePrecision": "day",
+    "note": "Alibaba Cloud recorded Qwen3.8-2.4T-A95B as available on Hugging Face Hub and ModelScope.",
+    "sourceIds": [
+      "qwen3-8-repository"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "qwen3-8-27b-weights-published",
+    "releaseId": "alibaba-qwen3-8-27b",
+    "type": "generally-available",
+    "date": "2026-08-14",
+    "datePrecision": "day",
+    "note": "Alibaba Cloud recorded Qwen3.8-27B as available on Hugging Face Hub and ModelScope.",
+    "sourceIds": [
+      "qwen3-8-repository"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "qwen3-8-27b-on-sagemaker-jumpstart",
+    "releaseId": "alibaba-qwen3-8-27b",
+    "type": "api-available",
+    "date": "2026-08-27",
+    "datePrecision": "day",
+    "note": "Amazon announced Alibaba Cloud’s Qwen3.8-27B as available on Amazon SageMaker JumpStart. This changes where the model can be deployed and changes nothing about who created it.",
+    "sourceIds": [
+      "amazon-sagemaker-jumpstart-qwen3-8-27b"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "mai-thinking-1-public-preview",
+    "releaseId": "microsoft-mai-thinking-1",
+    "type": "preview",
+    "date": "2026-08-12",
+    "datePrecision": "day",
+    "note": "Microsoft AI announced MAI-Thinking-1 as available in public preview on Microsoft Foundry.",
+    "sourceIds": [
+      "microsoft-mai-thinking-1-announcement"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "amazon-nova-2-sonic-bedrock-availability",
+    "releaseId": "amazon-nova-2-sonic",
+    "type": "generally-available",
+    "date": "2025-12-02",
+    "datePrecision": "day",
+    "note": "Amazon announced the availability of Nova 2 Sonic in Amazon Bedrock in three AWS Regions.",
+    "sourceIds": [
+      "amazon-nova-2-sonic-announcement"
+    ],
+    "verifiedAt": "2026-08-28"
+  }
+]

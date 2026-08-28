@@ -54,6 +54,20 @@ describe('validateDataset', () => {
     for (const observation of dataset.usageObservations) {
       for (const sourceId of observation.sourceIds) cited.add(sourceId);
     }
+    // Products, serving platforms, deployments and release events carry the
+    // provenance for the facts that are deliberately not model facts: what a
+    // product is, who operates a platform, where a model can be deployed, and
+    // when its availability changed. A platform operator's own page is often
+    // cited here and nowhere else, precisely because it is not evidence of
+    // authorship and so may not be cited by any creator, family or release.
+    for (const record of [
+      ...dataset.products,
+      ...dataset.servingPlatforms,
+      ...dataset.deployments,
+      ...dataset.releaseEvents,
+    ]) {
+      for (const sourceId of record.sourceIds) cited.add(sourceId);
+    }
     const orphaned = dataset.sources
       .map((source) => source.id)
       .filter((id) => !cited.has(id));
