@@ -960,5 +960,21 @@
     "publisherId": "hugging-face",
     "lastCheckedDate": "2026-08-28",
     "notes": "The Hub’s machine-readable record, carrying the createdAt of 2025-12-01 used as this release’s date."
+  },
+  {
+    "id": "openai-gpt-daybreak-blue-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-daybreak-blue-latest.md",
+    "title": "Daybreak Blue model documentation",
+    "type": "official-docs",
+    "publisherId": "openai",
+    "lastCheckedDate": "2026-08-28"
+  },
+  {
+    "id": "openai-gpt-daybreak-red-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-daybreak-red-latest.md",
+    "title": "Daybreak Red model documentation",
+    "type": "official-docs",
+    "publisherId": "openai",
+    "lastCheckedDate": "2026-08-28"
   }
 ]
