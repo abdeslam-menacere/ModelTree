@@ -5,10 +5,10 @@ import { formatDate } from '../lib/format';
 import { buildHomepageHierarchy, firstHomepageRelease } from '../lib/homepage';
 import {
   accessTypeGlossary,
-  benchmarkComparabilityExamples,
   benchmarkConfigurationFields,
   categoryGlossary,
   deferredToImplementation,
+  deriveBenchmarkComparabilityExamples,
   fitClassificationGlossary,
   fitGapReasonGlossary,
   lifecycleStatusGlossary,
@@ -25,6 +25,11 @@ const passportHref = `${base}models/${firstHomepageRelease(buildHomepageHierarch
 const refreshHref = `${base}${methodologyReferences.dataRefreshRoute}`;
 const treeHref = `${base}tree/`;
 const sectionNumber = (index: number) => String(index + 1).padStart(2, '0');
+const benchmarkComparabilityExamples = deriveBenchmarkComparabilityExamples(
+  dataset.benchmarkResults,
+  dataset.benchmarks,
+  dataset.releases,
+);
 ---
 
 <BaseLayout
@@ -314,20 +319,22 @@ const sectionNumber = (index: number) => String(index + 1).padStart(2, '0');
               </tbody>
             </table>
             <p>
-              The following worked examples show when two results may be read on the same axis and
-              when they may not. They are <strong>illustrative</strong>: the models, benchmark, and
-              setups are hypothetical placeholders, not records in the dataset, and no scores are
-              stated — each verdict turns only on the disclosed configuration the schema records.
+              The worked examples below show when two results may be read on the same axis and when
+              they may not. They are <strong>derived from real benchmark results in the dataset</strong>,
+              not authored here: each verdict is computed from the disclosed configuration the schema
+              records — two results are comparable only when every configuration field except the model
+              matches — so the page cannot state a comparison the data does not support. No score is
+              shown; the point is which recorded differences make two results non-comparable, not who
+              scored higher.
             </p>
             <table class="method-glossary method-examples">
               <caption>
-                Illustrative benchmark comparability — hypothetical setups, not dataset records
+                Benchmark comparability, derived from recorded results
               </caption>
               <thead>
                 <tr>
-                  <th scope="col">Scenario</th>
-                  <th scope="col">Setup A</th>
-                  <th scope="col">Setup B</th>
+                  <th scope="col">Result A</th>
+                  <th scope="col">Result B</th>
                   <th scope="col">Comparable?</th>
                   <th scope="col">Why</th>
                 </tr>
@@ -335,11 +342,10 @@ const sectionNumber = (index: number) => String(index + 1).padStart(2, '0');
               <tbody>
                 {benchmarkComparabilityExamples.map((example) => (
                   <tr>
-                    <th scope="row">{example.scenario}</th>
-                    <td>{example.setupA}</td>
-                    <td>{example.setupB}</td>
+                    <th scope="row">{example.runA}</th>
+                    <td>{example.runB}</td>
                     <td>{example.comparable ? 'Comparable' : 'Not comparable'}</td>
-                    <td>{example.reason}</td>
+                    <td>{example.basis}</td>
                   </tr>
                 ))}
               </tbody>

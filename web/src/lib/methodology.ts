@@ -19,6 +19,8 @@ import {
   modelCategory,
   sourceSchema,
   usageSourceCategory,
+  type BenchmarkDefinition,
+  type BenchmarkResult,
   type ModelRelease,
   type SourceReference,
   type UsageSourceCategory,
@@ -218,71 +220,130 @@ export const benchmarkConfigurationFields: BenchmarkConfigField[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Illustrative comparability examples. These satisfy the requirement that the
-// page show comparable and non-comparable cases WITHOUT fabricating dataset
-// facts: the models, benchmark, and setups are hypothetical placeholders, not
-// records, and no scores are invented — the verdict turns only on the disclosed
-// configuration, which is what the schema records and the validator keys on.
-// Each `differingField` is a real field in the validator's setup key
+// Benchmark comparability examples, derived from real dataset records rather
+// than authored in prose. Two results sit on one axis only when their disclosed
+// configuration matches; the validator builds that same setup key
 // (validate.ts: benchmarkId|benchmarkVersion|releaseId|variantNote|
-// reasoningMode|toolsEnabled|harness) and a key in `benchmarkConfigurationFields`;
-// `methodology.test.ts` asserts that correspondence. This illustrates the
-// EXISTING vocabulary of comparability; normalising DIFFERENT setups into a
-// comparison is deferred to #22 (see `deferredToImplementation`).
+// reasoningMode|toolsEnabled|harness) to refuse a duplicate result for one
+// model. Comparability across models is that key with the model (releaseId)
+// removed. `deriveBenchmarkComparabilityExamples` reads those fields off real
+// records and lets the verdict fall out of them, so nothing here is a hand-typed
+// claim that could go stale, and no score is asserted — only which configuration
+// differences make two results non-comparable. Normalising DIFFERENT setups into
+// a comparison is deferred to #22 (see `deferredToImplementation`).
 // ---------------------------------------------------------------------------
 
-export interface BenchmarkComparabilityExample {
-  scenario: string;
-  setupA: string;
-  setupB: string;
-  comparable: boolean;
-  reason: string;
-  /** The setup-key field that differs between the two runs; null when identical. */
-  differingField: string | null;
+// The configuration fields that decide whether two results share an axis: the
+// validator's duplicate-setup key MINUS the model (releaseId). `methodology.test.ts`
+// scans validate.ts and fails if this list diverges from the key it actually builds.
+export const BENCHMARK_COMPARISON_FIELDS = [
+  'benchmarkId',
+  'benchmarkVersion',
+  'variantNote',
+  'reasoningMode',
+  'toolsEnabled',
+  'harness',
+] as const;
+
+export type BenchmarkComparisonField = (typeof BENCHMARK_COMPARISON_FIELDS)[number];
+
+function comparisonKey(result: BenchmarkResult): string {
+  return BENCHMARK_COMPARISON_FIELDS.map((field) => {
+    const value = result[field];
+    return value === undefined ? '' : String(value);
+  }).join('\u0000');
 }
 
-export const benchmarkComparabilityExamples: BenchmarkComparabilityExample[] = [
-  {
-    scenario:
-      'Two different models measured on the same benchmark and version — both official self-reports, both with reasoning disabled, neither using tools, on the same harness.',
-    setupA: 'Benchmark X v1 · official · reasoning off · tools off · harness H1',
-    setupB: 'Benchmark X v1 · official · reasoning off · tools off · harness H1',
-    comparable: true,
-    reason:
-      'Every field in the disclosed setup except the model itself matches, so the two scores sit on one axis. This is the setup key the validator builds; it refuses a second result for the same model under it precisely because keeping either would fabricate comparability.',
-    differingField: null,
-  },
-  {
-    scenario:
-      'The same benchmark and version, but one model ran with reasoning enabled and the other with reasoning disabled.',
-    setupA: 'Benchmark X v1 · reasoning on',
-    setupB: 'Benchmark X v1 · reasoning off',
-    comparable: false,
-    reason:
-      'reasoningMode differs — a disclosed configuration difference the schema records and the validator keys on — so the runs are not on the same axis.',
-    differingField: 'reasoningMode',
-  },
-  {
-    scenario:
-      'The same benchmark and version, but one model could call tools during the run and the other could not.',
-    setupA: 'Benchmark X v1 · tools on',
-    setupB: 'Benchmark X v1 · tools off',
-    comparable: false,
-    reason:
-      'toolsEnabled differs; a tool-assisted run and an unassisted run do not measure the same thing.',
-    differingField: 'toolsEnabled',
-  },
-  {
-    scenario:
-      'Both official self-reports with reasoning off and no tools, but one model is scored on version 1 of the benchmark and the other on version 2.',
-    setupA: 'Benchmark X v1',
-    setupB: 'Benchmark X v2',
-    comparable: false,
-    reason:
-      'benchmarkVersion differs; two versions are not the same set of questions, so the scores are not comparable.',
-    differingField: 'benchmarkVersion',
-  },
-];
+const differenceClause: Record<BenchmarkComparisonField, string> = {
+  benchmarkId: 'a different benchmark measures a different task',
+  benchmarkVersion: 'two versions are not the same set of questions',
+  variantNote: 'a differently reported variant is a different measurement',
+  reasoningMode: 'a different reasoning setting changes what is measured',
+  toolsEnabled: 'a tool-assisted run and an unassisted run measure different capabilities',
+  harness: 'a different harness can score the same answers differently',
+};
+
+export interface BenchmarkComparabilityExample {
+  comparable: boolean;
+  runA: string;
+  runB: string;
+  basis: string;
+  /** The comparison field the two results differ on; null when they share an axis. */
+  differingField: BenchmarkComparisonField | null;
+}
+
+/**
+ * Derives one comparable and one non-comparable example from real benchmark
+ * records. The verdict is computed from the setup key, never authored, so the
+ * page cannot state a comparison the data does not support. Returns whatever it
+ * can find: an empty array if the dataset holds no qualifying pair.
+ */
+export function deriveBenchmarkComparabilityExamples(
+  results: readonly BenchmarkResult[],
+  benchmarks: readonly BenchmarkDefinition[],
+  releases: readonly ModelRelease[],
+): BenchmarkComparabilityExample[] {
+  const benchmarkName = (id: string) => benchmarks.find((b) => b.id === id)?.name ?? id;
+  const modelName = (id: string) => releases.find((r) => r.id === id)?.displayName ?? id;
+  const runLabel = (r: BenchmarkResult) =>
+    `${modelName(r.releaseId)} — ${benchmarkName(r.benchmarkId)} (${r.benchmarkVersion})`;
+
+  const examples: BenchmarkComparabilityExample[] = [];
+
+  // Comparable: two results with an identical comparison key but different models.
+  for (let i = 0; i < results.length && examples.length === 0; i += 1) {
+    for (let j = i + 1; j < results.length; j += 1) {
+      const a = results[i];
+      const b = results[j];
+      if (a.releaseId !== b.releaseId && comparisonKey(a) === comparisonKey(b)) {
+        examples.push({
+          comparable: true,
+          runA: runLabel(a),
+          runB: runLabel(b),
+          basis:
+            'Same benchmark, version, and disclosed configuration; only the model differs, so the two results sit on one axis. The validator builds this same setup key and would refuse a second result for one model under it.',
+          differingField: null,
+        });
+        break;
+      }
+    }
+  }
+
+  // Non-comparable: prefer two results for the SAME model that differ on a
+  // comparison field, so the contrast is the setup rather than the model.
+  const nonComparable = findNonComparablePair(results);
+  if (nonComparable) {
+    const { a, b, field } = nonComparable;
+    examples.push({
+      comparable: false,
+      runA: runLabel(a),
+      runB: runLabel(b),
+      basis: `${field} differs, so the results are not on the same axis: ${differenceClause[field]}.`,
+      differingField: field,
+    });
+  }
+
+  return examples;
+}
+
+function findNonComparablePair(
+  results: readonly BenchmarkResult[],
+): { a: BenchmarkResult; b: BenchmarkResult; field: BenchmarkComparisonField } | null {
+  let fallback: { a: BenchmarkResult; b: BenchmarkResult; field: BenchmarkComparisonField } | null = null;
+  for (let i = 0; i < results.length; i += 1) {
+    for (let j = i + 1; j < results.length; j += 1) {
+      const a = results[i];
+      const b = results[j];
+      const field = BENCHMARK_COMPARISON_FIELDS.find(
+        (candidate) => String(a[candidate] ?? '') !== String(b[candidate] ?? ''),
+      );
+      if (!field) continue;
+      if (a.releaseId === b.releaseId) return { a, b, field };
+      fallback ??= { a, b, field };
+    }
+  }
+  return fallback;
+}
 
 // ---------------------------------------------------------------------------
 // Deferred work. Policy this page deliberately does NOT specify, because the

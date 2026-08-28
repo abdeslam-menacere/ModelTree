@@ -20,10 +20,11 @@ import { usageProvenanceLabel } from './usage-evidence';
 import {
   accessTypeGlossary,
   allMethodologyDefinitions,
-  benchmarkComparabilityExamples,
+  BENCHMARK_COMPARISON_FIELDS,
   benchmarkConfigurationFields,
   categoryGlossary,
   deferredToImplementation,
+  deriveBenchmarkComparabilityExamples,
   fitClassificationGlossary,
   fitGapReasonGlossary,
   lifecycleStatusGlossary,
@@ -34,6 +35,7 @@ import {
   usageProvenanceGlossary,
   type GlossaryEntry,
 } from './methodology';
+import { dataset } from '../data/dataset';
 
 const KEBAB = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -169,52 +171,167 @@ describe('methodology benchmark configuration', () => {
 });
 
 describe('methodology benchmark comparability examples', () => {
-  // AC3: the page must show comparable AND non-comparable cases. These must be
-  // illustrative rather than fabricated dataset facts, and every difference a
-  // non-comparable case turns on must be a real setup-key field the schema
-  // records — otherwise the example would invent a comparability rule.
-  const configFields = new Set(benchmarkConfigurationFields.map((entry) => entry.field));
+  // AC3: the page must show comparable AND non-comparable cases. These are
+  // DERIVED from real benchmark records, not authored, so the verdict must fall
+  // out of the recorded configuration rather than being asserted in prose.
+  const results = dataset.benchmarkResults;
+  const examples = deriveBenchmarkComparabilityExamples(
+    results,
+    dataset.benchmarks,
+    dataset.releases,
+  );
 
-  it('shows at least one comparable and one non-comparable case', () => {
-    expect(benchmarkComparabilityExamples.some((example) => example.comparable)).toBe(true);
-    expect(benchmarkComparabilityExamples.some((example) => !example.comparable)).toBe(true);
+  // Independent re-implementation of the comparison axis (the validator's setup
+  // key minus the model), used to check the derivation rather than mirror it.
+  const axisKey = (result: (typeof results)[number]) =>
+    BENCHMARK_COMPARISON_FIELDS.map((field) => String(result[field] ?? '')).join('\u0000');
+  const differsOn = (field: (typeof BENCHMARK_COMPARISON_FIELDS)[number]) =>
+    results.some((a, i) =>
+      results.slice(i + 1).some((b) => String(a[field] ?? '') !== String(b[field] ?? '')),
+    );
+
+  it('derives at least one comparable and one non-comparable case', () => {
+    expect(examples.some((example) => example.comparable)).toBe(true);
+    expect(examples.some((example) => !example.comparable)).toBe(true);
   });
 
-  it('gives every example two setups, a verdict reason, and no empty prose', () => {
-    for (const example of benchmarkComparabilityExamples) {
-      expect(example.scenario.trim().length).toBeGreaterThan(0);
-      expect(example.setupA.trim().length).toBeGreaterThan(0);
-      expect(example.setupB.trim().length).toBeGreaterThan(0);
-      expect(example.reason.trim().length).toBeGreaterThan(0);
+  it('gives every derived example two runs, a basis, and no empty prose', () => {
+    expect(examples.length).toBeGreaterThan(0);
+    for (const example of examples) {
+      expect(example.runA.trim().length).toBeGreaterThan(0);
+      expect(example.runB.trim().length).toBeGreaterThan(0);
+      expect(example.basis.trim().length).toBeGreaterThan(0);
     }
   });
 
-  it('keys every non-comparable case on a real recorded configuration field', () => {
-    const nonComparable = benchmarkComparabilityExamples.filter((example) => !example.comparable);
+  it('backs the comparable case with a real same-axis pair in the dataset', () => {
+    const comparable = examples.filter((example) => example.comparable);
+    expect(comparable.length).toBeGreaterThan(0);
+    for (const example of comparable) {
+      expect(example.differingField).toBeNull();
+    }
+    // The verdict is only honest if the data actually holds two results that
+    // share a configuration axis but differ in model.
+    const realPairExists = results.some((a, i) =>
+      results
+        .slice(i + 1)
+        .some((b) => a.releaseId !== b.releaseId && axisKey(a) === axisKey(b)),
+    );
+    expect(realPairExists).toBe(true);
+  });
+
+  it('keys every non-comparable case on a real configuration field that truly differs', () => {
+    const nonComparable = examples.filter((example) => !example.comparable);
     expect(nonComparable.length).toBeGreaterThan(0);
     for (const example of nonComparable) {
       expect(example.differingField).not.toBeNull();
-      expect(configFields).toContain(example.differingField);
+      expect(BENCHMARK_COMPARISON_FIELDS).toContain(example.differingField);
+      // The reported field must be one two real records genuinely differ on.
+      expect(differsOn(example.differingField!)).toBe(true);
     }
   });
 
-  it('leaves the comparable case with no differing field, matching identical setups', () => {
-    for (const example of benchmarkComparabilityExamples) {
-      if (example.comparable) {
-        expect(example.differingField).toBeNull();
-        expect(example.setupA).toBe(example.setupB);
-      } else {
-        expect(example.setupA).not.toBe(example.setupB);
-      }
-    }
-  });
-
-  it('states no benchmark score, so no dataset fact is fabricated', () => {
-    // Illustrative examples must not present numbers as facts about a model.
-    for (const example of benchmarkComparabilityExamples) {
-      const prose = `${example.scenario} ${example.setupA} ${example.setupB} ${example.reason}`;
+  it('states no benchmark score, so no external number is presented as fact', () => {
+    for (const example of examples) {
+      const prose = `${example.runA} ${example.runB} ${example.basis}`;
       expect(prose).not.toMatch(/\b\d+(?:\.\d+)?\s*%/);
     }
+  });
+
+  it('mirrors the validator setup key exactly, minus the model, so the axis cannot drift', () => {
+    // The comparison axis is defined by validate.ts. If that key changes, this
+    // list must too; scan the real source and fail if they diverge.
+    const source = readFileSync(new URL('../data/validate.ts', import.meta.url), 'utf8');
+    const setupBlock = source.match(/const setup = \[([\s\S]*?)\]\.join\('\|'\)/);
+    expect(setupBlock).not.toBeNull();
+    const fieldsInKey = [...setupBlock![1].matchAll(/result\.(\w+)/g)].map((match) => match[1]);
+    const uniqueFields = [...new Set(fieldsInKey)];
+    // The validator keys on the comparison fields PLUS the model (releaseId).
+    expect(new Set(uniqueFields)).toEqual(new Set([...BENCHMARK_COMPARISON_FIELDS, 'releaseId']));
+  });
+});
+
+describe('deriveBenchmarkComparabilityExamples verdict logic', () => {
+  // Pins the verdict rule on synthetic records, independent of the real dataset,
+  // so a wrong classification (e.g. calling a different-axis pair comparable)
+  // cannot hide behind the fact that the real data merely CONTAINS a valid pair.
+  type Result = (typeof dataset.benchmarkResults)[number];
+  type Bench = (typeof dataset.benchmarks)[number];
+  type Rel = (typeof dataset.releases)[number];
+
+  const benches = [
+    { id: 'bench-x', name: 'Benchmark X' },
+    { id: 'bench-y', name: 'Benchmark Y' },
+  ] as unknown as Bench[];
+  const rels = [
+    { id: 'model-a', displayName: 'Model A' },
+    { id: 'model-b', displayName: 'Model B' },
+  ] as unknown as Rel[];
+  let seq = 0;
+  const result = (over: Partial<Result>): Result =>
+    ({
+      id: `synthetic-${(seq += 1)}`,
+      benchmarkId: 'bench-x',
+      benchmarkVersion: 'v1',
+      releaseId: 'model-a',
+      ...over,
+    }) as unknown as Result;
+
+  it('classifies a same-axis, different-model pair as comparable', () => {
+    const out = deriveBenchmarkComparabilityExamples(
+      [result({ releaseId: 'model-a' }), result({ releaseId: 'model-b' })],
+      benches,
+      rels,
+    );
+    const comparable = out.filter((example) => example.comparable);
+    expect(comparable).toHaveLength(1);
+    expect(comparable[0].differingField).toBeNull();
+    expect(comparable[0].runA).toContain('Model A');
+    expect(comparable[0].runB).toContain('Model B');
+  });
+
+  it('does NOT call a different-axis pair comparable', () => {
+    // Different model AND different benchmark: not on the same axis.
+    const out = deriveBenchmarkComparabilityExamples(
+      [
+        result({ releaseId: 'model-a', benchmarkId: 'bench-x' }),
+        result({ releaseId: 'model-b', benchmarkId: 'bench-y' }),
+      ],
+      benches,
+      rels,
+    );
+    expect(out.some((example) => example.comparable)).toBe(false);
+  });
+
+  it('reports the exact field a non-comparable pair differs on', () => {
+    const out = deriveBenchmarkComparabilityExamples(
+      [
+        result({ releaseId: 'model-a', benchmarkId: 'bench-x' }),
+        result({ releaseId: 'model-a', benchmarkId: 'bench-y' }),
+      ],
+      benches,
+      rels,
+    );
+    const nonComparable = out.filter((example) => !example.comparable);
+    expect(nonComparable).toHaveLength(1);
+    expect(nonComparable[0].differingField).toBe('benchmarkId');
+  });
+
+  it('prefers a same-model non-comparable pair so the contrast is the setup', () => {
+    const out = deriveBenchmarkComparabilityExamples(
+      [
+        result({ releaseId: 'model-a', benchmarkId: 'bench-x', benchmarkVersion: 'v1' }),
+        result({ releaseId: 'model-b', benchmarkId: 'bench-x', benchmarkVersion: 'v1' }),
+        result({ releaseId: 'model-a', benchmarkId: 'bench-x', benchmarkVersion: 'v2' }),
+      ],
+      benches,
+      rels,
+    );
+    const nonComparable = out.find((example) => !example.comparable);
+    expect(nonComparable).toBeDefined();
+    expect(nonComparable!.differingField).toBe('benchmarkVersion');
+    expect(nonComparable!.runA).toContain('Model A');
+    expect(nonComparable!.runB).toContain('Model A');
   });
 });
 
@@ -273,11 +390,11 @@ describe('methodology page source', () => {
     expect(page).toContain('methodologyReferences.correctionPath');
   });
 
-  it('renders benchmark comparability examples and still marks deferred policy', () => {
-    expect(page).toContain('benchmarkComparabilityExamples');
+  it('renders derived benchmark comparability examples and still marks deferred policy', () => {
+    expect(page).toContain('deriveBenchmarkComparabilityExamples');
     expect(page).toContain('deferredToImplementation');
-    // The examples must be presented as illustrative, not as dataset records.
-    expect(page).toContain('illustrative');
+    // The examples are derived from real records, not authored placeholders.
+    expect(page).toContain('derived from real benchmark results');
     expect(page).toContain('Comparable');
     expect(page).toContain('Not comparable');
   });
