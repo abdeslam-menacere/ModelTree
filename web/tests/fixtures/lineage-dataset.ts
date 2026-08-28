@@ -1,3 +1,4 @@
+import { precisionOf } from '../../src/data/partial-date';
 import type { Dataset, ModelFamily, ModelRelease, Organization } from '../../src/data/schema';
 import { validateDataset } from '../../src/data/validate';
 
@@ -27,8 +28,11 @@ import { validateDataset } from '../../src/data/validate';
  * - cycle: two releases that each record the other as a successor
  * - derivation: a `derivedFromIds` edge that crosses organizations, which
  *   `validate.ts` explicitly permits and which therefore must never nest
- * - partial dates: releases whose `datePrecision` is coarser than their stored
- *   `releaseDate`, so a renderer cannot invent a day the source never stated
+ * - partial dates: releases a source dated only to the year or the month, stored
+ *   at exactly that precision, so a renderer cannot invent a day the source
+ *   never stated. Before abdeslam-menacere/ModelTree#468 these had to carry a
+ *   fabricated `-01-01` day and rely on `datePrecision` to suppress it; they now
+ *   say what the source said.
  */
 
 const SOURCE_ID = 'fixture-lineage-announcement';
@@ -73,6 +77,7 @@ function family(id: string, organizationId: string, name: string, firstReleaseDa
     description: `Synthetic family ${id} used only to exercise lineage rendering.`,
     categories: ['language-reasoning'],
     firstReleaseDate,
+    datePrecision: precisionOf(firstReleaseDate),
     status: 'current',
     sourceIds: [SOURCE_ID],
     verifiedAt: VERIFIED_AT,
@@ -170,11 +175,11 @@ const releases: ModelRelease[] = [
   // gen1/gen2 is recorded only on the child's `predecessorIds`; gen3/gen4 only on
   // the parent's `successorIds`. Both must produce the same nesting, which is why
   // edges are read as the union of the two directions.
-  release('fixture-beta-chain-gen1', 'fixture-beta', DEEP_FAMILY_ID, 'Beta Chain Gen 1', '2022-01-01', {
+  release('fixture-beta-chain-gen1', 'fixture-beta', DEEP_FAMILY_ID, 'Beta Chain Gen 1', '2022', {
     datePrecision: 'year',
     status: 'legacy',
   }),
-  release('fixture-beta-chain-gen2', 'fixture-beta', DEEP_FAMILY_ID, 'Beta Chain Gen 2', '2023-06-01', {
+  release('fixture-beta-chain-gen2', 'fixture-beta', DEEP_FAMILY_ID, 'Beta Chain Gen 2', '2023-06', {
     predecessorIds: ['fixture-beta-chain-gen1'],
     datePrecision: 'month',
     status: 'legacy',
