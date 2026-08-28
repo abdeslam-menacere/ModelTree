@@ -7,7 +7,15 @@ function read(relative: string): string {
 
 const schemaSource = read('./schema.ts');
 const methodologyPage = read('../pages/methodology.astro');
+const readme = read('../../README.md');
 const reviewSkill = read('../../../.github/skills/modeltree-review/SKILL.md');
+
+// Every surface that states the rule to a reader — the published methodology
+// page and the contributor README — must state the schema's version of it.
+const PUBLISHED_SURFACES = [
+  ['methodology', methodologyPage],
+  ['README', readme],
+] as const;
 
 const POLICY_BLOCK_START = '<!-- osi-approved-evidence-policy:start -->';
 const POLICY_BLOCK_END = '<!-- osi-approved-evidence-policy:end -->';
@@ -107,7 +115,7 @@ describe('osiApproved evidence policy', () => {
   it('publishes the schema’s own clauses on every surface that states the rule', () => {
     const clauses = canonicalClauses().map((clause) => clause.toLowerCase());
 
-    for (const [name, document] of [['methodology', methodologyPage]] as const) {
+    for (const [name, document] of PUBLISHED_SURFACES) {
       const published = publishedPolicyBlock(document, name).toLowerCase();
       for (const clause of clauses) {
         expect(published).toContain(clause);
@@ -116,7 +124,7 @@ describe('osiApproved evidence policy', () => {
   });
 
   it('never presents an spdxId or a licence URL as evidence of OSI status', () => {
-    for (const [name, document] of [['methodology', methodologyPage]] as const) {
+    for (const [name, document] of PUBLISHED_SURFACES) {
       expect({ name, matches: EVIDENCE_INVERSION.test(normalizePolicyText(document)) }).toEqual({
         name,
         matches: false,

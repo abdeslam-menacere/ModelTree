@@ -209,6 +209,17 @@ Downloadable weights and OSI-approved licensing are separate fields. Claiming
 `accessType: "open-weight"` requires a licence that actually releases weights,
 and claiming `osiApproved` requires an SPDX identifier or a licence URL.
 
+That structural requirement is not the evidence rule, and the two are easy to
+confuse at exactly the moment a claim is written:
+
+<!-- osi-approved-evidence-policy:start -->
+`osiApproved` must rest on a source that states OSI approval — OSI's own
+published licence list at opensource.org. An `spdxId` or a licence `url` alone
+is not evidence of OSI status: where the schema requires one, that requirement
+is a structural floor — it ensures a licence is identified — not the evidence
+rule for the field's truth, which is the reviewer's to apply.
+<!-- osi-approved-evidence-policy:end -->
+
 The seed data was checked against these official pages on 2026-08-14:
 
 - <https://openai.com/index/gpt-4-1/>
