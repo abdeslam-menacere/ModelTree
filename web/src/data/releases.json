@@ -171,7 +171,8 @@
     "maximumOutput": 128000,
     "apiAliases": [
       "gpt-5.6-sol",
-      "gpt-5.6"
+      "gpt-5.6",
+      "gpt-daybreak-blue-latest"
     ],
     "predecessorIds": [],
     "successorIds": [],
@@ -185,9 +186,10 @@
     "sourceIds": [
       "openai-gpt-5-6-launch",
       "openai-gpt-5-6-sol-docs",
-      "openai-gpt-5-6-sol-preview"
+      "openai-gpt-5-6-sol-preview",
+      "openai-gpt-daybreak-blue-docs"
     ],
-    "verifiedAt": "2026-08-27"
+    "verifiedAt": "2026-08-28"
   },
   {
     "id": "openai-gpt-5-6-terra",
@@ -1079,7 +1081,8 @@
     "contextWindow": 400000,
     "maximumOutput": 128000,
     "apiAliases": [
-      "gpt-5.6-cyber"
+      "gpt-5.6-cyber",
+      "gpt-daybreak-red-latest"
     ],
     "predecessorIds": [],
     "successorIds": [],
@@ -1089,9 +1092,10 @@
     "intendedUse": "Authorized, governed cybersecurity work - vulnerability research, exploit validation, and security testing - by defenders approved for OpenAI's Daybreak program.",
     "sourceIds": [
       "openai-gpt-5-6-cyber-docs",
-      "openai-news-rss"
+      "openai-news-rss",
+      "openai-gpt-daybreak-red-docs"
     ],
-    "verifiedAt": "2026-08-26"
+    "verifiedAt": "2026-08-28"
   },
   {
     "id": "openai-gpt-5-1",
@@ -1446,7 +1450,7 @@
       "google-gemini-3-7-flash-platform-docs",
       "google-gemini-deprecations"
     ],
-    "verifiedAt": "2026-08-26"
+    "verifiedAt": "2026-08-28"
   },
   {
     "id": "meta-muse-spark",
@@ -2297,6 +2301,87 @@
     "sourceIds": [
       "deepseek-v3-2-model-card",
       "hugging-face-deepseek-v3-2-hub-record"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "anthropic-claude-opus-4-6",
+    "slug": "claude-opus-4-6",
+    "canonicalName": "Claude Opus 4.6",
+    "displayName": "Claude Opus 4.6",
+    "organizationId": "anthropic",
+    "familyId": "anthropic-claude-4-6",
+    "version": "4.6",
+    "variant": "Opus",
+    "releaseDate": "2026-02-05",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 1000000,
+    "apiAliases": [
+      "claude-opus-4-6"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "The Opus tier of the Claude 4.6 generation, announced on 5 February 2026. Anthropic describes it as improving on its predecessor for coding, planning, longer agentic tasks, larger codebases, code review, and debugging, and states that it carries a 1M token context window in beta. It is served through the Claude API as claude-opus-4-6 and is listed as Active, with a tentative retirement no sooner than 5 February 2027. Input and output modalities are recorded as text only because the announcement does not state image input for this release.",
+    "intendedUse": "Coding, agentic work over longer horizons, and everyday knowledge-work tasks such as financial analysis, research, and working with documents, spreadsheets, and presentations.",
+    "sourceIds": [
+      "anthropic-opus-4-6-announcement",
+      "anthropic-model-deprecations"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "anthropic-claude-opus-4-7",
+    "slug": "claude-opus-4-7",
+    "canonicalName": "Claude Opus 4.7",
+    "displayName": "Claude Opus 4.7",
+    "organizationId": "anthropic",
+    "familyId": "anthropic-claude-4-7",
+    "version": "4.7",
+    "variant": "Opus",
+    "releaseDate": "2026-04-16",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "apiAliases": [
+      "claude-opus-4-7"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "The Opus tier of the Claude 4.7 generation, announced as generally available on 16 April 2026. Anthropic describes gains in advanced software engineering, long-running task handling, instruction following, and self-verification, and states that the model can see images in greater resolution, which is the basis for recording image input. It is served through the Claude API as claude-opus-4-7 and is listed as Active, with a tentative retirement no sooner than 16 April 2027. No context window is recorded because the announcement does not state one.",
+    "intendedUse": "Advanced software engineering and complex, long-running agentic tasks, including work involving higher-resolution image input.",
+    "sourceIds": [
+      "anthropic-opus-4-7-announcement",
+      "anthropic-model-deprecations"
     ],
     "verifiedAt": "2026-08-28"
   }
