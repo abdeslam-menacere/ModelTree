@@ -91,9 +91,12 @@ flowchart LR
    O2[Owner: public repo and Pages] -.-> I34
 ```
 
-Issue #5 and issue #34 remain blocked until a repository owner enables Pages
-and changes the currently private repository to public at the appropriate stage.
-No product code should attempt those settings changes.
+Issue #5 and issue #34 were blocked until a repository owner enabled Pages and
+changed the then-private repository to public. Both owner gates were satisfied
+before 2026-08-27: the repository is public and Pages is live. The dashed gates
+stay on the graph because they are real dependencies of that path, not because
+they are still outstanding. No product code should attempt those settings
+changes. See [`DEPLOYMENT-RUNBOOK.md`](DEPLOYMENT-RUNBOOK.md).
 
 ## MVP Issues
 
