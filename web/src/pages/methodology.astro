@@ -30,6 +30,7 @@ const benchmarkComparabilityExamples = deriveBenchmarkComparabilityExamples(
   dataset.benchmarks,
   dataset.releases,
 );
+const comparableExample = benchmarkComparabilityExamples.find((example) => example.comparable);
 ---
 
 <BaseLayout
@@ -350,6 +351,18 @@ const benchmarkComparabilityExamples = deriveBenchmarkComparabilityExamples(
                 ))}
               </tbody>
             </table>
+            {comparableExample && comparableExample.undisclosedFields.length > 0 && (
+              <p>
+                Even that comparable pair matches only as far as the disclosure goes. Neither result
+                records{' '}
+                {comparableExample.undisclosedFields.map((field, index) => (
+                  <>{index > 0 ? ', ' : ''}<code>{field}</code></>
+                ))}, each optional in the schema, so the comparison rests on those conditions being
+                equal rather than on evidence that they are. <strong>Absence of a recorded difference
+                is not evidence of sameness</strong> — the same posture the dataset takes toward every
+                unknown fact.
+              </p>
+            )}
             {deferredToImplementation.map((deferred) => (
               <p class="method-deferred">
                 <strong>Not yet enforced.</strong> {deferred.note} See{' '}

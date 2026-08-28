@@ -220,6 +220,14 @@ describe('methodology benchmark comparability examples', () => {
     expect(realPairExists).toBe(true);
   });
 
+  it('reports only real comparison fields as undisclosed', () => {
+    for (const example of examples) {
+      for (const field of example.undisclosedFields) {
+        expect(BENCHMARK_COMPARISON_FIELDS).toContain(field);
+      }
+    }
+  });
+
   it('keys every non-comparable case on a real configuration field that truly differs', () => {
     const nonComparable = examples.filter((example) => !example.comparable);
     expect(nonComparable.length).toBeGreaterThan(0);
@@ -333,6 +341,32 @@ describe('deriveBenchmarkComparabilityExamples verdict logic', () => {
     expect(nonComparable!.runA).toContain('Model A');
     expect(nonComparable!.runB).toContain('Model A');
   });
+
+  it('flags a shared undisclosed field on the comparable example', () => {
+    // Both leave harness unset: comparability rests on it being equal, not shown.
+    const out = deriveBenchmarkComparabilityExamples(
+      [result({ releaseId: 'model-a' }), result({ releaseId: 'model-b' })],
+      benches,
+      rels,
+    );
+    const comparable = out.find((example) => example.comparable);
+    expect(comparable).toBeDefined();
+    expect(comparable!.undisclosedFields).toContain('harness');
+  });
+
+  it('does not flag a field both results disclose', () => {
+    const out = deriveBenchmarkComparabilityExamples(
+      [
+        result({ releaseId: 'model-a', harness: 'lm-eval' } as Partial<Result>),
+        result({ releaseId: 'model-b', harness: 'lm-eval' } as Partial<Result>),
+      ],
+      benches,
+      rels,
+    );
+    const comparable = out.find((example) => example.comparable);
+    expect(comparable).toBeDefined();
+    expect(comparable!.undisclosedFields).not.toContain('harness');
+  });
 });
 
 describe('methodology deferred work', () => {
@@ -397,5 +431,8 @@ describe('methodology page source', () => {
     expect(page).toContain('derived from real benchmark results');
     expect(page).toContain('Comparable');
     expect(page).toContain('Not comparable');
+    // The disclosure caveat must be stated: absence of a difference is not sameness.
+    expect(page).toContain('undisclosedFields');
+    expect(page).toContain('Absence of a recorded difference');
   });
 });

@@ -270,6 +270,19 @@ export interface BenchmarkComparabilityExample {
   basis: string;
   /** The comparison field the two results differ on; null when they share an axis. */
   differingField: BenchmarkComparisonField | null;
+  /**
+   * Comparison fields neither result records. Where a field is unset on both,
+   * comparability rests on it being equal, not on evidence that it is — absence
+   * of a recorded difference is not evidence of sameness.
+   */
+  undisclosedFields: BenchmarkComparisonField[];
+}
+
+function undisclosedShared(a: BenchmarkResult, b: BenchmarkResult): BenchmarkComparisonField[] {
+  return BENCHMARK_COMPARISON_FIELDS.filter(
+    (field) =>
+      (a[field] === undefined || a[field] === '') && (b[field] === undefined || b[field] === ''),
+  );
 }
 
 /**
@@ -303,6 +316,7 @@ export function deriveBenchmarkComparabilityExamples(
           basis:
             'Same benchmark, version, and disclosed configuration; only the model differs, so the two results sit on one axis. The validator builds this same setup key and would refuse a second result for one model under it.',
           differingField: null,
+          undisclosedFields: undisclosedShared(a, b),
         });
         break;
       }
@@ -320,6 +334,7 @@ export function deriveBenchmarkComparabilityExamples(
       runB: runLabel(b),
       basis: `${field} differs, so the results are not on the same axis: ${differenceClause[field]}.`,
       differingField: field,
+      undisclosedFields: undisclosedShared(a, b),
     });
   }
 
