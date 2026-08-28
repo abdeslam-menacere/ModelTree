@@ -192,6 +192,12 @@
     "references": [
       {
         "kind": "pull-request",
+        "label": "PR #465 — this run's pull request, carrying the log entry and no dataset change",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/465",
+        "state": "open, ordinary review — out of class for ADR 0003, so not auto-merging"
+      },
+      {
+        "kind": "pull-request",
         "label": "PR #459 — amended the provenance rubric to treat vocabulary mapping as a recording step; the reason this run was attempted",
         "url": "https://github.com/abdeslam-menacere/ModelTree/pull/459",
         "state": "merged"
