@@ -14,6 +14,7 @@ the right ones.
 | [`instruction-references.yml`](instruction-references.yml) | `pull_request` and `push` to `main`, path-filtered to `.github/copilot-instructions.md`, `.github/skills/**`, `tools/instruction_refs/**` and `.github/workflows/instruction-references.yml`, `workflow_dispatch` | Resolves the paths, issue citations, and section markers in the instructions file, and every issue citation in the skill documents. A `#NNN` inside a fenced code block is not read as a citation — it is sample content such as a colour or a quoted shell argument — and each is reported as a named exemption rather than skipped in silence. The delimiter lines stay in scope, so a citation in an info string, or on the line above or below a block, is still refused; indented code blocks and inline `` `#N` `` spans are deliberately still scanned, for reasons the checker's module docstring records. Only the citation rule consults that fence model, so a broken path inside a fenced example is still reported. Not every path, and the shortfall is narrower than it was. A backticked reference the file wraps across one line break is read as one span whether or not either fragment carries whitespace, so the backtick pairing stays in phase and the reference after it is still checked; the wrapped one is not itself resolved, because what the document renders is its fragments joined by a space, which is not a path, and joining them without the space would be a guess at what the author meant. A blank line inside a span is a paragraph break rather than a wrap, and is still not paired. What separates a wrap from a stray unpaired backtick followed by prose is the character immediately before the closing backtick: a wrap closes on its own last character, whereas a backtick *opening* the next reference is preceded by whatever prose puts there, which is a space or an opening bracket or quote, and each of those is refused. The residual is the case where that prose ends on some other non-whitespace character — `and then--` before a reference, say — which is still read as a wrap, so the pairing goes out of phase and the next reference on that line is missed, unreported rather than reported wrong. Closing that means pairing backticks the way CommonMark does, which the checker's module docstring records as a separate decision |
 | [`adr-numbers.yml`](adr-numbers.yml) | `pull_request` and `push` to `main`, path-filtered to `docs/adr/**`, `tools/adr_numbers/**` and `.github/workflows/adr-numbers.yml`, `workflow_dispatch` | Refuses two decision records under `docs/adr/` that claim the same four-digit number, and a record whose `# ADR NNNN:` heading disagrees with the number in its filename |
 | [`pages.yml`](pages.yml) | `push` to `main`, `workflow_dispatch` | Builds and deploys the site, reports a failed deploy, and resolves that report when the deploy recovers |
+| [`source-link-health.yml`](source-link-health.yml) | `schedule` (weekly), `pull_request` (every one), `workflow_dispatch`; both jobs scoped **inside the job** to `web/src/data/sources.json`, `.github/scripts/source-link-health/**` and `.github/workflows/source-link-health.yml` | Requests every recorded primary source URL and reports the ones that are definitively broken (404, 410) or permanently moved (301, 308), grouped by URL so one dead link is one finding however many records cite it. A rate-limit, a block, a timeout and a 5xx are each classified and **never** reported as a finding, because none of them is evidence the link is bad. On a schedule it opens or updates one maintenance issue and closes it when a later sweep is clean; on a pull request it can only report, and only about URLs that pull request itself introduced. It never writes to `web/src/data/` |
 | [`publish-updater-proposals.yml`](publish-updater-proposals.yml) | `workflow_dispatch` only | Files creator proposals as issues |
 
 ## Status check names
@@ -31,6 +32,8 @@ satisfied, because GitHub waits for a check that no longer reports.
 | `instruction-references` | `instruction-references.yml` | No — see below |
 | `adr-numbers` | `adr-numbers.yml` | No — see below |
 | `skills-ci` | `skills-ci.yml` | **Yes** — but not required today, see below |
+| `source-link-health-tests` | `source-link-health.yml` | **Yes** — but not required today, see below |
+| `source-link-health` | `source-link-health.yml` | **No, and never** — see below |
 
 ### Why `web-ci` is safe to require
 
@@ -180,6 +183,50 @@ requests forever, so none of the three can simply be added to `contexts`. Being
 named in that caution is not being in scope, and that same sentence is the proof
 — `skills-ci` appears in it and is then excluded from #169 by name. Requiring
 any of the three is therefore a decision separate from the two gaps above.
+
+### `source-link-health` must never be required, and `source-link-health-tests` could be
+
+These two names come from one workflow and belong on opposite sides of the line,
+which is why the workflow splits them into separate jobs rather than one.
+
+`source-link-health` **makes network requests to third parties**. Its verdict
+therefore depends on servers this repository does not run: Hugging Face and
+GitHub are between them the two most-cited hosts in `sources.json`, and both
+rate-limit and serve anti-bot responses to unfamiliar clients. A required check
+whose result
+depends on someone else's rate limiter goes red on work that is correct, and a
+check that goes red on correct work gets worked around rather than fixed — the
+same reasoning the `adr-numbers` section above applies to ADR contiguity. So the
+checker is built not to report those cases as findings at all, and the job is
+built not to be required even so. Requiring it would hand an outside party a
+veto over merging here.
+
+`source-link-health-tests` is the opposite: it runs `node --test` over the
+checker's own suite, which stubs `fetch` and touches no network. It behaves like
+`skills-ci` — no `on.pull_request.paths` filter, starts on every pull request,
+decides inside the job whether anything it covers changed, and says so in its job
+summary when it skips. It always reports, so requiring it could not deadlock a
+pull request. It is **not required today** for the same reason `skills-ci` is
+not: adding a context to branch protection is an owner action, and this change
+does not take it.
+
+Both job ids and both `name:` values are the literal strings above, and neither
+job has a `strategy.matrix`, so the reported names never vary per leg or per run.
+
+Two behaviours are worth stating because they are easy to assume the other way
+around. The maintenance issue can only be opened or closed from a **scheduled**
+run, or from a manual run that explicitly opts in; a pull request run — from this
+repository or a fork — cannot file into the tracker, which is asserted in
+`web/tests/workflows/source-link-health.test.ts` rather than left to the reader.
+And the closing comment says out loud that a URL which has stopped answering
+altogether produces the same clean result as a healthy one, because a timeout is
+deliberately not a finding.
+
+This complements, rather than duplicates, the `urls` rules in the table below:
+`gate-dataset` refuses a URL that is malformed, non-https, credential-bearing or
+pointed at a private host, all of which it can decide by reading the string.
+Whether a well-formed URL still resolves is not knowable without asking, and no
+gate asks.
 
 ### `drydock-gates` does not exist
 
