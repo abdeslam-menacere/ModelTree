@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import { FLAT_FAMILY_ID, lineageFixtureDataset } from '../../tests/fixtures/lineage-dataset';
 import { buildLineageEcosystems, type LineageEcosystem } from '../lib/lineage-view';
+import { parseComparisonSelection } from '../lib/comparison';
 import LineageExplorer from './LineageExplorer';
 
 const fixtureEcosystems = buildLineageEcosystems(lineageFixtureDataset);
@@ -199,5 +200,31 @@ describe('unknown relationships do not create implied connecting lines', () => {
     expect(withoutLineage, 'catalog must hold a release with no recorded lineage').toBeDefined();
     const markup = renderExplorer(catalogEcosystems, labelsFor(dataset.releases));
     expect(markup).toMatch(/No recorded (predecessor|successor|sibling release|derivation)\./);
+  });
+});
+
+describe('the drawer can start a comparison', () => {
+  it('offers an add-to-comparison link for the selected release', () => {
+    expect(occurrences(catalogMarkup, /Add to comparison/g)).toBeGreaterThan(0);
+    expect(catalogMarkup).toMatch(/href="\/ModelTree\/compare\/\?models=[a-z0-9-]+"/);
+  });
+
+  it('names the model in the accessible label, not just "compare"', () => {
+    const first = catalogEcosystems[0]!.families[0]!.releases[0]!;
+    expect(catalogMarkup).toContain(`aria-label="Add ${first.displayName} to the comparison"`);
+  });
+
+  it('emits a link the comparison parses back to exactly that release', () => {
+    const known = dataset.releases.map((release) => release.slug);
+    const hrefs = Array.from(
+      catalogMarkup.matchAll(/href="\/ModelTree\/compare\/(\?models=[^"]+)"/g),
+    ).map((match) => match[1]!);
+
+    expect(hrefs.length).toBeGreaterThan(0);
+    for (const search of hrefs) {
+      const selection = parseComparisonSelection(search, known);
+      expect(selection.slugs).toHaveLength(1);
+      expect(selection.rejections).toEqual([]);
+    }
   });
 });

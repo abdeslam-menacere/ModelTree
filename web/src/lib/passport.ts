@@ -30,9 +30,10 @@
  *
  * 3. Wording that carries an editorial commitment is derived, never retyped.
  *    Access and lifecycle prose comes from `methodology.ts`, relationship hrefs
- *    from `catalog.ts`'s `modelRoute`, and the compare link's query parameter
- *    from `catalog-view.ts`'s `FILTER_DIMENSIONS`. A second copy of any of them
- *    would be free to drift from the page that documents it.
+ *    from `catalog.ts`'s `modelRoute`, and the compare link from
+ *    `compare-route.ts`, which is where the comparison page's own URL contract
+ *    is defined. A second copy of any of them would be free to drift from the
+ *    page that documents it.
  */
 import type {
   Dataset,
@@ -46,7 +47,7 @@ import type {
   SourceReference,
 } from '../data/schema';
 import { modelRoute } from './catalog';
-import { FILTER_DIMENSIONS } from './catalog-view';
+import { compareUrl } from './compare-route';
 import { accessLabel, categoryLabel, formatDate, formatNumber, statusLabel } from './format';
 import { accessTypeGlossary, lifecycleStatusGlossary, methodologyReferences } from './methodology';
 import { daysSince } from './usage-evidence';
@@ -448,32 +449,8 @@ export class PassportError extends Error {
 // Actions
 // ---------------------------------------------------------------------------
 
-/**
- * The catalog's query key for a family filter, read from the catalog's own
- * declaration rather than written out again here. `/compare` is in the
- * information architecture but no route builds it yet, so "Compare" opens the
- * catalog narrowed to this family — the same treatment `catalog.ts` gives
- * provider routes, where a link to a page nobody generates is a 404 with extra
- * steps.
- */
-function familyFilterParam(): string {
-  const dimension = FILTER_DIMENSIONS.find((candidate) => candidate.key === 'families');
-  if (!dimension) {
-    throw new PassportError(
-      'the catalog declares no family filter dimension, so a compare link cannot be built '
-      + 'that the catalog would parse',
-    );
-  }
-
-  return dimension.param;
-}
-
-export function compareHref(base: string, familySlug: string) {
-  const catalogRoot = base.endsWith('/') ? `${base}models/` : `${base}/models/`;
-  const params = new URLSearchParams();
-  params.append(familyFilterParam(), familySlug);
-
-  return `${catalogRoot}?${params.toString()}`;
+export function compareHref(base: string, slug: string) {
+  return compareUrl(base, [slug]);
 }
 
 /**
@@ -894,9 +871,11 @@ export function buildModelPassport(
   const actions: PassportAction[] = [
     {
       kind: 'compare',
-      label: `Compare ${family.name} releases`,
-      href: compareHref(base, family.slug),
-      description: 'Opens the catalog filtered to this family, where releases can be compared side by side.',
+      label: `Compare ${release.displayName} with another model`,
+      href: compareHref(base, release.slug),
+      description:
+        'Opens the comparison with this release already chosen. Add one to three more to see them '
+        + 'side by side, each value with the source it came from.',
       external: false,
     },
     {
