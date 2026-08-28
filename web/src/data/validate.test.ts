@@ -564,16 +564,35 @@ describe('partial dates on family and release dates', () => {
   });
 
   /**
-   * Criterion 4. Every committed record keeps the date it already had and is
-   * marked `day` -- because a day is what those sources gave, not because `day`
-   * is a convenient default for a newly required field. The counts are floors so
-   * that adding a record does not force an edit here, while deleting one fails.
+   * Criterion 4. Every record the backfill touched keeps the date it already
+   * had and is marked `day` -- because a day is what those sources gave, not
+   * because `day` is a convenient default for a newly required field. The
+   * counts are floors so that adding a record does not force an edit here,
+   * while deleting one fails.
    *
    * That the *values* are unchanged is a property of the diff rather than of a
    * test: `families.json` gains lines and loses none, and `releases.json` is not
    * touched at all.
+   *
+   * A record whose source genuinely gave less than a day is the capability this
+   * change exists to provide, so such records are enumerated here rather than
+   * forbidden -- scanning the live dataset for `day` alone would have made the
+   * first honest partial date fail, which is the opposite of the intent above.
+   * The enumeration is the assertion and it stays exact: an unlisted non-day
+   * record still fails, so a backfilled `day` quietly downgraded to `month`, or
+   * a `year` stamped on a record whose source gave more, is still caught.
    */
   it('leaves every committed date at day precision, agreeing with its value', () => {
+    const datesCoarserThanADay = [
+      {
+        id: 'cohere-command-a',
+        precision: 'month',
+        // Cohere dates the family only through its earliest member's published
+        // identifier, `command-a-03-2025`. No approved origin states a day, so
+        // recording one would be the invention this field exists to prevent.
+      },
+    ];
+
     const dataset = validateDataset(copyDataset());
     const dated = [
       ...dataset.families.map((family) => ({
@@ -592,7 +611,7 @@ describe('partial dates on family and release dates', () => {
     expect(dataset.releases.length).toBeGreaterThanOrEqual(51);
 
     const notDay = dated.filter((entry) => entry.precision !== 'day');
-    expect(notDay).toEqual([]);
+    expect(notDay.map(({ id, precision }) => ({ id, precision }))).toEqual(datesCoarserThanADay);
 
     const disagreeing = dated.filter((entry) => precisionOf(entry.value) !== entry.precision);
     expect(disagreeing).toEqual([]);

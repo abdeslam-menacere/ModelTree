@@ -117,6 +117,7 @@ describe('organization type policy', () => {
       'alibaba-cloud': 'company',
       microsoft: 'company',
       amazon: 'company',
+      cohere: 'company',
     });
   });
 
@@ -210,6 +211,15 @@ describe('organization type policy', () => {
         clause: 'paid-company',
       },
       amazon: {
+        facts: {
+          offersPaidModelProductsOrAccess: true,
+          institutionControlsReleases: true,
+          primarilyResearch: false,
+        },
+        type: 'company',
+        clause: 'paid-company',
+      },
+      cohere: {
         facts: {
           offersPaidModelProductsOrAccess: true,
           institutionControlsReleases: true,
