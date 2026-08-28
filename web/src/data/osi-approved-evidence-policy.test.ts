@@ -20,9 +20,31 @@ const PUBLISHED_SURFACES = [
 const POLICY_BLOCK_START = '<!-- osi-approved-evidence-policy:start -->';
 const POLICY_BLOCK_END = '<!-- osi-approved-evidence-policy:end -->';
 
-// An SPDX id read as evidence is the inference #461 exists to forbid, so the
-// page must not carry any sentence of that shape, not merely avoid one wording.
-const EVIDENCE_INVERSION = /(?:spdx|licence `?url`?|licence URL)[^.]{0,160}as evidence/i;
+// Treating a licence identifier as sufficient grounds for OSI status is the
+// inference #461 exists to forbid, and it has more phrasings than "as evidence"
+// — abdeslam-menacere/ModelTree#486 states the same error as "finding an SPDX id
+// is sufficient grounds to record `osiApproved: true`". So match the shape
+// (a licence identifier, then a sufficiency claim) rather than one wording.
+//
+// THE LIMIT, stated plainly because it is easy to mistake this for a total
+// check: a negative prose check is necessarily incomplete. No regex decides
+// whether English asserts a semantic claim, and any list of verbs can be
+// paraphrased around. This alternation covers the formulations this repository
+// has actually produced or named and is deliberately bounded there; chasing
+// exhaustiveness would make the check look complete while still not being, which
+// is the very defect class #486 belongs to. The load-bearing mechanism is the
+// positive assertion below — that every published surface contains the schema's
+// own clauses — which fails on ANY rewording, including ones this regex misses.
+// This check is a second line that catches known-bad shapes, not the first.
+const LICENCE_IDENTIFIER = String.raw`spdx|licence \`?url\`?|licence URL|licence identifier`;
+// \b matters on every verb: "approves" contains "proves".
+const SUFFICIENCY_CLAIM = String.raw`as evidence|\bis evidence\b|\bare evidence\b|\bproves\b|\bproof\b|\bestablishes\b|\bdemonstrates\b|\bconfirms\b|\bsufficient\b|\benough\b`;
+// The gap may not cross a sentence end, nor a negation: "an spdxId alone is not
+// evidence of OSI status" is the correct wording and must never match.
+const EVIDENCE_INVERSION = new RegExp(
+  `(?:${LICENCE_IDENTIFIER})(?:(?!\\bnot\\b|\\bnever\\b)[^.]){0,160}(?:${SUFFICIENCY_CLAIM})`,
+  'i',
+);
 
 function normalizePolicyText(source: string): string {
   return source
@@ -123,12 +145,63 @@ describe('osiApproved evidence policy', () => {
     }
   });
 
-  it('never presents an spdxId or a licence URL as evidence of OSI status', () => {
+  it('never presents an spdxId or a licence URL as grounds for OSI status', () => {
     for (const [name, document] of PUBLISHED_SURFACES) {
       expect({ name, matches: EVIDENCE_INVERSION.test(normalizePolicyText(document)) }).toEqual({
         name,
         matches: false,
       });
+    }
+  });
+
+  // Pins what the negative check does and does not cover, so its boundary is
+  // readable here rather than inferred from a regex. The escaping fixtures are
+  // recorded deliberately: they are the honest statement of the limit, and they
+  // are caught by the positive clause-containment test above, not by this one.
+  it('catches the sufficiency formulations this issue names, and admits it is not exhaustive', () => {
+    const caught = [
+      'an OSI-approved claim needs an spdxId or a licence url as evidence',
+      // The formulation issue #486 uses in its own words, which QA reproduced.
+      'finding an SPDX identifier is sufficient grounds to record osiApproved: true',
+      'a licence url is evidence of OSI approval',
+      'an spdxId proves OSI approval',
+      'an SPDX identifier is enough to record osiApproved',
+      'a licence url establishes OSI approval',
+      'an spdxId demonstrates OSI status',
+      'a licence url confirms OSI approval',
+      'an spdxId is proof of OSI approval',
+    ];
+    for (const sentence of caught) {
+      expect({ sentence, caught: EVIDENCE_INVERSION.test(sentence) }).toEqual({
+        sentence,
+        caught: true,
+      });
+    }
+
+    const correctWordingMustNotTrip = [
+      'an spdxId or a licence url alone is not evidence of OSI status',
+      'an spdxId alone is never sufficient to record osiApproved',
+      'that requirement is a structural floor - it ensures a licence is identified',
+      'not the evidence rule for the field’s truth, which is the reviewer’s to apply',
+      'osiApproved must rest on a source that states OSI approval',
+      'whether OSI approved that licence is a separate fact that only OSI states',
+      'a validator can check that a licence is identified',
+    ];
+    for (const sentence of correctWordingMustNotTrip) {
+      expect({ sentence, caught: EVIDENCE_INVERSION.test(sentence) }).toEqual({
+        sentence,
+        caught: false,
+      });
+    }
+
+    // Recorded, not asserted as caught: a negative prose check cannot be
+    // complete, and pretending otherwise is the failure shape #486 is about.
+    const knownToEscape = [
+      'an spdxId settles the question of OSI approval',
+      'if a model card names Apache-2.0, mark it OSI approved',
+    ];
+    for (const sentence of knownToEscape) {
+      expect(EVIDENCE_INVERSION.test(sentence)).toBe(false);
     }
   });
 
