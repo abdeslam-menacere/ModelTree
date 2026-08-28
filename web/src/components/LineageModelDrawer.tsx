@@ -4,10 +4,13 @@ import { accessLabel, formatDate, formatReleaseDate, statusLabel } from '../lib/
 import { createCompareUrl, createEvidenceUrl } from '../lib/evidence-actions';
 
 /**
- * Below this width the details surface is presented as a modal drawer with full
- * dialog semantics; at or above it, it is the anchored, persistent panel beside
- * the tree. It mirrors the `max-width: 700px` breakpoint the stylesheet uses to
- * stack the workspace, so the modality and the layout switch together.
+ * Below this width the details surface is presented as a modal drawer; at or
+ * above it, it is the anchored, persistent panel beside the tree. This is the
+ * component's own modality threshold and is intentionally narrower than the
+ * `@media (max-width: 980px)` breakpoint at which `global.css` collapses
+ * `.tree-workspace` to a single column: between 701px and 980px the layout is
+ * already stacked while this surface is still the anchored panel, which reads
+ * as a full-width panel below the tree rather than a modal.
  */
 const MOBILE_QUERY = '(max-width: 700px)';
 
@@ -26,6 +29,14 @@ interface Props {
   selected?: DrawerSelection;
   source?: DrawerSource;
   basePath: string;
+  /**
+   * Bumped by the explorer on every release activation, including re-selecting
+   * the release that is already selected. The open effect keys on it so a
+   * dismissed modal can be reopened for the same release — selecting the same
+   * node leaves `selected` referentially identical, which alone would never
+   * re-run the effect.
+   */
+  selectionNonce?: number;
 }
 
 function focusables(container: HTMLElement) {
@@ -36,7 +47,7 @@ function focusables(container: HTMLElement) {
   ).filter((element) => !element.hasAttribute('hidden'));
 }
 
-export default function LineageModelDrawer({ selected, source, basePath }: Props) {
+export default function LineageModelDrawer({ selected, source, basePath, selectionNonce }: Props) {
   const [isModal, setIsModal] = useState(false);
   const [open, setOpen] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -67,7 +78,7 @@ export default function LineageModelDrawer({ selected, source, basePath }: Props
     } else {
       setOpen(false);
     }
-  }, [isModal, releaseId]);
+  }, [isModal, releaseId, selectionNonce]);
 
   function dismiss() {
     setOpen(false);

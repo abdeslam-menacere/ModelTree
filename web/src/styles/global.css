@@ -1869,11 +1869,20 @@ main {
 .tree-drawer-backdrop {
   position: absolute;
   inset: 0;
+  z-index: 0;
   border: 0;
   background: rgba(0, 0, 0, 0.45);
 }
 
-.tree-drawer-dialog {
+/* The dialog also carries `.tree-details` for its inner styling, and a
+   `@media (max-width: 980px)` rule later in this file sets
+   `.tree-details { position: static }`. A single-class selector here would tie
+   that rule on specificity and lose on source order, leaving the dialog
+   unpositioned so its `z-index` went inert and the backdrop painted over it.
+   The compound `.tree-details.tree-drawer-dialog` (specificity 0,2,0) outranks
+   the single class regardless of source order, so the dialog stays positioned
+   above its backdrop. */
+.tree-details.tree-drawer-dialog {
   position: relative;
   z-index: 1;
   width: 100%;

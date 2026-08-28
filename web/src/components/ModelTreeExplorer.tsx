@@ -28,6 +28,7 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
   const [openCreators, setOpenCreators] = useState<ReadonlySet<string>>(new Set());
   const [openFamilies, setOpenFamilies] = useState<ReadonlySet<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string>();
+  const [selectionNonce, setSelectionNonce] = useState(0);
   const releaseIds = modelTreeReleaseIds(tree);
   const releaseKey = releaseIds.join('\0');
   const normalizedBase = basePath.endsWith('/') ? basePath : `${basePath}/`;
@@ -50,6 +51,9 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
 
   function selectRelease(releaseId: string) {
     const restored = restoreModelTreeSelection(tree, releaseId);
+    // Bumped even when the release is unchanged so the drawer can reopen after a
+    // dismissal: the selected-id state alone bails out of a no-op update.
+    setSelectionNonce((nonce) => nonce + 1);
     startTransition(() => {
       setSelectedId(releaseId);
       setOpenCreators((current) => new Set([...current, ...restored.openCreatorIds]));
@@ -128,7 +132,7 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
   }
 
   return (
-    <section className="model-tree-explorer" aria-labelledby="model-tree-heading">
+    <section className="model-tree-explorer" aria-label="Model lineage explorer">
       <div className="tree-workspace">
         <div className="tree-scroll" aria-label="Reviewed model ecosystem hierarchy">
           <ul className="model-tree-list model-tree-root">
@@ -192,6 +196,7 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
           selected={selected}
           source={selected ? sourceByReleaseId[selected.release.id] : undefined}
           basePath={basePath}
+          selectionNonce={selectionNonce}
         />
       </div>
     </section>

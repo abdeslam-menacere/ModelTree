@@ -78,6 +78,24 @@ describe('createCompareUrl', () => {
     expect(result.models).toEqual(['model-a', 'model-b', 'model-c']);
   });
 
+  it('collapses duplicate incoming slugs so the cap counts distinct models', () => {
+    // Four entries, three distinct: a further model must still be admissible.
+    const result = createCompareUrl('/ModelTree/compare/?models=model-a,model-a,model-b', '/ModelTree/', 'model-c');
+    expect(result.models).toEqual(['model-a', 'model-b', 'model-c']);
+    expect(result.atLimit).toBe(false);
+  });
+
+  it('clamps an over-limit incoming set to the ceiling rather than propagating it', () => {
+    const result = createCompareUrl(
+      '/ModelTree/compare/?models=model-a,model-b,model-c,model-d,model-e',
+      '/ModelTree/',
+      'model-f',
+    );
+    expect(result.models).toEqual(['model-a', 'model-b', 'model-c', 'model-d']);
+    expect(result.models).toHaveLength(COMPARE_MODEL_LIMIT);
+    expect(result.atLimit).toBe(true);
+  });
+
   it('accepts an absolute URL and preserves only the path and query in the result', () => {
     const result = createCompareUrl(
       new URL('https://example.com/ModelTree/tree/?model=x#frag'),

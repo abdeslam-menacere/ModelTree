@@ -3,7 +3,7 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
-import { accessLabel, formatDate, formatReleaseDate, statusLabel } from '../lib/format';
+import { accessLabel, formatDate, statusLabel } from '../lib/format';
 import LineageModelDrawer, { type DrawerSelection } from './LineageModelDrawer';
 
 const release = dataset.releases.find(({ id }) => id === 'anthropic-claude-opus-5')!;
@@ -41,7 +41,9 @@ describe('LineageModelDrawer (anchored panel)', () => {
     expect(within(surface).getByText(release.summary)).toBeTruthy();
 
     const fields: Array<[string, string]> = [
-      ['Released', formatReleaseDate(release.releaseDate, release.datePrecision)],
+      // Pinned literal (release is day-precision) rather than computed from the
+      // production formatter, so the assertion is not tautological.
+      ['Released', 'Jul 24, 2026'],
       ['Status', statusLabel(release.status)],
       ['Access', accessLabel(release.accessType)],
       ['Purpose', release.intendedUse],
@@ -52,6 +54,15 @@ describe('LineageModelDrawer (anchored panel)', () => {
       expect(term.tagName).toBe('DT');
       expect(term.nextElementSibling?.textContent).toBe(value);
     }
+  });
+
+  it('renders the release date at its stated precision, not always to the day', () => {
+    // A month-precision record must not publish a day nobody claimed. `formatDate`
+    // would render "Jul 24, 2026" here; the precision-aware formatter must not.
+    const monthPrecision = { ...selection, release: { ...release, datePrecision: 'month' as const } };
+    render(<LineageModelDrawer selected={monthPrecision} source={source} basePath="/ModelTree/" />);
+    const term = within(panel()).getByText('Released');
+    expect(term.nextElementSibling?.textContent).toBe('Jul 2026');
   });
 
   it('generates stable action URLs for view, evidence, and compare', () => {

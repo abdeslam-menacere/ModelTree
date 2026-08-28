@@ -6,10 +6,10 @@
  * same `models` parameter, carrying release *slugs* (the tree's own deep-link
  * parameter `?model=<release-id>` is a separate concern and is left untouched).
  *
- * The `/benchmarks` and `/compare` routes do not exist yet (backlog #22 and #23);
- * these builders produce the stable URLs those routes will consume, so the cap
- * logic lives here regardless of what is on the other end of the link. Only URL
- * *generation* is testable today, not resolution.
+ * The `/benchmarks` route does not exist yet (backlog #23), nor does `/compare`
+ * (backlog #24); these builders produce the stable URLs those routes will
+ * consume, so the cap logic lives here regardless of what is on the other end of
+ * the link. Only URL *generation* is testable today, not resolution.
  */
 
 export const EVIDENCE_MODELS_PARAMETER = 'models';
@@ -23,13 +23,19 @@ function withTrailingSlash(base: string) {
   return base.endsWith('/') ? base : `${base}/`;
 }
 
+/** Distinct, non-blank slugs from the `models` parameter, in first-seen order. */
 function readModelSlugs(input: string | URL) {
   const url = input instanceof URL ? input : new URL(input, PLACEHOLDER_ORIGIN);
   const raw = url.searchParams.get(EVIDENCE_MODELS_PARAMETER) ?? '';
-  return raw
-    .split(',')
-    .map((slug) => slug.trim())
-    .filter((slug) => slug.length > 0);
+  const seen = new Set<string>();
+  const slugs: string[] = [];
+  for (const candidate of raw.split(',')) {
+    const slug = candidate.trim();
+    if (slug.length === 0 || seen.has(slug)) continue;
+    seen.add(slug);
+    slugs.push(slug);
+  }
+  return slugs;
 }
 
 /**
@@ -56,17 +62,19 @@ export interface CompareUrlResult {
 
 /**
  * Adds `slug` to whatever `models` are already in `input`'s query state and
- * returns the `/compare` URL for the result. Adding is idempotent (a slug
- * already present is a no-op) and bounded: once the set holds
- * {@link COMPARE_MODEL_LIMIT} distinct models a further, different slug is
- * refused rather than pushing the set past the ceiling.
+ * returns the `/compare` URL for the result. The incoming set is first reduced
+ * to its distinct slugs and clamped to {@link COMPARE_MODEL_LIMIT}, so the
+ * result is always distinct and never longer than the ceiling. Adding is
+ * idempotent (a slug already present is a no-op) and bounded: once the set holds
+ * {@link COMPARE_MODEL_LIMIT} models a further, different slug is refused rather
+ * than pushing the set past the ceiling.
  */
 export function createCompareUrl(
   input: string | URL,
   base: string,
   slug: string,
 ): CompareUrlResult {
-  const existing = readModelSlugs(input);
+  const existing = readModelSlugs(input).slice(0, COMPARE_MODEL_LIMIT);
 
   if (existing.includes(slug)) {
     return { href: modelsQuery(base, 'compare', existing), models: existing, atLimit: false };

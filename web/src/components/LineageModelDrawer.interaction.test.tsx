@@ -114,6 +114,37 @@ describe('LineageModelDrawer modal behaviour on mobile', () => {
     expect(document.activeElement).toBe(closeButton);
   });
 
+  it('reopens for the same release after dismissal when it is re-selected', async () => {
+    installMatchMedia(true);
+    const user = userEvent.setup();
+    renderExplorer();
+
+    const releaseButton = await selectClaudeOpus(user);
+    await screen.findByRole('dialog');
+
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    // Selecting the very same node again must bring the drawer back, even though
+    // the selected release id is unchanged.
+    await user.click(releaseButton);
+    expect(await screen.findByRole('dialog')).toBeTruthy();
+  });
+
+  it('dismisses on a backdrop click and restores focus', async () => {
+    installMatchMedia(true);
+    const user = userEvent.setup();
+    renderExplorer();
+
+    const releaseButton = await selectClaudeOpus(user);
+    await screen.findByRole('dialog');
+
+    await user.click(document.querySelector('.tree-drawer-backdrop') as HTMLElement);
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(document.activeElement).toBe(releaseButton);
+  });
+
   it('presents an anchored non-modal panel on desktop with no dialog semantics', async () => {
     installMatchMedia(false);
     const user = userEvent.setup();
@@ -126,5 +157,24 @@ describe('LineageModelDrawer modal behaviour on mobile', () => {
     expect(within(surface).getByRole('heading', { name: /Claude Opus 5/ })).toBeTruthy();
     // Focus is never moved away from the release the user activated.
     expect(document.activeElement).toBe(releaseButton);
+  });
+
+  it('keeps the explorer region named on mobile regardless of drawer state', async () => {
+    installMatchMedia(true);
+    const user = userEvent.setup();
+    renderExplorer();
+
+    // Before any selection the modal drawer renders nothing, yet the explorer
+    // section must still carry an accessible name (the merge-base regression).
+    expect(screen.getByRole('region', { name: 'Model lineage explorer' })).toBeTruthy();
+
+    const releaseButton = await selectClaudeOpus(user);
+    await screen.findByRole('dialog');
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    // ...and still after the drawer has been dismissed back to null.
+    expect(screen.getByRole('region', { name: 'Model lineage explorer' })).toBeTruthy();
+    expect(releaseButton).toBeTruthy();
   });
 });
