@@ -32,6 +32,7 @@ import {
   methodologySections,
   methodologyTableOfContents,
   sourceTypeGlossary,
+  unrecordedBenchmarkConfigFields,
   usageProvenanceGlossary,
   type GlossaryEntry,
 } from './methodology';
@@ -369,6 +370,45 @@ describe('deriveBenchmarkComparabilityExamples verdict logic', () => {
   });
 });
 
+describe('unrecordedBenchmarkConfigFields', () => {
+  // The config table must not imply optional fields are recorded when they are
+  // not. This derives, from the schema and the data, which optional config
+  // fields the dataset holds on no result — so the page's disclosure is true of
+  // whatever records ship, not a hand-typed claim that can go stale.
+  it('names only optional config fields, never a required one', () => {
+    const optional = new Set(unrecordedBenchmarkConfigFields(dataset.benchmarkResults));
+    // benchmarkVersion and resultType are required in benchmarkResultSchema.
+    expect(optional.has('benchmarkVersion')).toBe(false);
+    expect(optional.has('resultType')).toBe(false);
+  });
+
+  it('reports a field the dataset records on no result, not one it records', () => {
+    const unrecorded = unrecordedBenchmarkConfigFields(dataset.benchmarkResults);
+    for (const field of unrecorded) {
+      const anyRecords = dataset.benchmarkResults.some((result) => {
+        const value = (result as Record<string, unknown>)[field];
+        return value !== undefined && value !== '';
+      });
+      expect(anyRecords).toBe(false);
+    }
+    // The gap is real in today's data, so the disclosure is not vacuous.
+    expect(unrecorded.length).toBeGreaterThan(0);
+  });
+
+  it('drops a field once some result records it', () => {
+    type Result = (typeof dataset.benchmarkResults)[number];
+    const withHarness = dataset.benchmarkResults.map((result, index) =>
+      index === 0 ? ({ ...result, harness: 'lm-eval-harness' } as Result) : result,
+    );
+    expect(unrecordedBenchmarkConfigFields(withHarness)).not.toContain('harness');
+  });
+
+  it('reports nothing for an empty result set rather than every field', () => {
+    // No records means no evidence of absence to disclose.
+    expect(unrecordedBenchmarkConfigFields([])).toEqual([]);
+  });
+});
+
 describe('methodology deferred work', () => {
   // The page must name unimplemented policy and its owning issue rather than
   // inventing it. Benchmark comparability transformations are issue #22.
@@ -409,6 +449,19 @@ describe('methodology references', () => {
 describe('methodology page source', () => {
   const page = readFileSync(new URL('../pages/methodology.astro', import.meta.url), 'utf8');
 
+  it('gives every subsection a matching hardcoded heading anchor', () => {
+    // The <h3 id> anchors are hardcoded in the page while the table of contents
+    // is data-driven; if the two drift, an in-page link silently 404s. Bind them.
+    const anchorIds = new Set(
+      [...page.matchAll(/<h3 id="([^"]+)"/g)].map((match) => match[1]),
+    );
+    for (const section of methodologySections) {
+      for (const sub of section.subsections) {
+        expect(anchorIds).toContain(sub.id);
+      }
+    }
+  });
+
   it('renders exactly one top-level heading', () => {
     const h1s = page.match(/<h1[\s>]/g) ?? [];
     expect(h1s).toHaveLength(1);
@@ -434,5 +487,12 @@ describe('methodology page source', () => {
     // The disclosure caveat must be stated: absence of a difference is not sameness.
     expect(page).toContain('undisclosedFields');
     expect(page).toContain('Absence of a recorded difference');
+    // The config table must disclose that optional fields are unrecorded, not
+    // claim the schema records every field on every result.
+    expect(page).toContain('unrecordedConfigFields');
+    expect(page).toContain('currently unrecorded on every result');
+    expect(page).toContain('Configuration a benchmark result can record');
+    expect(page).not.toContain('Configuration recorded on each benchmark result');
+    expect(page).not.toContain('records the configuration below on every benchmark');
   });
 });

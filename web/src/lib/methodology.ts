@@ -15,6 +15,7 @@
  */
 import {
   accessType,
+  benchmarkResultSchema,
   lifecycleStatus,
   modelCategory,
   sourceSchema,
@@ -181,13 +182,15 @@ export const fitGapReasonGlossary: GlossaryEntry<FitGapReason>[] =
   }));
 
 // ---------------------------------------------------------------------------
-// Benchmark configuration fields. The schema records this configuration on every
+// Benchmark configuration fields. The schema defines this configuration on a
 // benchmark result so that setups can be told apart; its own comment marks these
 // as "configuration that decides whether two results may be compared at all"
-// (schema.ts). Each `field` below is a real key on `benchmarkResultSchema` —
-// `methodology.test.ts` asserts it. The descriptions state what a field records,
-// not a comparability verdict: no code transforms results into a comparison
-// (see `deferredToImplementation`).
+// (schema.ts). Several are `.optional()`, so a result records them only where its
+// source discloses them — `unrecordedBenchmarkConfigFields` reports which the
+// dataset holds on no result today. Each `field` below is a real key on
+// `benchmarkResultSchema` — `methodology.test.ts` asserts it. The descriptions
+// state what a field records, not a comparability verdict: no code transforms
+// results into a comparison (see `deferredToImplementation`).
 // ---------------------------------------------------------------------------
 
 export interface BenchmarkConfigField {
@@ -218,6 +221,31 @@ export const benchmarkConfigurationFields: BenchmarkConfigField[] = [
     records: 'Whether the score is an official self-report or an independent evaluation.',
   },
 ];
+
+/**
+ * Configuration fields that are optional in the schema AND recorded on no result
+ * in the dataset. Derived from the schema (optionality) and the data (presence)
+ * rather than hard-listed, so the page's honesty about the gap cannot drift as
+ * records are added: an unrecorded field is not evidence two runs matched on it.
+ */
+export function unrecordedBenchmarkConfigFields(
+  results: readonly BenchmarkResult[],
+): string[] {
+  const shape = benchmarkResultSchema.shape as Record<string, { safeParse(value: unknown): { success: boolean } }>;
+  return benchmarkConfigurationFields
+    .map((entry) => entry.field)
+    .filter((field) => {
+      const fieldSchema = shape[field];
+      const isOptional = fieldSchema ? fieldSchema.safeParse(undefined).success : false;
+      const recordedNowhere =
+        results.length > 0 &&
+        results.every((result) => {
+          const value = (result as Record<string, unknown>)[field];
+          return value === undefined || value === '';
+        });
+      return isOptional && recordedNowhere;
+    });
+}
 
 // ---------------------------------------------------------------------------
 // Benchmark comparability examples, derived from real dataset records rather

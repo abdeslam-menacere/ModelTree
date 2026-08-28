@@ -16,6 +16,7 @@ import {
   methodologySections,
   methodologyTableOfContents,
   sourceTypeGlossary,
+  unrecordedBenchmarkConfigFields,
   usageProvenanceGlossary,
 } from '../lib/methodology';
 
@@ -31,6 +32,7 @@ const benchmarkComparabilityExamples = deriveBenchmarkComparabilityExamples(
   dataset.releases,
 );
 const comparableExample = benchmarkComparabilityExamples.find((example) => example.comparable);
+const unrecordedConfigFields = unrecordedBenchmarkConfigFields(dataset.benchmarkResults);
 ---
 
 <BaseLayout
@@ -299,14 +301,14 @@ const comparableExample = benchmarkComparabilityExamples.find((example) => examp
             <p>
               Benchmarks are contextual evidence, not universal truth. There is no composite or
               universal score; a deterministic gate refuses any field that reads as a ranking
-              anywhere in the dataset. The schema records the configuration below on every benchmark
-              result — its own comment marks these as “configuration that decides whether two results
-              may be compared at all” — and the validator refuses two results for the same model
-              under an identical disclosed setup and requires a result’s unit to match its benchmark’s
-              unit.
+              anywhere in the dataset. Each benchmark result records the configuration below where
+              its source discloses it — the schema’s own comment marks these as “configuration that
+              decides whether two results may be compared at all” — and the validator refuses two
+              results for the same model under an identical disclosed setup and requires a result’s
+              unit to match its benchmark’s unit.
             </p>
             <table class="method-glossary method-examples">
-              <caption>Configuration recorded on each benchmark result</caption>
+              <caption>Configuration a benchmark result can record</caption>
               <thead>
                 <tr><th scope="col">Field</th><th scope="col">What it records</th></tr>
               </thead>
@@ -319,6 +321,17 @@ const comparableExample = benchmarkComparabilityExamples.find((example) => examp
                 ))}
               </tbody>
             </table>
+            {unrecordedConfigFields.length > 0 && (
+              <p>
+                Several of these fields are optional, and disclosing that matters most on the page
+                that defines the evidence policy. {unrecordedConfigFields.map((field, index) => (
+                  <>{index > 0 ? (index === unrecordedConfigFields.length - 1 ? ' and ' : ', ') : ''}<code>{field}</code></>
+                ))}                 are defined in the schema but <strong>currently unrecorded on every result</strong>,
+                so two results are told apart only by the fields that are present — benchmark, version,
+                and variant. An unrecorded field is not evidence that two runs matched on it, the same
+                posture the dataset takes toward every unknown fact.
+              </p>
+            )}
             <p>
               The worked examples below show when two results may be read on the same axis and when
               they may not. They are <strong>derived from real benchmark results in the dataset</strong>,
