@@ -4,8 +4,13 @@ import { dataset, sourceById } from '../data/dataset';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { formatDate } from '../lib/format';
 import { buildHomepageHierarchy, firstHomepageRelease } from '../lib/homepage';
+import { buildLineageEcosystems } from '../lib/lineage-view';
 
 const hierarchy = buildHomepageHierarchy(dataset);
+const ecosystems = buildLineageEcosystems(dataset);
+const releaseLabels = Object.fromEntries(
+	dataset.releases.map((release) => [release.id, release.displayName]),
+);
 const sourceByReleaseId = Object.fromEntries(dataset.releases.map((release) => {
 	const source = release.sourceIds
 		.map((sourceId) => sourceById.get(sourceId))
@@ -46,8 +51,9 @@ const passportHref = `${base}models/${firstHomepageRelease(hierarchy).slug}/`;
 		<section id="explorer" class="explorer-band">
 			<LineageExplorer
 				client:load
-				hierarchy={hierarchy}
+				ecosystems={ecosystems}
 				sourceByReleaseId={sourceByReleaseId}
+				releaseLabels={releaseLabels}
 				basePath={base}
 			/>
 			<noscript>
