@@ -31,20 +31,27 @@ function normalizePolicyText(source: string): string {
 }
 
 function schemaPolicyClauses(): string[] {
+  const normalized = schemaPolicyStatement();
+  const start = normalized.indexOf('Choose the first match:');
+  if (start < 0) throw new Error('organization type policy is not machine-readable');
+
+  return normalized
+    .slice(start + 'Choose the first match:'.length)
+    .replace(/\.$/, '')
+    .split(';')
+    .map((clause) => clause.trim());
+}
+
+function schemaPolicyStatement(): string {
   const policy = schemaSource.match(
     /\/\/ Editorial functional classification[\s\S]*?type: z\.enum/,
   )?.[0];
   if (!policy) throw new Error('organization type policy is missing beside the schema field');
 
   const normalized = normalizePolicyText(policy);
-  const start = normalized.indexOf('Choose the first match:');
-  const end = normalized.indexOf('. type: z.enum');
-  if (start < 0 || end < 0) throw new Error('organization type policy is not machine-readable');
-
-  return normalized
-    .slice(start + 'Choose the first match:'.length, end)
-    .split(';')
-    .map((clause) => clause.trim());
+  const end = normalized.indexOf(' type: z.enum');
+  if (end < 0) throw new Error('organization type policy is not machine-readable');
+  return normalized.slice(0, end);
 }
 
 function publishedPolicyBlock(source: string, name: string): string {
@@ -237,15 +244,15 @@ describe('organization type policy', () => {
   it('publishes the functional, non-ranked decision procedure on both policy surfaces', () => {
     const clauses = schemaPolicyClauses();
     expect(clauses).toHaveLength(5);
-    const expectedPolicy = clauses.join('; ');
+    const expectedPolicy = schemaPolicyStatement();
 
     for (const [name, document] of [
       ['methodology', methodologyPage],
       ['information architecture', informationArchitecture],
     ] as const) {
-      expect(document).toContain('editorial functional category');
+      expect(document).toContain('classifies function');
+      expect(document).toContain('legal form');
       expect(document).toContain('not a ranking');
-      expect(document).toContain('first matching category');
       expect(document).toContain('primary-source quote');
 
       expect(publishedPolicyBlock(document, name)).toBe(expectedPolicy);

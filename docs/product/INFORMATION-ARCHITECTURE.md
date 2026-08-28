@@ -124,14 +124,18 @@ benchmarks, benchmark results, and sources remain separate records. Pages join
 them for presentation but do not collapse creator into provider, product into
 model, or open-weight into open-source.
 
-An organization's required `type` is an editorial functional category, not a
-sourced statement of legal form and not a ranking. The first matching category
-wins: <!-- organization-type-policy:start -->`community` when independent contributors outside any one entity's
-employment or appointment chain can initiate and decide its model releases, not
-merely submit work; `company` when the entity offers model products or access
-for payment under its name (a parent's sales do not count); `research-lab` when
-one standalone institution or named unit controls releases and exists primarily
-for research; `nonprofit` when a centrally governed nonprofit matches none
-above; otherwise `company` for the centrally operated creator that runs the
-model work<!-- organization-type-policy:end -->. The review rubric applies this observable decision procedure without
-requiring a primary-source quote to use the category's exact words.
+<!-- organization-type-policy:start -->Editorial functional classification,
+not a sourced claim. Choose the first match: `community` when independent
+contributors outside any one entity's employment or appointment chain can
+initiate and decide its model releases, not merely submit work; `company` when
+the entity offers model products or access for payment under its name (a
+parent's sales do not count); `research-lab` when one standalone institution or
+named unit controls releases and exists primarily for research; `nonprofit`
+when a centrally governed nonprofit matches none above; otherwise `company` for
+the centrally operated creator that runs the model
+work.<!-- organization-type-policy:end -->
+
+An organization's required `type` therefore classifies function rather than
+legal form and is not a ranking. The review rubric applies this observable
+decision procedure without requiring a primary-source quote to use the
+category's exact words.
