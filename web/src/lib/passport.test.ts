@@ -414,33 +414,52 @@ describe('AC1 — sections disappear coherently when their records are absent', 
   });
 });
 
-describe('the shipped dataset exercises only the absent branch', () => {
-  // `raw.ts` composes no pricing, deployment, serving-platform, or
-  // release-event JSON, so these three sections cannot render on real data. That
-  // is exactly why the populated branches above are proven on fixtures — a
-  // pricing table asserted only here would pass while rendering nothing.
-  it('holds no deployment, price, platform, or release event at all', () => {
-    expect(dataset.deployments).toEqual([]);
+describe('the shipped dataset exercises both the present and the absent branch', () => {
+  // `raw.ts` now composes serving-platform, deployment, and release-event JSON,
+  // so availability and history render on real data for the first time. Pricing
+  // still has no sourced record, so its absent branch is still the real one.
+  // The fixture-backed tests above stay the proof for the populated branches: a
+  // section asserted only here would go quiet the day its last record moved.
+  it('backs availability and history with records, and still prices nothing', () => {
+    expect(dataset.servingPlatforms.length).toBeGreaterThan(0);
+    expect(dataset.deployments.length).toBeGreaterThan(0);
+    expect(dataset.releaseEvents.length).toBeGreaterThan(0);
     expect(dataset.pricing).toEqual([]);
-    expect(dataset.servingPlatforms).toEqual([]);
-    expect(dataset.releaseEvents).toEqual([]);
   });
 
-  it('drops availability, pricing, and history from every real passport', () => {
+  it('shows availability and history exactly where a record backs them', () => {
     // Positive control: the release list is non-empty, so the loop below runs.
     expect(dataset.releases.length).toBeGreaterThan(0);
 
+    let deployedCount = 0;
+    let eventedCount = 0;
+    let bareCount = 0;
+
     for (const release of dataset.releases) {
       const view = realView(release.id);
-      expect(view.availability).toEqual([]);
-      expect(view.pricing).toEqual([]);
-      expect(view.history).toEqual([]);
-
+      const deployed = dataset.deployments.some((item) => item.releaseId === release.id);
+      const evented = dataset.releaseEvents.some((item) => item.releaseId === release.id);
       const absent = view.notRecorded.map((note) => note.id);
-      expect(absent).toContain('availability');
-      expect(absent).toContain('pricing');
-      expect(absent).toContain('history');
+
+      expect(view.availability.length > 0, release.id).toBe(deployed);
+      expect(view.history.length > 0, release.id).toBe(evented);
+      expect(absent.includes('availability'), release.id).toBe(!deployed);
+      expect(absent.includes('history'), release.id).toBe(!evented);
+
+      // No release carries a sourced price, so this one absence is universal.
+      expect(view.pricing, release.id).toEqual([]);
+      expect(absent, release.id).toContain('pricing');
+
+      if (deployed) deployedCount += 1;
+      if (evented) eventedCount += 1;
+      if (!deployed && !evented) bareCount += 1;
     }
+
+    // Both branches must actually be taken. Without these, every assertion in
+    // the loop is satisfied by a dataset that only ever reaches one of them.
+    expect(deployedCount).toBeGreaterThan(0);
+    expect(eventedCount).toBeGreaterThan(0);
+    expect(bareCount).toBeGreaterThan(0);
   });
 
   it('still numbers the remaining sections without a gap', () => {

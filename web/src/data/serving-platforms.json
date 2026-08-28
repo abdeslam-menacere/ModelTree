@@ -1,0 +1,40 @@
+[
+  {
+    "id": "microsoft-foundry",
+    "slug": "microsoft-foundry",
+    "name": "Microsoft Foundry",
+    "organizationId": "microsoft",
+    "type": "cloud-platform",
+    "website": "https://ai.azure.com/",
+    "sourceIds": [
+      "microsoft-mai-thinking-1-announcement"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "amazon-bedrock",
+    "slug": "amazon-bedrock",
+    "name": "Amazon Bedrock",
+    "organizationId": "amazon",
+    "type": "cloud-platform",
+    "website": "https://aws.amazon.com/bedrock/",
+    "sourceIds": [
+      "amazon-bedrock-product-page",
+      "amazon-nova-2-sonic-announcement"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "amazon-sagemaker-jumpstart",
+    "slug": "amazon-sagemaker-jumpstart",
+    "name": "Amazon SageMaker JumpStart",
+    "organizationId": "amazon",
+    "type": "model-hub",
+    "website": "https://aws.amazon.com/sagemaker/ai/jumpstart/",
+    "sourceIds": [
+      "amazon-sagemaker-jumpstart-page",
+      "amazon-sagemaker-jumpstart-qwen3-8-27b"
+    ],
+    "verifiedAt": "2026-08-28"
+  }
+]
