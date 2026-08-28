@@ -108,8 +108,8 @@ changes. See [`DEPLOYMENT-RUNBOOK.md`](DEPLOYMENT-RUNBOOK.md).
 | #4 | M0 | CI for data, types, tests, and build | #2, #3 |
 | #5 | M0 | GitHub Pages deployment | #4, owner setting |
 | #6 | M1 | Anthropic, Google, and Meta featured data | #3 |
-| #7 | M1 | xAI, Mistral, and DeepSeek featured data | #3 |
-| #8 | M1 | Qwen, Microsoft, and Amazon featured data | #3 |
+| #7 | M1 | xAI, Mistral, and DeepSeek source-backed data | #3 |
+| #8 | M1 | Qwen, Microsoft, and Amazon source-backed data | #3 |
 | #9 | M1 | Multi-ecosystem lineage explorer | #6 |
 | #10 | M1 | Model drawer and evidence actions | #9 |
 | #11 | M1 | Homepage search, filters, and URL state | #9 |
@@ -136,6 +136,16 @@ changes. See [`DEPLOYMENT-RUNBOOK.md`](DEPLOYMENT-RUNBOOK.md).
 | #32 | M5 | Performance and asset budgets | #19, #22, #30 |
 | #33 | M5 | SEO, social metadata, sitemap, and structured data | #17, #18, #24, #30 |
 | #34 | M5 | Open-source launch readiness | #29, #31, #32, #33, owner settings |
+
+Rows `#6`–`#8` planned the M1 data batches as "featured data", which read as a
+decision that every creator in them would be featured on arrival. Issue #460
+replaced that with a criterion the data decides for itself: a creator is
+featured when this repository keeps a dedicated reviewed source profile for it,
+at the top level of `tools/updater/profiles/`. The batches are recorded above as
+source-backed data, which is what they deliver; whether a creator lands on the
+Model Tree's Featured or Others branch follows from the criterion rather than
+from this table. `#6` still reads as featured data because those three creators
+have reviewed profiles, not because the batch decided it.
 
 ## Post-MVP Issues
 
