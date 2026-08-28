@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { accessLabel, formatDate, formatReleaseDate, statusLabel } from '../lib/format';
+import { compareUrl } from '../lib/compare-route';
 import {
   LINEAGE_RELATION_LABELS,
   buildLineageHighlight,
@@ -314,6 +315,13 @@ export default function LineageExplorer({
           <div className="details-actions">
             <a className="primary-action" href={`${normalizedBase}models/${placement.release.slug}/`}>
               View Model Passport <ArrowUpRight size={17} aria-hidden="true" />
+            </a>
+            <a
+              className="text-action"
+              href={compareUrl(normalizedBase, [placement.release.slug])}
+              aria-label={`Add ${placement.release.displayName} to the comparison`}
+            >
+              Add to comparison <ArrowUpRight size={15} aria-hidden="true" />
             </a>
             {sourceByReleaseId[placement.release.id] && (
               <a className="text-action" href={sourceByReleaseId[placement.release.id].url}>
