@@ -4,7 +4,7 @@
     "title": "Long-tail refresh 2026-08-27 — Microsoft, Mistral AI, xAI, Cohere",
     "ranOn": "2026-08-27",
     "outcome": "no-change",
-    "summary": "Researched four long-tail creators to populate the Others branch of the tree and published none of them. Every fact came from the origins PR #445 approved for these creators, fetched and hashed rather than read from search results. Microsoft and xAI were withheld before review: no approved-origin page states an access type or modality set for MAI-Thinking-1, and both are required fields, while x.ai now self-describes as \"SpaceXAI LLC\" on both of its approved origins and no approved page names a Grok family. Mistral AI and Cohere reached a review panel, which accepted their publishers, sources, organizations and families but rejected every release. Because model-tree.ts renders a creator only when it has at least one release, an organization and family without one would have added records that render nowhere, so they were dropped rather than applied. The dataset is unchanged; this entry is the only edit.",
+    "summary": "Researched four long-tail creators to populate the Others branch of the tree and published none of them. Every fact came from the origins PR #445 approved for these creators, fetched and hashed rather than read from search results. Microsoft and xAI were withheld before review: no approved-origin page states an access type or modality set for MAI-Thinking-1, and both are required fields, while x.ai now self-describes as \"SpaceXAI LLC\" on both of its approved origins and no approved page names a Grok family. Mistral AI and Cohere reached a review panel across five rounds. A final round re-scouted Cohere against a model reference on an already-approved origin that carries an explicit Status column and a machine-readable specification table, which answered the earlier objections about status, categories and the creator relationship; the resulting organization and release claims were accepted by the consistency and editorial rubrics but not by provenance, so they did not reach the unanimous 3-of-3 long-tail bar. Because model-tree.ts renders a creator only when it has at least one release, the organizations and families that were accepted would have added records that render nowhere, so they were dropped rather than applied. The dataset is unchanged; this entry is the only edit.",
     "scope": "Four creators with no reviewed profile — Microsoft, Mistral AI, xAI and Cohere — under the long-tail unanimous 3-of-3 policy, restricted to the eight origins PR #445 approved for them.",
     "stages": [
       {
@@ -15,17 +15,17 @@
       {
         "stage": "scout",
         "status": "ran",
-        "note": "23 pages fetched over real HTTP from approved origins only and hashed with sha256; every quote was verified verbatim against those bytes before any claim was written. x.ai/news returned a Cloudflare 403 and was never readable. docs.mistral.ai/getting-started/models/models_overview/ redirected outside that origin's allowed_paths, so it was fetched but deliberately not cited, leaving Mistral without a context-window figure."
+        "note": "28 pages fetched over real HTTP from approved origins only and hashed with sha256; every quote was verified verbatim against those bytes before any claim was written, and a mechanical check rejected three round-4 quotes that had been copied from a stripped-text rendering rather than from the hashed HTML. x.ai/news returned a Cloudflare 403 and was never readable. docs.mistral.ai/getting-started/models/models_overview/ redirected outside that origin’s allowed_paths, so it was fetched but deliberately not cited, leaving Mistral without a context-window figure. The round-5 Cohere re-scout admitted no new host and no new page: it re-read bytes already fetched and already proposed as a source, and quoted the parts of them that state the facts under review."
       },
       {
         "stage": "review",
         "status": "ran",
-        "note": "Four blind panel rounds, three rubrics each, run on three different model families with the rubric-to-family assignment rotated every round so no rubric kept one family. Reviewers never saw the scout's reasoning, each other's verdicts, or the running tally. No threshold was lowered and no reviewer was re-run on an unchanged claim; each corrected claim was given a new id and put to a fresh panel, and claims already accepted unanimously kept their original verdicts rather than being re-reviewed."
+        "note": "Five blind panel rounds, three rubrics each, run on three different model families with the rubric-to-family assignment rotated every round so no rubric kept one family. Reviewers never saw the scout’s reasoning, each other’s verdicts, or the running tally. No threshold was lowered and no reviewer was re-run on an unchanged claim; each corrected claim was given a new id and put to a fresh panel, and claims already accepted unanimously kept their original verdicts rather than being re-reviewed. The run stopped after round 5 rather than re-panelling again: the surviving provenance objections are about how much of a dataset record a quote must literally state, which no further evidence can resolve, and re-sampling reviewers until three agree is the failure the panel exists to prevent."
       },
       {
         "stage": "gates",
         "status": "ran",
-        "note": "gate-evidence and gate-source-approval were run before anything was applied, anchored on the committed dataset at merge-base 843f2d4 so the run could not approve its own writes. gate-dataset, npm run validate and gate-scope were run afterwards. gate-evidence failed exactly as the panel did, naming the four sub-threshold claims."
+        "note": "gate-evidence and gate-source-approval were run before anything was applied, anchored on the committed dataset at merge-base 843f2d4 so the run could not approve its own writes, and re-run at that anchor after the round-5 bundle was written because a gate result binds to the commit it was computed against. gate-dataset, npm run validate and gate-scope were run afterwards. gate-evidence failed exactly as the panel did, naming the sub-threshold claims and nothing else."
       },
       {
         "stage": "publish",
@@ -40,7 +40,7 @@
     ],
     "found": {
       "scouts": 4,
-      "pagesFetched": 23,
+      "pagesFetched": 28,
       "claimsProposed": 12,
       "bundles": [
         {
@@ -67,12 +67,14 @@
         "Microsoft produced no bundle that reached final adjudication: MAI-Thinking-1 has no approved-origin statement of accessType or modalities, and both are required by releaseSchema.",
         "xAI produced no bundle that reached final adjudication: the SpaceXAI/xAI naming conflict is unresolved across both approved origins and no approved page names a Grok family.",
         "azure.microsoft.com, learn.microsoft.com and api-docs.deepseek.com were deliberately not cited. Microsoft as a serving platform and product vendor is a different entity from Microsoft as a model creator.",
-        "No context-window figure for any Mistral release: the only page stating one redirects outside the approved allowed_paths."
+        "No context-window figure for any Mistral release: the only page stating one redirects outside the approved allowed_paths.",
+        "No approved Cohere origin states OSI approval for the Apache 2.0 licence, and licenseSchema requires osiApproved whenever a license object is present, so the whole object was omitted rather than guessed. opensource.org is not an approved origin and was not cited to close the gap.",
+        "No approved Cohere origin states the Command A family’s first release date in prose; the only available date is the publication timestamp of the launch announcement."
       ]
     },
     "evaluated": {
       "reviewers": 3,
-      "verdictsCast": 36,
+      "verdictsCast": 45,
       "acceptedByPanel": 8,
       "rejectedByPanel": 4,
       "dissents": [],
@@ -83,15 +85,15 @@
           "exitCode": 1,
           "outcome": "fail",
           "required": true,
-          "detail": "Failed on exactly the four claims the panel put below the unanimous 3-of-3 long-tail threshold: mi4-release-large-3-add, co4-organization-add, co4-family-command-a-add and co4-release-command-a-plus-add. Every quote was present, verbatim and over the 24-character minimum; the failure is the review threshold, not the evidence format. Nothing was applied, so nothing shipped past it."
+          "detail": "Failed on exactly the four claims the panel put below the unanimous 3-of-3 long-tail threshold: mi4-release-large-3-add, co5-organization-add, co5-family-command-a-add and co5-release-command-a-plus-add. Every quote was present, verbatim against the hashed bytes and over the 24-character minimum; the failure is the review threshold, not the evidence format. Nothing was applied, so nothing shipped past it."
         },
         {
           "gate": "gate-source-approval",
-          "scope": "2 bundles, 44 citations",
+          "scope": "2 bundles, 57 citations",
           "exitCode": 0,
           "outcome": "pass",
           "required": true,
-          "detail": "Anchored on the committed dataset at merge-base 843f2d4 with refs/remotes/origin/main, computed by the gate rather than supplied, so the run never approved its own source. 24 already-trusted origins; 4 proposed citations all landed on origins the reviewed profile catalogues merged in PR #445 already stand behind. No new host was admitted. Re-run after #448 changed sources.json and again after #451 moved main, because a gate result binds to its anchor."
+          "detail": "Anchored on the committed dataset at merge-base 843f2d4 with refs/remotes/origin/main, computed by the gate rather than supplied, so the run never approved its own source. 24 already-trusted origins; every citation in both bundles, including the enlarged round-5 Cohere bundle, landed on origins the reviewed profile catalogues merged in PR #445 already stand behind. No new host was admitted. Re-run after #448 changed sources.json, after #451 moved main, and again after the round-5 bundle was written, because a gate result binds to its anchor."
         },
         {
           "gate": "gate-dataset",
@@ -162,16 +164,25 @@
       {
         "id": "cohere-command-a-plus-05-2026",
         "category": "rejected-by-panel",
-        "detail": "The only Cohere release claim. Round 3 caught a real schema error — contextWindow was given as an object where releaseSchema requires a positive integer — which was corrected to contextWindow plus maximumOutput, and the weights-download quote backing open-weight was attached. Round 4 consistency and editorial then accepted it, but provenance held that the quotes do not state osiApproved, the dataset categories, or the intendedUse guidance. Not unanimous, so not carried.",
+        "detail": "The only Cohere release claim, put to three separate panels on corrected inputs and never unanimous. Round 3 caught a real schema error — contextWindow given as an object where releaseSchema requires a positive integer — which was corrected. Round 4 provenance objected that the quotes state neither osiApproved nor the dataset categories nor the intendedUse guidance. Round 5 rewrote the claim against Cohere’s own specification table, dropped the licence object entirely rather than guess osiApproved, and rebuilt categories, status, context limits and intendedUse from quoted text; consistency and editorial both accepted it, and editorial specifically credited the dated canonical name and the exclusion of Azure Foundry ids and North product metrics. Provenance still rejected, holding that mapping the table’s \"Live\" to the schema’s \"current\", normalising \"128K\" to 128000, and reading a release date off the announcement’s datePublished are each inferences the quotes do not contain.",
         "blockedBy": [
           "co3-release-command-a-plus-add",
-          "co4-release-command-a-plus-add"
+          "co4-release-command-a-plus-add",
+          "co5-release-command-a-plus-add"
         ]
       },
       {
-        "id": "cohere-organization-family-and-sources",
+        "id": "cohere-command-a-family",
+        "category": "rejected-by-panel",
+        "detail": "Rejected by two rubrics in round 5, and the only claim in this run to draw a substantive objection from editorial. The family record borrowed its description from the Command A release row and carried the modality of a later sibling: it listed multimodal-generalist because Command A+ accepts images, while the same table lists Command A itself as text-only, and it adopted the marketing word \"excelling\" from release copy into family-level prose. Editorial held that family and release were not kept distinct. That is a real modelling defect rather than a sourcing gap, and it is recorded here rather than patched, because correcting it would need a fourth panel on a claim whose release dependency had already failed.",
+        "blockedBy": [
+          "co5-family-command-a-add"
+        ]
+      },
+      {
+        "id": "cohere-organization-and-sources",
         "category": "dropped-after-acceptance",
-        "detail": "The Cohere publisher and three of four sources were accepted unanimously, and the organization and family were accepted by two rubrics of three. None was applied: with no accepted release the creator renders in neither branch, and applying the sources alone would leave them orphaned, which the validator forbids.",
+        "detail": "The Cohere publisher and three sources were accepted unanimously across rounds 3 and 4 and were carried into round 5 with their original verdicts rather than re-reviewed. The organization claim was rewritten in round 5 to rest on quotes that state the creator relationship directly and was accepted by consistency and editorial, but provenance rejected it because no quote classifies Cohere as a \"company\" and the sentence naming the Command models resolves its subject only from surrounding context. Nothing was applied: with no accepted release the creator renders in neither branch, and applying the sources alone would leave them orphaned, which the validator forbids.",
         "blockedBy": [
           "cohere-command-a-plus-05-2026"
         ]
@@ -179,12 +190,15 @@
     ],
     "caveats": [
       "Nothing was applied to the dataset. The Others branch is unchanged and still renders no creators; this entry is the only edit in the pull request.",
-      "The counts here describe the final adjudicated bundles. Four review rounds ran in total, and the superseded round-1 to round-3 bundles proposed more claims than the 12 counted above; they are published in the pull request body with every verdict and dissent verbatim, not summarised here.",
-      "A unanimous 3-of-3 bar means a single rubric decides the outcome, and provenance was that rubric in every rejection. Two provenance reviewers on different model families rejected these releases on different grounds, so this is not one model's idiosyncrasy — but neither is it evidence that the underlying published facts are wrong. It is evidence that the panel has no agreed rule for how much of a dataset record a quote must literally state.",
-      "A withheld creator is a real outcome of the policy, not a failure of the sources. Every fact these releases rest on is published by the creator on an approved origin; what is unresolved is whether fields like status, categories and accessType are world-facts needing their own quote or encodings of quoted facts."
+      "The counts here describe the final adjudicated bundles — the round-4 Mistral bundle and the round-5 Cohere bundle. Five review rounds ran in total, and the superseded bundles proposed more claims than the 12 counted above; they are published in the pull request body with every verdict and dissent verbatim, not summarised here.",
+      "A unanimous 3-of-3 bar means a single rubric decides the outcome, and provenance was that rubric in every rejection but one. Three provenance reviewers on different model families rejected these releases across three rounds on shifting grounds, so this is not one model’s idiosyncrasy — but neither is it evidence that the underlying published facts are wrong.",
+      "Round 5 is the useful control. It answered round 4’s stated objections with better evidence from the same approved origin — an explicit Status column, a specification table giving licence, size, context length and modalities — and the claims still did not carry, because the surviving objections are about the dataset’s own vocabulary rather than about the sources. If mapping a creator’s \"Live\" to the schema’s \"current\" is an unsupported inference, then no release record can ever clear a 3-of-3 provenance bar, whatever the evidence.",
+      "A withheld creator is a real outcome of the policy, not a failure of the sources. Every fact these releases rest on is published by the creator on an approved origin."
     ],
     "followUps": [
-      "The three rubrics have no shared rule for whether dataset-vocabulary fields — status, categories, accessType, license.osiApproved — are assertions about the world that need their own verbatim quote, or encodings of facts already quoted. Two provenance reviewers drew that line in different places and it decided this entire run. Worth settling before the next long-tail attempt, because at present no release record can reliably clear a 3-of-3 bar.",
+      "The three rubrics have no shared rule for whether dataset-vocabulary fields — status, categories, accessType, license.osiApproved — are assertions about the world needing their own verbatim quote, or encodings of facts already quoted. Round 5 isolated this as the single blocking question: the evidence objections were answered and the claims still failed. Settle it before the next long-tail attempt, because at present no release record can reliably clear a 3-of-3 bar.",
+      "Related and narrower: decide whether normalising a quoted \"128K\" into the integer 128000, and reading a release date from an announcement’s datePublished, count as inference. The committed dataset already does both — openai-gpt-4-1 takes its firstReleaseDate from its announcement — so the standard applied to new claims is currently stricter than the one the existing data was built to.",
+      "licenseSchema requires osiApproved whenever a license object is present, which makes an otherwise well-sourced Apache 2.0 licence unrecordable unless an origin stating OSI approval is approved. Either make osiApproved optional or approve such an origin; today the only honest option is to drop the licence entirely, losing a fact the creator publishes plainly.",
       "Microsoft cannot be recorded as a model creator from its currently approved origins: microsoft.ai and the bounded www.microsoft.com research-blog path state no access type or modality set for MAI-Thinking-1. Either an additional creator-side origin is approved, or Microsoft stays absent; azure.microsoft.com and learn.microsoft.com are the wrong entity and must not be used to close the gap.",
       "x.ai self-describes as \"SpaceXAI LLC\" across both approved origins while the profile and the wider world still say xAI. The conflict is recorded and unresolved, and until it is resolved the creator has no defensible canonical name.",
       "x.ai/news returns a Cloudflare 403 to this fetcher, so xAI release announcements were never readable from an approved origin.",
