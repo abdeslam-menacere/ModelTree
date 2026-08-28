@@ -1,0 +1,381 @@
+---
+import { ArrowLeft, ArrowUpRight, CheckCircle2, ExternalLink } from 'lucide-react';
+import LineageExplorer from '../../components/LineageExplorer';
+import ProviderReleases from '../../components/ProviderReleases';
+import SourceList from '../../components/SourceList.astro';
+import { dataset, sourceById } from '../../data/dataset';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { formatDate } from '../../lib/format';
+import { buildLineageEcosystems } from '../../lib/lineage-view';
+import { buildProviderProfile } from '../../lib/provider-profile';
+import { providerStaticPaths } from '../../lib/routes';
+
+export const getStaticPaths = providerStaticPaths;
+
+interface Props {
+  organizationId: string;
+}
+
+const { organizationId } = Astro.props;
+const base = import.meta.env.BASE_URL;
+
+const profile = buildProviderProfile(dataset, organizationId, base);
+if (!profile) throw new Error(`Unknown organization ${organizationId}`);
+
+const ecosystems = buildLineageEcosystems(dataset);
+const ecosystem = ecosystems.find((item) => item.organization.id === organizationId);
+if (!ecosystem) throw new Error(`No featured ecosystem for ${organizationId}`);
+
+// The lineage explorer names cross-family derivations and links every release to
+// a source, so it is given labels and sources for every release, not only this
+// creator's -- a derivation can point outside the organization.
+const releaseLabels = Object.fromEntries(
+  dataset.releases.map((release) => [release.id, release.displayName]),
+);
+const sourceByReleaseId = Object.fromEntries(dataset.releases.map((release) => {
+  const source = release.sourceIds
+    .map((sourceId) => sourceById.get(sourceId))
+    .find((candidate) => candidate?.type === 'official-docs')
+    ?? sourceById.get(release.sourceIds[0]);
+  if (!source) throw new Error(`No source found for ${release.id}`);
+  return [release.id, { title: source.title, url: source.url }];
+}));
+
+const { organization } = profile;
+const roleText = profile.operatesServingPlatform
+  ? 'Model creator and serving-platform operator'
+  : 'Model creator';
+const directoryHref = `${base}providers/`;
+const passportHref = `${base}models/${ecosystem.families[0].releases[0].slug}/`;
+---
+
+<BaseLayout
+  title={`${organization.name} | ModelTree`}
+  description={`${organization.name}: a source-backed organization summary, its recorded model family tree, releases, and the primary sources behind each fact.`}
+  passportHref={passportHref}
+  verifiedAt={formatDate(profile.latestVerifiedAt)}
+  currentPage="directory"
+>
+  <main id="main-content" class="provider-page">
+    <a class="back-link" href={directoryHref}>
+      <ArrowLeft size={17} aria-hidden="true" /> Back to the directory
+    </a>
+
+    <header class="provider-hero">
+      <div>
+        <span class="eyebrow">{roleText}</span>
+        <h1>{organization.name}</h1>
+        <p class="provider-summary">{organization.description}</p>
+      </div>
+      <div class="provider-stamp">
+        <CheckCircle2 size={21} aria-hidden="true" />
+        <span><strong>{profile.familyCount === 1 ? '1 family' : `${profile.familyCount} families`}</strong><small>Checked {formatDate(organization.verifiedAt)}</small></span>
+      </div>
+    </header>
+
+    <section class="provider-band" aria-label={`Recorded family tree for ${organization.name}`}>
+      <LineageExplorer
+        client:load
+        ecosystems={[ecosystem]}
+        sourceByReleaseId={sourceByReleaseId}
+        releaseLabels={releaseLabels}
+        basePath={base}
+      />
+    </section>
+
+    <section class="provider-section" aria-labelledby="official-record">
+      <h2 id="official-record">Official record</h2>
+      <p class="section-lead">
+        The organization's own surfaces, and the verification date these facts were last checked
+        against them.
+      </p>
+      <dl class="official-links">
+        <div>
+          <dt>Website</dt>
+          <dd><a href={organization.website}>{organization.website} <ExternalLink size={14} aria-hidden="true" /></a></dd>
+        </div>
+        <div>
+          <dt>Release page</dt>
+          <dd><a href={organization.releasePage}>{organization.releasePage} <ExternalLink size={14} aria-hidden="true" /></a></dd>
+        </div>
+        <div>
+          <dt>Type</dt>
+          <dd>{organization.type.replaceAll('-', ' ')}</dd>
+        </div>
+        <div>
+          <dt>Verified</dt>
+          <dd>{formatDate(organization.verifiedAt)}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="provider-section" aria-labelledby="releases-title">
+      <h2 id="releases-title">Releases</h2>
+      <p class="section-lead">
+        Every release recorded for {organization.name}, current and legacy alike. Filter by lifecycle
+        status; the choice is kept in the page address so it survives a reload or a shared link.
+      </p>
+      <ProviderReleases client:load rows={profile.releases} statuses={profile.statusesPresent} />
+    </section>
+
+    {profile.products.length > 0 && (
+      <section class="provider-section" aria-labelledby="products-title">
+        <h2 id="products-title">Products</h2>
+        <p class="section-lead">
+          Products this organization ships, kept separate from the models themselves. Each states how
+          it relates to the models it draws on.
+        </p>
+        <ul class="relation-list">
+          {profile.products.map((view) => (
+            <li>
+              <div class="relation-headline">
+                <strong>{view.product.name}</strong>
+                <span class="relation-label">{view.relationshipLabel}</span>
+              </div>
+              <p>{view.product.description}</p>
+              {view.namedReleases.length > 0 && (
+                <p class="relation-refs">
+                  Names:{' '}
+                  {view.namedReleases.map((ref, index) => (
+                    <span class="relation-ref-item">
+                      {index > 0 ? ', ' : ''}
+                      {ref.route ? <a href={ref.route}>{ref.name}</a> : <span>{ref.name}</span>}
+                    </span>
+                  ))}
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    {profile.servingPlatforms.length > 0 && (
+      <section class="provider-section" aria-labelledby="platforms-title">
+        <h2 id="platforms-title">Serving platforms</h2>
+        <p class="section-lead">
+          Where these models are reached. A platform is labelled with who operates it: the fact that
+          this creator runs one of its own does not make it the creator of every model served there.
+        </p>
+        <ul class="relation-list">
+          {profile.servingPlatforms.map((view) => (
+            <li>
+              <div class="relation-headline">
+                <strong>{view.platform.name}</strong>
+                <span class="relation-label" data-first-party={view.operatedByProvider ? 'true' : 'false'}>
+                  {view.relationshipLabel}
+                </span>
+              </div>
+              <p class="relation-refs">
+                {view.servedReleaseCount === 1
+                  ? '1 release served'
+                  : `${view.servedReleaseCount} releases served`}
+                {' · '}
+                <a href={view.platform.website}>{view.platform.website} <ExternalLink size={13} aria-hidden="true" /></a>
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    {profile.recentChanges.length > 0 && (
+      <section class="provider-section" aria-labelledby="changes-title">
+        <h2 id="changes-title">Recent changes</h2>
+        <p class="section-lead">
+          Recorded lifecycle changes to this creator's releases, newest first. Each links to the
+          release it changed and to the primary sources behind it.
+        </p>
+        <ul class="change-list">
+          {profile.recentChanges.map((change) => (
+            <li>
+              <div class="change-headline">
+                <span class="change-type">{change.typeLabel}</span>
+                <a href={change.releaseRoute}>{change.releaseName} <ArrowUpRight size={14} aria-hidden="true" /></a>
+              </div>
+              <p>{change.event.note}</p>
+              <p class="change-sources">
+                {change.sources.map((source, index) => (
+                  <span class="change-source-item">
+                    {index > 0 ? ' · ' : ''}
+                    <a href={source.url}>{source.title} <ExternalLink size={12} aria-hidden="true" /></a>
+                  </span>
+                ))}
+                {` · Checked ${formatDate(change.event.verifiedAt)}`}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    <section class="provider-section" aria-labelledby="sources-title">
+      <h2 id="sources-title">Primary sources</h2>
+      <p class="section-lead">The organization-level sources behind the summary above.</p>
+      <SourceList sources={profile.sources} />
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .provider-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px 96px;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .provider-hero {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 40px;
+  }
+
+  .provider-hero h1 {
+    margin: 8px 0 12px;
+    font-size: 44px;
+    line-height: 1.05;
+  }
+
+  .provider-summary {
+    margin: 0;
+    max-width: 70ch;
+    color: var(--cp-text-soft);
+    font-size: 17px;
+    line-height: 1.6;
+  }
+
+  .provider-stamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--cp-border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: var(--cp-text-soft);
+  }
+
+  .provider-stamp span {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .provider-band {
+    margin: 0 0 48px;
+  }
+
+  .provider-section {
+    margin: 0 0 48px;
+    max-width: 80ch;
+  }
+
+  .provider-section h2 {
+    margin: 0 0 8px;
+    font-size: 26px;
+  }
+
+  .section-lead {
+    margin: 0 0 20px;
+    color: var(--cp-text-soft);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  .official-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin: 0;
+  }
+
+  .official-links dt {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--cp-text-soft);
+  }
+
+  .official-links dd {
+    margin: 4px 0 0;
+    word-break: break-word;
+  }
+
+  .official-links a,
+  .relation-refs a,
+  .change-sources a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .relation-list,
+  .change-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 16px;
+  }
+
+  .relation-list li,
+  .change-list li {
+    border: 1px solid var(--cp-border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+
+  .relation-headline,
+  .change-headline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 12px;
+    margin-bottom: 6px;
+  }
+
+  .relation-label,
+  .change-type {
+    font-size: 13px;
+    border: 1px solid var(--cp-border);
+    border-radius: 999px;
+    padding: 2px 10px;
+    color: var(--cp-text-soft);
+  }
+
+  .relation-label[data-first-party='true'] {
+    border-color: var(--cp-accent, currentColor);
+    color: var(--cp-text);
+  }
+
+  .relation-list p,
+  .change-list p {
+    margin: 0;
+    color: var(--cp-text-soft);
+    line-height: 1.55;
+  }
+
+  .relation-refs,
+  .change-sources {
+    margin-top: 8px !important;
+    font-size: 14px;
+  }
+
+  @media (max-width: 700px) {
+    .provider-page {
+      padding: 28px 16px 64px;
+    }
+
+    .provider-hero h1 {
+      font-size: 34px;
+    }
+  }
+</style>
