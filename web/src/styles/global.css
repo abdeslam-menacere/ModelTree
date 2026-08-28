@@ -1853,6 +1853,72 @@ main {
   margin-top: 16px;
 }
 
+/* Mobile modal presentation of the lineage details surface. The desktop panel
+   keeps the anchored `.tree-details` styling above; only the modal adds a scrim
+   and a bottom-sheet dialog. A plain scrim -- no blur, no glow -- keeps the
+   surface attached and legible rather than decorative. */
+.tree-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.tree-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.tree-drawer-dialog {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 560px;
+  max-height: 88vh;
+  overflow-y: auto;
+  border-radius: 16px 16px 0 0;
+  animation: tree-drawer-rise 160ms ease-out;
+}
+
+.tree-drawer-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  min-width: 40px;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+  background: var(--cp-panel);
+  color: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tree-drawer-close:hover {
+  border-color: var(--cp-text-muted);
+}
+
+@keyframes tree-drawer-rise {
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 .log-page {
   padding-bottom: 80px;
 }
