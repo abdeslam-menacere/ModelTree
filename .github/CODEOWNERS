@@ -1,0 +1,47 @@
+# Review ownership.
+#
+# CODEOWNERS on its own only *requests* a review. It becomes a merge requirement
+# only if "Require review from Code Owners" is enabled in branch protection,
+# which ADR 0001 keeps as an explicit owner action. This file is written so that
+# turning that setting on later is safe rather than breaking.
+#
+# Cadence and what ownership means in practice are in CONTRIBUTING.md.
+
+# Everything, unless a later line says otherwise. The last matching pattern wins.
+*                                          @abdeslam-menacere
+
+# ---------------------------------------------------------------------------
+# The agent-gated data refresh, which ADR 0003 lets merge without a human.
+# ---------------------------------------------------------------------------
+#
+# These lines name a path and no owner, which clears ownership for those files.
+# That is deliberate and it is the whole reason this file is not a single line.
+#
+# ADR 0003 permits a source-backed refresh confined to exactly these documents to
+# reach `main` with no human approving it, after its agent reviewers and the
+# deterministic gates have passed. Leaving them under the catch-all above would
+# put a code-owner review request on every automated refresh pull request, and
+# would block that merge outright the moment code-owner review became required —
+# repealing a landed ADR through a file that never mentions it.
+#
+# The set is `ALLOWED_PATHS` in
+# `.github/skills/modeltree-gates/scripts/gate-scope.mjs`, which is the gate that
+# actually enforces the qualifying class. It is duplicated here because
+# CODEOWNERS cannot import, so `web/tests/contributing/issue-forms.test.ts`
+# parses that script and asserts the two sets are equal. Adding a document to the
+# refresh's reach without clearing it here fails the suite.
+#
+# Everything else under `web/src/data/` — the schemas, the validator, the tests —
+# stays owned by the catch-all above. A refresh cannot change them, so nothing
+# here should.
+/web/src/data/sources.json
+/web/src/data/publishers.json
+/web/src/data/organizations.json
+/web/src/data/families.json
+/web/src/data/releases.json
+/web/src/data/benchmarks.json
+/web/src/data/benchmark-results.json
+/web/src/data/usage-observations.json
+/web/src/data/usage-syntheses.json
+/web/src/data/model-fit-statements.json
+/web/src/data/model-fit-evidence-gaps.json
