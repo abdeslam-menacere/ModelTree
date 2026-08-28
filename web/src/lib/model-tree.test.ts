@@ -50,6 +50,33 @@ function renderedReleaseIds(source: Dataset) {
     .sort();
 }
 
+/**
+ * The families `buildModelTree` shows for one creator, in render order, derived
+ * from the dataset independently of the builder: the creator's families that
+ * hold at least one release, newest release first with id ties broken lexically
+ * (model-tree.ts:55-73). A family holding no release is dropped rather than
+ * rendered empty.
+ */
+function renderedFamilies(source: Dataset, organizationId: string) {
+  const newestReleaseDate = (familyId: string) => source.releases
+    .filter((release) => release.familyId === familyId)
+    .map(({ releaseDate }) => releaseDate)
+    .sort()
+    .at(-1);
+
+  return source.families
+    .filter((family) => family.organizationId === organizationId)
+    .map((family) => ({ family, newest: newestReleaseDate(family.id) }))
+    .filter((entry): entry is { family: typeof entry.family; newest: string } => (
+      entry.newest !== undefined
+    ))
+    .sort((a, b) => (
+      (a.newest < b.newest ? 1 : a.newest > b.newest ? -1 : 0)
+      || (a.family.id < b.family.id ? -1 : a.family.id > b.family.id ? 1 : 0)
+    ))
+    .map(({ family }) => family);
+}
+
 describe('model tree', () => {
   it('features exactly the creators with a featured release and lists every release once', () => {
     // `modelTreeReleaseIds` spans both branches (model-tree.ts:124-130 via
@@ -91,6 +118,19 @@ describe('model tree', () => {
       [...tree.featured.map(({ organization }) => organization.name)].sort(),
     );
     for (const creator of tree.featured) {
+      // Which families a creator shows, and in what order, derived from the
+      // dataset for every featured creator rather than named for one. Naming
+      // Anthropic's two families here made adding any Claude generation fail
+      // this test, so a researched release could not ship without editing it —
+      // the block issue #439 records. The rule below holds whatever families
+      // the catalog grows.
+      const expectedFamilies = renderedFamilies(dataset, creator.organization.id);
+
+      expect(creator.families.map(({ family }) => family.id))
+        .toEqual(expectedFamilies.map(({ id }) => id));
+      expect(creator.families.map(({ family }) => family.name))
+        .toEqual(expectedFamilies.map(({ name }) => name));
+
       const familyKeys = creator.families.map(({ family, releases }) => ({
         id: family.id,
         newestReleaseDate: releases[0].releaseDate,
@@ -113,11 +153,10 @@ describe('model tree', () => {
       }
     }
 
-    const anthropic = tree.featured.find(({ organization }) => organization.id === 'anthropic')!;
-    expect(anthropic.families.map(({ family }) => family.name)).toEqual([
-      'Claude 5',
-      'Claude 4.5',
-    ]);
+    // Guards the derivation against being trivially satisfiable: unless some
+    // creator carries more than one family, the ordering claim above holds for
+    // any implementation at all.
+    expect(tree.featured.some(({ families }) => families.length > 1)).toBe(true);
   });
 
   it('puts exactly the creators that hold releases but none featured in Others', () => {
