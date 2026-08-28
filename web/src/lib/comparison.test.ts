@@ -621,19 +621,28 @@ describe('comparison over the shipped dataset', () => {
     expect(statedTotal).toBeGreaterThan(0);
   });
 
-  it('names pricing and availability as not collected rather than leaving them blank', () => {
-    // Measured at merge-base fc418bb6: `raw.ts` composes no pricing, deployment,
-    // or serving-platform JSON, so these two groups are absent for every real
-    // pair. If that ever changes this test should be the first thing to notice.
-    expect(dataset.pricing).toHaveLength(0);
-    expect(dataset.deployments).toHaveLength(0);
-
+  it('names pricing and availability rather than leaving them blank, at either data shape', () => {
+    // Deliberately keyed on what the dataset holds rather than on a measured
+    // snapshot. At merge-base fc418bb6 `raw.ts` composed neither pricing nor
+    // deployment JSON and both groups read `not-collected`; the operational
+    // files are exactly the kind of thing a refresh lands, and a test pinned to
+    // the empty shape would fail on the data rather than on the behaviour. What
+    // has to hold either way is that the group is never silently blank: it
+    // shows rows, or it says why it cannot, and it distinguishes "nobody has
+    // collected this" from "records exist but none cover these models".
     const view = buildSeed([seedSlugs[0]!, seedSlugs[1]!]);
-    for (const id of ['pricing', 'availability']) {
+    const backing = { pricing: dataset.pricing, availability: dataset.deployments } as const;
+
+    for (const id of ['pricing', 'availability'] as const) {
       const group = groupOf(view, id);
-      expect(group.rows).toHaveLength(0);
-      expect(group.absence?.state).toBe('not-collected');
-      expect(group.absence?.reason.length).toBeGreaterThan(80);
+      if (group.rows.length > 0) {
+        expect(group.absence, `${id} shows rows, so it must claim no absence`).toBeNull();
+        continue;
+      }
+
+      expect(group.absence, `${id} has no rows, so it must say why`).not.toBeNull();
+      expect(group.absence!.state).toBe(backing[id].length === 0 ? 'not-collected' : 'unrecorded');
+      expect(group.absence!.reason.length).toBeGreaterThan(80);
     }
   });
 
@@ -658,16 +667,18 @@ describe('comparison over the shipped dataset', () => {
     }
   });
 
-  it('produces real benchmark rows for the one real pair that has results', () => {
-    // Measured at merge-base fc418bb6: benchmark results cover exactly two
-    // releases, so this is the only real selection that can produce an evidence
-    // row at all.
+  it('produces real benchmark rows for every real pair that has results', () => {
+    // Coverage is read, not asserted at a measured count, for the same reason as
+    // the group test above: benchmark results are refresh-managed data, and a
+    // test pinned to "exactly two covered releases" would fail the day a
+    // refresh lands a third. Two is the floor the comparison needs to render an
+    // evidence row at all.
     const covered = [...new Set(dataset.benchmarkResults.map((result) => result.releaseId))]
       .map((id) => dataset.releases.find((release) => release.id === id)!.slug);
 
-    expect(covered).toHaveLength(2);
+    expect(covered.length).toBeGreaterThanOrEqual(2);
 
-    const view = buildSeed(covered);
+    const view = buildSeed(covered.slice(0, MAX_COMPARISON_MODELS));
     const evidence = groupOf(view, 'evidence');
 
     expect(evidence.rows.length).toBeGreaterThan(0);
@@ -730,8 +741,21 @@ describe('comparison payload', () => {
     // releases, 1,403 per release. The thresholds sit just above that, so the
     // next change to either is a decision somebody makes rather than a drift
     // nobody sees.
-    expect(size.bytesPerRelease).toBeLessThanOrEqual(1_600);
-    expect(size.totalBytes).toBeLessThanOrEqual(81_920);
+    //
+    // The per-release figure is the scale-invariant guard and the one to trust.
+    // The total necessarily grows with the catalogue, so it is expected to be
+    // the first to trip: read the message on it before changing the number.
+    expect(
+      size.bytesPerRelease,
+      'a record got fatter — trim the payload rather than raising this',
+    ).toBeLessThanOrEqual(1_600);
+    expect(
+      size.totalBytes,
+      `/compare ships ${size.totalBytes} bytes for ${payload.releases.length} releases `
+      + `(${size.bytesPerRelease}/release, budget 81,920). Measured 68,731 over 49 releases at `
+      + 'fc418bb6. If the catalogue simply grew and the per-release figure held, raising this is a '
+      + 'deliberate page-weight decision; if the per-release figure moved too, trim instead.',
+    ).toBeLessThanOrEqual(81_920);
   });
 
   it('ships only the sources something in the payload cites', () => {
