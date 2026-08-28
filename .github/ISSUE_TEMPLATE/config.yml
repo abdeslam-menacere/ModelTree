@@ -15,10 +15,11 @@
 # silently arrive naming no record at all. The failure is invisible from the
 # repository side: the link keeps working, it just stops carrying the evidence.
 #
-# Measured on the built site at `fc418bb6` (59 pages, `web/dist/`):
-#   98 links to /issues/new?title=&body=   (one per release passport)
-#    1 link to /issues/new/choose          (the methodology page)
-# `web/tests/contributing/issue-forms.test.ts` pins both routes.
+# Two routes are live on the built site, and this file governs both:
+#   /issues/new?title=&body=   from every release passport
+#   /issues/new/choose         from the methodology page
+# `web/tests/contributing/issue-forms.test.ts` pins both routes. Their totals
+# move with every release added, so no count is recited here.
 #
 # The chooser is the *other* live surface: `methodologyReferences.correctionPath`
 # in `web/src/lib/methodology.ts` sends readers of /methodology/ straight here,

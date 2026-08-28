@@ -105,8 +105,10 @@ will be sent back.
 
 You do not need to open a pull request. Report a wrong fact with the
 **Report incorrect data** form, or a missing one with **Submit a model or
-release** — both are in `.github/ISSUE_TEMPLATE/`, and every Model Passport page
-links to the first one prefilled with the record you were looking at.
+release** — both are in `.github/ISSUE_TEMPLATE/`. Every Model Passport page
+also carries a correction link, which opens a blank issue prefilled with the
+slug of the record you were looking at; pick the **Report incorrect data** form
+from the chooser if you would rather answer the evidence fields directly.
 
 [`CONTRIBUTING.md`](CONTRIBUTING.md) explains the entities, what counts as a
 primary source, and how to add a release yourself, with a minimal valid example
