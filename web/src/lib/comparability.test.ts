@@ -536,6 +536,28 @@ describe('grouping keys', () => {
     }
   });
 
+  // Two different benchmarks can share a version string: in this repository
+  // MMLU-Pro and MMMU are both recorded as "0-shot", in the same unit. They are
+  // kept apart today only because their variant notes happen to differ, which
+  // makes the benchmark component of the key look redundant against real data
+  // while it is in fact the only thing that must hold. This fixture removes
+  // that luck -- the two results differ in nothing but the benchmark -- so the
+  // guard is proved rather than merely unexercised.
+  it('keeps two benchmarks apart even when every other keyed field matches', () => {
+    const twin: BenchmarkResult = { ...disclosedA, id: 'twin', benchmarkId: 'other-bench' };
+    const groups = buildComparabilityGroups({
+      benchmarks,
+      benchmarkResults: [disclosedA, twin],
+    });
+
+    expect(comparabilityGroupKey(disclosedA)).not.toBe(comparabilityGroupKey(twin));
+    expect(groups).toHaveLength(2);
+    expect(groups.map((group) => group.results.map((view) => view.result.id)).flat().sort())
+      .toEqual(['fixture-a', 'twin']);
+    // The pair must also be refused outright if a consumer compares them directly.
+    expect(assessComparability([disclosedA, twin], context).verdict).toBe('not-comparable');
+  });
+
   it('cannot be forged by a value that contains the key separator', () => {
     const left = comparabilityGroupKey({ ...disclosedA, benchmarkVersion: 'a', unit: 'b c' });
     const right = comparabilityGroupKey({ ...disclosedA, benchmarkVersion: 'a b', unit: 'c' });
@@ -690,6 +712,38 @@ describe('the repository dataset', () => {
     for (const group of groups) {
       expect(group.assessment.blockingFindings, group.key).toEqual([]);
       expect(group.assessment.verdict, group.key).not.toBe('not-comparable');
+    }
+  });
+
+  // Derived rather than hardcoded, so incoming data cannot make it stale. At the
+  // time of writing MMLU-Pro and MMMU both record "0-shot" in percent, which is
+  // exactly the collision a version-keyed grouping would merge. If a later data
+  // change removes every such pair this check becomes trivially true, which is
+  // safe: the fixture test above holds the guarantee unconditionally.
+  it('never merges two benchmarks that share a version and unit', () => {
+    const byVersionAndUnit = new Map<string, Set<string>>();
+    for (const result of dataset.benchmarkResults) {
+      const axis = `${result.benchmarkVersion}\u0000${result.unit}`;
+      const bucket = byVersionAndUnit.get(axis) ?? new Set<string>();
+      bucket.add(result.benchmarkId);
+      byVersionAndUnit.set(axis, bucket);
+    }
+
+    const collidingAxes = [...byVersionAndUnit.entries()].filter(([, ids]) => ids.size > 1);
+
+    for (const [axis, ids] of collidingAxes) {
+      const affected = dataset.benchmarkResults.filter(
+        (result) => `${result.benchmarkVersion}\u0000${result.unit}` === axis,
+      );
+      for (const result of affected) {
+        const group = groups.find((entry) =>
+          entry.results.some((view) => view.result.id === result.id));
+        const benchmarksInGroup = new Set(
+          group?.results.map((view) => view.result.benchmarkId) ?? [],
+        );
+        expect(benchmarksInGroup.size, `${result.id} shares ${axis} with ${[...ids].join(', ')}`)
+          .toBe(1);
+      }
     }
   });
 
