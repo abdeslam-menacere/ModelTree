@@ -15,8 +15,10 @@ The gates are:
 ``schema-validation``
     The value must survive the dataset's shape rules (mirrored from the Zod schema).
 ``date-sanity``
-    Dates must be real calendar dates at day precision, and evidence cannot have
-    been verified in the future.
+    Dates must name days that exist. A family or release date carries only the
+    precision its source stated — year, month or day — and must agree with the
+    ``datePrecision`` recorded beside it; every other date is one we observed and is
+    an exact day. Evidence cannot have been verified in the future.
 ``reference-integrity``
     Every cited source must exist in this run and match the URL it was read from.
 ``lineage-invariants``
