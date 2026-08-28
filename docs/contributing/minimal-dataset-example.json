@@ -1,0 +1,233 @@
+{
+  "publishers": [
+    {
+      "id": "example-lab-comms",
+      "name": "Example Lab (official communications)",
+      "organizationId": "example-lab"
+    },
+    {
+      "id": "example-cloud-comms",
+      "name": "Example Cloud (official communications)",
+      "organizationId": "example-cloud-co"
+    },
+    {
+      "id": "example-benchmark-council",
+      "name": "Example Benchmark Council"
+    }
+  ],
+
+  "sources": [
+    {
+      "id": "example-lab-announcement",
+      "url": "https://example.com/example-lab/announcements/example-model-1",
+      "title": "Introducing Example Model 1",
+      "type": "official-announcement",
+      "publisherId": "example-lab-comms",
+      "publishedDate": "2026-01-15",
+      "lastCheckedDate": "2026-08-28"
+    },
+    {
+      "id": "example-cloud-docs",
+      "url": "https://example.com/example-cloud/docs/models/example-model-1",
+      "title": "Example Model 1 on Example Cloud",
+      "type": "official-docs",
+      "publisherId": "example-cloud-comms",
+      "publishedDate": "2026-01-15",
+      "lastCheckedDate": "2026-08-28"
+    },
+    {
+      "id": "example-reasoning-suite-docs",
+      "url": "https://example.com/benchmark-council/example-reasoning-suite",
+      "title": "Example Reasoning Suite: definition and scoring",
+      "type": "benchmark-owner",
+      "publisherId": "example-benchmark-council",
+      "publishedDate": "2025-11-03",
+      "lastCheckedDate": "2026-08-28",
+      "notes": "Owns the benchmark definition. Authoritative for how the score is computed, and not a primary source for anything about the model itself."
+    }
+  ],
+
+  "organizations": [
+    {
+      "id": "example-lab",
+      "slug": "example-lab",
+      "name": "Example Lab, Inc.",
+      "shortName": "Example Lab",
+      "type": "research-lab",
+      "website": "https://example.com/example-lab",
+      "releasePage": "https://example.com/example-lab/announcements",
+      "description": "The creator of the Example Model family. Creator identity is its own record: it is not the product you use, and not the platform that serves it.",
+      "sourceIds": ["example-lab-announcement"],
+      "verifiedAt": "2026-08-28"
+    },
+    {
+      "id": "example-cloud-co",
+      "slug": "example-cloud-co",
+      "name": "Example Cloud Company",
+      "shortName": "Example Cloud",
+      "type": "company",
+      "website": "https://example.com/example-cloud",
+      "releasePage": "https://example.com/example-cloud/whats-new",
+      "description": "Operates a serving platform. It hosts Example Model 1 but did not create it, which is exactly why it is a separate organization from Example Lab.",
+      "sourceIds": ["example-cloud-docs"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "families": [
+    {
+      "id": "example-model",
+      "slug": "example-model",
+      "organizationId": "example-lab",
+      "name": "Example Model",
+      "description": "Example Lab's general-purpose model line.",
+      "categories": ["language-reasoning"],
+      "firstReleaseDate": "2026-01-15",
+      "status": "current",
+      "sourceIds": ["example-lab-announcement"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "releases": [
+    {
+      "id": "example-model-1",
+      "slug": "example-model-1",
+      "canonicalName": "Example Model 1",
+      "displayName": "Example Model 1",
+      "organizationId": "example-lab",
+      "familyId": "example-model",
+      "version": "1",
+      "variant": "base",
+      "releaseDate": "2026-01-15",
+      "datePrecision": "day",
+      "status": "current",
+      "featured": false,
+      "categories": ["language-reasoning"],
+      "inputModalities": ["text"],
+      "outputModalities": ["text"],
+      "accessType": "proprietary-hosted",
+      "contextWindow": 128000,
+      "apiAliases": ["example-model-1-2026-01-15"],
+      "predecessorIds": [],
+      "successorIds": [],
+      "siblingIds": [],
+      "derivedFromIds": [],
+      "summary": "The first release in the Example Model family. Every field here is stated by the announcement in sourceIds; nothing is inferred, and a field the announcement did not state is absent rather than guessed.",
+      "intendedUse": "General text tasks, as described by the creator.",
+      "sourceIds": ["example-lab-announcement"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "products": [
+    {
+      "id": "example-assistant",
+      "slug": "example-assistant",
+      "name": "Example Assistant",
+      "organizationId": "example-lab",
+      "description": "The chat product built on the Example Model family. A product is a separate record from the model it runs, because the two change independently.",
+      "modelSelection": "fixed",
+      "releaseIds": ["example-model-1"],
+      "effectiveFrom": "2026-01-15",
+      "sourceIds": ["example-lab-announcement"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "servingPlatforms": [
+    {
+      "id": "example-cloud",
+      "slug": "example-cloud",
+      "name": "Example Cloud",
+      "organizationId": "example-cloud-co",
+      "type": "cloud-platform",
+      "website": "https://example.com/example-cloud",
+      "sourceIds": ["example-cloud-docs"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "deployments": [
+    {
+      "id": "example-model-1-on-example-cloud",
+      "releaseId": "example-model-1",
+      "platformId": "example-cloud",
+      "deliveryMode": "hosted-api",
+      "apiIdentifier": "example-model-1",
+      "regions": ["us-east"],
+      "effectiveFrom": "2026-01-15",
+      "sourceIds": ["example-cloud-docs"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "pricing": [
+    {
+      "id": "example-model-1-on-example-cloud-standard",
+      "deploymentId": "example-model-1-on-example-cloud",
+      "currency": "USD",
+      "unit": "per-1m-tokens",
+      "rates": {
+        "input": 1.25,
+        "output": 10
+      },
+      "region": "us-east",
+      "effectiveFrom": "2026-01-15",
+      "sourceIds": ["example-cloud-docs"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "benchmarks": [
+    {
+      "id": "example-reasoning-suite",
+      "slug": "example-reasoning-suite",
+      "name": "Example Reasoning Suite",
+      "domain": "general-reasoning",
+      "owner": "Example Benchmark Council",
+      "metric": "accuracy",
+      "metricUnit": "percent",
+      "direction": "higher-is-better",
+      "datasetVersion": "2025.11",
+      "sourceIds": ["example-reasoning-suite-docs"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "benchmarkResults": [
+    {
+      "id": "example-model-1-example-reasoning-suite",
+      "benchmarkId": "example-reasoning-suite",
+      "benchmarkVersion": "2025.11",
+      "releaseId": "example-model-1",
+      "score": 71.4,
+      "unit": "percent",
+      "evaluationDate": "2026-01",
+      "reasoningMode": "default",
+      "toolsEnabled": false,
+      "resultType": "official",
+      "caveats": "Creator-reported. Recorded with the setup it was run under, because a score without its setup cannot be compared with anything.",
+      "sourceIds": ["example-lab-announcement"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "releaseEvents": [
+    {
+      "id": "example-model-1-announced",
+      "releaseId": "example-model-1",
+      "type": "announced",
+      "date": "2026-01-15",
+      "datePrecision": "day",
+      "note": "Announced by Example Lab.",
+      "sourceIds": ["example-lab-announcement"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "usageObservations": [],
+  "usageSyntheses": [],
+  "modelFitStatements": [],
+  "modelFitEvidenceGaps": []
+}
