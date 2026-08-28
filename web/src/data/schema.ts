@@ -33,6 +33,34 @@ export const partialDate = z.string().regex(/^\d{4}(-\d{2}(-\d{2})?)?$/).refine(
 }, 'must be a real date written as YYYY, YYYY-MM, or YYYY-MM-DD');
 
 export const datePrecision = z.enum(['year', 'month', 'day']);
+
+/**
+ * `lifecycleStatus`, `modelCategory`, `accessType` and `modality` are a
+ * **controlled vocabulary**: a fixed set of dataset terms onto which a source's
+ * own wording is mapped. No source speaks them. A creator writes "Live",
+ * "Active (legacy)" or "generally available"; the terms below are what the
+ * record can hold. The numeric fields pose the same step in another form — a
+ * page states "128K" and `contextWindow` stores `128000`.
+ *
+ * Choosing the member a quoted term denotes is a *recording* step, not a new
+ * fact, and it is permitted only on the terms the `provenance` rubric in
+ * `.github/skills/modeltree-review/SKILL.md` sets out: the underlying fact is
+ * quoted verbatim from an approved primary source, the quote is about the same
+ * entity at the same level, and exactly one member fits. A source that says
+ * nothing on the point, wording that fits two members equally well, and a term
+ * that adds a precision or scope the source never gave all remain rejections.
+ * Nothing here licenses filling a field the source left unstated.
+ *
+ * **None of these enums has an `unknown` member, and that is deliberate.**
+ * `familySchema` and `releaseSchema` below require `status`, `categories`,
+ * `accessType` and both modality lists, so every record must map — there is no
+ * escape hatch that would let a record be published with the field left open,
+ * and a tree branch rendering rows of blanks is not a fact this dataset states.
+ * The consequence is intended: where a field cannot be mapped from an approved
+ * source, the whole record is withheld rather than guessed. Fields that may
+ * honestly be absent are `.optional()` instead, and `partialDate` above is the
+ * same principle applied to how much of a date a source actually gave.
+ */
 export const lifecycleStatus = z.enum(['preview', 'current', 'legacy', 'deprecated', 'research']);
 export const modality = z.enum(['text', 'image', 'audio', 'video']);
 
