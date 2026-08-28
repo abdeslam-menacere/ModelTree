@@ -129,10 +129,9 @@ sourced statement of legal form and not a ranking. The first matching category
 wins: `community` when independent contributors outside any one entity's
 employment or appointment chain can initiate and decide its model releases, not
 merely submit work; `company` when the entity offers model products or access
-for payment under its name, without counting a parent's sales; `research-lab`
-when one standalone institution or named unit controls releases and exists
-primarily for research; `nonprofit` when a centrally governed nonprofit matches
-none of those tests; otherwise `company` for the centrally operated creator that
-runs the model work. The review rubric applies this observable decision
-procedure without requiring a primary-source quote to use the category's exact
-words.
+for payment under its name (a parent's sales do not count); `research-lab` when
+one standalone institution or named unit controls releases and exists primarily
+for research; `nonprofit` when a centrally governed nonprofit matches none
+above; otherwise `company` for the centrally operated creator that runs the
+model work. The review rubric applies this observable decision procedure without
+requiring a primary-source quote to use the category's exact words.
