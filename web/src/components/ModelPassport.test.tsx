@@ -1,0 +1,297 @@
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it } from 'vitest';
+import { dataset } from '../data/dataset';
+import {
+  COMPLETE_RELEASE_ID,
+  DANGLING_RELATION_ID,
+  FIXTURE_TODAY,
+  OPEN_WEIGHT_RELEASE_ID,
+  PROPRIETARY_RELEASE_ID,
+  SPARSE_RELEASE_ID,
+  passportFixtures,
+} from '../lib/passport-fixtures';
+import { buildModelPassport } from '../lib/passport';
+import ModelPassport from './ModelPassport';
+
+const BASE = '/ModelTree/';
+const TODAY = '2026-08-27';
+
+const renderFixture = (releaseId: string) =>
+  renderToStaticMarkup(
+    <ModelPassport view={buildModelPassport(passportFixtures, releaseId, BASE, FIXTURE_TODAY)} />,
+  );
+
+const renderReal = (releaseId: string) =>
+  renderToStaticMarkup(
+    <ModelPassport view={buildModelPassport(dataset, releaseId, BASE, TODAY)} />,
+  );
+
+/** Counts real matches so a zero elsewhere reads as absence, not a broken probe. */
+const count = (html: string, pattern: RegExp) => html.match(pattern)?.length ?? 0;
+
+describe('the rendered passport carries what the sections promise', () => {
+  const html = renderFixture(COMPLETE_RELEASE_ID);
+
+  it('renders every section heading the view model marks present', () => {
+    const view = buildModelPassport(passportFixtures, COMPLETE_RELEASE_ID, BASE, FIXTURE_TODAY);
+    // This component owns seven of the ten sections; usage, fit, and sources are
+    // rendered by the page from their own components.
+    const owned = ['identity', 'lineage', 'technical', 'access', 'availability', 'pricing', 'history'];
+
+    for (const id of owned) {
+      const section = view.sections.find((candidate) => candidate.id === id)!;
+      expect(html, `${id} heading should render`).toContain(`id="${section.headingId}"`);
+      expect(html).toContain(`>${section.title}<`);
+    }
+  });
+
+  it('labels every section by a heading that exists in the same markup', () => {
+    const labelled = [...html.matchAll(/aria-labelledby="([^"]+)"/g)].map((match) => match[1]);
+    // Positive control: the page really does use `aria-labelledby`, so the loop
+    // below is checking something.
+    expect(labelled.length).toBeGreaterThan(5);
+
+    for (const id of labelled) {
+      expect(html, `${id} must resolve to a heading`).toContain(`id="${id}"`);
+    }
+  });
+
+  it('gives every id in the markup exactly one definition', () => {
+    const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]);
+    expect(ids.length).toBeGreaterThan(0);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe('AC1 — an absent section leaves the page, and says so', () => {
+  it('renders the availability, pricing, and history sections when records exist', () => {
+    const html = renderFixture(COMPLETE_RELEASE_ID);
+
+    expect(html).toContain('id="availability-title"');
+    expect(html).toContain('id="pricing-title"');
+    expect(html).toContain('id="history-title"');
+    // Nothing is missing, so the coverage roll-up must not appear at all.
+    expect(html).not.toContain('not-recorded-title');
+  });
+
+  it('drops those sections and names them in the roll-up when records do not', () => {
+    const html = renderFixture(SPARSE_RELEASE_ID);
+
+    expect(html).not.toContain('id="availability-title"');
+    expect(html).not.toContain('id="pricing-title"');
+    expect(html).not.toContain('id="history-title"');
+    expect(html).not.toContain('id="lineage-title"');
+
+    expect(html).toContain('id="not-recorded-title"');
+    for (const title of ['Where it is served', 'What it costs', 'What has changed', 'Where it fits']) {
+      expect(html, `${title} should be named as absent`).toContain(`<dt>${title}</dt>`);
+    }
+  });
+
+  it('never leaves an empty table behind when a section is dropped', () => {
+    const html = renderFixture(SPARSE_RELEASE_ID);
+    // A section that renders its own chrome but no rows is the failure this
+    // guards: no table element should survive at all.
+    expect(count(html, /<table/g)).toBe(0);
+    expect(count(html, /<tbody><\/tbody>/g)).toBe(0);
+  });
+
+  it('numbers the sections it renders contiguously', () => {
+    const numbers = [...renderFixture(SPARSE_RELEASE_ID)
+      .matchAll(/class="section-number"[^>]*>(\d+)</g)]
+      .map((match) => match[1]);
+
+    expect(numbers.length).toBeGreaterThan(0);
+    expect(numbers).toEqual(numbers.map((_, index) => String(index + 1).padStart(2, '0')));
+  });
+});
+
+describe('AC3 — the pricing table states every required field', () => {
+  const html = renderFixture(PROPRIETARY_RELEASE_ID);
+
+  it('heads a column for each of currency, unit, region and tier, effective, and source', () => {
+    for (const heading of ['Currency', 'Rates', 'Unit', 'Region and tier', 'Effective', 'Source']) {
+      expect(html, `${heading} column should exist`)
+        .toMatch(new RegExp(`<th scope="col"[^>]*>${heading}</th>`));
+    }
+  });
+
+  it('prints the currency code, the unit, and the effective range in the body', () => {
+    expect(html).toContain('<td>EUR</td>');
+    expect(html).toMatch(/per 1K tokens|per 1k tokens/i);
+    expect(html).toContain('Jan 20, 2026 to May 31, 2026');
+    expect(html).toContain('From Jun 1, 2026');
+  });
+
+  it('marks a superseded price rather than showing two prices as equally current', () => {
+    expect(count(html, /Superseded/g)).toBe(1);
+  });
+
+  it('names the region and tier where recorded and marks them absent where not', () => {
+    expect(html).toContain('eu-west · Batch');
+    expect(html).toMatch(/class="passport-unknown"[^>]*>Not recorded</);
+  });
+
+  it('links a source from every priced row', () => {
+    // Scoped to the pricing table: this fixture also renders an availability
+    // table, whose row headers would otherwise be counted here.
+    const start = html.indexOf('Published prices recorded for');
+    const pricingTable = html.slice(start, html.indexOf('</table>', start));
+    expect(start).toBeGreaterThan(-1);
+
+    const rows = count(pricingTable, /<th scope="row"[^>]*>/g);
+    expect(rows).toBe(2);
+    expect(count(pricingTable, /Example Cloud pricing/g)).toBe(rows);
+  });
+
+  it('flags a price that has not been re-checked recently', () => {
+    expect(html).toMatch(/Not re-checked for \d+ days/);
+  });
+
+  it('says prices are never converted or normalised', () => {
+    expect(html).toMatch(/not converted between currencies or/i);
+  });
+});
+
+describe('AC4 — licence wording distinguishes downloadable weights from open source', () => {
+  it('does not describe a non-OSI licence as open source', () => {
+    const html = renderFixture(OPEN_WEIGHT_RELEASE_ID);
+
+    expect(html).toContain('Weights are documented as downloadable.');
+    expect(html).toContain('not recorded as OSI-approved');
+    // Positive control first: "OSI" is genuinely on the page, so the absence of
+    // the approving phrasing below is a real absence.
+    expect(count(html, /OSI/g)).toBeGreaterThan(0);
+    expect(html).not.toMatch(/is recorded as OSI-approved open source/);
+  });
+
+  it('states OSI approval where the record carries it', () => {
+    const html = renderFixture(COMPLETE_RELEASE_ID);
+    expect(html).toContain('recorded as OSI-approved open source');
+    expect(html).toContain('Apache-2.0');
+  });
+
+  it('explains an absent licence instead of leaving the block empty', () => {
+    const html = renderFixture(PROPRIETARY_RELEASE_ID);
+
+    expect(html).not.toContain('<h3>Licence</h3>');
+    expect(html).toMatch(/No licence record is held/);
+    expect(html).toMatch(/not a claim that the model is unlicensed/);
+  });
+
+  it('links out to the methodology definition of access', () => {
+    const html = renderFixture(COMPLETE_RELEASE_ID);
+    expect(html).toContain(`href="${BASE}methodology/#access"`);
+    expect(html).toMatch(/How ModelTree defines access and licensing/);
+  });
+});
+
+describe('AC2 — lineage names what each relationship claims', () => {
+  const html = renderFixture(COMPLETE_RELEASE_ID);
+
+  it('renders one labelled group per relationship kind', () => {
+    for (const kind of ['predecessor', 'successor', 'sibling', 'derivation']) {
+      expect(html, `${kind} group should render`).toContain(`data-relationship="${kind}"`);
+    }
+  });
+
+  it('links each related release at its canonical route', () => {
+    expect(html).toContain(`href="${BASE}models/earlier-model/"`);
+    expect(html).toContain(`href="${BASE}models/later-model/"`);
+    expect(html).toContain(`href="${BASE}models/variant-model/"`);
+    expect(html).toContain(`href="${BASE}models/foundation-model/"`);
+  });
+
+  it('discloses a relationship it cannot resolve rather than hiding it', () => {
+    expect(html).toContain(DANGLING_RELATION_ID);
+    expect(html).toMatch(/not yet in ModelTree/);
+  });
+});
+
+describe('actions', () => {
+  const html = renderFixture(COMPLETE_RELEASE_ID);
+
+  it('offers compare, evidence, and report', () => {
+    for (const kind of ['compare', 'evidence', 'report']) {
+      expect(html).toContain(`data-action="${kind}"`);
+    }
+  });
+
+  it('gives each action link text that says where it goes', () => {
+    // "Click here" links are the failure mode; each label must stand alone.
+    const labels = [...html.matchAll(/data-action="[^"]+"\s*>([^<]+)/g)].map((m) => m[1].trim());
+    expect(labels).toHaveLength(3);
+    for (const label of labels) expect(label.length).toBeGreaterThan(8);
+  });
+
+  it('marks the one action that leaves the site', () => {
+    const nav = html.slice(0, html.indexOf('</nav>'));
+    expect(count(nav, /lucide-external-link/g)).toBe(1);
+  });
+});
+
+describe('tables are navigable', () => {
+  const html = renderFixture(COMPLETE_RELEASE_ID);
+
+  it('captions every table and scopes every header cell', () => {
+    const tables = count(html, /<table/g);
+    expect(tables).toBe(2);
+    expect(count(html, /<caption/g)).toBe(tables);
+    expect(count(html, /<th scope="col"/g)).toBeGreaterThan(0);
+    expect(count(html, /<th scope="row"/g)).toBeGreaterThan(0);
+  });
+
+  it('makes each horizontally scrollable table reachable by keyboard', () => {
+    // A scroll container that cannot take focus is unreachable to a keyboard
+    // user, so the overflow styling requires the tabindex to be here.
+    const scrollers = [...html.matchAll(/<div class="passport-table-scroll"[^>]*>/g)]
+      .map((match) => match[0]);
+
+    expect(scrollers).toHaveLength(2);
+    for (const scroller of scrollers) {
+      expect(scroller).toContain('tabindex="0"');
+      expect(scroller).toContain('role="region"');
+      expect(scroller).toMatch(/aria-label="[^"]+"/);
+    }
+  });
+});
+
+describe('the shipped dataset renders its absent branch on every release', () => {
+  it('produces markup with no availability, pricing, or history section', () => {
+    expect(dataset.releases.length).toBeGreaterThan(0);
+
+    for (const release of dataset.releases) {
+      const html = renderReal(release.id);
+
+      // Positive control: identity always renders, so the absences below are
+      // about those sections and not about a render that failed.
+      expect(html, `${release.slug} should render identity`).toContain('id="identity-title"');
+      expect(html).not.toContain('id="availability-title"');
+      expect(html).not.toContain('id="pricing-title"');
+      expect(html).not.toContain('id="history-title"');
+      expect(html).toContain('id="not-recorded-title"');
+    }
+  });
+
+  it('never renders a table, because no record backs one', () => {
+    for (const release of dataset.releases) {
+      expect(count(renderReal(release.id), /<table/g), `${release.slug}`).toBe(0);
+    }
+  });
+
+  it('offers all three actions on every real release', () => {
+    for (const release of dataset.releases) {
+      const html = renderReal(release.id);
+      for (const kind of ['compare', 'evidence', 'report']) {
+        expect(html, `${release.slug} should offer ${kind}`).toContain(`data-action="${kind}"`);
+      }
+    }
+  });
+});
+
+describe('rendered markup snapshots', () => {
+  it('complete', () => expect(renderFixture(COMPLETE_RELEASE_ID)).toMatchSnapshot());
+  it('sparse', () => expect(renderFixture(SPARSE_RELEASE_ID)).toMatchSnapshot());
+  it('proprietary', () => expect(renderFixture(PROPRIETARY_RELEASE_ID)).toMatchSnapshot());
+  it('open weight', () => expect(renderFixture(OPEN_WEIGHT_RELEASE_ID)).toMatchSnapshot());
+});
