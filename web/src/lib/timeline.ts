@@ -25,11 +25,13 @@ export interface TimelineEntry {
   id: string;
   kind: TimelineEntryKind;
   /**
-   * The date exactly as the source stated it: `2024-07-23`, `2024-07`, or
-   * `2024`. Kept partial so nothing downstream can print a day nobody claimed.
-   * Codepoint order over these strings is already chronological, and a coarser
-   * date sorts before the finer dates inside it, so no padded day is invented to
-   * make entries comparable.
+   * The date narrowed to what {@link datePrecision} claims: `2024-07-23`,
+   * `2024-07`, or `2024`. Kept partial so nothing downstream can print a day
+   * nobody claimed — {@link toStatedPrecision} is what establishes that, since
+   * a release stores a full ISO date whatever its precision says. Codepoint
+   * order over these strings is already chronological, and a coarser date sorts
+   * before the finer dates inside it, so no padded day is invented to make
+   * entries comparable.
    */
   date: string;
   datePrecision: ModelRelease['datePrecision'];
@@ -103,6 +105,26 @@ export function timelineDateCeiling(entry: Pick<TimelineEntry, 'date' | 'datePre
   return entry.datePrecision === 'month' ? `${entry.date}-31` : `${entry.date}-12-31`;
 }
 
+/** How many characters of an ISO date each precision actually claims. */
+const PRECISION_WIDTH: Record<ModelRelease['datePrecision'], number> = {
+  year: 4,
+  month: 7,
+  day: 10,
+};
+
+/**
+ * Trims a date to what its precision claims. `releaseSchema.releaseDate` is a
+ * full ISO date whatever the precision beside it says, so a year-precision
+ * release arrives here as `2024-03-15` with a day the source never stated. The
+ * trim is what makes {@link TimelineEntry.date} true to its precision for both
+ * record kinds, rather than only for the events whose schema already stores a
+ * partial date — without it the ceiling and the `datetime` attribute both work
+ * from segments nobody claimed.
+ */
+function toStatedPrecision(date: string, precision: ModelRelease['datePrecision']) {
+  return date.slice(0, PRECISION_WIDTH[precision]);
+}
+
 export function buildTimelineIndex(dataset: Dataset, base = '/'): TimelineIndex {
   const organizationById = new Map(dataset.organizations.map((item) => [item.id, item]));
   const releaseById = new Map(dataset.releases.map((item) => [item.id, item]));
@@ -113,7 +135,7 @@ export function buildTimelineIndex(dataset: Dataset, base = '/'): TimelineIndex 
   const push = (
     id: string,
     kind: TimelineEntryKind,
-    date: string,
+    sourceDate: string,
     datePrecision: ModelRelease['datePrecision'],
     kindLabel: string,
     release: ModelRelease,
@@ -123,6 +145,8 @@ export function buildTimelineIndex(dataset: Dataset, base = '/'): TimelineIndex 
       issues.push(`timeline entry ${id} has no resolvable creator`);
       return;
     }
+
+    const date = toStatedPrecision(sourceDate, datePrecision);
 
     entries.push({
       id,

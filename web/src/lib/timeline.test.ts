@@ -10,6 +10,7 @@ import {
   type TimelineEntry,
   type TimelineScale,
 } from './timeline';
+import { entryInRange } from './timeline-view';
 
 function release(
   id: string,
@@ -140,6 +141,29 @@ function fixture(overrides: Record<string, unknown> = {}): Dataset {
 const index = buildTimelineIndex(fixture(), '/');
 const entryById = new Map(index.entries.map((entry) => [entry.id, entry]));
 
+/**
+ * A release whose precision claims less than its stored date does.
+ * `releaseSchema.releaseDate` is a full ISO date whatever the precision beside
+ * it says, and `validateDataset` only checks that pairing for release events —
+ * so this shape validates, and the timeline has to narrow it itself.
+ */
+const coarseIndex = (() => {
+  const base = fixture();
+  return buildTimelineIndex(validateDataset({
+    ...base,
+    releases: [
+      ...base.releases,
+      release('alpha-undated', 'alpha', 'alpha-one', '2024-03-15', { datePrecision: 'year' }),
+    ],
+  }), '/');
+})();
+
+const coarseEntry = (() => {
+  const found = coarseIndex.entries.find((item) => item.id === 'release:alpha-undated');
+  if (!found) throw new Error('fixture has no year-precision release entry');
+  return found;
+})();
+
 function entry(id: string): TimelineEntry {
   const found = entryById.get(id);
   if (!found) throw new Error(`fixture has no timeline entry "${id}"`);
@@ -240,6 +264,50 @@ describe('timelineDateCeiling', () => {
     expect(timelineDateCeiling({ date: '2024-07-23', datePrecision: 'day' })).toBe('2024-07-23');
     expect(timelineDateCeiling({ date: '2024-07', datePrecision: 'month' })).toBe('2024-07-31');
     expect(timelineDateCeiling({ date: '2024', datePrecision: 'year' })).toBe('2024-12-31');
+  });
+
+  it('measures a coarse release the same way, from the date the index actually stored', () => {
+    // Reading the ceiling off an untrimmed `2024-03-15` would yield the
+    // unordered "2024-03-15-12-31" and hide the entry from any window opening
+    // later in its own year.
+    expect(timelineDateCeiling(coarseEntry)).toBe('2024-12-31');
+  });
+});
+
+describe('a release whose precision claims less than its stored date', () => {
+  it('stores only the segments the precision claims, so no consumer sees a day', () => {
+    expect(coarseEntry.date).toBe('2024');
+    expect(coarseEntry.datePrecision).toBe('year');
+  });
+
+  it('renders that date no more precisely than the precision allows', () => {
+    expect(coarseEntry.dateLabel).toBe('2024');
+  });
+
+  it('survives a relative window that opens later in its own year', () => {
+    // The end-to-end shape of the bug: an untrimmed date gives a ceiling that
+    // sorts below any real bound, so the entry would vanish from a window it
+    // could genuinely fall in.
+    expect(entryInRange(coarseEntry, { from: '2024-06-01', year: null, label: 'window' }))
+      .toBe(true);
+    expect(entryInRange(coarseEntry, { from: '2025-01-01', year: null, label: 'window' }))
+      .toBe(false);
+  });
+
+  it('still sorts and groups as a year-precision entry', () => {
+    expect(coarseIndex.entries.map((item) => item.date)).toEqual([
+      '2024',
+      '2024-03-14',
+      '2024-05-02',
+      '2024-07-23',
+      '2024-09',
+      '2025',
+      '2025-11-05',
+    ]);
+    const stops = groupTimelineEntries(coarseIndex.entries, 'month', 'oldest');
+    const undated = stops.find((stop) => stop.key === '2024:undated');
+    expect(undated?.imprecise).toBe(true);
+    expect(undated?.entries.map((item) => item.id)).toContain('release:alpha-undated');
   });
 });
 
