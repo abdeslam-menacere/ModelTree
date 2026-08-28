@@ -11,7 +11,7 @@ interface Props {
   description: string;
   passportHref: string;
   verifiedAt: string;
-  currentPage?: 'explore' | 'tree' | 'catalog' | 'passport' | 'refresh' | 'methodology';
+  currentPage?: 'explore' | 'tree' | 'catalog' | 'directory' | 'passport' | 'refresh' | 'methodology';
 }
 
 const { title, description, passportHref, verifiedAt, currentPage } = Astro.props;
@@ -19,6 +19,7 @@ const base = import.meta.env.BASE_URL;
 const iconHref = `${base}favicon.svg`;
 const treeHref = `${base}tree/`;
 const catalogHref = `${base}models/`;
+const directoryHref = `${base}providers/`;
 const refreshHref = `${base}refresh/`;
 const methodologyHref = `${base}methodology/`;
 ---
@@ -43,6 +44,7 @@ const methodologyHref = `${base}methodology/`;
           <a href={base} aria-current={currentPage === 'explore' ? 'page' : undefined}>Explore</a>
           <a href={treeHref} aria-current={currentPage === 'tree' ? 'page' : undefined}>Model Tree</a>
           <a href={catalogHref} aria-current={currentPage === 'catalog' ? 'page' : undefined}>Catalog</a>
+          <a href={directoryHref} aria-current={currentPage === 'directory' ? 'page' : undefined}>Directory</a>
           <a href={passportHref} aria-current={currentPage === 'passport' ? 'page' : undefined}>Model Passport</a>
           <a href={refreshHref} aria-current={currentPage === 'refresh' ? 'page' : undefined}>Data refresh</a>
           <a href={methodologyHref} aria-current={currentPage === 'methodology' ? 'page' : undefined}>Methodology</a>

@@ -3215,3 +3215,269 @@ span.log-page-step {
   }
 }
 
+
+/* Creator and serving-platform directory */
+
+.provider-directory {
+  display: grid;
+  gap: 32px;
+}
+
+.directory-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  border: 1px solid var(--cp-border);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--cp-surface);
+}
+
+.directory-toolbar label {
+  display: block;
+  width: 100%;
+  font-family: "Archivo Variable", "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 720;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cp-text-soft);
+}
+
+.directory-toolbar input {
+  flex: 1 1 260px;
+  min-width: 0;
+  border: 1px solid var(--cp-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--cp-text);
+  background: var(--cp-bg);
+}
+
+.directory-clear {
+  border: 1px solid var(--cp-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font: inherit;
+  color: var(--cp-text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.directory-summary {
+  margin: 0;
+  color: var(--cp-text-soft);
+}
+
+.directory-group {
+  display: grid;
+  gap: 16px;
+}
+
+.directory-group-head h2 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.directory-count {
+  margin: 4px 0 0;
+  font-family: "Archivo Variable", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 720;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cp-text-soft);
+}
+
+.directory-role-note {
+  margin: 8px 0 0;
+  max-width: 74ch;
+  color: var(--cp-text-soft);
+  line-height: 1.6;
+}
+
+.directory-empty {
+  margin: 0;
+  border: 1px dashed var(--cp-border);
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 74ch;
+  color: var(--cp-text-soft);
+  line-height: 1.6;
+}
+
+.directory-alphabet {
+  position: relative;
+  border-top: 1px solid var(--cp-border);
+  border-bottom: 1px solid var(--cp-border);
+  padding: 12px 0;
+}
+
+.directory-letters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.directory-letter {
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 8px;
+  font-family: "Archivo Variable", "Segoe UI", sans-serif;
+  font-weight: 720;
+  text-decoration: none;
+  color: var(--cp-accent);
+}
+
+a.directory-letter:hover {
+  background: var(--cp-surface);
+}
+
+/* Kept visible so the bar holds one shape as data lands, but plainly not a
+   control: no link affordance, no pointer, not in the tab order. */
+.directory-letter.is-empty {
+  color: var(--cp-text-soft);
+  opacity: 0.45;
+}
+
+.directory-skip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translateY(-150%);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: var(--cp-accent);
+  color: var(--cp-accent-fg);
+}
+
+.directory-skip:focus-visible {
+  transform: translateY(0);
+}
+
+.directory-entries {
+  display: grid;
+  gap: 28px;
+}
+
+.directory-entries:focus-visible,
+.directory-letter-section:focus-visible {
+  outline: 2px solid var(--cp-accent);
+  outline-offset: 6px;
+}
+
+.directory-letter-section h3 {
+  margin: 0 0 12px;
+  font-family: "Archivo Variable", "Segoe UI", sans-serif;
+  font-size: 20px;
+  color: var(--cp-text-soft);
+}
+
+.directory-rows {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.directory-row {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--cp-border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: var(--cp-surface);
+}
+
+.directory-row p {
+  margin: 0;
+}
+
+/* Long organization names break rather than widening the row, so a narrow
+   viewport wraps instead of scrolling sideways. */
+.directory-name {
+  font-family: "Archivo Variable", "Segoe UI", sans-serif;
+  font-size: 18px;
+  font-weight: 720;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.directory-role {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.directory-tag {
+  border: 1px solid var(--cp-border);
+  border-radius: 999px;
+  padding: 2px 10px;
+  color: var(--cp-text);
+}
+
+.directory-type {
+  padding: 2px 0;
+  color: var(--cp-text-soft);
+}
+
+.directory-metrics,
+.directory-unlinked,
+.directory-verified {
+  color: var(--cp-text-soft);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.directory-unlinked {
+  font-style: italic;
+}
+
+.directory-unclassified {
+  border: 1px dashed var(--cp-border);
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 74ch;
+}
+
+.directory-unclassified h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.directory-unclassified p {
+  margin: 0 0 12px;
+  color: var(--cp-text-soft);
+  line-height: 1.6;
+}
+
+.directory-unclassified ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+@media (max-width: 700px) {
+  .directory-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .directory-letter {
+    min-width: 28px;
+    min-height: 28px;
+  }
+
+  .directory-name {
+    font-size: 16px;
+  }
+}
