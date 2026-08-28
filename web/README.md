@@ -215,10 +215,16 @@ The seed data was checked against these official pages on 2026-08-14:
 - <https://developers.openai.com/api/docs/models/gpt-4.1-nano>
 
 Anthropic, Google DeepMind, and Meta records were checked against the pages
-listed in `src/data/sources.json` on 2026-08-15. Every URL there returned HTTP
-200 during that pass. Recorded titles are the document's own title without the
-site suffix a publisher appends to the browser `<title>`, so "Models overview"
-is recorded where the browser tab reads "Models overview - Claude Platform Docs".
+listed in `src/data/sources.json` on 2026-08-15. Every URL cited by those records
+returned HTTP 200 during that pass. Records added later carry their own
+`lastCheckedDate`, which is the date to read for them; this paragraph describes
+one pass and not the whole file. Recorded titles are the document's own title
+without the site suffix a publisher appends to the browser `<title>`, so "Models
+overview" is recorded where the browser tab reads "Models overview - Claude
+Platform Docs".
+
+xAI, Mistral AI, and DeepSeek records were checked against the pages listed in
+`src/data/sources.json` on 2026-08-28, under the same rules.
 
 Unknown facts remain omitted. Family membership does not imply an undocumented
 predecessor, successor, or architecture relationship.
@@ -301,6 +307,53 @@ reading and the disagreement is written down here rather than resolved silently.
   nothing checks. Each gap names a rubric dimension that was looked at and could
   not be supported — a missing usage observation for Llama 4 Scout, a missing
   benchmark result for GPT-5 — so the absence is visible rather than silent.
+- **xAI is recorded once, under both of the names it uses for itself.** The
+  creator's own site titles its pages "… | SpaceXAI" and carries the footer
+  "© 2026 SpaceXAI LLC", while its developer documentation calls the product
+  surface "the xAI API". Rather than pick a winner, `name` is "SpaceXAI" and
+  `shortName` is "xAI", so both stay searchable as organization aliases. No
+  rename, succession, or corporate relationship between the two names is
+  asserted, because no source states one.
+- **No Grok release records a parameter count.** xAI publishes none on either the
+  announcements or the model documentation pages, so `parameters` is omitted
+  entirely rather than zeroed or estimated.
+- **Grok 4 anchors its family but is not itself a release record.** The Grok 4
+  announcement is dated 9 July 2025 and that date is the family's
+  `firstReleaseDate`, but the model's documentation page is no longer served, so
+  its modalities and context window cannot be sourced and no release is recorded
+  for it. A family is dated to its first release whether or not that release is
+  represented, which is the same reading the Gemini 3 family already uses.
+- **Mistral Large 3 parameter count disagreement.** The model card's header gives
+  675B total and 41B active, while its body text gives "673B params and 39B
+  active" alongside "a 2.5B Vision Encoder" — the two readings differ by roughly
+  the size of that encoder. The header figures are recorded, because they are the
+  counts the card states for the model as published, and the disagreement is
+  written down here rather than averaged away.
+- **Downloadable weights are recorded separately from licensing, and the two do
+  not track each other.** Mistral Large 3 is offered both through a hosted API and
+  as downloadable weights under Apache-2.0, so its `accessType` is `both` and
+  `osiApproved` is true. Devstral 2 123B is equally downloadable under a Modified
+  MIT licence with an added condition, so its weights are downloadable while
+  `osiApproved` is false. The Grok releases are hosted only and carry no `license`
+  object at all, rather than a licence recorded as unknown.
+- **DeepSeek dates come from repository publication, not from an announcement.**
+  The creator's own domain could not be reached from this environment during the
+  2026-08-28 pass, using two independent tools, so no dated first-party
+  announcement was available. The recorded dates are the days the model
+  repositories were published on the creator's verified Hugging Face
+  organization. This is a weaker claim than a dated announcement and is labelled
+  as such in each release's own summary. It is weaker in a specific way worth
+  naming: Mistral's repositories were created before its announcements — the
+  Mistral Large 3 repository predates the Mistral 3 post — so repository
+  publication is a bound on when a model appeared, not proof of when it was
+  announced.
+- **No DeepSeek derivation or distillation is recorded.** The DeepSeek-V4 card
+  describes consolidating the creator's own domain-specialist models by on-policy
+  distillation. That is internal post-training within one release, not a parent
+  model that exists separately, so it is not a `derivedFromIds` edge.
+  DeepSeek-V3.2 declares a base model of DeepSeek-V3.2-Exp-Base, which has no
+  record here, so there is no id to point at. Naming similarity between
+  repositories is not treated as evidence of lineage anywhere.
 
 ## Catalog indexes
 
