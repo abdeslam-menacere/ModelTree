@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import { accessTypeGlossary, lifecycleStatusGlossary, methodologyReferences } from './methodology';
-import { modelRoute, buildCatalogIndex } from './catalog';
-import { parseCatalogState } from './catalog-view';
+import { modelRoute } from './catalog';
+import { parseComparisonSelection } from './comparison';
 import {
   COMPLETE_RELEASE_ID,
   DANGLING_RELATION_ID,
@@ -318,38 +318,52 @@ describe('AC5 — a correction link is offered for every release', () => {
 });
 
 describe('actions cooperate with the routes that exist', () => {
-  // The catalog's own parser, fed the catalog's own facets, so a compare link
-  // cannot drift from what `/models` actually accepts.
-  const facets = buildCatalogIndex(dataset, BASE).facets;
+  // The comparison's own parser, fed the real release slugs, so a compare link
+  // cannot drift from what `/compare` actually accepts.
+  const knownSlugs = dataset.releases.map((release) => release.slug);
 
-  it('builds a compare link the catalog itself parses back to this family', () => {
+  it('builds a compare link the comparison itself parses back to this release', () => {
     const view = realView(dataset.releases[0]!.id);
     const compare = view.actions.find((action) => action.kind === 'compare');
     expect(compare).toBeDefined();
 
     const search = new URL(compare!.href, 'https://example.invalid').search;
-    const state = parseCatalogState(search, facets);
+    const selection = parseComparisonSelection(search, knownSlugs);
 
-    expect(state.filters.families).toContain(view.family.slug);
+    expect(selection.slugs).toEqual([view.release.slug]);
+    // One model is a start, not a comparison, and the page says so.
+    expect(selection.isComparable).toBe(false);
+    expect(selection.shortfall).toBe(1);
   });
 
-  it('points every real release at a family the catalog can filter on', () => {
+  it('points every real release at a slug the comparison can select', () => {
     expect(dataset.releases.length).toBeGreaterThan(0);
 
     for (const release of dataset.releases) {
-      const view = realView(release.id);
-      const search = new URL(compareHref(BASE, view.family.slug), 'https://example.invalid').search;
-      const state = parseCatalogState(search, facets);
-      expect(state.filters.families, `${view.family.slug} should survive the catalog parser`)
-        .toContain(view.family.slug);
+      const search = new URL(compareHref(BASE, release.slug), 'https://example.invalid').search;
+      const selection = parseComparisonSelection(search, knownSlugs);
+      expect(selection.slugs, `${release.slug} should survive the comparison parser`)
+        .toEqual([release.slug]);
+      expect(selection.rejections).toEqual([]);
     }
   });
 
-  it('drops a family the catalog does not know, rather than opening an empty filter', () => {
+  it('drops a slug the comparison does not know, rather than opening an empty column', () => {
     // Proves the assertion above is a real round trip: the parser validates
-    // against the facets, so a value it does not hold comes back empty.
-    const search = new URL(compareHref(BASE, 'no-such-family'), 'https://example.invalid').search;
-    expect(parseCatalogState(search, facets).filters.families).toEqual([]);
+    // against the known slugs, so a value it does not hold comes back rejected.
+    const search = new URL(compareHref(BASE, 'no-such-model'), 'https://example.invalid').search;
+    const selection = parseComparisonSelection(search, knownSlugs);
+
+    expect(selection.slugs).toEqual([]);
+    expect(selection.rejections.map((rejection) => rejection.code)).toEqual(['unknown-model']);
+  });
+
+  it('lands on the compare route rather than the catalog', () => {
+    const view = realView(dataset.releases[0]!.id);
+    const compare = view.actions.find((action) => action.kind === 'compare')!;
+
+    expect(compare.href.startsWith(`${BASE}compare/`)).toBe(true);
+    expect(compare.href).not.toContain('/models/');
   });
 
   it('anchors the evidence action to a heading the page actually renders', () => {
