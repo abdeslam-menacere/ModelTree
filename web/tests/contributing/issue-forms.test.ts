@@ -5,7 +5,7 @@ import { parse } from 'yaml';
 import { correctionHref } from '../../src/lib/passport';
 import { methodologyReferences } from '../../src/lib/methodology';
 import { validateDataset } from '../../src/data/validate';
-import { accessType, lifecycleStatus, modelCategory, datePrecision } from '../../src/data/schema';
+import { accessType, lifecycleStatus, modelCategory, datePrecision, datasetSchema } from '../../src/data/schema';
 
 /**
  * Issue #27 adds contributor-facing documents that live outside `web/`, and the
@@ -13,11 +13,11 @@ import { accessType, lifecycleStatus, modelCategory, datePrecision } from '../..
  * prose file cannot import, so every statement it makes about the dataset is a
  * copy that can go stale silently.
  *
- * So nothing here restates a value. Each assertion reads the authority -- the
- * schema's enums, `package.json`'s scripts, `gate-scope.mjs`'s allowed set,
- * `passport.ts`'s own URL builder -- and compares the document against it. A file
- * that drifts from the code it describes fails the suite rather than misleading
- * a contributor.
+ * So no fact about the dataset is restated here. Each assertion reads the
+ * authority -- the schema's enums and its declared collections, `package.json`'s
+ * scripts, `gate-scope.mjs`'s allowed set, `passport.ts`'s own URL builder -- and
+ * compares the document against it. A file that drifts from the code it describes
+ * fails the suite rather than misleading a contributor.
  *
  * The load-bearing one is `blank_issues_enabled`. Every Model Passport page
  * carries a correction link built by `correctionHref`, and that link prefills the
@@ -259,12 +259,14 @@ describe('the minimal example is a dataset this repository would accept', () => 
     expect(() => validateDataset(example)).not.toThrow();
   });
 
-  it('carries one canonical record for every entity the guide documents', () => {
-    for (const entity of [
-      'sources', 'publishers', 'organizations', 'families', 'releases', 'products',
-      'servingPlatforms', 'deployments', 'pricing', 'benchmarks', 'benchmarkResults',
-      'releaseEvents',
-    ]) {
+  it('carries one canonical record for every collection the dataset schema declares', () => {
+    // Derived rather than restated. A collection added to `datasetSchema` fails
+    // here until the example demonstrates it, so the worked example cannot
+    // quietly fall behind the schema the way a hand-kept list would.
+    const collections = Object.keys(datasetSchema.shape);
+    expect(collections.length, 'datasetSchema declared no collections').toBeGreaterThan(0);
+
+    for (const entity of collections) {
       expect(example[entity]?.length, `${entity} has no example record`).toBeGreaterThan(0);
     }
   });
@@ -378,10 +380,16 @@ describe('the pull request template separates factual from code review', () => {
     }
   });
 
-  it('asks for a source, a verification date, accessibility, tests, and scope', () => {
+  it('asks for the evidence rules and the policies this repository actually enforces', () => {
     const flattened = pullRequestTemplate.replace(/\s+/g, ' ').toLowerCase();
 
-    for (const cue of ['primary source', 'verifiedat', 'accessib', 'npm run validate', 'scope']) {
+    // The first four cover the questions a reviewer must ask; the last three are
+    // this repository's own named policies -- unknowns stay explicit, nothing is
+    // ranked overall, and motion respects the reduced-motion preference.
+    for (const cue of [
+      'primary source', 'verifiedat', 'accessib', 'npm run validate', 'scope',
+      'left absent', 'no overall score', 'prefers-reduced-motion',
+    ]) {
       expect(flattened, `the template never mentions ${cue}`).toContain(cue);
     }
   });

@@ -80,6 +80,11 @@ those change independently of each other. ModelTree keeps them apart.
 | **Benchmark result** | One score for one release, with the setup it ran under | Not comparable to a result under a different setup |
 | **Source** | A citation: URL, title, type, and when it was last checked | Not a claim |
 | **Publisher** | Who stands behind a source | Not necessarily the creator |
+| **Release event** | One dated moment in a release's life: announced, deprecated, retired | Not the release's own status |
+| **Usage observation** | One published usage figure, with its metric, population, and window | Not a user count, and not comparable across populations |
+| **Usage synthesis** | What two or more comparable observations agree or disagree about | Not an average, and not a total |
+| **Model fit statement** | Conditional guidance tied to a rubric dimension and the facts it rests on | Not a rating, and never a claim about all use cases |
+| **Model fit evidence gap** | A dimension the recorded evidence cannot answer, and why | Not a negative finding about the model |
 
 A useful test: *if this fact changed tomorrow, which record would change?* If the
 answer is "two of them", it belongs to whichever one it is actually about.
