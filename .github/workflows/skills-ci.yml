@@ -18,8 +18,15 @@ name: Skills CI
 #
 # So the job starts on every pull request, decides for itself whether the gates
 # have anything to read, and finishes green in seconds when they do not. That is
-# what makes the `skills-ci` check safe to mark required. It does not make it
-# required: see the comment on the dataset step below.
+# what makes the `skills-ci` check safe to mark required.
+#
+# Whether it *is* required is a branch-protection setting that lives outside the
+# repository tree, which no workflow file can observe and this one therefore does
+# not assert: read it with
+# `gh api "repos/{owner}/{repo}/branches/main/protection"`. Measured 2026-08-28
+# the required contexts were `web-ci` and `skills-ci`, dated because an undated
+# claim about that setting has no way to learn it has gone false — which is how
+# the sentence this replaces came to say the opposite of the truth (#471).
 #
 # The scope decision should cover everything the gates read, and one part of it
 # is pinned to its source: `gate-dataset.mjs` reads exactly one directory —
@@ -160,17 +167,17 @@ jobs:
       # not, so this step ran only when the *gates* changed and could never fire
       # on the data change it exists to catch.
       #
-      # What it does not do, today, is block. `skills-ci` is not a required
-      # check, so a red run here is visible but does not stop auto-merge.
+      # Whether a red run here blocks a merge is branch protection's answer
+      # rather than this file's; the header says where to read it, and says it
+      # once. Adding or removing a required context is an owner action either
+      # way.
       #
-      # Making it required is a branch-protection change, so it is an owner
-      # action, and no issue in this repository files that action. It is not
-      # #169 — `skills-ci` sits outside that issue's scope, which
-      # `.github/workflows/README.md` states once under `### What issue #169
-      # covers`, and that is where to read it, so this file and that one cannot
-      # drift into disagreeing again. #294 was the prerequisite rather than the
-      # outcome: it restructured this workflow on the `web-ci` pattern so the
-      # check always reports and is therefore safe to require, and left
+      # It was never #169's to do: `skills-ci` sits outside that issue's scope,
+      # which `.github/workflows/README.md` states once under `### What issue
+      # #169 covers`, and that is where to read it, so this file and that one
+      # cannot drift into disagreeing again. #294 was the prerequisite rather
+      # than the outcome: it restructured this workflow on the `web-ci` pattern
+      # so the check always reports and is therefore safe to require, and left
       # requiring it to the owner. Landing it did not make this required.
       #
       # That same file records which of these rules `web-ci` already enforces and
