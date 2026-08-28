@@ -76,6 +76,16 @@ source almost certainly means this" is a rejection. Recording a quoted fact in
 the dataset's own vocabulary is not such a step — read the next part before
 applying that sentence to an enum value or a unit.
 
+#### Organization type is editorial, not quoted
+
+For a claim whose field is `organizationSchema.type`, do not require or gate
+the value on a source quote. It is a required editorial classification of the
+creator's function, selected by the ordered decision procedure beside that
+field in `web/src/data/schema.ts` (abdeslam-menacere/ModelTree#469). Apply that
+procedure to the creator's observable governance and operating structure; keep
+quote requirements unchanged for every sourced field in the same organization
+record.
+
 #### Vocabulary mapping is a recording step, and where it stops
 
 `status`, `categories`, `accessType`, `inputModalities` and `outputModalities`
