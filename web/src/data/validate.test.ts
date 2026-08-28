@@ -118,6 +118,38 @@ describe('validateDataset', () => {
     expect(() => validateDataset(input)).toThrow(/duplicate release id/);
   });
 
+  it('refuses to let an API alias become a second release', () => {
+    // Positive control: the unmutated dataset validates, so a pass below cannot
+    // come from the dataset being broken to begin with.
+    expect(() => validateDataset(copyDataset())).not.toThrow();
+
+    const input = mutableDataset();
+    // The mistake this guards against is a platform alias promoted into a release
+    // of its own. An alias resolves to a model that is already recorded, so a
+    // second record claiming it double-counts one model under a name its creator
+    // never released separately.
+    const owner = findRelease(input, (release) => release.apiAliases?.length > 1);
+    const alias: string = owner.apiAliases[1];
+
+    (input.releases as any[]).push({
+      ...structuredClone(owner),
+      id: `${owner.id}-alias`,
+      slug: `${owner.slug}-alias`,
+      canonicalName: alias,
+      displayName: alias,
+      featured: false,
+      apiAliases: [alias],
+      predecessorIds: [],
+      successorIds: [],
+      siblingIds: [],
+    });
+
+    const quoted = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    expect(() => validateDataset(input)).toThrow(
+      new RegExp(`duplicate API alias value "${quoted}"`),
+    );
+  });
+
   it('rejects an impossible release date', () => {
     const input = copyDataset();
     input.releases[0].releaseDate = '2025-02-30';

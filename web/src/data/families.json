@@ -352,5 +352,136 @@
       "anthropic-model-deprecations"
     ],
     "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "xai-grok-4",
+    "slug": "grok-4",
+    "organizationId": "xai",
+    "name": "Grok 4",
+    "description": "The creator’s Grok 4 generation, opened by the Grok 4 announcement of 9 July 2025 and continued by the 4.5 and 4.6 point releases. Every member is offered through the creator’s hosted API only, and the creator publishes no parameter count for any of them. The 4.5 documentation lists grok-build-latest as an alias of that model, which is a different thing from the grok-build-0.1 model listed on the same pricing page. Grok 4 itself is not recorded as a release here: its announcement is dated, but its model documentation page is no longer served, so its modalities and context window cannot be sourced.",
+    "categories": [
+      "language-reasoning",
+      "coding",
+      "multimodal-generalist"
+    ],
+    "firstReleaseDate": "2025-07-09",
+    "status": "current",
+    "sourceIds": [
+      "xai-grok-4-announcement",
+      "xai-grok-4-5-announcement",
+      "xai-grok-4-6-announcement",
+      "xai-models-docs"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "mistral-large-3",
+    "slug": "mistral-large-3",
+    "organizationId": "mistral-ai",
+    "name": "Mistral Large 3",
+    "description": "The creator’s sparse mixture-of-experts generation, announced as part of Mistral 3 and released under the Apache 2.0 licence with both a hosted API and downloadable weights.",
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "firstReleaseDate": "2025-12-02",
+    "status": "current",
+    "sourceIds": [
+      "mistral-3-announcement",
+      "mistral-large-3-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "mistral-ministral-3",
+    "slug": "ministral-3",
+    "organizationId": "mistral-ai",
+    "name": "Ministral 3",
+    "description": "The edge-oriented dense generation announced alongside Mistral Large 3 in three sizes of 3B, 8B, and 14B parameters, each published with base, instruct, and reasoning variants under the Apache 2.0 licence.",
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
+    "firstReleaseDate": "2025-12-02",
+    "status": "current",
+    "sourceIds": [
+      "mistral-3-announcement",
+      "mistral-ministral-3-8b-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "mistral-devstral-2",
+    "slug": "devstral-2",
+    "organizationId": "mistral-ai",
+    "name": "Devstral 2",
+    "description": "The creator’s agentic software-engineering generation, published in two sizes under two different licences: the 123B model under a licence of the creator’s own drafting and the 24B model under Apache 2.0.",
+    "categories": [
+      "coding",
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2025-12-09",
+    "status": "current",
+    "sourceIds": [
+      "mistral-devstral-2-announcement",
+      "mistral-devstral-2-123b-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "mistral-small-4",
+    "slug": "mistral-small-4",
+    "organizationId": "mistral-ai",
+    "name": "Mistral Small 4",
+    "description": "A mixture-of-experts generation positioned for general-purpose use with an optional reasoning mode toggled per request, published under the Apache 2.0 licence.",
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "firstReleaseDate": "2026-03-16",
+    "status": "current",
+    "sourceIds": [
+      "mistral-small-4-announcement",
+      "mistral-small-4-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "deepseek-v4",
+    "slug": "deepseek-v4",
+    "organizationId": "deepseek",
+    "name": "DeepSeek-V4",
+    "description": "The creator’s mixture-of-experts generation, published in a larger Pro and a smaller Flash size on the same day under the MIT licence. Both cards describe the published weights as a preview of the series.",
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "firstReleaseDate": "2026-04-22",
+    "status": "preview",
+    "sourceIds": [
+      "deepseek-v4-pro-model-card",
+      "deepseek-v4-flash-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "deepseek-v3-2",
+    "slug": "deepseek-v3-2",
+    "organizationId": "deepseek",
+    "name": "DeepSeek-V3.2",
+    "description": "The generation preceding DeepSeek-V4, published under the MIT licence and described by its card as introducing DeepSeek Sparse Attention for long-context work.",
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "firstReleaseDate": "2025-12-01",
+    "status": "legacy",
+    "sourceIds": [
+      "deepseek-v3-2-model-card",
+      "hugging-face-deepseek-v3-2-hub-record"
+    ],
+    "verifiedAt": "2026-08-28"
   }
 ]

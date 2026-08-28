@@ -1810,5 +1810,497 @@
       "meta-llama-collection"
     ],
     "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "xai-grok-4-6",
+    "slug": "grok-4-6",
+    "canonicalName": "Grok 4.6",
+    "displayName": "Grok 4.6",
+    "organizationId": "xai",
+    "familyId": "xai-grok-4",
+    "version": "4.6",
+    "variant": "Standard",
+    "releaseDate": "2026-08-12",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": true,
+    "featuredRationale": "The creator’s current frontier model, carrying a dated announcement and its own model documentation page, and the model that documentation recommends for both code and chat.",
+    "categories": [
+      "language-reasoning",
+      "coding",
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 500000,
+    "apiAliases": [
+      "grok-4.6"
+    ],
+    "predecessorIds": [
+      "xai-grok-4-5"
+    ],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "Served only through the creator’s hosted API, with no downloadable weights and no licence offered for the weights, so no licence is recorded. Its documentation states a 500,000-token context window, text and image input with text output, and a knowledge cut-off of 1 February 2026. No parameter count is published anywhere the creator documents this model, so none is recorded here.",
+    "intendedUse": "Coding, agentic tasks, and knowledge work through the creator’s hosted API.",
+    "sourceIds": [
+      "xai-grok-4-6-announcement",
+      "xai-grok-4-6-docs",
+      "xai-models-docs"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "xai-grok-4-5",
+    "slug": "grok-4-5",
+    "canonicalName": "Grok 4.5",
+    "displayName": "Grok 4.5",
+    "organizationId": "xai",
+    "familyId": "xai-grok-4",
+    "version": "4.5",
+    "variant": "Standard",
+    "releaseDate": "2026-07-16",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding",
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 500000,
+    "apiAliases": [
+      "grok-4.5",
+      "grok-4.5-latest",
+      "grok-build-latest"
+    ],
+    "predecessorIds": [],
+    "successorIds": [
+      "xai-grok-4-6"
+    ],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "Served only through the creator’s hosted API, with no downloadable weights and so no licence record. Its documentation states a 500,000-token context window and text and image input with text output, and publishes no parameter count. Three API names resolve to this one model: grok-4.5, grok-4.5-latest, and grok-build-latest. The last of those is an alias and not the separate grok-build-0.1 model listed on the same pricing page.",
+    "intendedUse": "Agentic software, engineering, and workflow tasks through the creator’s hosted API.",
+    "sourceIds": [
+      "xai-grok-4-5-announcement",
+      "xai-grok-4-5-docs",
+      "xai-models-docs"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "mistral-large-3-675b-instruct",
+    "slug": "mistral-large-3-675b-instruct",
+    "canonicalName": "Mistral Large 3 675B Instruct 2512",
+    "displayName": "Mistral Large 3",
+    "organizationId": "mistral-ai",
+    "familyId": "mistral-large-3",
+    "version": "3",
+    "variant": "Large",
+    "releaseDate": "2025-12-02",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": true,
+    "featuredRationale": "The creator’s most capable model, and the clearest case in this dataset of hosted access and downloadable weights being two separate facts about one release rather than one fact.",
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "both",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 675,
+      "activeBillions": 41
+    },
+    "contextWindow": 256000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "A sparse mixture-of-experts model available both through the creator’s hosted platform and as downloadable weights, under a licence the OSI approves. Those are recorded as two separate claims: the hosted API does not follow from the licence, and the licence does not follow from the weights being downloadable. The announcement states 675B total and 41B active parameters and is the figure recorded; the model card’s own architecture list says 673B with 39B active plus a 2.5B vision encoder, and that disagreement is left visible rather than reconciled.",
+    "intendedUse": "General instruction following, multilingual conversation, and image understanding, either hosted or self-deployed.",
+    "sourceIds": [
+      "mistral-3-announcement",
+      "mistral-large-3-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "mistral-ministral-3-8b-instruct",
+    "slug": "ministral-3-8b-instruct",
+    "canonicalName": "Ministral 3 8B Instruct 2512",
+    "displayName": "Ministral 3 8B",
+    "organizationId": "mistral-ai",
+    "familyId": "mistral-ministral-3",
+    "version": "3",
+    "variant": "8B",
+    "releaseDate": "2025-12-02",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 8
+    },
+    "contextWindow": 256000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "The middle size of the three Ministral 3 models announced together, published as downloadable weights under an OSI-approved licence with a 256k context window and a 0.4B vision encoder. The 3B and 14B sizes, and the base and reasoning variants of each size, are published in the same collection and are deliberately not enumerated here.",
+    "intendedUse": "On-device and edge deployment where text and image understanding are needed without a hosted dependency.",
+    "sourceIds": [
+      "mistral-3-announcement",
+      "mistral-ministral-3-8b-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "mistral-devstral-2-123b-instruct",
+    "slug": "devstral-2-123b-instruct",
+    "canonicalName": "Devstral 2 123B Instruct 2512",
+    "displayName": "Devstral 2 123B",
+    "organizationId": "mistral-ai",
+    "familyId": "mistral-devstral-2",
+    "version": "2",
+    "variant": "123B",
+    "releaseDate": "2025-12-09",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "coding",
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Modified MIT License",
+      "url": "https://huggingface.co/mistralai/Devstral-2-123B-Instruct-2512/blob/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 123
+    },
+    "contextWindow": 256000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [
+      "mistral-devstral-small-2-24b-instruct"
+    ],
+    "derivedFromIds": [],
+    "summary": "Weights are downloadable, and the licence is not one the OSI approves: the card calls it a \"Modified MIT License\" of the creator’s own drafting, so no SPDX identifier is recorded and the OSI claim is false while the downloadable claim is true. Released the same day as the 24B model, which carries Apache 2.0 instead, so one announcement covers two models under two different licences. Text is the only input recorded: this card lists no vision capability, while the 24B card published beside it does, so the difference is what each card states rather than an omission here.",
+    "intendedUse": "Agentic software engineering: exploring codebases, editing multiple files, and driving software engineering agents.",
+    "sourceIds": [
+      "mistral-devstral-2-announcement",
+      "mistral-devstral-2-123b-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "mistral-devstral-small-2-24b-instruct",
+    "slug": "devstral-small-2-24b-instruct",
+    "canonicalName": "Devstral Small 2 24B Instruct 2512",
+    "displayName": "Devstral Small 2 24B",
+    "organizationId": "mistral-ai",
+    "familyId": "mistral-devstral-2",
+    "version": "2",
+    "variant": "24B",
+    "releaseDate": "2025-12-09",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "coding",
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 24
+    },
+    "contextWindow": 256000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [
+      "mistral-devstral-2-123b-instruct"
+    ],
+    "derivedFromIds": [],
+    "summary": "The smaller of the two Devstral 2 models, described by its card as light enough to run on a single consumer GPU. Its card lists vision among the capabilities added since Devstral Small 1.1, so image input is recorded alongside text; the 123B model announced beside it lists no such capability. Its weights are downloadable under an OSI-approved licence, unlike the 123B model, which shows that a shared announcement and a shared family do not imply a shared licence.",
+    "intendedUse": "Local and on-device software engineering agents.",
+    "sourceIds": [
+      "mistral-devstral-2-announcement",
+      "mistral-devstral-small-2-24b-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "mistral-small-4-119b",
+    "slug": "mistral-small-4-119b",
+    "canonicalName": "Mistral Small 4 119B 2603",
+    "displayName": "Mistral Small 4",
+    "organizationId": "mistral-ai",
+    "familyId": "mistral-small-4",
+    "version": "4",
+    "variant": "Small",
+    "releaseDate": "2026-03-16",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 119,
+      "activeBillions": 6.5
+    },
+    "contextWindow": 256000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "A mixture-of-experts model published as downloadable weights under an OSI-approved licence, with 119B total and 6.5B activated parameters, a 256k context window, and text and image input with text output. Reasoning is a per-request mode rather than a separate release.",
+    "intendedUse": "General chat, coding, agentic tasks, and reasoning work, self-deployed or hosted.",
+    "sourceIds": [
+      "mistral-small-4-announcement",
+      "mistral-small-4-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "deepseek-v4-pro",
+    "slug": "deepseek-v4-pro",
+    "canonicalName": "DeepSeek-V4-Pro",
+    "displayName": "DeepSeek-V4-Pro",
+    "organizationId": "deepseek",
+    "familyId": "deepseek-v4",
+    "version": "4",
+    "variant": "Pro",
+    "releaseDate": "2026-04-22",
+    "datePrecision": "day",
+    "status": "preview",
+    "featured": true,
+    "featuredRationale": "The creator’s largest published model and the anchor of its current generation, with a full model card stating parameters, context window, and licence, published under an OSI-approved licence.",
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "MIT License",
+      "spdxId": "MIT",
+      "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro/blob/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 1600,
+      "activeBillions": 49
+    },
+    "contextWindow": 1000000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [
+      "deepseek-v4-flash"
+    ],
+    "derivedFromIds": [],
+    "summary": "A mixture-of-experts model with 1.6T total and 49B activated parameters and a 1M context window, published as downloadable weights under the MIT licence. Its card calls the published weights a preview of the series, which is why the status is preview rather than current. The release date is the day the repository was published on the creator’s verified Hugging Face organization, because no dated announcement on the creator’s own domain could be reached.",
+    "intendedUse": "Long-context reasoning and agentic work, self-deployed from downloadable weights.",
+    "sourceIds": [
+      "deepseek-v4-pro-model-card",
+      "hugging-face-deepseek-v4-pro-hub-record"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "deepseek-v4-flash",
+    "slug": "deepseek-v4-flash",
+    "canonicalName": "DeepSeek-V4-Flash",
+    "displayName": "DeepSeek-V4-Flash",
+    "organizationId": "deepseek",
+    "familyId": "deepseek-v4",
+    "version": "4",
+    "variant": "Flash",
+    "releaseDate": "2026-04-22",
+    "datePrecision": "day",
+    "status": "preview",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "MIT License",
+      "spdxId": "MIT",
+      "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash/blob/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 284,
+      "activeBillions": 13
+    },
+    "contextWindow": 1000000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [
+      "deepseek-v4-pro"
+    ],
+    "derivedFromIds": [],
+    "summary": "The smaller of the two DeepSeek-V4 models published on the same day, with 284B total and 13B activated parameters and the same 1M context window, under the same MIT licence. The release date is the day the repository was published on the creator’s verified Hugging Face organization, because no dated announcement on the creator’s own domain could be reached.",
+    "intendedUse": "Long-context work where the Pro model’s size is impractical, self-deployed from downloadable weights.",
+    "sourceIds": [
+      "deepseek-v4-flash-model-card",
+      "hugging-face-deepseek-v4-flash-hub-record"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "deepseek-v3-2",
+    "slug": "deepseek-v3-2",
+    "canonicalName": "DeepSeek-V3.2",
+    "displayName": "DeepSeek-V3.2",
+    "organizationId": "deepseek",
+    "familyId": "deepseek-v3-2",
+    "version": "3.2",
+    "variant": "Standard",
+    "releaseDate": "2025-12-01",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "MIT License",
+      "spdxId": "MIT",
+      "url": "https://huggingface.co/deepseek-ai/DeepSeek-V3.2/blob/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "The generation preceding DeepSeek-V4, published as downloadable weights under the MIT licence and described by its card as introducing DeepSeek Sparse Attention for long-context work. The card states no parameter count and no context window, so neither is recorded rather than being estimated. Its card declares a base model of DeepSeek-V3.2-Exp-Base, which is not itself recorded in this dataset, so no derivation is recorded here either. It precedes DeepSeek-V4 in time, but succession is only recorded between releases of one family, so that ordering is stated here rather than as a relationship record.",
+    "intendedUse": "Reasoning and agentic work, self-deployed from downloadable weights.",
+    "sourceIds": [
+      "deepseek-v3-2-model-card",
+      "hugging-face-deepseek-v3-2-hub-record"
+    ],
+    "verifiedAt": "2026-08-28"
   }
 ]
