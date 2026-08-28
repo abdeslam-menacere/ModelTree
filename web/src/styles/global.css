@@ -3980,3 +3980,302 @@ a.directory-letter:hover {
   padding: 12px 16px;
   color: var(--cp-text-soft);
 }
+/* ---------------------------------------------------------------------------
+   Explain this name: the naming glossary (issue #44)
+
+   Two accessibility properties here are acceptance criteria rather than polish.
+
+   The inline hint is a disclosure, never a hover tooltip: there is no `:hover`
+   rule that reveals `.glossary-hint-panel`, and the panel is driven by the
+   `hidden` attribute the component sets, so nothing a pointer does can be the
+   only way to read a definition. The focus ring on the trigger is explicit
+   because the trigger is a small icon and an inherited outline is easy to lose.
+
+   Line length is capped at 70ch on the reading columns. A definition is prose,
+   and prose set across a full-width container is measurably harder to read.
+   --------------------------------------------------------------------------- */
+
+.glossary-search {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+
+.glossary-search label {
+  font-size: 14px;
+  color: var(--cp-text-soft);
+}
+
+.glossary-search input {
+  width: 100%;
+  max-width: 460px;
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 16px;
+  background: transparent;
+  color: inherit;
+}
+
+.glossary-count {
+  margin: 0 0 24px;
+  color: var(--cp-text-soft);
+  font-size: 15px;
+}
+
+.glossary-empty {
+  margin: 0;
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  max-width: 70ch;
+  color: var(--cp-text-soft);
+  line-height: 1.6;
+}
+
+.glossary-results {
+  display: grid;
+  gap: 20px;
+}
+
+.glossary-entry {
+  border: 1px solid var(--cp-border);
+  border-radius: 14px;
+  padding: 20px 22px;
+  min-width: 0;
+  scroll-margin-top: 24px;
+}
+
+.glossary-entry:target {
+  border-color: currentColor;
+  box-shadow: 0 0 0 1px currentColor;
+}
+
+.glossary-entry-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+}
+
+.glossary-entry-head h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 23px;
+  overflow-wrap: anywhere;
+}
+
+.glossary-anchor {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.55;
+}
+
+.glossary-anchor:hover,
+.glossary-anchor:focus-visible {
+  opacity: 1;
+}
+
+.glossary-category {
+  border: 1px solid var(--cp-border);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 13px;
+  color: var(--cp-text-soft);
+  white-space: nowrap;
+}
+
+.glossary-alias-hit {
+  margin: 0 0 10px;
+  border-inline-start: 2px solid currentColor;
+  padding-inline-start: 10px;
+  max-width: 70ch;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.glossary-short {
+  margin: 0 0 10px;
+  max-width: 70ch;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.glossary-definition {
+  margin: 0 0 16px;
+  max-width: 70ch;
+  color: var(--cp-text-soft);
+  line-height: 1.65;
+}
+
+.glossary-aliases,
+.glossary-related {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  margin: 0 0 16px;
+  font-size: 14px;
+}
+
+.glossary-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--cp-text-soft);
+}
+
+.glossary-aliases code {
+  border: 1px solid var(--cp-border);
+  border-radius: 6px;
+  padding: 1px 7px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.glossary-block {
+  margin: 0 0 16px;
+}
+
+.glossary-block h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--cp-text-soft);
+}
+
+.glossary-block dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.glossary-block dt {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.glossary-block dd {
+  margin: 2px 0 0;
+  max-width: 70ch;
+  color: var(--cp-text-soft);
+  line-height: 1.6;
+}
+
+.glossary-conflicts p {
+  margin: 0 0 8px;
+  max-width: 70ch;
+  color: var(--cp-text-soft);
+  line-height: 1.6;
+}
+
+.glossary-sources ul {
+  list-style: none;
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+}
+
+.glossary-sources li {
+  min-width: 0;
+}
+
+.glossary-sources a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+
+.glossary-source-meta {
+  display: block;
+  font-size: 13px;
+  color: var(--cp-text-soft);
+}
+
+.glossary-sources blockquote {
+  margin: 6px 0 0;
+  border-inline-start: 2px solid var(--cp-border);
+  padding-inline-start: 12px;
+  max-width: 70ch;
+  color: var(--cp-text-soft);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.glossary-verified {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--cp-text-soft);
+}
+
+.glossary-hint {
+  position: relative;
+  display: inline;
+}
+
+.glossary-hint-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: baseline;
+  margin-inline-start: 3px;
+  border-radius: 4px;
+}
+
+.glossary-hint-trigger:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.glossary-hint-panel {
+  display: block;
+  max-width: 46ch;
+  margin: 8px 0;
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--cp-surface, transparent);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.glossary-hint-panel[hidden] {
+  display: none;
+}
+
+.glossary-hint-term {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.glossary-hint-short {
+  display: block;
+  color: var(--cp-text-soft);
+}
+
+.glossary-hint-full {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+@media (max-width: 700px) {
+  .glossary-entry {
+    padding: 16px;
+  }
+
+  .glossary-entry-head h2 {
+    font-size: 20px;
+  }
+}
