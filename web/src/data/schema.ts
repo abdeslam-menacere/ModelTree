@@ -152,6 +152,13 @@ export const organizationSchema = z.object({
   slug,
   name: z.string().min(1),
   shortName: z.string().min(1),
+  // Editorial functional classification, not a sourced claim. Choose the first
+  // matching category: `community` when open contributors govern release
+  // decisions instead of one organization; `research-lab` when the recorded
+  // entity is a dedicated research unit (a corporate parent does not override
+  // that function); `nonprofit` when a centrally governed nonprofit is neither
+  // such a lab nor a seller of model products or access; otherwise `company`
+  // when a commercial operator runs the model work or sells it under its name.
   type: z.enum(['company', 'research-lab', 'nonprofit', 'community']),
   website: z.url(),
   releasePage: z.url(),
