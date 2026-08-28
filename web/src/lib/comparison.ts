@@ -56,6 +56,12 @@ import {
   type EvaluationWindow,
 } from './comparability';
 import {
+  MAX_COMPARISON_MODELS,
+  MIN_COMPARISON_MODELS,
+  compareUrl,
+  readComparisonSlugs,
+} from './compare-route';
+import {
   defaultComparabilityPolicy,
   resolveEvaluationSpreadMonths,
 } from './comparability-policy';
@@ -74,20 +80,18 @@ import {
 // Selection
 // ---------------------------------------------------------------------------
 
-/**
- * One query parameter holding an ordered, comma-separated slug list.
- *
- * Repeated `?model=a&model=b` parameters were the alternative and are rejected
- * for a specific reason: `URLSearchParams` preserves their order but a reader
- * editing the address bar cannot see the ordering rule, and every consumer that
- * re-serialises has to remember to emit them in the same sequence. A single
- * ordered list makes selection order visible in the URL, which is what
- * "selection order and copied URL restore deterministically" has to mean.
- */
-export const COMPARE_QUERY_PARAMETER = 'models';
-
-export const MIN_COMPARISON_MODELS = 2;
-export const MAX_COMPARISON_MODELS = 4;
+// The URL contract lives in its own leaf module because the passport and the
+// lineage drawer link into this page and cannot import this file without closing
+// a cycle. Re-exported here so a consumer of the comparison needs one import.
+export {
+  COMPARE_QUERY_PARAMETER,
+  MAX_COMPARISON_MODELS,
+  MIN_COMPARISON_MODELS,
+  compareRoute,
+  compareUrl,
+  readComparisonSlugs,
+  serializeComparisonSelection,
+} from './compare-route';
 
 export type SelectionRejectionCode = 'unknown-model' | 'duplicate-model' | 'over-capacity';
 
@@ -180,52 +184,8 @@ export function resolveComparisonSelection(
   return selectionOf(accepted, rejections);
 }
 
-/** Split the query parameter's ordered list, tolerating stray whitespace. */
-export function readComparisonSlugs(search: string): string[] {
-  const raw = new URLSearchParams(search).get(COMPARE_QUERY_PARAMETER);
-  if (raw === null) return [];
-  return raw.split(',');
-}
-
 export function parseComparisonSelection(search: string, knownSlugs: readonly string[]) {
   return resolveComparisonSelection(readComparisonSlugs(search), knownSlugs);
-}
-
-/**
- * The query string for a selection. Empty for an empty selection, so a cleared
- * comparison yields a bare `/compare/` rather than a trailing `?models=`.
- *
- * Any other parameter already in `currentSearch` is carried through untouched.
- * The information architecture pairs `models=` with an optional `domain` and
- * `benchmark`, which belong to the evidence route rather than to this one; this
- * page gives them no meaning, and dropping them when a reader adds a model would
- * quietly break a link that arrived carrying them.
- */
-export function serializeComparisonSelection(
-  slugs: readonly string[],
-  currentSearch = '',
-) {
-  const carried = new URLSearchParams(currentSearch);
-  carried.delete(COMPARE_QUERY_PARAMETER);
-
-  const params = new URLSearchParams();
-  if (slugs.length > 0) params.set(COMPARE_QUERY_PARAMETER, slugs.join(','));
-  for (const [key, value] of carried) params.append(key, value);
-
-  const query = params.toString();
-  return query === '' ? '' : `?${query}`;
-}
-
-function normalizeBase(base: string) {
-  return base.endsWith('/') ? base : `${base}/`;
-}
-
-export function compareRoute(base: string) {
-  return `${normalizeBase(base)}compare/`;
-}
-
-export function compareUrl(base: string, slugs: readonly string[]) {
-  return `${compareRoute(base)}${serializeComparisonSelection(slugs)}`;
 }
 
 /**
