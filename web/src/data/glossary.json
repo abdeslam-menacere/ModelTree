@@ -1,0 +1,690 @@
+[
+  {
+    "id": "total-parameters",
+    "term": "Total parameters",
+    "category": "parameters",
+    "aliases": [
+      "total params",
+      "total parameter count",
+      "params total",
+      "parameter count"
+    ],
+    "short": "Every learned weight a model holds, counted once. It sets what must be stored and loaded, not what runs per token.",
+    "definition": "The size of the whole checkpoint: all learned weights across every layer and, in a mixture-of-experts model, across every expert. Total parameters govern download size, memory to hold the model, and the hardware needed to load it at a given precision. On a dense model this is also the number that runs on each token; on a sparse model it is not, which is why a name that states only one number can be read two different ways. ModelTree records total and active separately and never collapses them into a single figure.",
+    "distinctions": [
+      {
+        "from": "Active parameters",
+        "note": "Total is what is stored; active is what is computed per token. On Llama 4 Scout the two differ by roughly six times, so quoting either as \"the parameter count\" misstates the model."
+      },
+      {
+        "from": "Model size on disk",
+        "note": "Bytes on disk depend on the precision the weights are stored at, so the same total parameter count yields very different file sizes once quantized."
+      }
+    ],
+    "examples": [
+      {
+        "notation": "17B (Activated) 109B (Total)",
+        "reading": "Meta's own model card for Llama 4 Scout, stating both numbers side by side. 109 billion is the total; 17 billion is what runs per token."
+      },
+      {
+        "notation": "17B (Activated) 400B (Total)",
+        "reading": "Llama 4 Maverick on the same card. Its active count matches Scout's while its total is nearly four times larger, because it holds 128 experts rather than 16."
+      }
+    ],
+    "related": [
+      "active-parameters",
+      "mixture-of-experts",
+      "expert-count-suffix"
+    ],
+    "conflicts": [],
+    "sources": [
+      {
+        "url": "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+        "title": "meta-llama/Llama-4-Scout-17B-16E-Instruct model card",
+        "publisher": "Meta",
+        "type": "model-card",
+        "quote": "17B (Activated) 109B (Total)",
+        "publishedDate": "2025-04-05",
+        "lastCheckedDate": "2026-08-28"
+      }
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "active-parameters",
+    "term": "Active parameters",
+    "category": "parameters",
+    "aliases": [
+      "activated parameters",
+      "active params",
+      "activated params",
+      "parameters per token",
+      "active parameter count"
+    ],
+    "short": "The weights actually used to produce each token. On a mixture-of-experts model this is far smaller than the total the checkpoint holds.",
+    "definition": "The subset of a model's weights that participate in computing any single token. A router selects a few experts per token, so a sparse model computes as though it were much smaller than it is while still needing the whole checkpoint in memory. Active parameters therefore track inference cost and latency, while total parameters track storage and memory. A name like \"17B\" on a mixture-of-experts release is usually the active figure, which is why reading it as the model's size understates the model by a wide margin.",
+    "distinctions": [
+      {
+        "from": "Total parameters",
+        "note": "Active parameters never tell you how much memory the model needs. Llama 4 Scout activates 17B per token but the checkpoint is 109B parameters and all of it must be resident."
+      },
+      {
+        "from": "Dense parameter counts",
+        "note": "On a dense model active and total are the same number, so the distinction only bites once a model is sparse — and the name rarely says which it is."
+      }
+    ],
+    "examples": [
+      {
+        "notation": "Llama 4 Scout, a 17 billion parameter model with 16 experts",
+        "reading": "Meta's phrasing on the model card. The 17 billion is the activated count; the 16 experts are what make the total 109B."
+      },
+      {
+        "notation": "Llama-4-Maverick-17B-128E-Instruct",
+        "reading": "The repository id carries the active count (17B) and the expert count (128E), but never the 400B total."
+      }
+    ],
+    "related": [
+      "total-parameters",
+      "mixture-of-experts",
+      "expert-count-suffix"
+    ],
+    "conflicts": [
+      {
+        "note": "Publishers do not agree on whether the bare number in a model's name is the active or the total count, and a name alone does not disclose which convention it follows. Read the model card rather than the name.",
+        "urls": [
+          "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct"
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "url": "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+        "title": "meta-llama/Llama-4-Scout-17B-16E-Instruct model card",
+        "publisher": "Meta",
+        "type": "model-card",
+        "quote": "We are launching two efficient models in the Llama 4 series, Llama 4 Scout, a 17 billion parameter model with 16 experts, and Llama 4 Maverick, a 17 billion parameter model with 128 experts.",
+        "publishedDate": "2025-04-05",
+        "lastCheckedDate": "2026-08-28"
+      }
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "mixture-of-experts",
+    "term": "Mixture of experts",
+    "category": "architecture",
+    "aliases": [
+      "moe",
+      "sparse mixture of experts",
+      "sparse moe",
+      "expert routing"
+    ],
+    "short": "An architecture that holds many expert sub-networks and routes each token to only a few, so active parameters fall well below total parameters.",
+    "definition": "A model built from many parallel expert sub-networks plus a router that picks a small number of them per token. The checkpoint must carry every expert, so the total parameter count stays large, while only the selected experts do work, so the compute per token stays small. This is the single architectural reason a model name can carry two very different parameter numbers, and it is why ModelTree records total and active as separate fields rather than one.",
+    "distinctions": [
+      {
+        "from": "Dense models",
+        "note": "A dense model runs all of its weights on every token, so it has no gap between total and active parameters and needs no expert count in its name."
+      }
+    ],
+    "examples": [
+      {
+        "notation": "Llama-4-Scout-17B-16E-Instruct",
+        "reading": "16E names the sixteen experts. The router selects among them per token, which is what makes 17B active and 109B total both true of one model."
+      }
+    ],
+    "related": [
+      "active-parameters",
+      "total-parameters",
+      "expert-count-suffix"
+    ],
+    "conflicts": [],
+    "sources": [
+      {
+        "url": "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+        "title": "meta-llama/Llama-4-Scout-17B-16E-Instruct model card",
+        "publisher": "Meta",
+        "type": "model-card",
+        "quote": "The Llama 4 models are auto-regressive language models that use a mixture-of-experts (MoE) architecture and incorporate early fusion for native multimodality.",
+        "publishedDate": "2025-04-05",
+        "lastCheckedDate": "2026-08-28"
+      }
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "expert-count-suffix",
+    "term": "Expert count suffix",
+    "category": "architecture",
+    "aliases": [
+      "16E",
+      "128E",
+      "E suffix",
+      "expert suffix",
+      "xNE"
+    ],
+    "short": "The E in a name such as 17B-16E: the number of experts the checkpoint holds. It explains the gap between active and total parameters.",
+    "definition": "A suffix of the form <number>E in a repository id or model name, counting the expert sub-networks in a mixture-of-experts checkpoint. Paired with the parameter figure it is the clearest signal a name gives that active and total parameters differ: two models can share an active count and differ several-fold in total size purely by expert count. The suffix is a publisher convention rather than a standard, so its absence does not mean a model is dense.",
+    "distinctions": [
+      {
+        "from": "The B suffix",
+        "note": "B counts parameters in billions; E counts experts. 17B-16E is seventeen billion active parameters across sixteen experts, not seventeen billion experts."
+      }
+    ],
+    "examples": [
+      {
+        "notation": "Llama 4 Scout (17Bx16E)",
+        "reading": "Meta's own shorthand on the model card: seventeen billion activated parameters, sixteen experts, 109B total."
+      },
+      {
+        "notation": "Llama 4 Maverick (17Bx128E)",
+        "reading": "Same active count, eight times the experts, 400B total. The E figure is the only part of the name that predicts the difference."
+      }
+    ],
+    "related": [
+      "mixture-of-experts",
+      "total-parameters",
+      "active-parameters"
+    ],
+    "conflicts": [],
+    "sources": [
+      {
+        "url": "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+        "title": "meta-llama/Llama-4-Scout-17B-16E-Instruct model card",
+        "publisher": "Meta",
+        "type": "model-card",
+        "quote": "Llama 4 Scout (17Bx16E)",
+        "publishedDate": "2025-04-05",
+        "lastCheckedDate": "2026-08-28"
+      }
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "open-weight",
+    "term": "Open weight",
+    "category": "openness",
+    "aliases": [
+      "open weights",
+      "weights available",
+      "downloadable weights",
+      "open-weight model"
+    ],
+    "short": "The trained weights can be downloaded and run yourself. It says nothing about the licence terms, and it is not the same claim as open source.",
+    "definition": "A release whose learned parameters are published for download, so the model can be run outside the creator's own service. Availability is the whole of the claim. The licence attached may restrict fields of use, redistribution, or user counts, and the training data and training code may not be published at all. ModelTree stores weight availability and OSI licence approval as two separate booleans for exactly this reason: a model can satisfy the first and fail the second, and most widely used open-weight models do.",
+    "distinctions": [
+      {
+        "from": "Open source AI",
+        "note": "The Open Source Initiative requires freedoms to use, study, modify and share, plus the data information and code needed to reproduce the parameters. Downloadable weights under a custom licence meet none of that by default."
+      },
+      {
+        "from": "Source available",
+        "note": "Source-available describes published code under restrictive terms. Open-weight describes published parameters, which is a different artefact."
+      }
+    ],
+    "examples": [
+      {
+        "notation": "Llama 4 Community License Agreement",
+        "reading": "Meta's model card calls this \"a custom commercial license\". The weights are downloadable, so the release is open weight; the licence is not OSI-approved, so it is not open source."
+      }
+    ],
+    "related": [
+      "open-source-ai"
+    ],
+    "conflicts": [
+      {
+        "note": "\"Open source\" is widely used in marketing for releases that are only open weight. The Open Source Initiative's definition and common industry usage genuinely disagree here, and ModelTree records the two properties separately rather than picking a winner.",
+        "urls": [
+          "https://opensource.org/ai/open-source-ai-definition",
+          "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct"
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "url": "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+        "title": "meta-llama/Llama-4-Scout-17B-16E-Instruct model card",
+        "publisher": "Meta",
+        "type": "model-card",
+        "quote": "License: A custom commercial license, the Llama 4 Community License Agreement, is available at: https://github.com/meta-llama/llama-models/blob/main/models/llama4/LICENSE",
+        "publishedDate": "2025-04-05",
+        "lastCheckedDate": "2026-08-28"
+      }
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "open-source-ai",
+    "term": "Open source AI",
+    "category": "openness",
+    "aliases": [
+      "osaid",
+      "open source model",
+      "open source ai definition",
+      "open source weights"
+    ],
+    "short": "The Open Source Initiative's bar: freedom to use, study, modify and share, plus the data information and code needed to rebuild the parameters.",
+    "definition": "A defined term rather than a description of mood. Version 1.0 of the Open Source Initiative's Open Source AI Definition grants four freedoms — use, study, modify, share — and requires the preferred form for making modifications, which for a machine-learning system means data information, the complete training and inference code under OSI-approved licences, and the parameters under OSI-approved terms. The definition states explicitly that open source models and open source weights must include the data information and code used to derive those parameters, so publishing a checkpoint is not on its own enough to earn the term.",
+    "distinctions": [
+      {
+        "from": "Open weight",
+        "note": "Open weight is a fact about availability of the parameters. Open source AI is a fact about licence terms and about what else was published alongside them."
+      },
+      {
+        "from": "An OSI-approved software licence name",
+        "note": "That a model card names a licence such as Apache-2.0 is a fact about the name. Whether OSI approved that licence is a separate fact that only OSI states."
+      }
+    ],
+    "examples": [
+      {
+        "notation": "Use, Study, Modify, Share",
+        "reading": "The four freedoms the definition grants. A release that forbids any one of them for any purpose is not open source AI under version 1.0, however freely the weights download."
+      }
+    ],
+    "related": [
+      "open-weight"
+    ],
+    "conflicts": [],
+    "sources": [
+      {
+        "url": "https://opensource.org/ai/open-source-ai-definition",
+        "title": "The Open Source AI Definition, version 1.0",
+        "publisher": "Open Source Initiative",
+        "type": "standards-body",
+        "quote": "“Open Source models” and “Open Source weights” must include the data information and code used to derive those parameters.",
+        "lastCheckedDate": "2026-08-28"
+      }
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "context-window",
+    "term": "Context window",
+    "category": "context",
+    "aliases": [
+      "context length",
+      "context size",
+      "max context",
+      "window size"
+    ],
+    "short": "How much input and output a model can hold at once, counted in tokens rather than words or characters.",
+    "definition": "The maximum number of tokens a model can attend to in one request, spanning the prompt, any retrieved material, the conversation so far, and in most accountings the response. Publishers state it in tokens and usually abbreviate — 200K, 1M, 10M — so the unit is easy to lose. Maximum output is a separate, smaller limit stated separately, and a stated window is a capability claim, not a promise of quality at that length. ModelTree stores the token figure rather than the abbreviation so that 128K and 128000 cannot drift apart.",
+    "distinctions": [
+      {
+        "from": "Max output tokens",
+        "note": "Anthropic's overview lists a 1M token context window beside a 128K token max output for the same model. The window bounds the whole exchange; max output bounds only the reply."
+      },
+      {
+        "from": "Words or characters",
+        "note": "A token is neither. Token counts vary by tokenizer and by language, so the same text does not cost the same window on two different models."
+      }
+    ],
+    "examples": [
+      {
+        "notation": "Context window: 1M tokens",
+        "reading": "Anthropic's model overview table. The unit is tokens, and the M is a millions abbreviation, not a separate unit."
+      },
+      {
+        "notation": "Context length: 10M",
+        "reading": "Meta's Llama 4 Scout model card. The same field, abbreviated the same way, on a different publisher's page and under a different field name."
+      }
+    ],
+    "related": [
+      "model-api-id"
+    ],
+    "conflicts": [
+      {
+        "note": "Publishers label this field differently — \"context window\" at Anthropic, \"context length\" at Meta — and do not always state whether output tokens are counted inside the window. The label alone does not settle it.",
+        "urls": [
+          "https://platform.claude.com/docs/en/models/overview",
+          "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct"
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "url": "https://platform.claude.com/docs/en/models/overview",
+        "title": "Claude models overview",
+        "publisher": "Anthropic",
+        "type": "official-docs",
+        "quote": "Context window | 1M tokens",
+        "lastCheckedDate": "2026-08-28"
+      },
+      {
+        "url": "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+        "title": "meta-llama/Llama-4-Scout-17B-16E-Instruct model card",
+        "publisher": "Meta",
+        "type": "model-card",
+        "quote": "Context length | 10M",
+        "publishedDate": "2025-04-05",
+        "lastCheckedDate": "2026-08-28"
+      }
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "model-api-id",
+    "term": "Model API id",
+    "category": "identifiers",
+    "aliases": [
+      "api id",
+      "model id",
+      "model string",
+      "endpoint id",
+      "model name string"
+    ],
+    "short": "The exact string you send to an API. It is a serving-platform identifier, so one model has several — and none of them is the model's name.",
+    "definition": "The literal identifier a request must carry to reach a model on a given platform. Anthropic's overview lists a distinct id for the Claude API, Amazon Bedrock, Google Cloud and Microsoft Foundry for the same model; Google's Gemini documentation calls the equivalent field the endpoint. Because the id belongs to the platform rather than to the model, an id is never a safe key for identity across platforms, and ModelTree keeps model, product, and serving platform as separate entities so that one model's several ids do not become several models.",
+    "distinctions": [
+      {
+        "from": "The display name",
+        "note": "\"Claude Haiku 4.5\" is the name; claude-haiku-4-5-20251001 is one platform's id for it. The punctuation differs because ids must be URL and header safe."
+      },
+      {
+        "from": "A model alias",
+        "note": "An alias is also a valid id, but it is a pointer that can be repointed. A dated snapshot id is not."
+      }
+    ],
+    "examples": [
+      {
+        "notation": "claude-haiku-4-5-20251001",
+        "reading": "The Claude API id in Anthropic's overview table, carrying a date suffix that pins one snapshot."
+      },
+      {
+        "notation": "anthropic.claude-haiku-4-5",
+        "reading": "The Amazon Bedrock id for the same model on the same page. A prefix the Claude API id does not have, on a platform ModelTree records separately."
+      },
+      {
+        "notation": "claude-haiku-4-5@20251001",
+        "reading": "The Google Cloud id for that model, dating the snapshot with @ rather than a hyphen. Three ids, one model."
+      }
+    ],
+    "related": [
+      "model-alias",
+      "dated-snapshot",
+      "context-window"
+    ],
+    "conflicts": [],
+    "sources": [
+      {
+        "url": "https://platform.claude.com/docs/en/models/overview",
+        "title": "Claude models overview",
+        "publisher": "Anthropic",
+        "type": "official-docs",
+        "quote": "Claude API ID | `claude-haiku-4-5-20251001`",
+        "lastCheckedDate": "2026-08-28"
+      },
+      {
+        "url": "https://ai.google.dev/gemini-api/docs/models",
+        "title": "Gemini models",
+        "publisher": "Google",
+        "type": "official-docs",
+        "quote": "Gemini models are available in either stable, preview, latest, or experimental versions.",
+        "lastCheckedDate": "2026-08-28"
+      }
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "model-alias",
+    "term": "Model alias",
+    "category": "versioning",
+    "aliases": [
+      "alias",
+      "latest tag",
+      "latest alias",
+      "floating alias",
+      "rolling pointer"
+    ],
+    "short": "An id that points at whichever release is current. Convenient, and it means the model behind your code can change without your code changing.",
+    "definition": "An identifier that resolves to a moving target rather than to one fixed snapshot. Google documents a latest alias that \"will get hot-swapped with every new release of a specific model variation\", with two weeks' notice by email before a breaking change; Anthropic lists an alias row separately from the API id row for each model. An alias is the right choice when you want the newest behaviour and the wrong one when you need a result to be reproducible, because the same request can reach different weights on different days.",
+    "distinctions": [
+      {
+        "from": "A dated snapshot",
+        "note": "A snapshot id pins one release. An alias does not, and the substitution happens without any change on your side."
+      }
+    ],
+    "examples": [
+      {
+        "notation": "gemini-flash-latest",
+        "reading": "Google's documented example of a latest alias. It points at the newest release of that variation, stable or preview."
+      },
+      {
+        "notation": "claude-haiku-4-5",
+        "reading": "The Claude API alias, listed on the same row as the pinned id claude-haiku-4-5-20251001. The alias omits the date; that omission is the whole difference."
+      }
+    ],
+    "related": [
+      "model-api-id",
+      "dated-snapshot",
+      "preview-version"
+    ],
+    "conflicts": [],
+    "sources": [
+      {
+        "url": "https://ai.google.dev/gemini-api/docs/models",
+        "title": "Gemini models",
+        "publisher": "Google",
+        "type": "official-docs",
+        "quote": "Points to the latest release for a specific model variation. This can be a stable, preview or experimental release. This alias will get hot-swapped with every new release of a specific model variation.",
+        "lastCheckedDate": "2026-08-28"
+      },
+      {
+        "url": "https://platform.claude.com/docs/en/models/overview",
+        "title": "Claude models overview",
+        "publisher": "Anthropic",
+        "type": "official-docs",
+        "quote": "Claude API alias | `claude-haiku-4-5`",
+        "lastCheckedDate": "2026-08-28"
+      }
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "dated-snapshot",
+    "term": "Dated snapshot",
+    "category": "versioning",
+    "aliases": [
+      "snapshot",
+      "snapshot id",
+      "pinned version",
+      "date suffix",
+      "dated version"
+    ],
+    "short": "A date inside a model id, pinning one fixed release. It is what makes a request reproducible when an alias would not be.",
+    "definition": "A model identifier carrying an explicit release date, so it resolves to one set of weights and keeps resolving to them. Publishers write the date in several shapes — a trailing YYYYMMDD, an @-separated date, an embedded MM-YYYY — and none of these is standard across vendors. A dated snapshot is the counterpart to an alias: it is what you pin when a result must be reproducible, and its date is a release marker, not a training-data cutoff or a verification date.",
+    "distinctions": [
+      {
+        "from": "Knowledge cutoff",
+        "note": "The date in an id marks when the release was published. Anthropic lists training data cutoff as a separate row, and the two are routinely different."
+      },
+      {
+        "from": "A version number",
+        "note": "4.5 in claude-haiku-4-5 is the version; 20251001 is the snapshot. A name can carry both, and only the second one pins anything."
+      }
+    ],
+    "examples": [
+      {
+        "notation": "claude-haiku-4-5-20251001",
+        "reading": "Trailing YYYYMMDD. Version 4.5, snapshot of 1 October 2025."
+      },
+      {
+        "notation": "gemini-2.5-flash-preview-09-2025",
+        "reading": "Google's documented preview example, dating the snapshot MM-YYYY and placing it after the preview marker rather than at the end of a version."
+      }
+    ],
+    "related": [
+      "model-alias",
+      "model-api-id",
+      "preview-version"
+    ],
+    "conflicts": [
+      {
+        "note": "Date formats inside model ids are not standardised: trailing YYYYMMDD, @YYYYMMDD, and MM-YYYY all appear in current vendor documentation for the same purpose. Parsing a date out of an id is therefore vendor-specific.",
+        "urls": [
+          "https://platform.claude.com/docs/en/models/overview",
+          "https://ai.google.dev/gemini-api/docs/models"
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "url": "https://platform.claude.com/docs/en/models/overview",
+        "title": "Claude models overview",
+        "publisher": "Anthropic",
+        "type": "official-docs",
+        "quote": "Google Cloud ID | `claude-haiku-4-5@20251001`",
+        "lastCheckedDate": "2026-08-28"
+      },
+      {
+        "url": "https://ai.google.dev/gemini-api/docs/models",
+        "title": "Gemini models",
+        "publisher": "Google",
+        "type": "official-docs",
+        "quote": "For example: `gemini-2.5-flash-preview-09-2025`.",
+        "lastCheckedDate": "2026-08-28"
+      }
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "preview-version",
+    "term": "Preview version",
+    "category": "versioning",
+    "aliases": [
+      "preview",
+      "preview model",
+      "experimental version",
+      "stable version"
+    ],
+    "short": "A release track marked in the id itself. Google documents stable, preview, latest and experimental as four distinct tracks with different guarantees.",
+    "definition": "A marker inside a model id naming which release track the model is on rather than what the model is. Google's documentation sets out four: stable, which usually does not change and is recommended for production; preview, which may be used in production but carries tighter rate limits and at least two weeks' deprecation notice; latest, an alias that is hot-swapped; and experimental, which is not suitable for production and whose endpoints may disappear. The track is a lifecycle fact, so ModelTree records it as lifecycle status on the release rather than reading it out of the name.",
+    "distinctions": [
+      {
+        "from": "A dated snapshot",
+        "note": "The track says how stable the release is; the date says which release it is. gemini-2.5-flash-preview-09-2025 carries both."
+      },
+      {
+        "from": "Deprecated",
+        "note": "Preview is a track a model has not yet left. Deprecated is one it has already left, and the two sit at opposite ends of a lifecycle."
+      }
+    ],
+    "examples": [
+      {
+        "notation": "gemini-3.1-flash-lite-preview",
+        "reading": "A preview-track id from Google's model table. The marker sits in the id, so the track travels with every request."
+      },
+      {
+        "notation": "gemini-3.6-flash",
+        "reading": "Google's documented example of a stable id: no track marker at all. Absence of a marker is the stable signal."
+      }
+    ],
+    "related": [
+      "model-alias",
+      "dated-snapshot"
+    ],
+    "conflicts": [],
+    "sources": [
+      {
+        "url": "https://ai.google.dev/gemini-api/docs/models",
+        "title": "Gemini models",
+        "publisher": "Google",
+        "type": "official-docs",
+        "quote": "Gemini models are available in either stable, preview, latest, or experimental versions.",
+        "lastCheckedDate": "2026-08-28"
+      }
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "instruct-suffix",
+    "term": "Instruct suffix",
+    "category": "tuning",
+    "aliases": [
+      "instruct",
+      "instruction tuned",
+      "instruction-tuned model",
+      "chat tuned"
+    ],
+    "short": "The -Instruct on a repository id marks the instruction-tuned build. The same release without it is the pretrained base model, and they behave differently.",
+    "definition": "A suffix distinguishing the instruction-tuned checkpoint from the pretrained base one within a single release. Meta ships both and states the difference plainly: instruction-tuned models are meant for assistant-like chat and visual reasoning, while pretrained models are for adaptation to natural language generation. The two share a family, a parameter count, and almost all of a name, so the suffix is often the only thing in an id that tells you which artefact you have — and prompting a base model as though it were tuned is a common consequence of missing it.",
+    "distinctions": [
+      {
+        "from": "The base model",
+        "note": "Llama-4-Scout-17B-16E is the pretrained build; Llama-4-Scout-17B-16E-Instruct is the tuned one. Same parameters, different intended use."
+      }
+    ],
+    "examples": [
+      {
+        "notation": "Llama-4-Scout-17B-16E-Instruct",
+        "reading": "Family, active parameters, expert count, then the tuning marker. Four separate facts in one identifier."
+      }
+    ],
+    "related": [
+      "model-api-id",
+      "expert-count-suffix"
+    ],
+    "conflicts": [],
+    "sources": [
+      {
+        "url": "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+        "title": "meta-llama/Llama-4-Scout-17B-16E-Instruct model card",
+        "publisher": "Meta",
+        "type": "model-card",
+        "quote": "Instruction tuned models are intended for assistant-like chat and visual reasoning tasks, whereas pretrained models can be adapted for natural language generation.",
+        "publishedDate": "2025-04-05",
+        "lastCheckedDate": "2026-08-28"
+      }
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "quantization-tag",
+    "term": "Quantization tag",
+    "category": "precision",
+    "aliases": [
+      "quantization",
+      "quantisation",
+      "Q4_K_M",
+      "quant tag",
+      "bits per weight"
+    ],
+    "short": "A tag such as Q4_K_M or F16 naming the numeric precision weights are stored at. It changes file size and output, never the parameter count.",
+    "definition": "A marker on a converted checkpoint recording how its weights were re-encoded at lower precision. Hugging Face's GGUF documentation lists the types and their arithmetic: F16 is a 16-bit IEEE 754 half-precision float, while Q6_K is 6-bit quantization in super-blocks of sixteen blocks of sixteen weights, resolving to 6.5625 bits per weight. Because quantization is applied after training by whoever converted the file, a quantized build is a distribution artefact rather than a new model, and its tag is not a claim the original creator made.",
+    "distinctions": [
+      {
+        "from": "Parameter count",
+        "note": "Quantizing changes bits per weight, not how many weights there are. A 4-bit and a 16-bit build of one model have identical parameter counts and very different file sizes."
+      },
+      {
+        "from": "A creator's own release",
+        "note": "Most quantized builds are third-party conversions. The tag describes what the converter did, so it carries no guarantee from the model's creator."
+      }
+    ],
+    "examples": [
+      {
+        "notation": "mixtral-8x7b-instruct-v0.1.Q4_0.gguf",
+        "reading": "A filename from Hugging Face's own GGUF documentation. Everything before .Q4_0 names the model; Q4_0 names the precision it was re-encoded at."
+      },
+      {
+        "notation": "Q6_K",
+        "reading": "6-bit quantization in super-blocks, documented as resolving to 6.5625 bits per weight. The K marks the block scheme, not a sixth version."
+      }
+    ],
+    "related": [
+      "total-parameters"
+    ],
+    "conflicts": [],
+    "sources": [
+      {
+        "url": "https://huggingface.co/docs/hub/en/gguf",
+        "title": "GGUF",
+        "publisher": "Hugging Face",
+        "type": "official-docs",
+        "quote": "6-bit quantization (`q`). Super-blocks with 16 blocks, each block has 16 weights. Weight formula: `w = q * block_scale(8-bit)`, resulting in 6.5625 bits-per-weight.",
+        "lastCheckedDate": "2026-08-28"
+      }
+    ],
+    "verifiedAt": "2026-08-28"
+  }
+]
