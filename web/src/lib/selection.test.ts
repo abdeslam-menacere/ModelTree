@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createLineageSelectionUrl,
   createModelSelectionUrl,
   readOptionalSelectedModel,
+  readOptionalSelectedProvider,
   readSelectedModel,
 } from './selection';
 
@@ -30,5 +32,38 @@ describe('model selection URL state', () => {
     expect(readOptionalSelectedModel('', slugs)).toBeUndefined();
     expect(readOptionalSelectedModel('?model=unknown', slugs)).toBeUndefined();
     expect(readOptionalSelectedModel(`?model=${slugs[1]}`, slugs)).toBe(slugs[1]);
+  });
+});
+
+describe('provider and model share the homepage query state', () => {
+  const providers = ['openai', 'anthropic'];
+
+  it('restores a known provider and ignores an unknown one', () => {
+    expect(readOptionalSelectedProvider('?provider=anthropic', providers)).toBe('anthropic');
+    expect(readOptionalSelectedProvider('?provider=not-seeded', providers)).toBeUndefined();
+    expect(readOptionalSelectedProvider('', providers)).toBeUndefined();
+  });
+
+  it('writes both halves without discarding other state or the fragment', () => {
+    const result = createLineageSelectionUrl('/?ref=launch#explorer', 'anthropic', slugs[1]);
+
+    expect(result).toBe(`/?ref=launch&provider=anthropic&model=${slugs[1]}#explorer`);
+  });
+
+  it('re-emits the pair in a stable order whatever order it arrived in', () => {
+    const canonical = `/?provider=anthropic&model=${slugs[1]}`;
+
+    expect(createLineageSelectionUrl(`/?model=${slugs[0]}`, 'anthropic', slugs[1])).toBe(canonical);
+    expect(createLineageSelectionUrl('/?provider=openai', 'anthropic', slugs[1])).toBe(canonical);
+  });
+
+  it('replaces a stale pairing rather than appending a second one', () => {
+    const result = createLineageSelectionUrl(
+      `/?provider=openai&model=${slugs[0]}`,
+      'anthropic',
+      slugs[1],
+    );
+
+    expect(result).toBe(`/?provider=anthropic&model=${slugs[1]}`);
   });
 });
