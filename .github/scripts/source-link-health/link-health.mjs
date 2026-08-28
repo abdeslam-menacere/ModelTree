@@ -23,6 +23,59 @@
 // Nothing in this module writes anything, anywhere. It reads source records and
 // returns findings. Updating `lastCheckedDate`, or replacing a rotted URL, is a
 // reviewed human edit and is expressly out of scope (issue #29 non-goals).
+//
+// ---------------------------------------------------------------------------
+// WHAT A RESULT FROM THIS MODULE CANNOT ESTABLISH
+// ---------------------------------------------------------------------------
+//
+// Written here, in the file, because this checker's entire output is a set of
+// claims about resources nobody here controls, and the boundary of what it can
+// actually prove is the part most easily overstated by a later reader -- or by a
+// summary that says "all sources healthy". Every line below is a limit of the
+// method, not a defect to be fixed:
+//
+//   1. `ok` means "this URL answered 2xx to this client, from this vantage
+//      point, at this moment". It does NOT mean the page still supports the
+//      claim the record cites it for. A vendor who rewrites an announcement in
+//      place returns 200 for the old and the new text alike, and this module
+//      never reads a body (checking reachability is not scraping -- a stated
+//      non-goal), so content drift is invisible to it BY CONSTRUCTION. That is
+//      the failure mode closest to the product's actual claim, and it is the one
+//      this tool does not address.
+//
+//   2. Therefore `ok` can never renew a `lastCheckedDate`. That field asserts a
+//      human read the page and found the fact in it. Nothing here observes that,
+//      which is the reason this module writes nothing rather than merely being
+//      configured not to.
+//
+//   3. An actionable count of zero does NOT mean every recorded URL is alive. A
+//      genuinely dead URL behind a rate limiter reports `blocked`, and `blocked`
+//      is deliberately not actionable. The design trades false negatives for
+//      false positives on purpose, so a clean sweep is evidence of "nothing
+//      proven rotten", never of "everything verified".
+//
+//   4. `blocked` and `transient` are the absence of a verdict, not a benign one.
+//      A run in which every request was refused produces the same actionable
+//      count as a run in which every request succeeded. Read the per-state
+//      counts from `summarise`, never the actionable count alone.
+//
+//   5. A soft 404 -- 200 with "page not found" in the body -- is reported `ok`.
+//      Detecting one requires reading bodies, see (1).
+//
+//   6. The observation is single-vantage and single-moment. A CI runner's IP
+//      gets CDN, geo and anti-bot treatment that a human browser does not, so a
+//      403 here may be a 200 to a reader and vice versa. Nothing here
+//      establishes what any particular person will see, nor what the URL served
+//      yesterday or will serve tomorrow.
+//
+//   7. It cannot establish that a URL is the RIGHT source for the record citing
+//      it. Whether the citation supports the claim is an editorial judgement and
+//      is out of scope.
+//
+//   8. De-duplication is proven by fixture, not by the dataset. At the time of
+//      writing every URL in `sources.json` is unique, so the real data exercises
+//      that path zero times and a green suite is not evidence it works. See the
+//      test file, which counts requests issued rather than results returned.
 
 /** The resource answered. No redirect, or only temporary ones. */
 export const OK = 'ok';

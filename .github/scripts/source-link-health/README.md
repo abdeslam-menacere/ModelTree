@@ -95,6 +95,44 @@ A malformed entry is a hard error and the run exits 2 without checking anything.
 This is the one input whose mistakes make the checker quieter, so it must not be
 able to degrade into "checked nothing, found nothing, green".
 
+## What a clean run cannot establish
+
+This section is the counterpart to the states table, and it is here rather than
+only in a pull request comment because the boundary of what a link checker can
+prove is the part a later reader most easily overstates. The same limits are
+written into the header of `link-health.mjs`, where someone reading the code
+meets them without having to find this file.
+
+A clean sweep means **"nothing was proven rotten"**. It does not mean
+"every source verified". Specifically:
+
+- **`ok` does not mean the page still supports the claim.** It means the URL
+  answered 2xx. A vendor who rewrites an announcement in place serves 200 for
+  the old text and the new one alike, and this tool never reads a body — that is
+  the non-goal about scraping — so **content drift is invisible to it by
+  construction**. That is the failure mode closest to what ModelTree actually
+  claims, and this tool does not address it.
+- **`ok` therefore cannot renew a `lastCheckedDate`.** That field asserts a human
+  read the page and found the fact in it. Nothing here observes that. It is why
+  the tool writes nothing at all rather than merely being configured not to.
+- **An actionable count of zero does not mean every URL is alive.** A genuinely
+  dead URL behind a rate limiter reports `blocked`, and `blocked` is deliberately
+  not actionable. The design trades false negatives for false positives on
+  purpose.
+- **`blocked` and `transient` are the absence of a verdict, not a benign one.** A
+  run in which every request was refused yields the same actionable count as one
+  in which every request succeeded. Read the per-state counts, never the
+  actionable count alone. The workflow's `resolve-issue` job closes the
+  maintenance issue on `actionable == 0` and says this in the comment it posts.
+- **A soft 404 — 200 with "page not found" in the body — is reported `ok`.**
+  Catching one means reading bodies.
+- **The observation is single-vantage, single-moment.** A CI runner's IP gets CDN,
+  geo and anti-bot treatment a human browser does not, so a 403 here may be a 200
+  to a reader. Nothing here establishes what a given person sees, or what the URL
+  served yesterday.
+- **It cannot say a URL is the *right* source for the record citing it.** That is
+  an editorial judgement and is out of scope.
+
 ## What it does not have
 
 No `--skip`, no `--force`, no `--data`, no `--exclusions`, no `--today`. Each of
@@ -115,10 +153,33 @@ requests only, and the script says on stderr when it is narrowing.
 node --test .github/scripts/source-link-health/link-health.test.mjs
 ```
 
-Hermetic: `fetch` and `sleep` are injected, so no test reaches the network or
-waits. Two behaviours are tested against synthetic fixtures because the real
-dataset cannot exercise them — de-duplication, since every URL in
-`sources.json` is currently unique, and the `blocked`/`transient`/`redirected`
-classifications, since a 429 or a 301 cannot be conjured on demand. One test does
-run over the committed dataset, and it asserts properties rather than counts,
-because the dataset grows.
+**Hermetic by construction.** `fetch` and `sleep` are constructor arguments, so
+no test opens a socket or waits on a timer. A suite whose result depends on a
+third party's uptime reddens for reasons unrelated to any change, and people
+learn to ignore it — the same argument that keeps `blocked` out of the
+actionable set.
+
+That is verified rather than asserted: with `fetch`, `net.connect`,
+`tls.connect`, `dns.lookup`, `http.request` and `https.request` all replaced by
+throwing stubs at process level — inherited by the CLI the suite spawns — all 74
+tests still pass. A control confirms the same stubs make a real request fail, so
+the pass is evidence and not a blocker that quietly failed to install.
+
+What is proven against which data, stated rather than left to be inferred:
+
+| Behaviour | Proven against | Why not the other |
+|---|---|---|
+| URL extraction, canonicalisation, record grouping | the committed `sources.json` | Real shape is the point; the test asserts properties, never counts |
+| One named record id survives extraction into a report | the committed `sources.json` | A positive control: without it the two tests above would pass on an empty list |
+| **De-duplication — one request per repeated URL** | **synthetic fixture** | Every URL in `sources.json` is unique, so real data exercises this **zero** times. The fixture repeats one URL across two records and the test counts the requests *issued* |
+| `ok`, `redirected`, `blocked`, `transient`, `broken` | **synthetic fixtures** | A 429, a 301 or a 404 cannot be conjured from a live host on demand, and asking one would make the suite non-deterministic |
+| Retry, backoff, `Retry-After`, method escalation | **synthetic fixtures** | Same reason, plus a real backoff would make the suite slow |
+| Exclusion parsing, reason floor, expiry | **synthetic fixtures** | `exclusions.json` is empty, so real data exercises the valid-entry path zero times |
+| The committed `exclusions.json` parses | the committed file | It must not be able to rot into something the checker rejects at run time |
+| CLI flag surface and the dataset-write refusal | the real CLI, spawned | The refusal is only worth anything if the real argument parsing enforces it |
+
+No test adds a URL to `web/src/data/`, and no fixture URL is ever requested.
+Every fixture host sits under the `.test` top-level domain, which RFC 6761
+reserves for exactly this and guarantees is never globally resolvable — so even
+a future bug that let a real `fetch` through could not reach a third party from
+this suite. They exist only as strings handed to a stub.
