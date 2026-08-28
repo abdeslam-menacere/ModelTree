@@ -39,6 +39,11 @@ describe('validateDataset', () => {
     for (const record of [...dataset.organizations, ...dataset.families, ...dataset.releases]) {
       for (const sourceId of record.sourceIds) cited.add(sourceId);
     }
+    // Benchmark definitions and their results are provenance-bearing records too:
+    // each cites the benchmark owner or the model card the score was read from.
+    for (const record of [...dataset.benchmarks, ...dataset.benchmarkResults]) {
+      for (const sourceId of record.sourceIds) cited.add(sourceId);
+    }
     // Publishers cite sources for their controlling-company (ownership) facts.
     for (const publisher of dataset.publishers) {
       for (const sourceId of publisher.control?.sourceIds ?? []) cited.add(sourceId);
@@ -139,6 +144,69 @@ describe('validateDataset', () => {
     for (const source of input.sources) source.type = 'independent-evaluation';
 
     expect(() => validateDataset(input)).toThrow(/featured release .* requires a primary source/);
+  });
+});
+
+describe('benchmark seed corpus', () => {
+  it('accepts the source-backed benchmark corpus', () => {
+    const data = validateDataset(copyDataset());
+
+    // Named rather than counted, so deleting one of these named records fails
+    // loudly while adding one does not force an unrelated edit here. The other
+    // results are covered structurally, not asserted by name.
+    const benchmarkIds = new Set(data.benchmarks.map((benchmark) => benchmark.id));
+    for (const expected of ['mmlu-pro', 'gpqa-diamond', 'livecodebench', 'mmmu']) {
+      expect(benchmarkIds).toContain(expected);
+    }
+
+    const resultIds = new Set(data.benchmarkResults.map((result) => result.id));
+    for (const expected of ['llama-4-scout-mmlu-pro', 'llama-4-maverick-gpqa-diamond']) {
+      expect(resultIds).toContain(expected);
+    }
+
+    // A spot-checked value read from the model card, kept honest against silent
+    // drift, together with the official/independent distinction the schema draws.
+    const maverickMmlu = data.benchmarkResults.find((result) => result.id === 'llama-4-maverick-mmlu-pro');
+    expect(maverickMmlu?.score).toBe(80.5);
+    expect(maverickMmlu?.resultType).toBe('official');
+
+    // The result's unit must match its benchmark's declared unit.
+    const mmluPro = data.benchmarks.find((benchmark) => benchmark.id === 'mmlu-pro');
+    expect(maverickMmlu?.unit).toBe(mmluPro?.metricUnit);
+  });
+
+  it('rejects a duplicate benchmark/version/model/setup result in the seed data', () => {
+    const input = mutableDataset();
+    const original = input.benchmarkResults[0];
+    input.benchmarkResults.push({ ...original, id: `${original.id}-copy` });
+
+    expect(() => validateDataset(input)).toThrow(/duplicates an existing result/);
+  });
+
+  // Negative fixture: a result whose source field is emptied must fail. Provenance
+  // is mandatory, so a score with no source can never load.
+  it('rejects a benchmark result with no source', () => {
+    const input = mutableDataset();
+    input.benchmarkResults[0].sourceIds = [];
+
+    expect(() => validateDataset(input)).toThrow(/benchmarkResults\.\d+\.sourceIds/);
+  });
+
+  // Negative fixture: a result missing a required configuration field must fail
+  // rather than load with a silent default.
+  it('rejects a benchmark result missing required configuration', () => {
+    const input = mutableDataset();
+    delete input.benchmarkResults[0].benchmarkVersion;
+
+    expect(() => validateDataset(input)).toThrow(/benchmarkResults\.\d+\.benchmarkVersion/);
+  });
+
+  // Negative fixture: a benchmark definition without a source must fail.
+  it('rejects a benchmark definition with no source', () => {
+    const input = mutableDataset();
+    input.benchmarks[0].sourceIds = [];
+
+    expect(() => validateDataset(input)).toThrow(/benchmarks\.\d+\.sourceIds/);
   });
 });
 

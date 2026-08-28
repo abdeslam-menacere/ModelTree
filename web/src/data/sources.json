@@ -701,5 +701,51 @@
     "type": "model-card",
     "publisherId": "meta",
     "lastCheckedDate": "2026-08-27"
+  },
+  {
+    "id": "meta-llama-4-model-card-github",
+    "url": "https://github.com/meta-llama/llama-models/blob/main/models/llama4/MODEL_CARD.md",
+    "title": "Llama 4 model card",
+    "type": "model-card",
+    "publisherId": "meta",
+    "publishedDate": "2025-04-05",
+    "lastCheckedDate": "2026-08-27",
+    "notes": "Meta's official Llama 4 model card. The 'Benchmarks' section 'Instruction tuned models' table is the read source for the Llama 4 Scout and Maverick MMLU-Pro, GPQA Diamond, LiveCodeBench, and MMMU scores; all reported values are for bf16 models and the table discloses 0 shots for each row."
+  },
+  {
+    "id": "mmlu-pro-benchmark",
+    "url": "https://github.com/TIGER-AI-Lab/MMLU-Pro",
+    "title": "MMLU-Pro",
+    "type": "benchmark-owner",
+    "publisherId": "tiger-lab",
+    "lastCheckedDate": "2026-08-27",
+    "notes": "Owner repository for the NeurIPS 2024 MMLU-Pro benchmark (paper arXiv:2406.01574). States the benchmark uses ten answer choices and expects chain-of-thought answering; scores are exact-match accuracy where higher is better."
+  },
+  {
+    "id": "gpqa-benchmark",
+    "url": "https://github.com/idavidrein/gpqa",
+    "title": "GPQA: A Graduate-Level Google-Proof Q&A Benchmark",
+    "type": "benchmark-owner",
+    "publisherId": "gpqa-authors",
+    "lastCheckedDate": "2026-08-27",
+    "notes": "Owner repository for the GPQA benchmark (paper arXiv:2311.12022). Diamond is the benchmark's highest-quality expert-validated subset; scores are accuracy where higher is better."
+  },
+  {
+    "id": "livecodebench-benchmark",
+    "url": "https://github.com/LiveCodeBench/LiveCodeBench",
+    "title": "LiveCodeBench",
+    "type": "benchmark-owner",
+    "publisherId": "livecodebench",
+    "lastCheckedDate": "2026-08-27",
+    "notes": "Owner repository for LiveCodeBench, a contamination-free coding benchmark that collects problems over time and is versioned by problem-release window; scores are pass@1 where higher is better."
+  },
+  {
+    "id": "mmmu-benchmark-repository",
+    "url": "https://github.com/MMMU-Benchmark/MMMU",
+    "title": "MMMU Benchmark",
+    "type": "benchmark-owner",
+    "publisherId": "mmmu-benchmark",
+    "lastCheckedDate": "2026-08-27",
+    "notes": "Owner repository for the MMMU multimodal understanding benchmark (paper arXiv:2311.16502); scores are accuracy where higher is better."
   }
 ]

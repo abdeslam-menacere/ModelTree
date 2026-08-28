@@ -193,9 +193,9 @@ describe('seeded conditional-fit guidance', () => {
     for (const record of parsed.modelFitEvidenceGaps) {
       gapsByRelease.set(record.releaseId, (gapsByRelease.get(record.releaseId) ?? 0) + 1);
     }
-    expect(parsed.modelFitEvidenceGaps).toHaveLength(3);
+    expect(parsed.modelFitEvidenceGaps).toHaveLength(2);
     expect(Object.fromEntries(gapsByRelease)).toEqual({
-      'meta-llama-4-scout': 2,
+      'meta-llama-4-scout': 1,
       'openai-gpt-5': 1,
     });
   });

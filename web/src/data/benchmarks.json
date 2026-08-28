@@ -1,0 +1,58 @@
+[
+  {
+    "id": "mmlu-pro",
+    "slug": "mmlu-pro",
+    "name": "MMLU-Pro",
+    "domain": "general-reasoning",
+    "owner": "TIGER-Lab",
+    "metric": "Accuracy",
+    "metricUnit": "percent",
+    "direction": "higher-is-better",
+    "datasetVersion": "Over 12,000 questions across 14 domains, ten answer choices",
+    "methodologyNotes": "Multiple-choice knowledge and reasoning benchmark that extends MMLU to ten answer choices and expects chain-of-thought answering. Scores are exact-match accuracy and are only comparable across models measured under the same shot count, prompt, and harness.",
+    "sourceIds": ["mmlu-pro-benchmark"],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "gpqa-diamond",
+    "slug": "gpqa-diamond",
+    "name": "GPQA Diamond",
+    "domain": "general-reasoning",
+    "owner": "GPQA Benchmark Authors",
+    "metric": "Accuracy",
+    "metricUnit": "percent",
+    "direction": "higher-is-better",
+    "datasetVersion": "Diamond subset",
+    "methodologyNotes": "Graduate-level, Google-proof science question answering. Diamond is the benchmark's highest-quality expert-validated subset. Scores are accuracy and are only comparable across models measured under the same subset, shot count, and harness.",
+    "sourceIds": ["gpqa-benchmark"],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "livecodebench",
+    "slug": "livecodebench",
+    "name": "LiveCodeBench",
+    "domain": "coding",
+    "owner": "LiveCodeBench",
+    "metric": "pass@1",
+    "metricUnit": "percent",
+    "direction": "higher-is-better",
+    "datasetVersion": "Versioned by problem-release window",
+    "methodologyNotes": "Contamination-free code-generation benchmark that collects new competitive-programming problems over time, so a result is only comparable to others measured over the same problem-release window. Scores are pass@1.",
+    "sourceIds": ["livecodebench-benchmark"],
+    "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "mmmu",
+    "slug": "mmmu",
+    "name": "MMMU",
+    "domain": "multimodal",
+    "owner": "MMMU Benchmark",
+    "metric": "Accuracy",
+    "metricUnit": "percent",
+    "direction": "higher-is-better",
+    "datasetVersion": "Multi-discipline multimodal understanding",
+    "methodologyNotes": "College-level multi-discipline multimodal understanding across image-and-text questions. Scores are accuracy and are only comparable across models measured under the same shot count and harness.",
+    "sourceIds": ["mmmu-benchmark-repository"],
+    "verifiedAt": "2026-08-27"
+  }
+]

@@ -14,7 +14,7 @@
     "scope": "Covers how the weights may be obtained and run. It says nothing about output quality, cost, or the terms of any hosted offering built on these weights.",
     "caveats": [
       "Downloadable weights are not an OSI-approved open-source licence; the agreement carries conditions of its own.",
-      "ModelTree records no benchmark result or usage observation for this release, so this statement rests on availability facts alone."
+      "This statement rests on availability facts alone: it is derived from the release's access and licence records, not from any benchmark result or usage observation."
     ],
     "conflictsWithIds": [],
     "verifiedAt": "2026-08-15"

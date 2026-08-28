@@ -72,6 +72,8 @@ const ALLOWED_PATHS = new Set([
   'web/src/data/organizations.json',
   'web/src/data/families.json',
   'web/src/data/releases.json',
+  'web/src/data/benchmarks.json',
+  'web/src/data/benchmark-results.json',
   'web/src/data/usage-observations.json',
   'web/src/data/usage-syntheses.json',
   'web/src/data/model-fit-statements.json',

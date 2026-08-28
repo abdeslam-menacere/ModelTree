@@ -1,13 +1,5 @@
 [
   {
-    "id": "gap-llama-4-scout-benchmarks",
-    "releaseId": "meta-llama-4-scout",
-    "dimension": "measured-benchmark-evidence",
-    "reason": "no-qualifying-source",
-    "note": "No evaluation result is recorded for this release, so no guidance is derived about how it behaves on a task — including across the long context window its model card documents.",
-    "verifiedAt": "2026-08-15"
-  },
-  {
     "id": "gap-llama-4-scout-usage",
     "releaseId": "meta-llama-4-scout",
     "dimension": "usage-evidence",
