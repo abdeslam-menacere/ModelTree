@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { dataset as seedDataset } from '../data/dataset';
 import { validateDataset } from '../data/validate';
+import { buildLineageEcosystems } from './lineage-view';
 import {
   assertRoutesResolve,
   buildCatalogIndex,
@@ -351,11 +352,53 @@ describe('route resolution and payload budget', () => {
 
   it('holds the real dataset index to the routes the build generates', () => {
     const index = buildCatalogIndex(seedDataset, '/ModelTree');
+    const providerSlugs = buildLineageEcosystems(seedDataset)
+      .map((ecosystem) => ecosystem.organization.slug);
+
+    // Positive control: the real dataset must feature at least one organization,
+    // or the routed-provider assertions below would pass on an empty set.
+    expect(providerSlugs.length).toBeGreaterThan(0);
 
     expect(assertRoutesResolve(index, {
       models: seedDataset.releases.map((release) => release.slug),
+      providers: providerSlugs,
     })).toBe(index);
-    expect(index.providers.every((provider) => provider.route === null)).toBe(true);
+
+    // A featured organization now carries its generated provider route; every
+    // other organization keeps a null route, because no page lands it.
+    const routed = new Set(providerSlugs);
+    for (const provider of index.providers) {
+      if (routed.has(provider.slug)) {
+        expect(provider.route).toBe(`/ModelTree/providers/${provider.slug}/`);
+      } else {
+        expect(provider.route).toBeNull();
+      }
+    }
+
+    // Organization aliases route the same way, from the same helper, so a search
+    // hit on a featured creator's name opens its page and an unfeatured one does
+    // not advertise a route that would 404.
+    const organizationAliases = index.aliases.filter((alias) => alias.entity === 'organization');
+    expect(organizationAliases).not.toHaveLength(0);
+    for (const alias of organizationAliases) {
+      if (routed.has(alias.targetSlug)) {
+        expect(alias.route).toBe(`/ModelTree/providers/${alias.targetSlug}/`);
+      } else {
+        expect(alias.route).toBeNull();
+      }
+    }
+  });
+
+  it('refuses the real dataset index when its provider routes are not declared', () => {
+    const index = buildCatalogIndex(seedDataset, '/ModelTree');
+
+    // The index now publishes a real provider route for every featured
+    // organization; omitting the providers key states no provider page is
+    // built, so the fail-closed guard must reject rather than wave them through.
+    expect(buildLineageEcosystems(seedDataset).length).toBeGreaterThan(0);
+    expect(() => assertRoutesResolve(index, {
+      models: seedDataset.releases.map((release) => release.slug),
+    })).toThrow(/provider index row ".+" has no generated detail route/);
   });
 
   it('keeps the real dataset index within its payload budget', () => {
