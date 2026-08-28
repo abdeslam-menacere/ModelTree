@@ -16,6 +16,8 @@ const informationArchitecture = readFileSync(
   new URL('../../../docs/product/INFORMATION-ARCHITECTURE.md', import.meta.url),
   'utf8',
 );
+const POLICY_BLOCK_START = '<!-- organization-type-policy:start -->';
+const POLICY_BLOCK_END = '<!-- organization-type-policy:end -->';
 
 function normalizePolicyText(source: string): string {
   return source
@@ -43,6 +45,20 @@ function schemaPolicyClauses(): string[] {
     .slice(start + 'Choose the first match:'.length, end)
     .split(';')
     .map((clause) => clause.trim());
+}
+
+function publishedPolicyBlock(source: string, name: string): string {
+  const starts = source.split(POLICY_BLOCK_START).length - 1;
+  const ends = source.split(POLICY_BLOCK_END).length - 1;
+  if (starts !== 1 || ends !== 1) {
+    throw new Error(`${name} must contain exactly one delimited organization type policy block`);
+  }
+
+  const start = source.indexOf(POLICY_BLOCK_START) + POLICY_BLOCK_START.length;
+  const end = source.indexOf(POLICY_BLOCK_END, start);
+  if (end < start) throw new Error(`${name} organization type policy delimiters are out of order`);
+
+  return normalizePolicyText(source.slice(start, end));
 }
 
 type OrganizationType = (typeof organizationSchema.shape.type.options)[number];
@@ -221,6 +237,7 @@ describe('organization type policy', () => {
   it('publishes the functional, non-ranked decision procedure on both policy surfaces', () => {
     const clauses = schemaPolicyClauses();
     expect(clauses).toHaveLength(5);
+    const expectedPolicy = clauses.join('; ');
 
     for (const [name, document] of [
       ['methodology', methodologyPage],
@@ -231,15 +248,7 @@ describe('organization type policy', () => {
       expect(document).toContain('first matching category');
       expect(document).toContain('primary-source quote');
 
-      const normalizedDocument = normalizePolicyText(document);
-      let previousPosition = -1;
-      for (const clause of clauses) {
-        const position = normalizedDocument.indexOf(clause);
-        expect(position, `${name} must publish the schema clause: ${clause}`).toBeGreaterThan(
-          previousPosition,
-        );
-        previousPosition = position;
-      }
+      expect(publishedPolicyBlock(document, name)).toBe(expectedPolicy);
     }
   });
 });
