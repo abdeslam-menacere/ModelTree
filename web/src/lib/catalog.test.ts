@@ -379,6 +379,43 @@ describe('route resolution and payload budget', () => {
     }
   });
 
+  it('lists every release regardless of whether it is featured', () => {
+    // `buildCatalogIndex` never reads `featured` (catalog.ts:193-222), and
+    // nothing downstream of it may start to. Moving a creator between the Model
+    // Tree's Featured and Others branches changes which releases carry the flag;
+    // the catalog at /models must be untouched by that, because a reader would
+    // experience a missing release as the site being wrong rather than as an
+    // editorial choice.
+    const index = buildCatalogIndex(seedDataset, '/');
+    const notFeatured = seedDataset.releases.filter((release) => !release.featured);
+    const featured = seedDataset.releases.filter((release) => release.featured);
+    const indexedSlugs = new Set(index.models.map((model) => model.slug));
+
+    // Positive controls: with either group empty this proves nothing at all.
+    expect(notFeatured.length).toBeGreaterThan(0);
+    expect(featured.length).toBeGreaterThan(0);
+
+    expect(index.models).toHaveLength(seedDataset.releases.length);
+    for (const release of seedDataset.releases) expect(indexedSlugs.has(release.slug)).toBe(true);
+    expect(index.coverage.releases).toBe(seedDataset.releases.length);
+    // The creator facet counts unfiltered releases too, so a creator on the
+    // Others branch still appears in the catalog's own filters.
+    const facetTotal = index.facets.creators.reduce((sum, entry) => sum + entry.count, 0);
+    expect(facetTotal).toBe(seedDataset.releases.length);
+  });
+
+  it('indexes a dataset in which no release is featured at all', () => {
+    // The catalog does not depend on a featured release existing, so the flag
+    // cannot become a filter by accident. The Model Tree page keeps its own
+    // separate guard for that (tree.astro:21); this one must not.
+    const index = buildCatalogIndex(makeDataset());
+
+    expect(makeDataset().releases.every((release) => !release.featured)).toBe(true);
+    expect(index.models).toHaveLength(3);
+    expect(index.models.map((model) => model.slug).sort())
+      .toEqual(['alpha-new', 'alpha-old', 'beta-same']);
+  });
+
   it('honours a project base path', () => {
     const index = buildCatalogIndex(seedDataset, '/ModelTree');
 
