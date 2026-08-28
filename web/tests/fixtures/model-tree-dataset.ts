@@ -4,17 +4,17 @@ import { validateDataset } from '../../src/data/validate';
 
 /**
  * Test-only scaffolding, deliberately outside `src/` so no page or component can
- * reach it and no fabricated provenance sits in the site source graph. Every
- * organization in the reviewed catalog currently has a featured release, so the
- * real dataset exercises only the empty `Others` branch. These records are
- * synthetic: they exist to prove the derivation, never to assert a fact about a
- * real creator.
+ * reach it and no fabricated provenance sits in the site source graph. These
+ * records are synthetic: they exist to prove the derivation, never to assert a
+ * fact about a real creator.
  *
- * The shape is chosen to exercise every ordering rule at once: two creators
- * sharing a name so the id tiebreak is observable, a creator whose name sorts
- * last while its id sorts first, two families tied on their newest release
- * date, two releases tied on release date, and a family with no releases that
- * must be dropped.
+ * The real catalog populates `Others` on its own, so this fixture is no longer
+ * what keeps that branch from being empty. What it still supplies is the
+ * ordering pathology the catalog does not happen to contain, and cannot be made
+ * to contain without inventing creators: two creators sharing a name so the id
+ * tiebreak is observable, a creator whose name sorts last while its id sorts
+ * first, two families tied on their newest release date, two releases tied on
+ * release date, and a family with no releases that must be dropped.
  */
 
 const SYNTHETIC_SOURCE_ID = 'synthetic-other-branch-note';

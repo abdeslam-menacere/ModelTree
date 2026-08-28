@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import { datasetWithOtherCreators, expectedOtherCreatorIds } from '../../tests/fixtures/model-tree-dataset';
@@ -208,6 +209,156 @@ describe('model tree', () => {
 
     expect([...withBoth]).toEqual(['first', 'second']);
     expect([...withoutFirst]).toEqual(['second']);
+  });
+});
+
+/**
+ * The creators this repository keeps a dedicated reviewed source profile for, as
+ * the files at the top level of `tools/updater/profiles/`. That set is the
+ * featured criterion: featuring says this repository has vetted a creator's
+ * sources in depth, which is a fact about our own editorial coverage and not a
+ * claim about the models, their size, or their standing.
+ *
+ * Written out here rather than read from that directory, for two reasons.
+ * `web-ci` skips the web build entirely when a change touches only
+ * `tools/updater/`, so a test that read those files could go red on main with no
+ * check reporting it. And listing them makes granting a profile and moving a
+ * creator one reviewable change, which is the coupling the criterion wants.
+ *
+ * Neither sibling directory counts. `tools/updater/profiles/generic/` holds the
+ * long-tail review policy, and `tools/updater/profiles/origins/` holds approved
+ * source hosts for cohere, microsoft, mistral-ai and xai; its README states that
+ * those documents "are **not** profiles, and they join neither reviewed set" and
+ * that adding a creator there "does **not** promote it to a pilot creator".
+ */
+const CREATORS_WITH_A_REVIEWED_PROFILE = ['anthropic', 'google-deepmind', 'meta', 'openai'];
+
+/** Catalog creators that hold releases but no reviewed source profile. */
+const CREATORS_WITHOUT_A_REVIEWED_PROFILE = ['deepseek', 'mistral-ai', 'xai'];
+
+describe('featured membership follows the reviewed source profile set', () => {
+  const tree = buildModelTree(dataset);
+  const creatorName = (id: string) => dataset.organizations.find((item) => item.id === id)!.name;
+
+  it('features exactly the creators with a reviewed source profile', () => {
+    // Render order, not a sorted comparison: `buildCreators` orders by creator
+    // name then id (model-tree.ts:52), which here reads Anthropic, Google
+    // DeepMind, Meta, OpenAI.
+    expect(tree.featured.map(({ organization }) => organization.id))
+      .toEqual(CREATORS_WITH_A_REVIEWED_PROFILE);
+    expect(tree.featured.map(({ organization }) => organization.name))
+      .toEqual(['Anthropic', 'Google DeepMind', 'Meta', 'OpenAI']);
+  });
+
+  it('puts every catalog creator without a reviewed profile under Others', () => {
+    // Also render order. The names are what decide it: DeepSeek, Mistral AI,
+    // then SpaceXAI, whose recorded name sorts under S while its id sorts last
+    // anyway -- so this ordering is asserted by name below rather than resting
+    // on the two happening to agree.
+    expect(tree.others.map(({ organization }) => organization.id))
+      .toEqual(CREATORS_WITHOUT_A_REVIEWED_PROFILE);
+    expect(tree.others.map(({ organization }) => organization.name))
+      .toEqual(['DeepSeek', 'Mistral AI', 'SpaceXAI']);
+    // The branch this change exists to populate must not be empty, and the two
+    // branches must partition the catalog rather than merely both being present.
+    expect(tree.others.length).toBeGreaterThan(0);
+    expect([...tree.featured, ...tree.others].map(({ organization }) => organization.id).sort())
+      .toEqual([...CREATORS_WITH_A_REVIEWED_PROFILE, ...CREATORS_WITHOUT_A_REVIEWED_PROFILE].sort());
+  });
+
+  it('moves creators between branches without dropping a single release', () => {
+    // The risk this change carries: a reader would experience a release that
+    // fell out of the tree as the site being wrong. Set equality rather than a
+    // count, which is both exact and stronger -- a count of the catalog's
+    // releases still passes if one release is swapped for another -- and which
+    // does not have to be edited every time a researched release lands.
+    expect(modelTreeReleaseIds(tree).sort()).toEqual(dataset.releases.map(({ id }) => id).sort());
+
+    const othersReleaseIds = tree.others.flatMap(({ families }) => (
+      families.flatMap(({ releases }) => releases.map(({ id }) => id))
+    ));
+    const featuredReleaseIds = tree.featured.flatMap(({ families }) => (
+      families.flatMap(({ releases }) => releases.map(({ id }) => id))
+    ));
+
+    for (const creatorId of CREATORS_WITHOUT_A_REVIEWED_PROFILE) {
+      const owned = dataset.releases
+        .filter(({ organizationId }) => organizationId === creatorId)
+        .map(({ id }) => id);
+
+      // Positive control: a creator contributing nothing would satisfy every
+      // assertion below without proving anything, so require it to hold
+      // releases before asking where they went.
+      expect(owned.length).toBeGreaterThan(0);
+      expect(othersReleaseIds).toEqual(expect.arrayContaining(owned));
+      for (const releaseId of owned) expect(featuredReleaseIds).not.toContain(releaseId);
+    }
+
+    // Every one of those releases is reachable by deep link too, not merely
+    // present in the branch arrays.
+    for (const release of dataset.releases) {
+      expect(findModelTreePath(tree, release.id)).toBeDefined();
+    }
+  });
+
+  it('leaves the reclassified creators with no featured release and no stale rationale', () => {
+    for (const creatorId of CREATORS_WITHOUT_A_REVIEWED_PROFILE) {
+      const owned = dataset.releases.filter(({ organizationId }) => organizationId === creatorId);
+
+      expect(owned.length).toBeGreaterThan(0);
+      expect(owned.filter(({ featured }) => featured)).toEqual([]);
+      // A rationale for a placement that no longer applies would read as a live
+      // editorial claim about a creator on the Others branch.
+      expect(owned.filter(({ featuredRationale }) => featuredRationale !== undefined)).toEqual([]);
+    }
+
+    // And the criterion has not quietly emptied the other branch: the page
+    // invariant at tree.astro:21 needs a featured release to exist at all.
+    expect(dataset.releases.some(({ featured }) => featured)).toBe(true);
+    expect(CREATORS_WITH_A_REVIEWED_PROFILE.map(creatorName))
+      .toEqual(['Anthropic', 'Google DeepMind', 'Meta', 'OpenAI']);
+  });
+});
+
+describe('tree page source', () => {
+  const page = readFileSync(new URL('../pages/tree.astro', import.meta.url), 'utf8');
+
+  it('cannot throw its missing-featured-release guard against the real catalog', () => {
+    // The page derives its passport link from tree.featured[0].families[0]
+    // .releases[0] and throws when that is absent (tree.astro:20-21). Reproduced
+    // here rather than described, so a catalog that stopped satisfying it fails
+    // a named test instead of a build step.
+    const tree = buildModelTree(dataset);
+
+    expect(tree.featured[0]?.families[0]?.releases[0]).toBeDefined();
+    expect(() => {
+      const firstRelease = tree.featured[0]?.families[0]?.releases[0];
+      if (!firstRelease) throw new Error('Model Tree requires at least one featured ecosystem release');
+    }).not.toThrow();
+  });
+
+  it('still guards rather than trusting the catalog to be non-empty', () => {
+    // The assertion above is only worth something while the page actually
+    // carries the guard it reproduces.
+    expect(page).toContain('const firstRelease = tree.featured[0]?.families[0]?.releases[0];');
+    expect(page).toContain('Model Tree requires at least one featured ecosystem release');
+  });
+
+  it('names the branches that really start open, Others included', () => {
+    // ModelTreeExplorer.tsx:24-26 initialises rootOpen, featuredOpen and
+    // othersOpen to true, so naming only two of the three understated the
+    // disclosure state as soon as Others held anything.
+    expect(page).toContain('AI Model Ecosystem, Featured ecosystems, and Others start open.');
+    expect(page).not.toContain('AI Model Ecosystem and Featured ecosystems start open.');
+  });
+
+  it('states the featured criterion without ranking the models', () => {
+    expect(page).toContain('Featured placement is editorial and non-ranked');
+    expect(page).toContain('a creator is featured when this repository keeps a reviewed source profile for it');
+    // No composite score, rank, or prominence claim may enter this copy.
+    for (const word of ['leading', 'top ', 'major', 'most important', 'best', 'rank the', 'score']) {
+      expect(page.toLowerCase()).not.toContain(word);
+    }
   });
 });
 

@@ -37,6 +37,21 @@ derive membership from reviewed catalog flags and neither implies popularity or
 rank. The complete hierarchy is server-rendered; client JavaScript enhances
 disclosure, selection, and stable `?model=<release-id>` deep links.
 
+A creator is featured when this repository keeps a dedicated reviewed source
+profile for it, as a file at the top level of `tools/updater/profiles/`. That
+directory is the whole of the criterion and can be listed to check it. Its
+`generic/` subdirectory holds the long-tail review policy and its `origins/`
+subdirectory holds approved source hosts; `origins/README.md` states that those
+documents are not profiles and join neither reviewed set, so a creator with an
+origin catalogue and no profile is not featured by it.
+
+Featuring therefore says how deeply this repository has vetted a creator's
+sources. It is a statement about our own editorial coverage, not a claim about
+the creator's size, standing, or the quality of its models, and it does not
+imply popularity or rank. It is also self-correcting rather than permanent: a
+long-tail creator that later earns a reviewed profile moves to Featured by
+satisfying the criterion.
+
 ## Homepage Composition
 
 1. Header and one-sentence product statement

@@ -92,6 +92,22 @@ const unrecordedConfigFields = unrecordedBenchmarkConfigFields(dataset.benchmark
               catalog flags and does not imply popularity or rank.
             </p>
             <p>
+              The criterion for the <a href={treeHref}>Model Tree</a>’s Featured branch is
+              <strong>a creator has a reviewed source profile</strong>: a file at the top level of
+              <code>tools/updater/profiles/</code> in this repository. That directory is the whole
+              of the criterion, so anyone can list it and check the branch against it. Its
+              <code>generic/</code> subdirectory holds the long-tail review policy and its
+              <code>origins/</code> subdirectory holds approved source hosts; neither is a profile,
+              and a creator with an origin catalogue but no profile is not featured by it.
+            </p>
+            <p>
+              Featuring is therefore a statement about the depth of this repository’s own source
+              vetting, not a claim about a creator’s size or standing or about the quality of its
+              models. It is also not permanent: a creator on the Others branch that later earns a
+              reviewed profile moves to Featured by satisfying the criterion rather than by
+              anyone’s opinion of it.
+            </p>
+            <p>
               Editorial inclusion may consider consumer reach, API availability, cloud
               distribution, open-weight adoption, developer-tool integration, and sustained release
               activity. None of these is combined into a number.
@@ -101,8 +117,10 @@ const unrecordedConfigFields = unrecordedBenchmarkConfigFields(dataset.benchmark
             <p>
               Beyond the featured ecosystems, long-tail creators are a <em>reviewed set</em>, not an
               open crawl: ADR 0002 records that a long-tail profile is a reviewed artefact of this
-              repository rather than operator input. The Model Tree reserves an empty “Others”
-              branch for that reviewed long-tail coverage. Inclusion is a reviewable repository
+              repository rather than operator input. The Model Tree’s “Others” branch carries that
+              reviewed long-tail coverage, as the same expandable creator, family, and release
+              disclosures the Featured branch uses, and every release under it is listed in the
+              full catalog exactly as any other release is. Inclusion is a reviewable repository
               change like any other fact here.
             </p>
           </div>
