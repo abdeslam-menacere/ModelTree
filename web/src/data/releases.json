@@ -2046,7 +2046,7 @@
       "mistral-devstral-small-2-24b-instruct"
     ],
     "derivedFromIds": [],
-    "summary": "Weights are downloadable, and the licence is not one the OSI approves: the card calls it a \"Modified MIT License\" of the creator’s own drafting, so no SPDX identifier is recorded and the OSI claim is false while the downloadable claim is true. Released the same day as the 24B model, which carries Apache 2.0 instead, so one announcement covers two models under two different licences.",
+    "summary": "Weights are downloadable, and the licence is not one the OSI approves: the card calls it a \"Modified MIT License\" of the creator’s own drafting, so no SPDX identifier is recorded and the OSI claim is false while the downloadable claim is true. Released the same day as the 24B model, which carries Apache 2.0 instead, so one announcement covers two models under two different licences. Text is the only input recorded: this card lists no vision capability, while the 24B card published beside it does, so the difference is what each card states rather than an omission here.",
     "intendedUse": "Agentic software engineering: exploring codebases, editing multiple files, and driving software engineering agents.",
     "sourceIds": [
       "mistral-devstral-2-announcement",
@@ -2072,7 +2072,8 @@
       "language-reasoning"
     ],
     "inputModalities": [
-      "text"
+      "text",
+      "image"
     ],
     "outputModalities": [
       "text"
@@ -2096,7 +2097,7 @@
       "mistral-devstral-2-123b-instruct"
     ],
     "derivedFromIds": [],
-    "summary": "The smaller of the two Devstral 2 models, described by its card as light enough to run on a single consumer GPU. Its weights are downloadable under an OSI-approved licence, unlike the 123B model announced beside it, which shows that a shared announcement and a shared family do not imply a shared licence.",
+    "summary": "The smaller of the two Devstral 2 models, described by its card as light enough to run on a single consumer GPU. Its card lists vision among the capabilities added since Devstral Small 1.1, so image input is recorded alongside text; the 123B model announced beside it lists no such capability. Its weights are downloadable under an OSI-approved licence, unlike the 123B model, which shows that a shared announcement and a shared family do not imply a shared licence.",
     "intendedUse": "Local and on-device software engineering agents.",
     "sourceIds": [
       "mistral-devstral-2-announcement",
