@@ -106,7 +106,7 @@ flowchart TD
     R --> S["<b>1. modeltree-scout</b><br/>fetch, never recall"]
     S --> B["<b>Claim bundle</b> — one atomic claim per fact<br/>URL · SHA-256 of page as fetched<br/>fetch date · verbatim quote<br/><i>search snippets refused outright</i>"]
 
-    B --> V["<b>2. modeltree-review</b><br/>three rubrics, independent,<br/>issue text + diff only"]
+    B --> V["<b>2. modeltree-review</b><br/>three rubrics, parallel sub-agents<br/>each sees: claim · evidence · dataset slice · profile terms<br/><i>never scout's reasoning, another verdict, or the tally</i>"]
     V --> V1["<b>provenance</b><br/>does the source actually say this?"]
     V --> V2["<b>consistency</b><br/>does it fit what we already know?"]
     V --> V3["<b>editorial</b><br/>is it saying the right kind of thing?"]
