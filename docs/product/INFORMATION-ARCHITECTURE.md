@@ -128,10 +128,10 @@ An organization's required `type` is an editorial functional category, not a
 sourced statement of legal form and not a ranking. The first matching category
 wins: `community` when independent contributors outside any one entity's
 employment or appointment chain can initiate and decide its model releases, not
-merely submit work; `research-lab` when one standalone institution or named unit
-controls releases and exists primarily for research but does not sell model
-products or access under its name, even when its parent does; `nonprofit` when a
-centrally governed nonprofit is neither such a lab nor a seller of model products
-or access; otherwise `company` when a commercial operator runs or sells the model
-work. The review rubric applies this observable decision procedure without
-requiring a primary-source quote to use the category's exact words.
+merely submit work; `company` when the entity offers model products or access
+for payment under its name; `research-lab` when one standalone institution or
+named unit controls releases and exists primarily for research, even when its
+parent sells model access; otherwise `nonprofit` when a centrally governed
+nonprofit matches none of the above. The review rubric applies this observable
+decision procedure without requiring a primary-source quote to use the
+category's exact words.

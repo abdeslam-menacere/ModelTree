@@ -43,19 +43,20 @@ describe('organization type policy', () => {
     )?.[0];
 
     expect(policy).toBeDefined();
-    expect(policy).toContain('not a sourced claim');
-    expect(policy).toContain('Choose the first');
-    expect(policy).toContain("outside any one entity's");
-    expect(policy).toContain('can initiate and decide its model releases');
-    expect(policy).toContain('not merely submit work');
-    expect(policy).toContain('one standalone institution or');
-    expect(policy).toContain('named unit controls releases');
-    expect(policy).toContain('exists primarily for research');
-    expect(policy).toContain('does not');
-    expect(policy).toContain('sell model products or access under its name');
-    expect(policy).toContain("a parent's sales do not");
-    const categoryOffsets = ['`community`', '`research-lab`', '`nonprofit`', '`company`'].map(
-      (category) => policy!.indexOf(category),
+    const normalizedPolicy = policy!.replaceAll('//', ' ').replace(/\s+/g, ' ');
+    expect(normalizedPolicy).toContain('not a sourced claim');
+    expect(normalizedPolicy).toContain('Choose the first');
+    expect(normalizedPolicy).toContain("outside any one entity's");
+    expect(normalizedPolicy).toContain('can initiate and decide its model releases');
+    expect(normalizedPolicy).toContain('not merely submit work');
+    expect(normalizedPolicy).toContain('offers model products or');
+    expect(normalizedPolicy).toContain('access for payment under its name');
+    expect(normalizedPolicy).toContain('one standalone institution or');
+    expect(normalizedPolicy).toContain('named unit controls releases');
+    expect(normalizedPolicy).toContain('exists primarily for research');
+    expect(normalizedPolicy).toContain("a parent's sales do not");
+    const categoryOffsets = ['`community`', '`company`', '`research-lab`', '`nonprofit`'].map(
+      (category) => normalizedPolicy.indexOf(category),
     );
     expect(categoryOffsets.every((offset) => offset >= 0)).toBe(true);
     expect(categoryOffsets).toEqual([...categoryOffsets].sort((a, b) => a - b));
