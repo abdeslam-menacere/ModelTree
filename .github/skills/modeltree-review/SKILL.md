@@ -122,7 +122,7 @@ still reject when:
 
 #### Worked examples, from this repository's own runs
 
-Accept — each of these was accepted by `provenance` in PR #438:
+Accept — each of these was accepted by `provenance` in PR abdeslam-menacere/ModelTree#438:
 
 | Claim | Quoted | Recorded |
 |---|---|---|
@@ -144,7 +144,7 @@ Reject — each of these is a real rejection that stands unchanged:
 
 | Claim | Attempted | Why it still fails |
 |---|---|---|
-| `openai-gpt-5-3-codex-release-add` (PR #438) | `inputModalities ['text','image']` | The page states the modalities, but the claim attached no quote for them. The remedy is to attach the quote, not to map from nothing. |
+| `openai-gpt-5-3-codex-release-add` (PR abdeslam-menacere/ModelTree#438) | `inputModalities ['text','image']` | The page states the modalities, but the claim attached no quote for them. The remedy is to attach the quote, not to map from nothing. |
 | `mi4-release-large-3-add` (run `2026-08-27-4f1c9e`) | `status: 'current'`, `open-weight` | No quote states a lifecycle state at all, and `Start building: Ministral 3 and Large 3 on Hugging Face` does not state that weights are downloadable. Nothing to transcribe. |
 | `microsoft-mai-thinking-1` (same run, withheld) | `accessType` from `available in public preview on Microsoft Foundry` | A serving platform's offering, not the creator's release. Wrong entity, so the record was withheld rather than filled. |
 | `co5-family-command-a-add` (same run) | family `firstReleaseDate`, `status: 'current'`, `multimodal-generalist` | The date is the announcement page's `datePublished`, not a stated first release; the `Live` row describes one dated release, not the family; and the family took a modality from a later sibling while the same table lists Command A as text-only. Added scope on all three. |
