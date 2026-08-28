@@ -1823,8 +1823,7 @@
     "releaseDate": "2026-08-12",
     "datePrecision": "day",
     "status": "current",
-    "featured": true,
-    "featuredRationale": "The creator’s current frontier model, carrying a dated announcement and its own model documentation page, and the model that documentation recommends for both code and chat.",
+    "featured": false,
     "categories": [
       "language-reasoning",
       "coding",
@@ -1916,8 +1915,7 @@
     "releaseDate": "2025-12-02",
     "datePrecision": "day",
     "status": "current",
-    "featured": true,
-    "featuredRationale": "The creator’s most capable model, and the clearest case in this dataset of hosted access and downloadable weights being two separate facts about one release rather than one fact.",
+    "featured": false,
     "categories": [
       "language-reasoning",
       "multimodal-generalist",
@@ -2168,8 +2166,7 @@
     "releaseDate": "2026-04-22",
     "datePrecision": "day",
     "status": "preview",
-    "featured": true,
-    "featuredRationale": "The creator’s largest published model and the anchor of its current generation, with a full model card stating parameters, context window, and licence, published under an OSI-approved licence.",
+    "featured": false,
     "categories": [
       "language-reasoning",
       "coding"
