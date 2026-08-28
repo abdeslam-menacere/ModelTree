@@ -122,6 +122,24 @@ function startOf(value) {
   return Date.UTC(y, m - 1, d);
 }
 
+/**
+ * The latest instant a date could denote, mirroring `startOf`.
+ *
+ * `2026` ends on 31 December 2026 and `2026-03` on 31 March, so together the two
+ * helpers make a partial date the closed interval of days it actually denotes.
+ * An ordering check can then ask whether two dates are *definitely* out of
+ * order, rather than whether one string happens to sort below another. For a
+ * full `YYYY-MM-DD` value the interval is a single day and `endOf` equals
+ * `startOf`, so every check below is unchanged for day-precision data.
+ */
+function endOf(value) {
+  const [y, m, d] = String(value).split('-').map(Number);
+  if (d !== undefined) return Date.UTC(y, m - 1, d);
+  // Day 0 of the following month is the last day of this one.
+  if (m !== undefined) return Date.UTC(y, m, 0);
+  return Date.UTC(y, 11, 31);
+}
+
 // ---------------------------------------------------------------------------
 // Gate: every document parses and is an array of objects carrying a string id.
 // ---------------------------------------------------------------------------
@@ -357,8 +375,32 @@ function gateLineage(docs) {
 // ---------------------------------------------------------------------------
 // Gate: dates. Impossible dates, and dates that claim the future.
 // ---------------------------------------------------------------------------
-const EXACT_DATE_FIELDS = ['verifiedAt', 'releaseDate', 'firstReleaseDate', 'lastCheckedDate', 'publishedDate', 'effectiveFrom', 'effectiveTo'];
-const PARTIAL_DATE_FIELDS = ['windowStart', 'windowEnd', 'evaluationDate'];
+// Dates *we* recorded. We were the observer, so the day is always known and
+// anything less than a full calendar date is a mistake rather than a limit of
+// the source.
+const EXACT_DATE_FIELDS = ['verifiedAt', 'lastCheckedDate', 'publishedDate', 'effectiveFrom', 'effectiveTo'];
+// Dates a *source* stated, which it may have stated only to the year or month.
+// `releaseDate` and `firstReleaseDate` moved here from `EXACT_DATE_FIELDS`: a
+// creator whose announcement gives only a month was previously unrecordable,
+// since the only way past this gate was to invent a day. The precision-agreement
+// rule below is what replaces the constraint that move gives up — it is not
+// enough to be partial, the record must also declare the same precision it
+// carries, which the exact-date rule could not express at all.
+const PARTIAL_DATE_FIELDS = ['windowStart', 'windowEnd', 'evaluationDate', 'releaseDate', 'firstReleaseDate'];
+
+const PRECISION_SEGMENTS = { year: 1, month: 2, day: 3 };
+
+// Date fields that carry a `datePrecision` companion stating how much of the
+// date the source actually gave. The value's own shape states the same thing, so
+// the two are required to agree: a record claiming `month` while carrying a full
+// day has invented that day, and one claiming `day` while carrying only a month
+// has lost one. Either way a reader downstream cannot tell which part is
+// sourced, so both are refused here.
+const PRECISION_COMPANIONS = [
+  ['releaseDate', 'datePrecision'],
+  ['firstReleaseDate', 'datePrecision'],
+  ['date', 'datePrecision'],
+];
 
 function gateDates(docs, today) {
   const todayMs = startOf(today);
@@ -384,6 +426,26 @@ function gateDates(docs, today) {
         fail('dates', `${field} "${value}" is in the future (today is ${today})`, `${collection}:${entry.id}`);
       }
     }
+    for (const [field, companion] of PRECISION_COMPANIONS) {
+      const value = entry[field];
+      const declared = entry[companion];
+      if (value === undefined || declared === undefined) continue;
+      // A malformed value is already reported above; reporting it twice would
+      // only make the real fault harder to find.
+      if (!isRealPartialDate(value)) continue;
+      if (!Object.hasOwn(PRECISION_SEGMENTS, declared)) {
+        fail('dates', `${companion} "${declared}" is not one of year, month, day`, `${collection}:${entry.id}`);
+        continue;
+      }
+      const carried = String(value).split('-').length;
+      if (carried !== PRECISION_SEGMENTS[declared]) {
+        fail(
+          'dates',
+          `${field} "${value}" does not state the precision "${declared}" recorded beside it`,
+          `${collection}:${entry.id}`,
+        );
+      }
+    }
     if (entry.control?.verifiedAt !== undefined) {
       if (!isRealDate(entry.control.verifiedAt)) {
         fail('dates', `control.verifiedAt "${entry.control.verifiedAt}" is not a real date`, `${collection}:${entry.id}`);
@@ -405,12 +467,16 @@ function gateDates(docs, today) {
     }
   }
 
-  // A release cannot predate the family it belongs to.
+  // A release cannot predate the family it belongs to. Compared as intervals, so
+  // a release the source dated only to a year is flagged only when *every* day
+  // that year could mean falls before the family's earliest possible start. An
+  // overlap means the sources do not settle the order, which is not the same
+  // thing as a contradiction and must not be reported as one.
   const familyById = new Map(docs.families.map((family) => [family.id, family]));
   for (const release of docs.releases) {
     const family = familyById.get(release.familyId);
-    if (family && isRealDate(release.releaseDate) && isRealDate(family.firstReleaseDate)
-      && startOf(release.releaseDate) < startOf(family.firstReleaseDate)) {
+    if (family && isRealPartialDate(release.releaseDate) && isRealPartialDate(family.firstReleaseDate)
+      && endOf(release.releaseDate) < startOf(family.firstReleaseDate)) {
       fail(
         'dates',
         `releaseDate "${release.releaseDate}" precedes its family's firstReleaseDate "${family.firstReleaseDate}"`,
@@ -426,8 +492,8 @@ function gateDates(docs, today) {
       for (const ancestorId of release[field] ?? []) {
         const ancestor = releaseById.get(ancestorId);
         if (!ancestor) continue;
-        if (isRealDate(release.releaseDate) && isRealDate(ancestor.releaseDate)
-          && startOf(release.releaseDate) < startOf(ancestor.releaseDate)) {
+        if (isRealPartialDate(release.releaseDate) && isRealPartialDate(ancestor.releaseDate)
+          && endOf(release.releaseDate) < startOf(ancestor.releaseDate)) {
           fail(
             'dates',
             `releaseDate "${release.releaseDate}" precedes ${field.replace(/Ids$/, '')} "${ancestorId}" (${ancestor.releaseDate})`,

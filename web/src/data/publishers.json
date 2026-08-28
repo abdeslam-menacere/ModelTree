@@ -80,5 +80,20 @@
     "id": "deepseek",
     "name": "DeepSeek",
     "organizationId": "deepseek"
+  },
+  {
+    "id": "alibaba-cloud",
+    "name": "Alibaba Cloud",
+    "organizationId": "alibaba-cloud"
+  },
+  {
+    "id": "microsoft",
+    "name": "Microsoft",
+    "organizationId": "microsoft"
+  },
+  {
+    "id": "aws",
+    "name": "Amazon Web Services",
+    "organizationId": "amazon"
   }
 ]

@@ -30,9 +30,10 @@
  *
  * 3. Wording that carries an editorial commitment is derived, never retyped.
  *    Access and lifecycle prose comes from `methodology.ts`, relationship hrefs
- *    from `catalog.ts`'s `modelRoute`, and the compare link's query parameter
- *    from `catalog-view.ts`'s `FILTER_DIMENSIONS`. A second copy of any of them
- *    would be free to drift from the page that documents it.
+ *    from `catalog.ts`'s `modelRoute`, and the compare link from
+ *    `compare-route.ts`, which is where the comparison page's own URL contract
+ *    is defined. A second copy of any of them would be free to drift from the
+ *    page that documents it.
  */
 import type {
   Dataset,
@@ -46,8 +47,15 @@ import type {
   SourceReference,
 } from '../data/schema';
 import { modelRoute } from './catalog';
-import { FILTER_DIMENSIONS } from './catalog-view';
-import { accessLabel, categoryLabel, formatDate, formatNumber, statusLabel } from './format';
+import { compareUrl } from './compare-route';
+import {
+  accessLabel,
+  categoryLabel,
+  formatDate,
+  formatDateWithPrecision,
+  formatNumber,
+  statusLabel,
+} from './format';
 import { accessTypeGlossary, lifecycleStatusGlossary, methodologyReferences } from './methodology';
 import { daysSince } from './usage-evidence';
 
@@ -180,38 +188,12 @@ export function releaseEventLabel(type: ReleaseEvent['type']) {
 // ---------------------------------------------------------------------------
 
 /**
- * Renders a date only as precisely as the source stated it.
- *
- * `releaseDate` is stored as a full ISO date even when the announcement gave
- * only a month, and `datePrecision` records what was actually said. Printing
- * "1 Mar 2026" for a source that said "March 2026" would invent a day, so the
- * precision decides the format rather than the stored string's shape. Partial
- * dates from `partialDate` fields (release events) are handled by the same
- * function, reading their precision off their own length.
+ * Renders a date only as precisely as the source stated it. Defined in
+ * `lib/format.ts` so there is exactly one implementation of the rule; this
+ * module re-exports it because the passport view model and its tests were its
+ * first callers.
  */
-export function formatDateWithPrecision(value: string, precision: 'year' | 'month' | 'day') {
-  const [year, month, day] = value.split('-');
-
-  if (precision === 'year') return year;
-  if (precision === 'month') {
-    // Day 1 is a formatting placeholder only; nothing below it is displayed.
-    return new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric', timeZone: 'UTC' })
-      .format(new Date(`${year}-${month}-01T00:00:00Z`));
-  }
-
-  return formatDate(`${year}-${month}-${day}`);
-}
-
-/** The precision a `partialDate` states, read off the value itself. */
-export function precisionOfPartialDate(value: string): 'year' | 'month' | 'day' {
-  const parts = value.split('-').length;
-  if (parts === 1) return 'year';
-  return parts === 2 ? 'month' : 'day';
-}
-
-export function formatPartialDate(value: string) {
-  return formatDateWithPrecision(value, precisionOfPartialDate(value));
-}
+export { formatDateWithPrecision, formatPartialDate, precisionOfPartialDate } from './format';
 
 /**
  * A rate with its currency code.
@@ -448,32 +430,8 @@ export class PassportError extends Error {
 // Actions
 // ---------------------------------------------------------------------------
 
-/**
- * The catalog's query key for a family filter, read from the catalog's own
- * declaration rather than written out again here. `/compare` is in the
- * information architecture but no route builds it yet, so "Compare" opens the
- * catalog narrowed to this family — the same treatment `catalog.ts` gives
- * provider routes, where a link to a page nobody generates is a 404 with extra
- * steps.
- */
-function familyFilterParam(): string {
-  const dimension = FILTER_DIMENSIONS.find((candidate) => candidate.key === 'families');
-  if (!dimension) {
-    throw new PassportError(
-      'the catalog declares no family filter dimension, so a compare link cannot be built '
-      + 'that the catalog would parse',
-    );
-  }
-
-  return dimension.param;
-}
-
-export function compareHref(base: string, familySlug: string) {
-  const catalogRoot = base.endsWith('/') ? `${base}models/` : `${base}/models/`;
-  const params = new URLSearchParams();
-  params.append(familyFilterParam(), familySlug);
-
-  return `${catalogRoot}?${params.toString()}`;
+export function compareHref(base: string, slug: string) {
+  return compareUrl(base, [slug]);
 }
 
 /**
@@ -894,9 +852,11 @@ export function buildModelPassport(
   const actions: PassportAction[] = [
     {
       kind: 'compare',
-      label: `Compare ${family.name} releases`,
-      href: compareHref(base, family.slug),
-      description: 'Opens the catalog filtered to this family, where releases can be compared side by side.',
+      label: `Compare ${release.displayName} with another model`,
+      href: compareHref(base, release.slug),
+      description:
+        'Opens the comparison with this release already chosen. Add one to three more to see them '
+        + 'side by side, each value with the source it came from.',
       external: false,
     },
     {

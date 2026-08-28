@@ -1,0 +1,121 @@
+{
+  "creator": {
+    "id": "microsoft",
+    "name": "Microsoft",
+    "type": "company",
+    "aliases": ["Microsoft Corporation"]
+  },
+  "notes": [
+    "Reviewed creator profile for Microsoft. Seeds are canonical Microsoft-owned URLs; the tool describes and never fetches them.",
+    "Microsoft occupies three roles at once — it creates models, ships products, and operates a serving platform — so this profile spends most of its length keeping them apart. Approved origins for the same creator are listed separately in profiles/origins/microsoft.json, which also records the hosts refused."
+  ],
+  "terminology": {
+    "family": "Microsoft creates models through more than one team. Microsoft AI builds the MAI line, catalogued on microsoft.ai. Microsoft Research publishes separate lines, such as Fara. Each line is a family; the company is a single creator.",
+    "release": "A named model within a line, e.g. MAI-Thinking-1 or Fara1.5-27B.",
+    "product": "Microsoft Copilot is a product. Models are placed inside it; it is not itself a model. Its features — Copilot Daily, Podcasts, Copilot Health — are not models either.",
+    "serving": "Microsoft Foundry, at ai.azure.com, is where Microsoft serves models. Its catalogue carries models from many creators, Microsoft's among them."
+  },
+  "naming_rules": [
+    {
+      "subject": "family",
+      "rule": "Split families by the team that published the model. Do not merge two lines because both are Microsoft.",
+      "example": "MAI-Thinking-1 belongs to the MAI family; Fara1.5-27B belongs to the Fara family."
+    },
+    {
+      "subject": "release",
+      "rule": "Record the model name exactly as the announcement or card writes it, hyphens included.",
+      "example": "MAI-Thinking-1, not MAI Thinking 1."
+    },
+    {
+      "subject": "product",
+      "rule": "Never create a family or release record for a Copilot. A Copilot name always denotes a product surface.",
+      "example": "Copilot Health is a feature of the Copilot product, not a model."
+    },
+    {
+      "subject": "parameters",
+      "rule": "Record only figures a source states exactly. Where a count is hedged with a tilde or the word about, leave it unrecorded rather than rounding a hedge into a number.",
+      "example": "MAI-Thinking-1 is announced as \"35B-active, ~1T-total\"; record the active count and omit the total."
+    }
+  ],
+  "source_catalog": [
+    {
+      "id": "microsoft-ai-news",
+      "owner": "Microsoft AI",
+      "url": "https://microsoft.ai/blog/",
+      "kind": "official-announcement",
+      "allowed_paths": ["/blog", "/news"],
+      "allowed_content_types": ["announcement", "model-release"],
+      "trust": "primary",
+      "trust_notes": "Microsoft AI's own announcement feed, authoritative for MAI releases and the figures they state. Individual posts are served at /news/<slug>/ while the index is served at /blog/.",
+      "verified_at": "2026-08-28",
+      "verification": "Reached 2026-08-28; https://microsoft.ai/news/ redirects to https://microsoft.ai/blog/."
+    },
+    {
+      "id": "microsoft-ai-models",
+      "owner": "Microsoft AI",
+      "url": "https://microsoft.ai/models/",
+      "kind": "official-docs",
+      "allowed_paths": ["/models"],
+      "allowed_content_types": ["model-reference"],
+      "trust": "primary",
+      "trust_notes": "Microsoft AI's catalogue of the MAI line. Authoritative for which MAI models are current, and for the fact that image, voice and transcription are separately named models. It states no release dates, so it cannot date a release on its own.",
+      "verified_at": "2026-08-28",
+      "verification": "Reached 2026-08-28; lists MAI-Thinking-1, MAI-Code-1.1-Flash, MAI-Image-2.5, MAI-Voice-2, MAI-Transcribe-1.5 and MAI-Cyber-1-Flash."
+    },
+    {
+      "id": "microsoft-hugging-face",
+      "owner": "Microsoft Research",
+      "url": "https://huggingface.co/microsoft",
+      "kind": "model-card",
+      "allowed_paths": ["/microsoft"],
+      "allowed_content_types": ["model-card"],
+      "trust": "primary",
+      "trust_notes": "Microsoft Research's published model cards. Authoritative for licence, parameter count, context length, stated inputs and outputs, release date and declared base model — the MAI announcements state none of these as reliably.",
+      "verified_at": "2026-08-28",
+      "verification": "Reached 2026-08-28; the Fara1.5-27B card states \"Developer: Microsoft Research AI Frontiers\" and \"Release date: 21 May 2026\"."
+    }
+  ],
+  "extraction_rules": {
+    "entity_kinds": [
+      "organization",
+      "family",
+      "release",
+      "product",
+      "serving-platform",
+      "deployment"
+    ],
+    "notes": [
+      "Attribute a model to the team that published it, and keep the MAI and Microsoft Research lines as separate families under one organization.",
+      "Record Copilot as a product with modelSelection unknown unless a source states which model serves a request. Microsoft states an intention to orchestrate across specialised models without documenting the routing, and an intention is not a routing description.",
+      "Record Microsoft Foundry as a serving platform. A model listed in Foundry yields a deployment; a Foundry listing is never evidence that Microsoft created the model.",
+      "Where a Microsoft Research model is fine-tuned from another creator's base model, record the derivation on the release and leave authorship with Microsoft."
+    ]
+  },
+  "ambiguities": [
+    {
+      "topic": "Two creator teams under one company",
+      "note": "Microsoft AI and Microsoft Research both publish models, under different naming schemes and on different hosts.",
+      "guidance": "One organization record, one family per line. Do not fold Fara into MAI or the reverse, and do not invent a separate organization for either team."
+    },
+    {
+      "topic": "Copilot routing",
+      "note": "Microsoft AI names individual models placed in particular Copilot experiences, and says that orchestrating a range of specialised models will unlock value, but documents no routing behaviour.",
+      "guidance": "Use modelSelection unknown, with the reasoning in availabilityNotes. Choosing routed would assert a described selection behaviour that no consulted source describes."
+    },
+    {
+      "topic": "Hedged parameter counts",
+      "note": "MAI announcements state active parameters exactly and total parameters approximately, in the same sentence.",
+      "guidance": "Record the exact figure, omit the approximate one, and say in the release summary that it was omitted and why."
+    },
+    {
+      "topic": "Cross-creator base models",
+      "note": "Fara1.5-27B is supervised fine-tuned from Qwen3.5-27B, a model created by Alibaba Cloud.",
+      "guidance": "Link with derivedFromIds when the base model is itself recorded; state the derivation in prose when it is not. A base model never moves authorship of the derived release."
+    },
+    {
+      "topic": "Modalities absent from MAI announcements",
+      "note": "MAI announcements describe interaction but do not tabulate input and output modalities the way a model card does.",
+      "guidance": "A text-only reading is sound only where the announcement describes text interaction alone and the creator's catalogue names its image, voice and transcription models separately. Where that support is absent, withhold the release."
+    }
+  ]
+}

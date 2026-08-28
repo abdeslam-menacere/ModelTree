@@ -11,6 +11,7 @@
       "coding"
     ],
     "firstReleaseDate": "2025-04-14",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "openai-gpt-4-1-announcement"
@@ -29,6 +30,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-07-09",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "openai-gpt-5-6-launch",
@@ -48,6 +50,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-04-23",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "openai-gpt-5-5-announcement",
@@ -67,6 +70,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-03-05",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "openai-gpt-5-4-announcement",
@@ -86,6 +90,7 @@
       "coding"
     ],
     "firstReleaseDate": "2025-08-07",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "openai-gpt-5-docs"
@@ -104,6 +109,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-06-09",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "anthropic-models-overview",
@@ -122,6 +128,7 @@
       "coding"
     ],
     "firstReleaseDate": "2025-09-29",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "anthropic-models-overview",
@@ -142,6 +149,7 @@
       "coding"
     ],
     "firstReleaseDate": "2025-11-18",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "google-gemini-deprecations",
@@ -160,6 +168,7 @@
       "multimodal-generalist"
     ],
     "firstReleaseDate": "2025-06-17",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "google-gemini-deprecations",
@@ -178,6 +187,7 @@
       "multimodal-generalist"
     ],
     "firstReleaseDate": "2025-04-05",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "meta-llama-4-announcement",
@@ -196,6 +206,7 @@
       "multimodal-generalist"
     ],
     "firstReleaseDate": "2024-07-23",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "meta-llama-collection",
@@ -216,6 +227,7 @@
       "video"
     ],
     "firstReleaseDate": "2026-04-08",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "meta-muse-spark-announcement",
@@ -236,6 +248,7 @@
       "coding"
     ],
     "firstReleaseDate": "2025-11-13",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "openai-news-rss",
@@ -255,6 +268,7 @@
       "coding"
     ],
     "firstReleaseDate": "2025-12-11",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "openai-news-rss",
@@ -273,6 +287,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-02-05",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "openai-news-rss",
@@ -290,6 +305,7 @@
       "image"
     ],
     "firstReleaseDate": "2026-04-21",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "openai-news-rss",
@@ -308,6 +324,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-02-05",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "anthropic-opus-4-6-announcement",
@@ -328,6 +345,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-04-16",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "anthropic-opus-4-7-announcement",
@@ -346,6 +364,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-05-28",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "anthropic-opus-4-8-announcement",
@@ -365,6 +384,7 @@
       "multimodal-generalist"
     ],
     "firstReleaseDate": "2025-07-09",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "xai-grok-4-announcement",
@@ -386,6 +406,7 @@
       "coding"
     ],
     "firstReleaseDate": "2025-12-02",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "mistral-3-announcement",
@@ -404,6 +425,7 @@
       "multimodal-generalist"
     ],
     "firstReleaseDate": "2025-12-02",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "mistral-3-announcement",
@@ -422,6 +444,7 @@
       "language-reasoning"
     ],
     "firstReleaseDate": "2025-12-09",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "mistral-devstral-2-announcement",
@@ -441,6 +464,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-03-16",
+    "datePrecision": "day",
     "status": "current",
     "sourceIds": [
       "mistral-small-4-announcement",
@@ -459,6 +483,7 @@
       "coding"
     ],
     "firstReleaseDate": "2026-04-22",
+    "datePrecision": "day",
     "status": "preview",
     "sourceIds": [
       "deepseek-v4-pro-model-card",
@@ -477,10 +502,89 @@
       "coding"
     ],
     "firstReleaseDate": "2025-12-01",
+    "datePrecision": "day",
     "status": "legacy",
     "sourceIds": [
       "deepseek-v3-2-model-card",
       "hugging-face-deepseek-v3-2-hub-record"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "qwen3-8",
+    "slug": "qwen3-8",
+    "organizationId": "alibaba-cloud",
+    "name": "Qwen3.8",
+    "description": "Alibaba Cloud’s Qwen3.8 generation, published as downloadable weights on Hugging Face Hub and ModelScope: a sparse mixture-of-experts flagship alongside a dense vision-language model. Qwen is the family; the clouds that offer it, including Amazon’s, are separate entities recorded as serving platforms.",
+    "categories": [
+      "language-reasoning",
+      "coding",
+      "multimodal-generalist"
+    ],
+    "firstReleaseDate": "2026-08-12",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "qwen3-8-repository",
+      "qwen-hugging-face-organization"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "microsoft-mai",
+    "slug": "microsoft-mai",
+    "organizationId": "microsoft",
+    "name": "MAI",
+    "description": "The in-house model line built by Microsoft AI, opened in August 2025 with MAI-Voice-1 and MAI-1-preview and catalogued by Microsoft AI as foundational models across reasoning, coding, image, voice and transcription. These are models Microsoft created. Microsoft Copilot, the product some of them are placed inside, and Microsoft Foundry, the platform they are served on, are recorded separately and are not part of this family.",
+    "categories": [
+      "language-reasoning",
+      "coding",
+      "audio-speech",
+      "image"
+    ],
+    "firstReleaseDate": "2025-08-28",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "microsoft-two-in-house-models",
+      "microsoft-ai-models-page"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "microsoft-fara",
+    "slug": "microsoft-fara",
+    "organizationId": "microsoft",
+    "name": "Fara",
+    "description": "Microsoft Research AI Frontiers’ line of computer-use agent models for web browsers, published with downloadable weights under the MIT licence. It is a different line from the MAI models Microsoft AI builds: the same creator company, a different team, and separate evidence. Its models are fine-tuned from open-weight base models created by other organizations, which changes nothing about who created the Fara models themselves.",
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "firstReleaseDate": "2025-11-24",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "microsoft-fara-1-5-27b-model-card",
+      "microsoft-fara-7b-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "amazon-nova-2",
+    "slug": "amazon-nova-2",
+    "organizationId": "amazon",
+    "name": "Amazon Nova 2",
+    "description": "Amazon’s second generation of Nova foundation models, announced by AWS in December 2025 as \"our next generation of general models\" and built, per Amazon, on technologies originally developed for Amazon’s own applications. Nova is a family Amazon created; Amazon Bedrock, where it is served alongside hundreds of other companies’ models, is a serving platform and is recorded separately.",
+    "categories": [
+      "language-reasoning",
+      "audio-speech"
+    ],
+    "firstReleaseDate": "2025-12-02",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "amazon-nova-2-bedrock-announcement",
+      "amazon-nova-overview"
     ],
     "verifiedAt": "2026-08-28"
   }

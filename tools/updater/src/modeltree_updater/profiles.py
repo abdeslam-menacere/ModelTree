@@ -9,7 +9,7 @@ to be ambiguous — lives in ``profiles/<id>.json`` and is loaded here.
 Two rules this module exists to keep:
 
 * **No creator-specific branches.** There is deliberately no ``if creator == "openai"``
-  anywhere; the four profiles travel through the same code. A profile is data.
+  anywhere; every profile travels through the same code. A profile is data.
 * **A trusted source is not fetched here.** This module describes *which* sources are
   trusted and *what* may be extracted from them, with an owner and a verification
   date. It never reaches the network — runtime fetching is a separate concern.
