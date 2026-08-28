@@ -14,7 +14,7 @@ import type {
 // ages is the evidence: a statement's date is the verification date of the
 // newest fact beneath it, not a record of editorial review.
 import { STALE_AFTER_DAYS, daysSince } from './usage-evidence';
-import { accessLabel, categoryLabel, formatDate, formatNumber, formatReleaseDate, statusLabel } from './format';
+import { accessLabel, categoryLabel, formatNumber, formatReleaseDate, statusLabel } from './format';
 
 export { STALE_AFTER_DAYS, daysSince };
 
