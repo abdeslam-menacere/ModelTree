@@ -130,6 +130,28 @@ still reject when:
   underlying fact to transcribe. Vocabulary mapping never repairs an
   entity-boundary error; see the `editorial` rubric.
 
+#### Licence name is not OSI status, and mapping between them is not a recording step
+
+`osiApproved` is the field where this line is easiest to cross, so state it
+plainly (abdeslam-menacere/ModelTree#461). A model card that says "Apache 2.0"
+states a licence *name*. Whether OSI approved that licence is a distinct fact
+about the world that only OSI states. Mapping the name to OSI status is **not** a
+recording step of the kind the previous section admits: those cover a controlled
+*vocabulary* whose meaning is fixed by `web/src/data/schema.ts`, and units, both
+of which the schema itself defines. OSI approval is not a schema term — OSI owns
+it and can approve new licences — so it is a fact that needs a source, not a
+mapping the reviewer may perform.
+
+Therefore `osiApproved` requires a primary source that states OSI approval.
+OSI's own published licence list on `opensource.org` — an approved origin (see
+`tools/updater/profiles/origins/open-source-initiative.json`) — is that source. A
+licence name, an `spdxId`, or a licence `url` alone is **not** evidence of OSI
+status, and a claim that infers `osiApproved` from any of them is a rejection.
+This is the same answer the note beside `licenseSchema` in
+`web/src/data/schema.ts` gives, so schema and rubric agree: the `spdxId`/`url`
+requirement the schema enforces is a structural floor that identifies the
+licence, not evidence of its OSI status.
+
 #### Worked examples, from this repository's own runs
 
 Accept — each of these was accepted by `provenance` in PR abdeslam-menacere/ModelTree#438:

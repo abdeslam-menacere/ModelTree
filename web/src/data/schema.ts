@@ -85,6 +85,26 @@ export const accessType = z.enum([
 
 // Downloadable weights and OSI-approved licensing are separate claims. A model
 // may permit the first while failing the second, so neither implies the other.
+//
+// What evidences `osiApproved` (abdeslam-menacere/ModelTree#461): a licence
+// *name* never evidences OSI *status*. That a model card says "Apache 2.0" is a
+// fact about the name; whether OSI approved that licence is a distinct fact only
+// OSI states, so `osiApproved` must rest on a source that states OSI approval —
+// OSI's own published licence list at opensource.org, an approved origin (see
+// tools/updater/profiles/origins/open-source-initiative.json). This is exactly
+// what the `provenance` rubric in .github/skills/modeltree-review/SKILL.md
+// requires, so schema and rubric give the same answer for the same claim: an
+// `spdxId` or a licence `url` alone is not evidence of OSI status. The
+// `spdxId`/`url` requirement in `releaseSchema.superRefine` below is a structural
+// floor — it ensures a licence is identified — not the evidence rule for the
+// field's truth, which is the reviewer's to apply.
+//
+// A known asymmetry, recorded rather than resolved here: `superRefine` demands
+// an `spdxId` or `url` for `osiApproved: true` but nothing for `osiApproved:
+// false`, even though `false` is equally a claim about the world. Requiring a
+// source for `false` too would be consistent, but it changes validator behaviour
+// and is out of scope for #461; it is raised in that issue's summary for a
+// follow-up rather than implemented silently.
 export const licenseSchema = z.object({
   name: z.string().min(1),
   spdxId: z.string().min(1).optional(),

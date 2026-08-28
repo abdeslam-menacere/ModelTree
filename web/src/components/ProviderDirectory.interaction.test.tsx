@@ -198,9 +198,12 @@ describe('ProviderDirectory groups and roles', () => {
   });
 
   it('explains an empty group instead of rendering an empty alphabet bar', async () => {
-    // The seed dataset has no serving platform, which is the state this page
-    // ships in today: the group must say why rather than look broken.
-    renderDirectory(seed);
+    // The seed dataset now holds sourced serving platforms, so the empty state
+    // is proven against a dataset explicitly stripped of them rather than
+    // against whatever the data happens to contain. Left resting on the seed,
+    // this coverage would have disappeared silently the day the first platform
+    // record landed -- which is the day it did.
+    renderDirectory(buildProviderDirectory({ ...seedDataset, servingPlatforms: [] }, '/'));
     await waitFor(() => screen.getByRole('heading', { name: 'Serving platforms', level: 2 }));
 
     const platforms = screen.getByRole('heading', { name: 'Serving platforms', level: 2 })
@@ -209,6 +212,22 @@ describe('ProviderDirectory groups and roles', () => {
     expect(within(platforms).getByText(/No serving platform has been added/)).toBeDefined();
     expect(screen.queryByRole('navigation', { name: `Jump to a letter in ${PLATFORM_LABEL}` })).toBeNull();
     expect(creatorNav()).toBeDefined();
+  });
+
+  it('renders the seed serving platforms rather than the empty message', async () => {
+    // The counterpart to the test above, and the reason it had to change: the
+    // shipped data reaches this group now, so the populated branch is real.
+    expect(seedDataset.servingPlatforms.length).toBeGreaterThan(0);
+    renderDirectory(seed);
+    await waitFor(() => screen.getByRole('heading', { name: 'Serving platforms', level: 2 }));
+
+    const platforms = screen.getByRole('heading', { name: 'Serving platforms', level: 2 })
+      .closest('section') as HTMLElement;
+
+    expect(within(platforms).queryByText(/No serving platform has been added/)).toBeNull();
+    for (const platform of seedDataset.servingPlatforms) {
+      expect(within(platforms).getByText(platform.name)).toBeDefined();
+    }
   });
 });
 

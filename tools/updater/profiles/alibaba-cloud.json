@@ -1,0 +1,97 @@
+{
+  "creator": {
+    "id": "alibaba-cloud",
+    "name": "Alibaba Cloud",
+    "type": "company",
+    "aliases": ["Qwen", "Qwen team"]
+  },
+  "notes": [
+    "Reviewed creator profile for Alibaba Cloud, the creator of the Qwen family. Seeds are canonical Qwen-team-owned URLs; the tool describes and never fetches them.",
+    "This profile retires the Alibaba deferral recorded in profiles/origins/README.md. The creator entity was unresolved there; it is resolved here on the Qwen team's own Hugging Face organization profile, and the competing attribution is carried in `ambiguities` rather than dropped."
+  ],
+  "terminology": {
+    "family": "Alibaba Cloud's open-model family is Qwen, versioned by generation: Qwen3, Qwen3.5, Qwen3.8. A generation is the family; the weight sets published inside it are releases.",
+    "release": "A named weight set within a generation, e.g. Qwen3.8-2.4T-A95B or Qwen3.8-27B. The suffix encodes size: a bare figure is a dense parameter count, and a total-A-active pair is a mixture-of-experts total and active count.",
+    "variant": "Instruct, Thinking and Base suffixes are variants of a release within its generation, not separate families.",
+    "serving": "Qwen weights are published on Hugging Face Hub and ModelScope. Qwen models are also offered by clouds Alibaba Cloud does not operate, including Amazon SageMaker JumpStart, and a hosted Qwen3.8-Max service exists that is not the same artefact as the published weights."
+  },
+  "naming_rules": [
+    {
+      "subject": "family",
+      "rule": "The family is the Qwen generation. Do not create a family per model size.",
+      "example": "Qwen3.8-27B and Qwen3.8-2.4T-A95B both belong to the Qwen3.8 family."
+    },
+    {
+      "subject": "release",
+      "rule": "The canonical name is the creator's own weight name, dot included. Entity ids and slugs may not contain a dot, so the generation number is hyphenated there while the canonical name keeps it.",
+      "example": "canonicalName Qwen3.8-27B, id alibaba-qwen3-8-27b, slug qwen3-8-27b."
+    },
+    {
+      "subject": "parameters",
+      "rule": "Read the size suffix literally and never infer an active count for a dense release.",
+      "example": "Qwen3.8-2.4T-A95B is 2400B total and 95B active; Qwen3.8-27B is 27B total with no active count."
+    },
+    {
+      "subject": "license",
+      "rule": "Licences differ between releases in the same generation. Never carry one across the family.",
+      "example": "Qwen3.8-27B is Apache-2.0 while Qwen3.8-2.4T-A95B is under a licence of the creator's own drafting."
+    }
+  ],
+  "source_catalog": [
+    {
+      "id": "qwen-hugging-face",
+      "owner": "Qwen team, Alibaba Cloud",
+      "url": "https://huggingface.co/Qwen",
+      "kind": "model-card",
+      "allowed_paths": ["/Qwen"],
+      "allowed_content_types": ["organization-profile", "model-card"],
+      "trust": "primary",
+      "trust_notes": "The Qwen team's own Hugging Face organization and the model cards published under it. Authoritative for creator attribution, parameter counts, context lengths and licence metadata.",
+      "verified_at": "2026-08-28",
+      "verification": "Reached 2026-08-28. The organization profile states that Qwen \"refers to the large language model family built by Alibaba Cloud\" and gives https://qwen.ai/ as the organization website."
+    },
+    {
+      "id": "qwenlm-github",
+      "owner": "Qwen team, Alibaba Cloud",
+      "url": "https://github.com/QwenLM",
+      "kind": "repository",
+      "allowed_paths": ["/QwenLM"],
+      "allowed_content_types": ["readme", "release-note"],
+      "trust": "primary",
+      "trust_notes": "The Qwen team's GitHub organization. Each generation repository carries a dated News list, which is the only primary record of release dates that could be reached.",
+      "verified_at": "2026-08-28",
+      "verification": "Reached 2026-08-28 at https://github.com/QwenLM/Qwen3.8, whose News list is dated 2026-08-12 and 2026-08-14."
+    }
+  ],
+  "extraction_rules": {
+    "entity_kinds": ["organization", "family", "release", "deployment"],
+    "notes": [
+      "Take release dates from the generation repository's News list, not from Hugging Face commit timestamps, which record uploads rather than announcements.",
+      "Take parameter counts, context length and licence from the model card, which states each explicitly.",
+      "Never extract an organization, family or authorship claim from a third-party cloud's catalogue page. Such a page supports a deployment and nothing else.",
+      "Do not record qwencloud.com as a serving platform until a source states who operates it; the site does not say, and it also serves other creators' models."
+    ]
+  },
+  "ambiguities": [
+    {
+      "topic": "Creator entity",
+      "note": "The Hugging Face organization attributes Qwen to Alibaba Cloud, while the QwenLM/Qwen3.8 repository description credits \"Qwen team, Alibaba Group\", the parent company. Both wordings are the creator's own.",
+      "guidance": "Record Alibaba Cloud, on the organization profile, and carry the Alibaba Group wording in the organization description. Treat either name appearing in a future source as expected rather than as a new contradiction."
+    },
+    {
+      "topic": "Published weights versus the hosted Max service",
+      "note": "The Qwen3.8-2.4T-A95B card describes Qwen3.8-Max as \"the official version based on Qwen3.8-2.4T-A95B with more features, such as vision input & non-thinking support, 1M context length by default\".",
+      "guidance": "These are different artefacts. Do not copy the hosted service's modalities or context length onto the published weights."
+    },
+    {
+      "topic": "Native versus extended context length",
+      "note": "Cards state a native context length and a larger ceiling reached with YaRN scaling, and the ceilings differ between releases in the same generation.",
+      "guidance": "Record the native figure as the context window and leave the extended ceiling to prose. An extension technique is a property of how a model is run, not of the weights."
+    },
+    {
+      "topic": "The creator's own site cannot be read",
+      "note": "qwen.ai and qwen.ai/blog render client-side and return no text to a fetch; qwenlm.github.io last published on 2025-09-23 and redirects to qwen.ai.",
+      "guidance": "Use the Hugging Face organization and the QwenLM repositories. Never cite qwen.ai for a fact no fetch could actually read."
+    }
+  ]
+}
