@@ -20,6 +20,7 @@ import { usageProvenanceLabel } from './usage-evidence';
 import {
   accessTypeGlossary,
   allMethodologyDefinitions,
+  benchmarkComparabilityExamples,
   benchmarkConfigurationFields,
   categoryGlossary,
   deferredToImplementation,
@@ -167,6 +168,56 @@ describe('methodology benchmark configuration', () => {
   });
 });
 
+describe('methodology benchmark comparability examples', () => {
+  // AC3: the page must show comparable AND non-comparable cases. These must be
+  // illustrative rather than fabricated dataset facts, and every difference a
+  // non-comparable case turns on must be a real setup-key field the schema
+  // records — otherwise the example would invent a comparability rule.
+  const configFields = new Set(benchmarkConfigurationFields.map((entry) => entry.field));
+
+  it('shows at least one comparable and one non-comparable case', () => {
+    expect(benchmarkComparabilityExamples.some((example) => example.comparable)).toBe(true);
+    expect(benchmarkComparabilityExamples.some((example) => !example.comparable)).toBe(true);
+  });
+
+  it('gives every example two setups, a verdict reason, and no empty prose', () => {
+    for (const example of benchmarkComparabilityExamples) {
+      expect(example.scenario.trim().length).toBeGreaterThan(0);
+      expect(example.setupA.trim().length).toBeGreaterThan(0);
+      expect(example.setupB.trim().length).toBeGreaterThan(0);
+      expect(example.reason.trim().length).toBeGreaterThan(0);
+    }
+  });
+
+  it('keys every non-comparable case on a real recorded configuration field', () => {
+    const nonComparable = benchmarkComparabilityExamples.filter((example) => !example.comparable);
+    expect(nonComparable.length).toBeGreaterThan(0);
+    for (const example of nonComparable) {
+      expect(example.differingField).not.toBeNull();
+      expect(configFields).toContain(example.differingField);
+    }
+  });
+
+  it('leaves the comparable case with no differing field, matching identical setups', () => {
+    for (const example of benchmarkComparabilityExamples) {
+      if (example.comparable) {
+        expect(example.differingField).toBeNull();
+        expect(example.setupA).toBe(example.setupB);
+      } else {
+        expect(example.setupA).not.toBe(example.setupB);
+      }
+    }
+  });
+
+  it('states no benchmark score, so no dataset fact is fabricated', () => {
+    // Illustrative examples must not present numbers as facts about a model.
+    for (const example of benchmarkComparabilityExamples) {
+      const prose = `${example.scenario} ${example.setupA} ${example.setupB} ${example.reason}`;
+      expect(prose).not.toMatch(/\b\d+(?:\.\d+)?\s*%/);
+    }
+  });
+});
+
 describe('methodology deferred work', () => {
   // The page must name unimplemented policy and its owning issue rather than
   // inventing it. Benchmark comparability transformations are issue #22.
@@ -222,8 +273,12 @@ describe('methodology page source', () => {
     expect(page).toContain('methodologyReferences.correctionPath');
   });
 
-  it('marks deferred benchmark policy rather than inventing it', () => {
+  it('renders benchmark comparability examples and still marks deferred policy', () => {
+    expect(page).toContain('benchmarkComparabilityExamples');
     expect(page).toContain('deferredToImplementation');
-    expect(page).not.toContain('benchmarkComparabilityExamples');
+    // The examples must be presented as illustrative, not as dataset records.
+    expect(page).toContain('illustrative');
+    expect(page).toContain('Comparable');
+    expect(page).toContain('Not comparable');
   });
 });

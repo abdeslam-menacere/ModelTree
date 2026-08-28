@@ -5,6 +5,7 @@ import { formatDate } from '../lib/format';
 import { buildHomepageHierarchy, firstHomepageRelease } from '../lib/homepage';
 import {
   accessTypeGlossary,
+  benchmarkComparabilityExamples,
   benchmarkConfigurationFields,
   categoryGlossary,
   deferredToImplementation,
@@ -308,6 +309,37 @@ const sectionNumber = (index: number) => String(index + 1).padStart(2, '0');
                   <tr>
                     <th scope="row"><code>{entry.field}</code></th>
                     <td>{entry.records}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p>
+              The following worked examples show when two results may be read on the same axis and
+              when they may not. They are <strong>illustrative</strong>: the models, benchmark, and
+              setups are hypothetical placeholders, not records in the dataset, and no scores are
+              stated — each verdict turns only on the disclosed configuration the schema records.
+            </p>
+            <table class="method-glossary method-examples">
+              <caption>
+                Illustrative benchmark comparability — hypothetical setups, not dataset records
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Scenario</th>
+                  <th scope="col">Setup A</th>
+                  <th scope="col">Setup B</th>
+                  <th scope="col">Comparable?</th>
+                  <th scope="col">Why</th>
+                </tr>
+              </thead>
+              <tbody>
+                {benchmarkComparabilityExamples.map((example) => (
+                  <tr>
+                    <th scope="row">{example.scenario}</th>
+                    <td>{example.setupA}</td>
+                    <td>{example.setupB}</td>
+                    <td>{example.comparable ? 'Comparable' : 'Not comparable'}</td>
+                    <td>{example.reason}</td>
                   </tr>
                 ))}
               </tbody>

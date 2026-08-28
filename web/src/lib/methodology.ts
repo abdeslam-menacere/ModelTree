@@ -218,6 +218,73 @@ export const benchmarkConfigurationFields: BenchmarkConfigField[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Illustrative comparability examples. These satisfy the requirement that the
+// page show comparable and non-comparable cases WITHOUT fabricating dataset
+// facts: the models, benchmark, and setups are hypothetical placeholders, not
+// records, and no scores are invented — the verdict turns only on the disclosed
+// configuration, which is what the schema records and the validator keys on.
+// Each `differingField` is a real field in the validator's setup key
+// (validate.ts: benchmarkId|benchmarkVersion|releaseId|variantNote|
+// reasoningMode|toolsEnabled|harness) and a key in `benchmarkConfigurationFields`;
+// `methodology.test.ts` asserts that correspondence. This illustrates the
+// EXISTING vocabulary of comparability; normalising DIFFERENT setups into a
+// comparison is deferred to #22 (see `deferredToImplementation`).
+// ---------------------------------------------------------------------------
+
+export interface BenchmarkComparabilityExample {
+  scenario: string;
+  setupA: string;
+  setupB: string;
+  comparable: boolean;
+  reason: string;
+  /** The setup-key field that differs between the two runs; null when identical. */
+  differingField: string | null;
+}
+
+export const benchmarkComparabilityExamples: BenchmarkComparabilityExample[] = [
+  {
+    scenario:
+      'Two different models measured on the same benchmark and version — both official self-reports, both with reasoning disabled, neither using tools, on the same harness.',
+    setupA: 'Benchmark X v1 · official · reasoning off · tools off · harness H1',
+    setupB: 'Benchmark X v1 · official · reasoning off · tools off · harness H1',
+    comparable: true,
+    reason:
+      'Every field in the disclosed setup except the model itself matches, so the two scores sit on one axis. This is the setup key the validator builds; it refuses a second result for the same model under it precisely because keeping either would fabricate comparability.',
+    differingField: null,
+  },
+  {
+    scenario:
+      'The same benchmark and version, but one model ran with reasoning enabled and the other with reasoning disabled.',
+    setupA: 'Benchmark X v1 · reasoning on',
+    setupB: 'Benchmark X v1 · reasoning off',
+    comparable: false,
+    reason:
+      'reasoningMode differs — a disclosed configuration difference the schema records and the validator keys on — so the runs are not on the same axis.',
+    differingField: 'reasoningMode',
+  },
+  {
+    scenario:
+      'The same benchmark and version, but one model could call tools during the run and the other could not.',
+    setupA: 'Benchmark X v1 · tools on',
+    setupB: 'Benchmark X v1 · tools off',
+    comparable: false,
+    reason:
+      'toolsEnabled differs; a tool-assisted run and an unassisted run do not measure the same thing.',
+    differingField: 'toolsEnabled',
+  },
+  {
+    scenario:
+      'Both official self-reports with reasoning off and no tools, but one model is scored on version 1 of the benchmark and the other on version 2.',
+    setupA: 'Benchmark X v1',
+    setupB: 'Benchmark X v2',
+    comparable: false,
+    reason:
+      'benchmarkVersion differs; two versions are not the same set of questions, so the scores are not comparable.',
+    differingField: 'benchmarkVersion',
+  },
+];
+
+// ---------------------------------------------------------------------------
 // Deferred work. Policy this page deliberately does NOT specify, because the
 // system does not implement it yet. Naming the owning issue keeps the gap honest
 // rather than smoothing it over — the same posture the dataset takes toward
@@ -235,7 +302,7 @@ export const deferredToImplementation: DeferredPolicy[] = [
     area: 'Benchmark comparability and evidence transformations',
     issue: 'https://github.com/abdeslam-menacere/ModelTree/issues/22',
     note:
-      'How benchmark results are normalised or transformed to be compared across models — beyond recording each result’s configuration and refusing duplicate results under an identical setup — is not implemented. That policy is issue #22, which itself depends on #21 for benchmark seed data. Until it lands, this page records the benchmark terminology and configuration the schema captures but states no rule for comparing results, because none yet exists to describe.',
+      'How benchmark results run under *different* disclosed setups are normalised or transformed so they can still be compared — beyond recording each result’s configuration and refusing duplicate results under an identical setup — is not implemented. That policy is issue #22, which itself depends on #21 for benchmark seed data. Until it lands, this page illustrates which recorded configuration differences make two results non-comparable, but states no rule for reconciling those differences, because none yet exists to describe.',
   },
 ];
 
