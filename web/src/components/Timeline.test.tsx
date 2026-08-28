@@ -164,6 +164,14 @@ describe('Timeline', () => {
     expect(times.map((node) => node.getAttribute('datetime')).sort())
       .toEqual(entries.map((item) => item.date).sort());
 
+    // The attribute is machine-readable, so a segment it carries is a claim.
+    // It must never state more than the entry's own precision does.
+    const segments = { year: 1, month: 2, day: 3 };
+    for (const item of entries) {
+      const node = times.find((candidate) => candidate.getAttribute('datetime') === item.date);
+      expect(node?.getAttribute('datetime')?.split('-')).toHaveLength(segments[item.datePrecision]);
+    }
+
     const undated = times.find((node) => node.getAttribute('datetime') === OLD_YEAR);
     expect(undated?.textContent).toBe(OLD_YEAR);
   });
@@ -291,14 +299,20 @@ describe('Timeline', () => {
   });
 
   it('restores the view again when the reader navigates back', async () => {
-    const user = userEvent.setup();
     renderTimeline();
     await hydrated();
 
-    await user.click(screen.getByRole('checkbox', { name: /^Beta Corp/ }));
+    // Driven by history alone, never by the controls: the island writes its
+    // state with replaceState, like every other island here, so an in-page
+    // control leaves nothing to navigate back to. Only an entry pushed from
+    // outside — a link, or the reader's own history — reaches this path.
+    window.history.pushState({}, '', '/timeline/?creator=beta');
+    window.dispatchEvent(new PopStateEvent('popstate'));
     await waitFor(() => expect(renderedNames()).toHaveLength(2));
+    expect((screen.getByRole('checkbox', { name: /^Beta Corp/ }) as HTMLInputElement).checked)
+      .toBe(true);
 
-    window.history.replaceState({}, '', '/timeline/');
+    window.history.back();
     window.dispatchEvent(new PopStateEvent('popstate'));
 
     await waitFor(() => expect(renderedNames()).toHaveLength(entries.length));
