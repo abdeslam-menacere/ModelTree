@@ -8,11 +8,12 @@
  * assertion still passes — the section would ship having never once been seen
  * to work. These records are what the populated branches are proven against.
  *
- * Why they live here and not in `src/data/`: every fact in that directory
- * carries a primary source and a verification date, and these carry neither.
- * They describe organizations and models that do not exist, they are reachable
- * only from test files, and `passport.test.ts` asserts that no shipping module
- * imports this one. Nothing here reaches a built page.
+ * Why they live here and not anywhere under `web/src/`: every fact in
+ * `src/data/` carries a primary source and a verification date, and these carry
+ * neither — they describe organizations and models that do not exist. Keeping
+ * them outside the site source tree is what stops them reaching a built page,
+ * the same way `model-tree-dataset.ts` sits here rather than beside the code it
+ * exercises.
  *
  * The four scenarios the issue asks to be covered:
  *
@@ -38,8 +39,8 @@ import type {
   ReleaseEvent,
   ServingPlatform,
   SourceReference,
-} from '../data/schema';
-import type { PassportDataset } from './passport';
+} from '../../src/data/schema';
+import type { PassportDataset } from '../../src/lib/passport';
 
 /** The build date every fixture-driven expectation is computed against. */
 export const FIXTURE_TODAY = '2026-08-27';

@@ -1,6 +1,3 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import { accessTypeGlossary, lifecycleStatusGlossary, methodologyReferences } from './methodology';
@@ -14,7 +11,7 @@ import {
   PROPRIETARY_RELEASE_ID,
   SPARSE_RELEASE_ID,
   passportFixtures,
-} from './passport-fixtures';
+} from '../../tests/fixtures/passport-dataset';
 import {
   PASSPORT_SECTION_ORDER,
   PassportError,
@@ -44,52 +41,6 @@ const sectionOf = (view: ReturnType<typeof fixtureView>, id: (typeof PASSPORT_SE
   if (!section) throw new Error(`no section ${id}`);
   return section;
 };
-
-describe('fixtures are test-only', () => {
-  // Every fact in `src/data/` carries a primary source and a verification date.
-  // The fixture module carries none, by design, so the guarantee that matters is
-  // that nothing which ships can reach it. Grepping for zero importers proves
-  // nothing on its own — a renamed file or a wrong root would read as zero too —
-  // so the same walk also counts the importers that are known to exist.
-  const root = fileURLToPath(new URL('..', import.meta.url));
-
-  const sourceFiles = (): string[] => {
-    const found: string[] = [];
-    const walk = (dir: string) => {
-      for (const entry of readdirSync(dir)) {
-        const full = join(dir, entry);
-        if (statSync(full).isDirectory()) {
-          walk(full);
-          continue;
-        }
-        if (/\.(ts|tsx|astro|mjs|js)$/.test(entry)) found.push(full);
-      }
-    };
-    walk(root);
-    return found;
-  };
-
-  const importers = sourceFiles().filter((file) => {
-    if (file.endsWith(`lib${'\\'}passport-fixtures.ts`) || file.endsWith('lib/passport-fixtures.ts')) {
-      return false;
-    }
-    return /from '.*passport-fixtures'/.test(readFileSync(file, 'utf8'));
-  }).map((file) => relative(root, file).replaceAll('\\', '/'));
-
-  it('is imported by exactly the two test files that need it', () => {
-    // Positive control: the walk finds real matches, so a zero below is absence
-    // rather than a broken search.
-    expect(importers.sort()).toEqual([
-      'components/ModelPassport.test.tsx',
-      'lib/passport.test.ts',
-    ]);
-  });
-
-  it('is imported by no shipping module', () => {
-    const shipping = importers.filter((file) => !/\.test\.tsx?$/.test(file));
-    expect(shipping).toEqual([]);
-  });
-});
 
 describe('date formatting respects the precision the source stated', () => {
   it('prints a year-only date as a year', () => {

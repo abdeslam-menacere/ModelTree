@@ -9,7 +9,7 @@ import {
   PROPRIETARY_RELEASE_ID,
   SPARSE_RELEASE_ID,
   passportFixtures,
-} from '../lib/passport-fixtures';
+} from '../../tests/fixtures/passport-dataset';
 import { buildModelPassport } from '../lib/passport';
 import ModelPassport from './ModelPassport';
 
