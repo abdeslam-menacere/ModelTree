@@ -221,7 +221,7 @@ export default function LineageExplorer({
                         <GitBranch size={14} aria-hidden="true" /> Family
                       </span>
                       <h3 id={`family-${view.family.id}`}>{view.family.name}</h3>
-                      <small>First released {formatDate(view.family.firstReleaseDate)}</small>
+                      <small>First released {formatReleaseDate(view.family.firstReleaseDate, view.family.datePrecision)}</small>
                     </header>
 
                     {view.hasRecordedLineage ? (

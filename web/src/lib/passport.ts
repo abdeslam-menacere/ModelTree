@@ -48,7 +48,14 @@ import type {
 } from '../data/schema';
 import { modelRoute } from './catalog';
 import { compareUrl } from './compare-route';
-import { accessLabel, categoryLabel, formatDate, formatNumber, statusLabel } from './format';
+import {
+  accessLabel,
+  categoryLabel,
+  formatDate,
+  formatDateWithPrecision,
+  formatNumber,
+  statusLabel,
+} from './format';
 import { accessTypeGlossary, lifecycleStatusGlossary, methodologyReferences } from './methodology';
 import { daysSince } from './usage-evidence';
 
@@ -181,38 +188,12 @@ export function releaseEventLabel(type: ReleaseEvent['type']) {
 // ---------------------------------------------------------------------------
 
 /**
- * Renders a date only as precisely as the source stated it.
- *
- * `releaseDate` is stored as a full ISO date even when the announcement gave
- * only a month, and `datePrecision` records what was actually said. Printing
- * "1 Mar 2026" for a source that said "March 2026" would invent a day, so the
- * precision decides the format rather than the stored string's shape. Partial
- * dates from `partialDate` fields (release events) are handled by the same
- * function, reading their precision off their own length.
+ * Renders a date only as precisely as the source stated it. Defined in
+ * `lib/format.ts` so there is exactly one implementation of the rule; this
+ * module re-exports it because the passport view model and its tests were its
+ * first callers.
  */
-export function formatDateWithPrecision(value: string, precision: 'year' | 'month' | 'day') {
-  const [year, month, day] = value.split('-');
-
-  if (precision === 'year') return year;
-  if (precision === 'month') {
-    // Day 1 is a formatting placeholder only; nothing below it is displayed.
-    return new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric', timeZone: 'UTC' })
-      .format(new Date(`${year}-${month}-01T00:00:00Z`));
-  }
-
-  return formatDate(`${year}-${month}-${day}`);
-}
-
-/** The precision a `partialDate` states, read off the value itself. */
-export function precisionOfPartialDate(value: string): 'year' | 'month' | 'day' {
-  const parts = value.split('-').length;
-  if (parts === 1) return 'year';
-  return parts === 2 ? 'month' : 'day';
-}
-
-export function formatPartialDate(value: string) {
-  return formatDateWithPrecision(value, precisionOfPartialDate(value));
-}
+export { formatDateWithPrecision, formatPartialDate, precisionOfPartialDate } from './format';
 
 /**
  * A rate with its currency code.

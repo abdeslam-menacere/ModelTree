@@ -1,3 +1,4 @@
+import { precisionOf } from '../../src/data/partial-date';
 import type {
   Dataset,
   Deployment,
@@ -95,6 +96,7 @@ function family(id: string, organizationId: string, name: string, firstReleaseDa
     description: `Synthetic family ${id} used only to exercise provider profiles.`,
     categories: ['language-reasoning'],
     firstReleaseDate,
+    datePrecision: precisionOf(firstReleaseDate),
     status: 'current',
     sourceIds: [SOURCE_ID],
     verifiedAt: VERIFIED_AT,

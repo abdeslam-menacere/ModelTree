@@ -14,7 +14,7 @@ import type {
 // ages is the evidence: a statement's date is the verification date of the
 // newest fact beneath it, not a record of editorial review.
 import { STALE_AFTER_DAYS, daysSince } from './usage-evidence';
-import { accessLabel, categoryLabel, formatDate, formatNumber, statusLabel } from './format';
+import { accessLabel, categoryLabel, formatNumber, formatReleaseDate, statusLabel } from './format';
 
 export { STALE_AFTER_DAYS, daysSince };
 
@@ -255,7 +255,7 @@ function describeReleaseField(release: Dataset['releases'][number], field: strin
     case 'status':
       return statusLabel(release.status);
     case 'releaseDate':
-      return formatDate(release.releaseDate);
+      return formatReleaseDate(release.releaseDate, release.datePrecision);
     default:
       return release.intendedUse;
   }
@@ -288,7 +288,7 @@ function resolveFact(ref: FitFactRef, data: FitDataset): ResolvedFact | undefine
       const detail = ref.field === 'status'
         ? statusLabel(family.status)
         : ref.field === 'firstReleaseDate'
-          ? formatDate(family.firstReleaseDate)
+          ? formatReleaseDate(family.firstReleaseDate, family.datePrecision)
           : family.categories.map(categoryLabel).join(', ');
       return {
         label: FAMILY_FIELD_LABELS[ref.field] ?? ref.field,

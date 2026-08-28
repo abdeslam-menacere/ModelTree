@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { precisionOf } from './partial-date';
 import { rawDataset } from './raw';
 import { validateDataset } from './validate';
 
@@ -168,7 +169,7 @@ describe('validateDataset', () => {
     const input = copyDataset();
     input.releases[0].releaseDate = '2025-02-30';
 
-    expect(() => validateDataset(input)).toThrow(/real calendar date/);
+    expect(() => validateDataset(input)).toThrow(/must be a real date written as/);
   });
 
   it('rejects a broken family reference', () => {
@@ -479,5 +480,121 @@ describe('extended entity invariants', () => {
     input.releases[0].derivedFromIds = ['missing-release'];
 
     expect(() => validateDataset(input)).toThrow(/derivedFromIds references missing id/);
+  });
+});
+
+describe('partial dates on family and release dates', () => {
+  /**
+   * A creator whose sources only give a month is the case this schema change
+   * exists for, so it is checked end to end rather than field by field: a family
+   * and one of its releases are both coarsened, and the whole dataset must still
+   * validate with the values intact.
+   */
+  it('accepts a month-precision family and release', () => {
+    const input = mutableDataset();
+    const family = input.families[0];
+    const release = findRelease(input, (candidate) => candidate.familyId === family.id);
+
+    family.firstReleaseDate = family.firstReleaseDate.slice(0, 7);
+    family.datePrecision = 'month';
+    release.releaseDate = release.releaseDate.slice(0, 7);
+    release.datePrecision = 'month';
+
+    const dataset = validateDataset(input);
+
+    expect(dataset.families.find((entry) => entry.id === family.id)!.firstReleaseDate)
+      .toBe(family.firstReleaseDate);
+    expect(dataset.releases.find((entry) => entry.id === release.id)!.releaseDate)
+      .toBe(release.releaseDate);
+  });
+
+  it('accepts a year-precision family and release', () => {
+    const input = mutableDataset();
+    const family = input.families[0];
+    const release = findRelease(input, (candidate) => candidate.familyId === family.id);
+
+    family.firstReleaseDate = family.firstReleaseDate.slice(0, 4);
+    family.datePrecision = 'year';
+    release.releaseDate = release.releaseDate.slice(0, 4);
+    release.datePrecision = 'year';
+
+    expect(validateDataset(input).families.find((entry) => entry.id === family.id)!.datePrecision)
+      .toBe('year');
+  });
+
+  /*
+   * The invented-day path, closed from both directions. Widening the type is
+   * what makes a month recordable; these two are what stop the old workaround --
+   * invent a day, then label it `month` -- from remaining available.
+   */
+  it('rejects a release that claims month precision while carrying a day', () => {
+    const input = mutableDataset();
+    input.releases[0].datePrecision = 'month';
+
+    expect(() => validateDataset(input)).toThrow(/does not match precision/);
+  });
+
+  it('rejects a family that claims month precision while carrying a day', () => {
+    const input = mutableDataset();
+    input.families[0].datePrecision = 'month';
+
+    expect(() => validateDataset(input)).toThrow(/does not match precision/);
+  });
+
+  it('rejects a release that claims day precision while carrying only a month', () => {
+    const input = mutableDataset();
+    input.releases[0].releaseDate = input.releases[0].releaseDate.slice(0, 7);
+
+    expect(() => validateDataset(input)).toThrow(/does not match precision/);
+  });
+
+  it('rejects a family that claims day precision while carrying only a month', () => {
+    const input = mutableDataset();
+    input.families[0].firstReleaseDate = input.families[0].firstReleaseDate.slice(0, 7);
+
+    expect(() => validateDataset(input)).toThrow(/does not match precision/);
+  });
+
+  it('rejects an impossible partial family date', () => {
+    const input = mutableDataset();
+    input.families[0].firstReleaseDate = '2025-13';
+    input.families[0].datePrecision = 'month';
+
+    expect(() => validateDataset(input)).toThrow(/must be a real date written as/);
+  });
+
+  /**
+   * Criterion 4. Every committed record keeps the date it already had and is
+   * marked `day` -- because a day is what those sources gave, not because `day`
+   * is a convenient default for a newly required field. The counts are floors so
+   * that adding a record does not force an edit here, while deleting one fails.
+   *
+   * That the *values* are unchanged is a property of the diff rather than of a
+   * test: `families.json` gains lines and loses none, and `releases.json` is not
+   * touched at all.
+   */
+  it('leaves every committed date at day precision, agreeing with its value', () => {
+    const dataset = validateDataset(copyDataset());
+    const dated = [
+      ...dataset.families.map((family) => ({
+        id: family.id,
+        value: family.firstReleaseDate,
+        precision: family.datePrecision,
+      })),
+      ...dataset.releases.map((release) => ({
+        id: release.id,
+        value: release.releaseDate,
+        precision: release.datePrecision,
+      })),
+    ];
+
+    expect(dataset.families.length).toBeGreaterThanOrEqual(26);
+    expect(dataset.releases.length).toBeGreaterThanOrEqual(51);
+
+    const notDay = dated.filter((entry) => entry.precision !== 'day');
+    expect(notDay).toEqual([]);
+
+    const disagreeing = dated.filter((entry) => precisionOf(entry.value) !== entry.precision);
+    expect(disagreeing).toEqual([]);
   });
 });

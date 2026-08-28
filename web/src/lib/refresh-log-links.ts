@@ -1,4 +1,5 @@
 import type { PostedDocument, PostedRecord, RefreshRun } from '../data/refresh-log-schema';
+import { comparePartialDatesDescending } from '../data/partial-date';
 
 /**
  * Links from a recorded run to the things it actually published.
@@ -59,10 +60,9 @@ function withTrailingSlash(base: string) {
 
 /** Newest first, with the id breaking a tie so the choice never depends on input order. */
 function newestFirst<T extends { releaseDate: string; id: string }>(releases: readonly T[]) {
-  return [...releases].sort((a, b) => {
-    if (a.releaseDate !== b.releaseDate) return a.releaseDate < b.releaseDate ? 1 : -1;
-    return a.id < b.id ? 1 : -1;
-  });
+  return [...releases].sort((a, b) => (
+    comparePartialDatesDescending(a.releaseDate, b.releaseDate) || (a.id < b.id ? 1 : -1)
+  ));
 }
 
 /**
