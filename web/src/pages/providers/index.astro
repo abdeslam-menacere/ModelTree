@@ -1,0 +1,106 @@
+---
+import ProviderDirectory from '../../components/ProviderDirectory';
+import { dataset } from '../../data/dataset';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { formatDate } from '../../lib/format';
+import { buildHomepageHierarchy, firstHomepageRelease } from '../../lib/homepage';
+import { buildProviderDirectory } from '../../lib/provider-directory';
+
+const base = import.meta.env.BASE_URL;
+const passportHref = `${base}models/${firstHomepageRelease(buildHomepageHierarchy(dataset)).slug}/`;
+const directory = buildProviderDirectory(dataset, base);
+const catalogHref = `${base}models/`;
+
+// The island is server-rendered, so every group, letter section, and row is in
+// the static HTML and the A to Z jumps work as ordinary fragment links with no
+// JavaScript. Only the search box needs hydration, which is what the noscript
+// note below tells a reader who has none.
+---
+
+<BaseLayout
+  title="Creator and serving-platform directory | ModelTree"
+  description="An A to Z directory of the organizations that create AI model families and the platforms that serve them, kept as separate roles with derived family, release, and deployment counts."
+  passportHref={passportHref}
+  verifiedAt={formatDate(directory.latestVerifiedAt)}
+  currentPage="directory"
+>
+  <main id="main-content" class="directory-page">
+    <header class="directory-intro">
+      <div>
+        <span class="eyebrow">Directory</span>
+        <h1>Who builds the models, and who serves them.</h1>
+      </div>
+      <p>
+        “Provider” hides a distinction this directory keeps: an organization that trains and
+        publishes model families is not the same thing as a platform that makes a model reachable,
+        and one organization can do both without the two roles merging. Each entry states its role
+        in words, and every count below is derived from the families, releases, and deployments
+        recorded in the data.
+      </p>
+      <p class="directory-intro-note">
+        There is no per-organization page in this build. A creator with published releases opens the
+        <a href={catalogHref}>model catalog</a> filtered to its own releases; anything without a
+        generated destination says so on the row instead of linking.
+      </p>
+    </header>
+
+    <noscript>
+      <p class="directory-noscript">
+        Search needs JavaScript. The full directory, its A to Z jump links, and every entry below
+        work without it.
+      </p>
+    </noscript>
+
+    <ProviderDirectory client:load directory={directory} />
+  </main>
+</BaseLayout>
+
+<style>
+  .directory-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+
+  .directory-intro {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 40px;
+    max-width: 74ch;
+  }
+
+  .directory-intro h1 {
+    margin: 8px 0 0;
+    font-size: 46px;
+    line-height: 1.05;
+  }
+
+  .directory-intro p {
+    margin: 0;
+    color: var(--cp-text-soft);
+    font-size: 17px;
+    line-height: 1.6;
+  }
+
+  .directory-intro-note {
+    font-size: 15px;
+  }
+
+  .directory-noscript {
+    margin: 0 0 24px;
+    border: 1px solid var(--cp-border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: var(--cp-text-soft);
+  }
+
+  @media (max-width: 700px) {
+    .directory-page {
+      padding: 32px 16px 64px;
+    }
+
+    .directory-intro h1 {
+      font-size: 34px;
+    }
+  }
+</style>
