@@ -17,6 +17,35 @@ const informationArchitecture = readFileSync(
   'utf8',
 );
 
+type OrganizationType = (typeof organizationSchema.shape.type.options)[number];
+
+interface OrganizationFacts {
+  independentContributorReleaseAuthority?: boolean;
+  offersPaidModelProductsOrAccess?: boolean;
+  institutionControlsReleases?: boolean;
+  primarilyResearch?: boolean;
+  centrallyGovernedNonprofit?: boolean;
+}
+
+function applyOrganizationTypePolicy(facts: OrganizationFacts): {
+  type: OrganizationType;
+  clause: 'community' | 'paid-company' | 'research-lab' | 'nonprofit' | 'company-fallback';
+} {
+  if (facts.independentContributorReleaseAuthority) {
+    return { type: 'community', clause: 'community' };
+  }
+  if (facts.offersPaidModelProductsOrAccess) {
+    return { type: 'company', clause: 'paid-company' };
+  }
+  if (facts.institutionControlsReleases && facts.primarilyResearch) {
+    return { type: 'research-lab', clause: 'research-lab' };
+  }
+  if (facts.centrallyGovernedNonprofit) {
+    return { type: 'nonprofit', clause: 'nonprofit' };
+  }
+  return { type: 'company', clause: 'company-fallback' };
+}
+
 describe('organization type policy', () => {
   it('keeps the required four-member category and all committed assignments', () => {
     expect(organizationSchema.shape.type.options).toEqual([
@@ -51,15 +80,74 @@ describe('organization type policy', () => {
     expect(normalizedPolicy).toContain('not merely submit work');
     expect(normalizedPolicy).toContain('offers model products or');
     expect(normalizedPolicy).toContain('access for payment under its name');
+    expect(normalizedPolicy).toContain("a parent's sales do not count");
     expect(normalizedPolicy).toContain('one standalone institution or');
     expect(normalizedPolicy).toContain('named unit controls releases');
     expect(normalizedPolicy).toContain('exists primarily for research');
-    expect(normalizedPolicy).toContain("a parent's sales do not");
+    expect(normalizedPolicy).toContain('otherwise `company`');
+    expect(normalizedPolicy).toContain('centrally operated creator that runs the model work');
     const categoryOffsets = ['`community`', '`company`', '`research-lab`', '`nonprofit`'].map(
       (category) => normalizedPolicy.indexOf(category),
     );
     expect(categoryOffsets.every((offset) => offset >= 0)).toBe(true);
     expect(categoryOffsets).toEqual([...categoryOffsets].sort((a, b) => a - b));
+    expect(normalizedPolicy.lastIndexOf('otherwise `company`')).toBeGreaterThan(
+      normalizedPolicy.indexOf('`nonprofit`'),
+    );
+  });
+
+  it('assigns every committed organization through a total generic procedure', () => {
+    const cases: Record<string, {
+      facts: OrganizationFacts;
+      type: OrganizationType;
+      clause: ReturnType<typeof applyOrganizationTypePolicy>['clause'];
+    }> = {
+      openai: {
+        facts: { offersPaidModelProductsOrAccess: true },
+        type: 'company',
+        clause: 'paid-company',
+      },
+      anthropic: {
+        facts: { offersPaidModelProductsOrAccess: true },
+        type: 'company',
+        clause: 'paid-company',
+      },
+      'google-deepmind': {
+        facts: { institutionControlsReleases: true, primarilyResearch: true },
+        type: 'research-lab',
+        clause: 'research-lab',
+      },
+      meta: {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
+      },
+      xai: {
+        facts: { offersPaidModelProductsOrAccess: true },
+        type: 'company',
+        clause: 'paid-company',
+      },
+      'mistral-ai': {
+        facts: { offersPaidModelProductsOrAccess: true },
+        type: 'company',
+        clause: 'paid-company',
+      },
+      deepseek: {
+        facts: { offersPaidModelProductsOrAccess: true },
+        type: 'company',
+        clause: 'paid-company',
+      },
+    };
+
+    expect(Object.keys(cases).sort()).toEqual(rawDataset.organizations.map(({ id }) => id).sort());
+    for (const organization of rawDataset.organizations) {
+      const testCase = cases[organization.id];
+      expect(applyOrganizationTypePolicy(testCase.facts)).toEqual({
+        type: testCase.type,
+        clause: testCase.clause,
+      });
+      expect(testCase.type).toBe(organization.type);
+    }
   });
 
   it('exempts only organization type from quote-gated provenance', () => {
