@@ -39,7 +39,6 @@
 import type {
   BenchmarkDefinition,
   BenchmarkResult,
-  Dataset,
   Deployment,
   ModelFamily,
   ModelRelease,
@@ -195,12 +194,26 @@ export function parseComparisonSelection(search: string, knownSlugs: readonly st
 /**
  * The query string for a selection. Empty for an empty selection, so a cleared
  * comparison yields a bare `/compare/` rather than a trailing `?models=`.
+ *
+ * Any other parameter already in `currentSearch` is carried through untouched.
+ * The information architecture pairs `models=` with an optional `domain` and
+ * `benchmark`, which belong to the evidence route rather than to this one; this
+ * page gives them no meaning, and dropping them when a reader adds a model would
+ * quietly break a link that arrived carrying them.
  */
-export function serializeComparisonSelection(slugs: readonly string[]) {
-  if (slugs.length === 0) return '';
+export function serializeComparisonSelection(
+  slugs: readonly string[],
+  currentSearch = '',
+) {
+  const carried = new URLSearchParams(currentSearch);
+  carried.delete(COMPARE_QUERY_PARAMETER);
+
   const params = new URLSearchParams();
-  params.set(COMPARE_QUERY_PARAMETER, slugs.join(','));
-  return `?${params.toString()}`;
+  if (slugs.length > 0) params.set(COMPARE_QUERY_PARAMETER, slugs.join(','));
+  for (const [key, value] of carried) params.append(key, value);
+
+  const query = params.toString();
+  return query === '' ? '' : `?${query}`;
 }
 
 function normalizeBase(base: string) {
