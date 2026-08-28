@@ -747,5 +747,218 @@
     "publisherId": "mmmu-benchmark",
     "lastCheckedDate": "2026-08-27",
     "notes": "Owner repository for the MMMU multimodal understanding benchmark (paper arXiv:2311.16502); scores are accuracy where higher is better."
+  },
+  {
+    "id": "xai-grok-4-6-announcement",
+    "url": "https://x.ai/news/grok-4-6",
+    "title": "Introducing Grok 4.6",
+    "type": "official-announcement",
+    "publisherId": "xai",
+    "publishedDate": "2026-08-12",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "Carries a machine-readable datePublished of 2026-08-12, which is the only day-level date the creator states for this release. The page also carries the footer \"© 2026 SpaceXAI LLC\". Its benchmark and ranking prose is deliberately not recorded."
+  },
+  {
+    "id": "xai-grok-4-announcement",
+    "url": "https://x.ai/news/grok-4",
+    "title": "Grok 4",
+    "type": "official-announcement",
+    "publisherId": "xai",
+    "publishedDate": "2025-07-09",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "Carries a machine-readable datePublished of 2025-07-09 and the page title \"Grok 4 | SpaceXAI\". This is the dated announcement that opens the Grok 4 generation. Its benchmark and ranking prose is deliberately not recorded."
+  },
+  {
+    "id": "xai-grok-4-5-announcement",
+    "url": "https://x.ai/news/grok-4-5",
+    "title": "Introducing Grok 4.5",
+    "type": "official-announcement",
+    "publisherId": "xai",
+    "publishedDate": "2026-07-16",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "Carries a machine-readable datePublished of 2026-07-16."
+  },
+  {
+    "id": "xai-grok-4-6-docs",
+    "url": "https://docs.x.ai/developers/models/grok-4.6",
+    "title": "Grok 4.6 model documentation",
+    "type": "official-docs",
+    "publisherId": "xai",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States the modalities, the 500,000-token context window, and the model name grok-4.6. Publishes no parameter count."
+  },
+  {
+    "id": "xai-grok-4-5-docs",
+    "url": "https://docs.x.ai/developers/models/grok-4.5",
+    "title": "Grok 4.5 model documentation",
+    "type": "official-docs",
+    "publisherId": "xai",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "Lists grok-4.5-latest and grok-build-latest as aliases of this one model. Publishes no parameter count."
+  },
+  {
+    "id": "xai-models-docs",
+    "url": "https://docs.x.ai/developers/models",
+    "title": "Models",
+    "type": "official-docs",
+    "publisherId": "xai",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States the alias convention in the creator’s own words: \"<modelname> is aliased to the latest stable version\", \"<modelname>-latest is aliased to the latest version\", and \"<modelname>-<date> refers directly to a specific model release\". Aliases therefore name existing releases and never identify new ones."
+  },
+  {
+    "id": "xai-release-notes",
+    "url": "https://docs.x.ai/developers/release-notes",
+    "title": "Release Notes",
+    "type": "official-docs",
+    "publisherId": "xai",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "Groups launches under month headings with no day-level dates, so it establishes chronology but cannot supply a release date. The name \"xAI\" appears here on the same site whose page titles and footer say \"SpaceXAI\"."
+  },
+  {
+    "id": "mistral-3-announcement",
+    "url": "https://mistral.ai/news/mistral-3/",
+    "title": "Introducing Mistral 3",
+    "type": "official-announcement",
+    "publisherId": "mistral-ai",
+    "publishedDate": "2025-12-02",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "Announces Mistral Large 3 and the Ministral 3 sizes together, states \"41B active and 675B total parameters\" for Large 3, and states that all models in the announcement are released under the Apache 2.0 licence. Its leaderboard placements are deliberately not recorded."
+  },
+  {
+    "id": "mistral-large-3-model-card",
+    "url": "https://huggingface.co/mistralai/Mistral-Large-3-675B-Instruct-2512",
+    "title": "mistralai/Mistral-Large-3-675B-Instruct-2512",
+    "type": "model-card",
+    "publisherId": "mistral-ai",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States a 256k context window and Apache-2.0 licensing. Its own parameter figures disagree: the heading says 675B total with 41B active, while the architecture list says 673B with 39B active plus a 2.5B vision encoder. The announcement figure is recorded and the disagreement is left visible rather than reconciled."
+  },
+  {
+    "id": "mistral-ministral-3-8b-model-card",
+    "url": "https://huggingface.co/mistralai/Ministral-3-8B-Instruct-2512",
+    "title": "mistralai/Ministral-3-8B-Instruct-2512",
+    "type": "model-card",
+    "publisherId": "mistral-ai",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States a 256k context window, Apache-2.0 licensing, and vision capabilities backed by a 0.4B vision encoder."
+  },
+  {
+    "id": "mistral-devstral-2-announcement",
+    "url": "https://mistral.ai/news/devstral-2-vibe-cli/",
+    "title": "Introducing: Devstral 2 and Mistral Vibe CLI.",
+    "type": "official-announcement",
+    "publisherId": "mistral-ai",
+    "publishedDate": "2025-12-09",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "Announces the two Devstral 2 models. Mistral Vibe CLI is a product rather than a model and is not recorded as a release."
+  },
+  {
+    "id": "mistral-devstral-2-123b-model-card",
+    "url": "https://huggingface.co/mistralai/Devstral-2-123B-Instruct-2512",
+    "title": "mistralai/Devstral-2-123B-Instruct-2512",
+    "type": "model-card",
+    "publisherId": "mistral-ai",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States a 256k context window and licenses the weights under a \"Modified MIT License\", which is a licence of the creator’s own drafting rather than the OSI-approved MIT licence."
+  },
+  {
+    "id": "mistral-devstral-small-2-24b-model-card",
+    "url": "https://huggingface.co/mistralai/Devstral-Small-2-24B-Instruct-2512",
+    "title": "mistralai/Devstral-Small-2-24B-Instruct-2512",
+    "type": "model-card",
+    "publisherId": "mistral-ai",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States \"just 24 billion parameters\", a 256k context window, and Apache-2.0 licensing."
+  },
+  {
+    "id": "mistral-small-4-announcement",
+    "url": "https://mistral.ai/news/mistral-small-4/",
+    "title": "Introducing Mistral Small 4",
+    "type": "official-announcement",
+    "publisherId": "mistral-ai",
+    "publishedDate": "2026-03-16",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "Carries a machine-readable datePublished of 2026-03-16."
+  },
+  {
+    "id": "mistral-small-4-model-card",
+    "url": "https://huggingface.co/mistralai/Mistral-Small-4-119B-2603",
+    "title": "mistralai/Mistral-Small-4-119B-2603",
+    "type": "model-card",
+    "publisherId": "mistral-ai",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States \"119B parameters, with 6.5B activated per token\", a 256k context window, Apache-2.0 licensing, and text-and-image input with text output."
+  },
+  {
+    "id": "mistral-ai-hf-organization",
+    "url": "https://huggingface.co/mistralai",
+    "title": "mistralai organization",
+    "type": "repository",
+    "publisherId": "mistral-ai",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "The creator’s verified Hugging Face organization, where it publishes downloadable weights alongside its hosted API."
+  },
+  {
+    "id": "deepseek-hf-organization",
+    "url": "https://huggingface.co/deepseek-ai",
+    "title": "deepseek-ai organization",
+    "type": "repository",
+    "publisherId": "deepseek",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "The creator’s verified Hugging Face organization. It is the only first-party DeepSeek surface that could be reached on 2026-08-28: www.deepseek.com failed at the transport layer on two independent attempts, as did api-docs.deepseek.com."
+  },
+  {
+    "id": "deepseek-v4-pro-model-card",
+    "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro",
+    "title": "deepseek-ai/DeepSeek-V4-Pro",
+    "type": "model-card",
+    "publisherId": "deepseek",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States 1.6T total and 49B activated parameters, a 1M context window, MIT licensing, and that this is \"a preview version of DeepSeek-V4 series\". Its \"on-policy distillation\" describes consolidating the creator’s own domain experts during post-training, not derivation from another creator’s model. Its comparative ranking claims are deliberately not recorded."
+  },
+  {
+    "id": "deepseek-v4-flash-model-card",
+    "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash",
+    "title": "deepseek-ai/DeepSeek-V4-Flash",
+    "type": "model-card",
+    "publisherId": "deepseek",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States 284B total and 13B activated parameters, a 1M context window, and MIT licensing."
+  },
+  {
+    "id": "deepseek-v3-2-model-card",
+    "url": "https://huggingface.co/deepseek-ai/DeepSeek-V3.2",
+    "title": "deepseek-ai/DeepSeek-V3.2",
+    "type": "model-card",
+    "publisherId": "deepseek",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States MIT licensing and describes DeepSeek Sparse Attention. It states no parameter count and no context window, so neither is recorded for this release."
+  },
+  {
+    "id": "hugging-face-deepseek-v4-pro-hub-record",
+    "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-V4-Pro",
+    "title": "Hugging Face Hub record for deepseek-ai/DeepSeek-V4-Pro",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "The Hub’s machine-readable record, carrying the createdAt of 2026-04-22 used as this release’s date. Only that Hub-measured timestamp is cited from here; the card prose at the human-readable URL is DeepSeek’s and is recorded separately as deepseek-v4-pro-model-card."
+  },
+  {
+    "id": "hugging-face-deepseek-v4-flash-hub-record",
+    "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-V4-Flash",
+    "title": "Hugging Face Hub record for deepseek-ai/DeepSeek-V4-Flash",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "The Hub’s machine-readable record, carrying the createdAt of 2026-04-22 used as this release’s date."
+  },
+  {
+    "id": "hugging-face-deepseek-v3-2-hub-record",
+    "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-V3.2",
+    "title": "Hugging Face Hub record for deepseek-ai/DeepSeek-V3.2",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "The Hub’s machine-readable record, carrying the createdAt of 2025-12-01 used as this release’s date."
   }
 ]

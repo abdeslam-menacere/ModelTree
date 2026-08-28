@@ -56,5 +56,51 @@
       "meta-llama-4-announcement"
     ],
     "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "xai",
+    "slug": "xai",
+    "name": "SpaceXAI",
+    "shortName": "xAI",
+    "type": "company",
+    "website": "https://x.ai",
+    "releasePage": "https://x.ai/news",
+    "description": "The creator of the Grok models, served through a hosted API with no downloadable weights. Its own surfaces do not agree on one name: x.ai titles its news pages \"SpaceXAI\" and carries the footer \"© 2026 SpaceXAI LLC\", while the developer documentation on docs.x.ai describes the same models as \"SpaceXAI’s frontier model\" and the interface as \"the xAI API\". Both names are first-party and nothing checked on either site states a rename, so both are recorded and neither is asserted to have replaced the other.",
+    "sourceIds": [
+      "xai-grok-4-6-announcement",
+      "xai-models-docs",
+      "xai-release-notes"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "mistral-ai",
+    "slug": "mistral-ai",
+    "name": "Mistral AI",
+    "shortName": "Mistral",
+    "type": "company",
+    "website": "https://mistral.ai",
+    "releasePage": "https://mistral.ai/news/",
+    "description": "A French creator that publishes downloadable weights on its verified Hugging Face organization alongside a hosted API, and that uses more than one licence across the models it publishes. Its Hugging Face display name is written \"Mistral AI_\"; the trailing underscore is treated as a display artefact rather than part of the name.",
+    "sourceIds": [
+      "mistral-3-announcement",
+      "mistral-ai-hf-organization"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "deepseek",
+    "slug": "deepseek",
+    "name": "DeepSeek",
+    "shortName": "DeepSeek",
+    "type": "company",
+    "website": "https://huggingface.co/deepseek-ai",
+    "releasePage": "https://huggingface.co/deepseek-ai",
+    "description": "A Chinese creator that publishes open weights under the MIT licence. Both www.deepseek.com and api-docs.deepseek.com failed at the transport layer when checked on 2026-08-28, on two independent attempts each, so no page on the creator’s own domain could be read. The website and release page recorded here are its verified Hugging Face organization, which is the first-party surface that could be reached, and every DeepSeek fact in this dataset is read from there rather than from the creator’s own domain.",
+    "sourceIds": [
+      "deepseek-hf-organization",
+      "deepseek-v4-pro-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
   }
 ]

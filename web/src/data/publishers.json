@@ -65,5 +65,20 @@
   {
     "id": "mmmu-benchmark",
     "name": "MMMU Benchmark"
+  },
+  {
+    "id": "xai",
+    "name": "SpaceXAI",
+    "organizationId": "xai"
+  },
+  {
+    "id": "mistral-ai",
+    "name": "Mistral AI",
+    "organizationId": "mistral-ai"
+  },
+  {
+    "id": "deepseek",
+    "name": "DeepSeek",
+    "organizationId": "deepseek"
   }
 ]
