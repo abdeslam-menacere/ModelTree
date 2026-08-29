@@ -2675,7 +2675,7 @@
     "familyId": "ai2-olmo-2",
     "version": "7B",
     "variant": "Base",
-    "releaseDate": "2024-10-29",
+    "releaseDate": "2024-11-26",
     "datePrecision": "day",
     "status": "current",
     "featured": false,
@@ -2721,7 +2721,7 @@
     "familyId": "tii-falcon-h1",
     "version": "34B",
     "variant": "Instruct",
-    "releaseDate": "2025-05-01",
+    "releaseDate": "2025-05-21",
     "datePrecision": "day",
     "status": "current",
     "featured": false,
@@ -2859,8 +2859,8 @@
     "familyId": "zhipu-ai-glm-4-5",
     "version": "Air",
     "variant": "Air",
-    "releaseDate": "2025-07-20",
-    "datePrecision": "day",
+    "releaseDate": "2025-07",
+    "datePrecision": "month",
     "status": "current",
     "featured": false,
     "categories": [
@@ -2893,7 +2893,8 @@
     "intendedUse": "Reasoning, coding, and agentic tasks where a smaller open-weight GLM-4.5 model is preferred.",
     "sourceIds": [
       "zhipu-ai-glm-4-5-model-card",
-      "zhipu-ai-glm-4-5-paper"
+      "zhipu-ai-glm-4-5-paper",
+      "zhipu-ai-glm-4-5-announcement"
     ],
     "verifiedAt": "2026-08-28"
   },

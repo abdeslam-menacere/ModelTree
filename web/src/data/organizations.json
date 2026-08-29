@@ -235,7 +235,8 @@
     "description": "A Chinese AI company, originating from Tsinghua University research, that develops the open-weight GLM model family and offers paid API access.",
     "sourceIds": [
       "zhipu-ai-glm-4-5-model-card",
-      "zhipu-ai-glm-4-5-paper"
+      "zhipu-ai-glm-4-5-paper",
+      "zhipu-ai-glm-4-5-announcement"
     ],
     "verifiedAt": "2026-08-28"
   },

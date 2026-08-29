@@ -617,7 +617,7 @@
     "categories": [
       "language-reasoning"
     ],
-    "firstReleaseDate": "2024-10-29",
+    "firstReleaseDate": "2024-11-26",
     "datePrecision": "day",
     "status": "current",
     "sourceIds": [
@@ -635,7 +635,7 @@
     "categories": [
       "language-reasoning"
     ],
-    "firstReleaseDate": "2025-05-01",
+    "firstReleaseDate": "2025-05-21",
     "datePrecision": "day",
     "status": "current",
     "sourceIds": [
@@ -691,12 +691,13 @@
       "language-reasoning",
       "coding"
     ],
-    "firstReleaseDate": "2025-07-20",
-    "datePrecision": "day",
+    "firstReleaseDate": "2025-07",
+    "datePrecision": "month",
     "status": "current",
     "sourceIds": [
       "zhipu-ai-glm-4-5-model-card",
-      "zhipu-ai-glm-4-5-paper"
+      "zhipu-ai-glm-4-5-paper",
+      "zhipu-ai-glm-4-5-announcement"
     ],
     "verifiedAt": "2026-08-28"
   },

@@ -1209,10 +1209,11 @@
   },
   {
     "id": "tii-falcon-h1-announcement",
-    "url": "https://falcon-lm.github.io/blog/falcon-h1/",
-    "title": "Falcon-H1: A Family of Hybrid-Head Language Models",
+    "url": "https://atrc.gov.ae/news/middle-easts-leading-ai-powerhouse-tii-launches-two-new-ai-models-falcon-arabic-the-first",
+    "title": "TII Launches Falcon Arabic and Falcon-H1 AI Models",
     "type": "official-announcement",
     "publisherId": "tii",
+    "publishedDate": "2025-05-21",
     "lastCheckedDate": "2026-08-28"
   },
   {
@@ -1287,6 +1288,14 @@
     "title": "Kimi-K2-Instruct model card",
     "type": "model-card",
     "publisherId": "moonshot-ai",
+    "lastCheckedDate": "2026-08-28"
+  },
+  {
+    "id": "zhipu-ai-glm-4-5-announcement",
+    "url": "https://z.ai/blog/glm-4.5",
+    "title": "GLM-4.5: Reasoning, Coding, and Agentic Abilities",
+    "type": "official-announcement",
+    "publisherId": "zhipu-ai",
     "lastCheckedDate": "2026-08-28"
   }
 ]
