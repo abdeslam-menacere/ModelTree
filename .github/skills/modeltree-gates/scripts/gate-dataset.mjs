@@ -378,9 +378,11 @@ function gateFamilyHasRelease(docs) {
     if (!referenced.has(family.id)) {
       fail(
         'family-has-release',
-        'no release belongs to this family, so the tree drops it and the published site is quietly '
-          + 'smaller than the dataset states (the dataset cannot express "announced but unreleased", '
-          + 'so this is a data error rather than a fact)',
+        'no release belongs to this family, so the build contradicts itself: /tree/ drops the family '
+          + '(model-tree.ts filters out families with no releases) while the homepage still counts it '
+          + 'and renders it as an empty branch, so one page hides the error and the other publishes it '
+          + '(the dataset cannot express "announced but unreleased", so this is a data error rather '
+          + 'than a fact)',
         `families:${family.id}`,
       );
     }
