@@ -149,7 +149,7 @@ export default function HomepageSearch({ index }: Props) {
     <section className="home-search" aria-labelledby="home-search-title" data-enhanced={enhanced ? 'true' : 'false'}>
       <div className="home-search-head">
         <span className="eyebrow">Find a release</span>
-        <h2 id="home-search-title">Search featured models, families, and creators.</h2>
+        <h2 id="home-search-title">Search every model, family, and creator on this page.</h2>
         <p>
           Look up a model by name, a known API alias, its family, or its creator, then
           narrow by category, access, status, or release period.
@@ -158,7 +158,7 @@ export default function HomepageSearch({ index }: Props) {
 
       <form className="home-search-toolbar" role="search" onSubmit={(event) => event.preventDefault()}>
         <div className="home-search-field">
-          <label htmlFor="home-search-input">Search featured releases</label>
+          <label htmlFor="home-search-input">Search releases</label>
           <div className="home-search-input-wrap">
             <Search className="home-search-icon" size={18} aria-hidden="true" />
             <input
@@ -236,7 +236,7 @@ export default function HomepageSearch({ index }: Props) {
       <div className="home-search-results-head">
         <p className="home-search-count" role="status" aria-live="polite">
           {noResults
-            ? 'No featured releases match the current search'
+            ? 'No releases match the current search'
             : `${results.total} ${results.total === 1 ? 'release' : 'releases'}`}
           {results.selected && !noResults && (
             <span className="home-search-selected-note"> · showing {results.selected.name}</span>
@@ -277,8 +277,9 @@ export default function HomepageSearch({ index }: Props) {
       {noResults ? (
         <div className="home-search-empty">
           <p>
-            No featured releases match {canReset ? 'this search' : 'the homepage'}. The homepage
-            covers featured releases only — the full catalog is searchable from the model directory.
+            No releases match {canReset ? 'this search' : 'the homepage'}. Every creator
+            and release this page names is searchable here — the model directory lists
+            the same catalog with its own filters and per-provider filing.
           </p>
           {canReset && (
             <button
