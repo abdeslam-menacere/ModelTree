@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { dataset as seedDataset } from '../data/dataset';
+import { precisionOf } from '../data/partial-date';
 import type { Dataset } from '../data/schema';
 import { validateDataset } from '../data/validate';
 import {
@@ -84,6 +85,7 @@ function organization(id: string, name: string): Record<string, unknown> {
 }
 
 function family(id: string, organizationId: string, categories: string[]): Record<string, unknown> {
+  const firstReleaseDate = '2023-01-01';
   return {
     id,
     slug: id,
@@ -91,7 +93,10 @@ function family(id: string, organizationId: string, categories: string[]): Recor
     name: id,
     description: 'Fixture family.',
     categories,
-    firstReleaseDate: '2023-01-01',
+    firstReleaseDate,
+    // Derived rather than stated: these families exist to carry releases, and no
+    // assertion here turns on their precision.
+    datePrecision: precisionOf(firstReleaseDate),
     status: 'current',
     sourceIds: ['src-a'],
     verifiedAt: '2026-01-01',
@@ -142,10 +147,17 @@ const index = buildTimelineIndex(fixture(), '/');
 const entryById = new Map(index.entries.map((entry) => [entry.id, entry]));
 
 /**
- * A release whose precision claims less than its stored date does.
- * `releaseSchema.releaseDate` is a full ISO date whatever the precision beside
- * it says, and `validateDataset` only checks that pairing for release events —
- * so this shape validates, and the timeline has to narrow it itself.
+ * A release a source dated only to the year.
+ *
+ * This fixture used to prove the opposite point: it paired `datePrecision:
+ * 'year'` with a full `2024-03-15`, because `releaseDate` was an `isoDate` and
+ * `validateDataset` checked date-against-precision for release events only, so
+ * the incoherent pair validated and the timeline had to narrow it itself.
+ * abdeslam-menacere/ModelTree#468 closed that: `releaseDate` is now a
+ * `partialDate` and the pairing is enforced for releases too, so a year-precision
+ * release says `2024` and nothing else can be stored. The assertions below are
+ * unchanged — a coarse release must still keep its ceiling, its label and its
+ * stop — but they now run against the honest shape rather than the padded one.
  */
 const coarseIndex = (() => {
   const base = fixture();
@@ -153,7 +165,7 @@ const coarseIndex = (() => {
     ...base,
     releases: [
       ...base.releases,
-      release('alpha-undated', 'alpha', 'alpha-one', '2024-03-15', { datePrecision: 'year' }),
+      release('alpha-undated', 'alpha', 'alpha-one', '2024', { datePrecision: 'year' }),
     ],
   }), '/');
 })();
