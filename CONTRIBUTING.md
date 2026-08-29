@@ -231,8 +231,10 @@ person or agent deliberately reverting the code under test and watching what
 happened. That reverting is the practice these conventions ask you to keep.
 
 The examples cited are real tests in this repository, quoted from the commit
-these conventions were written against. Grep them by name — the names are
-stable, line numbers are not (see rule 5).
+these conventions were written against. Grep them by name — a name is far more
+durable than a line number, which is why it is the citation form rule 5 asks
+for, though nothing in the suite verifies these particular citations stay
+accurate (see rule 5).
 
 ### 1. Guard against vacuity: prove the collection is non-empty first
 
@@ -321,6 +323,26 @@ When documentation, a comment, or a pull request points at a test, name it —
 numbers expire the moment the file is edited; this repository tracks that decay
 as its own class of bug (see issue #527). Every citation in this section is by
 name for exactly this reason.
+
+**An accepted gap, named as one.** A test name is markedly more durable than a
+line number, but it is not immune: renaming a cited `it('…')`, or editing a
+quoted code block, would make this section wrong and nothing in the suite or CI
+would fail. `web/tests/contributing/issue-forms.test.ts` reads this file, but
+only to check that the `npm run` scripts it names exist, that it links
+`/methodology`, and that it names both issue-form filenames — it does not pin
+any test-name citation or quoted block; and the `instruction-references`
+workflow that resolves references elsewhere covers the instruction and skill
+documents (`.github/copilot-instructions.md`, `.github/skills/**`, and
+`tools/instruction_refs/**`), not `CONTRIBUTING.md`. So by rule 6's own standard
+this is an **accepted gap**, recorded here rather than presented as an enforced
+guarantee: the citations above are verified accurate at the commit that added
+them, and re-verified whenever this section is edited, but that discipline is
+manual. Closing it would mean a test that greps each cited name out of its
+source file and fails when one goes missing — deliberately out of scope for the
+issue that wrote these conventions, which is documentation-only, and left to
+[issue #544](https://github.com/abdeslam-menacere/ModelTree/issues/544) so it
+can change a test legitimately. Issue #543 is a live instance of the same rule-6
+failure mode in the dataset code.
 
 ### 6. A decision defended only in a comment is not enforced
 
