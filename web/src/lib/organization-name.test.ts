@@ -1,5 +1,5 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { basename, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
@@ -575,6 +575,18 @@ describe('the creator naming rule where creators are ordered', () => {
  * directly or through a local alias. The identifier set is derived from the
  * source, so renaming `organizationById` does not blind it.
  *
+ * The fourth widening is the file type. The sweep read `.tsx` and `.ts` only,
+ * so the `.astro` surfaces where the site's pages actually render were outside
+ * it entirely -- including three `.astro` files sitting inside the swept
+ * `components/` directory, stepped over on suffix. Nothing displayed a raw
+ * recorded name there, so this closed a latent gap rather than a live defect;
+ * the guard is shown to fire on `.astro` by mutation instead, since correct
+ * code staying green proves nothing. A citation surface complicates the
+ * widening: `SourceList.astro` renders `publisher.name`, which is the recorded
+ * first-party name of a distinct entity and correctly not a creator label, so
+ * it is exempt by the same record-following gate -- it holds no Organization
+ * record -- rather than by a path rule that would re-blind the surface.
+ *
  * What it still cannot do is catch a surface that never names the record at
  * all -- a destructured sort comparator reading `a.name` is invisible to any
  * sweep for a shape. That class is guarded by the real-dataset assertions
@@ -583,20 +595,54 @@ describe('the creator naming rule where creators are ordered', () => {
  */
 describe('the creator naming rule on surfaces added later', () => {
   const LIB_DIRECTORY = fileURLToPath(new URL('.', import.meta.url));
+
+  // The corpus is every source surface that can hold a creator record and render
+  // it. The React components and lib modules the rule has always swept, plus the
+  // `.astro` surfaces that are where the site's pages actually render: three sit
+  // literally inside the swept `components/` directory and were skipped only on
+  // suffix, the page tree lives under `pages/`, and the shared chrome under
+  // `layouts/`. `.astro` is folded into the existing corpus rather than swept in
+  // parallel, so the same record-following gate below judges every surface by
+  // one rule. See abdeslam-menacere/ModelTree#528: the pages are correct today,
+  // so this closes a latent gap rather than a live defect, and is proved to fire
+  // by mutation rather than by watching already-correct code stay green.
   const roots = [
-    { directory: fileURLToPath(new URL('../components', import.meta.url)), extension: '.tsx' },
-    { directory: LIB_DIRECTORY, extension: '.ts' },
+    { directory: fileURLToPath(new URL('../components', import.meta.url)), extensions: ['.tsx', '.astro'] },
+    { directory: LIB_DIRECTORY, extensions: ['.ts'] },
+    { directory: fileURLToPath(new URL('../pages', import.meta.url)), extensions: ['.astro'] },
+    { directory: fileURLToPath(new URL('../layouts', import.meta.url)), extensions: ['.astro'] },
   ];
+
+  // The walk recurses. `pages/` nests creator surfaces under `models/`,
+  // `providers/` and `refresh/`, and a flat `readdirSync` would step over every
+  // one of them -- which is the same "surface added later" failure mode this
+  // tripwire exists to catch. Recursing also closes the secondary latent gap the
+  // issue names: a future subdirectory under `lib/` or `components/` was invisible
+  // before. `__snapshots__` is excluded because it holds generated snapshot data,
+  // not source that can render a name.
+  const EXCLUDED_DIRECTORIES = new Set(['__snapshots__']);
+
+  function sourceFilesUnder(directory: string, extensions: string[]): string[] {
+    return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+      const full = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        return EXCLUDED_DIRECTORIES.has(entry.name) ? [] : sourceFilesUnder(full, extensions);
+      }
+      return extensions.some((extension) => entry.name.endsWith(extension)) ? [full] : [];
+    });
+  }
 
   // The rule module is the one place the raw field is read on purpose: it is
   // what every other module calls instead of reading it directly.
   const RULE_MODULE = 'organization-name.ts';
 
-  const modules = roots.flatMap(({ directory, extension }) => readdirSync(directory)
-    .filter((file) => (
-      file.endsWith(extension) && !file.includes('.test.') && file !== RULE_MODULE
-    ))
-    .map((file) => ({ file, source: readFileSync(join(directory, file), 'utf8') })));
+  const modules = roots.flatMap(({ directory, extensions }) => sourceFilesUnder(directory, extensions)
+    .filter((path) => !path.includes('.test.') && basename(path) !== RULE_MODULE)
+    .map((path) => ({
+      file: relative(directory, path).split(sep).join('/'),
+      directory,
+      source: readFileSync(path, 'utf8'),
+    })));
 
   /**
    * Identifiers of every Map in a module whose values are organization records.
@@ -686,7 +732,7 @@ describe('the creator naming rule on surfaces added later', () => {
    */
   function holdsOrganizationRecords(source: string): boolean {
     return (
-      /import\s+type\s*\{[^}]*\bOrganization\b[^}]*\}\s*from\s*'\.\.\/data\/schema'/.test(source)
+      /import\s+type\s*\{[^}]*\bOrganization\b[^}]*\}\s*from\s*'(?:\.\.\/)+data\/schema'/.test(source)
       || /\.organizations\b/.test(source)
       // ...or destructures one out of a prepared view: `const { organization } =
       // ecosystem`. `homepage-search.ts` arrived with a later surface holding
@@ -703,12 +749,42 @@ describe('the creator naming rule on surfaces added later', () => {
     // Per-directory, not just in total: a corpus that silently lost one whole
     // directory is the defect this tripwire was widened to fix, and a combined
     // count would still look healthy while that happened.
-    for (const { directory, extension } of roots) {
-      const swept = modules.filter(({ file }) => (
-        file.endsWith(extension) && existsSync(join(directory, file))
-      ));
+    for (const { directory } of roots) {
+      const swept = modules.filter((module) => module.directory === directory);
       expect(swept.length, `nothing swept in ${directory}`).toBeGreaterThan(0);
     }
+  });
+
+  it('discovers the .astro surfaces, so their silence is coverage and not an empty glob', () => {
+    // The vacuity guard for the widening this issue is about. An `.astro` sweep
+    // that matched nothing would pass exactly as quietly as one that matched
+    // clean pages -- which is the failure mode this repository has shipped
+    // before. So the discovery is asserted, and the count named in the failure
+    // message, so a future reader can tell coverage from silence rather than
+    // trusting a green run over an empty corpus.
+    const astro = modules.filter(({ file }) => file.endsWith('.astro'));
+    expect(
+      astro.length,
+      `no .astro surfaces discovered -- the sweep matched nothing (found: ${astro.map(({ file }) => file).join(', ')})`,
+    ).toBeGreaterThan(0);
+  });
+
+  it('does not flag SourceList.astro, because a citation names the publisher entity and not a creator', () => {
+    // The first hit a naive `.astro` widening produces, and a false one:
+    // `publisherById.get(source.publisherId)?.name` is the recorded first-party
+    // name of the *publisher* of a cited source -- a distinct entity from the
+    // creator this rule governs, and one no creator label applies to. It is
+    // exempt by that entity boundary, not by path or by silencing the shape: the
+    // file holds no Organization record, and `publisherById` is not a Map built
+    // from `dataset.organizations`, so neither of the sweep's record shapes
+    // reaches it. Relabelling the citation was proposed and rejected as #513.
+    const component = modules.find(({ file }) => file === 'SourceList.astro');
+    // Control: the exemption below means nothing if the file is not swept at all.
+    expect(component, 'SourceList.astro is not in the swept corpus').toBeDefined();
+    expect(/\?\.name\b/.test(component!.source)).toBe(true);
+    expect(holdsOrganizationRecords(component!.source)).toBe(false);
+    expect(organizationMapIdentifiers(component!.source)).toEqual([]);
+    expect(rawRecordedNameReads(component!.source)).toEqual([]);
   });
 
   it('renders no raw recorded name in a module that holds an Organization record', () => {
