@@ -790,5 +790,116 @@
       "upstage-solar-pro-preview-model-card"
     ],
     "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "ibm-granite-4-2",
+    "slug": "granite-4-2",
+    "organizationId": "ibm",
+    "name": "Granite 4.2",
+    "description": "IBM’s Granite 4.2 generation: dense, decoder-only reasoning models in 3B, 8B and 30B, each with a thinking / non-thinking switch and native tool calling, released under the Apache 2.0 licence. Only the 30B release is recorded here.",
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "firstReleaseDate": "2026-08-25",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "ibm-granite-4-2-technical-blog",
+      "ibm-granite-4-2-repository",
+      "ibm-granite-4-2-30b-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "baidu-ernie-4-5",
+    "slug": "ernie-4-5",
+    "organizationId": "baidu",
+    "name": "ERNIE 4.5",
+    "description": "Baidu’s ERNIE 4.5 generation, which its repository describes as a family of large-scale multimodal models in ten variants spanning text and vision-language mixture-of-experts models, all published under Apache 2.0. Only the 300B text model is recorded here.",
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
+    "firstReleaseDate": "2025-06-28",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "baidu-ernie-repository",
+      "baidu-ernie-4-5-300b-model-card",
+      "hugging-face-ernie-4-5-300b-hub-record"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "tencent-hunyuan-video",
+    "slug": "hunyuan-video",
+    "organizationId": "tencent",
+    "name": "HunyuanVideo",
+    "description": "Tencent’s open-weight video generation line within the Hunyuan model family, published with inference code and weights under Tencent’s own community licence.",
+    "categories": [
+      "video"
+    ],
+    "firstReleaseDate": "2024-12-03",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "tencent-hunyuan-video-model-card",
+      "tencent-hunyuan-community-license"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "bytedance-seed-oss",
+    "slug": "seed-oss",
+    "organizationId": "bytedance-seed",
+    "name": "Seed-OSS",
+    "description": "ByteDance Seed’s open-source language model series, released in base and instruction-tuned 36B forms under Apache 2.0 with a long context length.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2025-08-20",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "bytedance-seed-oss-36b-instruct-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "stability-ai-stable-diffusion-3-5",
+    "slug": "stable-diffusion-3-5",
+    "organizationId": "stability-ai",
+    "name": "Stable Diffusion 3.5",
+    "description": "Stability AI’s Stable Diffusion 3.5 generation of text-to-image diffusion transformers, published under the Stability AI Community License. Only the Large model is recorded here.",
+    "categories": [
+      "image"
+    ],
+    "firstReleaseDate": "2024-10-22",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "stability-ai-sd-3-5-announcement",
+      "stability-ai-sd-3-5-large-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "databricks-dbrx",
+    "slug": "dbrx",
+    "organizationId": "databricks",
+    "name": "DBRX",
+    "description": "Databricks’ mixture-of-experts language model, published as base and instruction-tuned weights under the Databricks Open Model License and served to Databricks customers through APIs.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2024-03-27",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "databricks-dbrx-announcement",
+      "databricks-open-model-license"
+    ],
+    "verifiedAt": "2026-08-29"
   }
 ]

@@ -312,5 +312,95 @@
       "upstage-solar-pro-preview-model-card"
     ],
     "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "ibm",
+    "slug": "ibm",
+    "name": "IBM",
+    "shortName": "IBM",
+    "type": "company",
+    "website": "https://www.ibm.com/granite",
+    "releasePage": "https://huggingface.co/ibm-granite",
+    "description": "The company behind the Granite family of open-source language models, which it describes as built for enterprise and research use and releases under the Apache 2.0 licence.",
+    "sourceIds": [
+      "ibm-granite-product-page",
+      "ibm-granite-4-2-repository"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "baidu",
+    "slug": "baidu",
+    "name": "Baidu, Inc.",
+    "shortName": "Baidu",
+    "type": "company",
+    "website": "https://home.baidu.com",
+    "releasePage": "https://huggingface.co/baidu",
+    "description": "The company behind the ERNIE model line, whose 4.5 generation it publishes as a family of large-scale multimodal models under the Apache License 2.0.",
+    "sourceIds": [
+      "baidu-ernie-4-5-300b-model-card",
+      "baidu-ernie-repository"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "tencent",
+    "slug": "tencent",
+    "name": "Tencent",
+    "shortName": "Tencent",
+    "type": "company",
+    "website": "https://hunyuan.tencent.com",
+    "releasePage": "https://huggingface.co/tencent",
+    "description": "The company behind the Hunyuan model line, which spans text, image, video and 3D generation and is published under Tencent’s own community licence rather than an OSI-approved one.",
+    "sourceIds": [
+      "tencent-hunyuan-video-model-card",
+      "tencent-hunyuan-community-license"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "bytedance-seed",
+    "slug": "bytedance-seed",
+    "name": "ByteDance Seed",
+    "shortName": "ByteDance Seed",
+    "type": "company",
+    "website": "https://seed.bytedance.com/en/",
+    "releasePage": "https://huggingface.co/ByteDance-Seed",
+    "description": "ByteDance’s Seed team, the research organization that develops and publishes the Seed model line. It is recorded as the creator of those models and is deliberately kept separate from ByteDance’s consumer assistant products, which this dataset does not record.",
+    "sourceIds": [
+      "bytedance-seed-site",
+      "bytedance-seed-oss-36b-instruct-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "stability-ai",
+    "slug": "stability-ai",
+    "name": "Stability AI Ltd.",
+    "shortName": "Stability AI",
+    "type": "company",
+    "website": "https://stability.ai",
+    "releasePage": "https://stability.ai/news-updates",
+    "description": "The company behind the Stable Diffusion text-to-image models, published under its own community licence, which is free below a stated annual revenue threshold and requires a paid enterprise licence above it.",
+    "sourceIds": [
+      "stability-ai-sd-3-5-large-model-card",
+      "stability-ai-community-license"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "databricks",
+    "slug": "databricks",
+    "name": "Databricks, Inc.",
+    "shortName": "Databricks",
+    "type": "company",
+    "website": "https://www.databricks.com",
+    "releasePage": "https://www.databricks.com/blog",
+    "description": "The data and AI platform company behind DBRX, a mixture-of-experts language model whose weights it published under its own open model licence while also serving it to its customers through APIs.",
+    "sourceIds": [
+      "databricks-dbrx-announcement",
+      "databricks-open-model-license"
+    ],
+    "verifiedAt": "2026-08-29"
   }
 ]

@@ -128,6 +128,12 @@ describe('organization type policy', () => {
       'lg-ai-research': 'research-lab',
       snowflake: 'company',
       upstage: 'company',
+      ibm: 'company',
+      baidu: 'company',
+      tencent: 'company',
+      'bytedance-seed': 'company',
+      'stability-ai': 'company',
+      databricks: 'company',
     });
   });
 
@@ -287,6 +293,54 @@ describe('organization type policy', () => {
         facts: {},
         type: 'company',
         clause: 'company-fallback',
+      },
+      // IBM's own Granite page establishes indemnification for "IBM-developed
+      // models" and contrasts IBM with "other providers of large language
+      // models", but no IBM-published page read for this record states that IBM
+      // sells model products or access. Indemnification is not a paid offering
+      // and the contrast is not a claim, so no fact is asserted here rather than
+      // inferring one from the surrounding commercial language.
+      ibm: {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
+      },
+      // No Baidu-published page read for this record states that Baidu sells
+      // model products or access under its own name, so no fact is asserted and
+      // the fallback clause types it rather than a reverse-engineered one.
+      baidu: {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
+      },
+      // Same position as Baidu: the Hunyuan card and licence establish who
+      // publishes the weights, and neither establishes a paid offering.
+      tencent: {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
+      },
+      // Seed is ByteDance's named research unit and publishes its own models,
+      // but nothing read here establishes that it "exists primarily for
+      // research" as the research-lab clause requires, so it is not claimed.
+      'bytedance-seed': {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
+      },
+      // Stability's own model card puts commercial use above $1M in annual
+      // revenue behind an Enterprise License obtained from Stability AI.
+      'stability-ai': {
+        facts: { offersPaidModelProductsOrAccess: true },
+        type: 'company',
+        clause: 'paid-company',
+      },
+      // Databricks' own announcement states "DBRX is available for Databricks
+      // customers to use via APIs", which is access under its own name.
+      databricks: {
+        facts: { offersPaidModelProductsOrAccess: true },
+        type: 'company',
+        clause: 'paid-company',
       },
     };
 

@@ -3192,5 +3192,278 @@
       "osi-license-mit"
     ],
     "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "ibm-granite-4-2-30b",
+    "slug": "granite-4-2-30b",
+    "canonicalName": "granite-4.2-30b",
+    "displayName": "Granite 4.2 30B",
+    "organizationId": "ibm",
+    "familyId": "ibm-granite-4-2",
+    "version": "4.2",
+    "variant": "30B",
+    "releaseDate": "2026-08-25",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 30
+    },
+    "contextWindow": 131072,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "IBM’s largest Granite 4.2 model: a 30B dense decoder-only reasoning model post-trained on the Granite 4.1 base, with a thinking / non-thinking switch and weights under Apache 2.0.",
+    "intendedUse": "IBM describes the generation as built for enterprise and research use, with the 8B and 30B models additionally trained through agentic reinforcement learning for tool calling, code editing and terminal use.",
+    "sourceIds": [
+      "ibm-granite-4-2-30b-model-card",
+      "ibm-granite-4-2-technical-blog",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "baidu-ernie-4-5-300b-a47b",
+    "slug": "ernie-4-5-300b-a47b",
+    "canonicalName": "ERNIE-4.5-300B-A47B-PT",
+    "displayName": "ERNIE 4.5 300B A47B",
+    "organizationId": "baidu",
+    "familyId": "baidu-ernie-4-5",
+    "version": "4.5",
+    "variant": "300B-A47B",
+    "releaseDate": "2025-06-28",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 300,
+      "activeBillions": 47
+    },
+    "contextWindow": 131072,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Baidu’s text mixture-of-experts model in the ERNIE 4.5 generation, with 300B total and 47B activated parameters and a 131072-token context length, released under Apache 2.0.",
+    "intendedUse": "General text generation and instruction following. The card states its training stage two ways without reconciling them, so no training stage is recorded here, and the -PT in the repository name is the card's own label for Transformer-style PyTorch weights rather than a training stage; the vision-language members of the same generation are not recorded here.",
+    "sourceIds": [
+      "baidu-ernie-4-5-300b-model-card",
+      "hugging-face-ernie-4-5-300b-hub-record",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "tencent-hunyuan-video-t2v",
+    "slug": "hunyuan-video-t2v",
+    "canonicalName": "HunyuanVideo",
+    "displayName": "HunyuanVideo",
+    "organizationId": "tencent",
+    "familyId": "tencent-hunyuan-video",
+    "version": "1",
+    "variant": "Base",
+    "releaseDate": "2024-12-03",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "video"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "video"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Tencent Hunyuan Community License Agreement",
+      "url": "https://huggingface.co/tencent/HunyuanVideo/raw/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Tencent’s open-weight video foundation model, released with inference code and weights under Tencent’s own community licence, which does not apply in the European Union, United Kingdom or South Korea.",
+    "intendedUse": "Video generation from text prompts. The card describes the model as having over 13 billion parameters without stating an exact count, so no parameter count is recorded.",
+    "sourceIds": [
+      "tencent-hunyuan-video-model-card",
+      "tencent-hunyuan-community-license",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "bytedance-seed-oss-36b-instruct",
+    "slug": "seed-oss-36b-instruct",
+    "canonicalName": "Seed-OSS-36B-Instruct",
+    "displayName": "Seed-OSS 36B Instruct",
+    "organizationId": "bytedance-seed",
+    "familyId": "bytedance-seed-oss",
+    "version": "36B",
+    "variant": "36B Instruct",
+    "releaseDate": "2025-08-20",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 36
+    },
+    "contextWindow": 512000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "ByteDance Seed’s instruction-tuned 36B open-weight model, trained on 12T tokens with a context length the card states as 512K, released under Apache 2.0 alongside its base counterparts.",
+    "intendedUse": "Instruction following and reasoning. The card states a context length of \"512K\" rather than an exact token count; the recorded contextWindow applies this dataset’s documented mapping of a stated K figure to a token number.",
+    "sourceIds": [
+      "bytedance-seed-oss-36b-instruct-model-card",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "stability-ai-stable-diffusion-3-5-large",
+    "slug": "stable-diffusion-3-5-large",
+    "canonicalName": "stable-diffusion-3.5-large",
+    "displayName": "Stable Diffusion 3.5 Large",
+    "organizationId": "stability-ai",
+    "familyId": "stability-ai-stable-diffusion-3-5",
+    "version": "3.5",
+    "variant": "Large",
+    "releaseDate": "2024-10-22",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "image"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "image"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Stability AI Community License",
+      "url": "https://stability.ai/community-license-agreement",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 8.1
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Stability AI’s 8.1 billion parameter Multimodal Diffusion Transformer, the base model of the Stable Diffusion 3.5 generation, released under the Stability AI Community License.",
+    "intendedUse": "Text-to-image generation, which Stability describes as suited to professional use at 1 megapixel resolution. The licence is free below a stated annual revenue threshold and requires a separate enterprise agreement above it.",
+    "sourceIds": [
+      "stability-ai-sd-3-5-announcement",
+      "stability-ai-sd-3-5-large-model-card",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "databricks-dbrx-instruct",
+    "slug": "dbrx-instruct",
+    "canonicalName": "DBRX Instruct",
+    "displayName": "DBRX Instruct",
+    "organizationId": "databricks",
+    "familyId": "databricks-dbrx",
+    "version": "1",
+    "variant": "Instruct",
+    "releaseDate": "2024-03-27",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "both",
+    "license": {
+      "name": "Databricks Open Model License",
+      "url": "https://www.databricks.com/legal/open-model-license",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 132,
+      "activeBillions": 36
+    },
+    "contextWindow": 32000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Databricks’ fine-grained mixture-of-experts model with 132B total and 36B active parameters, pre-trained on 12T tokens of text and code, published as downloadable weights and served to Databricks customers through APIs.",
+    "intendedUse": "General text generation and instruction following. Recorded as both open-weight and hosted because Databricks states the weights are available under an open licence and that DBRX is available to its customers via APIs. The weight repositories were gated at the time of verification.",
+    "sourceIds": [
+      "databricks-dbrx-announcement",
+      "databricks-open-model-license",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-08-29"
   }
 ]

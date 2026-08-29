@@ -154,5 +154,35 @@
     "id": "upstage",
     "name": "Upstage",
     "organizationId": "upstage"
+  },
+  {
+    "id": "ibm",
+    "name": "IBM",
+    "organizationId": "ibm"
+  },
+  {
+    "id": "baidu",
+    "name": "Baidu, Inc.",
+    "organizationId": "baidu"
+  },
+  {
+    "id": "tencent",
+    "name": "Tencent",
+    "organizationId": "tencent"
+  },
+  {
+    "id": "bytedance-seed",
+    "name": "ByteDance Seed",
+    "organizationId": "bytedance-seed"
+  },
+  {
+    "id": "stability-ai",
+    "name": "Stability AI Ltd.",
+    "organizationId": "stability-ai"
+  },
+  {
+    "id": "databricks",
+    "name": "Databricks, Inc.",
+    "organizationId": "databricks"
   }
 ]
