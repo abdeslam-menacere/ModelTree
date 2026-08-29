@@ -6,10 +6,10 @@
  * same `models` parameter, carrying release *slugs* (the tree's own deep-link
  * parameter `?model=<release-id>` is a separate concern and is left untouched).
  *
- * The `/benchmarks` route does not exist yet (backlog #23), nor does `/compare`
- * (backlog #24); these builders produce the stable URLs those routes will
+ * `/compare` (issue #24) and `/benchmarks` (issue #23) both now exist and
+ * resolve these URLs; these builders produce the stable URLs those routes
  * consume, so the cap logic lives here regardless of what is on the other end of
- * the link. Only URL *generation* is testable today, not resolution.
+ * the link.
  */
 
 export const EVIDENCE_MODELS_PARAMETER = 'models';
