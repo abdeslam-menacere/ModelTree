@@ -294,14 +294,16 @@ describe('organization type policy', () => {
         type: 'company',
         clause: 'company-fallback',
       },
-      // IBM's own Granite page describes IBM as one of the "providers of large
-      // language models" and states that "IBM does not require its customers to
-      // indemnify IBM for a customer's use of IBM-developed models", alongside
-      // the indemnification it gives for "IBM hardware and software products".
+      // IBM's own Granite page establishes indemnification for "IBM-developed
+      // models" and contrasts IBM with "other providers of large language
+      // models", but no IBM-published page read for this record states that IBM
+      // sells model products or access. Indemnification is not a paid offering
+      // and the contrast is not a claim, so no fact is asserted here rather than
+      // inferring one from the surrounding commercial language.
       ibm: {
-        facts: { offersPaidModelProductsOrAccess: true },
+        facts: {},
         type: 'company',
-        clause: 'paid-company',
+        clause: 'company-fallback',
       },
       // No Baidu-published page read for this record states that Baidu sells
       // model products or access under its own name, so no fact is asserted and
