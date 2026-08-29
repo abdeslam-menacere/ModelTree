@@ -3278,8 +3278,8 @@
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
-    "summary": "Baidu’s post-trained text mixture-of-experts model in the ERNIE 4.5 generation, with 300B total and 47B activated parameters and a 131072-token context length, released under Apache 2.0.",
-    "intendedUse": "General text generation and instruction following. The card records this as the post-trained variant of the 300B model; the vision-language members of the same generation are not recorded here.",
+    "summary": "Baidu’s text mixture-of-experts model in the ERNIE 4.5 generation, with 300B total and 47B activated parameters and a 131072-token context length, released under Apache 2.0.",
+    "intendedUse": "General text generation and instruction following. The card states its training stage two ways without reconciling them, so no training stage is recorded here, and the -PT in the repository name is the card's own label for Transformer-style PyTorch weights rather than a training stage; the vision-language members of the same generation are not recorded here.",
     "sourceIds": [
       "baidu-ernie-4-5-300b-model-card",
       "hugging-face-ernie-4-5-300b-hub-record",
