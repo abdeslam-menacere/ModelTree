@@ -27,11 +27,9 @@ export interface TimelineEntry {
   /**
    * The date narrowed to what {@link datePrecision} claims: `2024-07-23`,
    * `2024-07`, or `2024`. Kept partial so nothing downstream can print a day
-   * nobody claimed — {@link toStatedPrecision} is what establishes that, since
-   * a release stores a full ISO date whatever its precision says. Codepoint
-   * order over these strings is already chronological, and a coarser date sorts
-   * before the finer dates inside it, so no padded day is invented to make
-   * entries comparable.
+   * nobody claimed. Codepoint order over these strings is already chronological,
+   * and a coarser date sorts before the finer dates inside it, so no padded day
+   * is invented to make entries comparable.
    */
   date: string;
   datePrecision: ModelRelease['datePrecision'];
@@ -113,13 +111,16 @@ const PRECISION_WIDTH: Record<ModelRelease['datePrecision'], number> = {
 };
 
 /**
- * Trims a date to what its precision claims. `releaseSchema.releaseDate` is a
- * full ISO date whatever the precision beside it says, so a year-precision
- * release arrives here as `2024-03-15` with a day the source never stated. The
- * trim is what makes {@link TimelineEntry.date} true to its precision for both
- * record kinds, rather than only for the events whose schema already stores a
- * partial date — without it the ceiling and the `datetime` attribute both work
- * from segments nobody claimed.
+ * Trims a date to what its precision claims.
+ *
+ * This existed because `releaseSchema.releaseDate` was a full ISO date whatever
+ * the precision beside it said, so a year-precision release arrived carrying a
+ * day no source stated. abdeslam-menacere/ModelTree#468 made `releaseDate` a
+ * `partialDate` and made validation enforce the pairing, so validated data no
+ * longer reaches here needing the trim. It is kept as a cheap total function
+ * over the type rather than a load-bearing correction: `buildTimelineIndex` is
+ * exported and accepts any `Dataset`, so this keeps {@link TimelineEntry.date}
+ * true to its precision without depending on where the value came from.
  */
 function toStatedPrecision(date: string, precision: ModelRelease['datePrecision']) {
   return date.slice(0, PRECISION_WIDTH[precision]);
