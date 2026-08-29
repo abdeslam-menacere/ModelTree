@@ -2156,6 +2156,81 @@ main {
   margin-top: 16px;
 }
 
+/* Mobile modal presentation of the lineage details surface. The desktop panel
+   keeps the anchored `.tree-details` styling above; only the modal adds a scrim
+   and a bottom-sheet dialog. A plain scrim -- no blur, no glow -- keeps the
+   surface attached and legible rather than decorative. */
+.tree-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.tree-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+/* The dialog also carries `.tree-details` for its inner styling, and a
+   `@media (max-width: 980px)` rule later in this file sets
+   `.tree-details { position: static }`. A single-class selector here would tie
+   that rule on specificity and lose on source order, leaving the dialog
+   unpositioned so its `z-index` went inert and the backdrop painted over it.
+   The compound `.tree-details.tree-drawer-dialog` (specificity 0,2,0) outranks
+   the single class regardless of source order, so the dialog stays positioned
+   above its backdrop. */
+.tree-details.tree-drawer-dialog {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 560px;
+  max-height: 88vh;
+  overflow-y: auto;
+  border-radius: 16px 16px 0 0;
+  animation: tree-drawer-rise 160ms ease-out;
+}
+
+.tree-drawer-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  min-width: 40px;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+  background: var(--cp-panel);
+  color: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tree-drawer-close:hover {
+  border-color: var(--cp-text-muted);
+}
+
+@keyframes tree-drawer-rise {
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 .log-page {
   padding-bottom: 80px;
 }

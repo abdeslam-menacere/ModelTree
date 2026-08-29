@@ -5,9 +5,10 @@ import {
   restoreModelTreeSelection,
   toggleModelTreeBranch,
 } from '../lib/model-tree';
-import { accessLabel, formatDate, formatReleaseDate, statusLabel } from '../lib/format';
+import { formatReleaseDate, statusLabel } from '../lib/format';
 import { createModelSelectionUrl, readOptionalSelectedModel } from '../lib/selection';
 import { organizationLabel } from '../lib/organization-name';
+import LineageModelDrawer from './LineageModelDrawer';
 
 interface SourceSummary {
   title: string;
@@ -28,6 +29,7 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
   const [openCreators, setOpenCreators] = useState<ReadonlySet<string>>(new Set());
   const [openFamilies, setOpenFamilies] = useState<ReadonlySet<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string>();
+  const [selectionNonce, setSelectionNonce] = useState(0);
   const releaseIds = modelTreeReleaseIds(tree);
   const releaseKey = releaseIds.join('\0');
   const normalizedBase = basePath.endsWith('/') ? basePath : `${basePath}/`;
@@ -50,6 +52,9 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
 
   function selectRelease(releaseId: string) {
     const restored = restoreModelTreeSelection(tree, releaseId);
+    // Bumped even when the release is unchanged so the drawer can reopen after a
+    // dismissal: the selected-id state alone bails out of a no-op update.
+    setSelectionNonce((nonce) => nonce + 1);
     startTransition(() => {
       setSelectedId(releaseId);
       setOpenCreators((current) => new Set([...current, ...restored.openCreatorIds]));
@@ -128,7 +133,7 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
   }
 
   return (
-    <section className="model-tree-explorer" aria-labelledby="model-tree-heading">
+    <section className="model-tree-explorer" aria-label="Model lineage explorer">
       <div className="tree-workspace">
         <div className="tree-scroll" aria-label="Reviewed model ecosystem hierarchy">
           <ul className="model-tree-list model-tree-root">
@@ -188,39 +193,12 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
           </ul>
         </div>
 
-        <aside className="tree-details" aria-live="polite" aria-atomic="true">
-          {selected ? (
-            <>
-              <span className="eyebrow">Verified release</span>
-              <p className="tree-breadcrumb">{organizationLabel(selected.organization)} / {selected.family.name}</p>
-              <h2 id="model-tree-heading">{selected.release.displayName}</h2>
-              <p>{selected.release.summary}</p>
-              <dl>
-                <div><dt>Released</dt><dd>{formatReleaseDate(selected.release.releaseDate, selected.release.datePrecision)}</dd></div>
-                <div><dt>Status</dt><dd>{statusLabel(selected.release.status)}</dd></div>
-                <div><dt>Access</dt><dd>{accessLabel(selected.release.accessType)}</dd></div>
-                <div><dt>Verified</dt><dd>{formatDate(selected.release.verifiedAt)}</dd></div>
-              </dl>
-              <div className="details-actions">
-                <a className="primary-action" href={`${normalizedBase}models/${selected.release.slug}/`}>
-                  Open Model Passport
-                </a>
-                {sourceByReleaseId[selected.release.id] && (
-                  <a href={sourceByReleaseId[selected.release.id].url}>Primary source</a>
-                )}
-              </div>
-              {sourceByReleaseId[selected.release.id] && (
-                <small className="tree-source-title">{sourceByReleaseId[selected.release.id].title}</small>
-              )}
-            </>
-          ) : (
-            <>
-              <span className="eyebrow">Release details</span>
-              <h2 id="model-tree-heading">Choose a model release</h2>
-              <p>Open a creator and family, then select a release to inspect its verified catalog record.</p>
-            </>
-          )}
-        </aside>
+        <LineageModelDrawer
+          selected={selected}
+          source={selected ? sourceByReleaseId[selected.release.id] : undefined}
+          basePath={basePath}
+          selectionNonce={selectionNonce}
+        />
       </div>
     </section>
   );

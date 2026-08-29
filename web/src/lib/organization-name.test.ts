@@ -1,7 +1,11 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import type { Organization } from '../data/schema';
 import { buildCatalogIndex } from './catalog';
+import { buildComparisonCandidates, buildComparisonPickerIndex } from './comparison';
 import { buildModelTree } from './model-tree';
 import {
   organizationFullName,
@@ -131,6 +135,85 @@ describe('the rule is applied at every surface that names a creator', () => {
       const organization = organizationBySlug.get(model.organizationSlug)!;
       expect(model.organizationName).toBe(organizationLabel(organization));
     }
+  });
+
+  /**
+   * The comparison picker was the last surface still reading `name`, and it is
+   * the reason these assertions run against built surfaces rather than the
+   * helper alone: it derives its own `organizationName` field, so a sweep for
+   * the literal `organization.name` never saw it.
+   */
+  it('names the creator on a comparison picker entry by the label', () => {
+    const organizationById = new Map(everyOrganization().map((item) => [item.id, item]));
+    const releaseBySlug = new Map(dataset.releases.map((release) => [release.slug, release]));
+    const candidates = buildComparisonCandidates(dataset, [], BASE);
+    const rows = buildComparisonPickerIndex(dataset);
+    expect(candidates.length).toBeGreaterThan(0);
+    expect(rows.length).toBeGreaterThan(0);
+
+    for (const entry of [...candidates, ...rows]) {
+      const organization = organizationById.get(releaseBySlug.get(entry.slug)!.organizationId)!;
+      expect(entry.organizationName).toBe(organizationLabel(organization));
+    }
+  });
+
+  it('still matches a comparison candidate on the fuller recorded name', () => {
+    const releaseBySlug = new Map(dataset.releases.map((release) => [release.slug, release]));
+    const candidates = buildComparisonCandidates(dataset, [], BASE);
+
+    // Chosen by the property under test: a creator whose two recorded forms
+    // disagree is the only case where dropping `name` from search could lose a
+    // reader, so a fixture whose forms happen to agree would prove nothing.
+    const distinct = candidates.filter((candidate) => {
+      const release = releaseBySlug.get(candidate.slug)!;
+      const organization = everyOrganization().find((item) => item.id === release.organizationId)!;
+      return organizationFullNameIfDistinct(organization) !== null;
+    });
+    expect(distinct.length).toBeGreaterThan(0);
+
+    for (const candidate of distinct) {
+      const release = releaseBySlug.get(candidate.slug)!;
+      const organization = everyOrganization().find((item) => item.id === release.organizationId)!;
+      expect(candidate.organizationSearchTerms).toContain(organizationFullName(organization));
+      expect(candidate.organizationSearchTerms).toContain(organizationLabel(organization));
+    }
+  });
+});
+
+/**
+ * The rule has to survive surfaces that do not exist yet.
+ *
+ * #504 extracted the lineage tree's detail panel into a new component after this
+ * rule landed, and carried the raw `organization.name` across with it -- so the
+ * defect reappeared on a surface no existing test covered. The behavioural guard
+ * for that specific component lives beside it, in
+ * `components/LineageModelDrawer.test.tsx`. This is the general tripwire: it asks
+ * which components hold a raw `Organization` record at all, because only those
+ * can pick the wrong field. A component handed a prepared directory entry already
+ * carries the label in its `name` and is correctly not swept here.
+ */
+describe('the creator naming rule on surfaces added later', () => {
+  const componentsDirectory = fileURLToPath(new URL('../components', import.meta.url));
+  const components = readdirSync(componentsDirectory)
+    .filter((file) => file.endsWith('.tsx') && !file.includes('.test.'))
+    .map((file) => ({ file, source: readFileSync(join(componentsDirectory, file), 'utf8') }));
+
+  it('reads a non-empty corpus of components, so the sweep below means something', () => {
+    expect(components.length).toBeGreaterThan(0);
+  });
+
+  it('renders no raw recorded name in a component that holds an Organization record', () => {
+    const holdsOrganizations = components.filter(({ source }) => (
+      /import\s+type\s*\{[^}]*\bOrganization\b[^}]*\}\s*from\s*'\.\.\/data\/schema'/.test(source)
+    ));
+    // The control that matters: if this ever reaches zero the sweep below passes
+    // for free, and the tripwire has quietly stopped guarding anything.
+    expect(holdsOrganizations.length).toBeGreaterThan(0);
+
+    const offenders = holdsOrganizations
+      .filter(({ source }) => /\borganization\.name\b/.test(source))
+      .map(({ file }) => file);
+    expect(offenders).toEqual([]);
   });
 });
 

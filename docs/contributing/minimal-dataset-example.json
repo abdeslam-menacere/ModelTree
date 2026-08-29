@@ -1,0 +1,357 @@
+{
+  "publishers": [
+    {
+      "id": "example-lab-comms",
+      "name": "Example Lab (official communications)",
+      "organizationId": "example-lab"
+    },
+    {
+      "id": "example-cloud-comms",
+      "name": "Example Cloud (official communications)",
+      "organizationId": "example-cloud-co"
+    },
+    {
+      "id": "example-benchmark-council",
+      "name": "Example Benchmark Council"
+    },
+    {
+      "id": "example-developer-survey",
+      "name": "Example Developer Survey"
+    },
+    {
+      "id": "example-field-research",
+      "name": "Example Field Research"
+    }
+  ],
+
+  "sources": [
+    {
+      "id": "example-lab-announcement",
+      "url": "https://example.com/example-lab/announcements/example-model-1",
+      "title": "Introducing Example Model 1",
+      "type": "official-announcement",
+      "publisherId": "example-lab-comms",
+      "publishedDate": "2026-01-15",
+      "lastCheckedDate": "2026-08-28"
+    },
+    {
+      "id": "example-cloud-docs",
+      "url": "https://example.com/example-cloud/docs/models/example-model-1",
+      "title": "Example Model 1 on Example Cloud",
+      "type": "official-docs",
+      "publisherId": "example-cloud-comms",
+      "publishedDate": "2026-01-15",
+      "lastCheckedDate": "2026-08-28"
+    },
+    {
+      "id": "example-reasoning-suite-docs",
+      "url": "https://example.com/benchmark-council/example-reasoning-suite",
+      "title": "Example Reasoning Suite: definition and scoring",
+      "type": "benchmark-owner",
+      "publisherId": "example-benchmark-council",
+      "publishedDate": "2025-11-03",
+      "lastCheckedDate": "2026-08-28",
+      "notes": "Owns the benchmark definition. Authoritative for how the score is computed, and not a primary source for anything about the model itself."
+    },
+    {
+      "id": "example-developer-survey-2026",
+      "url": "https://example.com/developer-survey/2026/model-adoption",
+      "title": "Example Developer Survey 2026: model adoption",
+      "type": "independent-evaluation",
+      "publisherId": "example-developer-survey",
+      "publishedDate": "2026-06-10",
+      "lastCheckedDate": "2026-08-28",
+      "notes": "Published by neither the creator nor the platform operator, which is what lets it count toward an independent synthesis."
+    },
+    {
+      "id": "example-field-research-2026",
+      "url": "https://example.com/field-research/2026/developer-tooling",
+      "title": "Developer tooling in practice, 2026",
+      "type": "independent-evaluation",
+      "publisherId": "example-field-research",
+      "publishedDate": "2026-06-24",
+      "lastCheckedDate": "2026-08-28"
+    }
+  ],
+
+  "organizations": [
+    {
+      "id": "example-lab",
+      "slug": "example-lab",
+      "name": "Example Lab, Inc.",
+      "shortName": "Example Lab",
+      "type": "research-lab",
+      "website": "https://example.com/example-lab",
+      "releasePage": "https://example.com/example-lab/announcements",
+      "description": "The creator of the Example Model family. Creator identity is its own record: it is not the product you use, and not the platform that serves it.",
+      "sourceIds": ["example-lab-announcement"],
+      "verifiedAt": "2026-08-28"
+    },
+    {
+      "id": "example-cloud-co",
+      "slug": "example-cloud-co",
+      "name": "Example Cloud Company",
+      "shortName": "Example Cloud",
+      "type": "company",
+      "website": "https://example.com/example-cloud",
+      "releasePage": "https://example.com/example-cloud/whats-new",
+      "description": "Operates a serving platform. It hosts Example Model 1 but did not create it, which is exactly why it is a separate organization from Example Lab.",
+      "sourceIds": ["example-cloud-docs"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "families": [
+    {
+      "id": "example-model",
+      "slug": "example-model",
+      "organizationId": "example-lab",
+      "name": "Example Model",
+      "description": "Example Lab's general-purpose model line.",
+      "categories": ["language-reasoning"],
+      "firstReleaseDate": "2026-01-15",
+      "datePrecision": "day",
+      "status": "current",
+      "sourceIds": ["example-lab-announcement"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "releases": [
+    {
+      "id": "example-model-1",
+      "slug": "example-model-1",
+      "canonicalName": "Example Model 1",
+      "displayName": "Example Model 1",
+      "organizationId": "example-lab",
+      "familyId": "example-model",
+      "version": "1",
+      "variant": "base",
+      "releaseDate": "2026-01-15",
+      "datePrecision": "day",
+      "status": "current",
+      "featured": false,
+      "categories": ["language-reasoning"],
+      "inputModalities": ["text"],
+      "outputModalities": ["text"],
+      "accessType": "proprietary-hosted",
+      "contextWindow": 128000,
+      "apiAliases": ["example-model-1-2026-01-15"],
+      "predecessorIds": [],
+      "successorIds": [],
+      "siblingIds": [],
+      "derivedFromIds": [],
+      "summary": "The first release in the Example Model family. Every field here is stated by the announcement in sourceIds; nothing is inferred, and a field the announcement did not state is absent rather than guessed.",
+      "intendedUse": "General text tasks, as described by the creator.",
+      "sourceIds": ["example-lab-announcement"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "products": [
+    {
+      "id": "example-assistant",
+      "slug": "example-assistant",
+      "name": "Example Assistant",
+      "organizationId": "example-lab",
+      "description": "The chat product built on the Example Model family. A product is a separate record from the model it runs, because the two change independently.",
+      "modelSelection": "fixed",
+      "releaseIds": ["example-model-1"],
+      "effectiveFrom": "2026-01-15",
+      "sourceIds": ["example-lab-announcement"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "servingPlatforms": [
+    {
+      "id": "example-cloud",
+      "slug": "example-cloud",
+      "name": "Example Cloud",
+      "organizationId": "example-cloud-co",
+      "type": "cloud-platform",
+      "website": "https://example.com/example-cloud",
+      "sourceIds": ["example-cloud-docs"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "deployments": [
+    {
+      "id": "example-model-1-on-example-cloud",
+      "releaseId": "example-model-1",
+      "platformId": "example-cloud",
+      "deliveryMode": "hosted-api",
+      "apiIdentifier": "example-model-1",
+      "regions": ["us-east"],
+      "effectiveFrom": "2026-01-15",
+      "sourceIds": ["example-cloud-docs"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "pricing": [
+    {
+      "id": "example-model-1-on-example-cloud-standard",
+      "deploymentId": "example-model-1-on-example-cloud",
+      "currency": "USD",
+      "unit": "per-1m-tokens",
+      "rates": {
+        "input": 1.25,
+        "output": 10
+      },
+      "region": "us-east",
+      "effectiveFrom": "2026-01-15",
+      "sourceIds": ["example-cloud-docs"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "benchmarks": [
+    {
+      "id": "example-reasoning-suite",
+      "slug": "example-reasoning-suite",
+      "name": "Example Reasoning Suite",
+      "domain": "general-reasoning",
+      "owner": "Example Benchmark Council",
+      "metric": "accuracy",
+      "metricUnit": "percent",
+      "direction": "higher-is-better",
+      "datasetVersion": "2025.11",
+      "sourceIds": ["example-reasoning-suite-docs"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "benchmarkResults": [
+    {
+      "id": "example-model-1-example-reasoning-suite",
+      "benchmarkId": "example-reasoning-suite",
+      "benchmarkVersion": "2025.11",
+      "releaseId": "example-model-1",
+      "score": 71.4,
+      "unit": "percent",
+      "evaluationDate": "2026-01",
+      "reasoningMode": "default",
+      "toolsEnabled": false,
+      "resultType": "official",
+      "caveats": "Creator-reported. Recorded with the setup it was run under, because a score without its setup cannot be compared with anything.",
+      "sourceIds": ["example-lab-announcement"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "releaseEvents": [
+    {
+      "id": "example-model-1-announced",
+      "releaseId": "example-model-1",
+      "type": "announced",
+      "date": "2026-01-15",
+      "datePrecision": "day",
+      "note": "Announced by Example Lab.",
+      "sourceIds": ["example-lab-announcement"],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "usageObservations": [
+    {
+      "id": "example-model-1-survey-share-developer-survey",
+      "releaseId": "example-model-1",
+      "metric": "survey-share",
+      "metricLabel": "Share of surveyed developers using the model weekly",
+      "unit": "percent of respondents",
+      "population": "professional developers who write code weekly",
+      "value": 18,
+      "valueAsStated": "18% of respondents",
+      "windowStart": "2026-03",
+      "windowEnd": "2026-05",
+      "methodology": "Self-selected online survey of 4,100 respondents recruited through developer communities.",
+      "sourceCategory": "developer-survey",
+      "sourceIds": ["example-developer-survey-2026"],
+      "scope": "Weekly use among surveyed developers only. Not a user count, and not a market share.",
+      "caveats": [
+        "Self-selected samples over-represent people already engaged with the tooling being asked about.",
+        "The figure is a share of respondents, so it cannot be converted into a number of people."
+      ],
+      "conflictsWithIds": [],
+      "verifiedAt": "2026-08-28"
+    },
+    {
+      "id": "example-model-1-survey-share-field-research",
+      "releaseId": "example-model-1",
+      "metric": "survey-share",
+      "metricLabel": "Share of surveyed developers using the model weekly",
+      "unit": "percent of respondents",
+      "population": "professional developers who write code weekly",
+      "value": 17,
+      "valueAsStated": "roughly 17%",
+      "windowStart": "2026-03",
+      "windowEnd": "2026-05",
+      "methodology": "Panel survey of 1,250 developers recruited by quota sampling.",
+      "sourceCategory": "developer-survey",
+      "sourceIds": ["example-field-research-2026"],
+      "scope": "Weekly use among panel respondents only.",
+      "caveats": [
+        "A quota panel and an open survey do not draw from the same population, so the two figures are close rather than confirming."
+      ],
+      "conflictsWithIds": [],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "usageSyntheses": [
+    {
+      "id": "example-model-1-weekly-developer-use",
+      "releaseId": "example-model-1",
+      "statement": "Two independent 2026 developer surveys put weekly use of Example Model 1 at 17-18% of their respondents.",
+      "observationIds": [
+        "example-model-1-survey-share-developer-survey",
+        "example-model-1-survey-share-field-research"
+      ],
+      "agreement": "agreeing",
+      "comparabilityNote": "Both observations report the same metric, unit, population, and window, which is what makes them comparable at all. Neither is published by the creator or the platform operator.",
+      "caveats": [
+        "Both are surveys of developers, so the pair says nothing about use outside that population."
+      ],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "modelFitStatements": [
+    {
+      "id": "example-model-1-hosted-api-only",
+      "releaseId": "example-model-1",
+      "classification": "avoid-when",
+      "condition": "your deployment requires running the weights on your own hardware",
+      "statement": "Example Model 1 is offered only as a proprietary hosted API, so it does not fit work that must run on infrastructure you control.",
+      "rubricDimensions": ["access-and-licensing"],
+      "facts": [
+        {
+          "kind": "release-field",
+          "releaseId": "example-model-1",
+          "field": "accessType"
+        }
+      ],
+      "sourceIds": ["example-lab-announcement"],
+      "scope": "Access and licensing only. This says nothing about the model's quality, price, or measured results.",
+      "caveats": [
+        "Rests on the accessType recorded on the release, which the creator's announcement states.",
+        "Access terms can change without a new release, so re-check the source before relying on this."
+      ],
+      "conflictsWithIds": [],
+      "verifiedAt": "2026-08-28"
+    }
+  ],
+
+  "modelFitEvidenceGaps": [
+    {
+      "id": "example-model-1-cost-structure-gap",
+      "releaseId": "example-model-1",
+      "dimension": "cost-structure",
+      "reason": "evidence-below-threshold",
+      "note": "One published rate, on one platform, in one region, is not enough to say anything general about what this release costs to run. The gap is recorded rather than filled by inference.",
+      "verifiedAt": "2026-08-28"
+    }
+  ]
+}

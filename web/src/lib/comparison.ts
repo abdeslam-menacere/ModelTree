@@ -67,7 +67,7 @@ import {
 } from './comparability-policy';
 import { modelRoute } from './catalog';
 import { accessLabel, categoryLabel, formatDate, formatNumber, statusLabel } from './format';
-import { organizationLabel } from './organization-name';
+import { organizationLabel, organizationSearchTerms } from './organization-name';
 import {
   deliveryModeLabel,
   formatDateWithPrecision,
@@ -413,6 +413,13 @@ export interface ComparisonCandidate {
   slug: string;
   displayName: string;
   organizationName: string;
+  /**
+   * Every recorded name form of the creator, so the picker's filter still finds
+   * a model by the fuller recorded name after `organizationName` became the
+   * label. Derived here rather than serialized: the candidates are rebuilt in
+   * the browser from the page dataset, so this costs no payload bytes.
+   */
+  organizationSearchTerms: readonly string[];
   familyName: string;
   selected: boolean;
   /** The comparison with this model added or removed, whichever applies. */
@@ -1353,6 +1360,7 @@ export function buildComparisonCandidates(
 
   return dataset.releases.map((release) => {
     const isSelected = selected.includes(release.slug);
+    const organization = organizationById.get(release.organizationId);
     const next = isSelected
       ? removeFromComparison(selected, release.slug)
       : addToComparison(selected, release.slug).slugs;
@@ -1360,7 +1368,10 @@ export function buildComparisonCandidates(
     return {
       slug: release.slug,
       displayName: release.displayName,
-      organizationName: organizationById.get(release.organizationId)?.name ?? release.organizationId,
+      organizationName: organization ? organizationLabel(organization) : release.organizationId,
+      organizationSearchTerms: organization
+        ? organizationSearchTerms(organization)
+        : [release.organizationId],
       familyName: familyById.get(release.familyId)?.name ?? release.familyId,
       selected: isSelected,
       toggleUrl: compareUrl(base, next),
@@ -1489,10 +1500,13 @@ export function buildComparisonPickerIndex(
   const organizationById = new Map(dataset.organizations.map((item) => [item.id, item]));
   const familyById = new Map(dataset.families.map((item) => [item.id, item]));
 
-  return dataset.releases.map((release) => ({
-    slug: release.slug,
-    displayName: release.displayName,
-    organizationName: organizationById.get(release.organizationId)?.name ?? release.organizationId,
-    familyName: familyById.get(release.familyId)?.name ?? release.familyId,
-  }));
+  return dataset.releases.map((release) => {
+    const organization = organizationById.get(release.organizationId);
+    return {
+      slug: release.slug,
+      displayName: release.displayName,
+      organizationName: organization ? organizationLabel(organization) : release.organizationId,
+      familyName: familyById.get(release.familyId)?.name ?? release.familyId,
+    };
+  });
 }
