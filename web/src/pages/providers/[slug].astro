@@ -6,7 +6,7 @@ import SourceList from '../../components/SourceList.astro';
 import { dataset, sourceById } from '../../data/dataset';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { formatDate } from '../../lib/format';
-import { buildLineageEcosystems } from '../../lib/lineage-view';
+import { buildCreatorEcosystems } from '../../lib/lineage-view';
 import { buildProviderProfile } from '../../lib/provider-profile';
 import { providerStaticPaths } from '../../lib/routes';
 
@@ -22,9 +22,12 @@ const base = import.meta.env.BASE_URL;
 const profile = buildProviderProfile(dataset, organizationId, base);
 if (!profile) throw new Error(`Unknown organization ${organizationId}`);
 
-const ecosystems = buildLineageEcosystems(dataset);
+// The creator's own recorded tree, read from the coverage view rather than the
+// featured one, so a page exists for every creator that has releases and not
+// only for the creators the site leads with.
+const ecosystems = buildCreatorEcosystems(dataset);
 const ecosystem = ecosystems.find((item) => item.organization.id === organizationId);
-if (!ecosystem) throw new Error(`No featured ecosystem for ${organizationId}`);
+if (!ecosystem) throw new Error(`No recorded ecosystem for ${organizationId}`);
 
 // The lineage explorer names cross-family derivations and links every release to
 // a source, so it is given labels and sources for every release, not only this

@@ -1,7 +1,7 @@
 import type { Dataset, DatePrecision } from '../data/schema';
 import { comparePartialDatesDescending } from '../data/partial-date';
 import { accessLabel, categoryLabel, statusLabel } from './format';
-import { buildLineageEcosystems } from './lineage-view';
+import { buildCreatorEcosystems } from './lineage-view';
 
 export const CATALOG_INDEX_VERSION = 1;
 
@@ -130,15 +130,18 @@ export function providerRoute(base: string, slug: string) {
  * exported so every caller resolves the same way instead of re-deriving it.
  *
  * A provider page is generated for exactly the organizations
- * `buildLineageEcosystems` returns (the featured creators -- see routes.ts), so
- * the returned resolver hands back the canonical provider route for those slugs
- * and `null` for every other, meaning no caller can advertise a route the build
- * does not generate. Both the catalog index and the A-Z directory read this, so
- * the two cannot drift.
+ * `buildCreatorEcosystems` returns -- every creator the catalog records a
+ * release for, featured or not (see routes.ts) -- so the returned resolver hands
+ * back the canonical provider route for those slugs and `null` for every other,
+ * meaning no caller can advertise a route the build does not generate. Both the
+ * catalog index and the A-Z directory read this, so the two cannot drift.
+ *
+ * Read the coverage view here rather than the lead view: featuring decides where
+ * the tree starts a reader, never whether a creator has a page.
  */
 export function buildProviderRouteResolver(dataset: Dataset, base = '/') {
   const routedProviderSlugs = new Set(
-    buildLineageEcosystems(dataset).map((ecosystem) => ecosystem.organization.slug),
+    buildCreatorEcosystems(dataset).map((ecosystem) => ecosystem.organization.slug),
   );
   return (slug: string): string | null =>
     routedProviderSlugs.has(slug) ? providerRoute(base, slug) : null;
@@ -206,9 +209,10 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
   const familyById = new Map(dataset.families.map((item) => [item.id, item]));
 
   // The organizations `/providers/[slug]` actually generates a page for, read
-  // from the same derivation the route itself uses (see routes.ts). A provider
-  // row or an organization alias publishes a canonical route only when a page
-  // stands behind it; every other organization keeps a null route so no row ever
+  // from the one shared rule so this index and the A-Z directory cannot drift:
+  // every organization the catalog records a release for. A provider row or an
+  // organization alias publishes a canonical route only when a page stands behind
+  // it; an organization with no releases keeps a null route so no row ever
   // advertises a 404. `assertRoutesResolve` holds this to the generated slugs.
   const providerRouteFor = buildProviderRouteResolver(dataset, base);
 

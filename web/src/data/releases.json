@@ -2441,8 +2441,7 @@
     "releaseDate": "2026-08-12",
     "datePrecision": "day",
     "status": "current",
-    "featured": true,
-    "featuredRationale": "Alibaba Cloud’s flagship Qwen3.8 release and the anchor for the creator record that keeps Qwen attributed to Alibaba Cloud rather than to any cloud that hosts it.",
+    "featured": false,
     "categories": [
       "language-reasoning",
       "coding"
@@ -2491,8 +2490,7 @@
     "releaseDate": "2026-08-14",
     "datePrecision": "day",
     "status": "current",
-    "featured": true,
-    "featuredRationale": "The dense Qwen3.8 vision-language release, and the model Amazon’s own announcement calls \"Alibaba’s Qwen 3.8-27B\" while offering it on Amazon SageMaker JumpStart — the clearest evidence in this dataset that availability is not authorship.",
+    "featured": false,
     "categories": [
       "multimodal-generalist",
       "coding",
@@ -2630,8 +2628,7 @@
     "releaseDate": "2025-12-02",
     "datePrecision": "day",
     "status": "current",
-    "featured": true,
-    "featuredRationale": "Amazon’s own speech-to-speech model, recorded to show that Amazon creates model families as well as operating the Bedrock platform on which hundreds of other companies’ models are served.",
+    "featured": false,
     "categories": [
       "audio-speech"
     ],
