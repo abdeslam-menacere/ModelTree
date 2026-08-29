@@ -41,7 +41,11 @@ export const datePrecision = z.enum(DATE_PRECISIONS);
  * own wording is mapped. No source speaks them. A creator writes "Live",
  * "Active (legacy)" or "generally available"; the terms below are what the
  * record can hold. The numeric fields pose the same step in another form — a
- * page states "128K" and `contextWindow` stores `128000`.
+ * page states "128K" and `contextWindow` stores `128000`. That mapping is only
+ * one of the two routes a stated context length takes into a numeric field, and
+ * it is the one that engages when the page gives no exact figure; both routes,
+ * and the rule that picks between them, are set out beside
+ * `releaseSchema.contextWindow` below.
  *
  * Choosing the member a quoted term denotes is a *recording* step, not a new
  * fact, and it is permitted only on the terms the `provenance` rubric in
@@ -303,6 +307,36 @@ export const releaseSchema = z.object({
   accessType,
   license: licenseSchema.optional(),
   parameters: parameterCountSchema.optional(),
+  // A stated context length reaches `contextWindow` by one of two routes, and
+  // what the source literally says decides which:
+  //
+  // 1. THE SOURCE STATES AN EXACT INTEGER, so it is recorded verbatim and no
+  //    mapping happens at all. GPT-4.1's model documentation is the clearest
+  //    case, because it gives both forms on one page: prose describing "a 1M
+  //    token context window", and a model-details line reading "1,047,576
+  //    context window". `openai-gpt-4-1-2025-04-14` stores `1047576` — the
+  //    figure the page states exactly, not the figure it rounds to. Google's
+  //    Gemini 2.5 Pro platform documentation lists `1,048,576` the same way, so
+  //    `google-gemini-2-5-pro` stores `1048576`.
+  // 2. THE SOURCE STATES ONLY AN ABBREVIATION, and then the mapping above
+  //    applies: "K" reads as a thousand, "M" as a million. The Llama 3.1 model
+  //    card's Context length column says "128k" and gives nothing more precise,
+  //    so `meta-llama-3-1-405b` stores `128000`. `meta-llama-4-scout` stores
+  //    `10000000` from "10M" on the same footing.
+  //
+  // The order is the whole of the rule: prefer what the source literally
+  // states. Route 1 is not an exception to route 2 — it is the case where the
+  // creator already published a number, and copying it is the faithful act.
+  // Route 2 is a recording step under the `provenance` rubric above; route 1 is
+  // not a step at all.
+  //
+  // So near-neighbour values sit beside each other in this column — `1047576`,
+  // `1048576` and `1000000`; `128000` and `131072` — and that is two routes
+  // each applied faithfully, not drift. Do not reconcile them. Rewriting a
+  // stated `1047576` down to `1000000`, or expanding a card's bare "128k" up to
+  // `131072`, would each replace a figure a creator published with one no
+  // source states. A recorded figure changes only when its own source changes,
+  // re-quoted and with a fresh `verifiedAt`.
   contextWindow: z.number().int().positive().optional(),
   maximumOutput: z.number().int().positive().optional(),
   apiAliases: z.array(z.string().min(1)),
