@@ -355,9 +355,23 @@ function gateReferences(docs, ids) {
 function gateFamilyHasRelease(docs) {
   const referenced = new Set();
   for (const release of docs.releases) {
-    // Only a usable reference counts. A non-string `familyId` is `references`'
-    // and `well-formed`'s to report; treating it as coverage here would let a
-    // malformed release vouch for a family it cannot actually name.
+    // Only a usable reference counts: treating a non-string `familyId` as
+    // coverage would let a malformed release vouch for a family it cannot
+    // actually name.
+    //
+    // Which gate then reports that release is measured, not assumed, and it
+    // splits by value (#441 QA). For `null` or `undefined`, this rule is the
+    // *only* in-gate signal: `gateReferences`' `check()` returns early on
+    // exactly those two values, and `well-formed` checks document shape and
+    // that each entry is an object, never the type of a field -- so neither
+    // sees it, the family simply goes uncovered, and it is named here. Zod
+    // rejects it independently at `npm run validate`, since `familyId` is a
+    // required `entityId` (`z.string()`), but that is outside this script.
+    // For any other non-string -- a number, say -- `references` fires too,
+    // because `check()` does run and the id set holds only strings.
+    //
+    // That early-return is pre-existing and deliberately left alone: #441 adds
+    // the family-side rule and does not repair the release-side check.
     if (typeof release.familyId === 'string') referenced.add(release.familyId);
   }
   for (const family of docs.families) {
