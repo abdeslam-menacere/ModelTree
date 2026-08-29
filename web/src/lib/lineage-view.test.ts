@@ -11,6 +11,7 @@ import {
   lineageFixtureDataset,
 } from '../../tests/fixtures/lineage-dataset';
 import {
+  buildCreatorEcosystems,
   buildLineageEcosystems,
   buildLineageHighlight,
   findLineagePlacement,
@@ -93,6 +94,56 @@ describe('featured ecosystem derivation', () => {
     }
     expect(findLineagePlacement(fixtureEcosystems, 'fixture-alpha-longtail-one')).toBeUndefined();
     expect(findLineagePlacement(fixtureEcosystems, undefined)).toBeUndefined();
+  });
+});
+
+describe('creator ecosystem derivation', () => {
+  const fixtureCreators = buildCreatorEcosystems(lineageFixtureDataset);
+  const catalogCreators = buildCreatorEcosystems(dataset);
+
+  it('reads no flag: every creator with a release is present, featured or not', () => {
+    for (const source of [
+      { name: 'fixture', data: lineageFixtureDataset, built: fixtureCreators },
+      { name: 'catalog', data: dataset, built: catalogCreators },
+    ]) {
+      const expected = [...new Set(
+        source.data.releases.map(({ organizationId }) => organizationId),
+      )].sort();
+
+      expect(source.built.map(({ organization }) => organization.id).sort(), source.name)
+        .toEqual(expected);
+    }
+  });
+
+  it('includes a family whose releases are none of them featured', () => {
+    // Differential control: this is precisely the family the featured view drops
+    // (`fixtureEcosystems` above asserts its absence), so seeing it here proves
+    // the two views are actually different derivations rather than one alias.
+    const familyIds = fixtureCreators.flatMap(({ families }) => families.map(({ family }) => family.id));
+
+    expect(familyIds).toContain(LONG_TAIL_FAMILY_ID);
+    expect(familyIds).toContain(SHALLOW_FAMILY_ID);
+    expect(familyView(fixtureCreators, LONG_TAIL_FAMILY_ID).releases.some(({ featured }) => featured))
+      .toBe(false);
+  });
+
+  it('is a superset of the featured view and loses no release from it', () => {
+    const featuredSlugs = lineageReleaseSlugs(buildLineageEcosystems(dataset));
+    const creatorSlugs = new Set(lineageReleaseSlugs(catalogCreators));
+
+    // Positive control: an empty featured view would satisfy containment without
+    // proving anything.
+    expect(featuredSlugs.length).toBeGreaterThan(0);
+    for (const slug of featuredSlugs) expect(creatorSlugs.has(slug)).toBe(true);
+    // And the coverage view really is wider, on the live catalog.
+    expect(creatorSlugs.size).toBeGreaterThan(featuredSlugs.length);
+  });
+
+  it('renders every catalog release exactly once across the creator view', () => {
+    const slugs = lineageReleaseSlugs(catalogCreators);
+
+    expect(new Set(slugs).size).toBe(slugs.length);
+    expect([...slugs].sort()).toEqual(dataset.releases.map(({ slug }) => slug).sort());
   });
 });
 

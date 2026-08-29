@@ -58,7 +58,7 @@
     "title": "GPT-5.6 Sol model documentation",
     "type": "official-docs",
     "publisherId": "openai",
-    "lastCheckedDate": "2026-08-18",
+    "lastCheckedDate": "2026-08-29",
     "notes": "Lists text and image input, text output, a 1,050,000-token context window, 128,000 max output tokens, and a 2026-02-16 knowledge cutoff. States the gpt-5.6 alias routes to Sol and that Sol roughly corresponds to the unsuffixed tier of earlier GPT-5 families."
   },
   {
@@ -156,7 +156,7 @@
     "title": "Model deprecations",
     "type": "official-docs",
     "publisherId": "anthropic",
-    "lastCheckedDate": "2026-08-26"
+    "lastCheckedDate": "2026-08-29"
   },
   {
     "id": "anthropic-opus-5-announcement",
@@ -592,7 +592,7 @@
     "title": "Introducing Claude Opus 4.8",
     "type": "official-announcement",
     "publisherId": "anthropic",
-    "lastCheckedDate": "2026-08-27",
+    "lastCheckedDate": "2026-08-29",
     "publishedDate": "2026-05-28"
   },
   {
@@ -612,6 +612,14 @@
     "publisherId": "anthropic",
     "lastCheckedDate": "2026-08-27",
     "publishedDate": "2026-02-05"
+  },
+  {
+    "id": "anthropic-opus-4-8-docs",
+    "url": "https://platform.claude.com/docs/en/models/opus-4-8/overview",
+    "title": "Claude Opus 4.8",
+    "type": "official-docs",
+    "publisherId": "anthropic",
+    "lastCheckedDate": "2026-08-29"
   },
   {
     "id": "meta-llama-3-2-license",

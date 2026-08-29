@@ -1,7 +1,7 @@
 import type { Dataset, DatePrecision } from '../data/schema';
 import { accessLabel, categoryLabel, statusLabel } from './format';
 import { buildLineageEcosystems } from './lineage-view';
-import { organizationLabel } from './organization-name';
+import { organizationLabel, organizationSearchTerms } from './organization-name';
 
 /**
  * The homepage search index: a compact, source-derived view that lets a visitor
@@ -212,21 +212,32 @@ export function buildHomepageSearchIndex(dataset: Dataset, base = '/'): Homepage
   for (const ecosystem of ecosystems) {
     const { organization } = ecosystem;
 
-    // A creator is one entity; its short name is an alias for the same target.
-    // Both recorded forms stay *matchable* — `normalized` is what the query is
-    // tested against — while the row *displays* the label, so a creator is never
-    // shown under two different strings. See `organization-name.ts`.
-    const organizationNames = new Set([organization.name, organization.shortName]);
-    for (const name of organizationNames) {
-      addSuggestion({
-        term: organizationLabel(organization),
-        normalized: normalizeText(name),
-        entity: 'organization',
-        context: ORGANIZATION_ROLE_LABEL,
-        targetSlug: null,
-        route: null,
-      });
-    }
+    // A creator is one entity, so it contributes one row. Both recorded forms
+    // stay *matchable* — `normalized` is what the query is tested against, and
+    // it carries every recorded form — while the row *displays* the label. So a
+    // creator is neither shown under two different strings nor listed twice
+    // under one.
+    //
+    // The second of those is why this emits a single suggestion. Emitting one
+    // per recorded form was correct while `term` was the loop variable; once
+    // `term` became the label it stopped varying, and a creator whose two forms
+    // differ produced two rows that were identical to read *and* identical to
+    // choose, since choosing sets the query to `term`.
+    //
+    // De-duplicated after normalizing, not before: two recorded forms differing
+    // only by punctuation or case fold to the same tokens. The label's form
+    // leads, so an alias only ever extends the string and never moves where
+    // this row sorts. See `organization-name.ts`.
+    addSuggestion({
+      term: organizationLabel(organization),
+      normalized: [...new Set(
+        organizationSearchTerms(organization).map(normalizeText).filter(Boolean),
+      )].join(' '),
+      entity: 'organization',
+      context: ORGANIZATION_ROLE_LABEL,
+      targetSlug: null,
+      route: null,
+    });
 
     for (const familyView of ecosystem.families) {
       const { family } = familyView;

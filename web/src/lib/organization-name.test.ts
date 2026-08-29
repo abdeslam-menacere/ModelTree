@@ -16,6 +16,7 @@ import { buildHomepageSearchIndex, releaseMatchesQuery } from './homepage-search
 import { buildLineageEcosystems } from './lineage-view';
 import { buildModelTree } from './model-tree';
 import {
+  compareLabels,
   organizationFullName,
   organizationFullNameIfDistinct,
   organizationLabel,
@@ -87,7 +88,7 @@ describe('the rule is applied at every surface that names a creator', () => {
     const tree = buildModelTree(dataset);
     for (const branch of [tree.featured, tree.others]) {
       const labels = branch.map(({ organization }) => organizationLabel(organization));
-      expect(labels).toEqual([...labels].sort());
+      expect(labels).toEqual([...labels].sort(compareLabels));
     }
   });
 
@@ -401,11 +402,14 @@ describe('the rule is applied at every surface that names a creator', () => {
  * order a reader sees the order of the strings the reader was shown.
  */
 describe('the creator naming rule where creators are ordered', () => {
-  // Codepoint order, matching the comparators under test. Deliberately not a
-  // locale collation: this asserts that ordering and display agree, and is not
-  // the place to change how either sorts.
+  // The comparator the surfaces under test use, rather than a second one
+  // written here. Ordering is case-insensitive so that a lowercase label is
+  // filed where a reader scanning A-Z looks for it; re-deriving that rule in
+  // the oracle is how an oracle comes to disagree with the code it checks.
+  // Deliberately not a locale collation: this asserts that ordering and
+  // display agree, and is not the place to change how either sorts.
   const isNonDecreasing = (values: string[]) => values.every(
-    (value, index) => index === 0 || values[index - 1] <= value,
+    (value, index) => index === 0 || compareLabels(values[index - 1], value) <= 0,
   );
 
   const idsSortedBy = (key: (organization: Organization) => string) => [...everyOrganization()]

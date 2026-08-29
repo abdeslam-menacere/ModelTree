@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import { datasetWithOtherCreators, expectedOtherCreatorIds } from '../../tests/fixtures/model-tree-dataset';
 import type { Dataset, Organization } from '../data/schema';
-import { organizationLabel } from './organization-name';
+import { compareLabels, organizationLabel } from './organization-name';
 import {
   buildModelTree,
   findModelTreePath,
@@ -214,27 +214,29 @@ describe('model tree', () => {
 });
 
 /**
- * The creators this repository keeps a dedicated reviewed source profile for, as
- * the files at the top level of `tools/updater/profiles/`. That set is the
- * featured criterion: featuring says this repository has vetted a creator's
- * sources in depth, which is a fact about our own editorial coverage and not a
- * claim about the models, their size, or their standing.
+ * The five creators this site leads with, in the order `/tree` renders them
+ * (`buildCreators` sorts by creator name then id, so this reads Anthropic,
+ * Google DeepMind, Meta, Microsoft, OpenAI).
  *
- * Written out here rather than read from that directory, for two reasons.
- * `web-ci` skips the web build entirely when a change touches only
- * `tools/updater/`, so a test that read those files could go red on main with no
- * check reporting it. And listing them makes granting a profile and moving a
- * creator one reviewable change, which is the coupling the criterion wants.
+ * This is an editorial choice about the site's entry point, not a measurement
+ * and not a ranking: the list states no order of merit, no score, and no claim
+ * that a creator on it is larger, better, or more important than one off it. The
+ * procedure that governs it is pinned beside `releaseSchema.featured` in
+ * `src/data/schema.ts`, published word for word on the methodology page and in
+ * `docs/product/INFORMATION-ARCHITECTURE.md`, and held to the catalog by
+ * `src/data/featured-policy.test.ts`.
  *
- * Neither sibling directory counts. `tools/updater/profiles/generic/` holds the
- * long-tail review policy, and `tools/updater/profiles/origins/` holds approved
- * source hosts for cohere, microsoft, mistral-ai and xai; its README states that
- * those documents "are **not** profiles, and they join neither reviewed set" and
- * that adding a creator there "does **not** promote it to a pilot creator".
+ * Written out here rather than derived, because deriving it from the same
+ * `featured` flag this file is checking would assert nothing, and because there
+ * is nothing else to derive it from: an editorial choice has no measurable
+ * property standing behind it, and inventing one would be inventing the
+ * universal ranking this repository forbids.
+ *
+ * Featuring decides where the site starts a reader and nothing else. It does not
+ * decide coverage: a creator this list omits keeps every release, its place on
+ * the Others branch, and its own generated provider page (`lib/routes.ts`).
  */
-const CREATORS_WITH_A_REVIEWED_PROFILE = [
-  'alibaba-cloud',
-  'amazon',
+const CREATORS_THE_SITE_LEADS_WITH = [
   'anthropic',
   'google-deepmind',
   'meta',
@@ -243,48 +245,51 @@ const CREATORS_WITH_A_REVIEWED_PROFILE = [
 ];
 
 /**
- * Catalog creators that hold releases but no reviewed source profile, in the
- * order `buildCreators` renders them -- which is creator *label* order, not
- * recorded-name order. Two entries prove the difference: `ai2` precedes
- * `ai21-labs` because "AI2" < "AI21" even though "AI21 Labs" < "Allen Institute
- * for AI", and `xai` sorts last because its label "xAI" begins with a lowercase
- * letter. The vacuity guard below asserts that this difference still exists, so
- * a future dataset change cannot quietly make the expectation blind to the
- * comparator it exists to pin.
+ * Catalog creators the lead list omits, which is the whole of why they render
+ * under Others. Nothing about their records, sources, or coverage differs.
+ *
+ * The order here is not alphabetical convenience: it is whatever the creator
+ * comparator in `buildCreators` produces, which is the creator *label*,
+ * compared case-insensitively, then the id. Both halves carry weight and both
+ * are pinned by tests below rather than described here -- one asserts the key
+ * is the label rather than the recorded name, the other that the comparison
+ * folds case. If that comparator changes, this list changes with it, and those
+ * assertions are meant to go red until it does.
  */
-const CREATORS_WITHOUT_A_REVIEWED_PROFILE = [
+const CREATORS_THE_SITE_DOES_NOT_LEAD_WITH = [
   'ai2',
   'ai21-labs',
+  'alibaba-cloud',
+  'amazon',
   'cohere',
   'deepseek',
   'mistral-ai',
   'moonshot-ai',
   'nvidia',
   'tii',
-  'zhipu-ai',
   'xai',
+  'zhipu-ai',
 ];
 
-describe('featured membership follows the reviewed source profile set', () => {
+describe("featured membership follows the site's editorial lead list", () => {
   const tree = buildModelTree(dataset);
   const creatorName = (id: string) => dataset.organizations.find((item) => item.id === id)!.name;
 
-  it('features exactly the creators with a reviewed source profile', () => {
+  it('features exactly the five creators the site leads with', () => {
     // Render order, not a sorted comparison: `buildCreators` orders by creator
-    // label then id (model-tree.ts:58), which here reads Alibaba Cloud, Amazon,
-    // Anthropic, DeepMind, Meta, Microsoft, OpenAI.
+    // Render order, not a sorted comparison: `buildCreators` orders by the
+    // creator label, then the id.
     //
     // Note for anyone reading this as comparator coverage: it is not. Every
-    // featured creator's label sits in the same slot as its recorded name, so
-    // this ordering is identical under both sort keys and would still pass if
-    // the comparator were reverted. The Others test below is the one that pins
-    // the comparator, and it carries a guard saying so.
+    // featured creator's label sits in the same slot as its recorded name, and
+    // none of them begins with a lowercase letter, so this ordering is
+    // identical under either sort key and under either comparator -- it would
+    // still pass with both reverted. The Others tests below are what pin them,
+    // and they carry guards saying so.
     expect(tree.featured.map(({ organization }) => organization.id))
-      .toEqual(CREATORS_WITH_A_REVIEWED_PROFILE);
+      .toEqual(CREATORS_THE_SITE_LEADS_WITH);
     expect(tree.featured.map(({ organization }) => organization.name))
       .toEqual([
-        'Alibaba Cloud',
-        'Amazon',
         'Anthropic',
         'Google DeepMind',
         'Meta',
@@ -293,13 +298,15 @@ describe('featured membership follows the reviewed source profile set', () => {
       ]);
   });
 
-  it('puts every catalog creator without a reviewed profile under Others', () => {
-    // Render order, sorted by creator *label* then id (model-tree.ts:58). The
-    // labels decide it: AI2, AI21, Cohere, DeepSeek, Mistral, Moonshot AI,
-    // NVIDIA, TII, Zhipu AI, then xAI -- whose lowercase label sorts after every
-    // uppercase one under the module's code-unit `compare`.
+  it('puts every catalog creator the list omits under Others', () => {
+    // Also render order, and what pins it is the comparator in `buildCreators`.
+    // This is an assertion about the code, not about the alphabet: where a
+    // creator's recorded name and its label disagree on an order, this list is
+    // sensitive to which of the two the comparator reads, so a comparator
+    // change cannot pass it unnoticed the way an alphabetical coincidence
+    // would.
     expect(tree.others.map(({ organization }) => organization.id))
-      .toEqual(CREATORS_WITHOUT_A_REVIEWED_PROFILE);
+      .toEqual(CREATORS_THE_SITE_DOES_NOT_LEAD_WITH);
     // The recorded names in that same render order. This list is deliberately
     // *not* alphabetical: that it reads out of order is the rule working, since
     // the sort key is the label and these are the fuller recorded forms.
@@ -307,35 +314,39 @@ describe('featured membership follows the reviewed source profile set', () => {
       .toEqual([
         'Allen Institute for AI',
         'AI21 Labs',
+        'Alibaba Cloud',
+        'Amazon',
         'Cohere',
         'DeepSeek',
         'Mistral AI',
         'Moonshot AI',
         'NVIDIA',
         'Technology Innovation Institute',
-        'Zhipu AI',
         'SpaceXAI',
+        'Zhipu AI',
       ]);
     // The branch this change exists to populate must not be empty, and the two
     // branches must partition the catalog rather than merely both being present.
     expect(tree.others.length).toBeGreaterThan(0);
     expect([...tree.featured, ...tree.others].map(({ organization }) => organization.id).sort())
-      .toEqual([...CREATORS_WITH_A_REVIEWED_PROFILE, ...CREATORS_WITHOUT_A_REVIEWED_PROFILE].sort());
+      .toEqual([...CREATORS_THE_SITE_LEADS_WITH, ...CREATORS_THE_SITE_DOES_NOT_LEAD_WITH].sort());
   });
 
   it('orders Others by a key that recorded-name order would get wrong', () => {
     // Vacuity guard for the expectation above. An ordering assertion can only
-    // pin a comparator while the two candidate keys actually disagree on this
+    // pin a sort key while the two candidate keys actually disagree on this
     // data; if they ever agree, the expectation silently stops testing anything
-    // and would pass against a reverted comparator. That is not hypothetical:
-    // when this test was written the expectation above had, until shortly
-    // before, listed only creators that sorted identically under both keys, so
-    // it was structurally incapable of detecting the comparator it exists to
-    // pin. Hence assert the disagreement rather than assuming it persists.
-    const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+    // and would pass against a reverted key. That is not hypothetical: when
+    // this test was written the expectation above had, until shortly before,
+    // listed only creators that sorted identically under both keys, so it was
+    // structurally incapable of detecting the thing it exists to pin. Hence
+    // assert the disagreement rather than assuming it persists.
+    //
+    // The *comparator* is held constant here and varied in the test below, so
+    // that a failure names which of the two moved.
     const sortedBy = (key: (organization: Organization) => string) => (
       [...tree.others.map(({ organization }) => organization)]
-        .sort((a, b) => compare(key(a), key(b)) || compare(a.id, b.id))
+        .sort((a, b) => compareLabels(key(a), key(b)) || compareLabels(a.id, b.id))
         .map(({ id }) => id)
     );
 
@@ -344,12 +355,48 @@ describe('featured membership follows the reviewed source profile set', () => {
 
     expect(byLabel).not.toEqual(byRecordedName);
     expect(tree.others.map(({ organization }) => organization.id)).toEqual(byLabel);
-    // Name the two crossings, so a future data change that removes one of them
-    // fails here with a readable reason instead of quietly halving the guard.
+    // Name the crossing, so a future data change that removes it fails here
+    // with a readable reason instead of quietly halving the guard.
     expect(byLabel.indexOf('ai2')).toBeLessThan(byLabel.indexOf('ai21-labs'));
     expect(byRecordedName.indexOf('ai2')).toBeGreaterThan(byRecordedName.indexOf('ai21-labs'));
-    expect(byLabel.at(-1)).toBe('xai');
-    expect(byRecordedName.at(-1)).not.toBe('xai');
+  });
+
+  it('orders creators case-insensitively, so a lowercase label is not exiled to the end', () => {
+    // Choosing the label as the sort key is only half of "a creator appears
+    // where the reader looks for it". A raw code-unit comparison puts every
+    // lowercase initial after every uppercase one, which filed `xai` correctly
+    // under X while rendering it after the Zs -- the same complaint #479 exists
+    // to answer, moved from the letter to the position.
+    const creators = tree.others.map(({ organization }) => organization);
+    const startsLowercase = ({ shortName }: Organization) => (
+      shortName.slice(0, 1) !== shortName.slice(0, 1).toUpperCase()
+    );
+
+    // Vacuity guard: with no lowercase-initial label the two comparators agree
+    // and every assertion below passes for free. Say so rather than pass.
+    expect(creators.filter(startsLowercase).length).toBeGreaterThan(0);
+
+    const rendered = creators.map(({ id }) => id);
+    // The property, not the arrangement: `xai` belongs between `tii` and
+    // `zhipu-ai`, where a reader scanning A-Z looks for X. Pinning it relative
+    // to its neighbours survives new creators landing either side of it, which
+    // a frozen list of every creator would not.
+    expect(rendered.indexOf('tii')).toBeLessThan(rendered.indexOf('xai'));
+    expect(rendered.indexOf('xai')).toBeLessThan(rendered.indexOf('zhipu-ai'));
+
+    // ...and the comparator is what puts it there. Sorting the same records by
+    // the same key under a code-unit comparison is the ordering this test
+    // exists to reject, so assert the two differ rather than trusting that
+    // they would.
+    const codeUnit = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+    const byCodeUnit = [...creators]
+      .sort((a, b) => (
+        codeUnit(organizationLabel(a), organizationLabel(b)) || codeUnit(a.id, b.id)
+      ))
+      .map(({ id }) => id);
+
+    expect(byCodeUnit.at(-1)).toBe('xai');
+    expect(rendered).not.toEqual(byCodeUnit);
   });
 
   it('moves creators between branches without dropping a single release', () => {
@@ -367,7 +414,7 @@ describe('featured membership follows the reviewed source profile set', () => {
       families.flatMap(({ releases }) => releases.map(({ id }) => id))
     ));
 
-    for (const creatorId of CREATORS_WITHOUT_A_REVIEWED_PROFILE) {
+    for (const creatorId of CREATORS_THE_SITE_DOES_NOT_LEAD_WITH) {
       const owned = dataset.releases
         .filter(({ organizationId }) => organizationId === creatorId)
         .map(({ id }) => id);
@@ -387,8 +434,8 @@ describe('featured membership follows the reviewed source profile set', () => {
     }
   });
 
-  it('leaves the reclassified creators with no featured release and no stale rationale', () => {
-    for (const creatorId of CREATORS_WITHOUT_A_REVIEWED_PROFILE) {
+  it('leaves the creators the list omits with no featured release and no stale rationale', () => {
+    for (const creatorId of CREATORS_THE_SITE_DOES_NOT_LEAD_WITH) {
       const owned = dataset.releases.filter(({ organizationId }) => organizationId === creatorId);
 
       expect(owned.length).toBeGreaterThan(0);
@@ -401,9 +448,7 @@ describe('featured membership follows the reviewed source profile set', () => {
     // And the criterion has not quietly emptied the other branch: the page
     // invariant at tree.astro:21 needs a featured release to exist at all.
     expect(dataset.releases.some(({ featured }) => featured)).toBe(true);
-    expect(CREATORS_WITH_A_REVIEWED_PROFILE.map(creatorName)).toEqual([
-      'Alibaba Cloud',
-      'Amazon',
+    expect(CREATORS_THE_SITE_LEADS_WITH.map(creatorName)).toEqual([
       'Anthropic',
       'Google DeepMind',
       'Meta',
@@ -447,7 +492,12 @@ describe('tree page source', () => {
 
   it('states the featured criterion without ranking the models', () => {
     expect(page).toContain('Featured placement is editorial and non-ranked');
-    expect(page).toContain('a creator is featured when this repository keeps a reviewed source profile for it');
+    expect(page).toContain('a creator is featured when it is one of the five this site leads with');
+    // The superseded criterion must not survive anywhere in this copy.
+    expect(page).not.toContain('reviewed source profile');
+    // The page must also say what featuring does not cost a creator, because the
+    // whole risk of an editorial lead list is reading as a coverage judgement.
+    expect(page).toContain('keeps every release, its place under Others, and its own provider page');
     // No composite score, rank, or prominence claim may enter this copy.
     for (const word of ['leading', 'top ', 'major', 'most important', 'best', 'rank the', 'score']) {
       expect(page.toLowerCase()).not.toContain(word);
@@ -502,12 +552,14 @@ describe('model tree Others branch', () => {
     // The ordering rule itself, over whatever Others actually holds. `\0` sorts
     // below any printable character, so this is label first, then id. The
     // ordering key is the creator label (`shortName`) — see
-    // `organization-name.ts` — not the fuller recorded `name`.
+    // `organization-name.ts` — not the fuller recorded `name`, and the
+    // comparator is that module's, not a second one written here: a lowercase
+    // label orders among the uppercase ones rather than after all of them.
     const orderKeys = tree.others.map(
       ({ organization }) => `${organizationLabel(organization)}\0${organization.id}`,
     );
 
-    expect(orderKeys).toEqual([...orderKeys].sort());
+    expect(orderKeys).toEqual([...orderKeys].sort(compareLabels));
 
     const zulu = tree.others.find(({ organization }) => organization.id === 'other-zulu')!;
 

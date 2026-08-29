@@ -30,10 +30,10 @@ import type { Organization } from '../data/schema';
  * display, sort, and filing sites the defect was found in could each have been
  * fixed on their own, and would then have been free to drift apart again.
  *
- * This rule decides *which recorded name is used*. It deliberately does not
- * touch ordering semantics -- the comparator each caller already uses is
- * unchanged -- and it never touches `id` or `slug`, which are identity, not
- * presentation.
+ * This rule decides *which recorded name is used*, and how two of the chosen
+ * strings compare -- see {@link compareLabels}, which exists because choosing
+ * the label as the sort key does not by itself put a creator where a reader
+ * looks. It never touches `id` or `slug`, which are identity, not presentation.
  */
 export type OrganizationNames = Pick<Organization, 'name' | 'shortName'>;
 
@@ -71,4 +71,30 @@ export function organizationFullNameIfDistinct(
  */
 export function organizationSearchTerms(organization: OrganizationNames): string[] {
   return [...new Set([organizationLabel(organization), organizationFullName(organization)])];
+}
+
+/**
+ * Ordering for creator labels: the same comparison the label rule implies.
+ *
+ * Choosing the label as the sort *key* is only half of "a creator appears where
+ * the reader looks for it". The other half is the comparison, and a raw code
+ * unit `<` is not it: uppercase letters occupy 65-90 and lowercase 97-122, so
+ * any label beginning with a lowercase letter sorts after every label beginning
+ * with an uppercase one. `xAI` filed correctly under X while rendering after
+ * `Zhipu AI`, which is the same "not where a reader looks" complaint that this
+ * rule exists to answer, just moved from the letter to the position.
+ *
+ * Case is folded and everything else is left alone, deliberately. A
+ * locale-aware comparison would also reorder accents and punctuation, which is
+ * a larger behavioural change than the defect calls for and is not something
+ * any source states. Labels that differ only by case fall back to the code unit
+ * order so the result stays total and stable; callers still add their own id or
+ * slug tiebreak.
+ */
+export function compareLabels(a: string, b: string): number {
+  const folded = a.toLowerCase();
+  const other = b.toLowerCase();
+  if (folded !== other) return folded < other ? -1 : 1;
+  if (a === b) return 0;
+  return a < b ? -1 : 1;
 }

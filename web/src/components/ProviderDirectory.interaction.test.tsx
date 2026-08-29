@@ -187,7 +187,13 @@ describe('ProviderDirectory groups and roles', () => {
     expect(within(platformRow).getByText(/operated by Alpha Labs/)).toBeDefined();
   });
 
-  it('links a creator to its filtered catalog and says so when nothing is generated', async () => {
+  it('links a creator to its generated page and says so when nothing is generated', async () => {
+    // The creator half read `/models/?creator=alpha` until a page was generated
+    // for every creator that has releases; it now links that page. The platform
+    // half is untouched by that change and is the reason this test survives the
+    // fallback's removal: no serving-platform page is generated yet, and this is
+    // the only place the unlinked row is checked as rendered DOM rather than as
+    // a model.
     renderDirectory();
     await waitFor(() => screen.getByText('Alpha API'));
 
@@ -195,7 +201,7 @@ describe('ProviderDirectory groups and roles', () => {
     const platformRow = screen.getByText('Alpha API').closest('.directory-row') as HTMLElement;
 
     expect(within(creatorRow).getByRole('link', { name: 'Alpha Labs' }).getAttribute('href'))
-      .toBe('/models/?creator=alpha');
+      .toBe('/providers/alpha/');
     expect(within(platformRow).queryByRole('link')).toBeNull();
     expect(within(platformRow).getByText('A serving-platform page is not generated yet.')).toBeDefined();
   });

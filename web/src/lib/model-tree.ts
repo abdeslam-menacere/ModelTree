@@ -1,6 +1,6 @@
 import type { Dataset, ModelFamily, ModelRelease, Organization } from '../data/schema';
 import { comparePartialDates, comparePartialDatesDescending } from '../data/partial-date';
-import { organizationLabel } from './organization-name';
+import { compareLabels, organizationLabel } from './organization-name';
 
 export interface ModelTreeFamily {
   family: ModelFamily;
@@ -55,7 +55,7 @@ function buildCreators(dataset: Dataset, organizations: Organization[]): ModelTr
   // Ordered by the creator label, not by `name`: a creator must appear where the
   // string the reader sees says it will. See `organization-name.ts`.
   return [...organizations]
-    .sort((a, b) => compare(organizationLabel(a), organizationLabel(b)) || compare(a.id, b.id))
+    .sort((a, b) => compareLabels(organizationLabel(a), organizationLabel(b)) || compare(a.id, b.id))
     .map((organization) => ({
       organization,
       families: dataset.families

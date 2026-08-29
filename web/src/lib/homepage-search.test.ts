@@ -3,6 +3,12 @@ import { dataset } from '../data/dataset';
 import { validateDataset } from '../data/validate';
 import { lineageFixtureDataset } from '../../tests/fixtures/lineage-dataset';
 import { buildLineageEcosystems } from './lineage-view';
+import { homeSuggestionsFor } from './homepage-search-view';
+import {
+  organizationFullNameIfDistinct,
+  organizationLabel,
+  organizationSearchTerms,
+} from './organization-name';
 import {
   buildHomepageSearchIndex,
   measureHomepageSearchIndexSize,
@@ -185,6 +191,47 @@ describe('product suggestions', () => {
     // Positive control so an empty suggestion set cannot pass this vacuously.
     expect(index.suggestions.length).toBeGreaterThan(0);
     expect(index.suggestions.filter((suggestion) => suggestion.entity === 'product')).toHaveLength(0);
+  });
+});
+
+describe('creator suggestions', () => {
+  it('gives a creator one row, displayed as the label and reachable by either recorded form', () => {
+    const organizations = ecosystems.map(({ organization }) => organization);
+
+    // Vacuity guard. The defect below needs a creator on the homepage whose two
+    // recorded forms differ; with none present every assertion here passes
+    // without exercising anything. Which creators those are is left to the
+    // data -- the featured set changes with a release flag.
+    const twoForms = organizations.filter((organization) => (
+      organizationFullNameIfDistinct(organization) !== null
+    ));
+    expect(twoForms.length).toBeGreaterThan(0);
+
+    // No two suggestions of one entity type read the same. Stated over every
+    // entity rather than creators alone because it is not a creator rule: this
+    // builder already skips a model alias that normalizes to the model's own
+    // display name, for exactly this reason. An organization-only assertion
+    // would pin something narrower than the index actually keeps.
+    for (const entity of new Set(index.suggestions.map(({ entity: type }) => type))) {
+      const terms = index.suggestions
+        .filter((suggestion) => suggestion.entity === entity)
+        .map(({ term }) => term);
+      // Names the offending string on failure, which a size comparison would not.
+      expect(terms.filter((term, at) => terms.indexOf(term) !== at)).toEqual([]);
+    }
+
+    // ...and the one row stays reachable from *both* forms. Without this, the
+    // duplicate above is trivially satisfied by dropping the fuller form, which
+    // would leave a reader who types "Google" unable to find DeepMind -- a
+    // worse regression, and one no assertion above would notice.
+    for (const organization of twoForms) {
+      for (const recorded of organizationSearchTerms(organization)) {
+        const matched = homeSuggestionsFor(index, recorded)
+          .filter((suggestion) => suggestion.entity === 'organization')
+          .map(({ term }) => term);
+        expect(matched).toContain(organizationLabel(organization));
+      }
+    }
   });
 });
 

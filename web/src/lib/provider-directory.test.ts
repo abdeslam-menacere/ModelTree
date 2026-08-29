@@ -2,13 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { dataset as seedDataset } from '../data/dataset';
 import type { Dataset } from '../data/schema';
 import { validateDataset } from '../data/validate';
-import { buildCatalogIndex, providerRoute } from './catalog';
-import { parseCatalogState } from './catalog-view';
+import { providerRoute } from './catalog';
 import { providerStaticPaths } from './routes';
 import {
   buildDirectoryLetters,
   buildProviderDirectory,
-  creatorCatalogHref,
   DIRECTORY_LETTERS,
   directoryInitial,
   filterDirectory,
@@ -422,37 +420,37 @@ describe('derived counts', () => {
 });
 
 describe('where a row leads', () => {
-  it('points a creator at the catalog filtered to that creator', () => {
-    const dataset = makePopulatedDataset();
+  it('resolves every creator that has releases to its generated page, with no fallback', () => {
+    // The invariant that replaces the removed catalog fallback, and the reason
+    // removing it was safe. Three tests here previously pinned that fallback: a
+    // creator with releases but no generated page linked to `/models/?creator=`
+    // instead. Generating a page for every creator that has a release makes that
+    // state unreachable -- the branch's precondition is the negation of what its
+    // own antecedent guarantees -- so the branch is gone and this asserts what
+    // holds in its place.
+    //
+    // Asserted on the seed catalog and on the fixture, as a property rather than
+    // one row, and against populations proven non-empty so neither can pass by
+    // matching nothing.
+    for (const [label, dataset] of [
+      ['seed', seedDataset],
+      ['fixture', makePopulatedDataset()],
+    ] as const) {
+      const rows = group(dataset, 'creators').entries.filter(
+        (entry): entry is CreatorEntry => entry.kind === 'creator',
+      );
+      const withReleases = rows.filter((entry) => entry.releaseCount > 0);
+      expect(withReleases.length, label).toBeGreaterThan(0);
 
-    expect(creator(dataset, 'alpha').href).toBe('/models/?creator=alpha');
-    expect(creator(dataset, 'alpha').unlinkedNote).toBeNull();
-  });
+      for (const entry of withReleases) {
+        expect(entry.href, `${label}:${entry.slug}`).toBe(`/providers/${entry.slug}/`);
+      }
+      // No row anywhere in the group points at the catalog, whatever its shape.
+      expect(rows.filter((entry) => entry.href?.includes('creator=')), label).toEqual([]);
+    }
 
-  it('respects a deployed base path', () => {
-    expect(creatorCatalogHref('/ModelTree', 'openai')).toBe('/ModelTree/models/?creator=openai');
-    expect(creatorCatalogHref('/ModelTree/', 'openai')).toBe('/ModelTree/models/?creator=openai');
-  });
-
-  it('produces a link the catalog itself restores to that creator filter', () => {
-    // End-to-end against the catalog's own parser: if the emitted query key or
-    // value ever stopped matching what the catalog reads, this fails rather than
-    // silently linking to an unfiltered catalog. Uses a creator with no generated
-    // provider page, since those are the ones that fall back to the catalog link
-    // -- a creator that does have a page links there instead.
-    const index = buildCatalogIndex(seedDataset, '/');
-    const routed = new Set(providerStaticPaths().map((path) => path.params.slug));
-    const entry = group(seedDataset, 'creators').entries.find(
-      (candidate): candidate is CreatorEntry =>
-        candidate.kind === 'creator' && !routed.has(candidate.slug) && candidate.href !== null,
-    );
-    if (!entry) throw new Error('expected a pageless creator that links to the catalog');
-    const href = entry.href;
-    if (!href) throw new Error('seed creator should link to the catalog');
-
-    const state = parseCatalogState(new URL(href, 'https://example.test').search, index.facets);
-
-    expect(state.filters.creators).toEqual([entry.slug]);
+    expect(creator(makePopulatedDataset(), 'alpha').href).toBe('/providers/alpha/');
+    expect(creator(makePopulatedDataset(), 'alpha').unlinkedNote).toBeNull();
   });
 
   it('links every organization that has a generated provider page to that page', () => {

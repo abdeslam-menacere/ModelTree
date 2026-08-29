@@ -1,5 +1,5 @@
 import type { Dataset, ModelFamily, ModelRelease, Organization } from '../data/schema';
-import { organizationLabel } from './organization-name';
+import { compareLabels, organizationLabel } from './organization-name';
 
 export interface HomepageFamily {
   family: ModelFamily;
@@ -21,7 +21,7 @@ export function buildHomepageHierarchy(dataset: Dataset): HomepageOrganization[]
     // Ordered by the label, because the label is what the page prints. Sorting
     // on one recorded form while displaying the other is the #479 defect, and
     // it reads as a broken sort rather than as a naming bug.
-    .sort((a, b) => compare(organizationLabel(a), organizationLabel(b)) || compare(a.id, b.id))
+    .sort((a, b) => compareLabels(organizationLabel(a), organizationLabel(b)) || compare(a.id, b.id))
     .map((organization) => ({
       organization,
       families: dataset.families
