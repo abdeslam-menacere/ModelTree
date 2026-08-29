@@ -642,13 +642,16 @@ export function buildModelPassport(
   const availability: AvailabilityRow[] = deployments.map((deployment) => {
     const platform = platformById.get(deployment.platformId);
     const daysSinceVerified = daysSince(deployment.verifiedAt, today);
+    // An operator is an Organization record, named by the label rule like any
+    // other. The platform's own name is untouched.
+    const operator = platform ? organizationById.get(platform.organizationId) : undefined;
 
     return {
       id: deployment.id,
       platformName: platform?.name ?? deployment.platformId,
       platformTypeLabel: platform ? platformTypeLabel(platform.type) : 'Not recorded',
       operatorName: platform
-        ? organizationById.get(platform.organizationId)?.name ?? platform.organizationId
+        ? (operator ? organizationLabel(operator) : platform.organizationId)
         : 'Not recorded',
       deliveryModeLabel: deliveryModeLabel(deployment.deliveryMode),
       apiIdentifier: deployment.apiIdentifier ?? null,

@@ -752,7 +752,10 @@ export function buildModelComparison(
   );
 
   const identityRows: ComparisonRow[] = [
-    releaseRow('creator', 'Creator', (release) => organizationById.get(release.organizationId)?.name ?? null),
+    releaseRow('creator', 'Creator', (release) => {
+      const organization = organizationById.get(release.organizationId);
+      return organization ? organizationLabel(organization) : null;
+    }),
     releaseRow('family', 'Family', (release) => familyById.get(release.familyId)?.name ?? null),
     releaseRow('canonical-name', 'Canonical name', (release) => release.canonicalName),
     releaseRow('version', 'Version', (release) => release.version),
@@ -909,7 +912,13 @@ export function buildModelComparison(
   const availabilityRows: ComparisonRow[] = platformIds.map((platformId) => {
     const platform = platformById.get(platformId);
     const platformName = platform?.name ?? platformId;
-    const operator = platform ? organizationById.get(platform.organizationId)?.name : undefined;
+    const operatingOrganization = platform
+      ? organizationById.get(platform.organizationId)
+      : undefined;
+    // The operator is an Organization record, so it is named by the same label
+    // rule as a creator. Naming the platform is not the same as naming its
+    // operator: both are stated, and neither entity is folded into the other.
+    const operator = operatingOrganization ? organizationLabel(operatingOrganization) : undefined;
 
     return rowOf(
       `availability-${platformId}`,

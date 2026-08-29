@@ -424,7 +424,10 @@ export function buildProviderDirectory(dataset: Dataset, base: string): Director
 
   const platforms: DirectoryEntry[] = dataset.servingPlatforms.map((platform) => {
     const operator = organizationById.get(platform.organizationId);
-    const operatorName = operator?.name ?? platform.organizationId;
+    // An operator is an Organization record, so the label rule applies to it
+    // exactly as it does to a creator. The platform keeps its own name; only
+    // the organization naming it is relabelled.
+    const operatorName = operator ? organizationLabel(operator) : platform.organizationId;
     const operatorIsCreator = Boolean(familiesByOrganization.get(platform.organizationId)?.length);
 
     return {
@@ -447,9 +450,16 @@ export function buildProviderDirectory(dataset: Dataset, base: string): Director
       // own in this build, so the row says so instead of linking anywhere.
       href: null,
       unlinkedNote: 'A serving-platform page is not generated yet.',
-      terms: [platform.name, operatorName, platformTypeText(platform.type)].map((term) =>
-        term.toLowerCase(),
-      ),
+      terms: [
+        platform.name,
+        // Both recorded forms of the operator stay searchable, for the same
+        // reason they do for a creator two blocks above: leading with the label
+        // must not cost a reader who knows the operator by its fuller recorded
+        // form. Relabelling the displayed name without this would narrow search
+        // to the label -- the regression this rule has already caused once.
+        ...(operator ? organizationSearchTerms(operator) : [operatorName]),
+        platformTypeText(platform.type),
+      ].map((term) => term.toLowerCase()),
     } satisfies PlatformEntry;
   });
 

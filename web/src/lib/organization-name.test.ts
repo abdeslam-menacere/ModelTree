@@ -6,7 +6,11 @@ import { dataset } from '../data/dataset';
 import type { Dataset, Organization } from '../data/schema';
 import { buildCatalogIndex } from './catalog';
 import { defaultCatalogState, filterAndSortModels } from './catalog-view';
-import { buildComparisonCandidates, buildComparisonPickerIndex } from './comparison';
+import {
+  buildComparisonCandidates,
+  buildComparisonPickerIndex,
+  buildModelComparison,
+} from './comparison';
 import { buildHomepageHierarchy } from './homepage';
 import { buildLineageEcosystems } from './lineage-view';
 import { buildModelTree } from './model-tree';
@@ -16,6 +20,7 @@ import {
   organizationLabel,
   organizationSearchTerms,
 } from './organization-name';
+import { buildModelPassport } from './passport';
 import { buildProviderDirectory, directoryInitial } from './provider-directory';
 import { buildTimelineIndex } from './timeline';
 
@@ -34,6 +39,9 @@ import { buildTimelineIndex } from './timeline';
  */
 
 const BASE = '/';
+// Any fixed date works here: nothing below asserts on staleness, and a fixed
+// value keeps the sweep from changing behaviour with the calendar.
+const TODAY = '2026-01-01';
 
 function everyOrganization(): Organization[] {
   return dataset.organizations;
@@ -221,6 +229,122 @@ describe('the rule is applied at every surface that names a creator', () => {
     // recorded form returns nothing, so the counts above discriminate.
     expect(search('zzz-not-a-recorded-creator-name')).toEqual([]);
   });
+
+  it('names the creator on the comparison table\'s Creator row by the label', () => {
+    // The row a reader compares two models by, labelled "Creator" in words.
+    // The comparison payload and picker were fixed earlier; this is the table
+    // body, built separately, and it was missed by both.
+    // The slice matters. Only 3 of 11 organizations record two different forms,
+    // so a comparison of the first four releases can be satisfied by either
+    // field and would prove nothing. Select releases whose creator actually
+    // distinguishes the two, and guard that the selection did.
+    const distinguishes = new Set(
+      everyOrganization()
+        .filter((organization) => organizationFullNameIfDistinct(organization) !== null)
+        .map((organization) => organization.id),
+    );
+    const slugs = dataset.releases
+      .filter((release) => distinguishes.has(release.organizationId))
+      .slice(0, 4)
+      .map((release) => release.slug);
+    // Vacuity guard: with no such release the comparison below cannot tell the
+    // label from the fuller recorded form.
+    expect(slugs.length).toBeGreaterThan(1);
+
+    const view = buildModelComparison(dataset, slugs, BASE, TODAY);
+    const organizationById = new Map(everyOrganization().map((item) => [item.id, item]));
+    const releaseBySlug = new Map(dataset.releases.map((release) => [release.slug, release]));
+
+    const creatorRow = view.groups
+      .flatMap((group) => group.rows)
+      .find((row) => row.id === 'creator');
+    // Vacuity guard: no such row and every assertion below is skipped silently.
+    expect(creatorRow, 'no Creator row in the comparison view').toBeDefined();
+    expect(creatorRow!.label).toBe('Creator');
+
+    const fullOnly = new Set(
+      everyOrganization()
+        .map(organizationFullNameIfDistinct)
+        .filter((name): name is string => name !== null),
+    );
+    expect(fullOnly.size).toBeGreaterThan(0);
+
+    let stated = 0;
+    for (const cell of creatorRow!.cells) {
+      if (cell.state !== 'stated') continue;
+      stated += 1;
+      const organization = organizationById.get(releaseBySlug.get(cell.slug)!.organizationId)!;
+      expect(cell.value).toBe(organizationLabel(organization));
+      // The defect restated: the fuller recorded form must not be what a
+      // reader sees in a row literally labelled "Creator".
+      expect(fullOnly.has(cell.value)).toBe(false);
+    }
+    expect(stated).toBeGreaterThan(0);
+  });
+
+  it('names a serving-platform operator by the label', () => {
+    // An operator is an Organization record, so the rule reaches it too. The
+    // platform is a different entity and keeps its own name -- relabelling the
+    // organization that operates it collapses nothing.
+    //
+    // Honest limit: measured on this dataset, every platform operator is an
+    // organization whose two recorded forms are identical (Microsoft, Amazon --
+    // 0 of 2 differ, while 3 of 11 organizations overall do). So this sweep
+    // cannot by itself distinguish the label from the fuller form, and it is
+    // not the coverage that discriminates. That is `provider-directory.test.ts`,
+    // whose fixture operator is deliberately "Alpha Labs" / "Alpha" and which
+    // also pins that both forms stay searchable. This test guards the rule as
+    // the dataset grows: the day a differing operator is recorded, it acquires
+    // teeth without being edited.
+    const directory = buildProviderDirectory(dataset, BASE);
+    const organizationById = new Map(everyOrganization().map((item) => [item.id, item]));
+    const platformBySlug = new Map(dataset.servingPlatforms.map((item) => [item.slug, item]));
+
+    const platforms = directory.groups
+      .find((group) => group.id === 'serving-platforms')!
+      .entries.filter((entry) => entry.kind === 'serving-platform');
+    // Vacuity guard: no platforms and the loop below asserts nothing at all.
+    expect(platforms.length).toBeGreaterThan(0);
+
+    for (const entry of platforms) {
+      const platform = platformBySlug.get(entry.slug)!;
+      const operator = organizationById.get(platform.organizationId)!;
+      expect(entry.operatorName).toBe(organizationLabel(operator));
+      expect(entry.name).toBe(platform.name);
+
+      for (const term of organizationSearchTerms(operator)) {
+        expect(entry.terms, `operator term "${term}" lost on ${entry.slug}`).toContain(
+          term.toLowerCase(),
+        );
+      }
+    }
+  });
+
+  it('names the operator on a model passport availability row by the label', () => {
+    // Same honest limit as the directory sweep above: today's two platform
+    // operators record identical forms, so this pins the code path rather than
+    // discriminating between the two strings. It starts discriminating on its
+    // own the day a differing operator is recorded.
+    const organizationById = new Map(everyOrganization().map((item) => [item.id, item]));
+    const platformById = new Map(dataset.servingPlatforms.map((item) => [item.id, item]));
+    const deploymentById = new Map(dataset.deployments.map((item) => [item.id, item]));
+
+    let checked = 0;
+    for (const release of dataset.releases) {
+      const passport = buildModelPassport(dataset, release.id, BASE, TODAY);
+      for (const row of passport.availability) {
+        const platform = platformById.get(deploymentById.get(row.id)!.platformId);
+        if (!platform) continue;
+        const operator = organizationById.get(platform.organizationId);
+        if (!operator) continue;
+        expect(row.operatorName).toBe(organizationLabel(operator));
+        expect(row.platformName).toBe(platform.name);
+        checked += 1;
+      }
+    }
+    // Vacuity guard: a dataset recording no deployment would pass silently.
+    expect(checked).toBeGreaterThan(0);
+  });
 });
 
 /**
@@ -348,16 +472,29 @@ describe('the creator naming rule where creators are ordered', () => {
  * `organization.name` is an already-labelled view model -- does neither, and is
  * still correctly not swept.
  *
- * What it cannot do is catch a surface that never spells `organization.name` --
- * a destructured sort comparator reading `a.name` is invisible to any sweep for
- * a spelling. That class is guarded by the real-dataset assertions above, which
- * check the ordering a reader actually sees. Neither mechanism subsumes the
- * other, which is the reason both exist.
+ * The third widening is the spelling. `comparison.ts` was inside the corpus and
+ * satisfied the gate, and the sweep passed anyway, because that file never
+ * writes `organization.name`: it reads the record back out of a Map, as
+ * `organizationById.get(id)?.name`. Four sites were hiding behind that shape --
+ * the comparison table's Creator row and three platform-operator names -- and
+ * the same file had already cost this rule one miss for the same reason. So the
+ * sweep now recognises the record by where it came from rather than by what the
+ * variable holding it is called: it reads which Maps are built from
+ * `dataset.organizations`, and flags a raw `.name` read off one of those, taken
+ * directly or through a local alias. The identifier set is derived from the
+ * source, so renaming `organizationById` does not blind it.
+ *
+ * What it still cannot do is catch a surface that never names the record at
+ * all -- a destructured sort comparator reading `a.name` is invisible to any
+ * sweep for a shape. That class is guarded by the real-dataset assertions
+ * above, which check the ordering a reader actually sees. Neither mechanism
+ * subsumes the other, which is the reason both exist.
  */
 describe('the creator naming rule on surfaces added later', () => {
+  const LIB_DIRECTORY = fileURLToPath(new URL('.', import.meta.url));
   const roots = [
     { directory: fileURLToPath(new URL('../components', import.meta.url)), extension: '.tsx' },
-    { directory: fileURLToPath(new URL('.', import.meta.url)), extension: '.ts' },
+    { directory: LIB_DIRECTORY, extension: '.ts' },
   ];
 
   // The rule module is the one place the raw field is read on purpose: it is
@@ -369,6 +506,59 @@ describe('the creator naming rule on surfaces added later', () => {
       file.endsWith(extension) && !file.includes('.test.') && file !== RULE_MODULE
     ))
     .map((file) => ({ file, source: readFileSync(join(directory, file), 'utf8') })));
+
+  /**
+   * Identifiers of every Map in a module whose values are organization records.
+   *
+   * Derived from where the records come from -- `dataset.organizations` -- not
+   * from what the variable is called, so the sweep still follows the record
+   * after a rename.
+   */
+  function organizationMapIdentifiers(source: string): string[] {
+    return [...source.matchAll(
+      /const\s+([A-Za-z0-9_]+)\s*=\s*new Map\([^;]*?\.organizations\b[^;]*?\)/g,
+    )].map(([, identifier]) => identifier);
+  }
+
+  /**
+   * Every raw read of an organization's recorded `name`, in any of the shapes
+   * the defect has actually taken: named directly, taken straight out of an
+   * organization Map, or taken out of one through a local alias.
+   */
+  function rawRecordedNameReads(source: string): string[] {
+    const hits = [...source.matchAll(/\borganization\.name\b/g)].map(([hit]) => hit);
+
+    for (const map of organizationMapIdentifiers(source)) {
+      const direct = new RegExp(`\\b${map}\\.get\\([^)]*\\)\\s*[?!]?\\.name\\b`, 'g');
+      for (const [hit] of source.matchAll(direct)) hits.push(hit.replace(/\s+/g, ' '));
+
+      // `const operator = organizationById.get(id)` -- optionally guarded by a
+      // ternary, which is how two of the four operator sites were written --
+      // followed anywhere by a `.name` read off that alias.
+      const aliased = new RegExp(
+        `const\\s+([A-Za-z0-9_]+)\\s*=\\s*(?:[A-Za-z0-9_]+\\s*\\?\\s*)?${map}\\.get\\(`,
+        'g',
+      );
+      for (const [, alias] of source.matchAll(aliased)) {
+        const use = new RegExp(`\\b${alias}\\s*[?!]?\\.name\\b`, 'g');
+        for (const [hit] of source.matchAll(use)) hits.push(hit.replace(/\s+/g, ' '));
+      }
+    }
+
+    return [...new Set(hits)];
+  }
+
+  /**
+   * Whether a module holds an actual Organization record, as opposed to a view
+   * model built from one. This is the sweep's gate, and it is what correctly
+   * excludes `ProviderDirectory.tsx`.
+   */
+  function holdsOrganizationRecords(source: string): boolean {
+    return (
+      /import\s+type\s*\{[^}]*\bOrganization\b[^}]*\}\s*from\s*'\.\.\/data\/schema'/.test(source)
+      || /\.organizations\b/.test(source)
+    );
+  }
 
   it('reads a non-empty corpus from every swept directory, so the sweep below means something', () => {
     expect(modules.length).toBeGreaterThan(0);
@@ -384,18 +574,54 @@ describe('the creator naming rule on surfaces added later', () => {
   });
 
   it('renders no raw recorded name in a module that holds an Organization record', () => {
-    const holdsOrganizations = modules.filter(({ source }) => (
-      /import\s+type\s*\{[^}]*\bOrganization\b[^}]*\}\s*from\s*'\.\.\/data\/schema'/.test(source)
-      || /\.organizations\b/.test(source)
-    ));
+    const holdsOrganizations = modules.filter(({ source }) => holdsOrganizationRecords(source));
     // The control that matters: if this ever reaches zero the sweep below passes
     // for free, and the tripwire has quietly stopped guarding anything.
     expect(holdsOrganizations.length).toBeGreaterThan(0);
 
     const offenders = holdsOrganizations
-      .filter(({ source }) => /\borganization\.name\b/.test(source))
-      .map(({ file }) => file);
+      .flatMap(({ file, source }) => rawRecordedNameReads(source).map((hit) => `${file}: ${hit}`));
     expect(offenders).toEqual([]);
+  });
+
+  it('recognises an organization Map in every module that builds one, so the sweep can follow it', () => {
+    // The sweep above is only as good as this set. An empty set makes every
+    // lookup-shaped read invisible, which is exactly how four sites survived
+    // the previous version, so it is asserted rather than assumed.
+    const withMaps = modules.filter(({ source }) => organizationMapIdentifiers(source).length > 0);
+    expect(withMaps.length).toBeGreaterThan(0);
+
+    // ...and it must find them by derivation, not by matching a fixed name: a
+    // module that builds one from `dataset.organizations` is found whatever it
+    // called the variable.
+    const renamed = 'const byCreator = new Map(dataset.organizations.map((item) => [item.id, item]));';
+    expect(organizationMapIdentifiers(renamed)).toEqual(['byCreator']);
+    expect(rawRecordedNameReads(`${renamed}\nconst n = byCreator.get(id)?.name;`))
+      .toEqual(['byCreator.get(id)?.name']);
+
+    // Control: a Map over a different entity is not an organization Map, so the
+    // sweep does not claim reach it does not have. Family, platform, publisher
+    // and benchmark records carry one name each and are not relabelled.
+    const family = 'const familyById = new Map(dataset.families.map((item) => [item.id, item]));';
+    expect(organizationMapIdentifiers(family)).toEqual([]);
+    expect(rawRecordedNameReads(`${family}\nconst n = familyById.get(id)?.name;`)).toEqual([]);
+  });
+
+  it('excludes ProviderDirectory.tsx by mechanism, not by convention', () => {
+    // Widening the sweep is only a fix if it did not also loosen the gate. This
+    // module spells `organization.name` and is deliberately not an offender:
+    // the value it names is a prepared `DirectoryEntry`, not an Organization
+    // record, and `provider-directory.ts` set that field to the label already.
+    const component = modules.find(({ file }) => file === 'ProviderDirectory.tsx');
+    // Control: the exclusion below means nothing if the file is not swept at all.
+    expect(component, 'ProviderDirectory.tsx is not in the swept corpus').toBeDefined();
+    expect(/\borganization\.name\b/.test(component!.source)).toBe(true);
+    expect(holdsOrganizationRecords(component!.source)).toBe(false);
+
+    // The mechanical reason, asserted at its source rather than trusted: the
+    // entry's `name` is the label, so rendering it is already the rule.
+    const builder = readFileSync(join(LIB_DIRECTORY, 'provider-directory.ts'), 'utf8');
+    expect(builder).toContain('name: organizationLabel(organization)');
   });
 });
 
