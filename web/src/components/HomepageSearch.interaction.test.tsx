@@ -48,7 +48,7 @@ afterEach(() => {
 });
 
 describe('HomepageSearch', () => {
-  it('renders every featured release as a passport link in the broad default view', async () => {
+  it('renders every indexed release as a passport link in the broad default view', async () => {
     renderSearch();
     await waitFor(() => expect(document.querySelector('.home-search-results')).not.toBeNull());
 
@@ -205,7 +205,7 @@ describe('HomepageSearch', () => {
     await waitFor(() => screen.getByRole('status'));
 
     await user.type(comboboxInput(), 'zzqqxxnomatch');
-    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('No featured releases match'));
+    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('No releases match'));
     expect(resultCount()).toBe(0);
 
     const reset = screen.getByRole('button', { name: /clear search and filters/i });

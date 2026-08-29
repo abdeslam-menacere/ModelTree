@@ -1,14 +1,41 @@
 import type { Dataset, DatePrecision } from '../data/schema';
 import { accessLabel, categoryLabel, statusLabel } from './format';
-import { buildLineageEcosystems } from './lineage-view';
+import { buildCreatorEcosystems } from './lineage-view';
 import { organizationLabel, organizationSearchTerms } from './organization-name';
 
 /**
  * The homepage search index: a compact, source-derived view that lets a visitor
- * find and narrow the **featured** releases already shown on the homepage — the
- * exact set `buildLineageEcosystems` renders, never the long-tail catalog. The
- * `/models` catalog owns whole-catalog search; searching it from the homepage is
- * an explicit non-goal, so this index deliberately scopes itself smaller.
+ * find and narrow every creator, family, and release the homepage puts in front
+ * of them — the coverage set `buildCreatorEcosystems` derives, which is every
+ * creator the catalog records a release for.
+ *
+ * It was scoped to the *featured* lead set until
+ * abdeslam-menacere/ModelTree#525, and that is the defect this scope fixes. The
+ * homepage does not only show what it leads with: its coverage panel counts
+ * every recorded creator, its no-script index enumerates every creator, family
+ * and release by name, and Release Pulse names them again. A search restricted
+ * to the lead set left a visitor able to read `Allen Institute for AI → OLMo 2 →
+ * OLMo 2 7B` on the page and get nothing for `OLMo` in the box directly above
+ * it — one page contradicting itself, measured at 21 creators displayed against
+ * 5 searchable.
+ *
+ * The fix is deliberately *this* one and not the alternative the issue also
+ * allowed, which was to stop displaying what could not be searched. Widening
+ * keeps the page showing more of the field than the few creators the site leads
+ * with, which is what every recent change to it has been for.
+ *
+ * Reading the coverage view is also what keeps `featured` meaning what it says.
+ * `featured` is a per-release editorial signal with a recorded decision
+ * procedure; making a release searchable is not an editorial promotion, so
+ * widening the index must never be done by flagging more releases. This module
+ * now reads no flag at all, which makes that structurally impossible rather than
+ * merely discouraged.
+ *
+ * The `/models` directory keeps owning whole-catalog *browsing* — its own
+ * columns, filters, and per-provider filing. What stops here is the narrower
+ * claim that the homepage must reach fewer releases than the catalog does: the
+ * two now cover the same releases through different surfaces, which is the
+ * price of the page being able to find what it prints.
  *
  * Every field here is derived from validated records and is an approved display
  * field (names, known aliases, family, creator, product, and the controlled
@@ -182,16 +209,18 @@ const ORGANIZATION_ROLE_LABEL = 'Creator';
 const PRODUCT_ROLE_LABEL = 'Product';
 
 /**
- * Builds the homepage search index from the featured ecosystems.
+ * Builds the homepage search index from the creator coverage ecosystems.
  *
- * The release set is exactly what the homepage lineage explorer shows, taken
- * from {@link buildLineageEcosystems}, so search and the visible tree can never
- * drift apart and neither reaches into the long-tail catalog. The dataset is
- * only read here — no record is mutated — so this is safe to call at build time
- * and the "filtering never mutates source data" criterion holds at the source.
+ * The release set is exactly what the homepage displays, taken from
+ * {@link buildCreatorEcosystems}, so what a visitor can read on the page and
+ * what the box above it can find can never drift apart. That seed reads no
+ * editorial flag, so an editorial change to which creators the site leads with
+ * cannot add or remove anything here. The dataset is only read — no record is
+ * mutated — so this is safe to call at build time and the "filtering never
+ * mutates source data" criterion holds at the source.
  */
 export function buildHomepageSearchIndex(dataset: Dataset, base = '/'): HomepageSearchIndex {
-  const ecosystems = buildLineageEcosystems(dataset);
+  const ecosystems = buildCreatorEcosystems(dataset);
 
   const releases: HomeReleaseRow[] = [];
   const suggestions: HomeSuggestion[] = [];
@@ -320,8 +349,9 @@ export function buildHomepageSearchIndex(dataset: Dataset, base = '/'): Homepage
   // searchable only where it routes to at least one homepage release; where it
   // routes to exactly one, choosing it selects that release, otherwise it
   // narrows the query. A product that routes nowhere on the homepage (routing
-  // undisclosed or off the featured set) contributes nothing rather than a dead
-  // suggestion — routing the sources do not state is never invented here.
+  // undisclosed, or naming a release the catalog does not record) contributes
+  // nothing rather than a dead suggestion — routing the sources do not state is
+  // never invented here.
   for (const product of dataset.products) {
     const routedSlugs = product.releaseIds
       .map((releaseId) => homepageReleaseSlugById.get(releaseId))
