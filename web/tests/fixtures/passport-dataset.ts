@@ -130,6 +130,7 @@ const families: ModelFamily[] = [
     description: 'A fictional family used only by tests.',
     categories: ['language-reasoning'],
     firstReleaseDate: '2025-01-15',
+    datePrecision: 'day',
     status: 'current',
     sourceIds: ['lab-docs'],
     verifiedAt: '2026-08-01',
@@ -142,6 +143,7 @@ const families: ModelFamily[] = [
     description: 'A fictional family whose records are deliberately minimal.',
     categories: ['coding'],
     firstReleaseDate: '2026-03-01',
+    datePrecision: 'day',
     status: 'preview',
     sourceIds: ['lab-docs'],
     verifiedAt: '2026-08-01',
@@ -242,7 +244,7 @@ const relatedReleases: ModelRelease[] = [
     familyId: 'complete-family',
     version: '0',
     variant: 'base',
-    releaseDate: '2024-01-01',
+    releaseDate: '2024',
     datePrecision: 'year',
     status: 'research',
     featured: false,
@@ -318,9 +320,10 @@ const scenarioReleases: ModelRelease[] = [
     familyId: 'sparse-family',
     version: '1',
     variant: 'base',
-    // The announcement gave a month, so the stored day is a placeholder and
-    // `datePrecision` is what decides how it prints.
-    releaseDate: '2026-03-01',
+    // The announcement gave a month, and the record now says exactly that.
+    // Before #468 this had to carry a placeholder day with `datePrecision`
+    // suppressing it, which is the arrangement that issue removed.
+    releaseDate: '2026-03',
     datePrecision: 'month',
     status: 'preview',
     featured: false,

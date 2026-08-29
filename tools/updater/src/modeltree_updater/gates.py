@@ -15,8 +15,10 @@ The gates are:
 ``schema-validation``
     The value must survive the dataset's shape rules (mirrored from the Zod schema).
 ``date-sanity``
-    Dates must be real calendar dates at day precision, and evidence cannot have
-    been verified in the future.
+    Dates must name days that exist. A family or release date carries only the
+    precision its source stated — year, month or day — and must agree with the
+    ``datePrecision`` recorded beside it; every other date is one we observed and is
+    an exact day. Evidence cannot have been verified in the future.
 ``reference-integrity``
     Every cited source must exist in this run and match the URL it was read from.
 ``lineage-invariants``
@@ -43,7 +45,13 @@ from .contracts import (
     GateStatus,
     SourceCandidate,
 )
-from .validation import FIELD_REGISTRY, validate_claim
+from .validation import (
+    FIELD_REGISTRY,
+    PARTIAL_DATE,
+    PRECISION_SEGMENTS,
+    partial_date_is_real,
+    validate_claim,
+)
 
 __all__ = [
     "CLAIM_GATES",
@@ -83,6 +91,11 @@ CLAIM_GATES: tuple[str, ...] = (
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 CONTROL_CHARACTERS = re.compile(r"[\x00-\x20\x7f]")
+
+# The two fields that carry a date a *source* stated, and so may be less precise than
+# a day. Every other date in the dataset is one we observed and stays exact.
+PARTIAL_DATE_FIELDS = frozenset({"firstReleaseDate", "releaseDate"})
+PRECISION_FIELD = "datePrecision"
 
 # ModelTree records nothing from before modern computing, and a date decades out is
 # a parsing accident rather than a roadmap.
@@ -162,6 +175,32 @@ def _iso_date_issues(label: str, value: Any) -> tuple[list[str], date | None]:
     if parsed.year < EARLIEST_YEAR:
         return ([f"{label} predates {EARLIEST_YEAR}: {value!r}"], parsed)
     return ([], parsed)
+
+
+def _partial_date_issues(label: str, value: Any) -> tuple[list[str], date | None]:
+    """The `_iso_date_issues` rules for a date a source stated only to year or month.
+
+    The date returned is the **earliest day the value could mean**, so `2026` is
+    carried forward as 2026-01-01 for the year checks below without that day ever
+    being recorded as a fact. Only the year of it is ever read, which every day in
+    the interval shares, so no comparison depends on the choice.
+    """
+    if not isinstance(value, str) or not PARTIAL_DATE.match(value):
+        return (
+            [f"{label} must be a YYYY, YYYY-MM or YYYY-MM-DD date, got {value!r}"],
+            None,
+        )
+    if not partial_date_is_real(value):
+        return ([f"{label} is not a real calendar date: {value!r}"], None)
+    segments = [int(part) for part in value.split("-")]
+    earliest = date(
+        segments[0],
+        segments[1] if len(segments) > 1 else 1,
+        segments[2] if len(segments) > 2 else 1,
+    )
+    if earliest.year < EARLIEST_YEAR:
+        return ([f"{label} predates {EARLIEST_YEAR}: {value!r}"], earliest)
+    return ([], earliest)
 
 
 def _checked_date(checked_at: str) -> date | None:
@@ -247,7 +286,7 @@ def run_claim_gates(
             GATE_DATES,
             subject_kind="claim",
             subject_id=claim.id,
-            issues=_claim_date_issues(claim, checked_at=checked_at),
+            issues=_claim_date_issues(claim, claims=claims, checked_at=checked_at),
             checked_at=checked_at,
         ),
         _result(
@@ -314,13 +353,77 @@ def _claim_contract_issues(claim: ClaimCandidate) -> list[str]:
     return issues
 
 
-def _claim_date_issues(claim: ClaimCandidate, *, checked_at: str) -> list[str]:
+def _precision_agreement_issues(
+    claim: ClaimCandidate, claims: Sequence[ClaimCandidate]
+) -> list[str]:
+    """A stated date and the precision beside it must agree.
+
+    Storing "how much of a date the source gave" separately from the date is only
+    honest if the two are required to match: a claim carrying `2026-03-14` while
+    declaring `month` states a day no source published and labels it as though it
+    had not. Before this issue the pair could not disagree, because a partial date
+    could not be proposed at all; now that it can, this closes the gap that opens.
+
+    Both directions are checked, so the date claim and the precision claim each
+    fail on their own. Approving one while refusing the other would land exactly
+    the disagreement this refuses.
+
+    The comparison is **within one proposal batch**. The updater never reads the
+    committed dataset, so a claim that revises a date alone, against a precision
+    already committed, is not reachable here — that case is caught downstream by
+    the dataset gate and by Zod, which do see whole records.
+    """
+    if claim.field_path in PARTIAL_DATE_FIELDS:
+        pairs = [
+            (claim.value, other.value)
+            for other in claims
+            if other.field_path == PRECISION_FIELD and _same_entity(other, claim)
+        ]
+    elif claim.field_path == PRECISION_FIELD:
+        pairs = [
+            (other.value, claim.value)
+            for other in claims
+            if other.field_path in PARTIAL_DATE_FIELDS and _same_entity(other, claim)
+        ]
+    else:
+        return []
+
+    issues: list[str] = []
+    for value, precision in pairs:
+        if not isinstance(value, str) or not isinstance(precision, str):
+            continue
+        expected = PRECISION_SEGMENTS.get(precision)
+        # An unrecognised precision is the schema gate's finding, not this one's.
+        if expected is None or not PARTIAL_DATE.match(value):
+            continue
+        if len(value.split("-")) != expected:
+            issues.append(
+                f"date {value!r} and datePrecision {precision!r} disagree for "
+                f"{claim.entity_kind.value} {claim.entity_id!r}; a date must carry "
+                f"exactly the precision it declares"
+            )
+    return issues
+
+
+def _same_entity(left: ClaimCandidate, right: ClaimCandidate) -> bool:
+    return left.entity_kind is right.entity_kind and left.entity_id == right.entity_id
+
+
+def _claim_date_issues(
+    claim: ClaimCandidate, *, claims: Sequence[ClaimCandidate] = (), checked_at: str
+) -> list[str]:
     issues: list[str] = []
     today = _checked_date(checked_at)
 
+    issues.extend(_precision_agreement_issues(claim, claims))
+
     spec = FIELD_REGISTRY.get(claim.entity_kind, {}).get(claim.field_path)
-    if spec is not None and spec.kind == "date":
-        problems, parsed = _iso_date_issues(f"claim.value ({claim.field_path})", claim.value)
+    if spec is not None and spec.kind in {"date", "partial-date"}:
+        label = f"claim.value ({claim.field_path})"
+        if spec.kind == "date":
+            problems, parsed = _iso_date_issues(label, claim.value)
+        else:
+            problems, parsed = _partial_date_issues(label, claim.value)
         issues.extend(problems)
         # A future *release* date can be legitimate — a preview announced ahead of
         # time — so only an implausibly distant one is refused.

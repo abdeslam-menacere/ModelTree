@@ -209,6 +209,17 @@ Downloadable weights and OSI-approved licensing are separate fields. Claiming
 `accessType: "open-weight"` requires a licence that actually releases weights,
 and claiming `osiApproved` requires an SPDX identifier or a licence URL.
 
+That structural requirement is not the evidence rule, and the two are easy to
+confuse at exactly the moment a claim is written:
+
+<!-- osi-approved-evidence-policy:start -->
+`osiApproved` must rest on a source that states OSI approval — OSI's own
+published licence list at opensource.org. An `spdxId` or a licence `url` alone
+is not evidence of OSI status: where the schema requires one, that requirement
+is a structural floor — it ensures a licence is identified — not the evidence
+rule for the field's truth, which is the reviewer's to apply.
+<!-- osi-approved-evidence-policy:end -->
+
 The seed data was checked against these official pages on 2026-08-14:
 
 - <https://openai.com/index/gpt-4-1/>
@@ -247,9 +258,10 @@ reading and the disagreement is written down here rather than resolved silently.
   announced for Gemini 2.5 Pro and Flash, while the Cloud platform model pages
   give a retirement date of 2026-10-20. Both models are recorded as `current`
   and no shutdown date is asserted.
-- **Gemini 3.7 Flash is excluded.** Its documentation gives only "August 2026".
-  `releaseDate` is a full ISO date, so a month-only release cannot be represented
-  without inventing a day. Tracked as issue #48.
+- **Gemini 3.7 Flash release date precision.** The Gemini API documentation
+  announces "August 2026" without a day, while the Gemini Enterprise Agent
+  Platform documentation gives 2026-08-13. The platform date is recorded at `day`
+  precision, and that source is cited for it.
 - **Llama 4 Maverick parameter count.** The model card's own table gives 400B
   total, while the Hugging Face repository metadata on the same page reports
   402B. The model card figure is recorded, because it is the count Meta states in

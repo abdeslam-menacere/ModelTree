@@ -11,7 +11,7 @@ interface Props {
   description: string;
   passportHref: string;
   verifiedAt: string;
-  currentPage?: 'explore' | 'tree' | 'catalog' | 'directory' | 'passport' | 'refresh' | 'methodology';
+  currentPage?: 'explore' | 'tree' | 'catalog' | 'directory' | 'compare' | 'passport' | 'refresh' | 'methodology' | 'glossary';
 }
 
 const { title, description, passportHref, verifiedAt, currentPage } = Astro.props;
@@ -20,8 +20,10 @@ const iconHref = `${base}favicon.svg`;
 const treeHref = `${base}tree/`;
 const catalogHref = `${base}models/`;
 const directoryHref = `${base}providers/`;
+const compareHref = `${base}compare/`;
 const refreshHref = `${base}refresh/`;
 const methodologyHref = `${base}methodology/`;
+const glossaryHref = `${base}glossary/`;
 ---
 
 <!doctype html>
@@ -45,9 +47,11 @@ const methodologyHref = `${base}methodology/`;
           <a href={treeHref} aria-current={currentPage === 'tree' ? 'page' : undefined}>Model Tree</a>
           <a href={catalogHref} aria-current={currentPage === 'catalog' ? 'page' : undefined}>Catalog</a>
           <a href={directoryHref} aria-current={currentPage === 'directory' ? 'page' : undefined}>Directory</a>
+          <a href={compareHref} aria-current={currentPage === 'compare' ? 'page' : undefined}>Compare</a>
           <a href={passportHref} aria-current={currentPage === 'passport' ? 'page' : undefined}>Model Passport</a>
           <a href={refreshHref} aria-current={currentPage === 'refresh' ? 'page' : undefined}>Data refresh</a>
           <a href={methodologyHref} aria-current={currentPage === 'methodology' ? 'page' : undefined}>Methodology</a>
+          <a href={glossaryHref} aria-current={currentPage === 'glossary' ? 'page' : undefined}>Explain this name</a>
         </nav>
       </div>
     </header>

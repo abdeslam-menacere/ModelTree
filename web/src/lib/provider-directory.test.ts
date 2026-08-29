@@ -56,6 +56,7 @@ function makeFamily(id: string, organizationId: string, extra: Record<string, un
     description: 'Fixture family.',
     categories: ['language-reasoning'],
     firstReleaseDate: '2025-01-01',
+    datePrecision: 'day',
     status: 'current',
     sourceIds: ['src-a'],
     verifiedAt: '2026-01-01',

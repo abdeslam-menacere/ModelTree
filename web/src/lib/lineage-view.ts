@@ -1,4 +1,5 @@
 import type { Dataset, ModelFamily, ModelRelease, Organization } from '../data/schema';
+import { comparePartialDates, comparePartialDatesDescending } from '../data/partial-date';
 
 /**
  * Normalized view models for the homepage lineage explorer.
@@ -72,12 +73,14 @@ function compare(a: string, b: string) {
 
 /** Newest first, with an id tiebreak so equal dates never reorder between builds. */
 function byNewestRelease(a: ModelRelease, b: ModelRelease) {
-  return compare(b.releaseDate, a.releaseDate) || compare(a.id, b.id);
+  return comparePartialDatesDescending(a.releaseDate, b.releaseDate) || compare(a.id, b.id);
 }
 
 function newestReleaseDate(releases: readonly ModelRelease[]) {
   return releases.reduce((newest, release) => (
-    compare(release.releaseDate, newest) > 0 ? release.releaseDate : newest
+    newest === '' || comparePartialDates(release.releaseDate, newest) > 0
+      ? release.releaseDate
+      : newest
   ), '');
 }
 

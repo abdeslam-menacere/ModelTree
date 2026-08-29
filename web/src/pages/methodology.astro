@@ -155,6 +155,21 @@ const unrecordedConfigFields = unrecordedBenchmarkConfigFields(dataset.benchmark
               defined in the schema — defaulting to an empty list — and still holds no data. The
               absence is recorded honestly rather than filled with guesses.
             </p>
+            <p>
+              <!-- organization-type-policy:start -->
+              Editorial functional classification, not a sourced claim. Choose the first match:
+              <code>community</code> when independent contributors outside any one entity’s employment
+              or appointment chain can initiate and decide its model releases, not merely submit work;
+              <code>company</code> when the entity offers model products or access for payment under
+              its name (a parent’s sales do not count); <code>research-lab</code> when one
+              standalone institution or named unit controls releases and exists primarily for
+              research; <code>nonprofit</code> when a centrally governed nonprofit matches none
+              above; otherwise <code>company</code> for the centrally operated creator that
+              runs the model work.<!-- organization-type-policy:end -->
+              An organization’s required <code>type</code> therefore classifies function rather than
+              legal form and is not a ranking. Reviewers apply that observable decision procedure
+              rather than requiring a primary-source quote to use the category’s exact words.
+            </p>
 
             <h3 id="lifecycle">Lifecycle statuses</h3>
             <p>
@@ -184,8 +199,18 @@ const unrecordedConfigFields = unrecordedBenchmarkConfigFields(dataset.benchmark
               licence are recorded as two independent booleans on the licence record, so
               <strong>open-weight does not imply open-source</strong>. The schema enforces the
               coupling that does hold: a release whose access type claims weights must carry a
-              licence marked downloadable, and an OSI-approved claim needs an SPDX id or a licence
-              URL as evidence.
+              licence marked downloadable.
+            </p>
+            <p>
+              <!-- osi-approved-evidence-policy:start -->
+              <code>osiApproved</code> must rest on a source that states OSI approval — OSI’s own
+              published licence list at opensource.org. An <code>spdxId</code> or a licence
+              <code>url</code> alone is not evidence of OSI status: where the schema requires one,
+              that requirement is a structural floor — it ensures a licence is identified — not the
+              evidence rule for the field’s truth, which is the reviewer’s to
+              apply.<!-- osi-approved-evidence-policy:end -->
+              A validator can check that a licence is identified; whether OSI approved it is a fact
+              about the world that only a source states.
             </p>
             <table class="method-glossary">
               <caption>Access types</caption>
