@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
+import { lineageFixtureDataset } from '../../tests/fixtures/lineage-dataset';
 import { buildHomepageSearchIndex } from './homepage-search';
 import {
   clearAllHomeFilters,
@@ -123,14 +124,32 @@ describe('deriveHomeSearchResults states', () => {
     expect(results.selected).toBeNull();
   });
 
-  it('reports a single result when a query names exactly one release', () => {
+  it('includes the queried release among results when a query names one (real data)', () => {
     const target = index.releases[0];
     const results = deriveHomeSearchResults(index, {
       ...defaultHomeSearchState(),
       query: target.canonicalName,
     });
-    expect(results.total).toBeGreaterThanOrEqual(1);
+    expect(results.total).toBeGreaterThan(0);
     expect(results.matches.map((row) => row.slug)).toContain(target.slug);
+  });
+
+  it('reports exactly one result for a query only one release matches (self-contained fixture)', () => {
+    // A frozen fixture, so "exactly one" is fixed by construction and cannot
+    // drift with the growing seed catalog. The lineage fixture features several
+    // releases; only the shallow family's release carries the token "solo".
+    const fixtureIndex = buildHomepageSearchIndex(lineageFixtureDataset, '/');
+    // Positive control: the index holds more than one release, so a single match
+    // is a genuine narrowing rather than the whole (possibly empty) set.
+    expect(fixtureIndex.releases.length).toBeGreaterThan(1);
+
+    const results = deriveHomeSearchResults(fixtureIndex, {
+      ...defaultHomeSearchState(),
+      query: 'solo',
+    });
+    expect(results.total).toBe(1);
+    expect(results.matches).toHaveLength(1);
+    expect(results.matches[0].slug).toBe('fixture-alpha-solo-one');
   });
 
   it('reports the broad state (all releases) for an empty query and no filters', () => {
@@ -161,6 +180,16 @@ describe('homeSuggestionsFor', () => {
   it('returns none for an empty query, keeping the default view uncluttered', () => {
     expect(homeSuggestionsFor(index, '', 8)).toHaveLength(0);
     expect(homeSuggestionsFor(index, '   ', 8)).toHaveLength(0);
+  });
+
+  it('returns none for a punctuation-only query rather than matching everything', () => {
+    // Positive control: a real query against the same index does return matches,
+    // so an empty result below is the normalized-needle guard firing, not an
+    // empty index passing vacuously.
+    expect(homeSuggestionsFor(index, index.releases[0].name, 8).length).toBeGreaterThan(0);
+    for (const punctuation of ['-', '!!!', '***', '. , ;']) {
+      expect(homeSuggestionsFor(index, punctuation, 8)).toHaveLength(0);
+    }
   });
 
   it('returns entity-typed suggestions matching the query, capped at the limit', () => {

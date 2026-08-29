@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
+import { validateDataset } from '../data/validate';
+import { lineageFixtureDataset } from '../../tests/fixtures/lineage-dataset';
 import { buildLineageEcosystems } from './lineage-view';
 import {
   buildHomepageSearchIndex,
+  measureHomepageSearchIndexSize,
   normalizeText,
   releaseMatchesQuery,
   tokenize,
@@ -130,6 +133,77 @@ describe('buildHomepageSearchIndex', () => {
     const before = JSON.stringify(dataset);
     buildHomepageSearchIndex(dataset, '/');
     expect(JSON.stringify(dataset)).toBe(before);
+  });
+});
+
+describe('product suggestions', () => {
+  // A self-contained fixture, so the fixed expectations below cannot drift with
+  // the growing seed catalog. The lineage fixture has featured releases and no
+  // products; we add exactly one product that routes to a single featured
+  // release and prove the product code path lights up correctly.
+  const routedProductDataset = validateDataset({
+    ...lineageFixtureDataset,
+    products: [{
+      id: 'fixture-alpha-assistant',
+      slug: 'fixture-alpha-assistant',
+      name: 'Alpha Assistant',
+      organizationId: 'fixture-alpha',
+      description: 'Synthetic product that routes to one featured release, to exercise product suggestions.',
+      modelSelection: 'routed',
+      releaseIds: ['fixture-alpha-solo-one'],
+      effectiveFrom: '2025-01-01',
+      sourceIds: ['fixture-lineage-announcement'],
+      verifiedAt: '2026-08-01',
+    }],
+  });
+
+  it('emits a product suggestion routed to the single release it names, and injects its term', () => {
+    // Non-vacuous control: the same fixture without the product yields none, so
+    // the assertions below are driven by the product path, not by ambient data.
+    const baseIndex = buildHomepageSearchIndex(lineageFixtureDataset, '/');
+    expect(baseIndex.suggestions.some((suggestion) => suggestion.entity === 'product')).toBe(false);
+
+    const productIndex = buildHomepageSearchIndex(routedProductDataset, '/');
+    const productSuggestion = productIndex.suggestions.find((suggestion) => suggestion.entity === 'product');
+    expect(productSuggestion, 'a product routing to a featured release must be searchable').toBeDefined();
+    expect(productSuggestion!.term).toBe('Alpha Assistant');
+    expect(productSuggestion!.targetSlug).toBe('fixture-alpha-solo-one');
+    expect(productSuggestion!.route).toBe('/models/fixture-alpha-solo-one/');
+
+    // The product name joins the routed release's searchable terms, so typing the
+    // product reaches the release it powers.
+    const routedRow = productIndex.releases.find((row) => row.slug === 'fixture-alpha-solo-one');
+    expect(routedRow, 'the routed release is indexed').toBeDefined();
+    expect(routedRow!.terms).toContain(normalizeText('Alpha Assistant'));
+  });
+
+  it('offers no product suggestion while no shipped product routes to a featured release', () => {
+    // Documents the B1 decision: the product path is live (proven above) but the
+    // seed catalog lights up none of it today, which is why the homepage copy
+    // does not promise product lookup. When a shipped product first routes to a
+    // featured release, this reddens and the copy should be restored.
+    // Positive control so an empty suggestion set cannot pass this vacuously.
+    expect(index.suggestions.length).toBeGreaterThan(0);
+    expect(index.suggestions.filter((suggestion) => suggestion.entity === 'product')).toHaveLength(0);
+  });
+});
+
+describe('measureHomepageSearchIndexSize', () => {
+  it('keeps the homepage index within a per-row payload budget', () => {
+    // The index ships whole to the homepage as client:load props, so budget it
+    // per row -- immune to dataset growth -- with positive controls so an empty
+    // index fails loudly rather than passing vacuously.
+    expect(index.releases.length).toBeGreaterThan(0);
+    expect(index.suggestions.length).toBeGreaterThan(0);
+    const size = measureHomepageSearchIndexSize(index);
+    const bytesPerRelease = Math.round(size.releases / index.releases.length);
+    const bytesPerSuggestion = Math.round(size.suggestions / index.suggestions.length);
+    expect(bytesPerRelease).toBeLessThanOrEqual(900);
+    expect(bytesPerSuggestion).toBeLessThanOrEqual(320);
+    // Total is dominated by those two sections; keep it bounded by their budgets.
+    expect(size.total).toBeLessThanOrEqual(
+      bytesPerRelease * index.releases.length + bytesPerSuggestion * index.suggestions.length + 4_096,
+    );
   });
 });
 

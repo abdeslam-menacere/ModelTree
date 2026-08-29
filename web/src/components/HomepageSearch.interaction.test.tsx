@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
@@ -10,6 +10,22 @@ import HomepageSearch from './HomepageSearch';
 
 const index = buildHomepageSearchIndex(dataset, '/');
 const firstCategory = index.facets.categories[0];
+
+// A query, derived from the index, that surfaces more than one suggestion, so a
+// listbox-navigation test can observe wrapping. Uses the most common shared
+// token across suggestion terms rather than pinning a value the data could drop.
+const multiSuggestionQuery = (() => {
+  const counts = new Map<string, number>();
+  for (const suggestion of index.suggestions) {
+    for (const token of new Set(suggestion.normalized.split(' '))) {
+      if (token.length >= 2) counts.set(token, (counts.get(token) ?? 0) + 1);
+    }
+  }
+  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
+  const token = ranked.find(([value]) => homeSuggestionsFor(index, value, 8).length > 1)?.[0];
+  if (!token) throw new Error('index has no query surfacing multiple suggestions');
+  return token;
+})();
 
 function renderSearch() {
   return render(<HomepageSearch index={index} />);
@@ -91,6 +107,96 @@ describe('HomepageSearch', () => {
     expect(selectedCard).not.toBeNull();
     expect(selectedCard?.querySelector('.home-search-result-title')?.getAttribute('href'))
       .toBe(index.releases.find((row) => row.slug === target.targetSlug)?.route);
+  });
+
+  it('closes the listbox on Escape, clearing the active option and keeping focus', async () => {
+    const user = userEvent.setup();
+    renderSearch();
+    await waitFor(() => screen.getByRole('status'));
+
+    const query = index.releases[0].name;
+    await user.click(comboboxInput());
+    await user.type(comboboxInput(), query);
+    await screen.findByRole('listbox');
+
+    await user.keyboard('{ArrowDown}');
+    await waitFor(() => expect(comboboxInput().getAttribute('aria-activedescendant')).not.toBeNull());
+
+    await user.keyboard('{Escape}');
+
+    // The listbox is dismissed and no option stays active, but the typed query
+    // and input focus are preserved so typing can continue.
+    await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull());
+    expect(comboboxInput().getAttribute('aria-expanded')).toBe('false');
+    expect(comboboxInput().getAttribute('aria-activedescendant')).toBeNull();
+    expect(document.activeElement).toBe(comboboxInput());
+    expect((comboboxInput() as HTMLInputElement).value).toBe(query);
+  });
+
+  it('wraps to the last option with ArrowUp and tracks it via aria-activedescendant', async () => {
+    const user = userEvent.setup();
+    renderSearch();
+    await waitFor(() => screen.getByRole('status'));
+
+    const query = multiSuggestionQuery;
+    const suggestions = homeSuggestionsFor(index, query, 8);
+    // Positive control: more than one suggestion, so wrapping to the last is an
+    // observable move rather than a no-op on a single-item list.
+    expect(suggestions.length).toBeGreaterThan(1);
+
+    await user.click(comboboxInput());
+    await user.type(comboboxInput(), query);
+    const listbox = await screen.findByRole('listbox');
+    const options = within(listbox).getAllByRole('option');
+
+    // From no active option, ArrowUp wraps to the last and the input's
+    // aria-activedescendant points at exactly that option.
+    await user.keyboard('{ArrowUp}');
+    const last = options[options.length - 1];
+    await waitFor(() => expect(last.getAttribute('aria-selected')).toBe('true'));
+    expect(comboboxInput().getAttribute('aria-activedescendant')).toBe(last.id);
+
+    // A second ArrowUp steps to the previous option, and the pointer follows.
+    await user.keyboard('{ArrowUp}');
+    const previous = options[options.length - 2];
+    await waitFor(() => expect(previous.getAttribute('aria-selected')).toBe('true'));
+    expect(comboboxInput().getAttribute('aria-activedescendant')).toBe(previous.id);
+  });
+
+  it('restores focus to the input after a pointer selection', async () => {
+    const user = userEvent.setup();
+    renderSearch();
+    await waitFor(() => screen.getByRole('status'));
+
+    const query = index.releases[0].name;
+    await user.click(comboboxInput());
+    await user.type(comboboxInput(), query);
+    const listbox = await screen.findByRole('listbox');
+    const option = within(listbox).getAllByRole('option')[0];
+
+    // Move focus off the input first, so a passing assertion proves the component
+    // actively restores focus rather than the input merely never losing it.
+    comboboxInput().blur();
+    expect(document.activeElement).not.toBe(comboboxInput());
+
+    fireEvent.mouseDown(option);
+    await waitFor(() => expect(document.activeElement).toBe(comboboxInput()));
+  });
+
+  it('drops a pinned selection from the URL once the query is edited', async () => {
+    const user = userEvent.setup();
+    const target = index.releases[0];
+    window.history.replaceState({}, '', `/?q=${encodeURIComponent(target.canonicalName)}&sel=${target.slug}`);
+    renderSearch();
+    await waitFor(() => expect(window.location.search).toContain(`sel=${target.slug}`));
+
+    // Editing the query must release the pin, so the shared link reflects the new
+    // query rather than a stale selection.
+    await user.type(comboboxInput(), 'x');
+    await waitFor(() => expect(window.location.search).not.toContain('sel='));
+    // Positive control: the URL is still populated, so the assertion above is the
+    // pin being cleared, not the whole query string going empty.
+    expect(window.location.search).toContain('q=');
   });
 
   it('reaches the empty state on a non-matching query and resets from it', async () => {
