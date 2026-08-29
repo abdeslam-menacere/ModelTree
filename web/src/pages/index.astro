@@ -1,12 +1,15 @@
 ---
+import HomepageSearch from '../components/HomepageSearch';
 import LineageExplorer from '../components/LineageExplorer';
 import { dataset, sourceById } from '../data/dataset';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { formatDate } from '../lib/format';
 import { buildHomepageHierarchy, firstHomepageRelease } from '../lib/homepage';
+import { buildHomepageSearchIndex } from '../lib/homepage-search';
 import { buildLineageEcosystems } from '../lib/lineage-view';
 
 const hierarchy = buildHomepageHierarchy(dataset);
+const homeSearchIndex = buildHomepageSearchIndex(dataset, import.meta.env.BASE_URL);
 const ecosystems = buildLineageEcosystems(dataset);
 const releaseLabels = Object.fromEntries(
 	dataset.releases.map((release) => [release.id, release.displayName]),
@@ -46,6 +49,22 @@ const passportHref = `${base}models/${firstHomepageRelease(hierarchy).slug}/`;
 				<div><dt>Releases</dt><dd>{dataset.releases.length}</dd></div>
 				<div><dt>Sources</dt><dd>{dataset.sources.length}</dd></div>
 			</dl>
+		</section>
+
+		<section class="home-search-band" aria-labelledby="home-search-title">
+			<HomepageSearch client:load index={homeSearchIndex} />
+			<noscript>
+				<div class="no-script-note">
+					<p>Search needs JavaScript. Every featured release has a static Model Passport:</p>
+					<ul>
+						{homeSearchIndex.releases.map((release) => (
+							<li>
+								<a href={release.route}>{release.name}</a> — {release.organizationName} · {release.familyName}
+							</li>
+						))}
+					</ul>
+				</div>
+			</noscript>
 		</section>
 
 		<section id="explorer" class="explorer-band">
