@@ -151,8 +151,8 @@ export default function HomepageSearch({ index }: Props) {
         <span className="eyebrow">Find a release</span>
         <h2 id="home-search-title">Search featured models, families, and creators.</h2>
         <p>
-          Look up a model by name, a known API alias, its family, its creator, or a product it
-          powers, then narrow by category, access, status, or release period.
+          Look up a model by name, a known API alias, its family, or its creator, then
+          narrow by category, access, status, or release period.
         </p>
       </div>
 
@@ -171,7 +171,7 @@ export default function HomepageSearch({ index }: Props) {
               aria-expanded={showListbox}
               aria-controls={listboxId}
               aria-activedescendant={showListbox && activeIndex >= 0 ? optionId(activeIndex) : undefined}
-              placeholder="Search by model, alias, family, creator, or product"
+              placeholder="Search by model, alias, family, or creator"
               value={state.query}
               onChange={(event) => updateQuery(event.target.value)}
               onKeyDown={handleSearchKeys}
