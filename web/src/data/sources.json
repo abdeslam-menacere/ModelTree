@@ -1395,14 +1395,5 @@
     "publisherId": "upstage",
     "lastCheckedDate": "2026-08-29",
     "notes": "States \"Solar Pro Preview is an advanced large language model (LLM) with 22 billion parameters\", \"a maximum context length of 4K\", front-matter \"license: mit\", and a comparison table whose own column records \"*Release Date* | 2024.09.08\". States \"Solar Pro Preview is a pre-release version of the official Solar Pro\", which is why the release is recorded with preview status. Links to https://www.upstage.ai, which is the website the organization record carries."
-  },
-  {
-    "id": "osi-approved-mit-license",
-    "url": "https://opensource.org/license/mit",
-    "title": "MIT License",
-    "type": "official-docs",
-    "publisherId": "open-source-initiative",
-    "lastCheckedDate": "2026-08-29",
-    "notes": "The Open Source Initiative’s own page for this licence, carrying its \"Open Source Initiative Approved License\" mark. Cited for approval status only, per tools/updater/profiles/origins/open-source-initiative.json. The licence name on the release comes from Upstage’s own model card, not from here, and this page is the authority for the status rather than the licence identifier being evidence of it."
   }
 ]

@@ -3096,7 +3096,8 @@
     "intendedUse": "Bilingual English and Korean instruction following and long-context work. The licence is non-commercial, so commercial use is not granted by it.",
     "sourceIds": [
       "lg-ai-research-exaone-3-5-model-card",
-      "lg-ai-research-exaone-3-5-repository"
+      "lg-ai-research-exaone-3-5-repository",
+      "osi-license-index"
     ],
     "verifiedAt": "2026-08-29"
   },
@@ -3188,7 +3189,7 @@
     "intendedUse": "Instruction following on a single GPU. The model card describes this as a pre-release version of the official Solar Pro, so it is recorded with preview status.",
     "sourceIds": [
       "upstage-solar-pro-preview-model-card",
-      "osi-approved-mit-license"
+      "osi-license-mit"
     ],
     "verifiedAt": "2026-08-29"
   }
