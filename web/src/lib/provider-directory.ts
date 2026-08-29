@@ -1,6 +1,5 @@
 import type { Dataset, Organization, ServingPlatform } from '../data/schema';
 import { buildProviderRouteResolver } from './catalog';
-import { FILTER_DIMENSIONS } from './catalog-view';
 
 /**
  * The A-Z directory of model creators and serving platforms.
@@ -36,16 +35,6 @@ export const OTHER_INITIAL = '#';
 const OTHER_SLUG = 'other';
 
 export const DIRECTORY_SEARCH_PARAM = 'q';
-
-/**
- * The catalog's own query key for a creator filter, read from the catalog's
- * declaration rather than written out again. If the catalog ever renames the
- * parameter, the links this directory emits follow it instead of quietly
- * pointing at a filter the catalog no longer parses.
- */
-const CREATOR_FILTER_PARAM = FILTER_DIMENSIONS.find(
-  (dimension) => dimension.key === 'creators',
-)!.param;
 
 export type DirectoryGroupId = 'creators' | 'serving-platforms';
 
@@ -153,10 +142,6 @@ function compare(a: string, b: string) {
   return a > b ? 1 : 0;
 }
 
-function normalizeBase(base: string) {
-  return base.endsWith('/') ? base : `${base}/`;
-}
-
 /**
  * The letter a name files under.
  *
@@ -184,19 +169,6 @@ export function letterKey(letter: string): string {
 /** The DOM id of one letter's section, unique across both groups. */
 export function letterSectionId(groupId: DirectoryGroupId, letter: string): string {
   return `directory-${groupId}-${letterKey(letter)}`;
-}
-
-/**
- * The catalog view filtered to one creator. This is the fallback destination for
- * a creator that has no generated `/providers/<slug>/` page of its own: rather
- * than link a route that does not exist, or leave the row dead, the creator
- * points at the model catalog narrowed to its own releases. That is a route this
- * build really generates, and the query key comes from the catalog's own filter
- * declaration so the two cannot drift apart. Creators that do have a generated
- * page link to it instead -- see {@link buildProviderDirectory}.
- */
-export function creatorCatalogHref(base: string, slug: string): string {
-  return `${normalizeBase(base)}models/?${CREATOR_FILTER_PARAM}=${encodeURIComponent(slug)}`;
 }
 
 const ORGANIZATION_TYPE_TEXT: Record<Organization['type'], string> = {
@@ -375,15 +347,18 @@ export function buildProviderDirectory(dataset: Dataset, base: string): Director
       ? 'Model creator and serving-platform operator'
       : 'Model creator';
 
-    // Where the creator's name leads. A generated per-organization page is the
-    // canonical destination, so it wins when one exists -- the set of pages is
-    // read from the same rule the route generation uses, so a row never links a
-    // page the build omits nor omits a link to one it produces. With no page,
-    // the row falls back to the catalog filtered to this creator, and with no
-    // release either it links nothing and says why.
-    const providerPageHref = resolveProviderRoute(organization.slug);
-    const href = providerPageHref
-      ?? (releaseCount ? creatorCatalogHref(base, organization.slug) : null);
+    // Where the creator's name leads. The set of generated pages is read from
+    // the same rule the route generation uses, so a row never links a page the
+    // build omits nor omits a link to one it produces.
+    //
+    // There is no third destination. A page is generated for every creator that
+    // has at least one release, so a creator either has a page or has no release
+    // at all -- in which case it links nothing and says why. This once fell back
+    // to the catalog filtered to the creator, for a creator that had releases but
+    // no page; that state became unreachable when page generation stopped being
+    // limited to featured creators, so the branch was removed rather than left
+    // as code no input can enter.
+    const href = resolveProviderRoute(organization.slug);
 
     creators.push({
       kind: 'creator',
