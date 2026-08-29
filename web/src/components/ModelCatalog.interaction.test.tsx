@@ -43,15 +43,15 @@ function tableRowCount() {
 // Selects a creator facet checkbox unambiguously, then asserts it is *named*
 // by the creator label.
 //
-// The obvious query -- `getByRole('checkbox', { name: /^AI2/ })` -- broke once
-// the dataset gained a creator label that prefixes another ("AI2" for the Allen
-// Institute, "AI21" for AI21 Labs): the prefix resolved to two checkboxes and
-// the query threw. Matching the whole accessible name is not a reliable fix
-// either, because the label and the visually hidden count are concatenated with
-// no separator, so "AI2" with 11 models and "AI21" with 1 both read
-// "AI211 models". The `value` attribute carries the creator slug and is unique
-// by construction, so it does the selecting; the label assertion is what keeps
-// this helper honest about #479's rule.
+// A name-prefix query -- `getByRole('checkbox', { name: /^Foo/ })` -- is not
+// safe here: as soon as one creator label is a prefix of another the pattern
+// resolves to two checkboxes and the query throws. Matching the whole
+// accessible name is not a reliable fix either, because the label and the
+// visually hidden count are concatenated with no separator, so a shorter
+// creator label followed by its count can read exactly as a longer creator
+// label followed by its own. The `value` attribute carries the creator slug and
+// is unique by construction, so it does the selecting; the label assertion is
+// what keeps this helper honest about #479's rule.
 function creatorCheckbox(creator: { value: string; label: string }) {
   const box = screen
     .getAllByRole('checkbox')

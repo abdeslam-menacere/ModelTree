@@ -327,9 +327,11 @@ describe('featured membership follows the reviewed source profile set', () => {
     // Vacuity guard for the expectation above. An ordering assertion can only
     // pin a comparator while the two candidate keys actually disagree on this
     // data; if they ever agree, the expectation silently stops testing anything
-    // and would pass against a reverted comparator. #518 is what made them
-    // disagree -- before it landed, all ten labels sat in their recorded-name
-    // slots. So assert the disagreement rather than assuming it persists.
+    // and would pass against a reverted comparator. That is not hypothetical:
+    // when this test was written the expectation above had, until shortly
+    // before, listed only creators that sorted identically under both keys, so
+    // it was structurally incapable of detecting the comparator it exists to
+    // pin. Hence assert the disagreement rather than assuming it persists.
     const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
     const sortedBy = (key: (organization: Organization) => string) => (
       [...tree.others.map(({ organization }) => organization)]

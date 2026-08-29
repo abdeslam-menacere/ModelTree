@@ -418,10 +418,12 @@ describe('route resolution and payload budget', () => {
 
   it('carries the creator\'s fuller recorded form only where it differs from the label', () => {
     // This is what keeps the row inside the budget above. Search must match
-    // either recorded form (#479), but carrying both on every row measured 610
-    // bytes per row against a 600-byte budget, while carrying the fuller form
-    // only where the record actually distinguishes the two measured 571. A
-    // present value also states that the record makes a distinction, so
+    // either recorded form (#479), but carrying both on every row breached that
+    // budget, while carrying the fuller form only where the record actually
+    // distinguishes the two stays inside it. The measured figures are not
+    // restated here: the assertion above is what holds them, and it fails
+    // loudly when the dataset moves them, which a comment cannot do.
+    // A present value also states that the record makes a distinction, so
     // repeating the label here would assert one it does not make.
     const index = buildCatalogIndex(seedDataset, '/');
     const organizationBySlug = new Map(seedDataset.organizations.map((item) => [item.slug, item]));

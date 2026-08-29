@@ -36,9 +36,12 @@ export interface ModelIndexRow {
    * Absent when the two recorded forms agree, which is not only a byte saving:
    * a present value states that the record makes a distinction, so repeating
    * the label here would assert one it does not make. The saving is real
-   * though, and measured -- carrying both forms on every row costs 610 bytes
-   * per row against a 600-byte budget, while carrying this only where the
-   * forms differ costs 571. Search must not be paid for by the payload budget.
+   * though, and measured: carrying both forms on every row breached the
+   * per-row payload budget, while carrying this only where the forms differ
+   * stays inside it. Search must not be paid for by the payload budget, and
+   * the budget test in `catalog.test.ts` is what holds that -- the figures
+   * live there, in an assertion that fails loudly, rather than here where a
+   * dataset change would expire them in silence.
    */
   organizationFullName?: string;
   familySlug: string;

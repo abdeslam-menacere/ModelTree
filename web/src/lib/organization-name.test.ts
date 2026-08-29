@@ -274,8 +274,8 @@ describe('the rule is applied at every surface that names a creator', () => {
     // The row a reader compares two models by, labelled "Creator" in words.
     // The comparison payload and picker were fixed earlier; this is the table
     // body, built separately, and it was missed by both.
-    // The slice matters. Only 3 of 11 organizations record two different forms,
-    // so a comparison of the first four releases can be satisfied by either
+    // The slice matters. Only some organizations record two different forms, so
+    // a slice taken off the top of the release list can be satisfied by either
     // field and would prove nothing. Select releases whose creator actually
     // distinguishes the two, and guard that the selection did.
     const distinguishes = new Set(
@@ -328,14 +328,14 @@ describe('the rule is applied at every surface that names a creator', () => {
     // organization that operates it collapses nothing.
     //
     // Honest limit: measured on this dataset, every platform operator is an
-    // organization whose two recorded forms are identical (Microsoft, Amazon --
-    // 0 of 2 differ, while 3 of 11 organizations overall do). So this sweep
-    // cannot by itself distinguish the label from the fuller form, and it is
-    // not the coverage that discriminates. That is `provider-directory.test.ts`,
-    // whose fixture operator is deliberately "Alpha Labs" / "Alpha" and which
-    // also pins that both forms stay searchable. This test guards the rule as
-    // the dataset grows: the day a differing operator is recorded, it acquires
-    // teeth without being edited.
+    // organization whose two recorded forms are identical, while some
+    // organizations elsewhere in the dataset do differ. So this sweep cannot by
+    // itself distinguish the label from the fuller form, and it is not the
+    // coverage that discriminates. That is `provider-directory.test.ts`, whose
+    // fixture operator deliberately records two different forms and which also
+    // pins that both stay searchable. This test guards the rule as the dataset
+    // grows: the day a differing operator is recorded, it acquires teeth
+    // without being edited.
     const directory = buildProviderDirectory(dataset, BASE);
     const organizationById = new Map(everyOrganization().map((item) => [item.id, item]));
     const platformBySlug = new Map(dataset.servingPlatforms.map((item) => [item.slug, item]));
@@ -568,11 +568,15 @@ describe('the creator naming rule on surfaces added later', () => {
    * recorded form -- so the sweep has to tell the two intents apart or it would
    * force a discoverability regression to go green.
    *
-   * The window is measured rather than guessed. In `homepage-search.ts` the two
-   * search-term sites sit 19 and 37 characters from their `shortName`; the three
-   * display sites sat 319, 569 and 1047 away. 120 falls inside that gap and
-   * nearer the search end, so the first thing a careless widening would swallow
-   * is a display site -- which is the direction that fails loudly.
+   * The window is measured rather than guessed: on the surface that motivated
+   * it, every both-forms search construction sat an order of magnitude closer
+   * to its `shortName` than any display read did, and this value falls inside
+   * that gap and nearer the search end. So the first thing a careless widening
+   * would swallow is a display site -- which is the direction that fails
+   * loudly. The distances are not restated here, because a comment cannot fail
+   * when the file they were measured from changes; the exemption is asserted
+   * in both directions, including at distance, by 'exempts a both-forms search
+   * construction and still flags a lone display read' below.
    */
   const BOTH_FORMS_WINDOW = 120;
 
