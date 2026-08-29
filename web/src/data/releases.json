@@ -189,7 +189,7 @@
       "openai-gpt-5-6-sol-preview",
       "openai-gpt-daybreak-blue-docs"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-08-29"
   },
   {
     "id": "openai-gpt-5-6-terra",
@@ -2384,6 +2384,50 @@
       "anthropic-model-deprecations"
     ],
     "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "anthropic-claude-opus-4-8",
+    "slug": "claude-opus-4-8",
+    "canonicalName": "Claude Opus 4.8",
+    "displayName": "Claude Opus 4.8",
+    "organizationId": "anthropic",
+    "familyId": "anthropic-claude-4-8",
+    "version": "4.8",
+    "variant": "Opus",
+    "releaseDate": "2026-05-28",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 1000000,
+    "maximumOutput": 128000,
+    "apiAliases": [
+      "claude-opus-4-8"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "The Opus tier of the Claude 4.8 generation, announced on 28 May 2026 as an upgrade to Claude Opus 4.7 and compared to it on tests of coding, agentic skills, reasoning and knowledge work. The model overview page records a 1M token context window, a 128K token maximum output, text and image input to text output, and a status of Active (legacy) with retirement no sooner than 28 May 2027. Anthropic now directs users to Claude Opus 5 for improved performance, which is the basis for recording the status as legacy rather than current. It is served through the Claude API as claude-opus-4-8.",
+    "intendedUse": "Anthropic compares Claude Opus 4.8 on tests of coding, agentic skills, reasoning and practical knowledge work tasks, and documents it as taking text and image input and producing text output. Anthropic now recommends migrating to Claude Opus 5 for improved performance.",
+    "sourceIds": [
+      "anthropic-opus-4-8-announcement",
+      "anthropic-opus-4-8-docs",
+      "anthropic-model-deprecations"
+    ],
+    "verifiedAt": "2026-08-29"
   },
   {
     "id": "alibaba-qwen3-8-2-4t-a95b",
