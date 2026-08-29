@@ -129,6 +129,11 @@ describe('coverage statistics', () => {
   it('derives counts from the dataset rather than pinning literals', () => {
     const stats = buildCoverageStats(seedDataset);
 
+    // Guard the derivation: an assertion of equality to `.length` would pass
+    // vacuously if the seed silently resolved to empty. It never should.
+    expect(seedDataset.organizations.length).toBeGreaterThan(0);
+    expect(seedDataset.releaseEvents.length).toBeGreaterThan(0);
+
     expect(stats.creators).toBe(seedDataset.organizations.length);
     expect(stats.families).toBe(seedDataset.families.length);
     expect(stats.releases).toBe(seedDataset.releases.length);
@@ -481,18 +486,30 @@ describe('release pulse snapshots', () => {
 
 describe('release pulse against the real dataset', () => {
   it('never surfaces an event whose interval predates the window', () => {
+    // A fixed reference day keeps the test deterministic regardless of when it
+    // runs; it is not a dataset count and does not move as trunk grows.
     const now = '2026-08-28';
     const windowMonths = PULSE_WINDOW_MONTHS;
     const start = pulseWindowStart(now, windowMonths);
     const pulse = buildReleasePulse(seedDataset, { base: BASE, now, windowMonths });
 
-    // Derived, not pinned: whatever the dataset holds, every shown item's own
-    // event date must reach the window. This is the trap restated over real data.
+    // Independently derived from the seed, so the counts move with the data
+    // rather than being pinned. Guarded so the per-item check below is not run
+    // over an empty subject unnoticed.
+    const inWindowCount = seedDataset.releaseEvents.filter(
+      (event) => latestDay(event.date) >= start,
+    ).length;
+
+    expect(seedDataset.releaseEvents.length).toBeGreaterThan(0);
+    expect(pulse.totalInWindow).toBe(inWindowCount);
+    expect(pulse.items).toHaveLength(Math.min(inWindowCount, PULSE_MAX_ITEMS));
+
+    // The trap restated over real data: every shown item's own event date must
+    // reach the window. A derivation that read verifiedAt would admit an old
+    // record re-checked recently and fail here.
     for (const item of pulse.items) {
-      const source = seedDataset.releaseEvents.find((candidate) => candidate.id === item.id)!;
-      expect(source).toBeDefined();
+      expect(seedDataset.releaseEvents.some((event) => event.id === item.id)).toBe(true);
       expect(latestDay(item.date) >= start).toBe(true);
     }
-    expect(pulse.items.length).toBeLessThanOrEqual(PULSE_MAX_ITEMS);
   });
 });
