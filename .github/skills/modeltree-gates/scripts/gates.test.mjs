@@ -517,6 +517,232 @@ describe('gate-dataset', () => {
     assert.deepEqual(nonEmptyFailures, [], 'a single surviving record must not trip the non-empty floor');
   });
 
+  // -------------------------------------------------------------------------
+  // #441: a family that no release points at.
+  //
+  // The bug these cover is a *direction*, not a value. Every `familyId` check in
+  // `gate-dataset.mjs` used to run release -> family, so a family nothing points
+  // at could not fail the gate however broken it was -- and `model-tree.ts`
+  // drops it with `.filter(({ releases }) => releases.length > 0)`, so the
+  // published tree went quietly smaller than the dataset while every check
+  // stayed green. PR #417 did exactly that to seven families at once.
+  //
+  // Refuse rather than render, decided in the gate's own header: the dataset has
+  // no `announced`/`upcoming` member in `lifecycleStatus`, so a deliberately
+  // empty family and a data error cannot be told apart, and rendering the empty
+  // case would publish the error as if it were an announcement.
+  // -------------------------------------------------------------------------
+
+  /** Historical fact, fixed by PR #417 and not a property of today's data. */
+  const EMPTIED_BY_417 = [
+    'anthropic-claude-4-6', 'anthropic-claude-4-7', 'anthropic-claude-4-8',
+    'openai-gpt-5-1', 'openai-gpt-5-2', 'openai-gpt-5-3-codex', 'openai-gpt-image',
+  ];
+
+  /**
+   * Adds `EMPTIED_BY_417.length` families carrying no releases, by the same
+   * mechanism PR #417 used: new family records appear and no release is ever
+   * pointed at them.
+   *
+   * Each new family is a *clone of a live one* with only its id changed, so
+   * every other rule in the gate is satisfied by construction -- its
+   * `organizationId` resolves, its `sourceIds` resolve and are non-empty, its
+   * dates are real and past, its precision agrees. That isolation is the point:
+   * it lets `assertFailed` demand that `family-has-release` is the *only* gate
+   * that fires, which is what makes the result attributable to the missing
+   * release rather than to a fixture that is broken in several ways at once.
+   *
+   * Ids are synthetic rather than the seven real ones because all seven exist in
+   * the live dataset today *carrying releases* -- reusing them would collide on
+   * `identity` and prove nothing. The historical ids are pinned against the real
+   * commit further down, where they are still historical.
+   *
+   * `attachRelease` gives each new family exactly one release, which is the
+   * control: identical setup, one difference, and the opposite verdict.
+   */
+  function withEmptyFamilies({ attachRelease = false } = {}) {
+    return gateMutatedDataset(({ read, write }) => {
+      const families = read('families.json');
+      const releases = read('releases.json');
+
+      // The fixture's own inputs, checked rather than assumed. A copy of the
+      // dataset that failed to load would make every assertion below pass for
+      // the wrong reason: no families means no empty families to find.
+      assert.ok(Array.isArray(families) && families.length > 0, 'families.json must load as a non-empty array');
+      assert.ok(Array.isArray(releases) && releases.length > 0, 'releases.json must load as a non-empty array');
+
+      // Cloned from a family that *has* a release, so the attached-release arm
+      // inherits a release whose dates and owner already agree with it.
+      const donorFamily = families.find((family) => releases.some((release) => release.familyId === family.id));
+      assert.ok(donorFamily, 'the live dataset must contain a family with at least one release to clone');
+      const donorRelease = releases.find((release) => release.familyId === donorFamily.id);
+
+      const added = EMPTIED_BY_417.map((_, index) => `fixture-empty-family-${index + 1}`);
+      const existing = new Set(families.map((family) => family.id));
+      for (const id of added) {
+        assert.ok(!existing.has(id), `fixture id "${id}" must not collide with a real family`);
+      }
+
+      for (const id of added) {
+        families.push({ ...donorFamily, id });
+        if (attachRelease) {
+          releases.push({
+            ...donorRelease,
+            id: `${id}-release`,
+            familyId: id,
+            // Lineage stripped: a clone that kept its donor's edges would be
+            // judged on those edges too, and this fixture is about one thing.
+            predecessorIds: [],
+            successorIds: [],
+            siblingIds: [],
+            derivedFromIds: [],
+          });
+        }
+      }
+
+      // What the setup claims about itself. `#423` on the non-empty floor above
+      // is the precedent: the gate's silence cannot carry a setup, because a
+      // narrowed setup produces exactly the silence a complete one produces.
+      assert.equal(families.length, existing.size + EMPTIED_BY_417.length, 'every fixture family must be added');
+      const pointedAt = new Set(releases.map((release) => release.familyId));
+      const stillEmpty = added.filter((id) => !pointedAt.has(id));
+      assert.deepEqual(
+        stillEmpty,
+        attachRelease ? [] : added,
+        attachRelease
+          ? 'the control arm must leave no fixture family empty'
+          : 'the fixture must leave every added family with zero releases, or it reproduces nothing',
+      );
+
+      write('families.json', families);
+      write('releases.json', releases);
+    });
+  }
+
+  test('a family that no release points at is refused', () => {
+    const result = withEmptyFamilies();
+    assertFailed(result, 'family-has-release', 'no release belongs to this family');
+
+    // Every empty family is named, not merely the first. A rule that reported
+    // one of seven would still exit 1 and still look like a pass here without
+    // this, and a refresh would then be told to fix one seventh of its mistake.
+    const report = JSON.parse(result.stdout);
+    const named = report.failures
+      .filter((failure) => failure.gate === 'family-has-release')
+      .map((failure) => failure.where)
+      .sort();
+    assert.deepEqual(
+      named,
+      EMPTIED_BY_417.map((_, index) => `families:fixture-empty-family-${index + 1}`).sort(),
+      'the gate must name every family carrying no releases',
+    );
+  });
+
+  test('the same families each carrying one release pass, so the rule is not "a new family fails"', () => {
+    const result = withEmptyFamilies({ attachRelease: true });
+    const report = JSON.parse(result.stdout);
+    assert.deepEqual(
+      report.failures.filter((failure) => failure.gate === 'family-has-release'),
+      [],
+      'a family with a release must not be refused',
+    );
+    assert.equal(result.code, 0, result.stdout);
+  });
+
+  // -------------------------------------------------------------------------
+  // The same rule, driven by the real commit rather than by a fixture.
+  //
+  // A fixture proves the rule fires on the shape. This proves it fires on the
+  // *data that actually shipped*, which is the claim #441 makes and the one a
+  // fixture can only stand in for. Both are kept: the fixture is immune to
+  // history being unavailable, and this is immune to the fixture drifting away
+  // from what really happened.
+  //
+  // The two commits are an immutable pair -- the refresh that introduced the
+  // seven empty families and the commit before it -- so the expected values are
+  // historical facts and can be written as literals without pinning anything
+  // about today's dataset. The parent is the control, and its expected value is
+  // deliberately the *opposite* of the child's: a check that reported seven
+  // empty families at both commits, or none at both, would be measuring
+  // something other than this rule.
+  //
+  // Real clock, no `--today`: these dates are real-world claims that only
+  // recede further into the past, so nothing here expires. Note that `TODAY`
+  // (2026-08-25) would be *wrong* here -- it predates both commits, and every
+  // record would read as the future.
+  //
+  // Fails closed. Any commit this cannot read throws, because a `git show` that
+  // quietly returned nothing would leave a dataset with no families, and a
+  // dataset with no families trivially has no empty ones -- the exact vacuous
+  // pass this block exists to rule out. It needs full history: CI checks out
+  // with `fetch-depth: 0`.
+  // -------------------------------------------------------------------------
+  const REFRESH_417 = '547691aafd75a7a79eb2904470ef737d0ec62ce5';
+  const BEFORE_417 = '9016420124778a8f7e07167d5e57fa774f75c1b5';
+
+  function gateDatasetAtCommit(sha) {
+    const dir = mkdtempSync(join(tmpdir(), 'modeltree-history-'));
+    try {
+      for (const file of DATASET_DOCUMENTS) {
+        let text;
+        try {
+          text = execFileSync('git', ['show', `${sha}:web/src/data/${file}`], {
+            cwd: REPO, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'],
+          });
+        } catch (error) {
+          throw new Error(
+            `cannot read web/src/data/${file} at ${sha}: ${error.message}. `
+              + 'This test reads real committed history and needs a full clone (fetch-depth: 0); '
+              + 'it fails rather than skips, because a silent skip would read as a pass.',
+          );
+        }
+        const parsed = JSON.parse(text);
+        if (!Array.isArray(parsed)) throw new Error(`${file} at ${sha} is not a JSON array`);
+        writeFileSync(join(dir, file), text);
+      }
+      const result = run(GATE_DATASET, ['--data', dir, '--json']);
+      const report = JSON.parse(result.stdout);
+      return {
+        code: result.code,
+        report,
+        emptyFamilies: report.failures
+          .filter((failure) => failure.gate === 'family-has-release')
+          .map((failure) => failure.where.replace(/^families:/, ''))
+          .sort(),
+      };
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  test('the seven empty families PR #417 shipped are refused, from that commit\'s own data', () => {
+    const { code, report, emptyFamilies } = gateDatasetAtCommit(REFRESH_417);
+
+    // The bad input was real and non-empty when it was gated. Without this the
+    // assertion below could be satisfied by a dataset that never loaded.
+    assert.equal(report.counts.families, 19, 'the dataset at 547691a held 19 families');
+    assert.equal(report.counts.releases, 35, 'the dataset at 547691a held 35 releases');
+
+    assert.deepEqual(
+      emptyFamilies,
+      [...EMPTIED_BY_417].sort(),
+      'the gate must refuse exactly the seven families PR #417 shipped with no releases',
+    );
+    assert.equal(code, 1, 'a refresh in this state must exit non-zero rather than ship');
+  });
+
+  test('the commit before PR #417 is not refused, so the rule tracks the data and not the clock', () => {
+    const { report, emptyFamilies } = gateDatasetAtCommit(BEFORE_417);
+
+    assert.equal(report.counts.families, 12, 'the dataset before 547691a held 12 families');
+    assert.equal(report.counts.releases, 31, 'the dataset before 547691a held 31 releases');
+
+    // Asserted on this gate alone rather than on exit 0: a later rule that
+    // refuses some *other* aspect of two-year-old data must not turn this
+    // control red, because the claim here is only that no family was empty.
+    assert.deepEqual(emptyFamilies, [], 'no family was empty before PR #417');
+  });
+
   test('a broken source reference is caught', () => {
     const result = gateMutatedDataset(({ read, write }) => {
       const releases = read('releases.json');
@@ -756,7 +982,17 @@ describe('gate-dataset', () => {
         // that points at a release dangles and `references` fires a dozen times
         // over. That cascade is the direct consequence of this mutation, not
         // noise from somewhere else, so the test states it.
-        alsoFails: ['references'],
+        //
+        // `family-has-release` joins it for the same reason and by the same
+        // arithmetic (#441): with zero releases loaded, no family is pointed at
+        // by one, so every family in the dataset is genuinely empty and the rule
+        // reports each. Declaring it is not a relaxation -- `assertFailed`
+        // checks a declaration in both directions, so this line fails the day
+        // the cascade stops happening, and the upper bound on undeclared gates
+        // is untouched. The alternative, silencing the rule when `releases` is
+        // empty, would have put a blind spot exactly where the dataset is most
+        // broken.
+        alsoFails: ['references', 'family-has-release'],
       });
     } finally {
       rmSync(dir, { recursive: true, force: true });
