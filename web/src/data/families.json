@@ -718,5 +718,77 @@
       "moonshot-ai-kimi-k2-model-card"
     ],
     "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "eleutherai-pythia",
+    "slug": "pythia",
+    "organizationId": "eleutherai",
+    "name": "Pythia",
+    "description": "EleutherAI’s Pythia scaling suite, a set of language models trained on the same data in the same order across eight sizes, published with per-step checkpoints so that training behaviour can be studied.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2023-04-03",
+    "datePrecision": "day",
+    "status": "research",
+    "sourceIds": [
+      "eleutherai-pythia-repository",
+      "eleutherai-pythia-12b-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "lg-ai-research-exaone-3-5",
+    "slug": "exaone-3-5",
+    "organizationId": "lg-ai-research",
+    "name": "EXAONE 3.5",
+    "description": "LG AI Research’s EXAONE 3.5 series of instruction-tuned bilingual English and Korean language models, released at 2.4B, 7.8B, and 32B sizes with a 32,768-token context length.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2024-12-09",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "lg-ai-research-exaone-3-5-model-card",
+      "lg-ai-research-exaone-3-5-repository"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "snowflake-arctic",
+    "slug": "arctic",
+    "organizationId": "snowflake",
+    "name": "Arctic",
+    "description": "Snowflake’s Arctic family of dense-MoE hybrid language models, combining a dense transformer with a residual Mixture-of-Experts MLP and published under Apache-2.0.",
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "firstReleaseDate": "2024-04-24",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "snowflake-arctic-instruct-model-card",
+      "snowflake-arctic-repository"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "upstage-solar-pro",
+    "slug": "solar-pro",
+    "organizationId": "upstage",
+    "name": "Solar Pro",
+    "description": "Upstage’s Solar Pro line, built by depth up-scaling a smaller model into a larger one and intended to run on a single GPU. Only the preview release is recorded here, because it is the only member the sources describe as published.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2024-09-08",
+    "datePrecision": "day",
+    "status": "preview",
+    "sourceIds": [
+      "upstage-solar-pro-preview-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
   }
 ]

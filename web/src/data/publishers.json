@@ -134,5 +134,25 @@
     "id": "moonshot-ai",
     "name": "Moonshot AI",
     "organizationId": "moonshot-ai"
+  },
+  {
+    "id": "eleutherai",
+    "name": "EleutherAI",
+    "organizationId": "eleutherai"
+  },
+  {
+    "id": "lg-ai-research",
+    "name": "LG AI Research",
+    "organizationId": "lg-ai-research"
+  },
+  {
+    "id": "snowflake",
+    "name": "Snowflake",
+    "organizationId": "snowflake"
+  },
+  {
+    "id": "upstage",
+    "name": "Upstage",
+    "organizationId": "upstage"
   }
 ]

@@ -253,5 +253,64 @@
       "moonshot-ai-kimi-k2-model-card"
     ],
     "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "eleutherai",
+    "slug": "eleutherai",
+    "name": "EleutherAI",
+    "shortName": "EleutherAI",
+    "type": "research-lab",
+    "website": "https://eleuther.ai",
+    "releasePage": "https://huggingface.co/EleutherAI",
+    "description": "A non-profit research lab that states its focus as the interpretability, alignment, and ethics of artificial intelligence, and publishes its open models on Hugging Face. It develops the Pythia suite and the GPT-NeoX training library.",
+    "sourceIds": [
+      "eleutherai-organization-profile",
+      "eleutherai-pythia-12b-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "lg-ai-research",
+    "slug": "lg-ai-research",
+    "name": "LG AI Research",
+    "shortName": "LG AI Research",
+    "type": "research-lab",
+    "website": "https://www.lgresearch.ai",
+    "releasePage": "https://huggingface.co/LGAI-EXAONE",
+    "description": "The research organization that develops and releases the EXAONE family of instruction-tuned bilingual English and Korean language models, published under its own LGAI-EXAONE namespace.",
+    "sourceIds": [
+      "lg-ai-research-exaone-3-5-model-card",
+      "lg-ai-research-exaone-3-5-repository"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "snowflake",
+    "slug": "snowflake",
+    "name": "Snowflake",
+    "shortName": "Snowflake",
+    "type": "company",
+    "website": "https://www.snowflake.com",
+    "releasePage": "https://huggingface.co/Snowflake",
+    "description": "The company whose Snowflake AI Research team pre-trained the Arctic dense-MoE hybrid language models from scratch and published the weights under Apache-2.0.",
+    "sourceIds": [
+      "snowflake-arctic-instruct-model-card",
+      "snowflake-arctic-repository"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "upstage",
+    "slug": "upstage",
+    "name": "Upstage",
+    "shortName": "Upstage",
+    "type": "company",
+    "website": "https://www.upstage.ai",
+    "releasePage": "https://huggingface.co/upstage",
+    "description": "The company that develops the Solar language models, built with a depth up-scaling method that extends a smaller model into a larger one.",
+    "sourceIds": [
+      "upstage-solar-pro-preview-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
   }
 ]

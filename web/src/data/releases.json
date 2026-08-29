@@ -3009,5 +3009,188 @@
       "osi-license-index"
     ],
     "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "eleutherai-pythia-12b",
+    "slug": "pythia-12b",
+    "canonicalName": "Pythia-12B",
+    "displayName": "Pythia 12B",
+    "organizationId": "eleutherai",
+    "familyId": "eleutherai-pythia",
+    "version": "12B",
+    "variant": "12B",
+    "releaseDate": "2023-04-03",
+    "datePrecision": "day",
+    "status": "research",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 11.84607232
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The largest member of EleutherAI’s Pythia suite, trained on the Pile with 154 saved checkpoints per model so that the same training run can be inspected at any step.",
+    "intendedUse": "Research on the behaviour, functionality, and limitations of large language models; the model card states the suite is not intended for deployment.",
+    "sourceIds": [
+      "eleutherai-pythia-12b-model-card",
+      "eleutherai-pythia-repository",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "lg-ai-research-exaone-3-5-7-8b-instruct",
+    "slug": "exaone-3-5-7-8b-instruct",
+    "canonicalName": "EXAONE-3.5-7.8B-Instruct",
+    "displayName": "EXAONE 3.5 7.8B Instruct",
+    "organizationId": "lg-ai-research",
+    "familyId": "lg-ai-research-exaone-3-5",
+    "version": "3.5",
+    "variant": "7.8B Instruct",
+    "releaseDate": "2024-12-09",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "EXAONE AI Model License Agreement 1.1 - NC",
+      "url": "https://huggingface.co/LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct/blob/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 7.8
+    },
+    "contextWindow": 32768,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The 7.8B instruction-tuned member of LG AI Research’s EXAONE 3.5 series, a bilingual English and Korean model with a 32,768-token context length.",
+    "intendedUse": "Bilingual English and Korean instruction following and long-context work. The licence is non-commercial, so commercial use is not granted by it.",
+    "sourceIds": [
+      "lg-ai-research-exaone-3-5-model-card",
+      "lg-ai-research-exaone-3-5-repository",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "snowflake-arctic-instruct",
+    "slug": "snowflake-arctic-instruct",
+    "canonicalName": "snowflake-arctic-instruct",
+    "displayName": "Snowflake Arctic Instruct",
+    "organizationId": "snowflake",
+    "familyId": "snowflake-arctic",
+    "version": "Instruct",
+    "variant": "Instruct",
+    "releaseDate": "2024-04-24",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache-2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 480,
+      "activeBillions": 17
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The instruction-tuned Arctic model from Snowflake AI Research, a dense-MoE hybrid pairing a 10B dense transformer with a 128x3.66B residual MoE MLP for 480B total and 17B active parameters.",
+    "intendedUse": "Text and code generation from text input, with ungated weights under Apache-2.0. Snowflake’s two pages disagree on the release year; see the source notes.",
+    "sourceIds": [
+      "snowflake-arctic-instruct-model-card",
+      "snowflake-arctic-repository",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "upstage-solar-pro-preview-instruct",
+    "slug": "solar-pro-preview-instruct",
+    "canonicalName": "solar-pro-preview-instruct",
+    "displayName": "Solar Pro Preview Instruct",
+    "organizationId": "upstage",
+    "familyId": "upstage-solar-pro",
+    "version": "Preview",
+    "variant": "Preview Instruct",
+    "releaseDate": "2024-09-08",
+    "datePrecision": "day",
+    "status": "preview",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "MIT",
+      "spdxId": "MIT",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 22
+    },
+    "contextWindow": 4096,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Upstage’s 22B pre-release of Solar Pro, produced by depth up-scaling a 14B model, with a 4K maximum context length and weights under MIT.",
+    "intendedUse": "Instruction following on a single GPU. The model card describes this as a pre-release version of the official Solar Pro, so it is recorded with preview status.",
+    "sourceIds": [
+      "upstage-solar-pro-preview-model-card",
+      "osi-license-mit"
+    ],
+    "verifiedAt": "2026-08-29"
   }
 ]

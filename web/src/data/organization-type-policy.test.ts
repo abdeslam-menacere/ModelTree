@@ -124,6 +124,10 @@ describe('organization type policy', () => {
       'ai21-labs': 'company',
       'zhipu-ai': 'company',
       'moonshot-ai': 'company',
+      eleutherai: 'research-lab',
+      'lg-ai-research': 'research-lab',
+      snowflake: 'company',
+      upstage: 'company',
     });
   });
 
@@ -263,6 +267,26 @@ describe('organization type policy', () => {
         facts: { offersPaidModelProductsOrAccess: true },
         type: 'company',
         clause: 'paid-company',
+      },
+      eleutherai: {
+        facts: { institutionControlsReleases: true, primarilyResearch: true },
+        type: 'research-lab',
+        clause: 'research-lab',
+      },
+      'lg-ai-research': {
+        facts: { institutionControlsReleases: true, primarilyResearch: true },
+        type: 'research-lab',
+        clause: 'research-lab',
+      },
+      snowflake: {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
+      },
+      upstage: {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
       },
     };
 

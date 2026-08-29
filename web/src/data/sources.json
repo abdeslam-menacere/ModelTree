@@ -1323,5 +1323,77 @@
     "type": "official-announcement",
     "publisherId": "zhipu-ai",
     "lastCheckedDate": "2026-08-28"
+  },
+  {
+    "id": "eleutherai-organization-profile",
+    "url": "https://huggingface.co/EleutherAI",
+    "title": "EleutherAI on Hugging Face",
+    "type": "official-docs",
+    "publisherId": "eleutherai",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "EleutherAI’s own Hugging Face organization page. States \"We are a non-profit research lab focused on interpretability, alignment, and ethics of artificial intelligence\" and gives https://eleuther.ai as its website, which are the two facts the organization record takes from it."
+  },
+  {
+    "id": "eleutherai-pythia-12b-model-card",
+    "url": "https://huggingface.co/EleutherAI/pythia-12b",
+    "title": "EleutherAI/pythia-12b model card",
+    "type": "model-card",
+    "publisherId": "eleutherai",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "States \"Developed by: EleutherAI\", \"License: Apache 2.0\", and a naming-convention table giving Pythia-12B \"11,846,072,320\" total parameters against \"11,327,027,200\" non-embedding. States \"The primary intended use of Pythia is research on the behavior, functionality, and limitations of large language models.\" It states no context window, which is why the release records none rather than a guess."
+  },
+  {
+    "id": "eleutherai-pythia-repository",
+    "url": "https://github.com/EleutherAI/pythia",
+    "title": "EleutherAI/pythia repository",
+    "type": "repository",
+    "publisherId": "eleutherai",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "The Pythia project’s own repository. Its dated changelog states \"[April 3, 2023] We have released a new version of all Pythia models, fixing various inconsistencies in the original suite\", and the model card confirms that retrained suite with \"This is the current release.\" Together they date the recorded release; the arXiv paper is deliberately not used for the date, because a paper submission date is not a model release date."
+  },
+  {
+    "id": "lg-ai-research-exaone-3-5-model-card",
+    "url": "https://huggingface.co/LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct",
+    "title": "LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct model card",
+    "type": "model-card",
+    "publisherId": "lg-ai-research",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "States EXAONE 3.5 is \"developed and released by LG AI Research\", that it is \"instruction-tuned bilingual (English and Korean)\", \"Number of Parameters (without embeddings): 6.98B\", \"Context Length: 32,768 tokens\", and \"The model is licensed under EXAONE AI Model License Agreement 1.1 - NC\". The 7.8B total is the size the same card names for this member of the series."
+  },
+  {
+    "id": "lg-ai-research-exaone-3-5-repository",
+    "url": "https://github.com/LG-AI-EXAONE/EXAONE-3.5",
+    "title": "LG-AI-EXAONE/EXAONE-3.5 repository",
+    "type": "repository",
+    "publisherId": "lg-ai-research",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "LG AI Research’s own EXAONE 3.5 repository. Its dated news list states \"2024.12.09: We release the EXAONE 3.5 language model series including 2.4B, 7.8B, and 32B instruction-tuned models\", which is the release date recorded here. The technical report on arXiv is not used for the date, because its submission date dates the paper rather than the model."
+  },
+  {
+    "id": "snowflake-arctic-instruct-model-card",
+    "url": "https://huggingface.co/Snowflake/snowflake-arctic-instruct",
+    "title": "Snowflake/snowflake-arctic-instruct model card",
+    "type": "model-card",
+    "publisherId": "snowflake",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "States \"**Model Release Date** April, 24th 2024.\", \"**License** Apache-2.0\", \"**Input** Models input text only.\", \"**Output** Models generate text and code only.\", and that Arctic \"combines a 10B dense transformer model with a residual 128x3.66B MoE MLP resulting in 480B total and 17B active parameters chosen using a top-2 gating\". It states no context window, which is why the release records none. Snowflake’s own repository dates the release differently; see snowflake-arctic-repository, where the disagreement is recorded rather than resolved."
+  },
+  {
+    "id": "snowflake-arctic-repository",
+    "url": "https://github.com/Snowflake-Labs/snowflake-arctic",
+    "title": "Snowflake-Labs/snowflake-arctic repository",
+    "type": "repository",
+    "publisherId": "snowflake",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "Snowflake’s own Arctic repository, cited for the creator attribution \"pre-trained from scratch by the Snowflake AI Research Team\". It also states \"We released Arctic in April of 2023\", which contradicts the model card’s \"**Model Release Date** April, 24th 2024.\" The two Snowflake-published pages disagree and this record leaves that explicit. The release takes the model card’s date, because that page states a full day and is the artefact’s own card; the repository sentence is left standing rather than reconciled, since no source resolves which is the error."
+  },
+  {
+    "id": "upstage-solar-pro-preview-model-card",
+    "url": "https://huggingface.co/upstage/solar-pro-preview-instruct",
+    "title": "upstage/solar-pro-preview-instruct model card",
+    "type": "model-card",
+    "publisherId": "upstage",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "States \"Solar Pro Preview is an advanced large language model (LLM) with 22 billion parameters\", \"a maximum context length of 4K\", front-matter \"license: mit\", and a comparison table whose own column records \"*Release Date* | 2024.09.08\". States \"Solar Pro Preview is a pre-release version of the official Solar Pro\", which is why the release is recorded with preview status. Links to https://www.upstage.ai, which is the website the organization record carries."
   }
 ]
