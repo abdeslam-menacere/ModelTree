@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { dataset as sourceDataset } from '../data/dataset';
 import type { BenchmarkDefinition, BenchmarkResult } from '../data/schema';
 import {
   buildBenchmarkExplorerPayload,
@@ -90,7 +91,10 @@ function makeDataset(overrides: Partial<BenchmarkResult>[] = []): BenchmarkExplo
       release('pico', 'pico-r', 'Pico Six'),
       release('nano', 'nano-r', 'Nano Seven'),
     ],
-    organizations: [{ id: 'org-a', name: 'Org A' }],
+    // The two recorded name forms differ, so any assertion on a rendered creator
+    // distinguishes the label from the fuller recorded form instead of passing
+    // whichever field the code happens to read (abdeslam-menacere/ModelTree#479).
+    organizations: [{ id: 'org-a', name: 'Org A Laboratories', shortName: 'Org A' }],
     families: [{ id: 'fam-a', name: 'Family A' }],
     publishers: [{ id: 'pub-a', name: 'Publisher A' }],
     sources: [
@@ -296,6 +300,40 @@ describe('comparable and incompatible fixtures', () => {
     const code = view.comparableGroups.find((group) => group.benchmarkSlug === 'code-bench');
     expect(code).toBeDefined();
     expect(code!.releaseCount).toBe(2);
+  });
+});
+
+describe('the creator naming rule on this surface', () => {
+  // Added with abdeslam-menacere/ModelTree#479. This surface arrived after the
+  // rule and rendered the fuller recorded form on both of its creator-bearing
+  // shapes. The fixture's two name forms differ, so each assertion below fails
+  // if the code reads `name` again rather than the label.
+  it('names a creator by its label on selected cards and on the candidate list', () => {
+    const view = viewFor(['alpha']);
+
+    expect(view.models.length).toBeGreaterThan(0);
+    for (const card of view.models) {
+      expect(card.organizationName).toBe('Org A');
+      expect(card.organizationName).not.toBe('Org A Laboratories');
+    }
+
+    // The candidate picker is a second, separately built shape; one being right
+    // has never meant the other was.
+    const candidates = view.candidates.filter((item) => item.organizationName !== item.slug);
+    expect(candidates.length).toBeGreaterThan(0);
+    for (const candidate of candidates) {
+      expect(candidate.organizationName).toBe('Org A');
+      expect(candidate.organizationName).not.toBe('Org A Laboratories');
+    }
+  });
+
+  it('still carries the fuller recorded form in the payload it ships', () => {
+    // The label is a display decision, not a deletion: the recorded name has to
+    // survive in the data the browser receives, or the conflict this dataset
+    // records would be resolved by the renderer.
+    const payload = buildBenchmarkExplorerPayload(sourceDataset);
+    const relabelled = payload.organizations.filter((item) => item.name !== item.shortName);
+    expect(relabelled.length).toBeGreaterThan(0);
   });
 });
 

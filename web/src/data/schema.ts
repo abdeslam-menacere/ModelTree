@@ -168,10 +168,34 @@ export const publisherSchema = z.object({
     .optional(),
 });
 
+/**
+ * A creator organization.
+ *
+ * Two name fields, and the rule for them is not a matter of taste at the point
+ * of use: **`shortName` is the label** -- the one string an organization is
+ * displayed as, sorted on, and filed under, uniformly, with no per-creator
+ * exceptions. `name` is the fuller recorded form. It is never deleted, it stays
+ * searchable so either form finds the creator, and it is shown as the full
+ * recorded form where the two differ.
+ *
+ * The rule lives in `src/lib/organization-name.ts`, which is the only place
+ * that decides it; read it before adding a surface that names a creator, and
+ * call it rather than reading either field directly. Reading `name` directly is
+ * how abdeslam-menacere/ModelTree#479 happened: every surface picked the field
+ * independently, so `xai` rendered as "SpaceXAI" and filed under S.
+ *
+ * The two forms are allowed to disagree, and for `xai` they disagree because
+ * the creator's own surfaces do. That conflict is data, recorded in
+ * `description` with its sources; a refresh must not collapse it by editing one
+ * field to match the other. Neither field is an identifier -- `id` and `slug`
+ * are -- so a naming change is never a reason to touch either.
+ */
 export const organizationSchema = z.object({
   id: entityId,
   slug,
+  // The fuller recorded form. See the note above: this is NOT the label.
   name: z.string().min(1),
+  // The label: displayed, sorted on, and filed under. See the note above.
   shortName: z.string().min(1),
   // Editorial functional classification, not a sourced claim. Choose the first
   // match: `community` when independent contributors outside any one entity's

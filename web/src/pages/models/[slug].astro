@@ -9,6 +9,7 @@ import type { SourceReference } from '../../data/schema';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { buildModelFitGuidance } from '../../lib/model-fit';
 import { buildModelPassport, type PassportSectionId } from '../../lib/passport';
+import { organizationLabel } from '../../lib/organization-name';
 import { modelStaticPaths } from '../../lib/routes';
 import { buildUsageEvidence } from '../../lib/usage-evidence';
 
@@ -66,7 +67,7 @@ const catalogHref = `${base}models/`;
 
     <header class="passport-hero">
       <div>
-        <span class="eyebrow">Model Passport / {view.organization.name} / {view.family.name}</span>
+        <span class="eyebrow">Model Passport / {organizationLabel(view.organization)} / {view.family.name}</span>
         <h1>{view.displayName}</h1>
         <p>{view.summary}</p>
       </div>

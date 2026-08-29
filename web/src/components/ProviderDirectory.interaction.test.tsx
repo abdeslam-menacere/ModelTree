@@ -30,7 +30,9 @@ function organization(id: string, name: string) {
     id,
     slug: id,
     name,
-    shortName: name.split(' ')[0],
+    // These fixtures do not exercise the two recorded name forms, so both
+    // agree and `name` stays the displayed label.
+    shortName: name,
     type: 'company',
     website: `https://${id}.example/`,
     releasePage: `https://${id}.example/news`,

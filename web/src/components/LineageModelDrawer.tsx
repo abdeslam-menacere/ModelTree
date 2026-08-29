@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ModelFamily, ModelRelease, Organization } from '../data/schema';
 import { accessLabel, formatDate, formatReleaseDate, statusLabel } from '../lib/format';
 import { createCompareUrl, createEvidenceUrl } from '../lib/evidence-actions';
+import { organizationLabel } from '../lib/organization-name';
 
 /**
  * Below this width the details surface is presented as a modal drawer; at or
@@ -133,7 +134,7 @@ export default function LineageModelDrawer({ selected, source, basePath, selecti
     return (
       <>
         <span className="eyebrow">Verified release</span>
-        <p className="tree-breadcrumb">{organization.name} / {family.name}</p>
+        <p className="tree-breadcrumb">{organizationLabel(organization)} / {family.name}</p>
         <h2 id="model-tree-heading">{release.displayName}</h2>
         <p>{release.summary}</p>
         <dl>

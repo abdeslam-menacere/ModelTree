@@ -1,5 +1,6 @@
 import type { Dataset, Organization, ServingPlatform } from '../data/schema';
 import { buildProviderRouteResolver } from './catalog';
+import { compareLabels, organizationLabel, organizationSearchTerms } from './organization-name';
 
 /**
  * The A-Z directory of model creators and serving platforms.
@@ -41,6 +42,11 @@ export type DirectoryGroupId = 'creators' | 'serving-platforms';
 interface DirectoryEntryBase {
   id: string;
   slug: string;
+  /**
+   * The string this row is displayed as, sorted by, and filed under. For a
+   * creator that is the organization label -- see `organization-name.ts` -- and
+   * for a serving platform it is the platform's own name.
+   */
   name: string;
   initial: string;
   /** The role in plain words, because the row must not rely on its group alone. */
@@ -62,6 +68,11 @@ interface DirectoryEntryBase {
 
 export interface CreatorEntry extends DirectoryEntryBase {
   kind: 'creator';
+  /**
+   * The organization's recorded short form. Equal to {@link name} under the
+   * current label rule, and kept as its own field because it is a recorded
+   * value rather than a rendering decision.
+   */
   shortName: string;
   organizationType: Organization['type'];
   familyCount: number;
@@ -125,6 +136,7 @@ export interface DirectoryGroup {
 export interface UnclassifiedOrganization {
   id: string;
   slug: string;
+  /** The organization label -- see `organization-name.ts`. */
   name: string;
   verifiedAt: string;
 }
@@ -231,7 +243,10 @@ export function buildDirectoryLetters(entries: readonly DirectoryEntry[]): Direc
 }
 
 function sortEntries(entries: DirectoryEntry[]): DirectoryEntry[] {
-  return [...entries].sort((a, b) => compare(a.name, b.name) || compare(a.slug, b.slug));
+  // `name` is already the label here, so this orders by the string the
+  // directory prints -- including the case folding, without which a
+  // lowercase-initial label lands after every uppercase one.
+  return [...entries].sort((a, b) => compareLabels(a.name, b.name) || compare(a.slug, b.slug));
 }
 
 function buildGroup(
@@ -335,7 +350,7 @@ export function buildProviderDirectory(dataset: Dataset, base: string): Director
         unclassified.push({
           id: organization.id,
           slug: organization.slug,
-          name: organization.name,
+          name: organizationLabel(organization),
           verifiedAt: organization.verifiedAt,
         });
       }
@@ -364,9 +379,9 @@ export function buildProviderDirectory(dataset: Dataset, base: string): Director
       kind: 'creator',
       id: organization.id,
       slug: organization.slug,
-      name: organization.name,
+      name: organizationLabel(organization),
       shortName: organization.shortName,
-      initial: directoryInitial(organization.name),
+      initial: directoryInitial(organizationLabel(organization)),
       roleText,
       typeText: organizationTypeText(organization.type),
       organizationType: organization.type,
@@ -379,13 +394,18 @@ export function buildProviderDirectory(dataset: Dataset, base: string): Director
       unlinkedNote: href
         ? null
         : 'No release recorded yet, so there is no catalog view to open.',
-      terms: [organization.name, organization.shortName].map((term) => term.toLowerCase()),
+      // Both recorded name forms stay searchable. Leading with the label must
+      // not cost a reader who knows the creator by its fuller recorded form.
+      terms: organizationSearchTerms(organization).map((term) => term.toLowerCase()),
     });
   }
 
   const platforms: DirectoryEntry[] = dataset.servingPlatforms.map((platform) => {
     const operator = organizationById.get(platform.organizationId);
-    const operatorName = operator?.name ?? platform.organizationId;
+    // An operator is an Organization record, so the label rule applies to it
+    // exactly as it does to a creator. The platform keeps its own name; only
+    // the organization naming it is relabelled.
+    const operatorName = operator ? organizationLabel(operator) : platform.organizationId;
     const operatorIsCreator = Boolean(familiesByOrganization.get(platform.organizationId)?.length);
 
     return {
@@ -408,9 +428,16 @@ export function buildProviderDirectory(dataset: Dataset, base: string): Director
       // own in this build, so the row says so instead of linking anywhere.
       href: null,
       unlinkedNote: 'A serving-platform page is not generated yet.',
-      terms: [platform.name, operatorName, platformTypeText(platform.type)].map((term) =>
-        term.toLowerCase(),
-      ),
+      terms: [
+        platform.name,
+        // Both recorded forms of the operator stay searchable, for the same
+        // reason they do for a creator two blocks above: leading with the label
+        // must not cost a reader who knows the operator by its fuller recorded
+        // form. Relabelling the displayed name without this would narrow search
+        // to the label -- the regression this rule has already caused once.
+        ...(operator ? organizationSearchTerms(operator) : [operatorName]),
+        platformTypeText(platform.type),
+      ].map((term) => term.toLowerCase()),
     } satisfies PlatformEntry;
   });
 

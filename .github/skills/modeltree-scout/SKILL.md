@@ -129,6 +129,18 @@ One creator failing does not stop the others. Record the failure and continue.
   ChatGPT is not GPT-5. Azure OpenAI is not OpenAI. Gemini the app is not Gemini
   the model. Collapsing them is the single most common data error in this domain
   and one of the three reviewers exists to catch it.
+- **An organization's two name fields have fixed jobs, and neither is an id.**
+  `shortName` is the label the site displays, sorts on, and files an
+  organization under; `name` is the fuller recorded form, kept searchable and
+  shown where it differs. The rule is `web/src/lib/organization-name.ts` and it
+  is uniform -- there is no per-creator exception to propose. So record each
+  form as its source states it and never edit one to match the other to make a
+  page read better: that is a presentation decision, and the presentation
+  already has one. Where a creator's own surfaces use two names, that is a
+  `kind: "conflict"` finding like any other and both forms stay
+  (abdeslam-menacere/ModelTree#479 is the case that set this). `id` and `slug`
+  are identity, never presentation, and a naming finding is never a reason to
+  propose changing either.
 - **Never invent a composite score, rank, or "best model" claim.** The product
   does not publish one (abdeslam-menacere/ModelTree#67 is blocked pending a
   product decision), and `gate-dataset.mjs` refuses the vocabulary outright.

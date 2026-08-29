@@ -35,6 +35,11 @@ function makeOrganization(id: string, name: string, extra: Record<string, unknow
     id,
     slug: id,
     name,
+    // The two recorded name forms deliberately differ, because the directory
+    // displays, sorts, and files creators by the label (`shortName`) while
+    // `name` stays the fuller recorded form. A fixture where both agree cannot
+    // tell the two apart, so every assertion about a displayed creator name in
+    // this file would pass whichever field the code read.
     shortName: name.split(' ')[0],
     type: 'company',
     website: `https://${id}.example/`,
@@ -300,16 +305,27 @@ describe('grouping by evidenced role', () => {
     expect(onlyCreates.roleText).toBe('Model creator');
   });
 
-  it('names the operator on a platform row and says whether it also creates', () => {
+  it('names the operator on a platform row by the label and says whether it also creates', () => {
     const firstParty = platform(dataset, 'alpha-api');
     const thirdParty = platform(dataset, 'hosting-cloud');
 
-    expect(firstParty.operatorName).toBe('Alpha Labs');
+    // An operator is an Organization record, so it is named by the same label
+    // rule as a creator -- "Alpha", not the fuller recorded "Alpha Labs".
+    // Naming the operator is not naming the platform: the platform keeps its
+    // own name, and the two entities stay distinct.
+    expect(firstParty.operatorName).toBe('Alpha');
+    expect(firstParty.name).toBe('Alpha API');
     expect(firstParty.operatorIsCreator).toBe(true);
     expect(firstParty.roleText).toBe('Serving platform, operated by a model creator');
-    expect(thirdParty.operatorName).toBe('Hosting Co');
+    expect(thirdParty.operatorName).toBe('Hosting');
     expect(thirdParty.operatorIsCreator).toBe(false);
     expect(thirdParty.roleText).toBe('Serving platform');
+
+    // Relabelling the displayed operator must not cost the fuller recorded
+    // form its searchability, which is the regression this rule caused once
+    // already in the catalog.
+    expect(firstParty.terms).toContain('alpha labs');
+    expect(firstParty.terms).toContain('alpha');
   });
 
   it('names an organization with neither role instead of defaulting it into one', () => {
@@ -492,6 +508,8 @@ describe('search', () => {
     const entry = platform(dataset, 'hosting-cloud');
 
     expect(matchesDirectorySearch(entry, 'hosting cloud')).toBe(true);
+    // The operator's fuller recorded form, which is no longer what the row
+    // displays. It still has to find the platform.
     expect(matchesDirectorySearch(entry, 'hosting co')).toBe(true);
     expect(matchesDirectorySearch(entry, 'cloud platform')).toBe(true);
     expect(matchesDirectorySearch(entry, 'alpha')).toBe(false);
@@ -551,13 +569,23 @@ describe('shareable search url', () => {
 });
 
 describe('ordering and verification', () => {
-  it('sorts entries by name within each group', () => {
+  it('sorts entries by the displayed label within each group', () => {
     const dataset = makePopulatedDataset();
 
     // "01 Systems" sorts ahead of the letters by codepoint; the letter bucket it
     // renders in is separate from this order.
+    //
+    // The entries are named by the label, not the fuller recorded form, so
+    // these are the first words of the fixture names above. That is the
+    // assertion, not an accident of the fixture: reading `name` instead of the
+    // label here yields '01 Systems'/'Alpha Labs'/'Éclair Research' and fails.
     expect(group(dataset, 'creators').entries.map((entry) => entry.name))
-      .toEqual(['01 Systems', 'Alpha Labs', 'Éclair Research']);
+      .toEqual(['01', 'Alpha', 'Éclair']);
+
+    // The fuller recorded forms are still recorded and still searchable, so
+    // relabelling has not discarded one of the two forms.
+    expect(group(dataset, 'creators').entries.map((entry) => entry.terms))
+      .toEqual([['01', '01 systems'], ['alpha', 'alpha labs'], ['éclair', 'éclair research']]);
   });
 
   it('reports the latest verification date across both entity kinds', () => {

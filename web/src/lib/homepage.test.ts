@@ -46,18 +46,29 @@ describe('homepage hierarchy', () => {
     }))).toEqual(hierarchyIds());
   });
 
-  it('uses codepoint ordering with stable ID and slug tie-breakers', () => {
+  it('orders creators case-insensitively, families and releases by codepoint, with stable ID and slug tie-breakers', () => {
     const organization = dataset.organizations[0];
     const family = dataset.families.find((candidate) => candidate.organizationId === organization.id)!;
     const release = dataset.releases.find((candidate) => candidate.familyId === family.id)!;
     const hierarchy = buildHomepageHierarchy({
       ...dataset,
       organizations: [
-        { ...organization, id: 'org-lower', name: 'alpha' },
-        { ...organization, id: 'org-z', name: 'Zeta' },
-        { ...organization, id: 'org-a', name: 'Zeta' },
+        // Two variables at once, and this fixture separates them. The label is
+        // what the comparator reads, so it is the label that varies; `name` is
+        // a decoy ordering these three the other way round, so the expectation
+        // fails if the sort goes back to reading the recorded name. And because
+        // `alpha` is lowercase, it also fails if the comparator goes back to
+        // comparing code units, which would put `Zeta` first. Both regressions
+        // are caught here; which one it was is named by the tests in
+        // `organization-name.test.ts` and `model-tree.test.ts`.
+        { ...organization, id: 'org-lower', name: 'ZZZ decoy', shortName: 'alpha' },
+        { ...organization, id: 'org-z', name: 'AAA decoy', shortName: 'Zeta' },
+        { ...organization, id: 'org-a', name: 'AAA decoy', shortName: 'Zeta' },
       ],
       families: [
+        // Family and release ordering is not the creator label rule and stays
+        // codepoint-ordered: `Beta` before `beta`. That this still holds is the
+        // evidence the creator change was scoped to creators.
         { ...family, id: 'family-lower', organizationId: 'org-a', name: 'beta' },
         { ...family, id: 'family-z', organizationId: 'org-a', name: 'Beta' },
         { ...family, id: 'family-a', organizationId: 'org-a', name: 'Beta' },
@@ -69,9 +80,9 @@ describe('homepage hierarchy', () => {
       ],
     });
 
-    expect(hierarchy.map(({ organization: item }) => item.id)).toEqual(['org-a', 'org-z', 'org-lower']);
-    expect(hierarchy[0].families.map(({ family: item }) => item.id)).toEqual(['family-a', 'family-z', 'family-lower']);
-    expect(hierarchy[0].families[0].releases.map((item) => item.id)).toEqual(['release-a', 'release-z', 'release-lower']);
+    expect(hierarchy.map(({ organization: item }) => item.id)).toEqual(['org-lower', 'org-a', 'org-z']);
+    expect(hierarchy[1].families.map(({ family: item }) => item.id)).toEqual(['family-a', 'family-z', 'family-lower']);
+    expect(hierarchy[1].families[0].releases.map((item) => item.id)).toEqual(['release-a', 'release-z', 'release-lower']);
   });
 
   it('finds the first release when empty organizations and families sort first', () => {
@@ -79,7 +90,7 @@ describe('homepage hierarchy', () => {
     const family = dataset.families.find((candidate) => candidate.organizationId === organization.id)!;
     const hierarchy = buildHomepageHierarchy({
       ...dataset,
-      organizations: [{ ...organization, id: 'aaa-empty', name: 'A Empty' }, ...dataset.organizations],
+      organizations: [{ ...organization, id: 'aaa-empty', name: 'A Empty', shortName: 'A Empty' }, ...dataset.organizations],
       families: [{ ...family, id: 'aaa-empty', organizationId: 'aaa-empty', name: 'A Empty' }, ...dataset.families],
     });
 

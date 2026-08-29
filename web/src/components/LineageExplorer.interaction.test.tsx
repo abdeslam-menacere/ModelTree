@@ -10,6 +10,7 @@ import {
   firstEcosystemRelease,
   type LineageEcosystem,
 } from '../lib/lineage-view';
+import { organizationLabel } from '../lib/organization-name';
 import LineageExplorer from './LineageExplorer';
 
 const ecosystems = buildLineageEcosystems(dataset);
@@ -36,7 +37,7 @@ function detailsPanel() {
 }
 
 /** Every creator the data yields, so a newly seeded one is covered on arrival. */
-const everyEcosystem = ecosystems.map((ecosystem) => [ecosystem.organization.name, ecosystem] as const);
+const everyEcosystem = ecosystems.map((ecosystem) => [organizationLabel(ecosystem.organization), ecosystem] as const);
 
 beforeEach(() => {
   window.history.replaceState({}, '', '/ModelTree/');
@@ -52,12 +53,12 @@ describe('switching creators preserves deterministic selection', () => {
     renderExplorer();
     const expected = firstEcosystemRelease(ecosystem);
 
-    await user.click(providerButton(ecosystem.organization.name));
+    await user.click(providerButton(organizationLabel(ecosystem.organization)));
 
     await waitFor(() => {
       expect(within(detailsPanel()).getByRole('heading', { name: expected.displayName })).toBeTruthy();
     });
-    expect(providerButton(ecosystem.organization.name).getAttribute('aria-pressed')).toBe('true');
+    expect(providerButton(organizationLabel(ecosystem.organization)).getAttribute('aria-pressed')).toBe('true');
     expect(document.querySelectorAll('[aria-current="true"]')).toHaveLength(1);
     expect(document.querySelector('[aria-current="true"]')?.getAttribute('data-release'))
       .toBe(expected.slug);
@@ -71,12 +72,12 @@ describe('switching creators preserves deterministic selection', () => {
     const [first, second] = ecosystems;
     if (!second) return;
 
-    await user.click(providerButton(second.organization.name));
-    await user.click(providerButton(first.organization.name));
+    await user.click(providerButton(organizationLabel(second.organization)));
+    await user.click(providerButton(organizationLabel(first.organization)));
     const afterReturn = window.location.search;
 
-    await user.click(providerButton(second.organization.name));
-    await user.click(providerButton(first.organization.name));
+    await user.click(providerButton(organizationLabel(second.organization)));
+    await user.click(providerButton(organizationLabel(first.organization)));
 
     expect(window.location.search).toBe(afterReturn);
     expect(afterReturn).toBe(
@@ -92,13 +93,13 @@ describe('switching creators preserves deterministic selection', () => {
       expect(document.querySelectorAll('.organization-branch')).toHaveLength(1);
     });
     for (const { organization } of ecosystems) {
-      expect(providerButton(organization.name)).toBeTruthy();
+      expect(providerButton(organizationLabel(organization))).toBeTruthy();
     }
 
     const last = ecosystems[ecosystems.length - 1];
-    await user.click(providerButton(last.organization.name));
+    await user.click(providerButton(organizationLabel(last.organization)));
     const heading = document.querySelector('.organization-branch strong');
-    expect(heading?.textContent).toBe(last.organization.name);
+    expect(heading?.textContent).toBe(organizationLabel(last.organization));
   });
 
   it('keeps focus on the creator the user activated', async () => {
@@ -106,10 +107,10 @@ describe('switching creators preserves deterministic selection', () => {
     renderExplorer();
     const target = ecosystems[ecosystems.length - 1];
 
-    const button = providerButton(target.organization.name);
+    const button = providerButton(organizationLabel(target.organization));
     await user.click(button);
 
-    expect(document.activeElement).toBe(providerButton(target.organization.name));
+    expect(document.activeElement).toBe(providerButton(organizationLabel(target.organization)));
   });
 
   it('drives an unfamiliar catalog of creators with no code path of its own', async () => {
@@ -117,7 +118,7 @@ describe('switching creators preserves deterministic selection', () => {
     renderExplorer(fixtureEcosystems, lineageFixtureDataset.releases);
 
     for (const ecosystem of fixtureEcosystems) {
-      await user.click(providerButton(ecosystem.organization.name));
+      await user.click(providerButton(organizationLabel(ecosystem.organization)));
       const expected = firstEcosystemRelease(ecosystem);
 
       await waitFor(() => {
@@ -136,9 +137,9 @@ describe('keyboard behaviour', () => {
     renderExplorer();
     if (ecosystems.length < 2) return;
 
-    const first = providerButton(ecosystems[0].organization.name);
-    const second = providerButton(ecosystems[1].organization.name);
-    const last = providerButton(ecosystems[ecosystems.length - 1].organization.name);
+    const first = providerButton(organizationLabel(ecosystems[0].organization));
+    const second = providerButton(organizationLabel(ecosystems[1].organization));
+    const last = providerButton(organizationLabel(ecosystems[ecosystems.length - 1].organization));
 
     await waitFor(() => expect(first.getAttribute('tabindex')).toBe('0'));
     first.focus();
@@ -162,8 +163,8 @@ describe('keyboard behaviour', () => {
     renderExplorer();
     if (ecosystems.length < 2) return;
 
-    const first = providerButton(ecosystems[0].organization.name);
-    const last = providerButton(ecosystems[ecosystems.length - 1].organization.name);
+    const first = providerButton(organizationLabel(ecosystems[0].organization));
+    const last = providerButton(organizationLabel(ecosystems[ecosystems.length - 1].organization));
 
     first.focus();
     await user.keyboard('{ArrowLeft}');
@@ -188,17 +189,17 @@ describe('keyboard behaviour', () => {
     if (ecosystems.length < 2) return;
     const target = ecosystems[ecosystems.length - 1];
 
-    providerButton(target.organization.name).focus();
+    providerButton(organizationLabel(target.organization)).focus();
     await user.keyboard('{Enter}');
     await waitFor(() => {
-      expect(providerButton(target.organization.name).getAttribute('aria-pressed')).toBe('true');
+      expect(providerButton(organizationLabel(target.organization)).getAttribute('aria-pressed')).toBe('true');
     });
 
-    await user.click(providerButton(ecosystems[0].organization.name));
-    providerButton(target.organization.name).focus();
+    await user.click(providerButton(organizationLabel(ecosystems[0].organization)));
+    providerButton(organizationLabel(target.organization)).focus();
     await user.keyboard(' ');
     await waitFor(() => {
-      expect(providerButton(target.organization.name).getAttribute('aria-pressed')).toBe('true');
+      expect(providerButton(organizationLabel(target.organization)).getAttribute('aria-pressed')).toBe('true');
     });
   });
 
@@ -235,7 +236,7 @@ describe('shared URLs restore creator, family, selection, and details', () => {
             expect(within(detailsPanel()).getByRole('heading', { name: release.displayName }))
               .toBeTruthy();
           });
-          expect(providerButton(ecosystem.organization.name).getAttribute('aria-pressed'))
+          expect(providerButton(organizationLabel(ecosystem.organization)).getAttribute('aria-pressed'))
             .toBe('true');
           expect(document.querySelector(`#family-${family.family.id}`)?.textContent)
             .toBe(family.family.name);
@@ -282,7 +283,7 @@ describe('shared URLs restore creator, family, selection, and details', () => {
     await waitFor(() => {
       expect(within(detailsPanel()).getByRole('heading', { name: release.displayName })).toBeTruthy();
     });
-    expect(providerButton(second.organization.name).getAttribute('aria-pressed')).toBe('true');
+    expect(providerButton(organizationLabel(second.organization)).getAttribute('aria-pressed')).toBe('true');
     expect(window.location.search)
       .toBe(`?provider=${second.organization.slug}&model=${release.slug}`);
   });
@@ -307,7 +308,7 @@ describe('shared URLs restore creator, family, selection, and details', () => {
     renderExplorer();
     const target = ecosystems[ecosystems.length - 1];
 
-    await user.click(providerButton(target.organization.name));
+    await user.click(providerButton(organizationLabel(target.organization)));
 
     await waitFor(() => {
       expect(window.location.search).toBe(
@@ -333,7 +334,7 @@ describe('highlighting a selected path', () => {
     }).find((node) => node.children.length > 0)!;
 
     renderExplorer();
-    await user.click(providerButton(organization.name));
+    await user.click(providerButton(organizationLabel(organization)));
     await user.click(
       document.querySelector(`[data-release="${child.release.slug}"]`) as HTMLButtonElement,
     );
