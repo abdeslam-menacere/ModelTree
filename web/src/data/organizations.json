@@ -163,5 +163,95 @@
       "cohere-pricing-docs"
     ],
     "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "ai2",
+    "slug": "ai2",
+    "name": "Allen Institute for AI",
+    "shortName": "AI2",
+    "type": "research-lab",
+    "website": "https://allenai.org/",
+    "releasePage": "https://allenai.org/blog",
+    "description": "A Seattle-based nonprofit research institute whose OLMo project releases fully open language models, publishing weights, training data, and code.",
+    "sourceIds": [
+      "ai2-olmo-2-announcement",
+      "ai2-olmo-2-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "tii",
+    "slug": "tii",
+    "name": "Technology Innovation Institute",
+    "shortName": "TII",
+    "type": "research-lab",
+    "website": "https://www.tii.ae/",
+    "releasePage": "https://falconllm.tii.ae/",
+    "description": "An Abu Dhabi government research institute whose AI unit develops the open-weight Falcon family of language models.",
+    "sourceIds": [
+      "tii-falcon-h1-announcement",
+      "tii-falcon-h1-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "nvidia",
+    "slug": "nvidia",
+    "name": "NVIDIA",
+    "shortName": "NVIDIA",
+    "type": "company",
+    "website": "https://www.nvidia.com/",
+    "releasePage": "https://blogs.nvidia.com/",
+    "description": "A US technology company whose research teams publish the open-weight Nemotron model family. Its separate hardware and inference-platform roles are not recorded here as creator facts.",
+    "sourceIds": [
+      "nvidia-nemotron-4-340b-announcement",
+      "nvidia-nemotron-4-340b-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "ai21-labs",
+    "slug": "ai21-labs",
+    "name": "AI21 Labs",
+    "shortName": "AI21",
+    "type": "company",
+    "website": "https://www.ai21.com/",
+    "releasePage": "https://www.ai21.com/blog",
+    "description": "An Israeli AI company that builds the Jamba family of hybrid SSM-Transformer models, released as open weights and offered through its paid API.",
+    "sourceIds": [
+      "ai21-labs-jamba-announcement",
+      "ai21-labs-jamba-paper"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "zhipu-ai",
+    "slug": "zhipu-ai",
+    "name": "Zhipu AI",
+    "shortName": "Zhipu AI",
+    "type": "company",
+    "website": "https://z.ai/",
+    "releasePage": "https://z.ai/blog",
+    "description": "A Chinese AI company, originating from Tsinghua University research, that develops the open-weight GLM model family and offers paid API access.",
+    "sourceIds": [
+      "zhipu-ai-glm-4-5-model-card",
+      "zhipu-ai-glm-4-5-paper",
+      "zhipu-ai-glm-4-5-announcement"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "moonshot-ai",
+    "slug": "moonshot-ai",
+    "name": "Moonshot AI",
+    "shortName": "Moonshot AI",
+    "type": "company",
+    "website": "https://www.moonshot.ai/",
+    "releasePage": "https://huggingface.co/moonshotai",
+    "description": "A Chinese AI company that develops the Kimi model family, released as open weights and served through its paid API.",
+    "sourceIds": [
+      "moonshot-ai-kimi-k2-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
   }
 ]
