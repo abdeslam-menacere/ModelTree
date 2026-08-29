@@ -1,12 +1,16 @@
 ---
+import HomepageSearch from '../components/HomepageSearch';
 import LineageExplorer from '../components/LineageExplorer';
 import { dataset, sourceById } from '../data/dataset';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { formatDate } from '../lib/format';
 import { buildHomepageHierarchy, firstHomepageRelease } from '../lib/homepage';
+import { buildHomepageSearchIndex } from '../lib/homepage-search';
 import { buildLineageEcosystems } from '../lib/lineage-view';
+import { buildCoverageStats, buildReleasePulse, latestChangeLabel } from '../lib/release-pulse';
 
 const hierarchy = buildHomepageHierarchy(dataset);
+const homeSearchIndex = buildHomepageSearchIndex(dataset, import.meta.env.BASE_URL);
 const ecosystems = buildLineageEcosystems(dataset);
 const releaseLabels = Object.fromEntries(
 	dataset.releases.map((release) => [release.id, release.displayName]),
@@ -23,6 +27,14 @@ const sourceByReleaseId = Object.fromEntries(dataset.releases.map((release) => {
 const latestVerification = [...dataset.releases.map(({ verifiedAt }) => verifiedAt)].sort().at(-1)!;
 const base = import.meta.env.BASE_URL;
 const passportHref = `${base}models/${firstHomepageRelease(hierarchy).slug}/`;
+
+// Release Pulse and coverage are derived at build time. `now` is the build day;
+// the window is counted back from it, so a build with only stale records shows an
+// honest stale state rather than dressing an old change up as recent.
+const pulseNow = new Date().toISOString().slice(0, 10);
+const pulse = buildReleasePulse(dataset, { base, now: pulseNow });
+const coverage = buildCoverageStats(dataset);
+const latestChange = latestChangeLabel(pulse, dataset);
 ---
 
 <BaseLayout
@@ -46,6 +58,22 @@ const passportHref = `${base}models/${firstHomepageRelease(hierarchy).slug}/`;
 				<div><dt>Releases</dt><dd>{dataset.releases.length}</dd></div>
 				<div><dt>Sources</dt><dd>{dataset.sources.length}</dd></div>
 			</dl>
+		</section>
+
+		<section class="home-search-band">
+			<HomepageSearch client:load index={homeSearchIndex} />
+			<noscript>
+				<div class="no-script-note">
+					<p>Search needs JavaScript. Every featured release has a static Model Passport:</p>
+					<ul>
+						{homeSearchIndex.releases.map((release) => (
+							<li>
+								<a href={release.route}>{release.name}</a> — {release.organizationName} · {release.familyName}
+							</li>
+						))}
+					</ul>
+				</div>
+			</noscript>
 		</section>
 
 		<section id="explorer" class="explorer-band">
@@ -76,16 +104,48 @@ const passportHref = `${base}models/${firstHomepageRelease(hierarchy).slug}/`;
 			</noscript>
 		</section>
 
-		<section class="source-ledger" aria-labelledby="source-ledger-title">
-			<div>
-				<span class="eyebrow">Release record</span>
-				<h2 id="source-ledger-title">One launch, three documented variants.</h2>
+		<section class="release-pulse" aria-labelledby="release-pulse-title">
+			<div class="release-pulse-head">
+				<span class="eyebrow">Release pulse</span>
+				<h2 id="release-pulse-title">Recent verified changes</h2>
+				<p class="release-pulse-lede">
+					Source-dated lifecycle changes from the last {pulse.windowMonths} months, newest
+					first, at most {pulse.maxItems}. Dated by what the record says happened, not by when
+					we last re-checked it.
+				</p>
 			</div>
-			<div class="ledger-entry">
-				<time datetime="2025-04-14">14 Apr 2025</time>
-				<p>OpenAI announced GPT-4.1, GPT-4.1 mini, and GPT-4.1 nano together for the API.</p>
-				<a href="https://openai.com/index/gpt-4-1/">Read the announcement</a>
-			</div>
+
+			{pulse.items.length > 0 ? (
+				<ol class="release-pulse-list" role="list">
+					{pulse.items.map((item) => (
+						<li class="release-pulse-item">
+							<p class="release-pulse-meta">
+								<span class="release-pulse-type">{item.typeLabel}</span>
+								<time datetime={item.date}>{item.dateLabel}</time>
+							</p>
+							<p class="release-pulse-change">{item.note}</p>
+							<p class="release-pulse-links">
+								<a class="release-pulse-model" href={item.releaseRoute}>{item.releaseName}</a>
+								<a class="release-pulse-source" href={item.source.url} rel="noreferrer">
+									<span class="release-pulse-source-label">Source:</span> {item.source.title}
+								</a>
+							</p>
+						</li>
+					))}
+				</ol>
+			) : (
+				<p class="release-pulse-empty">
+					{pulse.isStale
+						? `No verified release changes in the last ${pulse.windowMonths} months.${latestChange ? ` The most recent recorded change was ${latestChange}.` : ''}`
+						: 'No dated release changes are recorded yet.'}
+				</p>
+			)}
+
+			<p class="release-pulse-coverage">
+				Tracking {coverage.releases} releases across {coverage.families} families from{' '}
+				{coverage.creators} creators, each backed by primary sources ({coverage.sources} in
+				all). A curated seed, not a complete census of the field.
+			</p>
 		</section>
 	</main>
 </BaseLayout>

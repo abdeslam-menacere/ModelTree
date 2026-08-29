@@ -246,14 +246,25 @@ const CREATORS_THE_SITE_LEADS_WITH = [
 /**
  * Catalog creators the lead list omits, which is the whole of why they render
  * under Others. Nothing about their records, sources, or coverage differs.
+ *
+ * The order here is not alphabetical convenience: it is whatever the creator
+ * comparator in `buildCreators` (`model-tree.ts`) produces, which today is
+ * recorded name then id. If that comparator changes, this list changes with
+ * it, and the assertions below are meant to go red until it does.
  */
 const CREATORS_THE_SITE_DOES_NOT_LEAD_WITH = [
+  'ai21-labs',
   'alibaba-cloud',
+  'ai2',
   'amazon',
   'cohere',
   'deepseek',
   'mistral-ai',
+  'moonshot-ai',
+  'nvidia',
   'xai',
+  'tii',
+  'zhipu-ai',
 ];
 
 describe("featured membership follows the site's editorial lead list", () => {
@@ -277,14 +288,29 @@ describe("featured membership follows the site's editorial lead list", () => {
   });
 
   it('puts every catalog creator the list omits under Others', () => {
-    // Also render order. The names are what decide it: Alibaba Cloud, Amazon,
-    // Cohere, DeepSeek, Mistral AI, then SpaceXAI, whose recorded name sorts
-    // under S while its id sorts last anyway -- so this ordering is asserted by
-    // name below rather than resting on the two happening to agree.
+    // Also render order. What pins it is the comparator in `buildCreators`,
+    // which today sorts on the recorded name and then the id -- so this is an
+    // assertion about the code, not about the alphabet. At twelve creators the
+    // recorded names and the displayed short names no longer agree on an order
+    // (AI2/AI21 Labs and SpaceXAI/xAI cross), which is what stops this from
+    // passing for a reason unrelated to the comparator it exists to check.
     expect(tree.others.map(({ organization }) => organization.id))
       .toEqual(CREATORS_THE_SITE_DOES_NOT_LEAD_WITH);
     expect(tree.others.map(({ organization }) => organization.name))
-      .toEqual(['Alibaba Cloud', 'Amazon', 'Cohere', 'DeepSeek', 'Mistral AI', 'SpaceXAI']);
+      .toEqual([
+        'AI21 Labs',
+        'Alibaba Cloud',
+        'Allen Institute for AI',
+        'Amazon',
+        'Cohere',
+        'DeepSeek',
+        'Mistral AI',
+        'Moonshot AI',
+        'NVIDIA',
+        'SpaceXAI',
+        'Technology Innovation Institute',
+        'Zhipu AI',
+      ]);
     // The branch this change exists to populate must not be empty, and the two
     // branches must partition the catalog rather than merely both being present.
     expect(tree.others.length).toBeGreaterThan(0);

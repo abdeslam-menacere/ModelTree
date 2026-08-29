@@ -591,6 +591,18 @@ describe('partial dates on family and release dates', () => {
         // identifier, `command-a-03-2025`. No approved origin states a day, so
         // recording one would be the invention this field exists to prevent.
       },
+      {
+        id: 'zhipu-ai-glm-4-5',
+        precision: 'month',
+        // GLM-4.5 launched at WAIC Shanghai in late July 2025; no fetchable
+        // primary from Zhipu states the calendar day, so month precision is the
+        // honest floor rather than an invented day.
+      },
+      {
+        id: 'zhipu-ai-glm-4-5-air',
+        precision: 'month',
+        // The Air variant shipped in the same GLM-4.5 launch; same reasoning.
+      },
     ];
 
     const dataset = validateDataset(copyDataset());

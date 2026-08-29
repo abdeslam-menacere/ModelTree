@@ -2662,5 +2662,283 @@
       "osi-approved-licenses"
     ],
     "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "ai2-olmo-2-7b",
+    "slug": "olmo-2-7b",
+    "canonicalName": "OLMo 2 7B",
+    "displayName": "OLMo 2 7B",
+    "organizationId": "ai2",
+    "familyId": "ai2-olmo-2",
+    "version": "7B",
+    "variant": "Base",
+    "releaseDate": "2024-11-26",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 7.3
+    },
+    "contextWindow": 4096,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "A fully open 7B base language model from AI2’s second-generation OLMo release, published with open weights, data, and code.",
+    "intendedUse": "Open research and downstream fine-tuning where reproducible training data and weights are required.",
+    "sourceIds": [
+      "ai2-olmo-2-model-card",
+      "ai2-olmo-2-announcement"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "tii-falcon-h1-34b-instruct",
+    "slug": "falcon-h1-34b-instruct",
+    "canonicalName": "Falcon-H1-34B-Instruct",
+    "displayName": "Falcon-H1 34B Instruct",
+    "organizationId": "tii",
+    "familyId": "tii-falcon-h1",
+    "version": "34B",
+    "variant": "Instruct",
+    "releaseDate": "2025-05-21",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Falcon LLM License",
+      "url": "https://falconllm.tii.ae/falcon-terms-and-conditions.html",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 34
+    },
+    "contextWindow": 262144,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The instruction-tuned 34B member of TII’s Falcon-H1 hybrid attention–state-space series, released with downloadable weights.",
+    "intendedUse": "Instruction-following and long-context assistant tasks where open weights are needed.",
+    "sourceIds": [
+      "tii-falcon-h1-model-card",
+      "tii-falcon-h1-announcement"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "nvidia-nemotron-4-340b-base",
+    "slug": "nemotron-4-340b-base",
+    "canonicalName": "Nemotron-4-340B-Base",
+    "displayName": "Nemotron-4 340B Base",
+    "organizationId": "nvidia",
+    "familyId": "nvidia-nemotron-4-340b",
+    "version": "340B",
+    "variant": "Base",
+    "releaseDate": "2024-06-14",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "NVIDIA Open Model License",
+      "url": "https://developer.download.nvidia.com/licenses/nvidia-open-model-license-agreement-june-2024.pdf",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 340
+    },
+    "contextWindow": 4096,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The open-weight 340B base model of NVIDIA’s Nemotron-4 340B release, intended primarily for synthetic data generation.",
+    "intendedUse": "Generating synthetic training data and serving as a base for further alignment under the NVIDIA Open Model License.",
+    "sourceIds": [
+      "nvidia-nemotron-4-340b-model-card",
+      "nvidia-nemotron-4-340b-research",
+      "nvidia-nemotron-4-340b-announcement"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "ai21-labs-jamba-v0-1",
+    "slug": "jamba-v0-1",
+    "canonicalName": "Jamba v0.1",
+    "displayName": "Jamba v0.1",
+    "organizationId": "ai21-labs",
+    "familyId": "ai21-labs-jamba",
+    "version": "0.1",
+    "variant": "Base",
+    "releaseDate": "2024-03-28",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 52,
+      "activeBillions": 12
+    },
+    "contextWindow": 262144,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "AI21 Labs’ first open-weight hybrid Mamba–Transformer model, a 52B Mixture-of-Experts with 12B active parameters and long context.",
+    "intendedUse": "Open research and long-context generation; a base release rather than an aligned chat model.",
+    "sourceIds": [
+      "ai21-labs-jamba-announcement",
+      "ai21-labs-jamba-paper"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "zhipu-ai-glm-4-5-air",
+    "slug": "glm-4-5-air",
+    "canonicalName": "GLM-4.5-Air",
+    "displayName": "GLM-4.5-Air",
+    "organizationId": "zhipu-ai",
+    "familyId": "zhipu-ai-glm-4-5",
+    "version": "Air",
+    "variant": "Air",
+    "releaseDate": "2025-07",
+    "datePrecision": "month",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "MIT License",
+      "spdxId": "MIT",
+      "url": "https://opensource.org/license/mit",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 106,
+      "activeBillions": 12
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The compact “Air” Mixture-of-Experts model of Zhipu AI’s GLM-4.5 series, with 106B total and 12B active parameters, released with open weights.",
+    "intendedUse": "Reasoning, coding, and agentic tasks where a smaller open-weight GLM-4.5 model is preferred.",
+    "sourceIds": [
+      "zhipu-ai-glm-4-5-model-card",
+      "zhipu-ai-glm-4-5-paper",
+      "zhipu-ai-glm-4-5-announcement"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "moonshot-ai-kimi-k2-instruct",
+    "slug": "kimi-k2-instruct",
+    "canonicalName": "Kimi-K2-Instruct",
+    "displayName": "Kimi K2 Instruct",
+    "organizationId": "moonshot-ai",
+    "familyId": "moonshot-ai-kimi-k2",
+    "version": "Instruct",
+    "variant": "Instruct",
+    "releaseDate": "2025-07-11",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "both",
+    "license": {
+      "name": "Modified MIT License",
+      "url": "https://huggingface.co/moonshotai/Kimi-K2-Instruct/blob/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 1000,
+      "activeBillions": 32
+    },
+    "contextWindow": 131072,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The instruction-tuned member of Moonshot AI’s Kimi K2 series, a 1T-parameter Mixture-of-Experts with 32B active parameters, offered as open weights and via API.",
+    "intendedUse": "Agentic, tool-use, and coding tasks, available as downloadable weights or through the Moonshot API.",
+    "sourceIds": [
+      "moonshot-ai-kimi-k2-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
   }
 ]
