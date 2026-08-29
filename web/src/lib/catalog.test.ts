@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { dataset as seedDataset } from '../data/dataset';
 import { validateDataset } from '../data/validate';
-import { buildLineageEcosystems } from './lineage-view';
+import { buildCreatorEcosystems, buildLineageEcosystems } from './lineage-view';
 import {
   assertRoutesResolve,
   buildCatalogIndex,
@@ -295,15 +295,27 @@ describe('pagination planning', () => {
 });
 
 describe('route resolution and payload budget', () => {
-  it('publishes no provider route while no provider page is generated', () => {
-    const index = buildCatalogIndex(makeDataset());
+  it('publishes a provider route for an organization with releases and none for one without', () => {
+    // beta keeps its family but holds no release, so it is the organization no
+    // provider page is generated for. Both branches of the route decision are
+    // exercised here; the previous assertion could only ever see the null one,
+    // because no fixture organization was featured.
+    const index = buildCatalogIndex(makeDataset({
+      releases: [
+        makeRelease('alpha-new', 'alpha', 'alpha-one', '2025-06-01', { apiAliases: ['alpha'] }),
+      ],
+    }));
 
     expect(index.providers).not.toHaveLength(0);
-    expect(index.providers.map((provider) => provider.route)).toEqual([null, null]);
+    expect(Object.fromEntries(index.providers.map((provider) => [provider.slug, provider.route])))
+      .toEqual({ alpha: '/providers/alpha/', beta: null });
 
     const organizationAliases = index.aliases.filter((alias) => alias.entity === 'organization');
     expect(organizationAliases).not.toHaveLength(0);
-    for (const alias of organizationAliases) expect(alias.route).toBeNull();
+    for (const alias of organizationAliases) {
+      expect(alias.route, alias.targetSlug)
+        .toBe(alias.targetSlug === 'alpha' ? '/providers/alpha/' : null);
+    }
   });
 
   it('fails when a model index row has no detail route to land on', () => {
@@ -349,25 +361,32 @@ describe('route resolution and payload budget', () => {
 
     expect(assertRoutesResolve(index, {
       models: index.models.map((model) => model.slug),
+      // Both fixture organizations hold releases, so both now get a page and the
+      // caller must declare them.
+      providers: index.providers.map((provider) => provider.slug),
     })).toBe(index);
   });
 
   it('holds the real dataset index to the routes the build generates', () => {
     const index = buildCatalogIndex(seedDataset, '/ModelTree');
-    const providerSlugs = buildLineageEcosystems(seedDataset)
+    const providerSlugs = buildCreatorEcosystems(seedDataset)
       .map((ecosystem) => ecosystem.organization.slug);
 
-    // Positive control: the real dataset must feature at least one organization,
-    // or the routed-provider assertions below would pass on an empty set.
+    // Positive control: the real dataset must record a release for at least one
+    // organization, or the routed-provider assertions below would pass on an
+    // empty set. The stronger control is differential -- the routed set must be
+    // larger than the featured one, or this test would still pass against the
+    // old featured-only derivation it exists to rule out.
     expect(providerSlugs.length).toBeGreaterThan(0);
+    expect(providerSlugs.length).toBeGreaterThan(buildLineageEcosystems(seedDataset).length);
 
     expect(assertRoutesResolve(index, {
       models: seedDataset.releases.map((release) => release.slug),
       providers: providerSlugs,
     })).toBe(index);
 
-    // A featured organization now carries its generated provider route; every
-    // other organization keeps a null route, because no page lands it.
+    // An organization with releases now carries its generated provider route;
+    // any organization without them keeps a null route, because no page lands it.
     const routed = new Set(providerSlugs);
     for (const provider of index.providers) {
       if (routed.has(provider.slug)) {
@@ -378,8 +397,8 @@ describe('route resolution and payload budget', () => {
     }
 
     // Organization aliases route the same way, from the same helper, so a search
-    // hit on a featured creator's name opens its page and an unfeatured one does
-    // not advertise a route that would 404.
+    // hit on any creator with releases opens its page and an organization with
+    // no page does not advertise a route that would 404.
     const organizationAliases = index.aliases.filter((alias) => alias.entity === 'organization');
     expect(organizationAliases).not.toHaveLength(0);
     for (const alias of organizationAliases) {
@@ -394,10 +413,10 @@ describe('route resolution and payload budget', () => {
   it('refuses the real dataset index when its provider routes are not declared', () => {
     const index = buildCatalogIndex(seedDataset, '/ModelTree');
 
-    // The index now publishes a real provider route for every featured
-    // organization; omitting the providers key states no provider page is
+    // The index now publishes a real provider route for every organization with
+    // releases; omitting the providers key states no provider page is
     // built, so the fail-closed guard must reject rather than wave them through.
-    expect(buildLineageEcosystems(seedDataset).length).toBeGreaterThan(0);
+    expect(buildCreatorEcosystems(seedDataset).length).toBeGreaterThan(0);
     expect(() => assertRoutesResolve(index, {
       models: seedDataset.releases.map((release) => release.slug),
     })).toThrow(/provider index row ".+" has no generated detail route/);

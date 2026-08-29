@@ -1,7 +1,7 @@
 import type { Dataset, DatePrecision } from '../data/schema';
 import { comparePartialDatesDescending } from '../data/partial-date';
 import { accessLabel, categoryLabel, statusLabel } from './format';
-import { buildLineageEcosystems } from './lineage-view';
+import { buildCreatorEcosystems } from './lineage-view';
 
 export const CATALOG_INDEX_VERSION = 1;
 
@@ -186,12 +186,13 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
   const familyById = new Map(dataset.families.map((item) => [item.id, item]));
 
   // The organizations `/providers/[slug]` actually generates a page for, read
-  // from the same derivation the route itself uses (see routes.ts). A provider
-  // row or an organization alias publishes a canonical route only when a page
-  // stands behind it; every other organization keeps a null route so no row ever
+  // from the same derivation the route itself uses (see routes.ts): every
+  // organization the catalog records a release for. A provider row or an
+  // organization alias publishes a canonical route only when a page stands behind
+  // it; an organization with no releases keeps a null route so no row ever
   // advertises a 404. `assertRoutesResolve` holds this to the generated slugs.
   const routedProviderSlugs = new Set(
-    buildLineageEcosystems(dataset).map((ecosystem) => ecosystem.organization.slug),
+    buildCreatorEcosystems(dataset).map((ecosystem) => ecosystem.organization.slug),
   );
   const providerRouteFor = (slug: string) => (
     routedProviderSlugs.has(slug) ? providerRoute(base, slug) : null

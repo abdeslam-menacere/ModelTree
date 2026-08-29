@@ -196,23 +196,26 @@ function buildFamilyView(family: ModelFamily, familyReleases: readonly ModelRele
 }
 
 /**
- * The featured ecosystems, derived from release flags alone.
+ * One ecosystem per organization the seed releases reach, with every family
+ * those releases reach rendered *whole*.
  *
- * A creator is featured when it has at least one featured release, matching the
- * derivation already established for `/tree` in `lib/model-tree.ts`; there is no
- * organization-level flag in the schema. A family is featured on the same test,
- * and is then rendered *whole* -- including its non-featured releases -- because
- * relationships are constrained to stay within a family, so dropping part of one
- * would leave recorded relationships pointing at releases that are not on the
- * page. Families with no featured release do not reach the homepage at all.
+ * The seed decides membership and nothing else: an organization qualifies when a
+ * seed release names it, and so does a family, but a qualifying family then
+ * renders all of its releases rather than only the seeding ones. That is
+ * deliberate -- relationships are constrained to stay within a family, so
+ * dropping part of one would leave recorded relationships pointing at releases
+ * that are not on the page.
+ *
+ * Both public views below are this function under different seeds, which is what
+ * keeps them the same shape and stops them drifting apart.
  */
-export function buildLineageEcosystems(dataset: Dataset): LineageEcosystem[] {
-  const featuredOrganizationIds = new Set(
-    dataset.releases.filter(({ featured }) => featured).map(({ organizationId }) => organizationId),
-  );
-  const featuredFamilyIds = new Set(
-    dataset.releases.filter(({ featured }) => featured).map(({ familyId }) => familyId),
-  );
+function buildEcosystems(
+  dataset: Dataset,
+  seeds: (release: ModelRelease) => boolean,
+): LineageEcosystem[] {
+  const seedReleases = dataset.releases.filter(seeds);
+  const seedOrganizationIds = new Set(seedReleases.map(({ organizationId }) => organizationId));
+  const seedFamilyIds = new Set(seedReleases.map(({ familyId }) => familyId));
   const releasesByFamily = new Map<string, ModelRelease[]>();
   for (const release of dataset.releases) {
     const bucket = releasesByFamily.get(release.familyId);
@@ -221,11 +224,11 @@ export function buildLineageEcosystems(dataset: Dataset): LineageEcosystem[] {
   }
 
   return [...dataset.organizations]
-    .filter(({ id }) => featuredOrganizationIds.has(id))
+    .filter(({ id }) => seedOrganizationIds.has(id))
     .sort((a, b) => compare(a.name, b.name) || compare(a.id, b.id))
     .map((organization) => {
       const families = dataset.families
-        .filter((family) => family.organizationId === organization.id && featuredFamilyIds.has(family.id))
+        .filter((family) => family.organizationId === organization.id && seedFamilyIds.has(family.id))
         .map((family) => buildFamilyView(family, releasesByFamily.get(family.id) ?? []))
         .filter(({ releases }) => releases.length > 0)
         .sort((a, b) => (
@@ -240,6 +243,39 @@ export function buildLineageEcosystems(dataset: Dataset): LineageEcosystem[] {
       };
     })
     .filter(({ families }) => families.length > 0);
+}
+
+/**
+ * The featured ecosystems, derived from release flags alone: the view the
+ * homepage leads with.
+ *
+ * A creator is featured when it has at least one featured release, matching the
+ * derivation already established for `/tree` in `lib/model-tree.ts`; there is no
+ * organization-level flag in the schema. A family is featured on the same test.
+ * Families with no featured release do not reach the homepage at all.
+ *
+ * This is the *lead* view and never the coverage view. Do not derive a page list
+ * from it: which creators the site leads with is an editorial choice (the
+ * procedure recorded beside `releaseSchema.featured`), and a creator it does not
+ * lead with is still recorded here whole. `buildCreatorEcosystems` is the
+ * coverage view, and `routes.ts` uses that one.
+ */
+export function buildLineageEcosystems(dataset: Dataset): LineageEcosystem[] {
+  return buildEcosystems(dataset, ({ featured }) => featured);
+}
+
+/**
+ * Every creator the catalog records a release for, whether or not the site leads
+ * with it, each with every one of its families that holds a release.
+ *
+ * This is the coverage view: it reads no flag at all, so an editorial change to
+ * which creators are featured cannot add or remove a creator here. It is what
+ * `providerStaticPaths` and the catalog index's routed-provider set are derived
+ * from, which is what makes a provider page a fact about having releases rather
+ * than about being led with.
+ */
+export function buildCreatorEcosystems(dataset: Dataset): LineageEcosystem[] {
+  return buildEcosystems(dataset, () => true);
 }
 
 export function lineageReleaseSlugs(ecosystems: readonly LineageEcosystem[]) {

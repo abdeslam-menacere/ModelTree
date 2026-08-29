@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { dataset as seedDataset } from '../data/dataset';
-import { buildLineageEcosystems } from './lineage-view';
+import { buildCreatorEcosystems, buildLineageEcosystems } from './lineage-view';
 import {
   buildProviderProfile,
   productRelationshipLabel,
@@ -153,18 +153,23 @@ describe('label maps stay total over the schema enums', () => {
 });
 
 describe('buildProviderProfile over the real seed dataset', () => {
-  const featuredSlugs = buildLineageEcosystems(seedDataset).map((e) => e.organization.slug);
+  const pagedSlugs = buildCreatorEcosystems(seedDataset).map((e) => e.organization.slug);
 
-  it('has at least one featured organization to profile', () => {
-    // Positive control: an empty catalog would make the sweep below vacuous.
-    expect(featuredSlugs.length).toBeGreaterThan(0);
+  it('has more organizations to profile than the site leads with', () => {
+    // Positive control: an empty catalog would make the sweeps below vacuous.
+    // Differential control: the pages the site generates must outnumber the
+    // creators it leads with, or these sweeps would still pass against the old
+    // featured-only route list.
+    expect(pagedSlugs.length).toBeGreaterThan(0);
+    expect(pagedSlugs.length).toBeGreaterThan(buildLineageEcosystems(seedDataset).length);
   });
 
-  it('builds a profile for every featured organization the site generates a page for', () => {
-    for (const ecosystem of buildLineageEcosystems(seedDataset)) {
+  it('builds a profile for every organization the site generates a page for', () => {
+    for (const ecosystem of buildCreatorEcosystems(seedDataset)) {
       const profile = buildProviderProfile(seedDataset, ecosystem.organization.id, '/ModelTree');
       expect(profile, `profile for ${ecosystem.organization.id}`).toBeDefined();
-      // Every featured organization has at least one release to lead with.
+      // Every organization with a generated page has at least one release to
+      // lead with, whether or not the site leads with that creator.
       expect(profile!.releaseCount).toBeGreaterThan(0);
       // Sources are the organization's own, resolved from ids.
       expect(profile!.sources.length).toBeGreaterThan(0);
@@ -175,7 +180,7 @@ describe('buildProviderProfile over the real seed dataset', () => {
     // The seed currently carries none of these; the profile must not synthesise
     // them. If a refresh adds them, this stays true by construction because the
     // builder only ever maps existing records.
-    for (const ecosystem of buildLineageEcosystems(seedDataset)) {
+    for (const ecosystem of buildCreatorEcosystems(seedDataset)) {
       const view = buildProviderProfile(seedDataset, ecosystem.organization.id)!;
       expect(view.products.length).toBe(
         seedDataset.products.filter((p) => p.organizationId === ecosystem.organization.id).length,
