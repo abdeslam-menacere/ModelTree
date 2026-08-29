@@ -4,7 +4,7 @@ import type {
   HomeSuggestion,
   HomepageSearchIndex,
 } from './homepage-search';
-import { releaseMatchesQuery } from './homepage-search';
+import { normalizeText, releaseMatchesQuery } from './homepage-search';
 
 /**
  * The shareable state of the homepage search: the query text, the active filters
@@ -232,27 +232,28 @@ export function deriveHomeSearchResults(
 
 /**
  * Suggestions whose term contains the query, entity-typed for disambiguation and
- * capped so the listbox stays bounded. An empty query yields none, keeping the
- * default view uncluttered.
+ * capped so the listbox stays bounded. The query is normalized the same way the
+ * suggestions are, so a query that reduces to nothing — empty, whitespace, or
+ * punctuation-only such as `-` or `!!!` — yields no suggestions rather than
+ * matching everything, keeping the default view uncluttered.
  */
 export function homeSuggestionsFor(
   index: HomepageSearchIndex,
   query: string,
   limit = 8,
 ): HomeSuggestion[] {
-  const needle = query.trim().toLowerCase();
-  if (!needle) return [];
-  const normalizedNeedle = needle.replace(/[^a-z0-9]+/g, ' ').trim();
+  const normalizedNeedle = normalizeText(query);
+  if (!normalizedNeedle) return [];
   return index.suggestions
-    .filter((suggestion) => {
-      if (suggestion.normalized.includes(normalizedNeedle)) return true;
-      // Fall back to raw contains, so a query with punctuation still matches.
-      return suggestion.term.toLowerCase().includes(needle);
-    })
+    .filter((suggestion) => suggestion.normalized.includes(normalizedNeedle))
     .slice(0, limit);
 }
 
-/** State with one value toggled in a dimension; a selection is cleared so the result is visible. */
+/**
+ * State with one value toggled in a dimension. The selection is preserved here;
+ * whether it still shows under the new filters is reconciled by
+ * {@link deriveHomeSearchResults}, not asserted at toggle time.
+ */
 export function toggleHomeFilterValue(
   state: HomeSearchState,
   key: HomeFilterKey,
