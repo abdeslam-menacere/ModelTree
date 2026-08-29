@@ -2613,5 +2613,57 @@
       "amazon-nova-models-page"
     ],
     "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "cohere-command-a-plus-05-2026",
+    "slug": "command-a-plus-05-2026",
+    "canonicalName": "command-a-plus-05-2026",
+    "displayName": "Command A+",
+    "organizationId": "cohere",
+    "familyId": "cohere-command-a",
+    "version": "05-2026",
+    "variant": "Plus",
+    "releaseDate": "2026-05-20",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "both",
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://opensource.org/license/apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 218,
+      "activeBillions": 25
+    },
+    "contextWindow": 128000,
+    "maximumOutput": 64000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "Cohere describes it as \"a sparse mixture-of-experts model\" at \"218B total, 25B active\" parameters, and as \"Cohere's first Mixture of Experts model\". It takes text and image input and returns text. Cohere publishes it on two routes at once — its own deployment and an \"Open Source Deployment\" under an Apache 2.0 licence — which is what the access type records. The licence name is Cohere's own statement; that the licence is OSI-approved is a separate claim resting on OSI's published list, because no Cohere page states it.",
+    "intendedUse": "Cohere lists it for \"Complex, Multimodal Agentic Tasks\" and \"Multilingual Tasks\", reachable either through Cohere's own deployment or self-deployed from downloadable weights.",
+    "sourceIds": [
+      "cohere-command-a-plus-model-card",
+      "cohere-models-overview",
+      "cohere-command-a-plus-announcement",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-28"
   }
 ]

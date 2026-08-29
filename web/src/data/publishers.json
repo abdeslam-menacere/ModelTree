@@ -95,5 +95,14 @@
     "id": "aws",
     "name": "Amazon Web Services",
     "organizationId": "amazon"
+  },
+  {
+    "id": "cohere",
+    "name": "Cohere",
+    "organizationId": "cohere"
+  },
+  {
+    "id": "open-source-initiative",
+    "name": "Open Source Initiative"
   }
 ]

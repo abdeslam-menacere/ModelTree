@@ -587,5 +587,25 @@
       "amazon-nova-overview"
     ],
     "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "cohere-command-a",
+    "slug": "command-a",
+    "organizationId": "cohere",
+    "name": "Command A",
+    "description": "Cohere's Command A line of enterprise text-generation models. Cohere names the grouping and places Command A+ inside it — \"Command A+ offers the last model in the Command A family\" — and its launch post compares Command A+ \"with other models in the Command A family\". Cohere separately describes a wider Command family that also takes in the Command R models; that broader grouping is not this family. The first release date is the month carried by the earliest member Cohere lists, command-a-03-2025, and is recorded at month precision because no approved source states a day.",
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
+    "firstReleaseDate": "2025-03",
+    "datePrecision": "month",
+    "status": "current",
+    "sourceIds": [
+      "cohere-models-overview",
+      "cohere-command-a-plus-model-card",
+      "cohere-command-a-plus-announcement"
+    ],
+    "verifiedAt": "2026-08-28"
   }
 ]
