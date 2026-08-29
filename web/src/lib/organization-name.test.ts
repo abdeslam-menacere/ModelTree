@@ -780,7 +780,7 @@ describe('the creator naming rule on surfaces added later', () => {
       // real records exactly this way -- naming neither the type nor the
       // collection -- and the gate skipped the whole module, so five raw reads
       // were never even offered to the sweep. A module handed an
-      // already-labelled view model still matches none of the three.
+      // already-labelled view model still matches none of the four.
       || /\{\s*organization\s*(?:,[^}]*)?\}\s*=/.test(source)
       // ...or destructures one in a callback *parameter*, the shape the homepage
       // and the two lineage explorers use to walk a hierarchy:
@@ -809,6 +809,15 @@ describe('the creator naming rule on surfaces added later', () => {
     // Per-directory, not just in total: a corpus that silently lost one whole
     // directory is the defect this tripwire was widened to fix, and a combined
     // count would still look healthy while that happened.
+    //
+    // This filters by directory rather than by extension, so it no longer pins a
+    // per-extension floor on its own. That floor is instead carried by named
+    // tests: 'excludes ProviderDirectory.tsx by mechanism, not by convention'
+    // pins a `.tsx` in components/, 'does not flag SourceList.astro, because a
+    // citation names the publisher entity and not a creator' pins an `.astro`
+    // there, and 'sweeps a module that only ever destructures an organization
+    // record' pins a `.ts` in lib/; pages/ and layouts/ are single-extension
+    // roots, so their directory floor is their extension floor.
     for (const { directory } of roots) {
       const swept = modules.filter((module) => module.directory === directory);
       expect(swept.length, `nothing swept in ${directory}`).toBeGreaterThan(0);
