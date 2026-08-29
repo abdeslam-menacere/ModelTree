@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import { datasetWithOtherCreators, expectedOtherCreatorIds } from '../../tests/fixtures/model-tree-dataset';
-import type { Dataset } from '../data/schema';
+import type { Dataset, Organization } from '../data/schema';
 import { organizationLabel } from './organization-name';
 import {
   buildModelTree,
@@ -242,18 +242,27 @@ const CREATORS_WITH_A_REVIEWED_PROFILE = [
   'openai',
 ];
 
-/** Catalog creators that hold releases but no reviewed source profile. */
+/**
+ * Catalog creators that hold releases but no reviewed source profile, in the
+ * order `buildCreators` renders them -- which is creator *label* order, not
+ * recorded-name order. Two entries prove the difference: `ai2` precedes
+ * `ai21-labs` because "AI2" < "AI21" even though "AI21 Labs" < "Allen Institute
+ * for AI", and `xai` sorts last because its label "xAI" begins with a lowercase
+ * letter. The vacuity guard below asserts that this difference still exists, so
+ * a future dataset change cannot quietly make the expectation blind to the
+ * comparator it exists to pin.
+ */
 const CREATORS_WITHOUT_A_REVIEWED_PROFILE = [
-  'ai21-labs',
   'ai2',
+  'ai21-labs',
   'cohere',
   'deepseek',
   'mistral-ai',
   'moonshot-ai',
   'nvidia',
-  'xai',
   'tii',
   'zhipu-ai',
+  'xai',
 ];
 
 describe('featured membership follows the reviewed source profile set', () => {
@@ -262,8 +271,14 @@ describe('featured membership follows the reviewed source profile set', () => {
 
   it('features exactly the creators with a reviewed source profile', () => {
     // Render order, not a sorted comparison: `buildCreators` orders by creator
-    // name then id (model-tree.ts:52), which here reads Alibaba Cloud, Amazon,
-    // Anthropic, Google DeepMind, Meta, Microsoft, OpenAI.
+    // label then id (model-tree.ts:58), which here reads Alibaba Cloud, Amazon,
+    // Anthropic, DeepMind, Meta, Microsoft, OpenAI.
+    //
+    // Note for anyone reading this as comparator coverage: it is not. Every
+    // featured creator's label sits in the same slot as its recorded name, so
+    // this ordering is identical under both sort keys and would still pass if
+    // the comparator were reverted. The Others test below is the one that pins
+    // the comparator, and it carries a guard saying so.
     expect(tree.featured.map(({ organization }) => organization.id))
       .toEqual(CREATORS_WITH_A_REVIEWED_PROFILE);
     expect(tree.featured.map(({ organization }) => organization.name))
@@ -279,30 +294,60 @@ describe('featured membership follows the reviewed source profile set', () => {
   });
 
   it('puts every catalog creator without a reviewed profile under Others', () => {
-    // Also render order, sorted by creator name then id. The names decide it:
-    // AI21 Labs, Allen Institute for AI, Cohere, DeepSeek, Mistral AI, Moonshot
-    // AI, NVIDIA, then SpaceXAI (whose recorded name sorts under S while its id
-    // sorts last), Technology Innovation Institute, Zhipu AI.
+    // Render order, sorted by creator *label* then id (model-tree.ts:58). The
+    // labels decide it: AI2, AI21, Cohere, DeepSeek, Mistral, Moonshot AI,
+    // NVIDIA, TII, Zhipu AI, then xAI -- whose lowercase label sorts after every
+    // uppercase one under the module's code-unit `compare`.
     expect(tree.others.map(({ organization }) => organization.id))
       .toEqual(CREATORS_WITHOUT_A_REVIEWED_PROFILE);
+    // The recorded names in that same render order. This list is deliberately
+    // *not* alphabetical: that it reads out of order is the rule working, since
+    // the sort key is the label and these are the fuller recorded forms.
     expect(tree.others.map(({ organization }) => organization.name))
       .toEqual([
-        'AI21 Labs',
         'Allen Institute for AI',
+        'AI21 Labs',
         'Cohere',
         'DeepSeek',
         'Mistral AI',
         'Moonshot AI',
         'NVIDIA',
-        'SpaceXAI',
         'Technology Innovation Institute',
         'Zhipu AI',
+        'SpaceXAI',
       ]);
     // The branch this change exists to populate must not be empty, and the two
     // branches must partition the catalog rather than merely both being present.
     expect(tree.others.length).toBeGreaterThan(0);
     expect([...tree.featured, ...tree.others].map(({ organization }) => organization.id).sort())
       .toEqual([...CREATORS_WITH_A_REVIEWED_PROFILE, ...CREATORS_WITHOUT_A_REVIEWED_PROFILE].sort());
+  });
+
+  it('orders Others by a key that recorded-name order would get wrong', () => {
+    // Vacuity guard for the expectation above. An ordering assertion can only
+    // pin a comparator while the two candidate keys actually disagree on this
+    // data; if they ever agree, the expectation silently stops testing anything
+    // and would pass against a reverted comparator. #518 is what made them
+    // disagree -- before it landed, all ten labels sat in their recorded-name
+    // slots. So assert the disagreement rather than assuming it persists.
+    const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+    const sortedBy = (key: (organization: Organization) => string) => (
+      [...tree.others.map(({ organization }) => organization)]
+        .sort((a, b) => compare(key(a), key(b)) || compare(a.id, b.id))
+        .map(({ id }) => id)
+    );
+
+    const byLabel = sortedBy(organizationLabel);
+    const byRecordedName = sortedBy(({ name }) => name);
+
+    expect(byLabel).not.toEqual(byRecordedName);
+    expect(tree.others.map(({ organization }) => organization.id)).toEqual(byLabel);
+    // Name the two crossings, so a future data change that removes one of them
+    // fails here with a readable reason instead of quietly halving the guard.
+    expect(byLabel.indexOf('ai2')).toBeLessThan(byLabel.indexOf('ai21-labs'));
+    expect(byRecordedName.indexOf('ai2')).toBeGreaterThan(byRecordedName.indexOf('ai21-labs'));
+    expect(byLabel.at(-1)).toBe('xai');
+    expect(byRecordedName.at(-1)).not.toBe('xai');
   });
 
   it('moves creators between branches without dropping a single release', () => {

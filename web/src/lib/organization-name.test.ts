@@ -209,22 +209,61 @@ describe('the rule is applied at every surface that names a creator', () => {
     // true, so the sweep would pass over a dataset that cannot exercise it.
     expect(distinct.length).toBeGreaterThan(0);
 
+    // Catalog search is a substring predicate, so a query that is contained in
+    // another creator's recorded form legitimately surfaces that creator's
+    // models too -- "AI2" is a substring of "AI21", so typing it reaches both
+    // the Allen Institute and AI21 Labs. That is search working, not the label
+    // rule leaking, and a reader narrows it by typing one more character.
+    //
+    // Rather than loosen the claim to "contains its own models", which would
+    // stop noticing genuine over-matching, the expected set is computed
+    // exactly: the creator's own models, plus the models of every other
+    // creator whose own recorded forms contain the query.
+    const modelsOf = (slug: string) => index.models
+      .filter((row) => row.organizationSlug === slug)
+      .map((row) => row.slug);
+    const expectedFor = (query: string, organization: Organization) => {
+      const needle = query.toLowerCase();
+      const alsoReached = everyOrganization()
+        .filter((other) => other.id !== organization.id)
+        .filter((other) => organizationSearchTerms(other)
+          .some((term) => term.toLowerCase().includes(needle)))
+        .flatMap((other) => modelsOf(other.slug));
+      return [...modelsOf(organization.slug), ...alsoReached].sort();
+    };
+
+    let strictCreators = 0;
+    let collidingCreators = 0;
+
     for (const organization of distinct) {
-      const own = index.models
-        .filter((row) => row.organizationSlug === organization.slug)
-        .map((row) => row.slug)
-        .sort();
+      const own = modelsOf(organization.slug).sort();
       if (!own.length) continue;
 
       // Either recorded form reaches the creator's models; neither is privileged.
-      expect(search(organizationFullName(organization))).toEqual(own);
-      expect(search(organizationLabel(organization))).toEqual(own);
+      for (const query of [organizationFullName(organization), organizationLabel(organization)]) {
+        const expected = expectedFor(query, organization);
+        expect(search(query)).toEqual(expected);
+        // Reachability is the property #479 is actually about: whichever form a
+        // reader types, every one of this creator's models is in the result.
+        for (const slug of own) expect(search(query)).toContain(slug);
+        if (expected.length === own.length) strictCreators += 1;
+        else collidingCreators += 1;
+      }
 
       // ...while what those rows display stays the label.
       for (const row of index.models.filter((item) => item.organizationSlug === organization.slug)) {
         expect(row.organizationName).toBe(organizationLabel(organization));
       }
     }
+
+    // Two-directional vacuity guard on the branch structure above. Most
+    // creators must still be matched exactly -- if collisions became the norm
+    // the assertion would have stopped constraining anything -- and the
+    // colliding branch must be exercised by the AI2/AI21 pair the dataset
+    // holds, or this accounting is dead code pretending to be coverage.
+    expect(strictCreators).toBeGreaterThan(0);
+    expect(collidingCreators).toBeGreaterThan(0);
+    expect(collidingCreators).toBeLessThan(strictCreators);
 
     // Control: the predicate is not simply matching everything. A string in no
     // recorded form returns nothing, so the counts above discriminate.
