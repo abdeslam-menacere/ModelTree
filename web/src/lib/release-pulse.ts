@@ -260,8 +260,22 @@ export function buildCoverageStats(dataset: Dataset): CoverageStats {
     ...dataset.releaseEvents.map((event) => event.verifiedAt),
   ].sort(compare);
 
+  // A "creator" is an organization that has actually published — not every
+  // organization the dataset records. Serving platforms, hosting providers and
+  // consortia are separate entities the data model deliberately keeps distinct
+  // (schema.ts), so counting all organizations would overstate creators the
+  // instant one such non-creator entity is modelled. We derive the count from
+  // releases, the same population the homepage search index is built from, so
+  // the panel's "Creators N" claim stays true against what search can find
+  // (see homepage-search.test.ts). Today this is identical to a family-derived
+  // count — every organization publishes both — but they diverge silently once
+  // a family with no releases is added (abdeslam-menacere/ModelTree#441), and a
+  // release-derived count is the one that keeps search parity.
+  const creatorIds = new Set(dataset.releases.map((release) => release.organizationId));
+
   return {
-    creators: dataset.organizations.length,
+    creators: dataset.organizations.filter((organization) => creatorIds.has(organization.id))
+      .length,
     families: dataset.families.length,
     releases: dataset.releases.length,
     sources: dataset.sources.length,

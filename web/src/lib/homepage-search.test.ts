@@ -262,17 +262,28 @@ describe('what the homepage displays is what the homepage can search', () => {
   });
 
   it('keeps the coverage panel\'s creator count true against what search can find', () => {
-    // `index.astro` prints `dataset.organizations.length` as "Creators N" a few
-    // hundred pixels above the search box, and `buildCoverageStats` repeats it
-    // under Release Pulse. The relationship is pinned rather than the number,
-    // so the catalog can grow without editing this file -- but a creator the
-    // page counts and the box cannot find reddens it, which is #525 exactly.
-    expect(recordedOrganizations.length).toBeGreaterThan(0);
-    expect(dataset.organizations.length).toBe(recordedOrganizations.length);
-    expect(buildCoverageStats(dataset).creators).toBe(recordedOrganizations.length);
+    // `index.astro` prints the creator count as "Creators N" a few hundred
+    // pixels above the search box, and `buildCoverageStats` repeats it under
+    // Release Pulse. The relationship is pinned rather than the number, so the
+    // catalog can grow without editing this file -- but a creator the page
+    // counts and the box cannot find reddens it, which is #525 exactly.
+    //
+    // A "creator" is an organization that has published a release, not every
+    // recorded organization: the model deliberately keeps serving platforms and
+    // other non-creator entities distinct, and #515 is the count counting all
+    // organizations instead. This measures the same population as the sibling
+    // `withRelease` predicate twelve lines up rather than inventing a third
+    // notion. Today every organization publishes, so this equals
+    // `recordedOrganizations.length`; the fixture-driven test in release-pulse
+    // is what proves the derivation without relying on that coincidence.
+    const creatorOrganizations = recordedOrganizations.filter((organization) =>
+      recordedReleases.some((release) => release.organizationId === organization.id),
+    );
+    expect(creatorOrganizations.length).toBeGreaterThan(0);
+    expect(buildCoverageStats(dataset).creators).toBe(creatorOrganizations.length);
 
     const searchable = new Set(index.releases.map((row) => row.organizationSlug));
-    expect(searchable.size).toBe(recordedOrganizations.length);
+    expect(searchable.size).toBe(creatorOrganizations.length);
   });
 
   it('widens the index without reading the editorial featured flag', () => {
