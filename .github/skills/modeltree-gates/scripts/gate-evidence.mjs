@@ -24,7 +24,7 @@
 
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve, join, dirname, extname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 // The three rubrics from #59's review panel. A bundle must carry exactly these,
 // once each: a panel missing a rubric has not been independently reviewed, and
@@ -127,7 +127,7 @@ function parseArgs(argv) {
 // The repository root, found from this script's own location so the reviewed set
 // is read from the checkout the gate ships in rather than from wherever it was
 // invoked. `.github/skills/modeltree-gates/scripts/gate-evidence.mjs` -> up four.
-function repoRoot() {
+export function repoRoot() {
   return resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
 }
 
@@ -144,7 +144,7 @@ function repoRoot() {
 // (#251, an instance of the drift #168 records). Every disagreement it closes is
 // closed by refusing more, never by admitting more: a refusal exits 2, so it can
 // only ever stop a run, never let one publish under the looser bar.
-function reviewedCreatorIds(repo) {
+export function reviewedCreatorIds(repo) {
   const dir = resolve(repo, PROFILE_DIR);
   let entries;
   try {
@@ -582,4 +582,10 @@ function main() {
   return failures.length === 0 ? 0 : 1;
 }
 
-process.exit(main());
+// Run the gate only when invoked as a script, not when a module imports the
+// reviewed-set reader above. Node runs this file for `node gate-evidence.mjs`
+// (argv[1] is this file) and skips it under `import`, so the CLI contract is
+// unchanged while `reviewedCreatorIds` can be reused rather than reimplemented.
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  process.exit(main());
+}
