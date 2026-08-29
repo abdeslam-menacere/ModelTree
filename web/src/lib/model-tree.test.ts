@@ -290,10 +290,11 @@ describe("featured membership follows the site's editorial lead list", () => {
   it('puts every catalog creator the list omits under Others', () => {
     // Also render order. What pins it is the comparator in `buildCreators`,
     // which today sorts on the recorded name and then the id -- so this is an
-    // assertion about the code, not about the alphabet. At twelve creators the
-    // recorded names and the displayed short names no longer agree on an order
-    // (AI2/AI21 Labs and SpaceXAI/xAI cross), which is what stops this from
-    // passing for a reason unrelated to the comparator it exists to check.
+    // assertion about the code, not about the alphabet. Where a creator's
+    // recorded name and its displayed short name disagree on an order -- as
+    // AI2/AI21 Labs and SpaceXAI/xAI do -- this list is sensitive to which of
+    // the two the comparator reads, so a comparator change cannot pass it
+    // unnoticed the way an alphabetical coincidence would.
     expect(tree.others.map(({ organization }) => organization.id))
       .toEqual(CREATORS_THE_SITE_DOES_NOT_LEAD_WITH);
     expect(tree.others.map(({ organization }) => organization.name))
