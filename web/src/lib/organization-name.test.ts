@@ -1,11 +1,13 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
-import type { Organization } from '../data/schema';
+import type { Dataset, Organization } from '../data/schema';
 import { buildCatalogIndex } from './catalog';
 import { buildComparisonCandidates, buildComparisonPickerIndex } from './comparison';
+import { buildHomepageHierarchy } from './homepage';
+import { buildLineageEcosystems } from './lineage-view';
 import { buildModelTree } from './model-tree';
 import {
   organizationFullName,
@@ -14,6 +16,7 @@ import {
   organizationSearchTerms,
 } from './organization-name';
 import { buildProviderDirectory, directoryInitial } from './provider-directory';
+import { buildTimelineIndex } from './timeline';
 
 /**
  * The creator naming rule -- abdeslam-menacere/ModelTree#479.
@@ -181,30 +184,169 @@ describe('the rule is applied at every surface that names a creator', () => {
 });
 
 /**
- * The rule has to survive surfaces that do not exist yet.
+ * Ordering, and the derived fields that carry a creator's name into a surface
+ * without ever naming the record.
  *
- * #504 extracted the lineage tree's detail panel into a new component after this
- * rule landed, and carried the raw `organization.name` across with it -- so the
- * defect reappeared on a surface no existing test covered. The behavioural guard
- * for that specific component lives beside it, in
- * `components/LineageModelDrawer.test.tsx`. This is the general tripwire: it asks
- * which components hold a raw `Organization` record at all, because only those
- * can pick the wrong field. A component handed a prepared directory entry already
- * carries the label in its `name` and is correctly not swept here.
+ * A comparator that destructures -- `(a, b) => compare(a.name, b.name)` -- never
+ * spells `organization.name`, so no sweep for that spelling can reach it. It
+ * also does not surface to a reader as a wrong name: it surfaces as a broken
+ * alphabet. The homepage listed DeepMind after DeepSeek because it ordered on
+ * "Google DeepMind" while printing "DeepMind", and nothing on the page said why.
+ *
+ * So these assertions ask the only question that survives a refactor: is the
+ * order a reader sees the order of the strings the reader was shown.
  */
-describe('the creator naming rule on surfaces added later', () => {
-  const componentsDirectory = fileURLToPath(new URL('../components', import.meta.url));
-  const components = readdirSync(componentsDirectory)
-    .filter((file) => file.endsWith('.tsx') && !file.includes('.test.'))
-    .map((file) => ({ file, source: readFileSync(join(componentsDirectory, file), 'utf8') }));
+describe('the creator naming rule where creators are ordered', () => {
+  // Codepoint order, matching the comparators under test. Deliberately not a
+  // locale collation: this asserts that ordering and display agree, and is not
+  // the place to change how either sorts.
+  const isNonDecreasing = (values: string[]) => values.every(
+    (value, index) => index === 0 || values[index - 1] <= value,
+  );
 
-  it('reads a non-empty corpus of components, so the sweep below means something', () => {
-    expect(components.length).toBeGreaterThan(0);
+  const idsSortedBy = (key: (organization: Organization) => string) => [...everyOrganization()]
+    .sort((a, b) => (
+      key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0
+    ) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    .map(({ id }) => id);
+
+  it('orders creators differently by label than by recorded name, so the assertions below can fail', () => {
+    // The vacuity guard for this whole block. If the two recorded forms happened
+    // to sort every creator the same way, an assertion that the emitted order
+    // matches the label order would pass against the defect it exists to catch.
+    expect(idsSortedBy(organizationLabel)).not.toEqual(idsSortedBy(organizationFullName));
   });
 
-  it('renders no raw recorded name in a component that holds an Organization record', () => {
-    const holdsOrganizations = components.filter(({ source }) => (
+  it('lists creators on the homepage in the order of the names the homepage prints', () => {
+    const hierarchy = buildHomepageHierarchy(dataset);
+    expect(hierarchy.length).toBeGreaterThan(0);
+    const labels = hierarchy.map((entry) => organizationLabel(entry.organization));
+    expect(isNonDecreasing(labels)).toBe(true);
+    // The defect exactly as it shipped: the page ordered on "Google DeepMind"
+    // while printing "DeepMind", so DeepMind appeared after DeepSeek.
+    expect(labels.indexOf('DeepMind')).toBeLessThan(labels.indexOf('DeepSeek'));
+  });
+
+  it('lists creators in the lineage tree in the order of the names that tree prints', () => {
+    const ecosystems = buildLineageEcosystems(dataset);
+    expect(ecosystems.length).toBeGreaterThan(0);
+    expect(isNonDecreasing(ecosystems.map((entry) => organizationLabel(entry.organization)))).toBe(true);
+  });
+
+  it('orders lineage ecosystems by the label even where the two orderings disagree', () => {
+    // The assertion above cannot fail on today's data, and saying so is the
+    // point: the featured set contains DeepMind but not DeepSeek, so "DeepMind"
+    // and "Google DeepMind" occupy the same slot either way. A guard that only
+    // holds while a release flag happens not to change is not a guard.
+    //
+    // Featuring one DeepSeek release -- the sole input the derivation reads --
+    // restores the distinction without inventing an organization or editing the
+    // dataset. The fixture is chosen by the property under test.
+    const deepseek = dataset.releases.find((release) => release.organizationId === 'deepseek');
+    expect(deepseek, 'no deepseek release available to feature').toBeDefined();
+
+    const withDeepSeekFeatured: Dataset = {
+      ...dataset,
+      releases: dataset.releases.map((release) => (
+        release.id === deepseek!.id ? { ...release, featured: true } : release
+      )),
+    };
+
+    const labels = buildLineageEcosystems(withDeepSeekFeatured)
+      .map((entry) => organizationLabel(entry.organization));
+
+    // The vacuity guard: without both creators present the ordering below is
+    // satisfied trivially.
+    expect(labels).toContain('DeepMind');
+    expect(labels).toContain('DeepSeek');
+    expect(isNonDecreasing(labels)).toBe(true);
+    // The defect restated. Ordering on the recorded name files this creator
+    // under "Google", which puts it after DeepSeek.
+    expect(labels.indexOf('DeepMind')).toBeLessThan(labels.indexOf('DeepSeek'));
+  });
+
+  it('names the creator on a timeline entry by the label', () => {
+    const index = buildTimelineIndex(dataset, BASE);
+    const organizationBySlug = new Map(everyOrganization().map((item) => [item.slug, item]));
+    expect(index.entries.length).toBeGreaterThan(0);
+
+    for (const entry of index.entries) {
+      const organization = organizationBySlug.get(entry.creatorSlug)!;
+      expect(entry.creatorName).toBe(organizationLabel(organization));
+    }
+  });
+
+  it('labels the timeline creator filter by the label', () => {
+    // The filter chips are counted off the entries above, so this follows from
+    // the previous test -- which is exactly the reasoning that let the comparison
+    // picker render "SpaceXAI" for a whole release. Asserted, not inferred.
+    const index = buildTimelineIndex(dataset, BASE);
+    const labels = new Set(everyOrganization().map(organizationLabel));
+    expect(index.facets.creators.length).toBeGreaterThan(0);
+
+    for (const facet of index.facets.creators) {
+      expect(labels.has(facet.label), `unexpected creator facet "${facet.label}"`).toBe(true);
+    }
+  });
+});
+
+/**
+ * The rule has to survive surfaces that do not exist yet.
+ *
+ * This has now happened three times. #504 extracted the lineage tree's detail
+ * panel into a new component and carried the raw `organization.name` across with
+ * it; #499 then added `lib/timeline.ts`, which did the same. Both landed on
+ * `main` after this rule did, so no existing test covered either.
+ *
+ * The first version of this tripwire swept `components/*.tsx` only, which is
+ * one reason `lib/timeline.ts` got through it -- but only one. Widening the
+ * corpus alone still missed it, because the gate asked whether a module imports
+ * the `Organization` *type*, and `timeline.ts` imports `Dataset` and reaches
+ * organizations through it. So the gate asks the question it actually means:
+ * does this module hold raw organization records, however it obtained them.
+ * A module handed a prepared directory entry -- `ProviderDirectory.tsx`, whose
+ * `organization.name` is an already-labelled view model -- does neither, and is
+ * still correctly not swept.
+ *
+ * What it cannot do is catch a surface that never spells `organization.name` --
+ * a destructured sort comparator reading `a.name` is invisible to any sweep for
+ * a spelling. That class is guarded by the real-dataset assertions above, which
+ * check the ordering a reader actually sees. Neither mechanism subsumes the
+ * other, which is the reason both exist.
+ */
+describe('the creator naming rule on surfaces added later', () => {
+  const roots = [
+    { directory: fileURLToPath(new URL('../components', import.meta.url)), extension: '.tsx' },
+    { directory: fileURLToPath(new URL('.', import.meta.url)), extension: '.ts' },
+  ];
+
+  // The rule module is the one place the raw field is read on purpose: it is
+  // what every other module calls instead of reading it directly.
+  const RULE_MODULE = 'organization-name.ts';
+
+  const modules = roots.flatMap(({ directory, extension }) => readdirSync(directory)
+    .filter((file) => (
+      file.endsWith(extension) && !file.includes('.test.') && file !== RULE_MODULE
+    ))
+    .map((file) => ({ file, source: readFileSync(join(directory, file), 'utf8') })));
+
+  it('reads a non-empty corpus from every swept directory, so the sweep below means something', () => {
+    expect(modules.length).toBeGreaterThan(0);
+    // Per-directory, not just in total: a corpus that silently lost one whole
+    // directory is the defect this tripwire was widened to fix, and a combined
+    // count would still look healthy while that happened.
+    for (const { directory, extension } of roots) {
+      const swept = modules.filter(({ file }) => (
+        file.endsWith(extension) && existsSync(join(directory, file))
+      ));
+      expect(swept.length, `nothing swept in ${directory}`).toBeGreaterThan(0);
+    }
+  });
+
+  it('renders no raw recorded name in a module that holds an Organization record', () => {
+    const holdsOrganizations = modules.filter(({ source }) => (
       /import\s+type\s*\{[^}]*\bOrganization\b[^}]*\}\s*from\s*'\.\.\/data\/schema'/.test(source)
+      || /\.organizations\b/.test(source)
     ));
     // The control that matters: if this ever reaches zero the sweep below passes
     // for free, and the tripwire has quietly stopped guarding anything.

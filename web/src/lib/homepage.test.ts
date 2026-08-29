@@ -53,9 +53,13 @@ describe('homepage hierarchy', () => {
     const hierarchy = buildHomepageHierarchy({
       ...dataset,
       organizations: [
-        { ...organization, id: 'org-lower', name: 'alpha' },
-        { ...organization, id: 'org-z', name: 'Zeta' },
-        { ...organization, id: 'org-a', name: 'Zeta' },
+        // The label is what this comparator reads, so it is the label that
+        // varies here. `name` is set to a decoy that would order these three
+        // differently -- org-lower first -- so the expectation below fails if
+        // the sort ever goes back to reading the recorded name.
+        { ...organization, id: 'org-lower', name: 'AAA decoy', shortName: 'alpha' },
+        { ...organization, id: 'org-z', name: 'ZZZ decoy', shortName: 'Zeta' },
+        { ...organization, id: 'org-a', name: 'ZZZ decoy', shortName: 'Zeta' },
       ],
       families: [
         { ...family, id: 'family-lower', organizationId: 'org-a', name: 'beta' },
@@ -79,7 +83,7 @@ describe('homepage hierarchy', () => {
     const family = dataset.families.find((candidate) => candidate.organizationId === organization.id)!;
     const hierarchy = buildHomepageHierarchy({
       ...dataset,
-      organizations: [{ ...organization, id: 'aaa-empty', name: 'A Empty' }, ...dataset.organizations],
+      organizations: [{ ...organization, id: 'aaa-empty', name: 'A Empty', shortName: 'A Empty' }, ...dataset.organizations],
       families: [{ ...family, id: 'aaa-empty', organizationId: 'aaa-empty', name: 'A Empty' }, ...dataset.families],
     });
 

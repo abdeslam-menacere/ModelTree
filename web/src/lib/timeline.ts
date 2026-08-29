@@ -2,6 +2,7 @@ import type { Dataset, ModelRelease } from '../data/schema';
 import type { FacetValue } from './catalog';
 import { modelRoute } from './catalog';
 import { accessLabel, categoryLabel, formatReleaseDate } from './format';
+import { organizationLabel } from './organization-name';
 import { releaseEventTypeLabel } from './provider-profile';
 
 export class TimelineIndexError extends Error {
@@ -163,7 +164,7 @@ export function buildTimelineIndex(dataset: Dataset, base = '/'): TimelineIndex 
       // platform announcing availability changes where a model runs, not who
       // built it, so the badge keeps naming the creator.
       creatorSlug: organization.slug,
-      creatorName: organization.name,
+      creatorName: organizationLabel(organization),
       categories: [...release.categories].sort(compare),
       accessType: release.accessType,
       accessTypeLabel: accessLabel(release.accessType),
