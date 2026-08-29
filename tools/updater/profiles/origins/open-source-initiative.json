@@ -1,0 +1,43 @@
+{
+  "catalog": {
+    "id": "origins-open-source-initiative",
+    "kind": "approved-origins",
+    "authority_id": "open-source-initiative",
+    "authority_name": "Open Source Initiative (OSI)",
+    "applies_to": "The Open Source Initiative as the authority that decides and publishes whether a licence is OSI-approved. It is a licence-status authority, not a model creator, product or serving platform."
+  },
+  "notes": [
+    "Human origin approval only. It records where OSI publishes the authoritative list of OSI-approved licences; it adds no creator, family, release, product or deployment to the dataset, does not make any creator a pilot creator, and joins neither reviewed profile set.",
+    "OSI is a licence-status authority, not a model creator. This catalogue exists to source exactly one otherwise-unsourced step: mapping a licence *name* (which a model card states) to its OSI approval *status* (which no model card states). See abdeslam-menacere/ModelTree#461 and the note beside licenseSchema in web/src/data/schema.ts.",
+    "A licence claim citing this origin still needs the creator's own primary source for the licence name (for example a model card stating 'Apache 2.0'). This origin supplies only whether OSI has approved that named licence. Availability of a licence on this list is never evidence about who trained a model or whether its weights are downloadable — those stay separate claims on separate entities.",
+    "This approval changes no review threshold and grants no refresh run permission to approve its own source. gate-source-approval.mjs still refuses any host that was not inherited from a reviewed change such as this one."
+  ],
+  "source_catalog": [
+    {
+      "id": "osi-approved-licenses",
+      "owner": "Open Source Initiative",
+      "url": "https://opensource.org/licenses",
+      "kind": "licence-authority-list",
+      "allowed_paths": ["/licenses", "/license/"],
+      "allowed_content_types": ["licence-approval-status"],
+      "trust": "primary",
+      "trust_notes": "OSI's own published list of OSI-approved licences, and the per-licence pages it links. Authoritative for the single fact of whether OSI has approved a named licence, and for nothing else. Bounded to /licenses and /license/, the sections checked.",
+      "verified_at": "2026-08-28",
+      "verification": "Fetched 2026-08-28: /licenses returned HTTP 200, <title>Licenses – Open Source Initiative</title>, on the OSI-owned opensource.org host. /license/apache-2.0 returned HTTP 200, <title>Apache License, Version 2.0 – Open Source Initiative</title>, and /license/mit returned HTTP 200, <title>The MIT License – Open Source Initiative</title> — the two licences the existing osiApproved: true records name."
+    }
+  ],
+  "deferred_origins": [
+    {
+      "origin": "https://spdx.org",
+      "decision": "not approved",
+      "reason": "SPDX is the identifier registry that normalises a licence's name into an SPDX id. It is not the authority that decides OSI approval. An SPDX id is a normalisation of the name the model card already states, so citing SPDX would re-source the name, not the name-to-OSI-status step this catalogue exists to source. If SPDX is ever wanted for identifier normalisation, that is a separate approval with its own reason."
+    }
+  ],
+  "ambiguities": [
+    {
+      "topic": "Licence name is not OSI status",
+      "note": "A model card stating 'Apache 2.0' states a licence name. Whether OSI has approved that licence is a distinct fact that only OSI states, and it is the fact osiApproved records.",
+      "guidance": "Cite the creator's own source for the licence name and this origin for the OSI approval status. Do not infer osiApproved from the name alone, and do not treat an SPDX id or a licence URL as evidence of OSI status — that is the inference this catalogue is here to replace with a citation."
+    }
+  ]
+}

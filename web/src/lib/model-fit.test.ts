@@ -83,6 +83,7 @@ const families: ModelFamily[] = [
     description: 'A model family.',
     categories: ['language-reasoning'],
     firstReleaseDate: '2026-01-01',
+    datePrecision: 'day',
     status: 'legacy',
     sourceIds: ['creator-docs'],
     verifiedAt: '2026-08-01',

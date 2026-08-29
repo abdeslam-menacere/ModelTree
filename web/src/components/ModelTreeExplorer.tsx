@@ -5,7 +5,7 @@ import {
   restoreModelTreeSelection,
   toggleModelTreeBranch,
 } from '../lib/model-tree';
-import { formatDate, statusLabel } from '../lib/format';
+import { formatReleaseDate, statusLabel } from '../lib/format';
 import { createModelSelectionUrl, readOptionalSelectedModel } from '../lib/selection';
 import LineageModelDrawer from './LineageModelDrawer';
 
@@ -113,7 +113,7 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
                             onClick={() => selectRelease(release.id)}
                           >
                             <strong>{release.displayName}</strong>
-                            <span>{formatDate(release.releaseDate)} · {statusLabel(release.status)}</span>
+                            <span>{formatReleaseDate(release.releaseDate, release.datePrecision)} · {statusLabel(release.status)}</span>
                           </button>
                           <a href={`${normalizedBase}models/${release.slug}/`}>
                             Passport<span className="visually-hidden"> for {release.displayName}</span>

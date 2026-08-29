@@ -63,8 +63,30 @@ inherits the reason rather than the gap:
 - **DeepSeek** — `api-docs.deepseek.com` could not be reached from the
   environment this batch was researched in (connection failure, not a 4xx), so
   no origin was verified. Nothing was approved on the strength of recollection.
-- **Alibaba / Qwen** — the creator entity is unresolved. Qwen material appears
-  under Alibaba Group, Alibaba Cloud, Tongyi Lab and the Qwen team, across
-  `qwen.ai`, `qwenlm.github.io`, ModelScope and Alibaba Cloud documentation.
-  Which of those is *the creator* is the question a refresh would have to answer
-  first, and approving origins ahead of it would prejudge it.
+
+## Retired deferrals
+
+Kept rather than deleted, so the reason a deferral ended is as inheritable as
+the reason it began:
+
+- **Alibaba / Qwen** — deferred because the creator entity was unresolved across
+  Alibaba Group, Alibaba Cloud, Tongyi Lab and the Qwen team. Resolved on the
+  Qwen team's own organization profile at `https://huggingface.co/Qwen`, which
+  states that Qwen "refers to the large language model family built by **Alibaba
+  Cloud**" and gives `https://qwen.ai/` as the organization website. The dataset
+  records Alibaba Cloud as the creator on that basis, in
+  `abdeslam-menacere/ModelTree#9`.
+
+  The conflict did not disappear and is carried rather than closed. The
+  `QwenLM/Qwen3.8` repository description credits "Qwen team, **Alibaba Group**",
+  the parent company, while the older `QwenLM/Qwen3` repository credits Alibaba
+  Cloud. Both wordings are the creator's own. The organization record states the
+  disagreement in full, and a refresh should treat either name appearing in a
+  source as expected rather than as a contradiction to resolve.
+
+  No origins file is approved here yet, because none of the candidate hosts
+  survived checking. `qwen.ai` and `qwen.ai/blog` render as client-side
+  applications that return no text to a fetch, and `qwenlm.github.io/blog/` last
+  published on 2025-09-23 and redirects to `qwen.ai`. The reviewed profile at
+  `tools/updater/profiles/alibaba-cloud.json` catalogues `huggingface.co/Qwen`
+  and `github.com/QwenLM` instead, which are the origins actually reached.

@@ -56,6 +56,7 @@ function makeFamily(id: string, organizationId: string, extra: Record<string, un
     description: 'Fixture family.',
     categories: ['language-reasoning'],
     firstReleaseDate: '2025-01-01',
+    datePrecision: 'day',
     status: 'current',
     sourceIds: ['src-a'],
     verifiedAt: '2026-01-01',
@@ -382,13 +383,24 @@ describe('derived counts', () => {
     }
   });
 
-  it('reports the seed serving-platform group as empty because the data holds none', () => {
-    // Stated as an explicit expectation rather than left implicit: this group is
-    // empty today, and the fixture-backed tests above are what prove it fills in
-    // correctly once sourced platform records land.
-    expect(seedDataset.servingPlatforms.length).toBe(0);
-    expect(group(seedDataset, 'serving-platforms').total).toBe(0);
-    expect(group(seedDataset, 'serving-platforms').emptyMessage).toContain('primary sources');
+  it('reports the seed serving-platform group from the records the data holds', () => {
+    // These are the first sourced platform records this dataset has carried, so
+    // the group is no longer empty. Derived from the data rather than counted,
+    // so a later sourced platform does not force an unrelated edit here; the
+    // fixture-backed tests above remain the proof of the group's shape.
+    const platforms = seedDataset.servingPlatforms;
+    expect(platforms.length).toBeGreaterThan(0);
+    expect(group(seedDataset, 'serving-platforms').total).toBe(platforms.length);
+    expect(slugs(group(seedDataset, 'serving-platforms').entries).sort())
+      .toEqual(platforms.map((platform) => platform.slug).sort());
+  });
+
+  it('still explains the empty group when no platform is recorded', () => {
+    // Kept because the message is what a reader sees before a creator's first
+    // platform lands, and the seed stopped proving it the moment one did.
+    const empty = { ...seedDataset, servingPlatforms: [] };
+    expect(group(empty, 'serving-platforms').total).toBe(0);
+    expect(group(empty, 'serving-platforms').emptyMessage).toContain('primary sources');
   });
 });
 

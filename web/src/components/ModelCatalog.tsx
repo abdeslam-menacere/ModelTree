@@ -19,7 +19,7 @@ import {
   type CatalogViewState,
   type FilterKey,
 } from '../lib/catalog-view';
-import { accessLabel, formatDate, statusLabel } from '../lib/format';
+import { accessLabel, formatReleaseDate, statusLabel } from '../lib/format';
 
 interface Props {
   models: ModelIndexRow[];
@@ -283,7 +283,7 @@ export default function ModelCatalog({ models, facets }: Props) {
                       </th>
                       <td data-label="Creator">{row.organizationName}</td>
                       <td data-label="Family">{row.familyName}</td>
-                      <td data-label="Released">{formatDate(row.releaseDate)}</td>
+                      <td data-label="Released">{formatReleaseDate(row.releaseDate, row.datePrecision)}</td>
                       <td data-label="Status">{statusLabel(row.status as never)}</td>
                       <td data-label="Access">{accessLabel(row.accessType as never)}</td>
                       <td data-label="Context">{contextTierText(row)}</td>
@@ -302,7 +302,7 @@ export default function ModelCatalog({ models, facets }: Props) {
                     {row.organizationName} · {row.familyName}
                   </p>
                   <dl className="catalog-list-facts">
-                    <div><dt>Released</dt><dd>{formatDate(row.releaseDate)}</dd></div>
+                    <div><dt>Released</dt><dd>{formatReleaseDate(row.releaseDate, row.datePrecision)}</dd></div>
                     <div><dt>Status</dt><dd>{statusLabel(row.status as never)}</dd></div>
                     <div><dt>Access</dt><dd>{accessLabel(row.accessType as never)}</dd></div>
                     <div><dt>Context</dt><dd>{contextTierText(row)}</dd></div>

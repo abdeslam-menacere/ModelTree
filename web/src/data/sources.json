@@ -960,5 +960,190 @@
     "publisherId": "hugging-face",
     "lastCheckedDate": "2026-08-28",
     "notes": "The Hub’s machine-readable record, carrying the createdAt of 2025-12-01 used as this release’s date."
+  },
+  {
+    "id": "openai-gpt-daybreak-blue-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-daybreak-blue-latest.md",
+    "title": "Daybreak Blue model documentation",
+    "type": "official-docs",
+    "publisherId": "openai",
+    "lastCheckedDate": "2026-08-28"
+  },
+  {
+    "id": "openai-gpt-daybreak-red-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-daybreak-red-latest.md",
+    "title": "Daybreak Red model documentation",
+    "type": "official-docs",
+    "publisherId": "openai",
+    "lastCheckedDate": "2026-08-28"
+  },
+  {
+    "id": "qwen-hugging-face-organization",
+    "url": "https://huggingface.co/Qwen",
+    "title": "Qwen on Hugging Face",
+    "type": "repository",
+    "publisherId": "alibaba-cloud",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "The Qwen team’s own organization profile, which states \"This is the organization of Qwen, which refers to the large language model family built by Alibaba Cloud.\" and gives https://qwen.ai/ as the organization website. This is the creator statement the Alibaba Cloud organization record rests on."
+  },
+  {
+    "id": "qwen3-8-repository",
+    "url": "https://github.com/QwenLM/Qwen3.8",
+    "title": "QwenLM/Qwen3.8",
+    "type": "repository",
+    "publisherId": "alibaba-cloud",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "The official repository for the Qwen3.8 generation. Its dated News list records \"2026-08-12: Qwen3.8-2.4T-A95B is now available on Hugging Face Hub and ModelScope\" and \"2026-08-14: Qwen3.8-27B is now available on Hugging Face Hub and ModelScope\". Its repository description credits \"Qwen team, Alibaba Group\" where the Hugging Face organization credits Alibaba Cloud; that disagreement is recorded on the organization rather than reconciled here."
+  },
+  {
+    "id": "qwen3-8-2-4t-a95b-model-card",
+    "url": "https://huggingface.co/Qwen/Qwen3.8-2.4T-A95B",
+    "title": "Qwen/Qwen3.8-2.4T-A95B model card",
+    "type": "model-card",
+    "publisherId": "alibaba-cloud",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States \"Number of Parameters: 2.4T in total and 95B activated\" and \"Context Length: 262,144 natively and extensible up to 1,010,000 tokens\". Its licence metadata names qwen3.8-max, a licence of the creator’s own drafting rather than an OSI-approved one. The card also describes Qwen3.8-Max as \"the official version based on Qwen3.8-2.4T-A95B\" served by Qwen Cloud, so that hosted service is a different artefact from these weights; no Qwen Cloud platform or deployment is recorded because no source consulted states who operates it."
+  },
+  {
+    "id": "qwen3-8-27b-model-card",
+    "url": "https://huggingface.co/Qwen/Qwen3.8-27B",
+    "title": "Qwen/Qwen3.8-27B model card",
+    "type": "model-card",
+    "publisherId": "alibaba-cloud",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States \"Number of Parameters: 27B\", \"Context Length: 262,144 natively and extensible up to 1,000,000 tokens\", apache-2.0 licensing and an image-text-to-text pipeline. The pipeline tag is the creator’s own modality statement and is what this dataset records, in preference to a third party’s broader description."
+  },
+  {
+    "id": "amazon-sagemaker-jumpstart-qwen3-8-27b",
+    "url": "https://aws.amazon.com/about-aws/whats-new/2026/01/muse-glimmer-30b-qwen-3.8-27b-on-sagemaker-jumpstart/",
+    "title": "Muse-Glimmer-30B and Qwen 3.8-27B models now available on Amazon SageMaker JumpStart",
+    "type": "official-announcement",
+    "publisherId": "aws",
+    "publishedDate": "2026-08-27",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "The platform operator’s own statement, headed \"Posted on: Aug 27, 2026\", that \"Meta’s Muse-Glimmer-30B and Alibaba’s Qwen 3.8-27B models are now available on Amazon SageMaker JumpStart\". It supports a deployment fact only: Amazon attributes the model to Alibaba in the same sentence in which it announces hosting it. It describes multimodal understanding \"across text, images, and video\" where the creator’s own model card gives an image-text-to-text pipeline; the narrower creator statement is the one recorded. The URL path segment reads 2026/01 while the page states 2026-08-27, and the stated date is the one recorded."
+  },
+  {
+    "id": "microsoft-mai-thinking-1-announcement",
+    "url": "https://microsoft.ai/news/introducing-mai-thinking-1/",
+    "title": "Introducing MAI-Thinking-1",
+    "type": "official-announcement",
+    "publisherId": "microsoft",
+    "publishedDate": "2026-08-12",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States \"MAI-Thinking-1 is a 35B-active, ~1T-total parameters, sparse Mixture of Experts model\", that \"It supports long context with a 256k token window\" and that \"MAI-Thinking-1 is available in public preview on Microsoft Foundry.\" The total parameter count is written as an approximation and is deliberately not recorded; only the stated 35B active figure is."
+  },
+  {
+    "id": "microsoft-ai-models-page",
+    "url": "https://microsoft.ai/models/",
+    "title": "Models | Microsoft AI",
+    "type": "official-docs",
+    "publisherId": "microsoft",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "Microsoft AI’s own catalogue of the MAI line, listing MAI-Thinking-1, MAI-Code-1.1-Flash, MAI-Image-2.5, MAI-Voice-2, MAI-Transcribe-1.5 and MAI-Cyber-1-Flash as foundational models. Its separation of image, voice and transcription into individually named models is what makes the text-only modality reading of MAI-Thinking-1 sound. The other models are not recorded as releases because this page states no release date for them."
+  },
+  {
+    "id": "microsoft-two-in-house-models",
+    "url": "https://microsoft.ai/news/two-new-in-house-models/",
+    "title": "Two new in-house models",
+    "type": "official-announcement",
+    "publisherId": "microsoft",
+    "publishedDate": "2025-08-28",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "Microsoft AI’s first MAI announcement, releasing MAI-Voice-1 and opening public testing of MAI-1-preview, used here for the MAI family’s first release date. It places models inside the Copilot product — MAI-Voice-1 \"is available in Copilot Daily and Podcasts\" — and states that \"orchestrating a range of specialized models serving different user intents and use cases will unlock immense value\", without stating which model serves any given Copilot request."
+  },
+  {
+    "id": "microsoft-copilot-companion-announcement",
+    "url": "https://microsoft.ai/news/an-ai-companion-for-everyone/",
+    "title": "An AI companion for everyone",
+    "type": "official-announcement",
+    "publisherId": "microsoft",
+    "publishedDate": "2024-10-01",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "Microsoft AI’s description of Copilot as a consumer product — \"At Microsoft AI, we are creating an AI companion for everyone\" — and the earliest primary source consulted that describes it as such. Used for the Copilot product record’s effective-from date and for nothing else; it names no model."
+  },
+  {
+    "id": "microsoft-copilot-health-announcement",
+    "url": "https://microsoft.ai/news/introducing-copilot-health/",
+    "title": "Introducing Copilot Health",
+    "type": "official-announcement",
+    "publisherId": "microsoft",
+    "publishedDate": "2026-03-12",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "Describes Copilot Health as \"a separate, secure space within Copilot\", used here only as evidence that Copilot is a product with features rather than a model family. It names no backing model."
+  },
+  {
+    "id": "microsoft-fara-1-5-27b-model-card",
+    "url": "https://huggingface.co/microsoft/Fara1.5-27B",
+    "title": "microsoft/Fara1.5-27B model card",
+    "type": "model-card",
+    "publisherId": "microsoft",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States \"Developer: Microsoft Research AI Frontiers\", \"Release date: 21 May 2026\", MIT licensing, 27B parameters, \"Context length 262,144\", inputs of a text goal plus screenshots and text outputs, and that the model is \"supervised fine-tuned from Qwen3.5-27B\". The base model it names is created by Alibaba Cloud and is not recorded in this dataset, so the derivation is stated in prose rather than linked."
+  },
+  {
+    "id": "microsoft-fara-7b-model-card",
+    "url": "https://huggingface.co/microsoft/Fara-7B",
+    "title": "microsoft/Fara-7B model card",
+    "type": "model-card",
+    "publisherId": "microsoft",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States \"Release Date: November 24th, 2025\" for the first Fara model, which is what fixes the Fara family’s first release date. The model itself is not recorded as a release here because the issue this dataset change serves concerns the current featured lines."
+  },
+  {
+    "id": "amazon-nova-overview",
+    "url": "https://aws.amazon.com/nova/",
+    "title": "Amazon Nova",
+    "type": "official-docs",
+    "publisherId": "aws",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States \"Amazon Nova is a portfolio of AI offerings—including Nova models, fast and cost-effective foundation models for text and multimodal needs\" and that these \"are built on AI technologies originally developed for Amazon’s internal applications, such as Alexa+, Amazon Ads, Amazon Catalog System Services, AWS Marketplace, and Amazon Stores\". This is the authorship statement the Amazon creator record rests on."
+  },
+  {
+    "id": "amazon-nova-models-page",
+    "url": "https://aws.amazon.com/nova/models/",
+    "title": "Amazon Nova foundation models",
+    "type": "official-docs",
+    "publisherId": "aws",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "AWS’s catalogue of current Nova models, listing Nova 2 Lite, Nova 2 Sonic and Nova Multimodal Embeddings. Describes Nova 2 Sonic as \"our speech-to-speech model for natural, real-time conversational AI\" that \"unifies speech understanding and generation into a single model\" with \"an expanded context window of up to 1M tokens\"."
+  },
+  {
+    "id": "amazon-nova-2-bedrock-announcement",
+    "url": "https://aws.amazon.com/about-aws/whats-new/2025/12/nova-2-foundation-models-amazon-bedrock/",
+    "title": "Amazon Nova 2 foundation models now available in Amazon Bedrock",
+    "type": "official-announcement",
+    "publisherId": "aws",
+    "publishedDate": "2025-12-02",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States \"Today AWS announces Amazon Nova 2, our next generation of general models\" and names Nova 2 Lite and Nova 2 Pro (Preview) as available in Amazon Bedrock with \"a one-million-token context window\". Used for the Nova 2 family’s first release date. Nova 2 Lite and Nova 2 Pro are not recorded as releases because no source consulted states their input and output modalities, which every release record requires."
+  },
+  {
+    "id": "amazon-nova-2-sonic-announcement",
+    "url": "https://aws.amazon.com/about-aws/whats-new/2025/12/amazon-nova-2-sonic-real-time-conversational-ai/",
+    "title": "Amazon Nova 2 Sonic for real-time conversational AI",
+    "type": "official-announcement",
+    "publisherId": "aws",
+    "publishedDate": "2025-12-02",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States \"Today, Amazon announces the availability of Amazon Nova 2 Sonic, our speech-to-speech model for natural, real-time conversational AI\", that the model \"adds cross-modal interaction, allowing users to seamlessly switch between voice and text in the same session\" and \"a one-million token context window\", and that it \"is available in Amazon Bedrock in the following AWS Regions: US East (N. Virginia), US West (Oregon), and Asia Pacific (Tokyo)\"."
+  },
+  {
+    "id": "amazon-bedrock-product-page",
+    "url": "https://aws.amazon.com/bedrock/",
+    "title": "Amazon Bedrock",
+    "type": "official-docs",
+    "publisherId": "aws",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "Describes Amazon Bedrock as \"The platform for building generative AI applications and agents at production scale\" that \"gives you access to hundreds of FMs from leading AI companies\". A catalogue of other companies’ models is a serving fact and nothing more; this page is deliberately not used to support any authorship claim."
+  },
+  {
+    "id": "amazon-sagemaker-jumpstart-page",
+    "url": "https://aws.amazon.com/sagemaker/ai/jumpstart/",
+    "title": "Amazon SageMaker JumpStart",
+    "type": "official-docs",
+    "publisherId": "aws",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "The canonical page for the SageMaker JumpStart model hub, reached by redirect from https://aws.amazon.com/sagemaker/jumpstart/. Recorded as the platform website only."
   }
 ]

@@ -1,0 +1,165 @@
+---
+import { ArrowLeft } from 'lucide-react';
+import Glossary from '../components/Glossary';
+import GlossaryHint from '../components/GlossaryHint';
+import { dataset } from '../data/dataset';
+import { glossary, glossaryEntryById } from '../data/glossary';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { formatDate } from '../lib/format';
+import { glossaryEntryHref } from '../lib/glossary';
+import { buildHomepageHierarchy, firstHomepageRelease } from '../lib/homepage';
+
+const base = import.meta.env.BASE_URL;
+const passportHref = `${base}models/${firstHomepageRelease(buildHomepageHierarchy(dataset)).slug}/`;
+const methodologyHref = `${base}methodology/`;
+const latestVerification = [...glossary.map(({ verifiedAt }) => verifiedAt)].sort().at(-1)!;
+
+// The two entries the worked example below leans on. Read through the id map so
+// a renamed or withdrawn entry fails the build here rather than rendering a
+// paragraph that points at nothing.
+const activeParameters = glossaryEntryById.get('active-parameters')!;
+const openWeight = glossaryEntryById.get('open-weight')!;
+---
+
+<BaseLayout
+  title="Explain this name | ModelTree"
+  description="A source-backed glossary of the terms that make model names hard to read: aliases, API ids, suffixes, parameter notation, mixture-of-experts active parameters, quantization tags, and context units. Every entry carries a primary source and a verification date."
+  passportHref={passportHref}
+  verifiedAt={formatDate(latestVerification)}
+  currentPage="glossary"
+>
+  <main id="main-content" class="glossary-page">
+    <a class="back-link" href={base}>
+      <ArrowLeft size={17} aria-hidden="true" /> Back to Explore
+    </a>
+
+    <header class="glossary-hero">
+      <span class="eyebrow">Explain this name</span>
+      <h1>What the parts of a model name actually mean.</h1>
+      <p>
+        Model names carry several unrelated facts at once: a family, a parameter figure that may
+        be the total or only the part that runs, an expert count, a tuning marker, a release
+        track, a date, and sometimes a precision tag applied by whoever converted the file. This
+        page defines those parts one at a time. Every entry quotes the publisher's own words,
+        names the page they came from, and records the day it was last checked.
+      </p>
+    </header>
+
+    <section class="glossary-worked" aria-labelledby="worked-example">
+      <h2 id="worked-example">One name, read part by part</h2>
+      <p class="glossary-worked-name"><code>Llama-4-Scout-17B-16E-Instruct</code></p>
+      <p>
+        <code>17B</code> is the <strong>active</strong> parameter count<GlossaryHint
+          client:load
+          entry={activeParameters}
+          href={glossaryEntryHref(base, activeParameters.id)}
+        /> — the weights that run per token — and not the size of the model, which is 109B in
+        total. <code>16E</code> counts the sixteen experts that make those two numbers differ.
+        <code>-Instruct</code> marks the instruction-tuned build rather than the pretrained base.
+        The weights download freely, so the release is open weight<GlossaryHint
+          client:load
+          entry={openWeight}
+          href={glossaryEntryHref(base, openWeight.id)}
+        />, which is a different claim from open source: its licence is a custom commercial one
+        rather than an OSI-approved licence.
+      </p>
+      <p class="glossary-worked-note">
+        The two <span aria-hidden="true">ⓘ</span> markers above are optional. Each opens a short
+        explanation with a click or a key press, closes with Escape, and links to the full entry
+        below — and every word they show is on this page anyway.
+      </p>
+    </section>
+
+    <section class="glossary-scope" aria-labelledby="glossary-scope-title">
+      <h2 id="glossary-scope-title">What this page is, and is not</h2>
+      <p>
+        These are naming terms. Creators, models, products, and serving platforms are separate
+        entities in this dataset and are not defined here — the <a href={methodologyHref}
+          >methodology</a
+        > page covers the controlled vocabulary ModelTree records facts in, such as lifecycle
+        status and access type. Where publishers genuinely disagree about a term, the entry says
+        so rather than choosing one reading. Nothing here is scored, ranked, or compared.
+      </p>
+    </section>
+
+    <h2 id="glossary-title" class="glossary-list-title">Recorded terms</h2>
+    <Glossary client:load entries={glossary} />
+  </main>
+</BaseLayout>
+
+<style>
+  .glossary-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 96px;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .glossary-hero h1 {
+    margin: 8px 0 12px;
+    font-size: 42px;
+    line-height: 1.06;
+  }
+
+  /* Readable line length is an acceptance criterion for this page, not a
+     preference: a definition set in a 1100px column is measurably harder to
+     read than the same definition set in a 70ch one. */
+  .glossary-hero p,
+  .glossary-scope p,
+  .glossary-worked p {
+    max-width: 70ch;
+    margin: 0;
+    color: var(--cp-text-soft);
+    font-size: 17px;
+    line-height: 1.65;
+  }
+
+  .glossary-worked,
+  .glossary-scope {
+    margin: 40px 0 0;
+  }
+
+  .glossary-worked h2,
+  .glossary-scope h2,
+  .glossary-list-title {
+    margin: 0 0 12px;
+    font-size: 24px;
+  }
+
+  .glossary-worked-name {
+    margin: 0 0 12px !important;
+    font-size: 19px !important;
+  }
+
+  .glossary-worked-name code {
+    font-size: 19px;
+    overflow-wrap: anywhere;
+  }
+
+  .glossary-worked-note {
+    margin-top: 14px !important;
+    font-size: 15px !important;
+  }
+
+  .glossary-list-title {
+    margin: 48px 0 16px;
+    padding-top: 32px;
+    border-top: 1px solid var(--cp-border);
+  }
+
+  @media (max-width: 700px) {
+    .glossary-page {
+      padding: 28px 16px 64px;
+    }
+
+    .glossary-hero h1 {
+      font-size: 32px;
+    }
+  }
+</style>

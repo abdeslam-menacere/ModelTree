@@ -7,6 +7,13 @@ interface Props {
   guidance: ModelFitView;
   releaseName: string;
   headingId?: string;
+  /**
+   * Position in the passport's section sequence. Passed in because sections
+   * ahead of this one disappear when they hold no records, so a number fixed
+   * here would leave a gap in the sequence a reader sees. The default preserves
+   * the position this section had when it was the fifth of six.
+   */
+  sectionNumber?: string;
 }
 
 function SourceLinks({ sources, label }: { sources: FitStatementView['sources']; label: string }) {
@@ -129,11 +136,16 @@ function FitGroup({ group }: { group: FitGroupView }) {
   );
 }
 
-export default function ModelFit({ guidance, releaseName, headingId = 'fit-title' }: Props) {
+export default function ModelFit({
+  guidance,
+  releaseName,
+  headingId = 'fit-title',
+  sectionNumber = '05',
+}: Props) {
   return (
     <section className="passport-section fit-section" aria-labelledby={headingId}>
       <div className="section-heading">
-        <span className="section-number">05</span>
+        <span className="section-number">{sectionNumber}</span>
         <div>
           <span className="eyebrow">Conditional fit</span>
           <h2 id={headingId}>When it fits, and when it does not</h2>

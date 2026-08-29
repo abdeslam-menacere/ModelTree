@@ -1,0 +1,42 @@
+[
+  {
+    "id": "mai-thinking-1-on-microsoft-foundry",
+    "releaseId": "microsoft-mai-thinking-1",
+    "platformId": "microsoft-foundry",
+    "deliveryMode": "hosted-api",
+    "regions": [],
+    "effectiveFrom": "2026-08-12",
+    "sourceIds": [
+      "microsoft-mai-thinking-1-announcement"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "amazon-nova-2-sonic-on-amazon-bedrock",
+    "releaseId": "amazon-nova-2-sonic",
+    "platformId": "amazon-bedrock",
+    "deliveryMode": "hosted-api",
+    "regions": [
+      "US East (N. Virginia)",
+      "US West (Oregon)",
+      "Asia Pacific (Tokyo)"
+    ],
+    "effectiveFrom": "2025-12-02",
+    "sourceIds": [
+      "amazon-nova-2-sonic-announcement"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "qwen3-8-27b-on-amazon-sagemaker-jumpstart",
+    "releaseId": "alibaba-qwen3-8-27b",
+    "platformId": "amazon-sagemaker-jumpstart",
+    "deliveryMode": "managed-endpoint",
+    "regions": [],
+    "effectiveFrom": "2026-08-27",
+    "sourceIds": [
+      "amazon-sagemaker-jumpstart-qwen3-8-27b"
+    ],
+    "verifiedAt": "2026-08-28"
+  }
+]

@@ -1,5 +1,7 @@
-import type { Dataset } from '../data/schema';
+import type { Dataset, DatePrecision } from '../data/schema';
+import { comparePartialDatesDescending } from '../data/partial-date';
 import { accessLabel, categoryLabel, statusLabel } from './format';
+import { buildLineageEcosystems } from './lineage-view';
 
 export const CATALOG_INDEX_VERSION = 1;
 
@@ -24,6 +26,7 @@ export interface ModelIndexRow {
   familySlug: string;
   familyName: string;
   releaseDate: string;
+  datePrecision: DatePrecision;
   status: string;
   accessType: string;
   categories: string[];
@@ -82,6 +85,7 @@ export interface CatalogFacets {
 export interface ReleaseDateRow {
   slug: string;
   releaseDate: string;
+  datePrecision: DatePrecision;
   year: number;
   route: string;
 }
@@ -167,7 +171,8 @@ function countFacet(
 }
 
 const MODEL_COMPARATORS: Record<ModelSort, (a: ModelIndexRow, b: ModelIndexRow) => number> = {
-  'release-date': (a, b) => compare(b.releaseDate, a.releaseDate) || compare(a.slug, b.slug),
+  'release-date': (a, b) => comparePartialDatesDescending(a.releaseDate, b.releaseDate)
+    || compare(a.slug, b.slug),
   name: (a, b) => compare(a.name, b.name) || compare(a.slug, b.slug),
   'recently-verified': (a, b) => compare(b.verifiedAt, a.verifiedAt) || compare(a.slug, b.slug),
 };
@@ -179,6 +184,18 @@ export function sortModels(rows: readonly ModelIndexRow[], sort: ModelSort = 're
 export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
   const organizationById = new Map(dataset.organizations.map((item) => [item.id, item]));
   const familyById = new Map(dataset.families.map((item) => [item.id, item]));
+
+  // The organizations `/providers/[slug]` actually generates a page for, read
+  // from the same derivation the route itself uses (see routes.ts). A provider
+  // row or an organization alias publishes a canonical route only when a page
+  // stands behind it; every other organization keeps a null route so no row ever
+  // advertises a 404. `assertRoutesResolve` holds this to the generated slugs.
+  const routedProviderSlugs = new Set(
+    buildLineageEcosystems(dataset).map((ecosystem) => ecosystem.organization.slug),
+  );
+  const providerRouteFor = (slug: string) => (
+    routedProviderSlugs.has(slug) ? providerRoute(base, slug) : null
+  );
 
   const pricedDeploymentIds = new Set(dataset.pricing.map((price) => price.deploymentId));
   const pricedReleaseIds = new Set(
@@ -207,6 +224,7 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
       familySlug: family.slug,
       familyName: family.name,
       releaseDate: release.releaseDate,
+      datePrecision: release.datePrecision,
       status: release.status,
       accessType: release.accessType,
       categories: [...release.categories].sort(compare),
@@ -245,9 +263,9 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
         releaseCount: releases.length,
         categories: [...new Set(families.flatMap((item) => item.categories))].sort(compare),
         verifiedAt: organization.verifiedAt,
-        // No provider detail page is generated, so publishing a route here would
-        // advertise a 404. Null until those pages exist.
-        route: null,
+        // A canonical route only where a provider page is generated for this
+        // organization; null otherwise, so no row advertises a 404.
+        route: providerRouteFor(organization.slug),
       };
     })
     .sort((a, b) => compare(a.name, b.name) || compare(a.slug, b.slug));
@@ -272,9 +290,10 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
     addAlias(family.name, 'family', family.slug, family.name, null);
   }
   for (const organization of dataset.organizations) {
+    const route = providerRouteFor(organization.slug);
     const names = new Set([organization.name, organization.shortName]);
     for (const alias of names) {
-      addAlias(alias, 'organization', organization.slug, organization.name, null);
+      addAlias(alias, 'organization', organization.slug, organization.name, route);
     }
   }
   for (const product of dataset.products) {
@@ -336,6 +355,9 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
   const releaseDates: ReleaseDateRow[] = sortedModels.map((model) => ({
     slug: model.slug,
     releaseDate: model.releaseDate,
+    datePrecision: model.datePrecision,
+    // The year is the first four characters at every precision, so this reads
+    // the same fact from `2026`, `2026-03` and `2026-03-14` alike.
     year: Number(model.releaseDate.slice(0, 4)),
     route: model.route,
   }));
