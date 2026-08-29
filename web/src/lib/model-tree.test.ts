@@ -213,27 +213,29 @@ describe('model tree', () => {
 });
 
 /**
- * The creators this repository keeps a dedicated reviewed source profile for, as
- * the files at the top level of `tools/updater/profiles/`. That set is the
- * featured criterion: featuring says this repository has vetted a creator's
- * sources in depth, which is a fact about our own editorial coverage and not a
- * claim about the models, their size, or their standing.
+ * The five creators this site leads with, in the order `/tree` renders them
+ * (`buildCreators` sorts by creator name then id, so this reads Anthropic,
+ * Google DeepMind, Meta, Microsoft, OpenAI).
  *
- * Written out here rather than read from that directory, for two reasons.
- * `web-ci` skips the web build entirely when a change touches only
- * `tools/updater/`, so a test that read those files could go red on main with no
- * check reporting it. And listing them makes granting a profile and moving a
- * creator one reviewable change, which is the coupling the criterion wants.
+ * This is an editorial choice about the site's entry point, not a measurement
+ * and not a ranking: the list states no order of merit, no score, and no claim
+ * that a creator on it is larger, better, or more important than one off it. The
+ * procedure that governs it is pinned beside `releaseSchema.featured` in
+ * `src/data/schema.ts`, published word for word on the methodology page and in
+ * `docs/product/INFORMATION-ARCHITECTURE.md`, and held to the catalog by
+ * `src/data/featured-policy.test.ts`.
  *
- * Neither sibling directory counts. `tools/updater/profiles/generic/` holds the
- * long-tail review policy, and `tools/updater/profiles/origins/` holds approved
- * source hosts for cohere, microsoft, mistral-ai and xai; its README states that
- * those documents "are **not** profiles, and they join neither reviewed set" and
- * that adding a creator there "does **not** promote it to a pilot creator".
+ * Written out here rather than derived, because deriving it from the same
+ * `featured` flag this file is checking would assert nothing, and because there
+ * is nothing else to derive it from: an editorial choice has no measurable
+ * property standing behind it, and inventing one would be inventing the
+ * universal ranking this repository forbids.
+ *
+ * Featuring decides where the site starts a reader and nothing else. It does not
+ * decide coverage: a creator this list omits keeps every release, its place on
+ * the Others branch, and its own generated provider page (`lib/routes.ts`).
  */
-const CREATORS_WITH_A_REVIEWED_PROFILE = [
-  'alibaba-cloud',
-  'amazon',
+const CREATORS_THE_SITE_LEADS_WITH = [
   'anthropic',
   'google-deepmind',
   'meta',
@@ -241,23 +243,30 @@ const CREATORS_WITH_A_REVIEWED_PROFILE = [
   'openai',
 ];
 
-/** Catalog creators that hold releases but no reviewed source profile. */
-const CREATORS_WITHOUT_A_REVIEWED_PROFILE = ['deepseek', 'mistral-ai', 'xai'];
+/**
+ * Catalog creators the lead list omits, which is the whole of why they render
+ * under Others. Nothing about their records, sources, or coverage differs.
+ */
+const CREATORS_THE_SITE_DOES_NOT_LEAD_WITH = [
+  'alibaba-cloud',
+  'amazon',
+  'deepseek',
+  'mistral-ai',
+  'xai',
+];
 
-describe('featured membership follows the reviewed source profile set', () => {
+describe("featured membership follows the site's editorial lead list", () => {
   const tree = buildModelTree(dataset);
   const creatorName = (id: string) => dataset.organizations.find((item) => item.id === id)!.name;
 
-  it('features exactly the creators with a reviewed source profile', () => {
+  it('features exactly the five creators the site leads with', () => {
     // Render order, not a sorted comparison: `buildCreators` orders by creator
-    // name then id (model-tree.ts:52), which here reads Alibaba Cloud, Amazon,
-    // Anthropic, Google DeepMind, Meta, Microsoft, OpenAI.
+    // name then id (model-tree.ts:52), which here reads Anthropic, Google
+    // DeepMind, Meta, Microsoft, OpenAI.
     expect(tree.featured.map(({ organization }) => organization.id))
-      .toEqual(CREATORS_WITH_A_REVIEWED_PROFILE);
+      .toEqual(CREATORS_THE_SITE_LEADS_WITH);
     expect(tree.featured.map(({ organization }) => organization.name))
       .toEqual([
-        'Alibaba Cloud',
-        'Amazon',
         'Anthropic',
         'Google DeepMind',
         'Meta',
@@ -266,20 +275,20 @@ describe('featured membership follows the reviewed source profile set', () => {
       ]);
   });
 
-  it('puts every catalog creator without a reviewed profile under Others', () => {
-    // Also render order. The names are what decide it: DeepSeek, Mistral AI,
-    // then SpaceXAI, whose recorded name sorts under S while its id sorts last
-    // anyway -- so this ordering is asserted by name below rather than resting
-    // on the two happening to agree.
+  it('puts every catalog creator the list omits under Others', () => {
+    // Also render order. The names are what decide it: Alibaba Cloud, Amazon,
+    // DeepSeek, Mistral AI, then SpaceXAI, whose recorded name sorts under S
+    // while its id sorts last anyway -- so this ordering is asserted by name
+    // below rather than resting on the two happening to agree.
     expect(tree.others.map(({ organization }) => organization.id))
-      .toEqual(CREATORS_WITHOUT_A_REVIEWED_PROFILE);
+      .toEqual(CREATORS_THE_SITE_DOES_NOT_LEAD_WITH);
     expect(tree.others.map(({ organization }) => organization.name))
-      .toEqual(['DeepSeek', 'Mistral AI', 'SpaceXAI']);
+      .toEqual(['Alibaba Cloud', 'Amazon', 'DeepSeek', 'Mistral AI', 'SpaceXAI']);
     // The branch this change exists to populate must not be empty, and the two
     // branches must partition the catalog rather than merely both being present.
     expect(tree.others.length).toBeGreaterThan(0);
     expect([...tree.featured, ...tree.others].map(({ organization }) => organization.id).sort())
-      .toEqual([...CREATORS_WITH_A_REVIEWED_PROFILE, ...CREATORS_WITHOUT_A_REVIEWED_PROFILE].sort());
+      .toEqual([...CREATORS_THE_SITE_LEADS_WITH, ...CREATORS_THE_SITE_DOES_NOT_LEAD_WITH].sort());
   });
 
   it('moves creators between branches without dropping a single release', () => {
@@ -297,7 +306,7 @@ describe('featured membership follows the reviewed source profile set', () => {
       families.flatMap(({ releases }) => releases.map(({ id }) => id))
     ));
 
-    for (const creatorId of CREATORS_WITHOUT_A_REVIEWED_PROFILE) {
+    for (const creatorId of CREATORS_THE_SITE_DOES_NOT_LEAD_WITH) {
       const owned = dataset.releases
         .filter(({ organizationId }) => organizationId === creatorId)
         .map(({ id }) => id);
@@ -317,8 +326,8 @@ describe('featured membership follows the reviewed source profile set', () => {
     }
   });
 
-  it('leaves the reclassified creators with no featured release and no stale rationale', () => {
-    for (const creatorId of CREATORS_WITHOUT_A_REVIEWED_PROFILE) {
+  it('leaves the creators the list omits with no featured release and no stale rationale', () => {
+    for (const creatorId of CREATORS_THE_SITE_DOES_NOT_LEAD_WITH) {
       const owned = dataset.releases.filter(({ organizationId }) => organizationId === creatorId);
 
       expect(owned.length).toBeGreaterThan(0);
@@ -331,9 +340,7 @@ describe('featured membership follows the reviewed source profile set', () => {
     // And the criterion has not quietly emptied the other branch: the page
     // invariant at tree.astro:21 needs a featured release to exist at all.
     expect(dataset.releases.some(({ featured }) => featured)).toBe(true);
-    expect(CREATORS_WITH_A_REVIEWED_PROFILE.map(creatorName)).toEqual([
-      'Alibaba Cloud',
-      'Amazon',
+    expect(CREATORS_THE_SITE_LEADS_WITH.map(creatorName)).toEqual([
       'Anthropic',
       'Google DeepMind',
       'Meta',
@@ -377,7 +384,12 @@ describe('tree page source', () => {
 
   it('states the featured criterion without ranking the models', () => {
     expect(page).toContain('Featured placement is editorial and non-ranked');
-    expect(page).toContain('a creator is featured when this repository keeps a reviewed source profile for it');
+    expect(page).toContain('a creator is featured when it is one of the five this site leads with');
+    // The superseded criterion must not survive anywhere in this copy.
+    expect(page).not.toContain('reviewed source profile');
+    // The page must also say what featuring does not cost a creator, because the
+    // whole risk of an editorial lead list is reading as a coverage judgement.
+    expect(page).toContain('keeps every release, its place under Others, and its own provider page');
     // No composite score, rank, or prominence claim may enter this copy.
     for (const word of ['leading', 'top ', 'major', 'most important', 'best', 'rank the', 'score']) {
       expect(page.toLowerCase()).not.toContain(word);

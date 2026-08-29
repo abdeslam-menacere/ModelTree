@@ -92,20 +92,37 @@ const unrecordedConfigFields = unrecordedBenchmarkConfigFields(dataset.benchmark
               catalog flags and does not imply popularity or rank.
             </p>
             <p>
-              The criterion for the <a href={treeHref}>Model Tree</a>’s Featured branch is
-              <strong>a creator has a reviewed source profile</strong>: a file at the top level of
-              <code>tools/updater/profiles/</code> in this repository. That directory is the whole
-              of the criterion, so anyone can list it and check the branch against it. Its
-              <code>generic/</code> subdirectory holds the long-tail review policy and its
-              <code>origins/</code> subdirectory holds approved source hosts; neither is a profile,
-              and a creator with an origin catalogue but no profile is not featured by it.
+              The criterion for the <a href={treeHref}>Model Tree</a>’s Featured branch is the
+              decision procedure recorded beside the <code>featured</code> field in
+              <code>web/src/data/schema.ts</code>, published here word for word so the page and the
+              schema cannot say different things:
             </p>
+            <!-- featured-policy:start -->
             <p>
-              Featuring is therefore a statement about the depth of this repository’s own source
-              vetting, not a claim about a creator’s size or standing or about the quality of its
-              models. It is also not permanent: a creator on the Others branch that later earns a
-              reviewed profile moves to Featured by satisfying the criterion rather than by
-              anyone’s opinion of it.
+              Editorial lead selection, not a ranking and not a sourced claim. Apply in order: flag
+              <code>featured</code> only on a release whose creator is one of the five this site
+              leads with -- <code>anthropic</code>, <code>google-deepmind</code>, <code>meta</code>,
+              <code>microsoft</code>, <code>openai</code>; flag at least one release for each of
+              those five, so that each one reaches the Featured branch, because a creator is
+              featured exactly when it holds a featured release and the schema carries no
+              organization-level flag; flag no release of any other creator, which is what places
+              every creator the list omits on the Others branch; and write a
+              <code>featuredRationale</code> on exactly the releases flagged, so that no rationale
+              outlives the placement it explains. The list records what this site leads with, which
+              is a choice about its own entry point rather than a measurement of the creators: it
+              states no order, no score, and no claim that a listed creator is larger, better, or
+              more important than one it omits. A creator the list omits keeps every catalog entry,
+              every release, its place on the Others branch, and its own provider page. Changing the
+              five is an editorial change to this list, reviewed like any other change here.
+            </p>
+            <!-- featured-policy:end -->
+            <p>
+              Featuring is therefore a statement about where this site starts a reader, not a claim
+              about a creator’s size or standing or about the quality of its models. It is also not
+              permanent, and it is not a filter on the data: a creator the list omits is recorded
+              here exactly as fully as one it names, with its own provider page, its releases in the
+              full catalog, and its place on the Model Tree’s Others branch. What changes is which
+              creators the homepage opens on.
             </p>
             <p>
               Editorial inclusion may consider consumer reach, API availability, cloud

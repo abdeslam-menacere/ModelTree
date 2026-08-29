@@ -37,20 +37,35 @@ derive membership from reviewed catalog flags and neither implies popularity or
 rank. The complete hierarchy is server-rendered; client JavaScript enhances
 disclosure, selection, and stable `?model=<release-id>` deep links.
 
-A creator is featured when this repository keeps a dedicated reviewed source
-profile for it, as a file at the top level of `tools/updater/profiles/`. That
-directory is the whole of the criterion and can be listed to check it. Its
-`generic/` subdirectory holds the long-tail review policy and its `origins/`
-subdirectory holds approved source hosts; `origins/README.md` states that those
-documents are not profiles and join neither reviewed set, so a creator with an
-origin catalogue and no profile is not featured by it.
+The criterion for the Featured branch is the decision procedure recorded beside
+the `featured` field in `web/src/data/schema.ts`, published here word for word so
+this document and the schema cannot say different things:
 
-Featuring therefore says how deeply this repository has vetted a creator's
-sources. It is a statement about our own editorial coverage, not a claim about
-the creator's size, standing, or the quality of its models, and it does not
-imply popularity or rank. It is also self-correcting rather than permanent: a
-long-tail creator that later earns a reviewed profile moves to Featured by
-satisfying the criterion.
+<!-- featured-policy:start -->
+Editorial lead selection, not a ranking and not a sourced claim. Apply in order:
+flag `featured` only on a release whose creator is one of the five this site
+leads with -- `anthropic`, `google-deepmind`, `meta`, `microsoft`, `openai`; flag
+at least one release for each of those five, so that each one reaches the
+Featured branch, because a creator is featured exactly when it holds a featured
+release and the schema carries no organization-level flag; flag no release of any
+other creator, which is what places every creator the list omits on the Others
+branch; and write a `featuredRationale` on exactly the releases flagged, so that
+no rationale outlives the placement it explains. The list records what this site
+leads with, which is a choice about its own entry point rather than a measurement
+of the creators: it states no order, no score, and no claim that a listed creator
+is larger, better, or more important than one it omits. A creator the list omits
+keeps every catalog entry, every release, its place on the Others branch, and its
+own provider page. Changing the five is an editorial change to this list,
+reviewed like any other change here.
+<!-- featured-policy:end -->
+
+Featuring therefore says where this site starts a reader. It is not a claim about
+a creator's size, standing, or the quality of its models, and it does not imply
+popularity or rank. It is also not a filter on the data: a creator the list omits
+is recorded exactly as fully as one it names, and keeps its own provider page --
+`providerStaticPaths` generates a page for every organization that has at least
+one release, reading no flag at all, so an editorial change to the list can never
+delete a page.
 
 ## Homepage Composition
 
