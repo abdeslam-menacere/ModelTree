@@ -763,6 +763,14 @@ describe('comparison payload', () => {
     // grew" case the message below names: the total budget was raised from
     // 81,920 to 102,400 as a deliberate page-weight decision, not a per-record
     // regression.
+    //
+    // abdeslam-menacere/ModelTree#545 added six more sourced creators and
+    // widened the catalogue past text-only models, growing it to 74 releases and
+    // 106,676 bytes (1,442 per release). Measured against merge-base 7f625ab9,
+    // which carried 68 releases and 97,499 bytes at 1,434 per release: the
+    // per-release figure moved 0.6% and kept 158 bytes of headroom under 1,600,
+    // so this is the "catalogue simply grew" case again, and the total budget was
+    // raised from 102,400 to 122,880 as a deliberate page-weight decision.
     expect(
       size.bytesPerRelease,
       'a record got fatter — trim the payload rather than raising this',
@@ -770,10 +778,10 @@ describe('comparison payload', () => {
     expect(
       size.totalBytes,
       `/compare ships ${size.totalBytes} bytes for ${payload.releases.length} releases `
-      + `(${size.bytesPerRelease}/release, budget 102,400). Measured 89,543 over 63 releases at `
-      + 'the #518 merge-base. If the catalogue simply grew and the per-release figure held, raising '
+      + `(${size.bytesPerRelease}/release, budget 122,880). Measured 106,676 over 74 releases at `
+      + 'the #545 merge-base. If the catalogue simply grew and the per-release figure held, raising '
       + 'this is a deliberate page-weight decision; if the per-release figure moved too, trim instead.',
-    ).toBeLessThanOrEqual(102_400);
+    ).toBeLessThanOrEqual(122_880);
   });
 
   it('ships only the sources something in the payload cites', () => {
@@ -803,9 +811,33 @@ describe('comparison payload', () => {
 
   it('needs only the picker index before a reader has chosen anything', () => {
     const index = buildComparisonPickerIndex(dataset);
+    const bytes = JSON.stringify(index).length;
+    const bytesPerRelease = index.length === 0 ? 0 : Math.round(bytes / index.length);
 
     expect(index).toHaveLength(dataset.releases.length);
-    expect(JSON.stringify(index).length).toBeLessThanOrEqual(8_192);
+    // Two-part, matching the payload budget above: a scale-invariant guard that
+    // moves only when a row gets fatter, and a total that necessarily grows with
+    // the catalogue. Until abdeslam-menacere/ModelTree#545 this assertion was the
+    // total alone, so nothing in the suite could tell "six more creators" from
+    // "every picker row got fatter" — exactly the drift the sibling budget's
+    // comment exists to prevent, and the reason a bare raise was refused.
+    //
+    // Measured at merge-base 7f625ab9: 7,628 bytes over 68 releases, 112 per
+    // release. At this tranche's tip: 8,362 over 74, 113 per release, a 0.7%
+    // move. The guard sits just above that, so the next change to either is a
+    // decision somebody makes rather than a drift nobody sees; the total was
+    // raised from 8,192 to 9,216 as a deliberate page-weight decision.
+    expect(
+      bytesPerRelease,
+      'a picker row got fatter — trim the row rather than raising this',
+    ).toBeLessThanOrEqual(128);
+    expect(
+      bytes,
+      `the picker index ships ${bytes} bytes for ${index.length} releases `
+      + `(${bytesPerRelease}/release, budget 9,216). Measured 8,362 over 74 releases at the #545 `
+      + 'merge-base. If the catalogue simply grew and the per-release figure held, raising this is '
+      + 'a deliberate page-weight decision; if the per-release figure moved too, trim instead.',
+    ).toBeLessThanOrEqual(9_216);
     for (const row of index) {
       expect(row.displayName).toBeTruthy();
       expect(row.organizationName).toBeTruthy();
