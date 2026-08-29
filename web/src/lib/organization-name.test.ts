@@ -597,9 +597,9 @@ describe('the creator naming rule where creators are ordered', () => {
  * surfaced this directly -- `index.astro` unpacks a real record in a callback
  * parameter, `hierarchy.map(({ organization }) => ...)`, a shape the gate did
  * not recognise, so it rendered a raw name unjudged until that clause was
- * added. The 'judges at least one .astro surface' assertion pins the judged
- * `.astro` count above zero so a corpus that is discovered but never judged
- * fails loudly rather than passing on `lib/*.ts` alone.
+ * added. The 'judges at least one .astro surface, so discovery is not the whole
+ * story' assertion pins the judged `.astro` count above zero so a corpus that is
+ * discovered but never judged fails loudly rather than passing on `lib/*.ts` alone.
  *
  * The gate now recognises a record by four routes: the schema type import, a
  * mention of `.organizations`, a `const { ... } =` destructure, and a
@@ -767,9 +767,9 @@ describe('the creator naming rule on surfaces added later', () => {
    * rather than records (`ProviderDirectory.tsx` is the asserted example). So
    * after every widening of the corpus, the judged set stays a minority of it on
    * purpose, and a surface is only guarded once it trips one of these clauses --
-   * see the 'judges at least one .astro surface' assertion, which pins the
-   * judged count above zero so a corpus that is discovered but never judged
-   * still fails.
+   * see the 'judges at least one .astro surface, so discovery is not the whole
+   * story' assertion, which pins the judged count above zero so a corpus that is
+   * discovered but never judged still fails.
    */
   function holdsOrganizationRecords(source: string): boolean {
     return (
@@ -924,6 +924,44 @@ describe('the creator naming rule on surfaces added later', () => {
     // entry's `name` is the label, so rendering it is already the rule.
     const builder = readFileSync(join(LIB_DIRECTORY, 'provider-directory.ts'), 'utf8');
     expect(builder).toContain('name: organizationLabel(organization)');
+  });
+
+  it('judges a record destructured in a braced callback parameter, and not a bare one', () => {
+    // The positive control for the clause `fcac61d` added -- the whole point of
+    // this issue. A record unpacked in a callback *parameter*,
+    // `hierarchy.map(({ organization, families }) => ...)`, is the shape
+    // `index.astro` used and the gate was blind to. Deleting that clause leaves
+    // the corpus green everywhere else -- the `judges at least one .astro
+    // surface` guard survives because `providers/[slug].astro` is still judged
+    // through a different clause -- so nothing else here reddens when the clause
+    // that closes this issue is removed. This does: delete the clause and the
+    // first expectation fails, which is what makes the clause coverage rather
+    // than an unguarded decision.
+    //
+    // Asserted at the *shape* level, on a synthetic source, deliberately not by
+    // pinning `index.astro` by name: a filename pin couples the gate to a file a
+    // refactor may legitimately move or rename, and would then fail for a reason
+    // unrelated to the rule. The braced destructuring shape is what the clause is
+    // about.
+    const bracedParameter = [
+      'hierarchy.map(({ organization, families }) => (',
+      '  <li>{organization.name}</li>',
+      '));',
+    ].join('\n');
+    expect(holdsOrganizationRecords(bracedParameter)).toBe(true);
+
+    // ...and the braces are load-bearing in this direction too: a *bare*
+    // parameter must stay unjudged, because it is the `ProviderDirectory.tsx`
+    // shape -- a prepared view model whose `.name` is already the label -- and
+    // judging it would fail on correct code. The exclusion test above asserts
+    // this against the live file; this asserts the same distinction at the shape
+    // level, so the two forms are shown mutually exclusive without a filename.
+    const bareParameter = [
+      'directory.unclassified.map((organization) => (',
+      '  <li>{organization.name}</li>',
+      '));',
+    ].join('\n');
+    expect(holdsOrganizationRecords(bareParameter)).toBe(false);
   });
 
   it('sweeps a module that only ever destructures an organization record', () => {
