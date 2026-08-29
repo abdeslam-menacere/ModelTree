@@ -387,7 +387,8 @@ export default function BenchmarkExplorer({ dataset, initialSlugs, initialFilter
               <h2 id="evidence-comparable-heading">Comparable evidence</h2>
               <p className="evidence-section-hint">
                 These benchmarks were measured on two or more of your models under setups that can be read against each
-                other. Order is the order you selected, which is not a ranking.
+                other. Within each benchmark, rows run best-first by that benchmark&rsquo;s own declared direction; that
+                is not an overall or cross-benchmark ranking, and there is no combined score across benchmarks.
               </p>
               {view.comparableGroups.map((group) => (
                 <GroupTable key={group.key} group={group} />

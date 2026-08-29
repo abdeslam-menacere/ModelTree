@@ -124,8 +124,7 @@ export type BenchmarkExplorerDataset = {
  * Trim the full dataset to exactly the fields the evidence page reads, so the
  * records that travel to the browser stay small. The page is built ahead of
  * time and the selection is not known here, so — as on `/compare` — the data
- * ships with the page rather than being fetched, and its weight is kept visible
- * by {@link measureBenchmarkExplorerPayload}.
+ * ships with the page rather than being fetched.
  */
 export function buildBenchmarkExplorerPayload(
   dataset: BenchmarkExplorerDataset,
@@ -168,15 +167,6 @@ export function buildBenchmarkExplorerPayload(
     })(),
     benchmarks: dataset.benchmarks,
     benchmarkResults: dataset.benchmarkResults,
-  };
-}
-
-export function measureBenchmarkExplorerPayload(payload: BenchmarkExplorerDataset) {
-  const totalBytes = JSON.stringify(payload).length;
-  return {
-    totalBytes,
-    releaseCount: payload.releases.length,
-    resultCount: payload.benchmarkResults.length,
   };
 }
 
@@ -568,9 +558,15 @@ export function buildBenchmarkExplorerView(
 
   const toGroupView = (group: ComparabilityGroup): EvidenceGroupView => {
     const benchmark = benchmarkById.get(group.benchmarkId);
-    const domain = (benchmark?.domain ?? 'operational') as BenchmarkDomain;
+    // The comparability engine only groups results whose benchmark was passed
+    // in, so a missing definition here is an impossible state rather than a
+    // domain to guess at.
+    if (!benchmark) {
+      throw new Error(`Benchmark ${group.benchmarkId} has a comparability group but no definition`);
+    }
+    const domain = benchmark.domain;
     const distinctReleases = new Set(group.results.map((view) => view.releaseId));
-    const slug = benchmark?.slug ?? group.benchmarkId;
+    const slug = benchmark.slug;
 
     const results: EvidenceResultRow[] = group.results.map((view) => {
       const release = releaseById.get(view.releaseId);
@@ -626,7 +622,7 @@ export function buildBenchmarkExplorerView(
       policyVersion: group.assessment.policyVersion,
       table: buildGroupTable(group),
       results,
-      benchmarkSources: benchmark ? linkSources(benchmark.sourceIds) : [],
+      benchmarkSources: linkSources(benchmark.sourceIds),
       filterHref: evidenceHref(base, selection.slugs, { domain: resolvedFilters.domain, benchmark: slug }),
     };
   };

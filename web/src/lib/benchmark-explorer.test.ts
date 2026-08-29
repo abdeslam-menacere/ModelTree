@@ -6,7 +6,6 @@ import {
   EVIDENCE_MODELS_PARAMETER,
   evidenceHref,
   MAX_SELECTED_MODELS,
-  measureBenchmarkExplorerPayload,
   NO_FILTERS,
   parseEvidenceSelection,
   readEvidenceFilters,
@@ -360,14 +359,15 @@ describe('filters', () => {
 });
 
 describe('payload', () => {
-  it('keeps only cited sources and reports its weight', () => {
+  it('keeps only cited sources', () => {
     const payload = buildBenchmarkExplorerPayload(dataset);
     const ids = payload.sources.map((source) => source.id);
     expect(ids).toContain('src-bench');
     expect(ids).toContain('src-a');
     expect(ids).not.toContain('src-unused');
-    const measured = measureBenchmarkExplorerPayload(payload);
-    expect(measured.resultCount).toBe(dataset.benchmarkResults.length);
-    expect(measured.totalBytes).toBeGreaterThan(0);
+    // Positive control: an emptied source list would pass the not.toContain
+    // above vacuously.
+    expect(ids.length).toBeGreaterThan(0);
+    expect(payload.benchmarkResults.length).toBe(dataset.benchmarkResults.length);
   });
 });
