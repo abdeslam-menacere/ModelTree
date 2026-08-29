@@ -5236,6 +5236,115 @@ a.directory-letter:hover {
   }
 }
 
+/* Release Pulse (issue #13): a compact, secondary strip of recent, source-dated
+   lifecycle changes. Appended per the shared-file append-only discipline. It is a
+   horizontal row of cards where the viewport allows and a single vertical column
+   where it does not; there is no motion, so nothing here auto-scrolls or tickers,
+   and the global reduced-motion block covers the hover colour change on links. */
+.release-pulse {
+  display: grid;
+  gap: 26px;
+  padding: 58px 0 80px;
+  border-top: 1px solid var(--cp-border-strong);
+}
+
+.release-pulse-head {
+  display: grid;
+  gap: 6px;
+  max-width: 64ch;
+}
+
+.release-pulse h2 {
+  margin: 4px 0 0;
+  font-size: 30px;
+}
+
+.release-pulse-lede {
+  margin: 0;
+  color: var(--cp-text-muted);
+}
+
+.release-pulse-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+}
+
+.release-pulse-item {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--cp-border);
+}
+
+.release-pulse-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+}
+
+.release-pulse-type {
+  padding: 2px 9px;
+  border: 1px solid var(--cp-accent);
+  border-radius: 999px;
+  color: var(--cp-accent);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.release-pulse-meta time {
+  color: var(--cp-text-muted);
+  font-size: 14px;
+}
+
+.release-pulse-change {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.release-pulse-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 4px 0 0;
+  font-size: 14px;
+}
+
+.release-pulse-source-label {
+  color: var(--cp-text-muted);
+}
+
+.release-pulse-empty {
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed var(--cp-border);
+  color: var(--cp-text-muted);
+}
+
+.release-pulse-coverage {
+  margin: 0;
+  color: var(--cp-text-muted);
+  font-size: 14px;
+}
+
+@media (max-width: 980px) {
+  .release-pulse {
+    padding: 44px 0 60px;
+  }
+
+  .release-pulse-list {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 /* Homepage search and filters (issue #12) --------------------------------- */
 .home-search-band {
