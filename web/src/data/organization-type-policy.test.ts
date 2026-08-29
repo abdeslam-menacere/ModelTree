@@ -118,6 +118,12 @@ describe('organization type policy', () => {
       microsoft: 'company',
       amazon: 'company',
       cohere: 'company',
+      ai2: 'research-lab',
+      tii: 'research-lab',
+      nvidia: 'company',
+      'ai21-labs': 'company',
+      'zhipu-ai': 'company',
+      'moonshot-ai': 'company',
     });
   });
 
@@ -225,6 +231,36 @@ describe('organization type policy', () => {
           institutionControlsReleases: true,
           primarilyResearch: false,
         },
+        type: 'company',
+        clause: 'paid-company',
+      },
+      ai2: {
+        facts: { institutionControlsReleases: true, primarilyResearch: true },
+        type: 'research-lab',
+        clause: 'research-lab',
+      },
+      tii: {
+        facts: { institutionControlsReleases: true, primarilyResearch: true },
+        type: 'research-lab',
+        clause: 'research-lab',
+      },
+      nvidia: {
+        facts: { offersPaidModelProductsOrAccess: true },
+        type: 'company',
+        clause: 'paid-company',
+      },
+      'ai21-labs': {
+        facts: { offersPaidModelProductsOrAccess: true },
+        type: 'company',
+        clause: 'paid-company',
+      },
+      'zhipu-ai': {
+        facts: { offersPaidModelProductsOrAccess: true },
+        type: 'company',
+        clause: 'paid-company',
+      },
+      'moonshot-ai': {
+        facts: { offersPaidModelProductsOrAccess: true },
         type: 'company',
         clause: 'paid-company',
       },

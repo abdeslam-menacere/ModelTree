@@ -104,5 +104,35 @@
   {
     "id": "open-source-initiative",
     "name": "Open Source Initiative"
+  },
+  {
+    "id": "ai2",
+    "name": "Allen Institute for AI",
+    "organizationId": "ai2"
+  },
+  {
+    "id": "tii",
+    "name": "Technology Innovation Institute",
+    "organizationId": "tii"
+  },
+  {
+    "id": "nvidia",
+    "name": "NVIDIA",
+    "organizationId": "nvidia"
+  },
+  {
+    "id": "ai21-labs",
+    "name": "AI21 Labs",
+    "organizationId": "ai21-labs"
+  },
+  {
+    "id": "zhipu-ai",
+    "name": "Zhipu AI",
+    "organizationId": "zhipu-ai"
+  },
+  {
+    "id": "moonshot-ai",
+    "name": "Moonshot AI",
+    "organizationId": "moonshot-ai"
   }
 ]

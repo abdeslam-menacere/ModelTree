@@ -756,6 +756,13 @@ describe('comparison payload', () => {
     // The per-release figure is the scale-invariant guard and the one to trust.
     // The total necessarily grows with the catalogue, so it is expected to be
     // the first to trip: read the message on it before changing the number.
+    //
+    // abdeslam-menacere/ModelTree#518 added six sourced creators, growing the
+    // catalogue to 63 releases and 89,543 bytes (1,421 per release). The
+    // per-release guard held well under 1,600, so this is the "catalogue simply
+    // grew" case the message below names: the total budget was raised from
+    // 81,920 to 102,400 as a deliberate page-weight decision, not a per-record
+    // regression.
     expect(
       size.bytesPerRelease,
       'a record got fatter — trim the payload rather than raising this',
@@ -763,10 +770,10 @@ describe('comparison payload', () => {
     expect(
       size.totalBytes,
       `/compare ships ${size.totalBytes} bytes for ${payload.releases.length} releases `
-      + `(${size.bytesPerRelease}/release, budget 81,920). Measured 68,731 over 49 releases at `
-      + 'fc418bb6. If the catalogue simply grew and the per-release figure held, raising this is a '
-      + 'deliberate page-weight decision; if the per-release figure moved too, trim instead.',
-    ).toBeLessThanOrEqual(81_920);
+      + `(${size.bytesPerRelease}/release, budget 102,400). Measured 89,543 over 63 releases at `
+      + 'the #518 merge-base. If the catalogue simply grew and the per-release figure held, raising '
+      + 'this is a deliberate page-weight decision; if the per-release figure moved too, trim instead.',
+    ).toBeLessThanOrEqual(102_400);
   });
 
   it('ships only the sources something in the payload cites', () => {

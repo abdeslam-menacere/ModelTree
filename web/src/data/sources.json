@@ -1190,5 +1190,103 @@
     "publisherId": "open-source-initiative",
     "lastCheckedDate": "2026-08-28",
     "notes": "The Open Source Initiative's own page for this licence, carrying its \"Open Source Initiative Approved License\" mark; OSI's licence index at https://opensource.org/licenses lists \"Apache License, Version 2.0\" among those that have completed the process \"To be approved by the Open Source Initiative\". Cited for approval status only, per tools/updater/profiles/origins/open-source-initiative.json. The licence name on the release comes from Cohere's own model card, not from here, and this page is the authority for the status rather than the licence identifier being evidence of it."
+  },
+  {
+    "id": "ai2-olmo-2-announcement",
+    "url": "https://allenai.org/blog/olmo2",
+    "title": "OLMo 2: The best fully open language model to date",
+    "type": "official-announcement",
+    "publisherId": "ai2",
+    "lastCheckedDate": "2026-08-28"
+  },
+  {
+    "id": "ai2-olmo-2-model-card",
+    "url": "https://huggingface.co/allenai/OLMo-2-1124-7B",
+    "title": "OLMo-2-1124-7B model card",
+    "type": "model-card",
+    "publisherId": "ai2",
+    "lastCheckedDate": "2026-08-28"
+  },
+  {
+    "id": "tii-falcon-h1-announcement",
+    "url": "https://falcon-lm.github.io/blog/falcon-h1/",
+    "title": "Falcon-H1: A Family of Hybrid-Head Language Models",
+    "type": "official-announcement",
+    "publisherId": "tii",
+    "lastCheckedDate": "2026-08-28"
+  },
+  {
+    "id": "tii-falcon-h1-model-card",
+    "url": "https://huggingface.co/tiiuae/Falcon-H1-34B-Instruct",
+    "title": "Falcon-H1-34B-Instruct model card",
+    "type": "model-card",
+    "publisherId": "tii",
+    "lastCheckedDate": "2026-08-28"
+  },
+  {
+    "id": "nvidia-nemotron-4-340b-announcement",
+    "url": "https://blogs.nvidia.com/blog/nemotron-4-synthetic-data-generation-llm-training/",
+    "title": "NVIDIA Releases Open Synthetic Data Generation Pipeline with Nemotron-4 340B",
+    "type": "official-announcement",
+    "publisherId": "nvidia",
+    "lastCheckedDate": "2026-08-28"
+  },
+  {
+    "id": "nvidia-nemotron-4-340b-research",
+    "url": "https://research.nvidia.com/publication/2024-06_nemotron-4-340b",
+    "title": "Nemotron-4 340B Technical Report",
+    "type": "official-docs",
+    "publisherId": "nvidia",
+    "publishedDate": "2024-06-14",
+    "lastCheckedDate": "2026-08-28"
+  },
+  {
+    "id": "nvidia-nemotron-4-340b-model-card",
+    "url": "https://huggingface.co/nvidia/Nemotron-4-340B-Base",
+    "title": "Nemotron-4-340B-Base model card",
+    "type": "model-card",
+    "publisherId": "nvidia",
+    "lastCheckedDate": "2026-08-28"
+  },
+  {
+    "id": "ai21-labs-jamba-announcement",
+    "url": "https://www.ai21.com/blog/announcing-jamba/",
+    "title": "Announcing Jamba: AI21’s Groundbreaking SSM-Transformer Model",
+    "type": "official-announcement",
+    "publisherId": "ai21-labs",
+    "lastCheckedDate": "2026-08-28"
+  },
+  {
+    "id": "ai21-labs-jamba-paper",
+    "url": "https://arxiv.org/abs/2403.19887",
+    "title": "Jamba: A Hybrid Transformer-Mamba Language Model",
+    "type": "official-docs",
+    "publisherId": "ai21-labs",
+    "publishedDate": "2024-03-28",
+    "lastCheckedDate": "2026-08-28"
+  },
+  {
+    "id": "zhipu-ai-glm-4-5-model-card",
+    "url": "https://huggingface.co/zai-org/GLM-4.5-Air",
+    "title": "GLM-4.5-Air model card",
+    "type": "model-card",
+    "publisherId": "zhipu-ai",
+    "lastCheckedDate": "2026-08-28"
+  },
+  {
+    "id": "zhipu-ai-glm-4-5-paper",
+    "url": "https://arxiv.org/abs/2508.06471",
+    "title": "GLM-4.5: Agentic, Reasoning, and Coding (ARC) Foundation Models",
+    "type": "official-docs",
+    "publisherId": "zhipu-ai",
+    "lastCheckedDate": "2026-08-28"
+  },
+  {
+    "id": "moonshot-ai-kimi-k2-model-card",
+    "url": "https://huggingface.co/moonshotai/Kimi-K2-Instruct",
+    "title": "Kimi-K2-Instruct model card",
+    "type": "model-card",
+    "publisherId": "moonshot-ai",
+    "lastCheckedDate": "2026-08-28"
   }
 ]
