@@ -1,0 +1,72 @@
+---
+import BenchmarkExplorer from '../components/BenchmarkExplorer';
+import { dataset } from '../data/dataset';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { buildCatalogIndex } from '../lib/catalog';
+import {
+  NO_FILTERS,
+  buildBenchmarkExplorerPayload,
+} from '../lib/benchmark-explorer';
+import { formatDate } from '../lib/format';
+
+const base = import.meta.env.BASE_URL;
+const index = buildCatalogIndex(dataset, base);
+
+const firstModel = index.models[0];
+if (!firstModel) throw new Error('The evidence explorer requires at least one release');
+
+// The site is built ahead of time, so which models to explore cannot be known
+// here — the selection is read from the address once hydrated. The trimmed
+// records travel with the page, as on `/compare`; fetching at runtime is not an
+// option this project allows.
+const payload = buildBenchmarkExplorerPayload(dataset);
+---
+
+<BaseLayout
+  title="Benchmark evidence | ModelTree"
+  description="Explore what selected model releases were measured on — score, exact variant, evaluation date, source, and caveats — and whether any of it can honestly be compared. Every value carries its source and the date it was checked."
+  passportHref={firstModel.route}
+  verifiedAt={formatDate(index.latestVerifiedAt)}
+  currentPage="benchmarks"
+>
+  <main id="main-content" class="evidence-page">
+    <header class="evidence-intro">
+      <div>
+        <span class="eyebrow">Evidence</span>
+        <h1>What was actually measured.</h1>
+      </div>
+      <p>
+        Pick one or more releases and this view shows the benchmark results recorded for them: the score and its
+        unit, the exact variant and version, when it was evaluated, and who published it. Where two models were
+        measured the same way their results are grouped as comparable; where they were not, the view says so
+        rather than placing numbers on a scale they do not share. There is no overall score and no ranking here.
+      </p>
+    </header>
+
+    <BenchmarkExplorer
+      client:load
+      dataset={payload}
+      initialSlugs={[]}
+      initialFilters={NO_FILTERS}
+      base={base}
+    />
+
+    <noscript>
+      <section class="evidence-noscript-list">
+        <h2>Every release, with its own page</h2>
+        <p>
+          Which models to explore is read from this page&rsquo;s address, which needs JavaScript on a site built
+          entirely ahead of time. Every benchmark result is also on each release&rsquo;s static Model Passport,
+          with the same values, sources, and dates:
+        </p>
+        <ul>
+          {index.models.map((model) => (
+            <li>
+              <a href={model.route}>{model.name}</a> — {model.organizationName} · {model.familyName}
+            </li>
+          ))}
+        </ul>
+      </section>
+    </noscript>
+  </main>
+</BaseLayout>
