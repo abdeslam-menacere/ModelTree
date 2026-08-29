@@ -245,6 +245,19 @@ describe('the submission form offers exactly the vocabulary the schema accepts',
     expect(ids).toContain('checked-on');
     expect(ids).toContain('unknowns');
   });
+
+  it('makes the evidence fields mandatory, not merely present', () => {
+    // Ordering above proves the questions are asked. It does not prove a
+    // submitter cannot skip them: flipping `required` to false leaves the
+    // field, its label, and its position intact, so nothing else here moves.
+    const required = formBody(submissionForm, SUBMISSION_FORM)
+      .filter((element) => mapping(element.validations ?? {}, 'validations').required === true)
+      .map((element) => String(element.id));
+
+    for (const id of ['primary-source', 'quotes', 'checked-on']) {
+      expect(required, `${id} must be required`).toContain(id);
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------

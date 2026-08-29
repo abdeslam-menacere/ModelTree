@@ -110,6 +110,7 @@
       "description": "Example Lab's general-purpose model line.",
       "categories": ["language-reasoning"],
       "firstReleaseDate": "2026-01-15",
+      "datePrecision": "day",
       "status": "current",
       "sourceIds": ["example-lab-announcement"],
       "verifiedAt": "2026-08-28"
