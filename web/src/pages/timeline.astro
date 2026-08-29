@@ -1,0 +1,66 @@
+---
+import Timeline from '../components/Timeline';
+import { dataset } from '../data/dataset';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { buildCatalogIndex } from '../lib/catalog';
+import { formatDate } from '../lib/format';
+import { buildTimelineIndex } from '../lib/timeline';
+
+const base = import.meta.env.BASE_URL;
+const { entries, facets, years } = buildTimelineIndex(dataset, base);
+const catalog = buildCatalogIndex(dataset, base);
+
+// A page per query combination would be unbounded, so the view is resolved from
+// the query string in the browser against this one prerendered page. The island
+// renders the default view server-side, so the full chronology is in the static
+// HTML, and without JavaScript the same records stay reachable through the
+// static passport links listed below.
+const firstModel = catalog.models[0];
+if (!firstModel) throw new Error('Timeline requires at least one release');
+const passportHref = firstModel.route;
+
+const releaseCount = entries.filter((entry) => entry.kind === 'release').length;
+const eventCount = entries.length - releaseCount;
+---
+
+<BaseLayout
+  title="Release timeline | ModelTree"
+  description="One chronological stream of reviewed AI model releases and release events, grouped by year, quarter, or month and filterable by creator, category, and access type."
+  passportHref={passportHref}
+  verifiedAt={formatDate(catalog.latestVerifiedAt)}
+  currentPage="timeline"
+>
+  <main id="main-content" class="timeline-page">
+    <header class="timeline-intro">
+      <div>
+        <span class="eyebrow">Chronology</span>
+        <h1>Follow the release timeline.</h1>
+      </div>
+      <p>
+        {releaseCount} reviewed {releaseCount === 1 ? 'release' : 'releases'} and {eventCount}
+        {eventCount === 1 ? ' recorded release event' : ' recorded release events'} in one stream,
+        each dated no more precisely than its source states. Every entry links to its
+        source-backed Model Passport.
+      </p>
+    </header>
+
+    <Timeline client:load entries={entries} facets={facets} years={years} />
+
+    <noscript>
+      <section class="timeline-noscript">
+        <h2>Every dated entry</h2>
+        <p>Each entry links to a static Model Passport:</p>
+        <ol>
+          {entries.map((entry) => (
+            <li>
+              <time datetime={entry.date}>{entry.dateLabel}</time>
+              {' — '}
+              <a href={entry.route}>{entry.modelName}</a>
+              {` — ${entry.creatorName} · ${entry.kindLabel}`}
+            </li>
+          ))}
+        </ol>
+      </section>
+    </noscript>
+  </main>
+</BaseLayout>

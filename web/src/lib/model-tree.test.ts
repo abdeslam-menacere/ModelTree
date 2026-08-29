@@ -243,7 +243,7 @@ const CREATORS_WITH_A_REVIEWED_PROFILE = [
 ];
 
 /** Catalog creators that hold releases but no reviewed source profile. */
-const CREATORS_WITHOUT_A_REVIEWED_PROFILE = ['deepseek', 'mistral-ai', 'xai'];
+const CREATORS_WITHOUT_A_REVIEWED_PROFILE = ['cohere', 'deepseek', 'mistral-ai', 'xai'];
 
 describe('featured membership follows the reviewed source profile set', () => {
   const tree = buildModelTree(dataset);
@@ -268,14 +268,14 @@ describe('featured membership follows the reviewed source profile set', () => {
   });
 
   it('puts every catalog creator without a reviewed profile under Others', () => {
-    // Also render order. The names are what decide it: DeepSeek, Mistral AI,
-    // then SpaceXAI, whose recorded name sorts under S while its id sorts last
-    // anyway -- so this ordering is asserted by name below rather than resting
-    // on the two happening to agree.
+    // Also render order. The names are what decide it: Cohere, DeepSeek,
+    // Mistral AI, then SpaceXAI, whose recorded name sorts under S while its id
+    // sorts last anyway -- so this ordering is asserted by name below rather
+    // than resting on the two happening to agree.
     expect(tree.others.map(({ organization }) => organization.id))
       .toEqual(CREATORS_WITHOUT_A_REVIEWED_PROFILE);
     expect(tree.others.map(({ organization }) => organization.name))
-      .toEqual(['DeepSeek', 'Mistral AI', 'SpaceXAI']);
+      .toEqual(['Cohere', 'DeepSeek', 'Mistral AI', 'SpaceXAI']);
     // The branch this change exists to populate must not be empty, and the two
     // branches must partition the catalog rather than merely both being present.
     expect(tree.others.length).toBeGreaterThan(0);
