@@ -756,15 +756,20 @@ describe('the creator naming rule on surfaces added later', () => {
    * excludes `ProviderDirectory.tsx`.
    *
    * This gate -- not the corpus -- is what bounds the sweep's reach, and it is
-   * deliberately narrow: it recognises a module that imports the `Organization`
-   * type, reads `dataset.organizations`, or destructures a record out of a
-   * prepared view. Most swept modules match none of these and are correctly not
-   * judged, because they hold already-labelled view models rather than records
-   * (`ProviderDirectory.tsx` is the asserted example). So after every widening
-   * of the corpus, the judged set stays a minority of it on purpose, and a
-   * surface is only guarded once it trips one of these clauses -- see the
-   * 'judges at least one .astro surface' assertion, which pins the judged count
-   * above zero so a corpus that is discovered but never judged still fails.
+   * deliberately narrow: it recognises a module by four routes -- it imports the
+   * `Organization` type, reads `dataset.organizations`, destructures a record
+   * out of a prepared view with `const { organization } = ...`, or destructures
+   * one in a callback parameter with `({ organization }) => ...`. The two
+   * destructure forms are distinct shapes, and the distinction is load-bearing:
+   * the callback-parameter form is the one `index.astro` used, and the sweep was
+   * blind to it until it was added. Most swept modules match none of the four
+   * and are correctly not judged, because they hold already-labelled view models
+   * rather than records (`ProviderDirectory.tsx` is the asserted example). So
+   * after every widening of the corpus, the judged set stays a minority of it on
+   * purpose, and a surface is only guarded once it trips one of these clauses --
+   * see the 'judges at least one .astro surface' assertion, which pins the
+   * judged count above zero so a corpus that is discovered but never judged
+   * still fails.
    */
   function holdsOrganizationRecords(source: string): boolean {
     return (
