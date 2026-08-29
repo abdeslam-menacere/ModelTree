@@ -259,11 +259,15 @@ const CREATORS_THE_SITE_DOES_NOT_LEAD_WITH = [
   'amazon',
   'cohere',
   'deepseek',
+  'eleutherai',
+  'lg-ai-research',
   'mistral-ai',
   'moonshot-ai',
   'nvidia',
+  'snowflake',
   'xai',
   'tii',
+  'upstage',
   'zhipu-ai',
 ];
 
@@ -305,11 +309,15 @@ describe("featured membership follows the site's editorial lead list", () => {
         'Amazon',
         'Cohere',
         'DeepSeek',
+        'EleutherAI',
+        'LG AI Research',
         'Mistral AI',
         'Moonshot AI',
         'NVIDIA',
+        'Snowflake',
         'SpaceXAI',
         'Technology Innovation Institute',
+        'Upstage',
         'Zhipu AI',
       ]);
     // The branch this change exists to populate must not be empty, and the two
