@@ -1,0 +1,175 @@
+name: Submit a model or release
+description: A model or a specific release is missing from ModelTree.
+title: 'Add release: '
+labels: ["data", "new-release"]
+
+# Field ids are prefillable through the query string, so a link of the form
+# `/issues/new?template=submit-release.yml&creator=OpenAI` opens this form with
+# the creator already named.
+#
+# Every dropdown below offers exactly the members of the matching enum in
+# `web/src/data/schema.ts`, and `web/tests/contributing/issue-forms.test.ts`
+# compares the two sets directly rather than restating them here. Adding a
+# member to the schema without offering it on this form fails the suite.
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        You do not need to know the schema, and you do not need to open a pull
+        request. Fill in what a primary source states and leave the rest blank —
+        **a blank field is recorded as unknown, which is a fact ModelTree is
+        happy to publish. A guess is not.**
+
+        One release per issue, please. "The whole Llama 4 family" cannot be
+        reviewed as a unit; `llama-4-scout` can.
+
+  - type: input
+    id: creator
+    attributes:
+      label: Who created it?
+      description: The lab or company that made the model — not whoever hosts or resells it.
+      placeholder: Mistral AI
+    validations: { required: true }
+
+  - type: input
+    id: family
+    attributes:
+      label: Which family does it belong to?
+      description: The model line, without the version. If ModelTree has no such family yet, name it anyway.
+      placeholder: Mistral Large
+    validations: { required: true }
+
+  - type: input
+    id: canonical-name
+    attributes:
+      label: Canonical name
+      description: >-
+        The name the creator itself uses, exactly. Not the API string, and not a
+        nickname — those go in the aliases field further down.
+      placeholder: Mistral Large 3
+    validations: { required: true }
+
+  - type: input
+    id: release-date
+    attributes:
+      label: Release date
+      description: >-
+        Write only as much as your source states: `2026-08-14`, `2026-08`, or
+        `2026`. **Do not complete a partial date.** A source that says "August
+        2026" supports `2026-08` and nothing narrower.
+      placeholder: '2026-08'
+    validations: { required: true }
+
+  - type: dropdown
+    id: date-precision
+    attributes:
+      label: How precise is that date?
+      description: Must match what you wrote above — `2026-08` is month precision.
+      options:
+        - day
+        - month
+        - year
+    validations: { required: true }
+
+  - type: dropdown
+    id: access-type
+    attributes:
+      label: How can it be obtained?
+      options:
+        - proprietary-hosted
+        - open-weight
+        - source-available
+        - both
+    validations: { required: true }
+
+  - type: dropdown
+    id: status
+    attributes:
+      label: Lifecycle status
+      options:
+        - preview
+        - current
+        - legacy
+        - deprecated
+        - research
+    validations: { required: true }
+
+  - type: dropdown
+    id: categories
+    attributes:
+      label: What kind of model is it?
+      description: Pick every category that applies.
+      multiple: true
+      options:
+        - language-reasoning
+        - multimodal-generalist
+        - coding
+        - image
+        - video
+        - audio-speech
+        - embedding-reranking
+        - scientific
+        - robotics-world
+    validations: { required: true }
+
+  - type: input
+    id: primary-source
+    attributes:
+      label: Primary source URL
+      description: >-
+        The creator's own announcement, documentation, model card, or repository.
+        This is the field that decides whether the record can be published at all.
+      placeholder: https://mistral.ai/news/...
+    validations: { required: true }
+
+  - type: textarea
+    id: quotes
+    attributes:
+      label: Quote what that source says
+      description: >-
+        Verbatim lines covering the facts you gave above — at minimum the name
+        and the release date. One quote per line, and add the URL beside any
+        quote that comes from a different page.
+    validations: { required: true }
+
+  - type: input
+    id: checked-on
+    attributes:
+      label: Date you checked those sources (YYYY-MM-DD)
+      placeholder: '2026-08-28'
+    validations: { required: true }
+
+  - type: textarea
+    id: optional-facts
+    attributes:
+      label: Anything else the source states
+      description: >-
+        All optional, all useful, all recorded only if sourced: context window,
+        maximum output, parameter count, licence and whether weights are
+        downloadable, API identifiers and aliases, input and output modalities,
+        and which earlier release this one succeeds.
+
+  - type: textarea
+    id: unknowns
+    attributes:
+      label: What could you not find out?
+      description: >-
+        Name the fields you looked for and could not source, and say where you
+        looked. This is not a formality — a recorded gap is what stops the next
+        person repeating your search, and it is treated as a contribution in its
+        own right.
+
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: Before you submit
+      options:
+        - label: >-
+            Every fact above comes from a source I have linked, and I left blank
+            anything I could not source.
+          required: true
+        - label: >-
+            This is one release, not a family or a product line. The model, the
+            product that uses it, and the platform serving it are separate records here.
+          required: true

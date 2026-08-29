@@ -156,9 +156,17 @@ Corrections are welcome, especially sourced ones. Every important fact needs a
 primary source and a verification date; a change that adds a claim without one
 will be sent back.
 
-Open an issue using the feature form in `.github/ISSUE_TEMPLATE/`, and be
-specific about what is **explicitly out of scope** — that field is what keeps a
-change reviewable.
+You do not need to open a pull request. Report a wrong fact with the
+**Report incorrect data** form, or a missing one with **Submit a model or
+release** — both are in `.github/ISSUE_TEMPLATE/`. Every Model Passport page
+also carries a correction link, which opens a blank issue prefilled with the
+slug of the record you were looking at; pick the **Report incorrect data** form
+from the chooser if you would rather answer the evidence fields directly.
+
+[`CONTRIBUTING.md`](CONTRIBUTING.md) explains the entities, what counts as a
+primary source, and how to add a release yourself, with a minimal valid example
+of every record in
+[`docs/contributing/minimal-dataset-example.json`](docs/contributing/minimal-dataset-example.json).
 
 ### How this repo is worked
 
