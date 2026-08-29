@@ -1,5 +1,6 @@
 import type { Dataset, ModelFamily, ModelRelease, Organization } from '../data/schema';
 import { comparePartialDates, comparePartialDatesDescending } from '../data/partial-date';
+import { compareLabels, organizationLabel } from './organization-name';
 
 /**
  * Normalized view models for the homepage lineage explorer.
@@ -225,7 +226,9 @@ function buildEcosystems(
 
   return [...dataset.organizations]
     .filter(({ id }) => seedOrganizationIds.has(id))
-    .sort((a, b) => compare(a.name, b.name) || compare(a.id, b.id))
+    // Ordered by the label, because LineageExplorer prints the label for each
+    // ecosystem. See the note on the same comparator in homepage.ts.
+    .sort((a, b) => compareLabels(organizationLabel(a), organizationLabel(b)) || compare(a.id, b.id))
     .map((organization) => {
       const families = dataset.families
         .filter((family) => family.organizationId === organization.id && seedFamilyIds.has(family.id))

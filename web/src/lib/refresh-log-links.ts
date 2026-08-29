@@ -1,5 +1,6 @@
 import type { PostedDocument, PostedRecord, RefreshRun } from '../data/refresh-log-schema';
 import { comparePartialDatesDescending } from '../data/partial-date';
+import { organizationLabel } from './organization-name';
 
 /**
  * Links from a recorded run to the things it actually published.
@@ -16,7 +17,13 @@ export const DATASET_DIRECTORY = 'web/src/data';
 
 /** The slice of the dataset a posted record can point at. */
 export interface LinkableDataset {
-  organizations: readonly { readonly id: string; readonly name: string }[];
+  // Both recorded name forms: `organizationLabel` needs them to apply the label
+  // rule here the same way every other creator-naming surface does.
+  organizations: readonly {
+    readonly id: string;
+    readonly name: string;
+    readonly shortName: string;
+  }[];
   families: readonly { readonly id: string; readonly name: string }[];
   releases: readonly {
     readonly id: string;
@@ -113,7 +120,7 @@ export function postedRecordLink(
     );
     return {
       record,
-      label: organization.name,
+      label: organizationLabel(organization),
       href,
       target: href ? 'tree' : undefined,
       resolved: true,

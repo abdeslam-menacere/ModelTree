@@ -83,13 +83,17 @@ describe('buildProviderProfile against a controlled dataset', () => {
 
     const firstParty = byId.get(FIRST_PARTY_PLATFORM_ID)!;
     expect(firstParty.operatedByProvider).toBe(true);
-    expect(firstParty.operatorName).toBe('Prime Labs');
+    // `operatorName` names a creator, so it is the creator label — `shortName`,
+    // not `name`. The fixture records "Prime Labs"/"Prime" so the two forms
+    // differ and this assertion distinguishes them.
+    expect(firstParty.operatorName).toBe('Prime');
     expect(firstParty.relationshipLabel).toContain('First-party');
     expect(firstParty.servedReleaseCount).toBe(1);
 
     const thirdParty = byId.get(THIRD_PARTY_PLATFORM_ID)!;
     expect(thirdParty.operatedByProvider).toBe(false);
-    expect(thirdParty.operatorName).toBe('Open Hub');
+    // "Open Hub"/"Hub" — again the label, not the fuller recorded form.
+    expect(thirdParty.operatorName).toBe('Hub');
     expect(thirdParty.relationshipLabel).toContain('Third-party');
     // Two distinct releases are deployed there; the count is releases, not rows.
     expect(thirdParty.servedReleaseCount).toBe(2);

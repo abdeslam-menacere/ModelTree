@@ -1,4 +1,5 @@
 import type { Dataset, ModelFamily, ModelRelease, Organization } from '../data/schema';
+import { compareLabels, organizationLabel } from './organization-name';
 
 export interface HomepageFamily {
   family: ModelFamily;
@@ -17,11 +18,16 @@ function compare(a: string, b: string) {
 
 export function buildHomepageHierarchy(dataset: Dataset): HomepageOrganization[] {
   return [...dataset.organizations]
-    .sort((a, b) => compare(a.name, b.name) || compare(a.id, b.id))
+    // Ordered by the label, because the label is what the page prints. Sorting
+    // on one recorded form while displaying the other is the #479 defect, and
+    // it reads as a broken sort rather than as a naming bug.
+    .sort((a, b) => compareLabels(organizationLabel(a), organizationLabel(b)) || compare(a.id, b.id))
     .map((organization) => ({
       organization,
       families: dataset.families
         .filter((family) => family.organizationId === organization.id)
+        // A family carries one recorded name and the page prints that same
+        // name, so this comparator is already sorting on what it displays.
         .sort((a, b) => compare(a.name, b.name) || compare(a.id, b.id))
         .map((family) => ({
           family,

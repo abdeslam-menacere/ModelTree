@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import { accessLabel, formatDate, statusLabel } from '../lib/format';
+import { organizationFullName, organizationLabel } from '../lib/organization-name';
 import LineageModelDrawer, { type DrawerSelection } from './LineageModelDrawer';
 
 const release = dataset.releases.find(({ id }) => id === 'anthropic-claude-opus-5')!;
@@ -37,7 +38,7 @@ describe('LineageModelDrawer (anchored panel)', () => {
     const surface = panel();
 
     expect(within(surface).getByRole('heading', { name: release.displayName })).toBeTruthy();
-    expect(within(surface).getByText(`${organization.name} / ${family.name}`)).toBeTruthy();
+    expect(within(surface).getByText(`${organizationLabel(organization)} / ${family.name}`)).toBeTruthy();
     expect(within(surface).getByText(release.summary)).toBeTruthy();
 
     const fields: Array<[string, string]> = [
@@ -94,5 +95,52 @@ describe('LineageModelDrawer (anchored panel)', () => {
       (dd) => (dd.textContent ?? '').trim().length === 0,
     );
     expect(emptyDefinitions).toEqual([]);
+  });
+});
+
+/**
+ * The creator naming rule at this surface -- abdeslam-menacere/ModelTree#479.
+ *
+ * This drawer was extracted from `ModelTreeExplorer` after #479 was written, and
+ * it carried the raw `organization.name` across with it. The assertions above
+ * could not catch that: they select Anthropic, whose two recorded name forms are
+ * identical, so the breadcrumb reads correctly whether or not the rule is
+ * applied. The fixture below is therefore chosen by the property under test.
+ */
+describe('LineageModelDrawer (creator naming rule)', () => {
+  const withDistinctForms = dataset.organizations.find(
+    (item) => item.name !== item.shortName
+      && dataset.releases.some(({ organizationId }) => organizationId === item.id),
+  );
+
+  it('has a creator whose recorded name forms differ, so the assertion below is not vacuous', () => {
+    // Without this the rule could be deleted and the test below would still pass.
+    expect(withDistinctForms).toBeDefined();
+  });
+
+  it('breadcrumbs the creator by its label and never by its fuller recorded name', () => {
+    const organizationUnderTest = withDistinctForms!;
+    const distinctRelease = dataset.releases.find(
+      ({ organizationId }) => organizationId === organizationUnderTest.id,
+    )!;
+    const distinctFamily = dataset.families.find(({ id }) => id === distinctRelease.familyId)!;
+
+    render(
+      <LineageModelDrawer
+        selected={{
+          organization: organizationUnderTest,
+          family: distinctFamily,
+          release: distinctRelease,
+        }}
+        basePath="/ModelTree/"
+      />,
+    );
+
+    const breadcrumb = panel().querySelector('.tree-breadcrumb');
+    expect(breadcrumb?.textContent).toBe(
+      `${organizationLabel(organizationUnderTest)} / ${distinctFamily.name}`,
+    );
+    // The exact regression: before the fix this rendered the fuller form.
+    expect(breadcrumb?.textContent).not.toContain(organizationFullName(organizationUnderTest));
   });
 });

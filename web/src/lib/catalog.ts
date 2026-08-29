@@ -2,6 +2,12 @@ import type { Dataset, DatePrecision } from '../data/schema';
 import { comparePartialDatesDescending } from '../data/partial-date';
 import { accessLabel, categoryLabel, statusLabel } from './format';
 import { buildCreatorEcosystems } from './lineage-view';
+import {
+  compareLabels,
+  organizationFullNameIfDistinct,
+  organizationLabel,
+  organizationSearchTerms,
+} from './organization-name';
 
 export const CATALOG_INDEX_VERSION = 1;
 
@@ -22,7 +28,23 @@ export interface ModelIndexRow {
   name: string;
   variant: string;
   organizationSlug: string;
+  /** The creator label -- the one string this row displays. */
   organizationName: string;
+  /**
+   * The creator's fuller recorded form, carried so search still finds this row
+   * by it now that `organizationName` is the label.
+   *
+   * Absent when the two recorded forms agree, which is not only a byte saving:
+   * a present value states that the record makes a distinction, so repeating
+   * the label here would assert one it does not make. The saving is real
+   * though, and measured: carrying both forms on every row breached the
+   * per-row payload budget, while carrying this only where the forms differ
+   * stays inside it. Search must not be paid for by the payload budget, and
+   * the budget test in `catalog.test.ts` is what holds that -- the figures
+   * live there, in an assertion that fails loudly, rather than here where a
+   * dataset change would expire them in silence.
+   */
+  organizationFullName?: string;
   familySlug: string;
   familyName: string;
   releaseDate: string;
@@ -234,12 +256,15 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
       continue;
     }
 
+    const organizationFullName = organizationFullNameIfDistinct(organization);
+
     models.push({
       slug: release.slug,
       name: release.displayName,
       variant: release.variant,
       organizationSlug: organization.slug,
-      organizationName: organization.name,
+      organizationName: organizationLabel(organization),
+      ...(organizationFullName ? { organizationFullName } : {}),
       familySlug: family.slug,
       familyName: family.name,
       releaseDate: release.releaseDate,
@@ -267,11 +292,11 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
       const releases = dataset.releases.filter((item) => item.organizationId === organization.id);
       const isCreator = creatorIds.has(organization.id);
       const isPlatform = platformOperatorIds.has(organization.id);
-      const initial = organization.name.slice(0, 1).toUpperCase();
+      const initial = organizationLabel(organization).slice(0, 1).toUpperCase();
 
       return {
         slug: organization.slug,
-        name: organization.name,
+        name: organizationLabel(organization),
         shortName: organization.shortName,
         role: (isCreator && isPlatform
           ? 'creator-and-platform'
@@ -287,7 +312,7 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
         route: providerRouteFor(organization.slug),
       };
     })
-    .sort((a, b) => compare(a.name, b.name) || compare(a.slug, b.slug));
+    .sort((a, b) => compareLabels(a.name, b.name) || compare(a.slug, b.slug));
 
   const aliases: AliasIndexRow[] = [];
   const addAlias = (
@@ -310,9 +335,9 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
   }
   for (const organization of dataset.organizations) {
     const route = providerRouteFor(organization.slug);
-    const names = new Set([organization.name, organization.shortName]);
-    for (const alias of names) {
-      addAlias(alias, 'organization', organization.slug, organization.name, route);
+    // Both recorded forms are aliases; the label is what each resolves to.
+    for (const alias of organizationSearchTerms(organization)) {
+      addAlias(alias, 'organization', organization.slug, organizationLabel(organization), route);
     }
   }
   for (const product of dataset.products) {

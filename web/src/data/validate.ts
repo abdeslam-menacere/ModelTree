@@ -26,6 +26,15 @@ export const PRIMARY_SOURCE_TYPES = new Set<SourceReference['type']>([
 ]);
 
 /**
+ * The publisher whose word settles `license.osiApproved`, at either value.
+ *
+ * An entity id rather than a hostname, because publisher identity is an entity
+ * reference everywhere else in this dataset and because a renamed publisher
+ * should break this check loudly rather than quietly stop matching anything.
+ */
+export const OSI_PUBLISHER_ID = 'open-source-initiative';
+
+/**
  * Two observations may only be discussed together when they counted the same
  * thing, in the same unit, over the same population. Nothing is converted.
  */
@@ -558,6 +567,28 @@ export function validateDataset(input: unknown): Dataset {
         return source ? PRIMARY_SOURCE_TYPES.has(source.type) : false;
       });
       if (!hasPrimarySource) issues.push(`featured release ${release.id} requires a primary source`);
+    }
+
+    // `osiApproved` is a claim about what OSI decided, so it rests on OSI and
+    // not on the licence name a model card happens to state (see the note beside
+    // `licenseSchema`). `false` is covered on purpose: OSI's approved list is
+    // exhaustive, so a licence's absence from it is a reading of that list
+    // rather than an argument from silence, and exempting `false` would leave
+    // the unsourced value the cheapest one in the schema to assert.
+    //
+    // The limit, stated so nothing downstream reads more into a pass than is
+    // there: this checks that an OSI-published source is *cited*. It does not
+    // fetch or read that source, so it cannot establish that the page supports
+    // the recorded value. That judgement is the reviewer's.
+    if (release.license) {
+      const citesOsi = release.sourceIds.some(
+        (sourceId) => sourceById.get(sourceId)?.publisherId === OSI_PUBLISHER_ID,
+      );
+      if (!citesOsi) {
+        issues.push(
+          `release ${release.id} records license.osiApproved without citing a source published by the Open Source Initiative`,
+        );
+      }
     }
 
     // Derivation may cross families and organizations, so it is checked apart

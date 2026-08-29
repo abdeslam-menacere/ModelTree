@@ -18,6 +18,22 @@ function findRelease(input: Record<string, any>, predicate: (release: any) => bo
   return match;
 }
 
+/**
+ * Every source id in `input` published by the OSI, derived from the input rather
+ * than listed here so that a renamed or newly added OSI source is still stripped
+ * by the tests that mutate against this rule. Empty is a hard error: a test that
+ * removes nothing would pass whatever the validator did.
+ */
+function osiPublishedSourceIds(input: Record<string, any>): Set<string> {
+  const ids = new Set<string>(
+    (input.sources as any[])
+      .filter((source) => source.publisherId === 'open-source-initiative')
+      .map((source) => source.id as string),
+  );
+  if (ids.size === 0) throw new Error('seed data no longer carries a source published by the OSI');
+  return ids;
+}
+
 describe('validateDataset', () => {
   it('accepts the source-backed seed dataset', () => {
     const dataset = validateDataset(copyDataset());
@@ -114,7 +130,7 @@ describe('validateDataset', () => {
     expect(() => validateDataset(input)).toThrow(/contradicts an open-weight access type/);
   });
 
-  it('rejects an unevidenced OSI-approved licence claim', () => {
+  it('rejects an OSI-approved licence claim that pins no licence', () => {
     const input = mutableDataset();
     const openWeight = findRelease(input, (release) => release.accessType === 'open-weight');
     openWeight.license = {
@@ -123,7 +139,48 @@ describe('validateDataset', () => {
       osiApproved: true,
     };
 
-    expect(() => validateDataset(input)).toThrow(/needs an spdxId or a licence URL/);
+    expect(() => validateDataset(input)).toThrow(/must identify the licence with an spdxId or a licence URL/);
+  });
+
+  // The `osiApproved` evidence rule, decided in #481 and stated beside
+  // `licenseSchema`. `findRelease` throws when its predicate matches nothing, so
+  // each of these fails loudly rather than passing vacuously if the seed data
+  // stops carrying the shape it reaches for.
+  it('rejects a licence claim that cites no source published by OSI', () => {
+    const input = mutableDataset();
+    const osiSourceIds = osiPublishedSourceIds(input);
+    const licensed = findRelease(input, (release) => Boolean(release.license));
+    const before = licensed.sourceIds.length;
+    licensed.sourceIds = licensed.sourceIds.filter((id: string) => !osiSourceIds.has(id));
+    // Without this the filter could be a no-op, and the throw below would prove
+    // nothing about the rule.
+    expect(licensed.sourceIds.length).toBeLessThan(before);
+
+    expect(() => validateDataset(input)).toThrow(
+      /records license\.osiApproved without citing a source published by the Open Source Initiative/,
+    );
+  });
+
+  it('requires an OSI source for osiApproved: false, not only for true', () => {
+    const input = mutableDataset();
+    const osiSourceIds = osiPublishedSourceIds(input);
+    const licensed = findRelease(input, (release) => release.license?.osiApproved === false);
+    const before = licensed.sourceIds.length;
+    licensed.sourceIds = licensed.sourceIds.filter((id: string) => !osiSourceIds.has(id));
+    expect(licensed.sourceIds.length).toBeLessThan(before);
+
+    expect(() => validateDataset(input)).toThrow(
+      /records license\.osiApproved without citing a source published by the Open Source Initiative/,
+    );
+  });
+
+  it('asks nothing of a release that records no licence at all', () => {
+    const input = mutableDataset();
+    const osiSourceIds = osiPublishedSourceIds(input);
+    const unlicensed = findRelease(input, (release) => !release.license);
+    unlicensed.sourceIds = unlicensed.sourceIds.filter((id: string) => !osiSourceIds.has(id));
+
+    expect(() => validateDataset(input)).not.toThrow();
   });
 
   it('rejects a duplicate release id', () => {
@@ -451,15 +508,16 @@ describe('extended entity invariants', () => {
     expect(() => validateDataset(input)).toThrow(/contradicts an open-weight access type/);
   });
 
-  it('rejects an open-source claim with no licence evidence', () => {
+  it('rejects an open-source claim that pins no licence', () => {
     const input = extendedDataset();
     input.releases[0].license = {
       name: 'Apache 2.0',
       weightsDownloadable: true,
       osiApproved: true,
     };
+    input.releases[0].sourceIds.push('osi-license-index');
 
-    expect(() => validateDataset(input)).toThrow(/needs an spdxId or a licence URL/);
+    expect(() => validateDataset(input)).toThrow(/must identify the licence with an spdxId or a licence URL/);
   });
 
   it('separates downloadable weights from an open-source licence', () => {
@@ -471,6 +529,7 @@ describe('extended entity invariants', () => {
       weightsDownloadable: true,
       osiApproved: false,
     };
+    input.releases[0].sourceIds.push('osi-license-index');
 
     expect(validateDataset(input).releases[0].license?.osiApproved).toBe(false);
   });

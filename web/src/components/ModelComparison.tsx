@@ -203,7 +203,7 @@ export default function ModelComparison({ dataset, initialSlugs, base, today }: 
     ? candidates.filter(
         (candidate) =>
           candidate.displayName.toLowerCase().includes(needle) ||
-          candidate.organizationName.toLowerCase().includes(needle) ||
+          candidate.organizationSearchTerms.some((term) => term.toLowerCase().includes(needle)) ||
           candidate.familyName.toLowerCase().includes(needle),
       )
     : candidates;

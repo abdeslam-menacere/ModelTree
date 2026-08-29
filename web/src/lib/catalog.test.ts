@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { dataset as seedDataset } from '../data/dataset';
 import { validateDataset } from '../data/validate';
 import { buildCreatorEcosystems, buildLineageEcosystems } from './lineage-view';
+import { organizationFullNameIfDistinct } from './organization-name';
 import {
   assertRoutesResolve,
   buildCatalogIndex,
@@ -64,6 +65,8 @@ function makeDataset(overrides: Record<string, unknown> = {}) {
         id: 'alpha',
         slug: 'alpha',
         name: 'Alpha Labs',
+        // Deliberately distinct from `name`: this is the creator label, and the
+        // alias-collision test below depends on it normalizing to "alpha".
         shortName: 'Alpha',
         type: 'company',
         website: 'https://alpha.example/',
@@ -430,6 +433,33 @@ describe('route resolution and payload budget', () => {
     // with the catalog while a catalog page only ever ships one page slice.
     expect(size.bytesPerModelRow).toBeLessThanOrEqual(600);
     expect(size.bytesPerModelRow * 24).toBeLessThanOrEqual(20_480);
+  });
+
+  it('carries the creator\'s fuller recorded form only where it differs from the label', () => {
+    // This is what keeps the row inside the budget above. Search must match
+    // either recorded form (#479), but carrying both on every row breached that
+    // budget, while carrying the fuller form only where the record actually
+    // distinguishes the two stays inside it. The measured figures are not
+    // restated here: the assertion above is what holds them, and it fails
+    // loudly when the dataset moves them, which a comment cannot do.
+    // A present value also states that the record makes a distinction, so
+    // repeating the label here would assert one it does not make.
+    const index = buildCatalogIndex(seedDataset, '/');
+    const organizationBySlug = new Map(seedDataset.organizations.map((item) => [item.slug, item]));
+    expect(index.models.length).toBeGreaterThan(0);
+
+    let carried = 0;
+    for (const row of index.models) {
+      const organization = organizationBySlug.get(row.organizationSlug)!;
+      const distinct = organizationFullNameIfDistinct(organization);
+      expect(row.organizationFullName).toBe(distinct ?? undefined);
+      if (row.organizationFullName) carried += 1;
+    }
+
+    // Controls: the sweep is neither vacuous nor universal. Some rows carry it
+    // and some do not, so `toBe` above discriminates in both directions.
+    expect(carried).toBeGreaterThan(0);
+    expect(carried).toBeLessThan(index.models.length);
   });
 
   it('routes every real model row at its generated detail page', () => {

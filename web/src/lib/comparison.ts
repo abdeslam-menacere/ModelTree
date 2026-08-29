@@ -67,6 +67,7 @@ import {
 } from './comparability-policy';
 import { modelRoute } from './catalog';
 import { accessLabel, categoryLabel, formatDate, formatNumber, statusLabel } from './format';
+import { organizationLabel, organizationSearchTerms } from './organization-name';
 import {
   deliveryModeLabel,
   formatDateWithPrecision,
@@ -412,6 +413,13 @@ export interface ComparisonCandidate {
   slug: string;
   displayName: string;
   organizationName: string;
+  /**
+   * Every recorded name form of the creator, so the picker's filter still finds
+   * a model by the fuller recorded name after `organizationName` became the
+   * label. Derived here rather than serialized: the candidates are rebuilt in
+   * the browser from the page dataset, so this costs no payload bytes.
+   */
+  organizationSearchTerms: readonly string[];
   familyName: string;
   selected: boolean;
   /** The comparison with this model added or removed, whichever applies. */
@@ -518,7 +526,10 @@ export const NO_RANKING_NOTE =
 export type ComparisonDataset = {
   sources: ComparisonSourceRecord[];
   publishers: Array<Pick<Publisher, 'id' | 'name'>>;
-  organizations: Array<Pick<Organization, 'id' | 'name'>>;
+  // `shortName` travels with `name`: the label rule needs both recorded forms
+  // to resolve, and a payload carrying only one would render creators
+  // differently from the server. See `organization-name.ts`.
+  organizations: Array<Pick<Organization, 'id' | 'name' | 'shortName'>>;
   families: Array<Pick<ModelFamily, 'id' | 'name'>>;
   releases: ComparisonRelease[];
   servingPlatforms: Array<Pick<ServingPlatform, 'id' | 'name' | 'type' | 'organizationId'>>;
@@ -701,7 +712,7 @@ export function buildModelComparison(
       slug: release.slug,
       displayName: release.displayName,
       canonicalName: release.canonicalName,
-      organizationName: organization.name,
+      organizationName: organizationLabel(organization),
       familyName: family.name,
       route: modelRoute(base, release.slug),
       verifiedAt: formatDate(release.verifiedAt),
@@ -741,7 +752,10 @@ export function buildModelComparison(
   );
 
   const identityRows: ComparisonRow[] = [
-    releaseRow('creator', 'Creator', (release) => organizationById.get(release.organizationId)?.name ?? null),
+    releaseRow('creator', 'Creator', (release) => {
+      const organization = organizationById.get(release.organizationId);
+      return organization ? organizationLabel(organization) : null;
+    }),
     releaseRow('family', 'Family', (release) => familyById.get(release.familyId)?.name ?? null),
     releaseRow('canonical-name', 'Canonical name', (release) => release.canonicalName),
     releaseRow('version', 'Version', (release) => release.version),
@@ -898,7 +912,13 @@ export function buildModelComparison(
   const availabilityRows: ComparisonRow[] = platformIds.map((platformId) => {
     const platform = platformById.get(platformId);
     const platformName = platform?.name ?? platformId;
-    const operator = platform ? organizationById.get(platform.organizationId)?.name : undefined;
+    const operatingOrganization = platform
+      ? organizationById.get(platform.organizationId)
+      : undefined;
+    // The operator is an Organization record, so it is named by the same label
+    // rule as a creator. Naming the platform is not the same as naming its
+    // operator: both are stated, and neither entity is folded into the other.
+    const operator = operatingOrganization ? organizationLabel(operatingOrganization) : undefined;
 
     return rowOf(
       `availability-${platformId}`,
@@ -1349,6 +1369,7 @@ export function buildComparisonCandidates(
 
   return dataset.releases.map((release) => {
     const isSelected = selected.includes(release.slug);
+    const organization = organizationById.get(release.organizationId);
     const next = isSelected
       ? removeFromComparison(selected, release.slug)
       : addToComparison(selected, release.slug).slugs;
@@ -1356,7 +1377,10 @@ export function buildComparisonCandidates(
     return {
       slug: release.slug,
       displayName: release.displayName,
-      organizationName: organizationById.get(release.organizationId)?.name ?? release.organizationId,
+      organizationName: organization ? organizationLabel(organization) : release.organizationId,
+      organizationSearchTerms: organization
+        ? organizationSearchTerms(organization)
+        : [release.organizationId],
       familyName: familyById.get(release.familyId)?.name ?? release.familyId,
       selected: isSelected,
       toggleUrl: compareUrl(base, next),
@@ -1440,7 +1464,11 @@ export function buildComparisonPayload(dataset: ComparisonDataset): ComparisonDa
     publishers: dataset.publishers
       .filter((publisher) => citedPublishers.has(publisher.id))
       .map((publisher) => ({ id: publisher.id, name: publisher.name })),
-    organizations: dataset.organizations.map(({ id, name }) => ({ id, name })),
+    organizations: dataset.organizations.map(({ id, name, shortName }) => ({
+      id,
+      name,
+      shortName,
+    })),
     families: dataset.families.map(({ id, name }) => ({ id, name })),
     servingPlatforms: dataset.servingPlatforms.map(({ id, name, type, organizationId }) => ({
       id,
@@ -1481,10 +1509,13 @@ export function buildComparisonPickerIndex(
   const organizationById = new Map(dataset.organizations.map((item) => [item.id, item]));
   const familyById = new Map(dataset.families.map((item) => [item.id, item]));
 
-  return dataset.releases.map((release) => ({
-    slug: release.slug,
-    displayName: release.displayName,
-    organizationName: organizationById.get(release.organizationId)?.name ?? release.organizationId,
-    familyName: familyById.get(release.familyId)?.name ?? release.familyId,
-  }));
+  return dataset.releases.map((release) => {
+    const organization = organizationById.get(release.organizationId);
+    return {
+      slug: release.slug,
+      displayName: release.displayName,
+      organizationName: organization ? organizationLabel(organization) : release.organizationId,
+      familyName: familyById.get(release.familyId)?.name ?? release.familyId,
+    };
+  });
 }
