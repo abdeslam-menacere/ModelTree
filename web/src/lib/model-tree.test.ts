@@ -250,6 +250,7 @@ const CREATORS_THE_SITE_LEADS_WITH = [
 const CREATORS_THE_SITE_DOES_NOT_LEAD_WITH = [
   'alibaba-cloud',
   'amazon',
+  'cohere',
   'deepseek',
   'mistral-ai',
   'xai',
@@ -277,13 +278,13 @@ describe("featured membership follows the site's editorial lead list", () => {
 
   it('puts every catalog creator the list omits under Others', () => {
     // Also render order. The names are what decide it: Alibaba Cloud, Amazon,
-    // DeepSeek, Mistral AI, then SpaceXAI, whose recorded name sorts under S
-    // while its id sorts last anyway -- so this ordering is asserted by name
-    // below rather than resting on the two happening to agree.
+    // Cohere, DeepSeek, Mistral AI, then SpaceXAI, whose recorded name sorts
+    // under S while its id sorts last anyway -- so this ordering is asserted by
+    // name below rather than resting on the two happening to agree.
     expect(tree.others.map(({ organization }) => organization.id))
       .toEqual(CREATORS_THE_SITE_DOES_NOT_LEAD_WITH);
     expect(tree.others.map(({ organization }) => organization.name))
-      .toEqual(['Alibaba Cloud', 'Amazon', 'DeepSeek', 'Mistral AI', 'SpaceXAI']);
+      .toEqual(['Alibaba Cloud', 'Amazon', 'Cohere', 'DeepSeek', 'Mistral AI', 'SpaceXAI']);
     // The branch this change exists to populate must not be empty, and the two
     // branches must partition the catalog rather than merely both being present.
     expect(tree.others.length).toBeGreaterThan(0);
