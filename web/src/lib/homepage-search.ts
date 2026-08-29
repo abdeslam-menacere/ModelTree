@@ -104,14 +104,15 @@ function normalizeBase(base: string) {
   return base.endsWith('/') ? base : `${base}/`;
 }
 
-export function modelRoute(base: string, slug: string) {
+function modelRoute(base: string, slug: string) {
   return `${normalizeBase(base)}models/${slug}/`;
 }
 
 /**
- * Lowercases and reduces a value to space-separated alphanumeric tokens, so
- * `GPT-4o`, `gpt 4o`, and `gpt4o` normalize toward the same shape. Diacritics
- * are folded, so `DeepSeek-R1` and a stray accented spelling still meet.
+ * Lowercases and reduces a value to space-separated alphanumeric tokens.
+ * Punctuation becomes a separator and is never removed, so `GPT-4o` and
+ * `gpt 4o` both fold to `gpt 4o`, while `gpt4o` stays distinct as `gpt4o`.
+ * Diacritics are folded, so `DeepSeek-R1` and a stray accented spelling meet.
  */
 export function normalizeText(value: string): string {
   return value
