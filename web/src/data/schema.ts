@@ -332,29 +332,38 @@ export const releaseSchema = z.object({
   // a number, and copying it is the faithful act. Route 2 is a recording step
   // under the `provenance` rubric above; route 1 is not a step at all.
   //
-  // 3. AN ABBREVIATION THE CREATOR MEANS IN THE BINARY SENSE is recorded as the
-  //    binary figure, and this is the case that stops the two routes above from
-  //    being the whole story. `upstage-solar-pro-preview-instruct` stores `4096`
-  //    against a card that states "a maximum context length of 4K" and no
-  //    integer anywhere. Route 2 read literally would give `4000`; the recorded
-  //    value is `4 × 1024`. Which sense a bare "K" carries is a fact about the
-  //    creator's usage, settled from the source and its context during review —
-  //    not by applying either reading as a default.
+  // 3. AN ABBREVIATION RECORDED IN THE BINARY SENSE, which is the case that
+  //    stops the two routes above from being the whole story.
+  //    `upstage-solar-pro-preview-instruct` stores `4096` against a card that
+  //    states "a maximum context length of 4K" and no integer anywhere. Route 2
+  //    read literally would give `4000`; the recorded value is `4 × 1024`.
+  //    What is *not* recorded is why. That release carries no rationale field,
+  //    and its source note quotes the "4K" without saying which sense the
+  //    abbreviation carries, so nothing in the repository shows the binary
+  //    reading being chosen or on what grounds. This route is therefore an
+  //    observed reading of committed data, not a determination the record can
+  //    be shown to have made, and it is described here for the same reason the
+  //    other two are: so that a reader meeting `4096` knows it is accounted
+  //    for. Which sense a bare "K" should carry in a *new* record is an open
+  //    question this comment does not answer and must not be settled by
+  //    defaulting to either reading.
   //
   // So near-neighbour values sit beside each other in this column — `1047576`,
   // `1048576` and `1000000`; `128000`, `131072` and `4096` — and that is several
-  // readings each recorded faithfully, not drift.
+  // readings of what creators published, not drift between records that should
+  // have agreed.
   //
   // THE RULE THAT MATTERS IS THEREFORE NOT WHICH ROUTE APPLIES BUT THIS: never
   // reconcile a recorded figure to a route. Rewriting a stated `1047576` down to
   // `1000000`, expanding a card's bare "128k" up to `131072`, or trimming
   // `upstage`'s `4096` to `4000` because the mapping above says "K" is a
   // thousand, would each replace a figure this dataset took from a creator with
-  // one no source states. A value this comment does not account for is a
-  // question for its own source and its own issue, never a warrant to edit the
-  // datum: the comment answers to the data, not the other way round. A recorded
-  // figure changes only when its own source changes, re-quoted and with a fresh
-  // `verifiedAt`.
+  // one no source states. A value this comment does not account for, or one it
+  // accounts for without recording why, is a question for its own source and
+  // its own issue, never a warrant to edit the datum: the comment answers to
+  // the data, not the other way round. A recorded figure changes only on fresh
+  // evidence from its own source — that source changing, or a re-reading of it
+  // quoted anew — and always with a fresh `verifiedAt`.
   contextWindow: z.number().int().positive().optional(),
   maximumOutput: z.number().int().positive().optional(),
   apiAliases: z.array(z.string().min(1)),
