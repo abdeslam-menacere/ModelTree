@@ -7,7 +7,6 @@ import { homeSuggestionsFor } from './homepage-search-view';
 import {
   organizationFullNameIfDistinct,
   organizationLabel,
-  organizationSearchTerms,
 } from './organization-name';
 import {
   buildHomepageSearchIndex,
@@ -196,17 +195,6 @@ describe('product suggestions', () => {
 
 describe('creator suggestions', () => {
   it('gives a creator one row, displayed as the label and reachable by either recorded form', () => {
-    const organizations = ecosystems.map(({ organization }) => organization);
-
-    // Vacuity guard. The defect below needs a creator on the homepage whose two
-    // recorded forms differ; with none present every assertion here passes
-    // without exercising anything. Which creators those are is left to the
-    // data -- the featured set changes with a release flag.
-    const twoForms = organizations.filter((organization) => (
-      organizationFullNameIfDistinct(organization) !== null
-    ));
-    expect(twoForms.length).toBeGreaterThan(0);
-
     // No two suggestions of one entity type read the same. Stated over every
     // entity rather than creators alone because it is not a creator rule: this
     // builder already skips a model alias that normalizes to the model's own
@@ -222,11 +210,46 @@ describe('creator suggestions', () => {
 
     // ...and the one row stays reachable from *both* forms. Without this, the
     // duplicate above is trivially satisfied by dropping the fuller form, which
-    // would leave a reader who types "Google" unable to find DeepMind -- a
-    // worse regression, and one no assertion above would notice.
+    // would leave a reader who types the other one unable to find the creator --
+    // a worse regression, and one no assertion above would notice.
+    //
+    // That needs a creator on the homepage whose two recorded forms differ, and
+    // the featured set is an editorial choice that today contains none: #531
+    // settled the last one by deciding `google-deepmind` displays as "Google
+    // DeepMind", which made its two forms agree. Rather than let this go
+    // vacuous, feature a release from a creator that still records two forms --
+    // the sole input the derivation reads -- so the property keeps being
+    // exercised without inventing an organization or editing the dataset.
+    const differing = dataset.organizations
+      .filter((organization) => organizationFullNameIfDistinct(organization) !== null)
+      .map(({ id }) => id);
+    expect(differing.length).toBeGreaterThan(0);
+
+    const promoted = dataset.releases.find((release) => differing.includes(release.organizationId));
+    expect(promoted, 'no release from a two-form creator available to feature').toBeDefined();
+
+    const withTwoForms = {
+      ...dataset,
+      releases: dataset.releases.map((release) => (
+        release.id === promoted!.id ? { ...release, featured: true } : release
+      )),
+    };
+    const built = buildHomepageSearchIndex(withTwoForms, '/');
+    const twoForms = buildLineageEcosystems(withTwoForms)
+      .map(({ organization }) => organization)
+      .filter((organization) => organizationFullNameIfDistinct(organization) !== null);
+
+    // Vacuity guard for the loop below, now that the fixture rather than the
+    // seed data is what puts such a creator on the page.
+    expect(twoForms.length).toBeGreaterThan(0);
+
+    // Read off the record's two fields rather than off `organizationSearchTerms`,
+    // which is the function this loop exists to check: iterating its output
+    // means dropping the fuller form shrinks the loop instead of failing it, so
+    // the assertion would survive the exact regression it is here to catch.
     for (const organization of twoForms) {
-      for (const recorded of organizationSearchTerms(organization)) {
-        const matched = homeSuggestionsFor(index, recorded)
+      for (const recorded of [organization.name, organization.shortName]) {
+        const matched = homeSuggestionsFor(built, recorded)
           .filter((suggestion) => suggestion.entity === 'organization')
           .map(({ term }) => term);
         expect(matched).toContain(organizationLabel(organization));
