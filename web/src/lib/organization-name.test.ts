@@ -12,6 +12,7 @@ import {
   buildModelComparison,
 } from './comparison';
 import { buildHomepageHierarchy } from './homepage';
+import { buildHomepageSearchIndex, releaseMatchesQuery } from './homepage-search';
 import { buildLineageEcosystems } from './lineage-view';
 import { buildModelTree } from './model-tree';
 import {
@@ -521,16 +522,50 @@ describe('the creator naming rule on surfaces added later', () => {
   }
 
   /**
+   * How near a `shortName` read must sit to a raw recorded-name read for the two
+   * to read as one deliberate both-forms *search* construction rather than a
+   * display. Reading the recorded name for matching is not the defect -- this
+   * rule depends on it, because a creator must stay findable under either
+   * recorded form -- so the sweep has to tell the two intents apart or it would
+   * force a discoverability regression to go green.
+   *
+   * The window is measured rather than guessed. In `homepage-search.ts` the two
+   * search-term sites sit 19 and 37 characters from their `shortName`; the three
+   * display sites sat 319, 569 and 1047 away. 120 falls inside that gap and
+   * nearer the search end, so the first thing a careless widening would swallow
+   * is a display site -- which is the direction that fails loudly.
+   */
+  const BOTH_FORMS_WINDOW = 120;
+
+  /**
+   * Whether the read at `index` is accompanied by a read of the label form, and
+   * so is building a term set from both recorded names rather than displaying
+   * one of them.
+   */
+  function readsBothForms(source: string, index: number): boolean {
+    for (const match of source.matchAll(/\.shortName\b/g)) {
+      if (Math.abs((match.index ?? 0) - index) <= BOTH_FORMS_WINDOW) return true;
+    }
+    return false;
+  }
+
+  /**
    * Every raw read of an organization's recorded `name`, in any of the shapes
    * the defect has actually taken: named directly, taken straight out of an
-   * organization Map, or taken out of one through a local alias.
+   * organization Map, or taken out of one through a local alias -- less those
+   * that read both forms together, which are search-term constructions.
    */
   function rawRecordedNameReads(source: string): string[] {
-    const hits = [...source.matchAll(/\borganization\.name\b/g)].map(([hit]) => hit);
+    const hits: Array<{ hit: string; index: number }> = [];
+    const record = (match: RegExpMatchArray) => {
+      hits.push({ hit: match[0].replace(/\s+/g, ' '), index: match.index ?? 0 });
+    };
+
+    for (const match of source.matchAll(/\borganization\.name\b/g)) record(match);
 
     for (const map of organizationMapIdentifiers(source)) {
       const direct = new RegExp(`\\b${map}\\.get\\([^)]*\\)\\s*[?!]?\\.name\\b`, 'g');
-      for (const [hit] of source.matchAll(direct)) hits.push(hit.replace(/\s+/g, ' '));
+      for (const match of source.matchAll(direct)) record(match);
 
       // `const operator = organizationById.get(id)` -- optionally guarded by a
       // ternary, which is how two of the four operator sites were written --
@@ -541,11 +576,13 @@ describe('the creator naming rule on surfaces added later', () => {
       );
       for (const [, alias] of source.matchAll(aliased)) {
         const use = new RegExp(`\\b${alias}\\s*[?!]?\\.name\\b`, 'g');
-        for (const [hit] of source.matchAll(use)) hits.push(hit.replace(/\s+/g, ' '));
+        for (const match of source.matchAll(use)) record(match);
       }
     }
 
-    return [...new Set(hits)];
+    return [...new Set(
+      hits.filter(({ index }) => !readsBothForms(source, index)).map(({ hit }) => hit),
+    )];
   }
 
   /**
@@ -557,6 +594,13 @@ describe('the creator naming rule on surfaces added later', () => {
     return (
       /import\s+type\s*\{[^}]*\bOrganization\b[^}]*\}\s*from\s*'\.\.\/data\/schema'/.test(source)
       || /\.organizations\b/.test(source)
+      // ...or destructures one out of a prepared view: `const { organization } =
+      // ecosystem`. `homepage-search.ts` arrived with a later surface holding
+      // real records exactly this way -- naming neither the type nor the
+      // collection -- and the gate skipped the whole module, so five raw reads
+      // were never even offered to the sweep. A module handed an
+      // already-labelled view model still matches none of the three.
+      || /\{\s*organization\s*(?:,[^}]*)?\}\s*=/.test(source)
     );
   }
 
@@ -622,6 +666,81 @@ describe('the creator naming rule on surfaces added later', () => {
     // entry's `name` is the label, so rendering it is already the rule.
     const builder = readFileSync(join(LIB_DIRECTORY, 'provider-directory.ts'), 'utf8');
     expect(builder).toContain('name: organizationLabel(organization)');
+  });
+
+  it('sweeps a module that only ever destructures an organization record', () => {
+    // The shape that arrived with a later surface and defeated the gate: no
+    // `Organization` import, no `.organizations` read, real records all the
+    // same. Asserted against the live module rather than a fixture, so the gate
+    // cannot pass here while the file it was widened for slips out of reach.
+    const module = modules.find(({ file }) => file === 'homepage-search.ts');
+    expect(module, 'homepage-search.ts is not in the swept corpus').toBeDefined();
+    expect(/\.organizations\b/.test(module!.source)).toBe(false);
+    expect(holdsOrganizationRecords(module!.source)).toBe(true);
+  });
+
+  it('exempts a both-forms search construction and still flags a lone display read', () => {
+    // Both directions, because an exemption that never fires would silently
+    // blind the sweep and an exemption that always fires would be no sweep at
+    // all. The recorded name may be read to stay *matchable*; it may not be
+    // read to be *shown*, and only the accompanying label tells them apart.
+    const search = 'const terms = new Set([organization.name, organization.shortName]);';
+    expect(rawRecordedNameReads(search)).toEqual([]);
+
+    const display = 'const heading = `${organization.name} family`;';
+    expect(rawRecordedNameReads(display)).toEqual(['organization.name']);
+
+    // Distance is the discriminator, so it is asserted: the same two reads stop
+    // reading as a pair once they are far enough apart to be unrelated code.
+    const far = `const shown = organization.name;${' '.repeat(400)}const t = organization.shortName;`;
+    expect(rawRecordedNameReads(far)).toEqual(['organization.name']);
+  });
+});
+
+describe('the homepage search surface renders the label', () => {
+  // This surface arrived after the rule and reintroduced the defect on the most
+  // visited page, which is the case for asserting it against real data rather
+  // than trusting the source sweep alone: the sweep reads shapes, and a term
+  // taken from a loop variable never names the record at all.
+  const index = () => buildHomepageSearchIndex(dataset, BASE);
+
+  const relabelled = () => everyOrganization()
+    .filter((item) => item.name !== item.shortName);
+
+  it('shows no creator under a recorded name that differs from its label', () => {
+    const built = index();
+    // Control first: an assertion over an empty set of differing records would
+    // pass for free, and it is exactly the records that differ that matter.
+    expect(relabelled().length).toBeGreaterThan(0);
+
+    for (const organization of relabelled()) {
+      const shown = [
+        ...built.suggestions.map((item) => item.term),
+        ...built.suggestions.map((item) => item.context),
+        ...built.releases.map((item) => item.organizationName),
+      ];
+      expect(shown, `${organization.id} rendered under its recorded name`)
+        .not.toContain(organization.name);
+      expect(shown).not.toContain(`${organization.name} family`);
+    }
+  });
+
+  it('keeps both recorded names findable, so the label did not cost discoverability', () => {
+    const built = index();
+
+    for (const organization of relabelled()) {
+      const rows = built.releases.filter((row) => row.organizationSlug === organization.slug);
+      if (!rows.length) continue;
+
+      for (const form of [organization.name, organization.shortName]) {
+        const matched = rows.filter((row) => releaseMatchesQuery(row, form));
+        expect(matched.length, `${organization.id} unfindable by "${form}"`).toBe(rows.length);
+      }
+    }
+
+    // Control: the probe discriminates rather than matching everything.
+    const anyRow = built.releases[0];
+    expect(releaseMatchesQuery(anyRow, 'zzzznotacreator')).toBe(false);
   });
 });
 

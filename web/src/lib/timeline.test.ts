@@ -277,6 +277,22 @@ describe('buildTimelineIndex', () => {
   });
 });
 
+/**
+ * Whether a `YYYY-MM-DD` string names a day the calendar has, checked by
+ * round-tripping through `Date.UTC`: JavaScript normalises an overflowing day
+ * into the following month, so a value that survives unchanged is real and
+ * `2024-02-31` is not.
+ */
+function isRealCalendarDate(value: string): boolean {
+  const parts = value.split('-');
+  if (parts.length !== 3) return false;
+  const [year, month, day] = parts.map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year
+    && date.getUTCMonth() === month - 1
+    && date.getUTCDate() === day;
+}
+
 describe('timelineDateCeiling', () => {
   it('measures a partial date by the latest instant it could still mean', () => {
     expect(timelineDateCeiling({ date: '2024-07-23', datePrecision: 'day' })).toBe('2024-07-23');
@@ -289,6 +305,60 @@ describe('timelineDateCeiling', () => {
     // unordered "2024-03-15-12-31" and hide the entry from any window opening
     // later in its own year.
     expect(timelineDateCeiling(coarseEntry)).toBe('2024-12-31');
+  });
+
+  it('names a day the calendar actually has, for the months a hardcoded 31 got wrong', () => {
+    // The ceiling used to be built as `${date}-31` for every month, so these
+    // three returned 2024-04-31, 2024-02-31 and 2023-02-31 — strings that order
+    // like dates but that no calendar accepts.
+    expect(timelineDateCeiling({ date: '2024-04', datePrecision: 'month' })).toBe('2024-04-30');
+    expect(timelineDateCeiling({ date: '2024-02', datePrecision: 'month' })).toBe('2024-02-29');
+    expect(timelineDateCeiling({ date: '2023-02', datePrecision: 'month' })).toBe('2023-02-28');
+  });
+
+  it('applies the century rule to February rather than testing divisibility by four', () => {
+    expect(timelineDateCeiling({ date: '2100-02', datePrecision: 'month' })).toBe('2100-02-28');
+    expect(timelineDateCeiling({ date: '2000-02', datePrecision: 'month' })).toBe('2000-02-29');
+  });
+
+  it('rolls over the year at a month-precision December instead of overflowing it', () => {
+    // Deriving the month end by stepping back from the first of the *next*
+    // month is the natural fix and the natural place to get December wrong, so
+    // the rollover is pinned separately from the short-month cases above.
+    expect(timelineDateCeiling({ date: '2024-12', datePrecision: 'month' })).toBe('2024-12-31');
+    expect(timelineDateCeiling({ date: '2023-12', datePrecision: 'month' })).toBe('2023-12-31');
+  });
+
+  it('returns a real calendar date for every month of a leap and a non-leap year', () => {
+    // Expected lengths are written out rather than derived, so the assertion
+    // cannot agree with the implementation by sharing its arithmetic.
+    const lengths: Record<number, number[]> = {
+      2023: [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
+      2024: [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
+    };
+
+    // Control for the round-trip check itself: it has to be capable of both
+    // answers, or "every ceiling is real" would be a claim it cannot refute.
+    expect(isRealCalendarDate('2024-02-29')).toBe(true);
+    expect(isRealCalendarDate('2024-02-31')).toBe(false);
+    expect(isRealCalendarDate('2023-02-29')).toBe(false);
+
+    for (const [year, monthLengths] of Object.entries(lengths)) {
+      monthLengths.forEach((lastDay, index) => {
+        const date = `${year}-${String(index + 1).padStart(2, '0')}`;
+        const ceiling = timelineDateCeiling({ date, datePrecision: 'month' });
+        expect(ceiling).toBe(`${date}-${String(lastDay).padStart(2, '0')}`);
+        expect(isRealCalendarDate(ceiling)).toBe(true);
+      });
+    }
+  });
+
+  it('measures a date finer than its precision by what the precision claims', () => {
+    // `buildTimelineIndex` trims before storing, but the function is exported
+    // and takes any entry, so a mismatched pair must still yield an ordered
+    // date rather than "2024-03-15-31".
+    expect(timelineDateCeiling({ date: '2024-03-15', datePrecision: 'month' })).toBe('2024-03-31');
+    expect(timelineDateCeiling({ date: '2024-03-15', datePrecision: 'year' })).toBe('2024-12-31');
   });
 });
 

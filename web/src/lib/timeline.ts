@@ -1,3 +1,4 @@
+import { latestDay } from '../data/partial-date';
 import type { Dataset, ModelRelease } from '../data/schema';
 import type { FacetValue } from './catalog';
 import { modelRoute } from './catalog';
@@ -96,12 +97,19 @@ export function timelineEntryYear(entry: Pick<TimelineEntry, 'date'>) {
  * The latest instant the entry's date could still refer to, as a comparable
  * string. A `2024` entry could be as late as the end of 2024, so a range bound
  * that used the stored `2024` alone would hide it from every window opening
- * inside that year. The `-31` is a comparison ceiling, never a rendered date and
+ * inside that year. The ceiling is a comparison bound, never a rendered date and
  * never stored, so no day is claimed for a month-precision record.
+ *
+ * The last day of a month comes from {@link latestDay}, which derives it from
+ * the calendar. Assuming `-31` produced ceilings for days that never existed —
+ * `2024-02-31` — so a bound falling between a short month's true end and the
+ * 31st was compared against a value no calendar accepts. The date is trimmed to
+ * its declared precision first, so an entry carrying more than its precision
+ * claims is still measured by what it claims rather than producing an unordered
+ * `2024-03-15-12-31`.
  */
 export function timelineDateCeiling(entry: Pick<TimelineEntry, 'date' | 'datePrecision'>) {
-  if (entry.datePrecision === 'day') return entry.date;
-  return entry.datePrecision === 'month' ? `${entry.date}-31` : `${entry.date}-12-31`;
+  return latestDay(toStatedPrecision(entry.date, entry.datePrecision));
 }
 
 /** How many characters of an ISO date each precision actually claims. */
