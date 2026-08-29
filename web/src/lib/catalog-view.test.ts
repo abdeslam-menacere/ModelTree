@@ -65,8 +65,20 @@ function makeIndex(overrides: Record<string, unknown> = {}): CatalogIndex {
       type: 'official-announcement',
       publisherId: 'example',
       lastCheckedDate: '2026-01-01',
+    }, {
+      // A release recording `license.osiApproved` has to cite OSI at either
+      // value, so the two licence-bearing fixtures below carry this.
+      id: 'osi-list',
+      url: 'https://opensource.org/licenses',
+      title: 'OSI Approved Licenses',
+      type: 'official-docs',
+      publisherId: 'open-source-initiative',
+      lastCheckedDate: '2026-01-01',
     }],
-    publishers: [{ id: 'example', name: 'Example' }],
+    publishers: [
+      { id: 'example', name: 'Example' },
+      { id: 'open-source-initiative', name: 'Open Source Initiative' },
+    ],
     organizations: [
       {
         id: 'alpha',
@@ -147,6 +159,7 @@ function makeIndex(overrides: Record<string, unknown> = {}): CatalogIndex {
         inputModalities: ['text', 'video'],
         contextWindow: 500_000,
         license: { name: 'Apache-2.0', weightsDownloadable: true, osiApproved: false },
+        sourceIds: ['src-a', 'osi-list'],
         verifiedAt: '2026-01-15',
       }),
       release('beta-image', 'beta', 'beta-one', '2025-01-01', {
@@ -156,6 +169,7 @@ function makeIndex(overrides: Record<string, unknown> = {}): CatalogIndex {
         outputModalities: ['image', 'audio'],
         contextWindow: 2_000_000,
         license: { name: 'Llama-3', weightsDownloadable: true, osiApproved: false },
+        sourceIds: ['src-a', 'osi-list'],
         verifiedAt: '2026-01-10',
       }),
       release('beta-legacy', 'beta', 'beta-one', '2023-11-01', {
