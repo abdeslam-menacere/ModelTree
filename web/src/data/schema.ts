@@ -100,12 +100,35 @@ export const accessType = z.enum([
 // floor — it ensures a licence is identified — not the evidence rule for the
 // field's truth, which is the reviewer's to apply.
 //
-// A known asymmetry, recorded rather than resolved here: `superRefine` demands
-// an `spdxId` or `url` for `osiApproved: true` but nothing for `osiApproved:
-// false`, even though `false` is equally a claim about the world. Requiring a
-// source for `false` too would be consistent, but it changes validator behaviour
-// and is out of scope for #461; it is raised in that issue's summary for a
-// follow-up rather than implemented silently.
+// Whether `osiApproved: false` needs a source too, left open by #461 and decided
+// in abdeslam-menacere/ModelTree#481: **it does**, and `validateDataset`
+// enforces it. `false` asserts that OSI has not approved the named licence,
+// which is as much a claim about the world as `true` is, and it is one OSI's own
+// publication can settle rather than merely fail to contradict: the approved
+// list is exhaustive by construction, so a licence absent from it has not been
+// approved. Absence there is a reading of the register, not an argument from
+// silence. Leaving `false` unevidenced would have made the unsourced value the
+// cheapest one in the schema to assert, which inverts the point of the rule
+// above. So every release carrying `osiApproved`, at either value, must cite a
+// source published by the Open Source Initiative.
+//
+// The *structural floor* stays asymmetric, and that part is deliberate rather
+// than left over. `superRefine` still demands an `spdxId` or a licence `url` for
+// `true` alone. A `true` claim has to be matched against a named entry on OSI's
+// list, and matching needs the licence pinned to something more canonical than a
+// free-text name. A `false` claim is the complement of that list, and the
+// licences it covers are largely bespoke vendor terms; one carrying no SPDX id
+// and no canonical URL is the case where `false` is least in doubt, so demanding
+// an identifier there would push a record towards inventing one to state
+// something the sources already support. Requiring evidence and requiring an
+// identifier are different requirements, and this field now takes the first
+// symmetrically and the second only where it does work.
+//
+// What that enforcement does and does not settle: `validateDataset` checks that
+// an OSI-published source is cited. It never reads that source, so it cannot
+// confirm the page says what the record claims — the same division of labour as
+// the rule above, where the check is structural and the judgement is the
+// reviewer's.
 export const licenseSchema = z.object({
   name: z.string().min(1),
   spdxId: z.string().min(1).optional(),
@@ -319,7 +342,14 @@ export const releaseSchema = z.object({
     context.addIssue({
       code: 'custom',
       path: ['license'],
-      message: 'an OSI-approved claim needs an spdxId or a licence URL as evidence',
+      // Says what this refusal is for. The earlier wording called the identifier
+      // "evidence", which is the one inference the note beside `licenseSchema`
+      // exists to forbid, and a refusal message is where a false claim of
+      // verification is most likely to be believed — it reaches an operator at
+      // the moment the check fires (the reasoning ADR 0005 records for
+      // `gate-evidence.mjs` refusals). Identifying the licence is the floor;
+      // OSI's own page is the evidence.
+      message: 'an OSI-approved claim must identify the licence with an spdxId or a licence URL',
     });
   }
 });

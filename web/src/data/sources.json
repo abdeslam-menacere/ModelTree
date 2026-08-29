@@ -1200,6 +1200,24 @@
     "notes": "The Open Source Initiative's own page for this licence, carrying its \"Open Source Initiative Approved License\" mark; OSI's licence index at https://opensource.org/licenses lists \"Apache License, Version 2.0\" among those that have completed the process \"To be approved by the Open Source Initiative\". Cited for approval status only, per tools/updater/profiles/origins/open-source-initiative.json. The licence name on the release comes from Cohere's own model card, not from here, and this page is the authority for the status rather than the licence identifier being evidence of it."
   },
   {
+    "id": "osi-license-mit",
+    "url": "https://opensource.org/license/mit",
+    "title": "The MIT License",
+    "type": "official-docs",
+    "publisherId": "open-source-initiative",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "The Open Source Initiative's own page for the MIT License. Fetched 2026-08-29: HTTP 200, <title>The MIT License – Open Source Initiative</title>, and the licence is linked from OSI's index at https://opensource.org/licenses as /license/mit. Cited for OSI approval status only, per tools/updater/profiles/origins/open-source-initiative.json. The licence name on each release comes from that creator's own model card or repository; this page is the authority for whether OSI approved the licence so named, which no model card states."
+  },
+  {
+    "id": "osi-license-index",
+    "url": "https://opensource.org/licenses",
+    "title": "OSI Approved Licenses",
+    "type": "official-docs",
+    "publisherId": "open-source-initiative",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "OSI's complete published index of the licences it has approved: \"To be approved by the Open Source Initiative (also known as the OSI) a license must go through the Open Source Initiative's license review process\". Cited by releases recording osiApproved: false, because the index is exhaustive by construction — a licence that has completed OSI's review appears here, so a licence absent from it has not been approved. That makes absence a reading of the register rather than an argument from silence. Fetched 2026-08-29: HTTP 200, <title>Licenses – Open Source Initiative</title>, h1 \"OSI Approved Licenses\", linking 123 distinct /license/ pages; the index carried no entry and no mention of the Llama Community, Falcon LLM, NVIDIA Open Model, Qwen or \"Modified MIT\" licences, while Apache License 2.0 and the MIT License were both present as controls on the same read. Cited for OSI approval status only, per tools/updater/profiles/origins/open-source-initiative.json."
+  },
+  {
     "id": "ai2-olmo-2-announcement",
     "url": "https://allenai.org/blog/olmo2",
     "title": "OLMo 2: The best fully open language model to date",
