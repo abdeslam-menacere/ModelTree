@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import type { Dataset, Organization } from '../data/schema';
 import { buildCatalogIndex } from './catalog';
+import { defaultCatalogState, filterAndSortModels } from './catalog-view';
 import { buildComparisonCandidates, buildComparisonPickerIndex } from './comparison';
 import { buildHomepageHierarchy } from './homepage';
 import { buildLineageEcosystems } from './lineage-view';
@@ -180,6 +181,45 @@ describe('the rule is applied at every surface that names a creator', () => {
       expect(candidate.organizationSearchTerms).toContain(organizationFullName(organization));
       expect(candidate.organizationSearchTerms).toContain(organizationLabel(organization));
     }
+  });
+
+  it('still matches a catalog model row on the fuller recorded name', () => {
+    // The reader-visible property, asserted through the real search predicate
+    // rather than the field: before the label rule, typing a creator's fuller
+    // recorded form into the catalog surfaced its models. It still must.
+    const index = buildCatalogIndex(dataset, BASE);
+    const search = (query: string) =>
+      filterAndSortModels(index.models, { ...defaultCatalogState(), search: query })
+        .map((row) => row.slug)
+        .sort();
+
+    const distinct = everyOrganization().filter(
+      (organization) => organizationFullNameIfDistinct(organization) !== null,
+    );
+    // Vacuity guard: with no such creator every assertion below is trivially
+    // true, so the sweep would pass over a dataset that cannot exercise it.
+    expect(distinct.length).toBeGreaterThan(0);
+
+    for (const organization of distinct) {
+      const own = index.models
+        .filter((row) => row.organizationSlug === organization.slug)
+        .map((row) => row.slug)
+        .sort();
+      if (!own.length) continue;
+
+      // Either recorded form reaches the creator's models; neither is privileged.
+      expect(search(organizationFullName(organization))).toEqual(own);
+      expect(search(organizationLabel(organization))).toEqual(own);
+
+      // ...while what those rows display stays the label.
+      for (const row of index.models.filter((item) => item.organizationSlug === organization.slug)) {
+        expect(row.organizationName).toBe(organizationLabel(organization));
+      }
+    }
+
+    // Control: the predicate is not simply matching everything. A string in no
+    // recorded form returns nothing, so the counts above discriminate.
+    expect(search('zzz-not-a-recorded-creator-name')).toEqual([]);
   });
 });
 

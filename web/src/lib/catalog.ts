@@ -2,7 +2,11 @@ import type { Dataset, DatePrecision } from '../data/schema';
 import { comparePartialDatesDescending } from '../data/partial-date';
 import { accessLabel, categoryLabel, statusLabel } from './format';
 import { buildLineageEcosystems } from './lineage-view';
-import { organizationLabel, organizationSearchTerms } from './organization-name';
+import {
+  organizationFullNameIfDistinct,
+  organizationLabel,
+  organizationSearchTerms,
+} from './organization-name';
 
 export const CATALOG_INDEX_VERSION = 1;
 
@@ -23,7 +27,20 @@ export interface ModelIndexRow {
   name: string;
   variant: string;
   organizationSlug: string;
+  /** The creator label -- the one string this row displays. */
   organizationName: string;
+  /**
+   * The creator's fuller recorded form, carried so search still finds this row
+   * by it now that `organizationName` is the label.
+   *
+   * Absent when the two recorded forms agree, which is not only a byte saving:
+   * a present value states that the record makes a distinction, so repeating
+   * the label here would assert one it does not make. The saving is real
+   * though, and measured -- carrying both forms on every row costs 610 bytes
+   * per row against a 600-byte budget, while carrying this only where the
+   * forms differ costs 571. Search must not be paid for by the payload budget.
+   */
+  organizationFullName?: string;
   familySlug: string;
   familyName: string;
   releaseDate: string;
@@ -231,12 +248,15 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
       continue;
     }
 
+    const organizationFullName = organizationFullNameIfDistinct(organization);
+
     models.push({
       slug: release.slug,
       name: release.displayName,
       variant: release.variant,
       organizationSlug: organization.slug,
       organizationName: organizationLabel(organization),
+      ...(organizationFullName ? { organizationFullName } : {}),
       familySlug: family.slug,
       familyName: family.name,
       releaseDate: release.releaseDate,

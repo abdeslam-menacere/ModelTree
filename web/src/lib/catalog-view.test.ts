@@ -83,7 +83,12 @@ function makeIndex(overrides: Record<string, unknown> = {}): CatalogIndex {
       {
         id: 'beta',
         slug: 'beta',
-        name: 'Beta Corp',
+        // The two recorded forms deliberately diverge, as they do for the real
+        // `xai`, `google-deepmind` and `mistral-ai` records. "Holdings" appears
+        // in the fuller form alone, so it isolates the recorded-form clause of
+        // the search predicate. The label -- and so everything displayed and
+        // sorted -- is unchanged at "Beta Corp".
+        name: 'Beta Holdings Incorporated',
         shortName: 'Beta Corp',
         type: 'company',
         website: 'https://beta.example/',
@@ -373,6 +378,28 @@ describe('filterAndSortModels', () => {
     // So this isolates the creator-name clause of the search predicate.
     expect(filterAndSortModels(rows, stateWith({ search: 'LABS' })).map((row) => row.slug).sort())
       .toEqual(['alpha-code', 'alpha-lang']);
+  });
+
+  it('matches search on the creator\'s fuller recorded form, not just the label', () => {
+    // The label is what a row displays, so matching only the label would lose a
+    // reader who knows the creator by its other recorded form — the regression
+    // this guards (abdeslam-menacere/ModelTree#479). "Holdings" is in
+    // "Beta Holdings Incorporated" and in nothing else: not the label
+    // "Beta Corp", no model name, no family name. Deleting the
+    // `organizationFullName` clause of `matchesSearch` returns [] here.
+    const byRecordedForm = filterAndSortModels(rows, stateWith({ search: 'HOLDINGS' }));
+    expect(byRecordedForm.map((row) => row.slug).sort()).toEqual(['beta-image', 'beta-legacy']);
+
+    // Both recorded forms reach the same rows; neither is privileged.
+    expect(filterAndSortModels(rows, stateWith({ search: 'Beta Corp' })).map((row) => row.slug).sort())
+      .toEqual(['beta-image', 'beta-legacy']);
+
+    // The rows still *display* the label, so widening search did not widen display.
+    for (const row of byRecordedForm) expect(row.organizationName).toBe('Beta Corp');
+
+    // Control: the predicate is not matching everything. A string in neither
+    // recorded form matches nothing.
+    expect(filterAndSortModels(rows, stateWith({ search: 'Holdings Labs' }))).toHaveLength(0);
   });
 
   it('matches search on the model name alone, case-insensitively', () => {
