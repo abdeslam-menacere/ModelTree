@@ -587,6 +587,31 @@ describe('the creator naming rule where creators are ordered', () => {
  * it is exempt by the same record-following gate -- it holds no Organization
  * record -- rather than by a path rule that would re-blind the surface.
  *
+ * Two stages decide whether a surface is actually checked, and only the second
+ * -- `holdsOrganizationRecords` -- reads the file. Discovery reaches every
+ * `.astro`, but the gate judges a minority of the corpus by design, because
+ * most swept modules hold already-labelled view models rather than raw records
+ * (`ProviderDirectory.tsx` is the asserted case). So this is *not* blanket
+ * `.astro` coverage: a file is guarded only once it trips a gate clause, and
+ * the gate, not the corpus, bounds reach. Widening the corpus to `.astro`
+ * surfaced this directly -- `index.astro` unpacks a real record in a callback
+ * parameter, `hierarchy.map(({ organization }) => ...)`, a shape the gate did
+ * not recognise, so it rendered a raw name unjudged until that clause was
+ * added. The 'judges at least one .astro surface' assertion pins the judged
+ * `.astro` count above zero so a corpus that is discovered but never judged
+ * fails loudly rather than passing on `lib/*.ts` alone.
+ *
+ * The gate now recognises a record by four routes: the schema type import, a
+ * mention of `.organizations`, a `const { ... } =` destructure, and a
+ * destructured callback parameter. A module that reaches a record any other way
+ * is swept but not judged -- some correctly, because they hold a prepared view
+ * model, which is exactly why `ProviderDirectory.tsx` is excluded by mechanism
+ * rather than by path. One residual route is known and tracked as #546: a record
+ * reached as a *property* of a prepared view, `view.organization`, which leaves
+ * `ModelPassport.tsx` and `pages/models/[slug].astro` swept but unjudged even
+ * though `passport.ts` declares that field as an `Organization`. It is named
+ * here as a followable pointer rather than closed in this change.
+ *
  * What it still cannot do is catch a surface that never names the record at
  * all -- a destructured sort comparator reading `a.name` is invisible to any
  * sweep for a shape. That class is guarded by the real-dataset assertions
@@ -729,6 +754,17 @@ describe('the creator naming rule on surfaces added later', () => {
    * Whether a module holds an actual Organization record, as opposed to a view
    * model built from one. This is the sweep's gate, and it is what correctly
    * excludes `ProviderDirectory.tsx`.
+   *
+   * This gate -- not the corpus -- is what bounds the sweep's reach, and it is
+   * deliberately narrow: it recognises a module that imports the `Organization`
+   * type, reads `dataset.organizations`, or destructures a record out of a
+   * prepared view. Most swept modules match none of these and are correctly not
+   * judged, because they hold already-labelled view models rather than records
+   * (`ProviderDirectory.tsx` is the asserted example). So after every widening
+   * of the corpus, the judged set stays a minority of it on purpose, and a
+   * surface is only guarded once it trips one of these clauses -- see the
+   * 'judges at least one .astro surface' assertion, which pins the judged count
+   * above zero so a corpus that is discovered but never judged still fails.
    */
   function holdsOrganizationRecords(source: string): boolean {
     return (
@@ -741,6 +777,25 @@ describe('the creator naming rule on surfaces added later', () => {
       // were never even offered to the sweep. A module handed an
       // already-labelled view model still matches none of the three.
       || /\{\s*organization\s*(?:,[^}]*)?\}\s*=/.test(source)
+      // ...or destructures one in a callback *parameter*, the shape the homepage
+      // and the two lineage explorers use to walk a hierarchy:
+      // `hierarchy.map(({ organization, families }) => ...)`. The record is real
+      // and raw -- it never passed through the label -- but it is named in an
+      // arrow parameter rather than a `const`, so the clause above steps over it.
+      // This is the original #504 regression shape on a fresh surface, and
+      // `index.astro` rendered a raw name through it while the gate skipped the
+      // whole file. Matched here so the record is judged wherever it is unpacked.
+      //
+      // The braces are load-bearing: this matches a *destructured* parameter and
+      // deliberately not a bare one. `ProviderDirectory.tsx` maps
+      // `(organization) => <li>{organization.name}</li>` over a prepared
+      // `DirectoryEntry` whose `.name` is already the label, so rendering it is
+      // correct; widening to bare parameters would judge that file and fail on
+      // correct code. Requiring `{ ... }` keeps the bare-parameter view model out
+      // by mechanism, which is why this clause adds three judged modules
+      // (`index.astro`, `LineageExplorer.tsx`, `ModelTreeExplorer.tsx`) and
+      // reddens none.
+      || /\(\s*\{[^}]*\borganization\b[^}]*\}\s*\)\s*=>/.test(source)
     );
   }
 
@@ -766,6 +821,25 @@ describe('the creator naming rule on surfaces added later', () => {
     expect(
       astro.length,
       `no .astro surfaces discovered -- the sweep matched nothing (found: ${astro.map(({ file }) => file).join(', ')})`,
+    ).toBeGreaterThan(0);
+  });
+
+  it('judges at least one .astro surface, so discovery is not the whole story', () => {
+    // Discovery and judgement are two stages, and only the second checks a file:
+    // a surface can be discovered and then dropped by `holdsOrganizationRecords`,
+    // in which case the sweep never reads it. The discovery guard above cannot
+    // see that -- discovery succeeded -- and the global `holdsOrganizations` count
+    // is satisfied by `lib/*.ts` alone, so both stay green while the `.astro`
+    // judged count sits at zero. That is exactly how a raw `{organization.name}`
+    // read on `index.astro` went unjudged until the callback-parameter clause was
+    // added. This assertion pins the judged `.astro` count above zero, and names
+    // the surfaces so a reader can tell judgement from mere discovery.
+    const judgedAstro = modules.filter(({ file, source }) => (
+      file.endsWith('.astro') && holdsOrganizationRecords(source)
+    ));
+    expect(
+      judgedAstro.length,
+      'no .astro surface is judged -- every discovered .astro file was dropped by the record gate',
     ).toBeGreaterThan(0);
   });
 
