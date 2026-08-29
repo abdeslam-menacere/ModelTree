@@ -217,6 +217,17 @@ describe('the correction form is compatible with the link the site already ships
       expect(required, `${id} must be required`).toContain(id);
     }
   });
+
+  it('leaves a contributor a route when the record kind is not listed', () => {
+    // `record-kind` is the one dropdown with no schema enum behind it: its
+    // options are editorial prose sharing no member with any Zod enum, so
+    // deriving it would mean hand-writing a prose-to-key table -- a new
+    // unbound constant rather than one less. What keeps a closed list of ten
+    // safe against a schema of sixteen collections is the catch-all, so that
+    // is the property worth pinning rather than the vocabulary itself.
+    expect(dropdownOptions(correctionForm, CORRECTION_FORM, 'record-kind'))
+      .toContain('I am not sure');
+  });
 });
 
 // ---------------------------------------------------------------------------
