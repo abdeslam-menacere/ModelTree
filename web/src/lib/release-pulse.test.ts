@@ -141,6 +141,76 @@ describe('coverage statistics', () => {
     expect(stats.events).toBe(seedDataset.releaseEvents.length);
   });
 
+  it('counts only organizations that publish, not every organization', () => {
+    // The heart of #515. `buildCoverageStats` counted `organizations.length`,
+    // but a "creator" is an organization that has published -- serving
+    // platforms, hosting providers and consortia are separate entities the
+    // model keeps distinct. The live dataset has zero non-creator
+    // organizations, so an assertion against the seed alone is vacuous: it
+    // passes under both the correct and the broken derivation. This test
+    // constructs the population the live data cannot supply.
+    //
+    // `nonCreator` is a fully-valid organization with no family and no release.
+    // It is built through `makeDataset`/`validateDataset`, so a schema change
+    // that outlawed this shape would fail here rather than pass quietly.
+    const nonCreator = {
+      id: 'org-platform',
+      slug: 'org-platform',
+      name: 'Serving Platform Co',
+      shortName: 'Platform',
+      type: 'company' as const,
+      website: 'https://example.com/platform',
+      releasePage: 'https://example.com/platform/news',
+      description: 'A hosting-only organization that publishes no models.',
+      sourceIds: ['src-official'],
+      verifiedAt: '2026-08-28',
+    };
+    const withNonCreator = makeDataset({
+      organizations: [
+        {
+          id: 'org',
+          slug: 'org',
+          name: 'Org',
+          shortName: 'Org',
+          type: 'company',
+          website: 'https://example.com/',
+          releasePage: 'https://example.com/news',
+          description: 'Fixture creator.',
+          sourceIds: ['src-official'],
+          verifiedAt: '2026-08-28',
+        },
+        nonCreator,
+      ],
+    });
+
+    // Vacuity guard: the fixture actually contains a non-creator organization,
+    // one recorded but named by no release. Without this the assertion below
+    // could pass because the two populations happen to coincide -- the exact
+    // way the live dataset makes this test worthless.
+    const publisherIds = new Set(withNonCreator.releases.map((r) => r.organizationId));
+    const nonCreators = withNonCreator.organizations.filter((o) => !publisherIds.has(o.id));
+    expect(nonCreators.map((o) => o.id)).toContain('org-platform');
+    expect(withNonCreator.organizations.length).toBeGreaterThan(nonCreators.length);
+
+    // The count is the creator population, strictly fewer than every
+    // organization. Under the broken `organizations.length` derivation the
+    // first assertion reads 2 and fails; that is what the mutation proof shows.
+    const creatorCount = withNonCreator.organizations.length - nonCreators.length;
+    expect(buildCoverageStats(withNonCreator).creators).toBe(creatorCount);
+    expect(buildCoverageStats(withNonCreator).creators).toBeLessThan(
+      withNonCreator.organizations.length,
+    );
+
+    // No-redden control: adding a non-creator organization does not change the
+    // creator count relative to the base fixture, which has the same single
+    // publisher. A test that reddened on any dataset edit could not tell this
+    // apart from the assertion above.
+    expect(buildCoverageStats(withNonCreator).creators).toBe(
+      buildCoverageStats(makeDataset()).creators,
+    );
+  });
+
+
   it('moves each count with the records actually present', () => {
     const base = makeDataset();
     const grown = makeDataset({
