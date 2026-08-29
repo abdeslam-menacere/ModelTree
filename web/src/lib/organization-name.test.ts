@@ -12,7 +12,8 @@ import {
   buildModelComparison,
 } from './comparison';
 import { buildHomepageHierarchy } from './homepage';
-import { buildHomepageSearchIndex, releaseMatchesQuery } from './homepage-search';
+import { buildHomepageSearchIndex, normalizeText, releaseMatchesQuery } from './homepage-search';
+import { homeSuggestionsFor } from './homepage-search-view';
 import { buildLineageEcosystems } from './lineage-view';
 import { buildModelTree } from './model-tree';
 import {
@@ -23,7 +24,7 @@ import {
   organizationSearchTerms,
 } from './organization-name';
 import { buildModelPassport } from './passport';
-import { buildProviderDirectory, directoryInitial } from './provider-directory';
+import { buildProviderDirectory, directoryInitial, matchesDirectorySearch } from './provider-directory';
 import { buildTimelineIndex } from './timeline';
 
 /**
@@ -428,11 +429,32 @@ describe('the creator naming rule where creators are ordered', () => {
   it('lists creators on the homepage in the order of the names the homepage prints', () => {
     const hierarchy = buildHomepageHierarchy(dataset);
     expect(hierarchy.length).toBeGreaterThan(0);
+    const ids = hierarchy.map((entry) => entry.organization.id);
     const labels = hierarchy.map((entry) => organizationLabel(entry.organization));
     expect(isNonDecreasing(labels)).toBe(true);
-    // The defect exactly as it shipped: the page ordered on "Google DeepMind"
-    // while printing "DeepMind", so DeepMind appeared after DeepSeek.
-    expect(labels.indexOf('DeepMind')).toBeLessThan(labels.indexOf('DeepSeek'));
+
+    // The same records ordered by the other candidate key, so the crossing below
+    // is measured rather than assumed.
+    const orderedBy = (key: (organization: Organization) => string) => hierarchy
+      .map((entry) => entry.organization)
+      .slice()
+      .sort((a, b) => compareLabels(key(a), key(b)) || compareLabels(a.id, b.id))
+      .map(({ id }) => id);
+    const byRecordedName = orderedBy(organizationFullName);
+
+    // The defect exactly as it shipped, on a pair this data still crosses:
+    // `ai2` prints "AI2" and is recorded as "Allen Institute for AI", so the
+    // label files it before `ai21-labs` and the recorded name files it after.
+    //
+    // Until #531 this anchor was "DeepMind" before "DeepSeek". That creator now
+    // displays as "Google DeepMind", so its two forms agree and it can no longer
+    // witness a disagreement between them -- and left alone the assertion would
+    // not have failed, because `indexOf` of a label the page no longer prints
+    // returns -1, which is less than any real position. It would have gone on
+    // passing while testing nothing, so it was re-anchored rather than deleted.
+    expect(ids).not.toEqual(byRecordedName);
+    expect(ids.indexOf('ai2')).toBeLessThan(ids.indexOf('ai21-labs'));
+    expect(byRecordedName.indexOf('ai2')).toBeGreaterThan(byRecordedName.indexOf('ai21-labs'));
   });
 
   it('lists creators in the lineage tree in the order of the names that tree prints', () => {
@@ -443,34 +465,59 @@ describe('the creator naming rule where creators are ordered', () => {
 
   it('orders lineage ecosystems by the label even where the two orderings disagree', () => {
     // The assertion above cannot fail on today's data, and saying so is the
-    // point: the featured set contains DeepMind but not DeepSeek, so "DeepMind"
-    // and "Google DeepMind" occupy the same slot either way. A guard that only
-    // holds while a release flag happens not to change is not a guard.
+    // point: every creator on the featured set records the same string in both
+    // name fields, so label order and recorded-name order coincide there and a
+    // reverted sort key would pass. A guard that only holds while a release flag
+    // happens not to change is not a guard.
     //
-    // Featuring one DeepSeek release -- the sole input the derivation reads --
-    // restores the distinction without inventing an organization or editing the
-    // dataset. The fixture is chosen by the property under test.
-    const deepseek = dataset.releases.find((release) => release.organizationId === 'deepseek');
-    expect(deepseek, 'no deepseek release available to feature').toBeDefined();
+    // Featuring one release from each of two creators whose forms *do* differ --
+    // the sole input the derivation reads -- restores the distinction without
+    // inventing an organization or editing the dataset. The fixture is chosen by
+    // the property under test: `ai2` prints "AI2" and is recorded as "Allen
+    // Institute for AI", so it files before `ai21-labs` under the label and
+    // after it under the recorded name.
+    //
+    // This was `google-deepmind` against `deepseek` until #531 decided that
+    // creator displays as "Google DeepMind". Its two forms now agree, so it
+    // cannot witness a disagreement between them; the fixture moved to a pair
+    // that still can rather than the assertion being weakened.
+    const witnesses = ['ai2', 'ai21-labs'];
+    const promoted = witnesses.map((creatorId) => {
+      const release = dataset.releases.find((item) => item.organizationId === creatorId);
+      expect(release, `no ${creatorId} release available to feature`).toBeDefined();
+      return release!.id;
+    });
 
-    const withDeepSeekFeatured: Dataset = {
+    const withWitnessesFeatured: Dataset = {
       ...dataset,
       releases: dataset.releases.map((release) => (
-        release.id === deepseek!.id ? { ...release, featured: true } : release
+        promoted.includes(release.id) ? { ...release, featured: true } : release
       )),
     };
 
-    const labels = buildLineageEcosystems(withDeepSeekFeatured)
-      .map((entry) => organizationLabel(entry.organization));
+    const ecosystems = buildLineageEcosystems(withWitnessesFeatured);
+    const ids = ecosystems.map((entry) => entry.organization.id);
+    const labels = ecosystems.map((entry) => organizationLabel(entry.organization));
 
     // The vacuity guard: without both creators present the ordering below is
     // satisfied trivially.
-    expect(labels).toContain('DeepMind');
-    expect(labels).toContain('DeepSeek');
+    expect(ids).toContain('ai2');
+    expect(ids).toContain('ai21-labs');
     expect(isNonDecreasing(labels)).toBe(true);
+
+    const byRecordedName = ecosystems
+      .map((entry) => entry.organization)
+      .slice()
+      .sort((a, b) => (
+        compareLabels(organizationFullName(a), organizationFullName(b))
+        || compareLabels(a.id, b.id)
+      ))
+      .map(({ id }) => id);
+
     // The defect restated. Ordering on the recorded name files this creator
-    // under "Google", which puts it after DeepSeek.
-    expect(labels.indexOf('DeepMind')).toBeLessThan(labels.indexOf('DeepSeek'));
+    // under "Allen", which puts it after AI21 Labs.
+    expect(ids.indexOf('ai2')).toBeLessThan(ids.indexOf('ai21-labs'));
+    expect(byRecordedName.indexOf('ai2')).toBeGreaterThan(byRecordedName.indexOf('ai21-labs'));
   });
 
   it('names the creator on a timeline entry by the label', () => {
@@ -831,6 +878,96 @@ describe('xai, the record that prompted the rule', () => {
     expect(record.description).toContain('SpaceXAI');
     expect(record.description).toContain('xAI');
     expect(record.sourceIds.length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * abdeslam-menacere/ModelTree#531: `google-deepmind` displays as "Google
+ * DeepMind".
+ *
+ * The decision is editorial and is argued in the issue; what needs a test is its
+ * one measurable consequence. While the record carried two different forms,
+ * "DeepMind" was a recorded search term in its own right, so every surface found
+ * this creator by that word no matter how it compared terms. Making the two
+ * forms agree deduplicates them to a single recorded form, and the bare word a
+ * great many readers still type now reaches the creator only because these
+ * matchers look *inside* a recorded form rather than at the whole of it.
+ *
+ * Nothing else here says they have to. Each of these four surfaces owns its own
+ * matcher, and swapping any one of them to prefix or whole-term comparison would
+ * silently stop bare "DeepMind" finding Google's AI lab --
+ * `'google deepmind'.startsWith('deepmind')` is false -- while every other
+ * assertion in this suite stayed green. So the behaviour is pinned per surface,
+ * as behaviour a reader can feel rather than as an implementation detail: type
+ * the word, get this creator.
+ */
+describe('bare "DeepMind" still reaches the creator that #531 relabelled', () => {
+  const NEEDLE = 'DeepMind';
+  const record = () => everyOrganization().find((item) => item.id === 'google-deepmind')!;
+  const MISS = 'zzzznotacreator';
+
+  it('carries the bare word only inside a recorded form, which is what makes the rest load-bearing', () => {
+    // The guard for this whole block. While two forms were recorded, one of them
+    // *was* this string, so everything below would have passed under any matcher
+    // -- including the ones it exists to reject. Assert the precondition rather
+    // than assume it still holds: no recorded form equals the word, and at least
+    // one contains it.
+    const terms = organizationSearchTerms(record());
+    expect(terms.some((term) => normalizeText(term) === normalizeText(NEEDLE))).toBe(false);
+    expect(terms.some((term) => normalizeText(term).includes(normalizeText(NEEDLE)))).toBe(true);
+  });
+
+  it('offers it as a homepage creator suggestion', () => {
+    const built = buildHomepageSearchIndex(dataset, BASE);
+    const matched = homeSuggestionsFor(built, NEEDLE)
+      .filter((suggestion) => suggestion.entity === 'organization')
+      .map(({ term }) => term);
+
+    expect(matched).toContain(organizationLabel(record()));
+    // Control: the probe discriminates rather than returning everything.
+    expect(homeSuggestionsFor(built, MISS)).toEqual([]);
+  });
+
+  it('matches its releases in the homepage release rows', () => {
+    const built = buildHomepageSearchIndex(dataset, BASE);
+    const rows = built.releases.filter((row) => row.organizationSlug === record().slug);
+
+    // Positive control: a creator with no homepage row would satisfy the
+    // filters below without exercising the matcher.
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.filter((row) => releaseMatchesQuery(row, NEEDLE))).toHaveLength(rows.length);
+    expect(rows.filter((row) => releaseMatchesQuery(row, MISS))).toHaveLength(0);
+  });
+
+  it('matches it in the provider directory, which the decision refiled under G', () => {
+    const directory = buildProviderDirectory(dataset, BASE);
+    const entry = directory.groups
+      .flatMap((group) => group.entries)
+      .find((item) => item.id === 'google-deepmind');
+
+    expect(entry, 'no directory entry for google-deepmind').toBeDefined();
+    expect(matchesDirectorySearch(entry!, NEEDLE)).toBe(true);
+    expect(matchesDirectorySearch(entry!, MISS)).toBe(false);
+    // The intended consequence of the decision, written down so a later reader
+    // does not take it for a regression: the label leads with "Google", so the
+    // creator files under G. It filed under D while the label was the shorter
+    // form, and a reader looking for Google's AI lab under G found nothing.
+    expect(entry!.initial).toBe(directoryInitial(organizationLabel(record())));
+    expect(entry!.initial).toBe('G');
+  });
+
+  it('matches its releases in the catalog search', () => {
+    const catalog = buildCatalogIndex(dataset, BASE);
+    const hits = (search: string) => filterAndSortModels(
+      catalog.models,
+      { ...defaultCatalogState(), search },
+    ).filter((row) => row.organizationSlug === record().slug);
+
+    expect(hits(NEEDLE).length).toBeGreaterThan(0);
+    // The bare word reaches everything the full label does, so the shorter form
+    // costs a reader nothing here.
+    expect(hits(NEEDLE)).toHaveLength(hits(organizationLabel(record())).length);
+    expect(hits(MISS)).toHaveLength(0);
   });
 });
 

@@ -30,6 +30,24 @@ import type { Organization } from '../data/schema';
  * display, sort, and filing sites the defect was found in could each have been
  * fixed on their own, and would then have been free to drift apart again.
  *
+ * **Applying the rule when the label reads wrong: change the record, never this
+ * file.** abdeslam-menacere/ModelTree#531 asked whether `google-deepmind` should
+ * display as `DeepMind` or as `Google DeepMind`, and decided the fuller form:
+ * `DeepMind` names the lab founded in 2010, while `Google DeepMind` names the
+ * organization formed in 2023 by merging that lab with Google Brain. Those are
+ * two entities rather than two names for one, and a creator, a model, a product
+ * and a serving platform being separate entities is a rule this repository keeps
+ * elsewhere too. The decision was carried out by recording the chosen form as
+ * that creator's `shortName`, cited and dated like any other fact, which is what
+ * kept it a reviewable editorial choice instead of a branch in a renderer.
+ *
+ * That shape generalizes, and the counter-example is the instructive half: an
+ * exception here would have been wrong at any size, because a rule whose value
+ * is that it has no exceptions is worth exactly as much as its first one. Which
+ * form any creator displays as today is a question for its record, not for this
+ * comment -- the rule fixes *which field* is the label, and the dataset is free
+ * to change what that field says without making anything written here false.
+ *
  * This rule decides *which recorded name is used*, and how two of the chosen
  * strings compare -- see {@link compareLabels}, which exists because choosing
  * the label as the sort key does not by itself put a creator where a reader

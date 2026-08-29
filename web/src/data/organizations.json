@@ -32,7 +32,7 @@
     "id": "google-deepmind",
     "slug": "google-deepmind",
     "name": "Google DeepMind",
-    "shortName": "DeepMind",
+    "shortName": "Google DeepMind",
     "type": "research-lab",
     "website": "https://deepmind.google/",
     "releasePage": "https://ai.google.dev/gemini-api/docs/models",
@@ -40,7 +40,7 @@
     "sourceIds": [
       "google-deepmind-about"
     ],
-    "verifiedAt": "2026-08-27"
+    "verifiedAt": "2026-08-29"
   },
   {
     "id": "meta",
