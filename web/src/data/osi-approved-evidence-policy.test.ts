@@ -6,6 +6,7 @@ function read(relative: string): string {
 }
 
 const schemaSource = read('./schema.ts');
+const validateSource = read('./validate.ts');
 const methodologyPage = read('../pages/methodology.astro');
 const readme = read('../../README.md');
 const reviewSkill = read('../../../.github/skills/modeltree-review/SKILL.md');
@@ -15,6 +16,17 @@ const reviewSkill = read('../../../.github/skills/modeltree-review/SKILL.md');
 const PUBLISHED_SURFACES = [
   ['methodology', methodologyPage],
   ['README', readme],
+] as const;
+
+// The rule is stated in code too, in a comment and in a refusal message. A
+// refusal message is the channel where a false claim of verification is most
+// likely to be believed, because it reaches an operator at the moment the check
+// fires — the reasoning ADR 0005 records for `gate-evidence.mjs`, and the reason
+// #481 rewrote the `superRefine` message that called the identifier "evidence".
+// So these are held to the same negative check as the published prose.
+const CODE_SURFACES = [
+  ['schema', schemaSource],
+  ['validate', validateSource],
 ] as const;
 
 const POLICY_BLOCK_START = '<!-- osi-approved-evidence-policy:start -->';
@@ -210,5 +222,34 @@ describe('osiApproved evidence policy', () => {
     expect(rubric).toContain('alone is not evidence of OSI status');
     expect(rubric).toContain('structural floor');
     expect(EVIDENCE_INVERSION.test(rubric)).toBe(false);
+  });
+
+  it('never presents an spdxId or a licence URL as grounds for OSI status in code', () => {
+    for (const [name, document] of CODE_SURFACES) {
+      expect({ name, matches: EVIDENCE_INVERSION.test(normalizePolicyText(document)) }).toEqual({
+        name,
+        matches: false,
+      });
+    }
+  });
+
+  // Acceptance criterion 3 of #481: the decision on `osiApproved: false` is
+  // recorded beside the field, with its reasoning and its limit, rather than
+  // living only in a pull request nobody reads again.
+  it('records beside the field whether osiApproved: false needs a source', () => {
+    const decision = schemaSource.match(
+      /\/\/ Whether `osiApproved: false`[\s\S]*?\nexport const licenseSchema/,
+    )?.[0];
+    if (!decision) throw new Error('the osiApproved: false decision is missing beside the schema field');
+    const text = normalizePolicyText(decision);
+
+    // The decision itself.
+    expect(text).toContain('must cite a source published by the Open Source Initiative');
+    // Why absence from OSI's list is readable evidence and not an argument from silence.
+    expect(text).toContain('exhaustive by construction');
+    // Why the structural floor stays on `true` alone.
+    expect(text).toContain('stays asymmetric, and that part is deliberate');
+    // What the enforcement does not establish, stated where the rule is stated.
+    expect(text).toContain('never reads that source');
   });
 });
