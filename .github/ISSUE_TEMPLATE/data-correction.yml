@@ -1,0 +1,143 @@
+name: Report incorrect data
+description: A fact on the site is wrong, out of date, or unsupported by its source.
+title: 'Data correction: '
+labels: ["data", "correction"]
+
+# The `title:` prefix above is not decoration. `correctionHref` in
+# `web/src/lib/passport.ts` prefills the blank issue form with
+# `Data correction: <canonicalName> (<slug>)`, so a report that arrives through
+# this form and a report that arrives from a Model Passport link read the same
+# way in the issue list. `web/tests/contributing/issue-forms.test.ts` asserts the
+# two prefixes are equal, so neither can drift without the suite going red.
+#
+# Field ids are also a public interface: GitHub prefills a form field from a
+# query parameter named after its id, so
+# `/issues/new?template=data-correction.yml&record-slug=gpt-5` opens this form
+# with the record already named.
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for correcting the record. **Evidence first, prose second** —
+        the fields below ask for the source before they ask for an explanation,
+        because a correction that cites a primary source can be acted on and one
+        that does not cannot.
+
+        A quick orientation, if you want it: the
+        [methodology](https://abdeslam-menacere.github.io/ModelTree/methodology/)
+        explains what counts as a primary source, and
+        [CONTRIBUTING.md](https://github.com/abdeslam-menacere/ModelTree/blob/main/CONTRIBUTING.md)
+        explains the fields each record holds. You do not need to read either to
+        file this.
+
+  - type: input
+    id: record-slug
+    attributes:
+      label: Record slug
+      description: >-
+        The slug of the record that is wrong — the last part of its address, so
+        `/models/gpt-5/` is `gpt-5`. If you followed a "Report incorrect data"
+        link from the site this is already filled in for you.
+      placeholder: gpt-5
+    validations: { required: true }
+
+  - type: dropdown
+    id: record-kind
+    attributes:
+      label: What kind of record is it?
+      description: >-
+        ModelTree keeps the creator, the model, the product, and the platform
+        that serves it as four separate things. Picking the wrong one here is
+        harmless; guessing at which is which inside the data is not.
+      options:
+        - A model release (one specific version of one model)
+        - A model family (the line a release belongs to)
+        - A creator organization (the lab or company)
+        - A product (a thing you can use, which may route between models)
+        - A serving platform (somewhere a model is offered)
+        - A deployment (one model offered on one platform)
+        - A price
+        - A benchmark or a benchmark result
+        - A source (the citation itself)
+        - I am not sure
+    validations: { required: true }
+
+  - type: input
+    id: field
+    attributes:
+      label: Which field is wrong?
+      description: The specific fact, not the whole page.
+      placeholder: contextWindow / releaseDate / license.spdxId / the summary paragraph
+    validations: { required: true }
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: What the site says now
+      description: Copy the value as it currently appears, so the report survives a later edit.
+    validations: { required: true }
+
+  - type: textarea
+    id: correct-value
+    attributes:
+      label: What it should say
+      description: >-
+        The corrected value. **If the correct value is not knowable from a
+        source, write "unknown" and say so** — a blank is a fact this project is
+        willing to publish, and a plausible guess is not.
+    validations: { required: true }
+
+  - type: input
+    id: primary-source
+    attributes:
+      label: Primary source URL
+      description: >-
+        A link to the page that states the correct value. Prefer the creator's
+        own announcement, documentation, model card, or repository. A news
+        article summarising one of those is not a primary source, though it is a
+        good way to find one.
+      placeholder: https://openai.com/index/...
+    validations: { required: true }
+
+  - type: textarea
+    id: quote
+    attributes:
+      label: Quote the sentence that states it
+      description: >-
+        Verbatim, from the URL above. This is the single most useful field on the
+        form: it lets a reviewer confirm the claim without having to guess which
+        part of a long page you meant.
+    validations: { required: true }
+
+  - type: input
+    id: checked-on
+    attributes:
+      label: Date you checked that source (YYYY-MM-DD)
+      description: >-
+        Recorded as the `verifiedAt` of the corrected fact. Pages change, so a
+        claim without a date is a claim with no shelf life.
+      placeholder: '2026-08-28'
+    validations: { required: true }
+
+  - type: textarea
+    id: conflict
+    attributes:
+      label: Do any sources disagree?
+      description: >-
+        Optional, and genuinely useful when the answer is yes. If two sources
+        state different values, say so and cite both. ModelTree records conflicts
+        rather than picking a winner quietly, so a disagreement you report is
+        kept, not averaged away.
+
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: Before you submit
+      options:
+        - label: The URL above states the corrected value directly, rather than referring to somewhere else that does.
+          required: true
+        - label: >-
+            I am reporting a fact, not asking for a model to be rated, scored, or
+            ranked against others — ModelTree publishes no overall score by design.
+          required: true

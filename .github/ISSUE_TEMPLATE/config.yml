@@ -1,0 +1,46 @@
+# Issue chooser configuration.
+#
+# `blank_issues_enabled` MUST stay true, and that is a functional dependency of
+# the published site rather than a preference.
+#
+# Every Model Passport page renders a "Report incorrect data for <slug>" link.
+# `correctionHref` in `web/src/lib/passport.ts` builds it as
+#
+#     https://github.com/abdeslam-menacere/ModelTree/issues/new?title=...&body=...
+#
+# so the slug, the canonical name, and the current `verifiedAt` travel in the
+# query string of the *blank* issue form. Setting `blank_issues_enabled: false`
+# makes GitHub redirect `/issues/new` to this chooser and **discard the query
+# string**, so every one of those links would still open an issue and would
+# silently arrive naming no record at all. The failure is invisible from the
+# repository side: the link keeps working, it just stops carrying the evidence.
+#
+# Two routes are live on the built site, and this file governs both:
+#   /issues/new?title=&body=   from every release passport
+#   /issues/new/choose         from the methodology page
+# `web/tests/contributing/issue-forms.test.ts` pins both routes. Their totals
+# move with every release added, so no count is recited here.
+#
+# The chooser is the *other* live surface: `methodologyReferences.correctionPath`
+# in `web/src/lib/methodology.ts` sends readers of /methodology/ straight here,
+# so the correction form below is what that link is for.
+blank_issues_enabled: true
+
+contact_links:
+  - name: How ModelTree decides what counts as evidence
+    url: https://abdeslam-menacere.github.io/ModelTree/methodology/
+    about: >-
+      The published methodology and evidence policy: what a primary source is,
+      how verification dates work, and why nothing here is ranked overall.
+
+  - name: Contribution guide and data templates
+    url: https://github.com/abdeslam-menacere/ModelTree/blob/main/CONTRIBUTING.md
+    about: >-
+      Field-by-field guidance for every entity, minimal valid examples, and the
+      one command that validates a data change locally.
+
+  - name: Which sources ModelTree already cites
+    url: https://github.com/abdeslam-menacere/ModelTree/blob/main/web/src/data/sources.json
+    about: >-
+      Check whether the source you are about to cite is already recorded, and
+      reuse its id rather than adding a duplicate.
