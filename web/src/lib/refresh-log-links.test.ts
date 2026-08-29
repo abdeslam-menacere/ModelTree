@@ -14,7 +14,7 @@ import {
 const OPTIONS = { base: '/', treeReleaseIds: ['r-new', 'r-old'] };
 
 const DATA: LinkableDataset = {
-  organizations: [{ id: 'acme', name: 'Acme' }],
+  organizations: [{ id: 'acme', name: 'Acme', shortName: 'Acme' }],
   families: [
     { id: 'acme-muse', name: 'Acme Muse' },
     { id: 'acme-hidden', name: 'Acme Hidden' },

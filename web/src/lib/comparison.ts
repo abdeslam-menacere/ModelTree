@@ -67,6 +67,7 @@ import {
 } from './comparability-policy';
 import { modelRoute } from './catalog';
 import { accessLabel, categoryLabel, formatDate, formatNumber, statusLabel } from './format';
+import { organizationLabel } from './organization-name';
 import {
   deliveryModeLabel,
   formatDateWithPrecision,
@@ -518,7 +519,10 @@ export const NO_RANKING_NOTE =
 export type ComparisonDataset = {
   sources: ComparisonSourceRecord[];
   publishers: Array<Pick<Publisher, 'id' | 'name'>>;
-  organizations: Array<Pick<Organization, 'id' | 'name'>>;
+  // `shortName` travels with `name`: the label rule needs both recorded forms
+  // to resolve, and a payload carrying only one would render creators
+  // differently from the server. See `organization-name.ts`.
+  organizations: Array<Pick<Organization, 'id' | 'name' | 'shortName'>>;
   families: Array<Pick<ModelFamily, 'id' | 'name'>>;
   releases: ComparisonRelease[];
   servingPlatforms: Array<Pick<ServingPlatform, 'id' | 'name' | 'type' | 'organizationId'>>;
@@ -701,7 +705,7 @@ export function buildModelComparison(
       slug: release.slug,
       displayName: release.displayName,
       canonicalName: release.canonicalName,
-      organizationName: organization.name,
+      organizationName: organizationLabel(organization),
       familyName: family.name,
       route: modelRoute(base, release.slug),
       verifiedAt: formatDate(release.verifiedAt),
@@ -1440,7 +1444,11 @@ export function buildComparisonPayload(dataset: ComparisonDataset): ComparisonDa
     publishers: dataset.publishers
       .filter((publisher) => citedPublishers.has(publisher.id))
       .map((publisher) => ({ id: publisher.id, name: publisher.name })),
-    organizations: dataset.organizations.map(({ id, name }) => ({ id, name })),
+    organizations: dataset.organizations.map(({ id, name, shortName }) => ({
+      id,
+      name,
+      shortName,
+    })),
     families: dataset.families.map(({ id, name }) => ({ id, name })),
     servingPlatforms: dataset.servingPlatforms.map(({ id, name, type, organizationId }) => ({
       id,

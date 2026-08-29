@@ -2,6 +2,7 @@ import type { Dataset, DatePrecision } from '../data/schema';
 import { comparePartialDatesDescending } from '../data/partial-date';
 import { accessLabel, categoryLabel, statusLabel } from './format';
 import { buildLineageEcosystems } from './lineage-view';
+import { organizationLabel, organizationSearchTerms } from './organization-name';
 
 export const CATALOG_INDEX_VERSION = 1;
 
@@ -220,7 +221,7 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
       name: release.displayName,
       variant: release.variant,
       organizationSlug: organization.slug,
-      organizationName: organization.name,
+      organizationName: organizationLabel(organization),
       familySlug: family.slug,
       familyName: family.name,
       releaseDate: release.releaseDate,
@@ -248,11 +249,11 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
       const releases = dataset.releases.filter((item) => item.organizationId === organization.id);
       const isCreator = creatorIds.has(organization.id);
       const isPlatform = platformOperatorIds.has(organization.id);
-      const initial = organization.name.slice(0, 1).toUpperCase();
+      const initial = organizationLabel(organization).slice(0, 1).toUpperCase();
 
       return {
         slug: organization.slug,
-        name: organization.name,
+        name: organizationLabel(organization),
         shortName: organization.shortName,
         role: (isCreator && isPlatform
           ? 'creator-and-platform'
@@ -291,9 +292,9 @@ export function buildCatalogIndex(dataset: Dataset, base = '/'): CatalogIndex {
   }
   for (const organization of dataset.organizations) {
     const route = providerRouteFor(organization.slug);
-    const names = new Set([organization.name, organization.shortName]);
-    for (const alias of names) {
-      addAlias(alias, 'organization', organization.slug, organization.name, route);
+    // Both recorded forms are aliases; the label is what each resolves to.
+    for (const alias of organizationSearchTerms(organization)) {
+      addAlias(alias, 'organization', organization.slug, organizationLabel(organization), route);
     }
   }
   for (const product of dataset.products) {

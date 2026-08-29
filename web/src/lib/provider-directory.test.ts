@@ -36,7 +36,10 @@ function makeOrganization(id: string, name: string, extra: Record<string, unknow
     id,
     slug: id,
     name,
-    shortName: name.split(' ')[0],
+    // These fixtures do not exercise the two recorded name forms, so both
+    // agree and `name` stays the displayed label. Pass `extra` to make them
+    // differ where a test is about the label rule itself.
+    shortName: name,
     type: 'company',
     website: `https://${id}.example/`,
     releasePage: `https://${id}.example/news`,

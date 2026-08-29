@@ -7,6 +7,7 @@ import {
 } from '../lib/model-tree';
 import { accessLabel, formatDate, formatReleaseDate, statusLabel } from '../lib/format';
 import { createModelSelectionUrl, readOptionalSelectedModel } from '../lib/selection';
+import { organizationLabel } from '../lib/organization-name';
 
 interface SourceSummary {
   title: string;
@@ -76,7 +77,7 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
             aria-controls={creatorContentId}
             onClick={() => setOpenCreators((items) => toggleModelTreeBranch(items, organization.id))}
           >
-            <span>{organization.name}</span>
+            <span>{organizationLabel(organization)}</span>
             <small>{families.length} {families.length === 1 ? 'family' : 'families'}</small>
           </button>
           <ul id={creatorContentId} hidden={!creatorOpen}>
@@ -191,7 +192,7 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
           {selected ? (
             <>
               <span className="eyebrow">Verified release</span>
-              <p className="tree-breadcrumb">{selected.organization.name} / {selected.family.name}</p>
+              <p className="tree-breadcrumb">{organizationLabel(selected.organization)} / {selected.family.name}</p>
               <h2 id="model-tree-heading">{selected.release.displayName}</h2>
               <p>{selected.release.summary}</p>
               <dl>

@@ -5,6 +5,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { formatDate } from '../lib/format';
 import { buildHomepageHierarchy, firstHomepageRelease } from '../lib/homepage';
 import { buildLineageEcosystems } from '../lib/lineage-view';
+import { organizationLabel } from '../lib/organization-name';
 
 const hierarchy = buildHomepageHierarchy(dataset);
 const ecosystems = buildLineageEcosystems(dataset);
@@ -61,7 +62,7 @@ const passportHref = `${base}models/${firstHomepageRelease(hierarchy).slug}/`;
 					<p>Every release has a static Model Passport:</p>
 					{hierarchy.map(({ organization, families }) => (
 						<section>
-							<h3>{organization.name}</h3>
+							<h3>{organizationLabel(organization)}</h3>
 							{families.map(({ family, releases }) => (
 								<div>
 									<h4>{family.name}</h4>

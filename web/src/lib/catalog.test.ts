@@ -64,6 +64,8 @@ function makeDataset(overrides: Record<string, unknown> = {}) {
         id: 'alpha',
         slug: 'alpha',
         name: 'Alpha Labs',
+        // Deliberately distinct from `name`: this is the creator label, and the
+        // alias-collision test below depends on it normalizing to "alpha".
         shortName: 'Alpha',
         type: 'company',
         website: 'https://alpha.example/',

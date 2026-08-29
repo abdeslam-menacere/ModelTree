@@ -1,5 +1,6 @@
 import type { Dataset, Organization, ServingPlatform } from '../data/schema';
 import { FILTER_DIMENSIONS } from './catalog-view';
+import { organizationLabel, organizationSearchTerms } from './organization-name';
 
 /**
  * The A-Z directory of model creators and serving platforms.
@@ -51,6 +52,11 @@ export type DirectoryGroupId = 'creators' | 'serving-platforms';
 interface DirectoryEntryBase {
   id: string;
   slug: string;
+  /**
+   * The string this row is displayed as, sorted by, and filed under. For a
+   * creator that is the organization label -- see `organization-name.ts` -- and
+   * for a serving platform it is the platform's own name.
+   */
   name: string;
   initial: string;
   /** The role in plain words, because the row must not rely on its group alone. */
@@ -72,6 +78,11 @@ interface DirectoryEntryBase {
 
 export interface CreatorEntry extends DirectoryEntryBase {
   kind: 'creator';
+  /**
+   * The organization's recorded short form. Equal to {@link name} under the
+   * current label rule, and kept as its own field because it is a recorded
+   * value rather than a rendering decision.
+   */
   shortName: string;
   organizationType: Organization['type'];
   familyCount: number;
@@ -135,6 +146,7 @@ export interface DirectoryGroup {
 export interface UnclassifiedOrganization {
   id: string;
   slug: string;
+  /** The organization label -- see `organization-name.ts`. */
   name: string;
   verifiedAt: string;
 }
@@ -359,7 +371,7 @@ export function buildProviderDirectory(dataset: Dataset, base: string): Director
         unclassified.push({
           id: organization.id,
           slug: organization.slug,
-          name: organization.name,
+          name: organizationLabel(organization),
           verifiedAt: organization.verifiedAt,
         });
       }
@@ -375,9 +387,9 @@ export function buildProviderDirectory(dataset: Dataset, base: string): Director
       kind: 'creator',
       id: organization.id,
       slug: organization.slug,
-      name: organization.name,
+      name: organizationLabel(organization),
       shortName: organization.shortName,
-      initial: directoryInitial(organization.name),
+      initial: directoryInitial(organizationLabel(organization)),
       roleText,
       typeText: organizationTypeText(organization.type),
       organizationType: organization.type,
@@ -393,7 +405,9 @@ export function buildProviderDirectory(dataset: Dataset, base: string): Director
       unlinkedNote: releaseCount
         ? null
         : 'No release recorded yet, so there is no catalog view to open.',
-      terms: [organization.name, organization.shortName].map((term) => term.toLowerCase()),
+      // Both recorded name forms stay searchable. Leading with the label must
+      // not cost a reader who knows the creator by its fuller recorded form.
+      terms: organizationSearchTerms(organization).map((term) => term.toLowerCase()),
     });
   }
 

@@ -5,12 +5,18 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import { buildModelTree } from '../lib/model-tree';
+import { organizationLabel } from '../lib/organization-name';
 import { datasetWithOtherCreators } from '../../tests/fixtures/model-tree-dataset';
 import ModelTreeExplorer from './ModelTreeExplorer';
 
 const tree = buildModelTree(dataset);
 const otherTree = buildModelTree(datasetWithOtherCreators);
 const selectedRelease = dataset.releases.find(({ id }) => id === 'anthropic-claude-opus-5')!;
+// The creator toolbar renders the creator label, so read it from the record
+// rather than hard-coding either recorded name form.
+const googleLabel = organizationLabel(
+  dataset.organizations.find(({ id }) => id === 'google-deepmind')!,
+);
 
 function renderExplorer() {
   return render(<ModelTreeExplorer tree={tree} sourceByReleaseId={{}} basePath="/ModelTree/" />);
@@ -36,7 +42,7 @@ describe('ModelTreeExplorer interactions', () => {
       'aria-expanded',
     )).toBe('true');
     const anthropic = creatorButton('Anthropic');
-    const google = creatorButton('Google DeepMind');
+    const google = creatorButton(googleLabel);
 
     await waitFor(() => expect(anthropic.getAttribute('aria-expanded')).toBe('false'));
     expect(google.getAttribute('aria-expanded')).toBe('false');

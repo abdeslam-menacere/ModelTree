@@ -14,6 +14,7 @@
  */
 import { AlertTriangle, ExternalLink, Info, ScrollText } from 'lucide-react';
 import { formatDate } from '../lib/format';
+import { organizationLabel } from '../lib/organization-name';
 import type {
   AvailabilityRow,
   ModelPassportView,
@@ -187,7 +188,7 @@ export default function ModelPassport({ view }: Props) {
           <SectionHeading section={lineage} />
 
           <div className="family-trail">
-            <span>{view.organization.name}</span>
+            <span>{organizationLabel(view.organization)}</span>
             <span aria-hidden="true">›</span>
             <span>{view.family.name}</span>
             <span aria-hidden="true">›</span>

@@ -10,6 +10,7 @@ import {
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { accessLabel, formatDate, formatReleaseDate, statusLabel } from '../lib/format';
 import { compareUrl } from '../lib/compare-route';
+import { organizationLabel } from '../lib/organization-name';
 import {
   LINEAGE_RELATION_LABELS,
   buildLineageHighlight,
@@ -184,7 +185,7 @@ export default function LineageExplorer({
               onKeyDown={(event) => handleProviderKeyDown(event, index)}
             >
               <Users size={15} aria-hidden="true" />
-              <strong>{ecosystem.organization.name}</strong>
+              <strong>{organizationLabel(ecosystem.organization)}</strong>
               <small>
                 {ecosystem.families.length === 1 ? '1 family' : `${ecosystem.families.length} families`}
               </small>
@@ -204,7 +205,7 @@ export default function LineageExplorer({
               <header className="tree-level tree-root">
                 <span className="tree-kicker">Creator</span>
                 <strong id={`organization-${ecosystem.organization.id}`}>
-                  {ecosystem.organization.name}
+                  {organizationLabel(ecosystem.organization)}
                 </strong>
                 <small>{ecosystem.organization.description}</small>
               </header>

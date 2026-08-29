@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import { datasetWithOtherCreators, expectedOtherCreatorIds } from '../../tests/fixtures/model-tree-dataset';
 import type { Dataset } from '../data/schema';
+import { organizationLabel } from './organization-name';
 import {
   buildModelTree,
   findModelTreePath,
@@ -430,8 +431,12 @@ describe('model tree Others branch', () => {
       .toEqual(expectedOtherCreatorIds);
 
     // The ordering rule itself, over whatever Others actually holds. `\0` sorts
-    // below any printable character, so this is name first, then id.
-    const orderKeys = tree.others.map(({ organization }) => `${organization.name}\0${organization.id}`);
+    // below any printable character, so this is label first, then id. The
+    // ordering key is the creator label (`shortName`) — see
+    // `organization-name.ts` — not the fuller recorded `name`.
+    const orderKeys = tree.others.map(
+      ({ organization }) => `${organizationLabel(organization)}\0${organization.id}`,
+    );
 
     expect(orderKeys).toEqual([...orderKeys].sort());
 

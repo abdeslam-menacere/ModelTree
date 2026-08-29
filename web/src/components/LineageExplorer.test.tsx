@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
+import { organizationLabel } from '../lib/organization-name';
 import { FLAT_FAMILY_ID, lineageFixtureDataset } from '../../tests/fixtures/lineage-dataset';
 import { buildLineageEcosystems, type LineageEcosystem } from '../lib/lineage-view';
 import { parseComparisonSelection } from '../lib/comparison';
@@ -37,7 +38,7 @@ describe('the server-rendered explorer is a complete text alternative', () => {
     expect(catalogEcosystems.length).toBeGreaterThan(0);
 
     for (const { organization, families } of catalogEcosystems) {
-      expect(catalogMarkup).toContain(organization.name);
+      expect(catalogMarkup).toContain(organizationLabel(organization));
       for (const { family, releases } of families) {
         expect(catalogMarkup).toContain(family.name);
         for (const release of releases) expect(catalogMarkup).toContain(release.displayName);
@@ -100,7 +101,7 @@ describe('no provider-specific markup is required', () => {
     expect(fixtureEcosystems.length).toBeGreaterThan(0);
 
     for (const { organization, families } of fixtureEcosystems) {
-      expect(fixtureMarkup).toContain(organization.name);
+      expect(fixtureMarkup).toContain(organizationLabel(organization));
       expect(families.length).toBeGreaterThan(0);
     }
     expect(occurrences(fixtureMarkup, /class="organization-branch"/g))

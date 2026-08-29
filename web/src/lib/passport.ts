@@ -48,6 +48,7 @@ import type {
 } from '../data/schema';
 import { modelRoute } from './catalog';
 import { compareUrl } from './compare-route';
+import { organizationLabel } from './organization-name';
 import {
   accessLabel,
   categoryLabel,
@@ -727,7 +728,7 @@ export function buildModelPassport(
   const releaseDate = formatDateWithPrecision(release.releaseDate, release.datePrecision);
 
   const identityFacts: PassportFact[] = [
-    fact('Creator', organization.name),
+    fact('Creator', organizationLabel(organization)),
     fact('Family', family.name),
     fact('Version', release.version),
     fact('Variant', release.variant),
