@@ -147,5 +147,21 @@
       "amazon-nova-2-bedrock-announcement"
     ],
     "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "cohere",
+    "slug": "cohere",
+    "name": "Cohere",
+    "shortName": "Cohere",
+    "type": "company",
+    "website": "https://cohere.com",
+    "releasePage": "https://docs.cohere.com/docs/models",
+    "description": "The creator of the Command models, which its own model cards attribute to \"Cohere Inc.\". Cohere reaches customers through its hosted API, where it separates free \"trial\" keys from billed \"production\" usage, and publishes some models as downloadable weights as well. Cohere Labs is Cohere's research arm and the voice behind the separate Aya line; the clouds that resell Command models are serving platforms, not co-creators.",
+    "sourceIds": [
+      "cohere-models-overview",
+      "cohere-command-a-plus-model-card",
+      "cohere-pricing-docs"
+    ],
+    "verifiedAt": "2026-08-28"
   }
 ]

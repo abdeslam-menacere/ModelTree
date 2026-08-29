@@ -1145,5 +1145,50 @@
     "publisherId": "aws",
     "lastCheckedDate": "2026-08-28",
     "notes": "The canonical page for the SageMaker JumpStart model hub, reached by redirect from https://aws.amazon.com/sagemaker/jumpstart/. Recorded as the platform website only."
+  },
+  {
+    "id": "cohere-models-overview",
+    "url": "https://docs.cohere.com/docs/models",
+    "title": "An Overview of Cohere's Models",
+    "type": "official-docs",
+    "publisherId": "cohere",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "Cohere's model reference, which opens \"Cohere has a variety of models that cover many different use cases\". Names the family recorded here — \"Command A+ offers the last model in the Command A family\" — and carries the published identifiers as table rows, command-a-plus-05-2026 and command-a-03-2025, the second being what the family's month-precision first release date rests on. Its single \"Modality\" column does not separate input from output, which is why no other row here is recorded as a release."
+  },
+  {
+    "id": "cohere-command-a-plus-model-card",
+    "url": "https://docs.cohere.com/docs/command-a-plus",
+    "title": "Cohere's Command A+ Model",
+    "type": "model-card",
+    "publisherId": "cohere",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States \"Release Date: May 20, 2026\", \"Name of the model provider: Cohere Inc.\", \"Input modalities: Text, image\", \"Output modalities: Text\", \"Model Size: 218B total, 25B active\" and \"Command A+ is a sparse mixture-of-experts model.\". It lists both deployment routes — a \"Cohere Deployment\" and an \"Open Source Deployment: Command A+ is available under an Apache 2.0 License\" — which together are the recorded access type. It states the licence name only; OSI approval is not claimed here and rests on a separate source."
+  },
+  {
+    "id": "cohere-command-a-plus-announcement",
+    "url": "https://cohere.com/blog/command-a-plus",
+    "title": "Introducing Command A+",
+    "type": "official-announcement",
+    "publisherId": "cohere",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "Cohere's launch post, corroborating the model card from Cohere's other approved origin: \"218B total; 25B active\", \"128K input context; 64K max generation\", and a caption comparing Command A+ \"with other models in the Command A family\". Its blog publication timestamp is deliberately not used as a release date; the release date is the model card's own stated field."
+  },
+  {
+    "id": "cohere-pricing-docs",
+    "url": "https://docs.cohere.com/docs/how-does-cohere-pricing-work",
+    "title": "How Does Cohere's Pricing Work?",
+    "type": "official-docs",
+    "publisherId": "cohere",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "States \"Our models can be accessed directly through our API, allowing for the creation of scalable production workloads\", describes the count of billed tokens, and separates \"Trial Usage and Production Usage\", noting that \"trial API key usage is free, but limited\". This is the basis for reading Cohere as offering model access for payment under its own name, which is a fact input to the organization type's editorial procedure rather than a sourced claim in itself."
+  },
+  {
+    "id": "osi-approved-licenses",
+    "url": "https://opensource.org/license/apache-2.0",
+    "title": "Apache License, Version 2.0",
+    "type": "official-docs",
+    "publisherId": "open-source-initiative",
+    "lastCheckedDate": "2026-08-28",
+    "notes": "The Open Source Initiative's own page for this licence, carrying its \"Open Source Initiative Approved License\" mark; OSI's licence index at https://opensource.org/licenses lists \"Apache License, Version 2.0\" among those that have completed the process \"To be approved by the Open Source Initiative\". Cited for approval status only, per tools/updater/profiles/origins/open-source-initiative.json. The licence name on the release comes from Cohere's own model card, not from here, and this page is the authority for the status rather than the licence identifier being evidence of it."
   }
 ]
