@@ -61,6 +61,10 @@ npm run dev
 | `npm run validate` | Tests and diagnostics together |
 | `npm run build` | Validate, then build the static site to `dist/` |
 
+Before writing a test, read the
+[testing conventions](CONTRIBUTING.md#testing-conventions) — an assertion is only
+coverage if it can fail.
+
 ## Layout
 
 ```

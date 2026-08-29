@@ -22,6 +22,11 @@ Run commands from `web/`:
 | `npm run build` | Validate and generate the static site in `dist/` |
 | `npm run dev` | Start the local Astro development server |
 
+Before writing a test, read the
+[testing conventions](../CONTRIBUTING.md#testing-conventions) — an assertion is
+only coverage if it can fail, and this repository has shipped several that could
+not.
+
 ### The lockfile resolves through a mirror, with SHA-1 integrity
 
 Every `resolved` URL in `package-lock.json` points at an Azure DevOps
