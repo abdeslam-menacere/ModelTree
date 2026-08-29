@@ -41,10 +41,10 @@ export const datePrecision = z.enum(DATE_PRECISIONS);
  * own wording is mapped. No source speaks them. A creator writes "Live",
  * "Active (legacy)" or "generally available"; the terms below are what the
  * record can hold. The numeric fields pose the same step in another form — a
- * page states "128K" and `contextWindow` stores `128000`. That mapping is only
- * one of the two routes a stated context length takes into a numeric field, and
- * it is the one that engages when the page gives no exact figure; both routes,
- * and the rule that picks between them, are set out beside
+ * page states "128K" and `contextWindow` stores `128000`. That mapping is the
+ * commonest way a stated context length reaches a numeric field and it is not
+ * the only one; what the column actually holds, and the reason a figure in it
+ * is never rewritten to match a rule, are set out beside
  * `releaseSchema.contextWindow` below.
  *
  * Choosing the member a quoted term denotes is a *recording* step, not a new
@@ -307,36 +307,54 @@ export const releaseSchema = z.object({
   accessType,
   license: licenseSchema.optional(),
   parameters: parameterCountSchema.optional(),
-  // A stated context length reaches `contextWindow` by one of two routes, and
-  // what the source literally says decides which:
+  // Two routes carry a stated context length into `contextWindow`, and what the
+  // source literally says decides which of the two applies. They are the common
+  // routes, not an exhaustive account of this column — see the third case below,
+  // which is why this comment describes what the data holds rather than issuing
+  // a rule the data must satisfy.
   //
   // 1. THE SOURCE STATES AN EXACT INTEGER, so it is recorded verbatim and no
   //    mapping happens at all. GPT-4.1's model documentation is the clearest
   //    case, because it gives both forms on one page: prose describing "a 1M
   //    token context window", and a model-details line reading "1,047,576
   //    context window". `openai-gpt-4-1-2025-04-14` stores `1047576` — the
-  //    figure the page states exactly, not the figure it rounds to. Google's
-  //    Gemini 2.5 Pro platform documentation lists `1,048,576` the same way, so
-  //    `google-gemini-2-5-pro` stores `1048576`.
+  //    figure the page states exactly, not the figure it rounds to. Alibaba's
+  //    Qwen3 cards state "Context Length: 262,144" the same way, so
+  //    `alibaba-qwen3-8-27b` stores `262144`.
   // 2. THE SOURCE STATES ONLY AN ABBREVIATION, and then the mapping above
   //    applies: "K" reads as a thousand, "M" as a million. The Llama 3.1 model
   //    card's Context length column says "128k" and gives nothing more precise,
-  //    so `meta-llama-3-1-405b` stores `128000`. `meta-llama-4-scout` stores
-  //    `10000000` from "10M" on the same footing.
+  //    so `meta-llama-3-1-405b` stores `128000`. Mistral's "256k" gives
+  //    `256000`, and "10M" on the Llama 4 Scout card gives `10000000`.
   //
-  // The order is the whole of the rule: prefer what the source literally
-  // states. Route 1 is not an exception to route 2 — it is the case where the
-  // creator already published a number, and copying it is the faithful act.
-  // Route 2 is a recording step under the `provenance` rubric above; route 1 is
-  // not a step at all.
+  // Between those two, prefer what the source literally states. Route 1 is not
+  // an exception to route 2 — it is the case where the creator already published
+  // a number, and copying it is the faithful act. Route 2 is a recording step
+  // under the `provenance` rubric above; route 1 is not a step at all.
+  //
+  // 3. AN ABBREVIATION THE CREATOR MEANS IN THE BINARY SENSE is recorded as the
+  //    binary figure, and this is the case that stops the two routes above from
+  //    being the whole story. `upstage-solar-pro-preview-instruct` stores `4096`
+  //    against a card that states "a maximum context length of 4K" and no
+  //    integer anywhere. Route 2 read literally would give `4000`; the recorded
+  //    value is `4 × 1024`. Which sense a bare "K" carries is a fact about the
+  //    creator's usage, settled from the source and its context during review —
+  //    not by applying either reading as a default.
   //
   // So near-neighbour values sit beside each other in this column — `1047576`,
-  // `1048576` and `1000000`; `128000` and `131072` — and that is two routes
-  // each applied faithfully, not drift. Do not reconcile them. Rewriting a
-  // stated `1047576` down to `1000000`, or expanding a card's bare "128k" up to
-  // `131072`, would each replace a figure a creator published with one no
-  // source states. A recorded figure changes only when its own source changes,
-  // re-quoted and with a fresh `verifiedAt`.
+  // `1048576` and `1000000`; `128000`, `131072` and `4096` — and that is several
+  // readings each recorded faithfully, not drift.
+  //
+  // THE RULE THAT MATTERS IS THEREFORE NOT WHICH ROUTE APPLIES BUT THIS: never
+  // reconcile a recorded figure to a route. Rewriting a stated `1047576` down to
+  // `1000000`, expanding a card's bare "128k" up to `131072`, or trimming
+  // `upstage`'s `4096` to `4000` because the mapping above says "K" is a
+  // thousand, would each replace a figure this dataset took from a creator with
+  // one no source states. A value this comment does not account for is a
+  // question for its own source and its own issue, never a warrant to edit the
+  // datum: the comment answers to the data, not the other way round. A recorded
+  // figure changes only when its own source changes, re-quoted and with a fresh
+  // `verifiedAt`.
   contextWindow: z.number().int().positive().optional(),
   maximumOutput: z.number().int().positive().optional(),
   apiAliases: z.array(z.string().min(1)),
