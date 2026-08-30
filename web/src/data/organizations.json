@@ -402,5 +402,96 @@
       "databricks-open-model-license"
     ],
     "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "apple",
+    "slug": "apple",
+    "name": "Apple Inc.",
+    "shortName": "Apple",
+    "type": "company",
+    "website": "https://machinelearning.apple.com",
+    "releasePage": "https://huggingface.co/apple",
+    "description": "Recorded here only as the creator of OpenELM, a family of open efficient language models published with weights, training code and a licence that restricts them to scientific research. No page read for this record describes a paid model product or hosted model access from Apple.",
+    "sourceIds": [
+      "apple-openelm-license",
+      "apple-openelm-research-page",
+      "apple-openelm-3b-instruct-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "hugging-face",
+    "slug": "hugging-face",
+    "name": "Hugging Face",
+    "shortName": "Hugging Face",
+    "type": "company",
+    "website": "https://huggingface.co",
+    "releasePage": "https://huggingface.co/blog",
+    "description": "Recorded as a creator only for the models it makes itself, of which SmolLM3 is the one in this dataset. Hugging Face also operates the Hub that hosts most other creators’ model cards and weights, but hosting is where a source lives rather than who made a model: cards written by other creators are recorded under those creators, and the Hub’s own machine-readable records are the only sources attributed to Hugging Face as a platform.",
+    "sourceIds": [
+      "hugging-face-smollm3-blog",
+      "hugging-face-smollm3-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "01-ai",
+    "slug": "01-ai",
+    "name": "01.AI",
+    "shortName": "01.AI",
+    "type": "company",
+    "website": "https://01.ai/",
+    "releasePage": "https://huggingface.co/01-ai",
+    "description": "The company behind the Yi series of open-source language models, which it states are trained from scratch and distributes, for the Yi-1.5 series, under the Apache 2.0 licence.",
+    "sourceIds": [
+      "01-ai-yi-repository",
+      "01-ai-yi-1-5-34b-chat-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "minimax",
+    "slug": "minimax",
+    "name": "MiniMax AI",
+    "shortName": "MiniMax",
+    "type": "company",
+    "website": "https://www.minimax.io",
+    "releasePage": "https://huggingface.co/MiniMaxAI",
+    "description": "The company behind the MiniMax-Text-01 mixture-of-experts language model, whose weights it distributes under its own MiniMax Model License, separately from the MIT licence it applies to the accompanying code.",
+    "sourceIds": [
+      "minimax-model-license",
+      "minimax-text-01-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "sakana-ai",
+    "slug": "sakana-ai",
+    "name": "Sakana AI",
+    "shortName": "Sakana AI",
+    "type": "company",
+    "website": "https://sakana.ai/",
+    "releasePage": "https://huggingface.co/SakanaAI",
+    "description": "A research-focused company that states its core focus is applying nature-inspired ideas such as evolution and collective intelligence to creating foundation models, and that released a set of Japanese-language foundation models produced by its Evolutionary Model Merge method.",
+    "sourceIds": [
+      "sakana-ai-evolutionary-model-merge-blog",
+      "sakana-ai-evollm-jp-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "sarvam-ai",
+    "slug": "sarvam-ai",
+    "name": "Sarvam AI",
+    "shortName": "Sarvam AI",
+    "type": "company",
+    "website": "https://www.sarvam.ai",
+    "releasePage": "https://huggingface.co/sarvamai",
+    "description": "The company behind Sarvam-M, a language model post-trained on Indian languages alongside English, which it publishes as part of what it describes as building towards a sovereign AI ecosystem in India.",
+    "sourceIds": [
+      "sarvam-ai-sarvam-m-blog",
+      "sarvam-ai-sarvam-m-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
   }
 ]

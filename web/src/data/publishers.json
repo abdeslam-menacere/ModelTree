@@ -16,7 +16,8 @@
   },
   {
     "id": "hugging-face",
-    "name": "Hugging Face"
+    "name": "Hugging Face",
+    "organizationId": "hugging-face"
   },
   {
     "id": "alphabet",
@@ -184,5 +185,30 @@
     "id": "databricks",
     "name": "Databricks, Inc.",
     "organizationId": "databricks"
+  },
+  {
+    "id": "apple",
+    "name": "Apple Inc.",
+    "organizationId": "apple"
+  },
+  {
+    "id": "01-ai",
+    "name": "01.AI",
+    "organizationId": "01-ai"
+  },
+  {
+    "id": "minimax",
+    "name": "MiniMax AI",
+    "organizationId": "minimax"
+  },
+  {
+    "id": "sakana-ai",
+    "name": "Sakana AI",
+    "organizationId": "sakana-ai"
+  },
+  {
+    "id": "sarvam-ai",
+    "name": "Sarvam AI",
+    "organizationId": "sarvam-ai"
   }
 ]

@@ -658,9 +658,23 @@ describe('partial dates on family and release dates', () => {
         // honest floor rather than an invented day.
       },
       {
+        id: 'sakana-ai-evollm-jp',
+        precision: 'month',
+        // Sakana AI's announcement post carries a page date of March 21, 2024,
+        // its body describes the release retrospectively as "Back in March
+        // 2024", and the Hub first measured the repository on 2024-03-06. Three
+        // primaries, three different days, one month they all agree on.
+      },
+      {
         id: 'zhipu-ai-glm-4-5-air',
         precision: 'month',
         // The Air variant shipped in the same GLM-4.5 launch; same reasoning.
+      },
+      {
+        id: 'sakana-ai-evollm-jp-v1-7b',
+        precision: 'month',
+        // The release inherits the family's problem: no day survives contact
+        // with all three of Sakana AI's own signals, so none is recorded.
       },
     ];
 

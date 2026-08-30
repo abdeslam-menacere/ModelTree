@@ -90,7 +90,13 @@ describe('homepage hierarchy', () => {
     const family = dataset.families.find((candidate) => candidate.organizationId === organization.id)!;
     const hierarchy = buildHomepageHierarchy({
       ...dataset,
-      organizations: [{ ...organization, id: 'aaa-empty', name: 'A Empty', shortName: 'A Empty' }, ...dataset.organizations],
+      // The fixture only works while its label sorts ahead of every real
+      // creator's, and `compareLabels` folds case and then compares code units,
+      // so digits precede letters. The catalog now records a creator labelled
+      // "01.AI", which "A Empty" no longer sorts ahead of; the label is chosen
+      // to lead rather than to read well, and `name` stays "A Empty" so the
+      // fixture keeps failing if the sort ever goes back to reading the name.
+      organizations: [{ ...organization, id: 'aaa-empty', name: 'A Empty', shortName: '0 Empty' }, ...dataset.organizations],
       families: [{ ...family, id: 'aaa-empty', organizationId: 'aaa-empty', name: 'A Empty' }, ...dataset.families],
     });
 
