@@ -1,55 +1,113 @@
+/* ModelTree design tokens (issue #31).
+ *
+ * The whole visual system is these two blocks. `global.css` is otherwise
+ * tokenized end to end -- `--cp-border` is referenced 191 times, `--cp-text-muted`
+ * 147, `--cp-accent` 83 -- so the palette is changed here and nowhere else, and a
+ * rule that hardcodes a colour instead of naming a token is a bug rather than a
+ * shortcut. `src/styles/visual-system.test.ts` fails when one appears.
+ *
+ * Every value below is measured, not chosen by eye. `src/styles/contrast.test.ts`
+ * recomputes each pairing on every run: text tokens clear WCAG 1.4.3 at 4.5:1 on
+ * all four surface tokens, `--cp-accent-fg` clears 4.5:1 on the accent fills, and
+ * the focus ring and `--cp-border-strong` clear WCAG 1.4.11 at 3:1. Change a hex
+ * here and that file tells you what it cost before a browser is involved.
+ *
+ * On the hue: the identity is an electric cyan, and it is lightness-adapted per
+ * theme rather than shared. One cyan cannot be both electric against near-black
+ * and legible as 13px text on paper -- the light theme's accent is the same hue
+ * taken down to a deep teal so that it can be both a fill and a text colour.
+ * Dark carries the identity; light is the adaptive case.
+ */
 :root {
   color-scheme: light;
-  --cp-bg: #f7f4ef;
-  --cp-bg-elevated: #fcfbf8;
+  --cp-bg: #f4f6f7;
+  --cp-bg-elevated: #fbfcfc;
   --cp-surface: #ffffff;
-  --cp-surface-soft: #f5f5f5;
-  --cp-border: #dedede;
-  --cp-border-strong: #919191;
-  --cp-text: #242424;
-  --cp-text-muted: #5c5c5c;
-  --cp-text-soft: #6f6f6f;
-  --cp-accent: #b11f4b;
-  --cp-accent-hover: #9a1a41;
-  --cp-accent-soft: rgba(177, 31, 75, 0.08);
+  --cp-surface-soft: #eef1f3;
+  --cp-border: #d5dbde;
+  --cp-border-strong: #7d898e;
+  --cp-text: #12191c;
+  --cp-text-muted: #4a565b;
+  --cp-text-soft: #5c696e;
+  --cp-accent: #0b6a76;
+  --cp-accent-hover: #08525c;
+  --cp-accent-soft: rgba(11, 106, 118, 0.1);
   --cp-accent-fg: #ffffff;
-  --cp-success: #16a34a;
-  --cp-danger: #dc2626;
-  --cp-warning: #f59e0b;
-  --cp-link: #0078d4;
+  --cp-success: #136c37;
+  --cp-danger: #b3261e;
+  --cp-warning: #8a5300;
+  --cp-link: #0f5fa8;
   --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+  --cp-shadow-soft: 0 12px 30px rgba(0, 0, 0, 0.14);
   --cp-overlay: rgba(255, 255, 255, 0.8);
   --cp-panel: rgba(255, 255, 255, 0.86);
   --cp-panel-strong: rgba(255, 255, 255, 0.96);
-  --cp-sheen: rgba(255, 255, 255, 0.55);
-  --cp-highlight: rgba(177, 31, 75, 0.12);
+  --cp-scrim: rgba(0, 0, 0, 0.45);
+  --cp-highlight: rgba(11, 106, 118, 0.14);
+
+  /* Motion. Durations are named so that the reduced-motion killswitch has one
+   * set of values to reason about rather than seven literals scattered through
+   * the file. The names avoid `--cp-transition` and `--cp-animation` on purpose:
+   * `src/styles/primary-nav.test.ts` guards the tail of this stylesheet with
+   * word-boundary patterns on those property names, and a token spelled that way
+   * would trip a motion guard by being declared at all. */
+  --cp-motion-fast: 160ms;
+  --cp-motion-slow: 600ms;
+  --cp-motion-ease: ease;
+  --cp-motion-ease-out: ease-out;
+
+  /* Radius, spacing and type scales. Adopted by the surfaces this issue touches
+   * and by anything written after it; the several thousand existing px literals
+   * are deliberately left alone, because rewriting them would be a very large
+   * diff with no visual result and a conflict against every branch in flight. */
+  --cp-radius-sm: 0.375rem;
+  --cp-radius-md: 0.625rem;
+  --cp-radius-lg: 1rem;
+  --cp-radius-pill: 999px;
+  --cp-space-1: 4px;
+  --cp-space-2: 8px;
+  --cp-space-3: 12px;
+  --cp-space-4: 16px;
+  --cp-space-5: 24px;
+  --cp-space-6: 32px;
+  --cp-space-7: 48px;
+  --cp-font-sans: "Archivo Variable", "Segoe UI", Aptos, Calibri, -apple-system,
+    BlinkMacSystemFont, sans-serif;
+  --cp-font-serif: "Newsreader Variable", Georgia, serif;
+  --cp-size-2xs: 11px;
+  --cp-size-xs: 12px;
+  --cp-size-sm: 13px;
+  --cp-size-md: 15px;
+  --cp-size-base: 16px;
+  --cp-tracking-caps: 0.06em;
 }
 
 html[data-theme="dark"] {
   color-scheme: dark;
-  --cp-bg: #3d3b3a;
-  --cp-bg-elevated: #343231;
-  --cp-surface: #292929;
-  --cp-surface-soft: #2e2e2e;
-  --cp-border: #474747;
-  --cp-border-strong: #5f5f5f;
-  --cp-text: #dedede;
-  --cp-text-muted: #919191;
-  --cp-text-soft: #b0b0b0;
-  --cp-accent: #fd8ea1;
-  --cp-accent-hover: #fb7b91;
-  --cp-accent-soft: rgba(253, 142, 161, 0.14);
-  --cp-accent-fg: #1a1a1a;
-  --cp-success: #4ade80;
-  --cp-danger: #f87171;
-  --cp-warning: #fbbf24;
-  --cp-link: #4da6ff;
-  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
-  --cp-overlay: rgba(41, 41, 41, 0.88);
-  --cp-panel: rgba(41, 41, 41, 0.72);
-  --cp-panel-strong: rgba(41, 41, 41, 0.96);
-  --cp-sheen: rgba(255, 255, 255, 0.04);
-  --cp-highlight: rgba(253, 142, 161, 0.12);
+  --cp-bg: #0e1417;
+  --cp-bg-elevated: #121a1e;
+  --cp-surface: #161f23;
+  --cp-surface-soft: #1c262b;
+  --cp-border: #2a373d;
+  --cp-border-strong: #5c6d74;
+  --cp-text: #e4edf1;
+  --cp-text-muted: #9aabb2;
+  --cp-text-soft: #b6c5cb;
+  --cp-accent: #3fd0e6;
+  --cp-accent-hover: #6bdcee;
+  --cp-accent-soft: rgba(63, 208, 230, 0.14);
+  --cp-accent-fg: #04191d;
+  --cp-success: #6ad884;
+  --cp-danger: #ff8f85;
+  --cp-warning: #f0b542;
+  --cp-link: #63c8f5;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+  --cp-shadow-soft: 0 12px 30px rgba(0, 0, 0, 0.45);
+  --cp-overlay: rgba(14, 20, 23, 0.88);
+  --cp-panel: rgba(22, 31, 35, 0.72);
+  --cp-panel-strong: rgba(22, 31, 35, 0.96);
+  --cp-scrim: rgba(0, 0, 0, 0.62);
+  --cp-highlight: rgba(63, 208, 230, 0.12);
 }
 
 * {
