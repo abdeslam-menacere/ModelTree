@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { withEmptyFamily } from '../../tests/fixtures/empty-family';
 import { dataset as seedDataset } from '../data/dataset';
 import type { Dataset } from '../data/schema';
 import { validateDataset } from '../data/validate';
@@ -134,9 +135,14 @@ function makeDataset(overrides: Record<string, unknown> = {}): Dataset {
  * and names that exercise initial normalization. The seed dataset holds no
  * serving platform at all, so without this fixture every platform assertion in
  * this file would pass by having nothing to check.
+ *
+ * `eclair` publishes a family and no release, which is the state the directory's
+ * "No release recorded yet" copy exists for. The validator refuses that shape
+ * (#554), so the family is added after validation by `withEmptyFamily` rather
+ * than through it — the copy is a second line of defence and still has to work.
  */
 function makePopulatedDataset(): Dataset {
-  return makeDataset({
+  return withEmptyFamily(makeDataset({
     organizations: [
       makeOrganization('alpha', 'Alpha Labs'),
       makeOrganization('eclair', 'Éclair Research', { type: 'research-lab' }),
@@ -146,7 +152,6 @@ function makePopulatedDataset(): Dataset {
     ],
     families: [
       makeFamily('alpha-one', 'alpha'),
-      makeFamily('eclair-one', 'eclair', { categories: ['coding'] }),
       makeFamily('numeric-one', 'numeric'),
     ],
     releases: [
@@ -180,7 +185,7 @@ function makePopulatedDataset(): Dataset {
         verifiedAt: '2026-01-01',
       },
     ],
-  });
+  }), makeFamily('eclair-one', 'eclair', { categories: ['coding'] }));
 }
 
 function group(dataset: Dataset, id: DirectoryGroupId, base = '/') {

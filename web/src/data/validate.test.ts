@@ -249,6 +249,67 @@ describe('validateDataset', () => {
 
     expect(() => validateDataset(input)).toThrow(/featured release .* requires a primary source/);
   });
+
+  /**
+   * Adds a family that no release points at, by cloning a live one and changing
+   * only its id and slug. Cloning keeps every other rule satisfied by
+   * construction — the organization resolves, the sources resolve, the dates are
+   * real and agree with the recorded precision — so a refusal is attributable to
+   * the missing release rather than to a fixture broken in several ways at once.
+   *
+   * `attachRelease` is the control arm: identical setup, one release added, and
+   * the opposite verdict expected.
+   */
+  function withEmptyFamily({ attachRelease = false } = {}) {
+    const input = mutableDataset();
+    const donorFamily = input.families.find(
+      (family: any) => input.releases.some((release: any) => release.familyId === family.id),
+    );
+    if (!donorFamily) throw new Error('seed data no longer carries a family with a release to clone');
+    const donorRelease = findRelease(input, (release) => release.familyId === donorFamily.id);
+
+    input.families.push({ ...donorFamily, id: 'probe-empty-family', slug: 'probe-empty-family' });
+    if (attachRelease) {
+      input.releases.push({
+        ...donorRelease,
+        id: 'probe-empty-family-release',
+        slug: 'probe-empty-family-release',
+        familyId: 'probe-empty-family',
+        apiAliases: [],
+        // Lineage stripped: a clone keeping its donor's edges would be judged on
+        // those edges too, and this fixture is about one thing.
+        predecessorIds: [],
+        successorIds: [],
+        siblingIds: [],
+        derivedFromIds: [],
+      });
+    }
+
+    // What the setup claims about itself, checked rather than assumed: a probe
+    // whose family quietly acquired a release would produce the control's
+    // result while reading as the probe's.
+    const pointedAt = new Set(input.releases.map((release: any) => release.familyId));
+    expect(pointedAt.has('probe-empty-family')).toBe(attachRelease);
+
+    return input;
+  }
+
+  it('refuses a family that no release belongs to', () => {
+    // #554. The dataset cannot say "announced but unreleased" — `lifecycleStatus`
+    // has no such member — so a family holding nothing is a data error, and the
+    // build refuses it rather than letting `/` render a heading above an empty
+    // list while `/tree/` silently drops the same family.
+    //
+    // Refusing here rather than filtering in each consumer is what keeps a
+    // printed count honest: `pages/index.astro` prints `dataset.families.length`
+    // beside a hierarchy that renders only families holding releases, and those
+    // two agree only because of this rule.
+    expect(() => validateDataset(withEmptyFamily())).toThrow(/family probe-empty-family has no releases/);
+  });
+
+  it('accepts the same family once one release belongs to it, so the rule is not "a new family fails"', () => {
+    expect(() => validateDataset(withEmptyFamily({ attachRelease: true }))).not.toThrow();
+  });
 });
 
 describe('benchmark seed corpus', () => {

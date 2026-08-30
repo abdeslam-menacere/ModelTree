@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { withEmptyFamily } from '../../tests/fixtures/empty-family';
 import { dataset as seedDataset } from '../data/dataset';
 import { validateDataset } from '../data/validate';
 import { buildCreatorEcosystems, buildLineageEcosystems } from './lineage-view';
@@ -49,6 +50,34 @@ function makeRelease(
   };
 }
 
+const ALPHA_ONE_FAMILY = {
+  id: 'alpha-one',
+  slug: 'alpha-one',
+  organizationId: 'alpha',
+  name: 'Alpha One',
+  description: 'Fixture family.',
+  categories: ['language-reasoning'],
+  firstReleaseDate: '2025-01-01',
+  datePrecision: 'day',
+  status: 'current',
+  sourceIds: ['src-a'],
+  verifiedAt: '2026-01-01',
+};
+
+const BETA_ONE_FAMILY = {
+  id: 'beta-one',
+  slug: 'beta-one',
+  organizationId: 'beta',
+  name: 'Beta One',
+  description: 'Fixture family.',
+  categories: ['coding'],
+  firstReleaseDate: '2025-01-01',
+  datePrecision: 'day',
+  status: 'current',
+  sourceIds: ['src-a'],
+  verifiedAt: '2026-01-01',
+};
+
 function makeDataset(overrides: Record<string, unknown> = {}) {
   return validateDataset({
     sources: [{
@@ -89,32 +118,8 @@ function makeDataset(overrides: Record<string, unknown> = {}) {
       },
     ],
     families: [
-      {
-        id: 'alpha-one',
-        slug: 'alpha-one',
-        organizationId: 'alpha',
-        name: 'Alpha One',
-        description: 'Fixture family.',
-        categories: ['language-reasoning'],
-        firstReleaseDate: '2025-01-01',
-        datePrecision: 'day',
-        status: 'current',
-        sourceIds: ['src-a'],
-        verifiedAt: '2026-01-01',
-      },
-      {
-        id: 'beta-one',
-        slug: 'beta-one',
-        organizationId: 'beta',
-        name: 'Beta One',
-        description: 'Fixture family.',
-        categories: ['coding'],
-        firstReleaseDate: '2025-01-01',
-        datePrecision: 'day',
-        status: 'current',
-        sourceIds: ['src-a'],
-        verifiedAt: '2026-01-01',
-      },
+      ALPHA_ONE_FAMILY,
+      BETA_ONE_FAMILY,
     ],
     releases: [
       makeRelease('alpha-new', 'alpha', 'alpha-one', '2025-06-01', { apiAliases: ['alpha'] }),
@@ -303,11 +308,16 @@ describe('route resolution and payload budget', () => {
     // provider page is generated for. Both branches of the route decision are
     // exercised here; the previous assertion could only ever see the null one,
     // because no fixture organization was featured.
-    const index = buildCatalogIndex(makeDataset({
+    //
+    // The empty family is added after validation (#554): the validator refuses
+    // that shape, and this test is about what the catalog does if one reaches it
+    // anyway.
+    const index = buildCatalogIndex(withEmptyFamily(makeDataset({
+      families: [ALPHA_ONE_FAMILY],
       releases: [
         makeRelease('alpha-new', 'alpha', 'alpha-one', '2025-06-01', { apiAliases: ['alpha'] }),
       ],
-    }));
+    }), BETA_ONE_FAMILY));
 
     expect(index.providers).not.toHaveLength(0);
     expect(Object.fromEntries(index.providers.map((provider) => [provider.slug, provider.route])))
