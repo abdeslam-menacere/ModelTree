@@ -6334,7 +6334,6 @@ a.directory-letter:hover {
   margin: 0;
   font-size: 1rem;
   letter-spacing: 0.02em;
-  text-transform: uppercase;
   color: var(--cp-text-muted);
 }
 
@@ -6418,7 +6417,6 @@ a.directory-letter:hover {
   margin: 0 0 8px;
   font-size: 0.82rem;
   letter-spacing: 0.02em;
-  text-transform: uppercase;
   color: var(--cp-text-muted);
 }
 
@@ -6567,7 +6565,6 @@ a.directory-letter:hover {
   margin: 0 0 4px;
   font-size: 1rem;
   letter-spacing: 0.02em;
-  text-transform: uppercase;
   color: var(--cp-text-muted);
 }
 
@@ -6618,7 +6615,6 @@ a.directory-letter:hover {
 .updates-item-type {
   font-size: 0.82rem;
   letter-spacing: 0.02em;
-  text-transform: uppercase;
   color: var(--cp-text-muted);
 }
 
@@ -6690,7 +6686,6 @@ a.directory-letter:hover {
   margin-bottom: 4px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  text-transform: uppercase;
   font-size: 0.75rem;
   color: var(--cp-text-muted);
 }
