@@ -140,7 +140,7 @@
     "title": "Models overview",
     "type": "official-docs",
     "publisherId": "anthropic",
-    "lastCheckedDate": "2026-08-26"
+    "lastCheckedDate": "2026-08-30"
   },
   {
     "id": "anthropic-fable-5-mythos-5-docs",
@@ -148,7 +148,7 @@
     "title": "Introducing Claude Fable 5 and Claude Mythos 5",
     "type": "official-docs",
     "publisherId": "anthropic",
-    "lastCheckedDate": "2026-08-26"
+    "lastCheckedDate": "2026-08-30"
   },
   {
     "id": "anthropic-model-deprecations",
@@ -810,7 +810,7 @@
     "title": "Models",
     "type": "official-docs",
     "publisherId": "xai",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-08-30",
     "notes": "States the alias convention in the creator’s own words: \"<modelname> is aliased to the latest stable version\", \"<modelname>-latest is aliased to the latest version\", and \"<modelname>-<date> refers directly to a specific model release\". Aliases therefore name existing releases and never identify new ones."
   },
   {
@@ -921,7 +921,7 @@
     "title": "deepseek-ai/DeepSeek-V4-Pro",
     "type": "model-card",
     "publisherId": "deepseek",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-08-30",
     "notes": "States 1.6T total and 49B activated parameters, a 1M context window, MIT licensing, and that this is \"a preview version of DeepSeek-V4 series\". Its \"on-policy distillation\" describes consolidating the creator’s own domain experts during post-training, not derivation from another creator’s model. Its comparative ranking claims are deliberately not recorded."
   },
   {
@@ -1113,7 +1113,7 @@
     "title": "Amazon Nova foundation models",
     "type": "official-docs",
     "publisherId": "aws",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-08-30",
     "notes": "AWS’s catalogue of current Nova models, listing Nova 2 Lite, Nova 2 Sonic and Nova Multimodal Embeddings. Describes Nova 2 Sonic as \"our speech-to-speech model for natural, real-time conversational AI\" that \"unifies speech understanding and generation into a single model\" with \"an expanded context window of up to 1M tokens\"."
   },
   {
@@ -1160,7 +1160,7 @@
     "title": "An Overview of Cohere's Models",
     "type": "official-docs",
     "publisherId": "cohere",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-08-30",
     "notes": "Cohere's model reference, which opens \"Cohere has a variety of models that cover many different use cases\". Names the family recorded here — \"Command A+ offers the last model in the Command A family\" — and carries the published identifiers as table rows, command-a-plus-05-2026 and command-a-03-2025, the second being what the family's month-precision first release date rests on. Its single \"Modality\" column does not separate input from output, which is why no other row here is recorded as a release."
   },
   {
@@ -1231,7 +1231,7 @@
     "title": "OLMo-2-1124-7B model card",
     "type": "model-card",
     "publisherId": "ai2",
-    "lastCheckedDate": "2026-08-28"
+    "lastCheckedDate": "2026-08-30"
   },
   {
     "id": "tii-falcon-h1-announcement",
@@ -1273,7 +1273,7 @@
     "title": "Nemotron-4-340B-Base model card",
     "type": "model-card",
     "publisherId": "nvidia",
-    "lastCheckedDate": "2026-08-28"
+    "lastCheckedDate": "2026-08-30"
   },
   {
     "id": "ai21-labs-jamba-announcement",
@@ -1298,7 +1298,7 @@
     "title": "GLM-4.5-Air model card",
     "type": "model-card",
     "publisherId": "zhipu-ai",
-    "lastCheckedDate": "2026-08-28"
+    "lastCheckedDate": "2026-08-30"
   },
   {
     "id": "zhipu-ai-glm-4-5-paper",
@@ -1314,7 +1314,7 @@
     "title": "Kimi-K2-Instruct model card",
     "type": "model-card",
     "publisherId": "moonshot-ai",
-    "lastCheckedDate": "2026-08-28"
+    "lastCheckedDate": "2026-08-30"
   },
   {
     "id": "zhipu-ai-glm-4-5-announcement",
@@ -1339,7 +1339,7 @@
     "title": "EleutherAI/pythia-12b model card",
     "type": "model-card",
     "publisherId": "eleutherai",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-08-30",
     "notes": "States \"Developed by: EleutherAI\", \"License: Apache 2.0\", and a naming-convention table giving Pythia-12B \"11,846,072,320\" total parameters against \"11,327,027,200\" non-embedding. States \"The primary intended use of Pythia is research on the behavior, functionality, and limitations of large language models.\" It states no context window, which is why the release records none rather than a guess."
   },
   {
@@ -1357,7 +1357,7 @@
     "title": "LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct model card",
     "type": "model-card",
     "publisherId": "lg-ai-research",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-08-30",
     "notes": "States EXAONE 3.5 is \"developed and released by LG AI Research\", that it is \"instruction-tuned bilingual (English and Korean)\", \"Number of Parameters (without embeddings): 6.98B\", \"Context Length: 32,768 tokens\", and \"The model is licensed under EXAONE AI Model License Agreement 1.1 - NC\". The 7.8B total is the size the same card names for this member of the series."
   },
   {
@@ -1375,7 +1375,7 @@
     "title": "Snowflake/snowflake-arctic-instruct model card",
     "type": "model-card",
     "publisherId": "snowflake",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-08-30",
     "notes": "States \"**Model Release Date** April, 24th 2024.\", \"**License** Apache-2.0\", \"**Input** Models input text only.\", \"**Output** Models generate text and code only.\", and that Arctic \"combines a 10B dense transformer model with a residual 128x3.66B MoE MLP resulting in 480B total and 17B active parameters chosen using a top-2 gating\". It states no context window, which is why the release records none. Snowflake’s own repository dates the release differently; see snowflake-arctic-repository, where the disagreement is recorded rather than resolved."
   },
   {
@@ -1393,7 +1393,7 @@
     "title": "upstage/solar-pro-preview-instruct model card",
     "type": "model-card",
     "publisherId": "upstage",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-08-30",
     "notes": "States \"Solar Pro Preview is an advanced large language model (LLM) with 22 billion parameters\", \"a maximum context length of 4K\", front-matter \"license: mit\", and a comparison table whose own column records \"*Release Date* | 2024.09.08\". States \"Solar Pro Preview is a pre-release version of the official Solar Pro\", which is why the release is recorded with preview status. Links to https://www.upstage.ai, which is the website the organization record carries."
   },
   {
@@ -1411,7 +1411,7 @@
     "title": "ibm-granite/granite-4.2-30b model card",
     "type": "model-card",
     "publisherId": "ibm",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-08-30",
     "notes": "IBM's own card for the release. Its \"What is IBM Granite?\" section states \"Granite is a family of open-source large language models developed by IBM\". Its Model Summary table records \"**Release Date**: August 25, 2026\", \"**Developers**: Granite Team, IBM\", \"**Model Type**: Decoder-only Dense Transformer (Reasoning)\", \"**Architecture**: GraniteForCausalLM\", \"**Base Model**: Granite-4.1-30B-Base\", a parameter count of 30B, bfloat16 precision, and \"**License**: Apache 2.0\", and that table is the source for the recorded release date. The Hub's machine-readable record for the same repository reports a createdAt of 2026-08-07, which is earlier than the date IBM states, and the stated date is the one recorded because it is the creator's own claim about the release. On context the card draws a native-versus-extended distinction rather than stating conflicting figures: the Model Summary table records \"**Context Length**: Natively Supports 128K (Long-context extension to 512K)\" and the Model Design table records \"Sequence length 131072\" for all three sizes, which are the same native figure stated two ways (131072 = 128 x 1024). The release records that native figure as an exact integer. The 512K extension is not recorded because it is the long-context extension rather than the released models' sequence length; the technical blog source carries the same component table under its own Model Architecture heading and describes the extension as the fifth phase of pre-training. A \"Key capabilities\" bullet in the card's Description section does advertise a \"**512K Context Window**\" without the \"Long-context extension to\" qualifier the summary row gives it, and that bullet is the only place the two readings are hard to tell apart."
   },
   {
@@ -1438,7 +1438,7 @@
     "title": "baidu/ERNIE-4.5-300B-A47B-PT model card",
     "type": "model-card",
     "publisherId": "baidu",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-08-30",
     "notes": "Baidu's own card for the release. Its Model Overview prose states \"ERNIE-4.5-300B-A47B is a text MoE Post-trained model\", and the configuration table directly beneath that sentence records \"Modality Text\", \"Training Stage Pretraining\", \"Params(Total / Activated) 300B / 47B\", \"Layers 54\" and \"Context Length 131072\". The first two disagree on training stage: the prose calls the model Post-trained while the table's own Training Stage row reads Pretraining, and the card reconciles them nowhere, so no training stage is recorded for this release and neither wording is treated as settled. The repository suffix does not settle it either, because the card's header note defines that suffix as a weights format rather than a training stage - \"-PT\" models, it says, \"use Transformer-style PyTorch weights\", as against \"-Paddle\" models that use PaddlePaddle weights - so the -PT in this repository name denotes PyTorch weights and is not evidence of post-training. The ERNIE 4.5 Highlights section separately describes \"Modality-Specific Post-Training\", stating that \"we fine-tuned variants of the pre-trained model for specific modalities\" and that \"Each model employed a combination of *Supervised Fine-tuning (SFT)*, *Direct Preference Optimization (DPO)* or a modified reinforcement learning method named *Unified Preference Optimization (UPO)* for post-training\". That section is not scoped away from this model: it opens by covering \"the ERNIE 4.5 models, particularly the MoE-based A47B and A3B series\", which names this one. What it does not do is make any claim about this repository's Training Stage row, drawing a modality split between LLMs and VLMs instead, so it can at most leave the prose reading contested and cannot settle it, and a contested attribute is not recorded as settled. The passage is quoted here at full strength for that reason rather than set aside. Its License section states \"The ERNIE 4.5 models are provided under the Apache License 2.0. This license permits commercial use, subject to its terms and conditions. Copyright (c) 2025 Baidu, Inc. All Rights Reserved.\" That copyright line is the only fuller recorded form of Baidu's own name found on a Baidu-published page, and it is what the organization record carries. The card gives no release date."
   },
   {
@@ -1492,7 +1492,7 @@
     "title": "ByteDance-Seed/Seed-OSS-36B-Instruct model card",
     "type": "model-card",
     "publisherId": "bytedance-seed",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-08-30",
     "notes": "ByteDance Seed's own card for the release. Its News list states \"[2025/08/20] We release Seed-OSS-36B-Base (both with and without synthetic data versions) and Seed-OSS-36B-Instruct\", which is the recorded release date; the Hub's machine-readable record for the same repository reports a createdAt of 2025-08-20, agreeing with it. States \"Seed-OSS is a series of open-source large language models developed by ByteDance's Seed Team\" and, in the same Introduction paragraph, \"Although trained with only 12T tokens\", which is the recorded training-token figure. Its Model Summary table records \"**Parameters** 36B\", \"**Number of Layers** 64\", \"**Vocabulary Size** 155K\" and \"**Context Length** 512K\". Front-matter carries \"license: apache-2.0\"."
   },
   {
@@ -1530,7 +1530,7 @@
     "type": "official-announcement",
     "publisherId": "databricks",
     "publishedDate": "2024-03-27",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-08-30",
     "notes": "Databricks' own announcement. States that DBRX \"is a transformer-based decoder-only large language model (LLM) that was trained using next-token prediction\" using \"a fine-grained mixture-of-experts (MoE) architecture with 132B total parameters of which 36B parameters are active on any input\", that \"DBRX has 16 experts and chooses 4\", that it \"was pre-trained on 12T tokens of text and code data\" with \"a maximum context length of 32k tokens\", and that it uses \"rotary position encodings (RoPE), gated linear units (GLU), and grouped query attention (GQA)\". States \"The weights of the base model (DBRX Base) and the finetuned model (DBRX Instruct) are available on Hugging Face under an open license\" and \"Starting today, DBRX is available for Databricks customers to use via APIs\" — both halves of the recorded access type, and the paid customer access the organization type policy is applied to. The page's own metadata carries article:published_time \"Wed, 03/27/2024 - 18:34\", which is the recorded release date."
   },
   {
@@ -1621,7 +1621,7 @@
     "title": "SmolLM3-3B model card",
     "type": "model-card",
     "publisherId": "hugging-face",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-08-30",
     "notes": "The card for the one model in this dataset that Hugging Face created rather than hosted. \"SmolLM3 is a 3B parameter language model designed to push the boundaries of small models. It supports dual mode reasoning, 6 languages and long context. SmolLM3 is a fully open model that offers strong performance at the 3B–4B scale.\" Front matter states \"license: apache-2.0\". On context, the card states one figure for the shipped configuration and larger ones the operator has to enable, and these are not rival claims. Its long-context section reads: \"The current `config.json` is set for context length up to 65,536 tokens. To handle longer inputs (128k or 256k), we utilize YaRN you can change the `max_position_embeddings` and rope_scaling` to:\" — the run-on and the unpaired backtick after rope_scaling are the card's own — followed by a config block carrying \"\"original_max_position_embeddings\": 65536,\" and a \"yarn\" rope_scaling type with a factor of 2.0, which the block's inline comment applies to 65,536 to reach the 128k figure. The feature bullet states that same relationship rather than contradicting it: \"Trained on 64k context and supports up to **128k tokens** using YARN extrapolation\"; reading its \"64k\" as the 65,536 the config names is an inference from the usual binary sense of k rather than something the card spells out. The recorded contextWindow is 65536 because that is the only figure the card presents as the setting the model ships with, while 128k and 256k are reachable only once the operator edits max_position_embeddings and rope_scaling, which makes them properties of a changed configuration. That the same sentence offers 256k on the same footing as 128k is what settles it: were 128k a competing account of the shipped window, 256k would be one too, and nothing would recommend recording 256k. The long-context benchmark rows also report a \"Ruler 128k\" score for SmolLM3-3B, and the card does not state whether YaRN was applied to obtain it; an evaluation result is not a statement of the shipped configuration either way. On languages, the card names six as native: \"- **Multilingual**: 6 natively supported (English, French, Spanish, German, Italian, and Portuguese)\". Its front matter \"language:\" list has eight entries — en, fr, es, it, pt, zh, ar, ru — and the three of those that are not among the six are accounted for by the card itself rather than contradicting it: \"The model has also been trained on Arabic (standard), Chinese and Russian data, but has seen fewer tokens in these languages compared to the 6 above. We report the performance on these langages for information.\" (the misspelling of \"languages\" is the card's own), and the benchmark tables carry a section headed \"| Other supported languages |\" covering exactly Arabic, Chinese and Russian. So the front matter is those six native languages plus these three secondary ones, less one: it carries no \"- de\" entry, while the prose counts German among the six and the \"| Main supported languages |\" table reports a \"| German| MLMM Hellaswag |\" row. That single omission is the whole of the discrepancy — a gap in the front matter, not a disagreement about what the model supports. No language fact is recorded for this release, and not because of that gap: the release schema has no field for natural-language coverage, so there is nowhere to record one."
   },
   {
@@ -1658,7 +1658,7 @@
     "title": "Yi-1.5-34B-Chat model card",
     "type": "model-card",
     "publisherId": "01-ai",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-08-30",
     "notes": "01.AI's card for the model. \"Yi-1.5 is an upgraded version of Yi. It is continuously pre-trained on Yi with a high-quality corpus of 500B tokens and fine-tuned on 3M diverse fine-tuning samples.\" Front matter states \"license: apache-2.0\", agreeing with the repository README. Two figures are deliberately not taken from this card. The card states no parameter count in prose; the only bases for a 34B figure would be the model's own name and the Hub's measured tensor total, so no parameters are recorded. On context length the card carries a family-level table whose Yi-1.5 row offers three lengths rather than one, so assigning any single value to this variant would be an inference from the variant's name rather than a reading of the source, and no contextWindow is recorded."
   },
   {
@@ -1739,7 +1739,7 @@
     "title": "sarvam-m model card",
     "type": "model-card",
     "publisherId": "sarvam-ai",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-08-30",
     "notes": "Sarvam AI's card for the model. \"`sarvam-m` is a multilingual, hybrid-reasoning, text-only language model built on Mistral-Small.\" and a key-feature bullet reading \"**Advanced Indic Skills**: Specifically post-trained on Indian languages alongside English, embodying a character that authentically reflects and emphasizes Indian cultural values.\" Front matter states \"license: apache-2.0\" and \"base_model_relation: finetune\", and gives the base model as a YAML list rather than a single-line mapping, so it is quoted here as the two lines it actually occupies: \"base_model:\" then \"- mistralai/Mistral-Small-3.1-24B-Base-2503\". The base model is not a recorded release in this dataset, so derivedFromIds is left empty rather than pointing at a record that does not exist; the derivation is stated in the release summary instead. No parameter count and no context length are stated on this card: the only \"24B\" anywhere on it is inside the base model identifier quoted above, which names the base rather than this model. No context window is recorded for this release. The parameter figure that is recorded comes from Sarvam AI's announcement post and the Hub's measurement of this model's weights instead, set out on sarvam-ai-sarvam-m-blog."
   },
   {

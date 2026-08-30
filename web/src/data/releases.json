@@ -462,7 +462,7 @@
       "anthropic-models-overview",
       "anthropic-fable-5-mythos-5-docs"
     ],
-    "verifiedAt": "2026-08-26"
+    "verifiedAt": "2026-08-30"
   },
   {
     "id": "anthropic-claude-mythos-5",
@@ -551,7 +551,7 @@
       "anthropic-models-overview",
       "anthropic-opus-5-announcement"
     ],
-    "verifiedAt": "2026-08-26"
+    "verifiedAt": "2026-08-30"
   },
   {
     "id": "anthropic-claude-haiku-4-5",
@@ -1312,7 +1312,7 @@
       "anthropic-sonnet-5-docs",
       "anthropic-sonnet-5-announcement"
     ],
-    "verifiedAt": "2026-08-26"
+    "verifiedAt": "2026-08-30"
   },
   {
     "id": "google-gemini-3-5-flash",
@@ -1866,7 +1866,7 @@
       "xai-grok-4-6-docs",
       "xai-models-docs"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-08-30"
   },
   {
     "id": "xai-grok-4-5",
@@ -2221,7 +2221,7 @@
       "hugging-face-deepseek-v4-pro-hub-record",
       "osi-license-mit"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-08-30"
   },
   {
     "id": "deepseek-v4-flash",
@@ -2672,7 +2672,7 @@
       "amazon-nova-2-sonic-announcement",
       "amazon-nova-models-page"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-08-30"
   },
   {
     "id": "cohere-command-a-plus-05-2026",
@@ -2724,7 +2724,7 @@
       "cohere-command-a-plus-announcement",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-08-30"
   },
   {
     "id": "ai2-olmo-2-7b",
@@ -2771,7 +2771,7 @@
       "ai2-olmo-2-announcement",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-08-30"
   },
   {
     "id": "tii-falcon-h1-34b-instruct",
@@ -2864,7 +2864,7 @@
       "nvidia-nemotron-4-340b-announcement",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-08-30"
   },
   {
     "id": "ai21-labs-jamba-v0-1",
@@ -3099,7 +3099,7 @@
       "lg-ai-research-exaone-3-5-repository",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-08-30"
   },
   {
     "id": "snowflake-arctic-instruct",
@@ -3238,7 +3238,7 @@
       "ibm-granite-4-2-technical-blog",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-08-30"
   },
   {
     "id": "baidu-ernie-4-5-300b-a47b",
@@ -3285,7 +3285,7 @@
       "hugging-face-ernie-4-5-300b-hub-record",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-08-30"
   },
   {
     "id": "tencent-hunyuan-video-t2v",
@@ -3372,7 +3372,7 @@
       "bytedance-seed-oss-36b-instruct-model-card",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-08-30"
   },
   {
     "id": "stability-ai-stable-diffusion-3-5-large",
@@ -3464,7 +3464,7 @@
       "databricks-open-model-license",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-08-30"
   },
   {
     "id": "minimax-m1-40k",
@@ -3655,7 +3655,7 @@
       "hugging-face-smollm3-hub-record",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-08-30"
   },
   {
     "id": "01-ai-yi-1-5-34b-chat",
