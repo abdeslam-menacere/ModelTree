@@ -3729,12 +3729,15 @@
       "weightsDownloadable": true,
       "osiApproved": true
     },
+    "parameters": {
+      "totalBillions": 24
+    },
     "apiAliases": [],
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
     "summary": "Sarvam AI’s multilingual hybrid-reasoning language model, post-trained from Mistral Small on Indian languages alongside English and published under Apache 2.0.",
-    "intendedUse": "Multilingual text generation and reasoning across Indian languages and English. Neither a parameter count nor a context window is recorded: no Sarvam AI page read states either for this model, and the 24B figure its announcement gives describes the Mistral Small base rather than this model. The base model is not a recorded release here, so the derivation is stated in prose rather than as a link.",
+    "intendedUse": "Multilingual text generation and reasoning across Indian languages and English. No context window is recorded, because no Sarvam AI page read for this record states one. The recorded parameter figure is the 24B label Sarvam AI applies to this model in its announcement post's comparison tables, which the Hub's measurement of this model's own weights at 23.57 billion rounds to. The base model is not a recorded release here, so the derivation is stated in prose rather than as a link.",
     "sourceIds": [
       "sarvam-ai-sarvam-m-model-card",
       "sarvam-ai-sarvam-m-blog",
