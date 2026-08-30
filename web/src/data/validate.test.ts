@@ -737,7 +737,9 @@ describe('partial dates on family and release dates', () => {
         id: 'sakana-ai-evollm-jp-v1-7b',
         precision: 'month',
         // The release inherits the family's problem: no day survives contact
-        // with all three of Sakana AI's own signals, so none is recorded.
+        // with all three signals -- two of them Sakana AI's own post, its page
+        // date and its retrospective wording, and the third the Hub's
+        // measurement of the repository -- so none is recorded.
       },
     ];
 

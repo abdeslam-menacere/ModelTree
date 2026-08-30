@@ -1731,7 +1731,7 @@
     "type": "repository",
     "publisherId": "hugging-face",
     "lastCheckedDate": "2026-08-29",
-    "notes": "The Hub's machine-readable record, carrying createdAt 2024-03-06T08:00:07.000Z and cardData license \"other\". That timestamp is fifteen days earlier than the date Sakana AI's own announcement post carries, which is one of the three disagreeing signals that led to recording this release at month precision rather than picking a day; the reasoning is set out on sakana-ai-evolutionary-model-merge-blog. The record also reports safetensors.total of 7241732096, cited on that same note as the measurement against which the creator's rounded \"7B\" label is read."
+    "notes": "The Hub's machine-readable record, carrying createdAt 2024-03-06T08:00:07.000Z and cardData license \"other\". That timestamp is fifteen days earlier than the date Sakana AI's own announcement post carries, and those are the only two of the three signals that state a day at all: they disagree, while the post's retrospective wording names a month and no day. That is what led to recording this release at month precision rather than picking a day; the reasoning is set out on sakana-ai-evolutionary-model-merge-blog. The record also reports safetensors.total of 7241732096, cited on that same note as the measurement against which the creator's rounded \"7B\" label is read."
   },
   {
     "id": "sarvam-ai-sarvam-m-model-card",
