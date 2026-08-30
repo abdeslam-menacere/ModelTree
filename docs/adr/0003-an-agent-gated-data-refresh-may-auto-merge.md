@@ -3,6 +3,12 @@
 - Status: Accepted
 - Date: 2026-08-25
 - Decision owners: ModelTree maintainers
+- Superseded by: nothing. **Widened by ADR 0006**, which adds
+  `web/src/data/refresh-runs.json` to the qualifying class defined below so that a
+  refresh run can record itself on the `/refresh` page in the pull request that
+  publishes it, and pairs that one-file widening with `gate-ledger.mjs`. Every
+  other bound in this decision is unchanged. Read that ADR before treating the
+  path list below as complete.
 - Supersedes: nothing. It narrows the invariant stated in
   `.github/copilot-instructions.md` §"The invariant" for one class of change, and
   it reads ADR 0001's guardrail "Do not publish unreviewed facts from automation"

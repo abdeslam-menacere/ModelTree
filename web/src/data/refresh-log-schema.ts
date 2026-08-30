@@ -6,17 +6,24 @@ import { isoDate } from './schema';
  *
  * A refresh run's working state lives under `.modeltree-refresh/runs/`, which is
  * git-ignored and deleted with the machine that produced it. The durable record
- * is the pull request body and the summary issue. This document is the reviewed,
- * versioned transcription of that record so the site can show it, and it is
- * deliberately **not** part of `raw.ts`: it holds facts about runs, not facts
- * about models, and `gate-scope.mjs` bounds an auto-merging refresh to the nine
- * documents `raw.ts` composes. Adding this file there would widen the ADR 0003
- * qualifying class, which is an ADR-level decision rather than a data change.
+ * is the pull request body and the summary issue. This document is the versioned
+ * transcription of that record so the site can show it, and the run writes its
+ * own entry into the same pull request that carries its dataset changes.
+ *
+ * It is **not** part of `raw.ts` - it holds facts about runs, not facts about
+ * models - and it is in the ADR 0003 qualifying class anyway. ADR 0006 widened
+ * that class by this one file, because while it sat outside, `gate-scope.mjs`
+ * refused any run that recorded itself and no unattended run could therefore
+ * appear on its own page (#419). What keeps that widening honest is
+ * `gate-ledger.mjs`, which counts the records each declared document held before
+ * and after and refuses an entry whose numbers do not match the diff. It checks
+ * the numbers only; the prose below is self-authored.
  *
  * The shape enforces the reason the page exists: a run may not report what it
  * posted without also reporting what it did not. `withheld` carries the second
  * half, and the refinements below refuse the combinations that would let a run
- * overstate itself.
+ * overstate itself. Those refinements are all *internal* - they check the entry
+ * against itself - which is exactly why the external cross-check exists too.
  */
 
 const runId = z

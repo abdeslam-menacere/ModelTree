@@ -186,6 +186,31 @@ jobs:
         if: steps.scope.outputs.run == 'true'
         run: node .github/skills/modeltree-gates/scripts/gate-dataset.mjs
 
+      # The completeness check for the run ledger (#419, ADR 0006): every commit
+      # in this ref's history whose subject declares `(run <id>)` must have a
+      # matching entry in `web/src/data/refresh-runs.json`. The /refresh page is
+      # the public record of what the unattended pipeline did, and three runs in
+      # a row reached it with no entry because writing one was a step a human
+      # remembered rather than a step anything enforced.
+      #
+      # `--history HEAD` rather than the gate's default `refs/remotes/origin/main`.
+      # The default is right for an agent working in a clone, which has that
+      # remote-tracking ref; `actions/checkout` does not reliably create it, and
+      # a gate that exits 2 for want of a ref would have to be either tolerated
+      # as a pass -- the one thing this workflow refuses to do -- or left red for
+      # a reason having nothing to do with the data. HEAD is the merge result
+      # being proposed, so this asserts the property of what would land.
+      #
+      # This is the completeness half only. The reconciliation half -- that a new
+      # entry's record counts match the diff it describes -- is the gate's branch
+      # mode, which needs the merge-base with the published main and therefore
+      # runs where that ref exists: the publishing agent's clone, as a documented
+      # stage of `modeltree-publish`. Do not read a green check here as evidence
+      # that any entry's numbers were verified.
+      - name: Run the ledger gate over published history
+        if: steps.scope.outputs.run == 'true'
+        run: node .github/skills/modeltree-gates/scripts/gate-ledger.mjs --history HEAD
+
       # The suite above prints its own size on every run, so the documentation
       # does not repeat it. This step is what keeps that true: it refuses a
       # hand-written test count in the skill docs (#276).

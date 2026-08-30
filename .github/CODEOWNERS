@@ -49,3 +49,21 @@
 /web/src/data/usage-syntheses.json
 /web/src/data/model-fit-statements.json
 /web/src/data/model-fit-evidence-gaps.json
+
+# The run ledger, added to the class by ADR 0006 so a refresh records itself in
+# the pull request that publishes it. It is the one member of the set that
+# `raw.ts` does not compose: it holds facts about runs rather than facts about
+# models, and it is what the `/refresh` page renders.
+#
+# It has to be cleared here for the same reason as the documents above, and the
+# reason is not symmetry. While it was owned, a run that wrote its own entry was
+# out of class, forfeited its auto-merge, and so never wrote one - every entry
+# was transcribed by a human afterwards, and on three published runs out of three
+# the transcription was missed and the page ran a full run stale
+# (abdeslam-menacere/ModelTree#419). Re-owning this line restores that failure.
+#
+# What keeps a self-written entry honest is `gate-ledger.mjs`, which counts the
+# records in every document the entry names and refuses an entry whose numbers
+# disagree with the diff. That gate is the condition ADR 0006 attaches to this
+# line; if it goes, so does this.
+/web/src/data/refresh-runs.json

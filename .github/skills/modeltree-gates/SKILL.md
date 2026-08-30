@@ -9,7 +9,7 @@ These gates are mechanical. No model, no judgement, no vote. They run **after**
 semantic review and **cannot be outvoted by it** — that ordering is the whole
 point, and ADR 0003 forbids reversing it.
 
-Four scripts, all dependency-free Node, all safe to run at any time:
+Five scripts, all dependency-free Node, all safe to run at any time:
 
 | Script | Question it answers |
 |---|---|
@@ -17,6 +17,7 @@ Four scripts, all dependency-free Node, all safe to run at any time:
 | `scripts/gate-source-approval.mjs` | Did anyone approve the source it rests on? |
 | `scripts/gate-dataset.mjs` | Is the resulting dataset coherent? |
 | `scripts/gate-scope.mjs` | Is this change even allowed to auto-merge? |
+| `scripts/gate-ledger.mjs` | Does the run's own record of itself match what it did? |
 
 Exit codes are uniform: **0** passed, **1** a gate failed, **2** the gate could
 not run. Treat 2 as a failure. A gate that could not run has not passed, and the
@@ -41,6 +42,14 @@ node .github/skills/modeltree-gates/scripts/gate-dataset.mjs --json
 
 # 4. Does the change qualify to auto-merge? Run this before opening the PR.
 node .github/skills/modeltree-gates/scripts/gate-scope.mjs --json
+
+# 5. Does the run's ledger entry match the change it describes? Run this after
+#    writing the entry, before opening the PR.
+node .github/skills/modeltree-gates/scripts/gate-ledger.mjs --json
+
+# 5b. Is the ledger complete over everything published so far? No bundle needed;
+#     safe to run at any time, and skills-ci runs it on every pull request.
+node .github/skills/modeltree-gates/scripts/gate-ledger.mjs --history --json
 ```
 
 Keep the JSON from step 2. Its `anchor`, `anchors`, `inheritedSources`, and
@@ -258,10 +267,14 @@ not check that a source *still says* what it said — that is the scout's job on
 the next run, and the gate has no network.
 
 **`gate-scope.mjs`** enforces the ADR 0003 qualifying class: every changed path
-must be one of the nine dataset documents that `web/src/data/raw.ts` composes.
-One file outside that list disqualifies the whole change — there is no partial
-case and no flag that relaxes it. It sees untracked files too, so a new file
-cannot slip past by never being added.
+must be one of the dataset documents that `web/src/data/raw.ts` composes, plus
+`web/src/data/refresh-runs.json`, which ADR 0006 added so a run can record itself
+in the pull request it publishes. The list lives in the script's `ALLOWED_PATHS`
+and a self-test holds it to `raw.ts` import for import, so this document does not
+restate its length and cannot go stale about it. One file outside that list
+disqualifies the whole change — there is no partial case and no flag that relaxes
+it. It sees untracked files too, so a new file cannot slip past by never being
+added.
 
 It measures that change from a commit **it computes rather than one you pass**:
 `git merge-base HEAD refs/remotes/origin/main`, the point this branch left
@@ -283,6 +296,38 @@ and can only add refusals.
 
 A refresh that trips this gate has not failed. It has correctly discovered work
 for a human: stop, and file an issue describing what it needed and why.
+
+**`gate-ledger.mjs`** is what pays for the widening above. Admitting
+`refresh-runs.json` to the qualifying class lets a run publish a report card
+about itself, so this gate reads that report against the change it describes
+rather than against itself. Four rules: the documents the entry names must be
+exactly the dataset documents the branch changed, in both directions; every
+`recordsBefore` and `recordsAfter` is **counted** at the anchor and in the working
+tree rather than believed; a branch adds at most one entry, so a bad run stays one
+revert; and a commit whose subject declares `(run <id>)` must have an entry for
+that id.
+
+It anchors exactly as `gate-scope.mjs` does, and a self-test asserts the two
+resolve the same commit and agree on what a dataset document is — if they drift,
+one is enforcing a class the other is not.
+
+What it does not check is the part no gate can: whether the run's prose is honest,
+whether `pagesFetched` is right, whether a derived reviewer count means anything.
+Those belong in `caveats`, and the schema's job — not this gate's — is to require
+a published run to carry its pull request reference.
+
+Two modes. Bare, it checks the branch as above. `--history [<ref>]` asks the
+different question that #419 was filed about: does the ledger record every run
+that published history declares? That is the completeness check, it needs no
+bundle, and `skills-ci` runs it on every pull request as `--history HEAD`.
+
+An entry added on a branch that changed no dataset document is a **transcription**
+— it describes work already published, so there is no diff here to reconcile it
+against. The gate accepts it and reports `transcription: true`, saying plainly
+that the numbers went unchecked. That is the shape of a correction to a historical
+entry. It is *not* an acceptable shape for a run that is publishing data: there,
+`transcription: true` means the entry and its data got separated and belong in one
+commit.
 
 ## Verifying the gates themselves
 

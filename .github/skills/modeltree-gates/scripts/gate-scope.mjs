@@ -2,10 +2,12 @@
 // The qualifying-class gate from ADR 0003.
 //
 // A refresh may auto-merge only if every file it touches is one of the dataset
-// documents composed by `web/src/data/raw.ts`. This is drawn by file path
-// deliberately, so "does this change qualify" has a mechanical answer rather
-// than a judgement call. One file outside the list disqualifies the whole
-// change - there is no partial case, and no flag that relaxes it.
+// documents composed by `web/src/data/raw.ts`, plus `refresh-runs.json`, which
+// ADR 0006 added so a run can record itself in the pull request it publishes.
+// This is drawn by file path deliberately, so "does this change qualify" has a
+// mechanical answer rather than a judgement call. One file outside the list
+// disqualifies the whole change - there is no partial case, and no flag that
+// relaxes it.
 //
 // A refresh that finds it needs a schema change, a component change, or a
 // workflow change has left its class. That is not a failure of the run; it is
@@ -64,8 +66,27 @@ import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// Exactly the documents `web/src/data/raw.ts` imports. Kept as full repo-
-// relative paths so a same-named file elsewhere cannot pass by accident.
+// Exactly the documents `web/src/data/raw.ts` imports, plus the refresh ledger
+// that ADR 0006 added to this class. Kept as full repo-relative paths so a
+// same-named file elsewhere cannot pass by accident.
+//
+// On the ledger, `web/src/data/refresh-runs.json`, which is the one member
+// `raw.ts` does not compose. ADR 0006 widened this class by that one file so a
+// run can record itself in the pull request it publishes. While it was out of
+// class, a run that wrote its own `/refresh` entry was refused here and
+// forfeited its auto-merge, so no unattended run ever recorded itself, every
+// entry was transcribed by hand afterwards, and on three runs out of three the
+// transcription was missed and the page ran permanently one run stale (#419).
+//
+// The widening is conditional on `gate-ledger.mjs`, which counts the entry's
+// record totals at both ends of the diff it describes rather than believing
+// them. That gate is what stops this line from admitting an unchecked report
+// card that a run wrote about itself. If it is removed, or reduced to checking
+// the entry against itself, ADR 0006 lapses and this line comes out with it.
+//
+// Keep prose out of the Set literal below. The mirror test in gates.test.mjs
+// reads every quoted string between its brackets, so an apostrophe or a quoted
+// phrase in a comment there parses as a path and turns the check red.
 const ALLOWED_PATHS = new Set([
   'web/src/data/sources.json',
   'web/src/data/publishers.json',
@@ -82,6 +103,7 @@ const ALLOWED_PATHS = new Set([
   'web/src/data/usage-syntheses.json',
   'web/src/data/model-fit-statements.json',
   'web/src/data/model-fit-evidence-gaps.json',
+  'web/src/data/refresh-runs.json',
 ]);
 
 // What the remote says `main` is. Not a local branch: a local `main` is a ref
