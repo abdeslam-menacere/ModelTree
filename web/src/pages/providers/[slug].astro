@@ -6,8 +6,9 @@ import SourceList from '../../components/SourceList.astro';
 import { dataset, sourceById } from '../../data/dataset';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { formatDate } from '../../lib/format';
-import { buildLineageEcosystems } from '../../lib/lineage-view';
+import { buildCreatorEcosystems } from '../../lib/lineage-view';
 import { buildProviderProfile } from '../../lib/provider-profile';
+import { organizationFullNameIfDistinct, organizationLabel } from '../../lib/organization-name';
 import { providerStaticPaths } from '../../lib/routes';
 
 export const getStaticPaths = providerStaticPaths;
@@ -22,9 +23,12 @@ const base = import.meta.env.BASE_URL;
 const profile = buildProviderProfile(dataset, organizationId, base);
 if (!profile) throw new Error(`Unknown organization ${organizationId}`);
 
-const ecosystems = buildLineageEcosystems(dataset);
+// The creator's own recorded tree, read from the coverage view rather than the
+// featured one, so a page exists for every creator that has releases and not
+// only for the creators the site leads with.
+const ecosystems = buildCreatorEcosystems(dataset);
 const ecosystem = ecosystems.find((item) => item.organization.id === organizationId);
-if (!ecosystem) throw new Error(`No featured ecosystem for ${organizationId}`);
+if (!ecosystem) throw new Error(`No recorded ecosystem for ${organizationId}`);
 
 // The lineage explorer names cross-family derivations and links every release to
 // a source, so it is given labels and sources for every release, not only this
@@ -47,11 +51,16 @@ const roleText = profile.operatesServingPlatform
   : 'Model creator';
 const directoryHref = `${base}providers/`;
 const passportHref = `${base}models/${ecosystem.families[0].releases[0].slug}/`;
+const label = organizationLabel(organization);
+// The fuller recorded form, only where it says something the label does not.
+// This is the creator's own page, so a recorded name the rest of the site no
+// longer leads with is stated here rather than disappearing from the site.
+const fullName = organizationFullNameIfDistinct(organization);
 ---
 
 <BaseLayout
-  title={`${organization.name} | ModelTree`}
-  description={`${organization.name}: a source-backed organization summary, its recorded model family tree, releases, and the primary sources behind each fact.`}
+  title={`${label} | ModelTree`}
+  description={`${label}: a source-backed organization summary, its recorded model family tree, releases, and the primary sources behind each fact.`}
   passportHref={passportHref}
   verifiedAt={formatDate(profile.latestVerifiedAt)}
   currentPage="directory"
@@ -64,7 +73,7 @@ const passportHref = `${base}models/${ecosystem.families[0].releases[0].slug}/`;
     <header class="provider-hero">
       <div>
         <span class="eyebrow">{roleText}</span>
-        <h1>{organization.name}</h1>
+        <h1>{label}</h1>
         <p class="provider-summary">{organization.description}</p>
       </div>
       <div class="provider-stamp">
@@ -73,7 +82,7 @@ const passportHref = `${base}models/${ecosystem.families[0].releases[0].slug}/`;
       </div>
     </header>
 
-    <section class="provider-band" aria-label={`Recorded family tree for ${organization.name}`}>
+    <section class="provider-band" aria-label={`Recorded family tree for ${label}`}>
       <LineageExplorer
         client:load
         ecosystems={[ecosystem]}
@@ -90,6 +99,12 @@ const passportHref = `${base}models/${ecosystem.families[0].releases[0].slug}/`;
         against them.
       </p>
       <dl class="official-links">
+        {fullName ? (
+          <div>
+            <dt>Full recorded name</dt>
+            <dd>{fullName}</dd>
+          </div>
+        ) : null}
         <div>
           <dt>Website</dt>
           <dd><a href={organization.website}>{organization.website} <ExternalLink size={14} aria-hidden="true" /></a></dd>
@@ -112,7 +127,7 @@ const passportHref = `${base}models/${ecosystem.families[0].releases[0].slug}/`;
     <section class="provider-section" aria-labelledby="releases-title">
       <h2 id="releases-title">Releases</h2>
       <p class="section-lead">
-        Every release recorded for {organization.name}, current and legacy alike. Filter by lifecycle
+        Every release recorded for {label}, current and legacy alike. Filter by lifecycle
         status; the choice is kept in the page address so it survives a reload or a shared link.
       </p>
       <ProviderReleases client:load rows={profile.releases} statuses={profile.statusesPresent} />

@@ -7,6 +7,7 @@ import { formatDate } from '../lib/format';
 import { buildHomepageHierarchy, firstHomepageRelease } from '../lib/homepage';
 import { buildHomepageSearchIndex } from '../lib/homepage-search';
 import { buildLineageEcosystems } from '../lib/lineage-view';
+import { organizationLabel } from '../lib/organization-name';
 import { buildCoverageStats, buildReleasePulse, latestChangeLabel } from '../lib/release-pulse';
 
 const hierarchy = buildHomepageHierarchy(dataset);
@@ -53,7 +54,7 @@ const latestChange = latestChangeLabel(pulse, dataset);
 				<a class="primary-action hero-tree-action" href={`${base}tree/`}>Open the Model Tree</a>
 			</div>
 			<dl class="coverage-stats" aria-label="Current ModelTree seed coverage">
-				<div><dt>Creators</dt><dd>{dataset.organizations.length}</dd></div>
+				<div><dt>Creators</dt><dd>{coverage.creators}</dd></div>
 				<div><dt>Families</dt><dd>{dataset.families.length}</dd></div>
 				<div><dt>Releases</dt><dd>{dataset.releases.length}</dd></div>
 				<div><dt>Sources</dt><dd>{dataset.sources.length}</dd></div>
@@ -64,7 +65,7 @@ const latestChange = latestChangeLabel(pulse, dataset);
 			<HomepageSearch client:load index={homeSearchIndex} />
 			<noscript>
 				<div class="no-script-note">
-					<p>Search needs JavaScript. Every featured release has a static Model Passport:</p>
+					<p>Search needs JavaScript. Every release has a static Model Passport:</p>
 					<ul>
 						{homeSearchIndex.releases.map((release) => (
 							<li>
@@ -89,7 +90,7 @@ const latestChange = latestChangeLabel(pulse, dataset);
 					<p>Every release has a static Model Passport:</p>
 					{hierarchy.map(({ organization, families }) => (
 						<section>
-							<h3>{organization.name}</h3>
+							<h3>{organizationLabel(organization)}</h3>
 							{families.map(({ family, releases }) => (
 								<div>
 									<h4>{family.name}</h4>

@@ -8,6 +8,7 @@ import type {
   SourceReference,
 } from '../data/schema';
 import { comparePartialDatesDescending } from '../data/partial-date';
+import { organizationLabel } from './organization-name';
 
 /**
  * The normalized view model behind a `/providers/[slug]` page.
@@ -216,14 +217,14 @@ export function buildProviderProfile(
     .sort((a, b) => compare(a.name, b.name) || compare(a.id, b.id))
     .map((platform) => {
       const operatedByProvider = platform.organizationId === organization.id;
-      const operatorName = organizationById.get(platform.organizationId)?.name
-        ?? platform.organizationId;
+      const operator = organizationById.get(platform.organizationId);
+      const operatorName = operator ? organizationLabel(operator) : platform.organizationId;
       return {
         platform,
         operatorName,
         operatedByProvider,
         relationshipLabel: operatedByProvider
-          ? `First-party serving platform, operated by ${organization.name}`
+          ? `First-party serving platform, operated by ${organizationLabel(organization)}`
           : `Third-party serving platform, operated by ${operatorName}`,
         servedReleaseCount: servedByPlatform.get(platform.id)?.size ?? 0,
       };

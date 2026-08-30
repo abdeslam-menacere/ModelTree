@@ -607,5 +607,318 @@
       "cohere-command-a-plus-announcement"
     ],
     "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "ai2-olmo-2",
+    "slug": "olmo-2",
+    "organizationId": "ai2",
+    "name": "OLMo 2",
+    "description": "AI2’s second-generation fully open OLMo language models, released with open weights, data, and training code.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2024-11-26",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "ai2-olmo-2-announcement",
+      "ai2-olmo-2-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "tii-falcon-h1",
+    "slug": "falcon-h1",
+    "organizationId": "tii",
+    "name": "Falcon-H1",
+    "description": "TII’s Falcon-H1 series of hybrid attention–state-space language models, released as open weights.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2025-05-21",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "tii-falcon-h1-announcement",
+      "tii-falcon-h1-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "nvidia-nemotron-4-340b",
+    "slug": "nemotron-4-340b",
+    "organizationId": "nvidia",
+    "name": "Nemotron-4 340B",
+    "description": "NVIDIA’s Nemotron-4 340B family of open-weight base, instruct, and reward models aimed at synthetic data generation.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2024-06-14",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "nvidia-nemotron-4-340b-announcement",
+      "nvidia-nemotron-4-340b-research",
+      "nvidia-nemotron-4-340b-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "ai21-labs-jamba",
+    "slug": "jamba",
+    "organizationId": "ai21-labs",
+    "name": "Jamba",
+    "description": "AI21 Labs’ Jamba family of hybrid Mamba–Transformer (SSM) language models with long context support.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2024-03-28",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "ai21-labs-jamba-announcement",
+      "ai21-labs-jamba-paper"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "zhipu-ai-glm-4-5",
+    "slug": "glm-4-5",
+    "organizationId": "zhipu-ai",
+    "name": "GLM-4.5",
+    "description": "Zhipu AI’s GLM-4.5 series of Mixture-of-Experts foundation models unifying reasoning, coding, and agent capabilities.",
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "firstReleaseDate": "2025-07",
+    "datePrecision": "month",
+    "status": "current",
+    "sourceIds": [
+      "zhipu-ai-glm-4-5-model-card",
+      "zhipu-ai-glm-4-5-paper",
+      "zhipu-ai-glm-4-5-announcement"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "moonshot-ai-kimi-k2",
+    "slug": "kimi-k2",
+    "organizationId": "moonshot-ai",
+    "name": "Kimi K2",
+    "description": "Moonshot AI’s Kimi K2 family of trillion-parameter Mixture-of-Experts language models built for agentic and coding tasks.",
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "firstReleaseDate": "2025-07-11",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "moonshot-ai-kimi-k2-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "eleutherai-pythia",
+    "slug": "pythia",
+    "organizationId": "eleutherai",
+    "name": "Pythia",
+    "description": "EleutherAI’s Pythia scaling suite, a set of language models trained on the same data in the same order across eight sizes, published with per-step checkpoints so that training behaviour can be studied.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2023-04-03",
+    "datePrecision": "day",
+    "status": "research",
+    "sourceIds": [
+      "eleutherai-pythia-repository",
+      "eleutherai-pythia-12b-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "lg-ai-research-exaone-3-5",
+    "slug": "exaone-3-5",
+    "organizationId": "lg-ai-research",
+    "name": "EXAONE 3.5",
+    "description": "LG AI Research’s EXAONE 3.5 series of instruction-tuned bilingual English and Korean language models, released at 2.4B, 7.8B, and 32B sizes with a 32,768-token context length.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2024-12-09",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "lg-ai-research-exaone-3-5-model-card",
+      "lg-ai-research-exaone-3-5-repository"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "snowflake-arctic",
+    "slug": "arctic",
+    "organizationId": "snowflake",
+    "name": "Arctic",
+    "description": "Snowflake’s Arctic family of dense-MoE hybrid language models, combining a dense transformer with a residual Mixture-of-Experts MLP and published under Apache-2.0.",
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "firstReleaseDate": "2024-04-24",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "snowflake-arctic-instruct-model-card",
+      "snowflake-arctic-repository"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "upstage-solar-pro",
+    "slug": "solar-pro",
+    "organizationId": "upstage",
+    "name": "Solar Pro",
+    "description": "Upstage’s Solar Pro line, built by depth up-scaling a smaller model into a larger one and intended to run on a single GPU. Only the preview release is recorded here, because it is the only member the sources describe as published.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2024-09-08",
+    "datePrecision": "day",
+    "status": "preview",
+    "sourceIds": [
+      "upstage-solar-pro-preview-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "ibm-granite-4-2",
+    "slug": "granite-4-2",
+    "organizationId": "ibm",
+    "name": "Granite 4.2",
+    "description": "IBM’s Granite 4.2 generation: dense, decoder-only reasoning models in 3B, 8B and 30B, each with a thinking / non-thinking switch and native tool calling, released under the Apache 2.0 licence. Only the 30B release is recorded here.",
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "firstReleaseDate": "2026-08-25",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "ibm-granite-4-2-technical-blog",
+      "ibm-granite-4-2-repository",
+      "ibm-granite-4-2-30b-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "baidu-ernie-4-5",
+    "slug": "ernie-4-5",
+    "organizationId": "baidu",
+    "name": "ERNIE 4.5",
+    "description": "Baidu’s ERNIE 4.5 generation, which its repository describes as a family of large-scale multimodal models in ten variants spanning text and vision-language mixture-of-experts models, all published under Apache 2.0. Only the 300B text model is recorded here.",
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist"
+    ],
+    "firstReleaseDate": "2025-06-28",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "baidu-ernie-repository",
+      "baidu-ernie-4-5-300b-model-card",
+      "hugging-face-ernie-4-5-300b-hub-record"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "tencent-hunyuan-video",
+    "slug": "hunyuan-video",
+    "organizationId": "tencent",
+    "name": "HunyuanVideo",
+    "description": "Tencent’s open-weight video generation line within the Hunyuan model family, published with inference code and weights under Tencent’s own community licence.",
+    "categories": [
+      "video"
+    ],
+    "firstReleaseDate": "2024-12-03",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "tencent-hunyuan-video-model-card",
+      "tencent-hunyuan-community-license"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "bytedance-seed-oss",
+    "slug": "seed-oss",
+    "organizationId": "bytedance-seed",
+    "name": "Seed-OSS",
+    "description": "ByteDance Seed’s open-source language model series, released in base and instruction-tuned 36B forms under Apache 2.0 with a long context length.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2025-08-20",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "bytedance-seed-oss-36b-instruct-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "stability-ai-stable-diffusion-3-5",
+    "slug": "stable-diffusion-3-5",
+    "organizationId": "stability-ai",
+    "name": "Stable Diffusion 3.5",
+    "description": "Stability AI’s Stable Diffusion 3.5 generation of text-to-image diffusion transformers, published under the Stability AI Community License. Only the Large model is recorded here.",
+    "categories": [
+      "image"
+    ],
+    "firstReleaseDate": "2024-10-22",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "stability-ai-sd-3-5-announcement",
+      "stability-ai-sd-3-5-large-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "databricks-dbrx",
+    "slug": "dbrx",
+    "organizationId": "databricks",
+    "name": "DBRX",
+    "description": "Databricks’ mixture-of-experts language model, published as base and instruction-tuned weights under the Databricks Open Model License and served to Databricks customers through APIs.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2024-03-27",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "databricks-dbrx-announcement",
+      "databricks-open-model-license"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "minimax-m1",
+    "slug": "minimax-m1",
+    "organizationId": "minimax",
+    "name": "MiniMax-M1",
+    "description": "MiniMax’s M1 series of open-weight hybrid Mixture-of-Experts reasoning models, combining a lightning attention mechanism with a natively supported context length of 1 million tokens, published in two thinking-budget versions.",
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "firstReleaseDate": "2025-06-16",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "minimax-m1-announcement",
+      "minimax-m1-80k-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
   }
 ]

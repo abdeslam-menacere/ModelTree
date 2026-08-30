@@ -41,7 +41,11 @@ export const datePrecision = z.enum(DATE_PRECISIONS);
  * own wording is mapped. No source speaks them. A creator writes "Live",
  * "Active (legacy)" or "generally available"; the terms below are what the
  * record can hold. The numeric fields pose the same step in another form — a
- * page states "128K" and `contextWindow` stores `128000`.
+ * page states "128K" and `contextWindow` stores `128000`. That mapping is the
+ * commonest way a stated context length reaches a numeric field and it is not
+ * the only one; what the column actually holds, and the reason a figure in it
+ * is never rewritten to match a rule, are set out beside
+ * `releaseSchema.contextWindow` below.
  *
  * Choosing the member a quoted term denotes is a *recording* step, not a new
  * fact, and it is permitted only on the terms the `provenance` rubric in
@@ -100,12 +104,35 @@ export const accessType = z.enum([
 // floor — it ensures a licence is identified — not the evidence rule for the
 // field's truth, which is the reviewer's to apply.
 //
-// A known asymmetry, recorded rather than resolved here: `superRefine` demands
-// an `spdxId` or `url` for `osiApproved: true` but nothing for `osiApproved:
-// false`, even though `false` is equally a claim about the world. Requiring a
-// source for `false` too would be consistent, but it changes validator behaviour
-// and is out of scope for #461; it is raised in that issue's summary for a
-// follow-up rather than implemented silently.
+// Whether `osiApproved: false` needs a source too, left open by #461 and decided
+// in abdeslam-menacere/ModelTree#481: **it does**, and `validateDataset`
+// enforces it. `false` asserts that OSI has not approved the named licence,
+// which is as much a claim about the world as `true` is, and it is one OSI's own
+// publication can settle rather than merely fail to contradict: the approved
+// list is exhaustive by construction, so a licence absent from it has not been
+// approved. Absence there is a reading of the register, not an argument from
+// silence. Leaving `false` unevidenced would have made the unsourced value the
+// cheapest one in the schema to assert, which inverts the point of the rule
+// above. So every release carrying `osiApproved`, at either value, must cite a
+// source published by the Open Source Initiative.
+//
+// The *structural floor* stays asymmetric, and that part is deliberate rather
+// than left over. `superRefine` still demands an `spdxId` or a licence `url` for
+// `true` alone. A `true` claim has to be matched against a named entry on OSI's
+// list, and matching needs the licence pinned to something more canonical than a
+// free-text name. A `false` claim is the complement of that list, and the
+// licences it covers are largely bespoke vendor terms; one carrying no SPDX id
+// and no canonical URL is the case where `false` is least in doubt, so demanding
+// an identifier there would push a record towards inventing one to state
+// something the sources already support. Requiring evidence and requiring an
+// identifier are different requirements, and this field now takes the first
+// symmetrically and the second only where it does work.
+//
+// What that enforcement does and does not settle: `validateDataset` checks that
+// an OSI-published source is cited. It never reads that source, so it cannot
+// confirm the page says what the record claims — the same division of labour as
+// the rule above, where the check is structural and the judgement is the
+// reviewer's.
 export const licenseSchema = z.object({
   name: z.string().min(1),
   spdxId: z.string().min(1).optional(),
@@ -168,10 +195,34 @@ export const publisherSchema = z.object({
     .optional(),
 });
 
+/**
+ * A creator organization.
+ *
+ * Two name fields, and the rule for them is not a matter of taste at the point
+ * of use: **`shortName` is the label** -- the one string an organization is
+ * displayed as, sorted on, and filed under, uniformly, with no per-creator
+ * exceptions. `name` is the fuller recorded form. It is never deleted, it stays
+ * searchable so either form finds the creator, and it is shown as the full
+ * recorded form where the two differ.
+ *
+ * The rule lives in `src/lib/organization-name.ts`, which is the only place
+ * that decides it; read it before adding a surface that names a creator, and
+ * call it rather than reading either field directly. Reading `name` directly is
+ * how abdeslam-menacere/ModelTree#479 happened: every surface picked the field
+ * independently, so `xai` rendered as "SpaceXAI" and filed under S.
+ *
+ * The two forms are allowed to disagree, and for `xai` they disagree because
+ * the creator's own surfaces do. That conflict is data, recorded in
+ * `description` with its sources; a refresh must not collapse it by editing one
+ * field to match the other. Neither field is an identifier -- `id` and `slug`
+ * are -- so a naming change is never a reason to touch either.
+ */
 export const organizationSchema = z.object({
   id: entityId,
   slug,
+  // The fuller recorded form. See the note above: this is NOT the label.
   name: z.string().min(1),
+  // The label: displayed, sorted on, and filed under. See the note above.
   shortName: z.string().min(1),
   // Editorial functional classification, not a sourced claim. Choose the first
   // match: `community` when independent contributors outside any one entity's
@@ -232,6 +283,22 @@ export const releaseSchema = z.object({
   releaseDate: partialDate,
   datePrecision,
   status: lifecycleStatus,
+  // Editorial lead selection, not a ranking and not a sourced claim. Apply in
+  // order: flag `featured` only on a release whose creator is one of the five
+  // this site leads with -- `anthropic`, `google-deepmind`, `meta`,
+  // `microsoft`, `openai`; flag at least one release for each of those five, so
+  // that each one reaches the Featured branch, because a creator is featured
+  // exactly when it holds a featured release and the schema carries no
+  // organization-level flag; flag no release of any other creator, which is what
+  // places every creator the list omits on the Others branch; and write a
+  // `featuredRationale` on exactly the releases flagged, so that no rationale
+  // outlives the placement it explains. The list records what this site leads
+  // with, which is a choice about its own entry point rather than a measurement
+  // of the creators: it states no order, no score, and no claim that a listed
+  // creator is larger, better, or more important than one it omits. A creator
+  // the list omits keeps every catalog entry, every release, its place on the
+  // Others branch, and its own provider page. Changing the five is an editorial
+  // change to this list, reviewed like any other change here.
   featured: z.boolean(),
   featuredRationale: z.string().min(1).optional(),
   categories: z.array(modelCategory).min(1),
@@ -240,6 +307,63 @@ export const releaseSchema = z.object({
   accessType,
   license: licenseSchema.optional(),
   parameters: parameterCountSchema.optional(),
+  // Two routes carry a stated context length into `contextWindow`, and what the
+  // source literally says decides which of the two applies. They are the common
+  // routes, not an exhaustive account of this column — see the third case below,
+  // which is why this comment describes what the data holds rather than issuing
+  // a rule the data must satisfy.
+  //
+  // 1. THE SOURCE STATES AN EXACT INTEGER, so it is recorded verbatim and no
+  //    mapping happens at all. GPT-4.1's model documentation is the clearest
+  //    case, because it gives both forms on one page: prose describing "a 1M
+  //    token context window", and a model-details line reading "1,047,576
+  //    context window". `openai-gpt-4-1-2025-04-14` stores `1047576` — the
+  //    figure the page states exactly, not the figure it rounds to. Alibaba's
+  //    Qwen3 cards state "Context Length: 262,144" the same way, so
+  //    `alibaba-qwen3-8-27b` stores `262144`.
+  // 2. THE SOURCE STATES ONLY AN ABBREVIATION, and then the mapping above
+  //    applies: "K" reads as a thousand, "M" as a million. The Llama 3.1 model
+  //    card's Context length column says "128k" and gives nothing more precise,
+  //    so `meta-llama-3-1-405b` stores `128000`. Mistral's "256k" gives
+  //    `256000`, and "10M" on the Llama 4 Scout card gives `10000000`.
+  //
+  // Between those two, prefer what the source literally states. Route 1 is not
+  // an exception to route 2 — it is the case where the creator already published
+  // a number, and copying it is the faithful act. Route 2 is a recording step
+  // under the `provenance` rubric above; route 1 is not a step at all.
+  //
+  // 3. AN ABBREVIATION RECORDED IN THE BINARY SENSE, which is the case that
+  //    stops the two routes above from being the whole story.
+  //    `upstage-solar-pro-preview-instruct` stores `4096` against a card that
+  //    states "a maximum context length of 4K" and no integer anywhere. Route 2
+  //    read literally would give `4000`; the recorded value is `4 × 1024`.
+  //    What is *not* recorded is why. That release carries no rationale field,
+  //    and its source note quotes the "4K" without saying which sense the
+  //    abbreviation carries, so nothing in the repository shows the binary
+  //    reading being chosen or on what grounds. This route is therefore an
+  //    observed reading of committed data, not a determination the record can
+  //    be shown to have made, and it is described here for the same reason the
+  //    other two are: so that a reader meeting `4096` knows it is accounted
+  //    for. Which sense a bare "K" should carry in a *new* record is an open
+  //    question this comment does not answer and must not be settled by
+  //    defaulting to either reading.
+  //
+  // So near-neighbour values sit beside each other in this column — `1047576`,
+  // `1048576` and `1000000`; `128000`, `131072` and `4096` — and that is several
+  // readings of what creators published, not drift between records that should
+  // have agreed.
+  //
+  // THE RULE THAT MATTERS IS THEREFORE NOT WHICH ROUTE APPLIES BUT THIS: never
+  // reconcile a recorded figure to a route. Rewriting a stated `1047576` down to
+  // `1000000`, expanding a card's bare "128k" up to `131072`, or trimming
+  // `upstage`'s `4096` to `4000` because the mapping above says "K" is a
+  // thousand, would each replace a figure this dataset took from a creator with
+  // one no source states. A value this comment does not account for, or one it
+  // accounts for without recording why, is a question for its own source and
+  // its own issue, never a warrant to edit the datum: the comment answers to
+  // the data, not the other way round. A recorded figure changes only on fresh
+  // evidence from its own source — that source changing, or a re-reading of it
+  // quoted anew — and always with a fresh `verifiedAt`.
   contextWindow: z.number().int().positive().optional(),
   maximumOutput: z.number().int().positive().optional(),
   apiAliases: z.array(z.string().min(1)),
@@ -279,7 +403,14 @@ export const releaseSchema = z.object({
     context.addIssue({
       code: 'custom',
       path: ['license'],
-      message: 'an OSI-approved claim needs an spdxId or a licence URL as evidence',
+      // Says what this refusal is for. The earlier wording called the identifier
+      // "evidence", which is the one inference the note beside `licenseSchema`
+      // exists to forbid, and a refusal message is where a false claim of
+      // verification is most likely to be believed — it reaches an operator at
+      // the moment the check fires (the reasoning ADR 0005 records for
+      // `gate-evidence.mjs` refusals). Identifying the licence is the floor;
+      // OSI's own page is the evidence.
+      message: 'an OSI-approved claim must identify the licence with an spdxId or a licence URL',
     });
   }
 });
@@ -579,6 +710,24 @@ export const modelFitEvidenceGapSchema = z.object({
   }
 });
 
+// What earns a record a place in this dataset, and what keeps it out. Apply in
+// order: record exactly one entity kind per record, so a fact about a creator,
+// a family, a release, a product, a serving platform, a source, or a publisher
+// lives on that entity and never on a neighbour; cite at least one primary
+// source and carry the day it was read, which every record-bearing schema above
+// requires of itself rather than leaving to judgement; leave a field unset when
+// no cited source states it, because a blank is a fact this dataset publishes
+// happily -- nobody has sourced this yet -- and a plausible value no source
+// states is not a fact at all; withhold the whole record when its required
+// fields cannot be sourced that way, and record the gap rather than the guess,
+// so that what is missing stays visible instead of being smoothed over; and
+// admit the record only as a reviewed change to this repository, never as
+// runtime input and never as an open crawl, per ADR 0002. Inclusion decides
+// presence and nothing else. It states no order, no score, and no rank; it is
+// not the `featured` procedure recorded beside that field, which is applied
+// afterwards and only to releases already admitted here; and a record admitted
+// by this procedure gains its catalog entry, its canonical route, and its
+// correction path whether or not any editorial list names it.
 export const datasetSchema = z.object({
   sources: z.array(sourceSchema).min(1),
   publishers: z.array(publisherSchema).default([]),

@@ -18,6 +18,22 @@ function findRelease(input: Record<string, any>, predicate: (release: any) => bo
   return match;
 }
 
+/**
+ * Every source id in `input` published by the OSI, derived from the input rather
+ * than listed here so that a renamed or newly added OSI source is still stripped
+ * by the tests that mutate against this rule. Empty is a hard error: a test that
+ * removes nothing would pass whatever the validator did.
+ */
+function osiPublishedSourceIds(input: Record<string, any>): Set<string> {
+  const ids = new Set<string>(
+    (input.sources as any[])
+      .filter((source) => source.publisherId === 'open-source-initiative')
+      .map((source) => source.id as string),
+  );
+  if (ids.size === 0) throw new Error('seed data no longer carries a source published by the OSI');
+  return ids;
+}
+
 describe('validateDataset', () => {
   it('accepts the source-backed seed dataset', () => {
     const dataset = validateDataset(copyDataset());
@@ -114,7 +130,7 @@ describe('validateDataset', () => {
     expect(() => validateDataset(input)).toThrow(/contradicts an open-weight access type/);
   });
 
-  it('rejects an unevidenced OSI-approved licence claim', () => {
+  it('rejects an OSI-approved licence claim that pins no licence', () => {
     const input = mutableDataset();
     const openWeight = findRelease(input, (release) => release.accessType === 'open-weight');
     openWeight.license = {
@@ -123,7 +139,48 @@ describe('validateDataset', () => {
       osiApproved: true,
     };
 
-    expect(() => validateDataset(input)).toThrow(/needs an spdxId or a licence URL/);
+    expect(() => validateDataset(input)).toThrow(/must identify the licence with an spdxId or a licence URL/);
+  });
+
+  // The `osiApproved` evidence rule, decided in #481 and stated beside
+  // `licenseSchema`. `findRelease` throws when its predicate matches nothing, so
+  // each of these fails loudly rather than passing vacuously if the seed data
+  // stops carrying the shape it reaches for.
+  it('rejects a licence claim that cites no source published by OSI', () => {
+    const input = mutableDataset();
+    const osiSourceIds = osiPublishedSourceIds(input);
+    const licensed = findRelease(input, (release) => Boolean(release.license));
+    const before = licensed.sourceIds.length;
+    licensed.sourceIds = licensed.sourceIds.filter((id: string) => !osiSourceIds.has(id));
+    // Without this the filter could be a no-op, and the throw below would prove
+    // nothing about the rule.
+    expect(licensed.sourceIds.length).toBeLessThan(before);
+
+    expect(() => validateDataset(input)).toThrow(
+      /records license\.osiApproved without citing a source published by the Open Source Initiative/,
+    );
+  });
+
+  it('requires an OSI source for osiApproved: false, not only for true', () => {
+    const input = mutableDataset();
+    const osiSourceIds = osiPublishedSourceIds(input);
+    const licensed = findRelease(input, (release) => release.license?.osiApproved === false);
+    const before = licensed.sourceIds.length;
+    licensed.sourceIds = licensed.sourceIds.filter((id: string) => !osiSourceIds.has(id));
+    expect(licensed.sourceIds.length).toBeLessThan(before);
+
+    expect(() => validateDataset(input)).toThrow(
+      /records license\.osiApproved without citing a source published by the Open Source Initiative/,
+    );
+  });
+
+  it('asks nothing of a release that records no licence at all', () => {
+    const input = mutableDataset();
+    const osiSourceIds = osiPublishedSourceIds(input);
+    const unlicensed = findRelease(input, (release) => !release.license);
+    unlicensed.sourceIds = unlicensed.sourceIds.filter((id: string) => !osiSourceIds.has(id));
+
+    expect(() => validateDataset(input)).not.toThrow();
   });
 
   it('rejects a duplicate release id', () => {
@@ -191,6 +248,67 @@ describe('validateDataset', () => {
     for (const source of input.sources) source.type = 'independent-evaluation';
 
     expect(() => validateDataset(input)).toThrow(/featured release .* requires a primary source/);
+  });
+
+  /**
+   * Adds a family that no release points at, by cloning a live one and changing
+   * only its id and slug. Cloning keeps every other rule satisfied by
+   * construction — the organization resolves, the sources resolve, the dates are
+   * real and agree with the recorded precision — so a refusal is attributable to
+   * the missing release rather than to a fixture broken in several ways at once.
+   *
+   * `attachRelease` is the control arm: identical setup, one release added, and
+   * the opposite verdict expected.
+   */
+  function withEmptyFamily({ attachRelease = false } = {}) {
+    const input = mutableDataset();
+    const donorFamily = input.families.find(
+      (family: any) => input.releases.some((release: any) => release.familyId === family.id),
+    );
+    if (!donorFamily) throw new Error('seed data no longer carries a family with a release to clone');
+    const donorRelease = findRelease(input, (release) => release.familyId === donorFamily.id);
+
+    input.families.push({ ...donorFamily, id: 'probe-empty-family', slug: 'probe-empty-family' });
+    if (attachRelease) {
+      input.releases.push({
+        ...donorRelease,
+        id: 'probe-empty-family-release',
+        slug: 'probe-empty-family-release',
+        familyId: 'probe-empty-family',
+        apiAliases: [],
+        // Lineage stripped: a clone keeping its donor's edges would be judged on
+        // those edges too, and this fixture is about one thing.
+        predecessorIds: [],
+        successorIds: [],
+        siblingIds: [],
+        derivedFromIds: [],
+      });
+    }
+
+    // What the setup claims about itself, checked rather than assumed: a probe
+    // whose family quietly acquired a release would produce the control's
+    // result while reading as the probe's.
+    const pointedAt = new Set(input.releases.map((release: any) => release.familyId));
+    expect(pointedAt.has('probe-empty-family')).toBe(attachRelease);
+
+    return input;
+  }
+
+  it('refuses a family that no release belongs to', () => {
+    // #554. The dataset cannot say "announced but unreleased" — `lifecycleStatus`
+    // has no such member — so a family holding nothing is a data error, and the
+    // build refuses it rather than letting `/` render a heading above an empty
+    // list while `/tree/` silently drops the same family.
+    //
+    // Refusing here rather than filtering in each consumer is what keeps a
+    // printed count honest: `pages/index.astro` prints `dataset.families.length`
+    // beside a hierarchy that renders only families holding releases, and those
+    // two agree only because of this rule.
+    expect(() => validateDataset(withEmptyFamily())).toThrow(/family probe-empty-family has no releases/);
+  });
+
+  it('accepts the same family once one release belongs to it, so the rule is not "a new family fails"', () => {
+    expect(() => validateDataset(withEmptyFamily({ attachRelease: true }))).not.toThrow();
   });
 });
 
@@ -451,15 +569,16 @@ describe('extended entity invariants', () => {
     expect(() => validateDataset(input)).toThrow(/contradicts an open-weight access type/);
   });
 
-  it('rejects an open-source claim with no licence evidence', () => {
+  it('rejects an open-source claim that pins no licence', () => {
     const input = extendedDataset();
     input.releases[0].license = {
       name: 'Apache 2.0',
       weightsDownloadable: true,
       osiApproved: true,
     };
+    input.releases[0].sourceIds.push('osi-license-index');
 
-    expect(() => validateDataset(input)).toThrow(/needs an spdxId or a licence URL/);
+    expect(() => validateDataset(input)).toThrow(/must identify the licence with an spdxId or a licence URL/);
   });
 
   it('separates downloadable weights from an open-source licence', () => {
@@ -471,6 +590,7 @@ describe('extended entity invariants', () => {
       weightsDownloadable: true,
       osiApproved: false,
     };
+    input.releases[0].sourceIds.push('osi-license-index');
 
     expect(validateDataset(input).releases[0].license?.osiApproved).toBe(false);
   });
@@ -590,6 +710,18 @@ describe('partial dates on family and release dates', () => {
         // Cohere dates the family only through its earliest member's published
         // identifier, `command-a-03-2025`. No approved origin states a day, so
         // recording one would be the invention this field exists to prevent.
+      },
+      {
+        id: 'zhipu-ai-glm-4-5',
+        precision: 'month',
+        // GLM-4.5 launched at WAIC Shanghai in late July 2025; no fetchable
+        // primary from Zhipu states the calendar day, so month precision is the
+        // honest floor rather than an invented day.
+      },
+      {
+        id: 'zhipu-ai-glm-4-5-air',
+        precision: 'month',
+        // The Air variant shipped in the same GLM-4.5 launch; same reasoning.
       },
     ];
 

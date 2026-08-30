@@ -139,13 +139,14 @@ changes. See [`DEPLOYMENT-RUNBOOK.md`](DEPLOYMENT-RUNBOOK.md).
 
 Rows `#6`–`#8` planned the M1 data batches as "featured data", which read as a
 decision that every creator in them would be featured on arrival. Issue #460
-replaced that with a criterion the data decides for itself: a creator is
-featured when this repository keeps a dedicated reviewed source profile for it,
-at the top level of `tools/updater/profiles/`. The batches are recorded above as
-source-backed data, which is what they deliver; whether a creator lands on the
-Model Tree's Featured or Others branch follows from the criterion rather than
-from this table. `#6` still reads as featured data because those three creators
-have reviewed profiles, not because the batch decided it.
+replaced that with a criterion the data decided for itself, and issue #494
+replaced *that* with an explicit editorial one: the site leads with five named
+creators, recorded as a decision procedure beside the `featured` field in
+`web/src/data/schema.ts`. The batches are recorded above as source-backed data,
+which is what they deliver; whether a creator lands on the Model Tree's Featured
+or Others branch follows from that procedure rather than from this table, and it
+no longer decides whether a creator gets a provider page — every creator with
+releases has one.
 
 ## Post-MVP Issues
 

@@ -32,7 +32,7 @@
     "id": "google-deepmind",
     "slug": "google-deepmind",
     "name": "Google DeepMind",
-    "shortName": "DeepMind",
+    "shortName": "Google DeepMind",
     "type": "research-lab",
     "website": "https://deepmind.google/",
     "releasePage": "https://ai.google.dev/gemini-api/docs/models",
@@ -40,7 +40,7 @@
     "sourceIds": [
       "google-deepmind-about"
     ],
-    "verifiedAt": "2026-08-27"
+    "verifiedAt": "2026-08-29"
   },
   {
     "id": "meta",
@@ -163,5 +163,259 @@
       "cohere-pricing-docs"
     ],
     "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "ai2",
+    "slug": "ai2",
+    "name": "Allen Institute for AI",
+    "shortName": "AI2",
+    "type": "research-lab",
+    "website": "https://allenai.org/",
+    "releasePage": "https://allenai.org/blog",
+    "description": "A Seattle-based nonprofit research institute whose OLMo project releases fully open language models, publishing weights, training data, and code.",
+    "sourceIds": [
+      "ai2-olmo-2-announcement",
+      "ai2-olmo-2-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "tii",
+    "slug": "tii",
+    "name": "Technology Innovation Institute",
+    "shortName": "TII",
+    "type": "research-lab",
+    "website": "https://www.tii.ae/",
+    "releasePage": "https://falconllm.tii.ae/",
+    "description": "An Abu Dhabi government research institute whose AI unit develops the open-weight Falcon family of language models.",
+    "sourceIds": [
+      "tii-falcon-h1-announcement",
+      "tii-falcon-h1-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "nvidia",
+    "slug": "nvidia",
+    "name": "NVIDIA",
+    "shortName": "NVIDIA",
+    "type": "company",
+    "website": "https://www.nvidia.com/",
+    "releasePage": "https://blogs.nvidia.com/",
+    "description": "A US technology company whose research teams publish the open-weight Nemotron model family. Its separate hardware and inference-platform roles are not recorded here as creator facts.",
+    "sourceIds": [
+      "nvidia-nemotron-4-340b-announcement",
+      "nvidia-nemotron-4-340b-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "ai21-labs",
+    "slug": "ai21-labs",
+    "name": "AI21 Labs",
+    "shortName": "AI21",
+    "type": "company",
+    "website": "https://www.ai21.com/",
+    "releasePage": "https://www.ai21.com/blog",
+    "description": "An Israeli AI company that builds the Jamba family of hybrid SSM-Transformer models, released as open weights and offered through its paid API.",
+    "sourceIds": [
+      "ai21-labs-jamba-announcement",
+      "ai21-labs-jamba-paper"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "zhipu-ai",
+    "slug": "zhipu-ai",
+    "name": "Zhipu AI",
+    "shortName": "Zhipu AI",
+    "type": "company",
+    "website": "https://z.ai/",
+    "releasePage": "https://z.ai/blog",
+    "description": "A Chinese AI company, originating from Tsinghua University research, that develops the open-weight GLM model family and offers paid API access.",
+    "sourceIds": [
+      "zhipu-ai-glm-4-5-model-card",
+      "zhipu-ai-glm-4-5-paper",
+      "zhipu-ai-glm-4-5-announcement"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "moonshot-ai",
+    "slug": "moonshot-ai",
+    "name": "Moonshot AI",
+    "shortName": "Moonshot AI",
+    "type": "company",
+    "website": "https://www.moonshot.ai/",
+    "releasePage": "https://huggingface.co/moonshotai",
+    "description": "A Chinese AI company that develops the Kimi model family, released as open weights and served through its paid API.",
+    "sourceIds": [
+      "moonshot-ai-kimi-k2-model-card"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "eleutherai",
+    "slug": "eleutherai",
+    "name": "EleutherAI",
+    "shortName": "EleutherAI",
+    "type": "research-lab",
+    "website": "https://eleuther.ai",
+    "releasePage": "https://huggingface.co/EleutherAI",
+    "description": "A non-profit research lab that states its focus as the interpretability, alignment, and ethics of artificial intelligence, and publishes its open models on Hugging Face. It develops the Pythia suite and the GPT-NeoX training library.",
+    "sourceIds": [
+      "eleutherai-organization-profile",
+      "eleutherai-pythia-12b-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "lg-ai-research",
+    "slug": "lg-ai-research",
+    "name": "LG AI Research",
+    "shortName": "LG AI Research",
+    "type": "research-lab",
+    "website": "https://www.lgresearch.ai",
+    "releasePage": "https://huggingface.co/LGAI-EXAONE",
+    "description": "The research organization that develops and releases the EXAONE family of instruction-tuned bilingual English and Korean language models, published under its own LGAI-EXAONE namespace.",
+    "sourceIds": [
+      "lg-ai-research-exaone-3-5-model-card",
+      "lg-ai-research-exaone-3-5-repository"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "snowflake",
+    "slug": "snowflake",
+    "name": "Snowflake",
+    "shortName": "Snowflake",
+    "type": "company",
+    "website": "https://www.snowflake.com",
+    "releasePage": "https://huggingface.co/Snowflake",
+    "description": "The company whose Snowflake AI Research team pre-trained the Arctic dense-MoE hybrid language models from scratch and published the weights under Apache-2.0.",
+    "sourceIds": [
+      "snowflake-arctic-instruct-model-card",
+      "snowflake-arctic-repository"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "upstage",
+    "slug": "upstage",
+    "name": "Upstage",
+    "shortName": "Upstage",
+    "type": "company",
+    "website": "https://www.upstage.ai",
+    "releasePage": "https://huggingface.co/upstage",
+    "description": "The company that develops the Solar language models, built with a depth up-scaling method that extends a smaller model into a larger one.",
+    "sourceIds": [
+      "upstage-solar-pro-preview-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "ibm",
+    "slug": "ibm",
+    "name": "IBM",
+    "shortName": "IBM",
+    "type": "company",
+    "website": "https://www.ibm.com/granite",
+    "releasePage": "https://huggingface.co/ibm-granite",
+    "description": "The company behind the Granite family of open-source language models, which it describes as built for enterprise and research use and releases under the Apache 2.0 licence.",
+    "sourceIds": [
+      "ibm-granite-product-page",
+      "ibm-granite-4-2-repository"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "baidu",
+    "slug": "baidu",
+    "name": "Baidu, Inc.",
+    "shortName": "Baidu",
+    "type": "company",
+    "website": "https://home.baidu.com",
+    "releasePage": "https://huggingface.co/baidu",
+    "description": "The company behind the ERNIE model line, whose 4.5 generation it publishes as a family of large-scale multimodal models under the Apache License 2.0.",
+    "sourceIds": [
+      "baidu-ernie-4-5-300b-model-card",
+      "baidu-ernie-repository"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "tencent",
+    "slug": "tencent",
+    "name": "Tencent",
+    "shortName": "Tencent",
+    "type": "company",
+    "website": "https://hunyuan.tencent.com",
+    "releasePage": "https://huggingface.co/tencent",
+    "description": "The company behind the Hunyuan model line, which spans text, image, video and 3D generation and is published under Tencent’s own community licence rather than an OSI-approved one.",
+    "sourceIds": [
+      "tencent-hunyuan-video-model-card",
+      "tencent-hunyuan-community-license"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "bytedance-seed",
+    "slug": "bytedance-seed",
+    "name": "ByteDance Seed",
+    "shortName": "ByteDance Seed",
+    "type": "company",
+    "website": "https://seed.bytedance.com/en/",
+    "releasePage": "https://huggingface.co/ByteDance-Seed",
+    "description": "ByteDance’s Seed team, the research organization that develops and publishes the Seed model line. It is recorded as the creator of those models and is deliberately kept separate from ByteDance’s consumer assistant products, which this dataset does not record.",
+    "sourceIds": [
+      "bytedance-seed-site",
+      "bytedance-seed-oss-36b-instruct-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "stability-ai",
+    "slug": "stability-ai",
+    "name": "Stability AI Ltd.",
+    "shortName": "Stability AI",
+    "type": "company",
+    "website": "https://stability.ai",
+    "releasePage": "https://stability.ai/news-updates",
+    "description": "The company behind the Stable Diffusion text-to-image models, published under its own community licence, which is free below a stated annual revenue threshold and requires a paid enterprise licence above it.",
+    "sourceIds": [
+      "stability-ai-sd-3-5-large-model-card",
+      "stability-ai-community-license"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "databricks",
+    "slug": "databricks",
+    "name": "Databricks, Inc.",
+    "shortName": "Databricks",
+    "type": "company",
+    "website": "https://www.databricks.com",
+    "releasePage": "https://www.databricks.com/blog",
+    "description": "The data and AI platform company behind DBRX, a mixture-of-experts language model whose weights it published under its own open model licence while also serving it to its customers through APIs.",
+    "sourceIds": [
+      "databricks-dbrx-announcement",
+      "databricks-open-model-license"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "minimax",
+    "slug": "minimax",
+    "name": "MiniMax",
+    "shortName": "MiniMax",
+    "type": "company",
+    "website": "https://www.minimax.io/",
+    "releasePage": "https://huggingface.co/MiniMaxAI",
+    "description": "The AI company that develops the MiniMax-M1 hybrid-attention reasoning models, published as open weights under the Apache License 2.0 and sold as API access under its own name.",
+    "sourceIds": [
+      "minimax-m1-announcement",
+      "minimax-m1-80k-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
   }
 ]

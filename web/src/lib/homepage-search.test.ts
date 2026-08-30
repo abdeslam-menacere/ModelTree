@@ -1,8 +1,11 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import { validateDataset } from '../data/validate';
 import { lineageFixtureDataset } from '../../tests/fixtures/lineage-dataset';
+import { homeSuggestionsFor } from './homepage-search-view';
 import { buildLineageEcosystems } from './lineage-view';
+import { buildCoverageStats } from './release-pulse';
 import {
   buildHomepageSearchIndex,
   measureHomepageSearchIndexSize,
@@ -14,11 +17,39 @@ import {
 
 const index = buildHomepageSearchIndex(dataset, '/');
 
-// The set the homepage actually renders; the search index must mirror it exactly
-// rather than the long-tail catalog. Derived, never pinned to a count.
-const ecosystems = buildLineageEcosystems(dataset);
-const homepageReleases = ecosystems.flatMap((ecosystem) =>
-  ecosystem.families.flatMap((family) => family.releases));
+/**
+ * The displayed side of abdeslam-menacere/ModelTree#525, read straight off the
+ * versioned JSON on disk.
+ *
+ * Deliberately not derived from `buildCreatorEcosystems`, which is the seed
+ * `buildHomepageSearchIndex` itself reads: an expectation computed from the
+ * function under test moves with it, so it cannot fail when that function is
+ * wrong. Routing through the file the dataset is composed from is what makes
+ * the parity assertions below able to go red at all.
+ */
+const dataDir = new URL('../data/', import.meta.url);
+
+function readCollection<T>(file: string): T[] {
+  const parsed: unknown = JSON.parse(readFileSync(new URL(file, dataDir), 'utf8'));
+  // These documents are bare arrays. A member-access read of a bare array is
+  // the instrument failure this guard exists to make impossible: it returns
+  // something shaped plausibly enough to certify a dead probe.
+  if (!Array.isArray(parsed)) throw new Error(`${file} is not the bare array this read assumes`);
+  return parsed as T[];
+}
+
+const recordedReleases = readCollection<{ slug: string; organizationId: string }>('releases.json');
+const recordedOrganizations = readCollection<{
+  id: string;
+  slug: string;
+  name: string;
+  shortName: string;
+}>('organizations.json');
+
+// Every release the homepage names. Its no-script index enumerates the whole
+// catalog creator -> family -> release, and the search index now mirrors that;
+// the parity assertions read the displayed side off disk rather than from here.
+const homepageReleases = dataset.releases;
 
 function rowFor(slug: string): HomeReleaseRow {
   const row = index.releases.find((entry) => entry.slug === slug);
@@ -138,9 +169,9 @@ describe('buildHomepageSearchIndex', () => {
 
 describe('product suggestions', () => {
   // A self-contained fixture, so the fixed expectations below cannot drift with
-  // the growing seed catalog. The lineage fixture has featured releases and no
-  // products; we add exactly one product that routes to a single featured
-  // release and prove the product code path lights up correctly.
+  // the growing seed catalog. The lineage fixture has releases and no products;
+  // we add exactly one product that routes to a single indexed release and
+  // prove the product code path lights up correctly.
   const routedProductDataset = validateDataset({
     ...lineageFixtureDataset,
     products: [{
@@ -165,7 +196,7 @@ describe('product suggestions', () => {
 
     const productIndex = buildHomepageSearchIndex(routedProductDataset, '/');
     const productSuggestion = productIndex.suggestions.find((suggestion) => suggestion.entity === 'product');
-    expect(productSuggestion, 'a product routing to a featured release must be searchable').toBeDefined();
+    expect(productSuggestion, 'a product routing to an indexed release must be searchable').toBeDefined();
     expect(productSuggestion!.term).toBe('Alpha Assistant');
     expect(productSuggestion!.targetSlug).toBe('fixture-alpha-solo-one');
     expect(productSuggestion!.route).toBe('/models/fixture-alpha-solo-one/');
@@ -177,14 +208,159 @@ describe('product suggestions', () => {
     expect(routedRow!.terms).toContain(normalizeText('Alpha Assistant'));
   });
 
-  it('offers no product suggestion while no shipped product routes to a featured release', () => {
+  it('offers no product suggestion while no recorded product routes to any release', () => {
     // Documents the B1 decision: the product path is live (proven above) but the
     // seed catalog lights up none of it today, which is why the homepage copy
-    // does not promise product lookup. When a shipped product first routes to a
-    // featured release, this reddens and the copy should be restored.
+    // does not promise product lookup. The reason changed with #525 and is worth
+    // stating plainly: this used to hold because no product routed to a
+    // *featured* release, and now holds because the one recorded product
+    // discloses no routing at all -- `microsoft-copilot` carries an empty
+    // `releaseIds`, since no consulted source documents which model answers a
+    // given request. Widening the index cannot rescue a routing the sources
+    // never stated. When a product first names a release, this reddens and the
+    // copy should be restored.
     // Positive control so an empty suggestion set cannot pass this vacuously.
     expect(index.suggestions.length).toBeGreaterThan(0);
     expect(index.suggestions.filter((suggestion) => suggestion.entity === 'product')).toHaveLength(0);
+  });
+});
+
+describe('what the homepage displays is what the homepage can search', () => {
+  // abdeslam-menacere/ModelTree#525. The page displayed 21 creators, printed
+  // "Creators 21" in its own coverage panel, and shipped a search that found 5
+  // of them: a visitor could read `Allen Institute for AI -> OLMo 2 -> OLMo 2
+  // 7B` on the page and get nothing for `OLMo` in the box directly above it.
+  //
+  // Every expectation here is read off the versioned JSON on disk, not derived
+  // from `buildCreatorEcosystems` -- the seed the index itself is built from.
+  // That is the whole point: an expectation taken from the function under test
+  // moves with the defect and keeps passing while the page contradicts itself.
+
+  it('indexes every release the page names, and nothing it does not', () => {
+    // Vacuity guards on both sides: two empty sets are equal.
+    expect(recordedReleases.length).toBeGreaterThan(0);
+    expect(index.releases.length).toBeGreaterThan(0);
+
+    const indexed = [...new Set(index.releases.map((row) => row.slug))].sort();
+    const displayed = [...new Set(recordedReleases.map((release) => release.slug))].sort();
+    expect(indexed).toEqual(displayed);
+  });
+
+  it('makes every creator the page names findable, in both directions', () => {
+    const withRelease = new Set(recordedReleases.map((release) => release.organizationId));
+    const displayed = recordedOrganizations
+      .filter((organization) => withRelease.has(organization.id))
+      .map((organization) => organization.slug)
+      .sort();
+    expect(displayed.length).toBeGreaterThan(0);
+
+    const searchable = [...new Set(index.releases.map((row) => row.organizationSlug))].sort();
+    // Equality, not containment, so this fails in both directions: a creator
+    // dropped from the index reddens it, and so would an index row for a
+    // creator the catalog records no release for.
+    expect(searchable).toEqual(displayed);
+  });
+
+  it('keeps the coverage panel\'s creator count true against what search can find', () => {
+    // `index.astro` prints the creator count as "Creators N" a few hundred
+    // pixels above the search box, and `buildCoverageStats` repeats it under
+    // Release Pulse. The relationship is pinned rather than the number, so the
+    // catalog can grow without editing this file -- but a creator the page
+    // counts and the box cannot find reddens it, which is #525 exactly.
+    //
+    // A "creator" is an organization that has published a release, not every
+    // recorded organization: the model deliberately keeps serving platforms and
+    // other non-creator entities distinct, and #515 is the count counting all
+    // organizations instead. This measures the same population as the sibling
+    // `withRelease` predicate twelve lines up rather than inventing a third
+    // notion. Today every organization publishes, so this equals
+    // `recordedOrganizations.length`; the fixture-driven test in release-pulse
+    // is what proves the derivation without relying on that coincidence.
+    const creatorOrganizations = recordedOrganizations.filter((organization) =>
+      recordedReleases.some((release) => release.organizationId === organization.id),
+    );
+    expect(creatorOrganizations.length).toBeGreaterThan(0);
+    expect(buildCoverageStats(dataset).creators).toBe(creatorOrganizations.length);
+
+    const searchable = new Set(index.releases.map((row) => row.organizationSlug));
+    expect(searchable.size).toBe(creatorOrganizations.length);
+  });
+
+  it('widens the index without reading the editorial featured flag', () => {
+    // AC3: the fix must not be "mark more releases featured". Flipping every
+    // release to not-featured must leave the index byte-identical, which it
+    // cannot be if any part of this derivation still consults the flag.
+    // The control is the same mutation observed through the lead view, which
+    // *does* read it and collapses to nothing -- so the invariance above is
+    // this index ignoring the flag, not the mutation failing to apply.
+    const unfeatured = validateDataset({
+      ...dataset,
+      releases: dataset.releases.map((release) => ({ ...release, featured: false })),
+    });
+    expect(dataset.releases.some((release) => release.featured)).toBe(true);
+    expect(unfeatured.releases.some((release) => release.featured)).toBe(false);
+
+    expect(buildHomepageSearchIndex(unfeatured, '/').contentHash).toBe(index.contentHash);
+    expect(buildLineageEcosystems(unfeatured)).toHaveLength(0);
+    expect(buildLineageEcosystems(dataset).length).toBeGreaterThan(0);
+  });
+});
+
+describe('creator suggestions', () => {
+  it('gives a creator one row, displayed as the label and reachable by either recorded form', () => {
+    // No two suggestions of one entity type read the same. Stated over every
+    // entity rather than creators alone because it is not a creator rule: this
+    // builder already skips a model alias that normalizes to the model's own
+    // display name, for exactly this reason. An organization-only assertion
+    // would pin something narrower than the index actually keeps.
+    for (const entity of new Set(index.suggestions.map(({ entity: type }) => type))) {
+      const terms = index.suggestions
+        .filter((suggestion) => suggestion.entity === entity)
+        .map(({ term }) => term);
+      // Names the offending string on failure, which a size comparison would not.
+      expect(terms.filter((term, at) => terms.indexOf(term) !== at)).toEqual([]);
+    }
+
+    // ...and the one row stays reachable from *both* forms. Without this, the
+    // duplicate above is trivially satisfied by dropping the fuller form, which
+    // would leave a reader who types the other one unable to find the creator --
+    // a worse regression, and one no assertion above would notice.
+    //
+    // abdeslam-menacere/ModelTree#531 had to *fabricate* this situation: it
+    // promoted a two-form creator's release to `featured` on a local copy of the
+    // dataset, because the index then covered only the featured lead set, and
+    // `google-deepmind` -- the last two-form creator inside it -- had just had
+    // its two recorded forms made to agree. Widening the index in #525 made
+    // every recorded creator searchable, so the property is exercised by the
+    // real dataset and that fixture is redundant.
+    //
+    // It is removed rather than left in place, and said so rather than dropped
+    // quietly: a promotion that can no longer change the index under test is a
+    // prop, not a control, and a test that keeps one reads as coverage while
+    // having stopped being able to fail.
+    //
+    // The vacuity guard it protected is kept, because what it guards against is
+    // unchanged -- a catalog in which no creator records two differing forms
+    // would make the sweep below iterate nothing and pass. It is read off disk,
+    // so it cannot be satisfied by the naming helpers this loop is checking.
+    const twoForms = recordedOrganizations
+      .filter((organization) => organization.name !== organization.shortName);
+    expect(twoForms.length).toBeGreaterThan(0);
+
+    for (const organization of twoForms) {
+      for (const recorded of [organization.name, organization.shortName]) {
+        const matched = homeSuggestionsFor(index, recorded)
+          .filter((suggestion) => suggestion.entity === 'organization')
+          .map(({ term }) => term);
+        // Containment, not equality: `AI2` is a prefix of `AI21` and `Allen
+        // Institute for AI` ends in `AI`, so either query legitimately surfaces
+        // the other creator's row alongside the right one. What AC2 states is
+        // that the creator you typed is among the results, and an exact-set
+        // assertion would read as a defect for that pair and no other.
+        expect(matched, `${organization.id} via "${recorded}"`)
+          .toContain(organization.shortName);
+      }
+    }
   });
 });
 
@@ -227,7 +403,7 @@ describe('releaseMatchesQuery', () => {
   it('matches a release by a known API alias', () => {
     const withAlias = homepageReleases.find((release) =>
       release.apiAliases.some((alias) => normalizeText(alias) !== normalizeText(release.displayName)));
-    expect(withAlias, 'a featured release with a distinct alias').toBeDefined();
+    expect(withAlias, 'an indexed release with a distinct alias').toBeDefined();
     const alias = withAlias!.apiAliases.find(
       (candidate) => normalizeText(candidate) !== normalizeText(withAlias!.displayName))!;
     expect(releaseMatchesQuery(rowFor(withAlias!.slug), alias)).toBe(true);

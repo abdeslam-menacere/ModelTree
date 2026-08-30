@@ -26,6 +26,15 @@ export const PRIMARY_SOURCE_TYPES = new Set<SourceReference['type']>([
 ]);
 
 /**
+ * The publisher whose word settles `license.osiApproved`, at either value.
+ *
+ * An entity id rather than a hostname, because publisher identity is an entity
+ * reference everywhere else in this dataset and because a renamed publisher
+ * should break this check loudly rather than quietly stop matching anything.
+ */
+export const OSI_PUBLISHER_ID = 'open-source-initiative';
+
+/**
  * Two observations may only be discussed together when they counted the same
  * thing, in the same unit, over the same population. Nothing is converted.
  */
@@ -454,6 +463,7 @@ export function validateDataset(input: unknown): Dataset {
   const organizationById = new Map(data.organizations.map((organization) => [organization.id, organization]));
   const familyById = new Map(data.families.map((family) => [family.id, family]));
   const releaseById = new Map(data.releases.map((release) => [release.id, release]));
+  const familyIdsWithReleases = new Set(data.releases.map(({ familyId }) => familyId));
 
   for (const source of data.sources) {
     if (!publisherIds.has(source.publisherId)) {
@@ -507,6 +517,38 @@ export function validateDataset(input: unknown): Dataset {
     if (!organizationById.has(family.organizationId)) {
       issues.push(`family ${family.id}.organizationId references missing id "${family.organizationId}"`);
     }
+    // Checked family -> release, the opposite direction from every other
+    // `familyId` check here, because that direction was the gap: a family
+    // nothing points at satisfies all of them and still cannot be rendered.
+    //
+    // REFUSED rather than filtered away, and the reason is a count. The
+    // homepage prints `dataset.families.length` (`pages/index.astro`) and
+    // `buildCoverageStats` reports the same figure again in prose
+    // (`lib/release-pulse.ts`), while the hierarchies drop a family holding no
+    // releases (`lib/family-branch.ts`). Dropping it quietly therefore makes
+    // the printed count disagree with the branches rendered beneath it, so
+    // filtering alone cannot settle #554 — it trades a hollow branch for a
+    // wrong number. Refusing keeps the two equal by construction, and it is the
+    // only fix that reaches `/compare/`, `/benchmarks/` and
+    // `/catalog-index.json`, which read `data.families` directly and would each
+    // need a filter of their own — six more places to hide one data error.
+    //
+    // It is a data error and not a fact about the world: `lifecycleStatus` has
+    // no `announced`/`upcoming` member (see the note beside it in `schema.ts`),
+    // so the dataset cannot distinguish a family deliberately awaiting its
+    // first release from a record that was never finished, and rendering the
+    // empty case would publish the second as though it were the first. That is
+    // the position `schema.ts` already states in as many words — a tree branch
+    // rendering rows of blanks is not a fact this dataset states.
+    //
+    // This does not replace the `family-has-release` rule in
+    // `.github/skills/modeltree-gates/scripts/gate-dataset.mjs`, which refuses
+    // the same shape earlier, before a refresh writes it. This is the same rule
+    // at the build boundary, so a family that reached the tree by some route
+    // that gate never saw still cannot ship.
+    if (!familyIdsWithReleases.has(family.id)) {
+      issues.push(`family ${family.id} has no releases`);
+    }
     addPrecisionIssue(
       issues,
       `family ${family.id}`,
@@ -558,6 +600,28 @@ export function validateDataset(input: unknown): Dataset {
         return source ? PRIMARY_SOURCE_TYPES.has(source.type) : false;
       });
       if (!hasPrimarySource) issues.push(`featured release ${release.id} requires a primary source`);
+    }
+
+    // `osiApproved` is a claim about what OSI decided, so it rests on OSI and
+    // not on the licence name a model card happens to state (see the note beside
+    // `licenseSchema`). `false` is covered on purpose: OSI's approved list is
+    // exhaustive, so a licence's absence from it is a reading of that list
+    // rather than an argument from silence, and exempting `false` would leave
+    // the unsourced value the cheapest one in the schema to assert.
+    //
+    // The limit, stated so nothing downstream reads more into a pass than is
+    // there: this checks that an OSI-published source is *cited*. It does not
+    // fetch or read that source, so it cannot establish that the page supports
+    // the recorded value. That judgement is the reviewer's.
+    if (release.license) {
+      const citesOsi = release.sourceIds.some(
+        (sourceId) => sourceById.get(sourceId)?.publisherId === OSI_PUBLISHER_ID,
+      );
+      if (!citesOsi) {
+        issues.push(
+          `release ${release.id} records license.osiApproved without citing a source published by the Open Source Initiative`,
+        );
+      }
     }
 
     // Derivation may cross families and organizations, so it is checked apart

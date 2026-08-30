@@ -7,6 +7,7 @@ import {
 } from '../lib/model-tree';
 import { formatReleaseDate, statusLabel } from '../lib/format';
 import { createModelSelectionUrl, readOptionalSelectedModel } from '../lib/selection';
+import { organizationLabel } from '../lib/organization-name';
 import LineageModelDrawer from './LineageModelDrawer';
 
 interface SourceSummary {
@@ -81,7 +82,7 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
             aria-controls={creatorContentId}
             onClick={() => setOpenCreators((items) => toggleModelTreeBranch(items, organization.id))}
           >
-            <span>{organization.name}</span>
+            <span>{organizationLabel(organization)}</span>
             <small>{families.length} {families.length === 1 ? 'family' : 'families'}</small>
           </button>
           <ul id={creatorContentId} hidden={!creatorOpen}>

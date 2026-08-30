@@ -189,7 +189,7 @@
       "openai-gpt-5-6-sol-preview",
       "openai-gpt-daybreak-blue-docs"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-08-29"
   },
   {
     "id": "openai-gpt-5-6-terra",
@@ -889,7 +889,8 @@
     "sourceIds": [
       "meta-llama-4-scout-model-card",
       "meta-llama-4-announcement",
-      "meta-llama-4-license"
+      "meta-llama-4-license",
+      "osi-license-index"
     ],
     "verifiedAt": "2026-08-15"
   },
@@ -950,7 +951,8 @@
       "meta-llama-4-announcement",
       "meta-llama-4-license",
       "meta-llama-4-maverick-base-model-card",
-      "meta-llama-4-maverick-original-model-card"
+      "meta-llama-4-maverick-original-model-card",
+      "osi-license-index"
     ],
     "verifiedAt": "2026-08-27"
   },
@@ -1000,7 +1002,8 @@
     "intendedUse": "Multilingual dialogue and natural language generation across the eight languages the model card lists.",
     "sourceIds": [
       "meta-llama-3-1-model-card",
-      "meta-llama-3-1-license"
+      "meta-llama-3-1-license",
+      "osi-license-index"
     ],
     "verifiedAt": "2026-08-27"
   },
@@ -1049,7 +1052,8 @@
     "intendedUse": "Assistant-style multilingual chat.",
     "sourceIds": [
       "meta-llama-3-3-model-card",
-      "meta-llama-3-3-license"
+      "meta-llama-3-3-license",
+      "osi-license-index"
     ],
     "verifiedAt": "2026-08-27"
   },
@@ -1654,7 +1658,8 @@
       "meta-llama-3-2-1b-instruct-model-card",
       "meta-llama-3-2-1b-base-model-card",
       "meta-llama-3-2-license",
-      "meta-llama-collection"
+      "meta-llama-collection",
+      "osi-license-index"
     ],
     "verifiedAt": "2026-08-27"
   },
@@ -1705,7 +1710,8 @@
       "meta-llama-3-2-3b-instruct-model-card",
       "meta-llama-3-2-3b-base-model-card",
       "meta-llama-3-2-license",
-      "meta-llama-collection"
+      "meta-llama-collection",
+      "osi-license-index"
     ],
     "verifiedAt": "2026-08-27"
   },
@@ -1758,7 +1764,8 @@
       "meta-llama-3-2-11b-vision-instruct-model-card",
       "meta-llama-3-2-11b-vision-base-model-card",
       "meta-llama-3-2-license",
-      "meta-llama-collection"
+      "meta-llama-collection",
+      "osi-license-index"
     ],
     "verifiedAt": "2026-08-27"
   },
@@ -1811,7 +1818,8 @@
       "meta-llama-3-2-90b-vision-instruct-model-card",
       "meta-llama-3-2-90b-vision-base-model-card",
       "meta-llama-3-2-license",
-      "meta-llama-collection"
+      "meta-llama-collection",
+      "osi-license-index"
     ],
     "verifiedAt": "2026-08-27"
   },
@@ -1954,7 +1962,8 @@
     "intendedUse": "General instruction following, multilingual conversation, and image understanding, either hosted or self-deployed.",
     "sourceIds": [
       "mistral-3-announcement",
-      "mistral-large-3-model-card"
+      "mistral-large-3-model-card",
+      "osi-approved-licenses"
     ],
     "verifiedAt": "2026-08-28"
   },
@@ -2003,7 +2012,8 @@
     "intendedUse": "On-device and edge deployment where text and image understanding are needed without a hosted dependency.",
     "sourceIds": [
       "mistral-3-announcement",
-      "mistral-ministral-3-8b-model-card"
+      "mistral-ministral-3-8b-model-card",
+      "osi-approved-licenses"
     ],
     "verifiedAt": "2026-08-28"
   },
@@ -2052,7 +2062,8 @@
     "intendedUse": "Agentic software engineering: exploring codebases, editing multiple files, and driving software engineering agents.",
     "sourceIds": [
       "mistral-devstral-2-announcement",
-      "mistral-devstral-2-123b-model-card"
+      "mistral-devstral-2-123b-model-card",
+      "osi-license-index"
     ],
     "verifiedAt": "2026-08-28"
   },
@@ -2103,7 +2114,8 @@
     "intendedUse": "Local and on-device software engineering agents.",
     "sourceIds": [
       "mistral-devstral-2-announcement",
-      "mistral-devstral-small-2-24b-model-card"
+      "mistral-devstral-small-2-24b-model-card",
+      "osi-approved-licenses"
     ],
     "verifiedAt": "2026-08-28"
   },
@@ -2154,7 +2166,8 @@
     "intendedUse": "General chat, coding, agentic tasks, and reasoning work, self-deployed or hosted.",
     "sourceIds": [
       "mistral-small-4-announcement",
-      "mistral-small-4-model-card"
+      "mistral-small-4-model-card",
+      "osi-approved-licenses"
     ],
     "verifiedAt": "2026-08-28"
   },
@@ -2205,7 +2218,8 @@
     "intendedUse": "Long-context reasoning and agentic work, self-deployed from downloadable weights.",
     "sourceIds": [
       "deepseek-v4-pro-model-card",
-      "hugging-face-deepseek-v4-pro-hub-record"
+      "hugging-face-deepseek-v4-pro-hub-record",
+      "osi-license-mit"
     ],
     "verifiedAt": "2026-08-28"
   },
@@ -2256,7 +2270,8 @@
     "intendedUse": "Long-context work where the Pro model’s size is impractical, self-deployed from downloadable weights.",
     "sourceIds": [
       "deepseek-v4-flash-model-card",
-      "hugging-face-deepseek-v4-flash-hub-record"
+      "hugging-face-deepseek-v4-flash-hub-record",
+      "osi-license-mit"
     ],
     "verifiedAt": "2026-08-28"
   },
@@ -2300,7 +2315,8 @@
     "intendedUse": "Reasoning and agentic work, self-deployed from downloadable weights.",
     "sourceIds": [
       "deepseek-v3-2-model-card",
-      "hugging-face-deepseek-v3-2-hub-record"
+      "hugging-face-deepseek-v3-2-hub-record",
+      "osi-license-mit"
     ],
     "verifiedAt": "2026-08-28"
   },
@@ -2386,6 +2402,50 @@
     "verifiedAt": "2026-08-28"
   },
   {
+    "id": "anthropic-claude-opus-4-8",
+    "slug": "claude-opus-4-8",
+    "canonicalName": "Claude Opus 4.8",
+    "displayName": "Claude Opus 4.8",
+    "organizationId": "anthropic",
+    "familyId": "anthropic-claude-4-8",
+    "version": "4.8",
+    "variant": "Opus",
+    "releaseDate": "2026-05-28",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 1000000,
+    "maximumOutput": 128000,
+    "apiAliases": [
+      "claude-opus-4-8"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "The Opus tier of the Claude 4.8 generation, announced on 28 May 2026 as an upgrade to Claude Opus 4.7 and compared to it on tests of coding, agentic skills, reasoning and knowledge work. The model overview page records a 1M token context window, a 128K token maximum output, text and image input to text output, and a status of Active (legacy) with retirement no sooner than 28 May 2027. Anthropic now directs users to Claude Opus 5 for improved performance, which is the basis for recording the status as legacy rather than current. It is served through the Claude API as claude-opus-4-8.",
+    "intendedUse": "Anthropic compares Claude Opus 4.8 on tests of coding, agentic skills, reasoning and practical knowledge work tasks, and documents it as taking text and image input and producing text output. Anthropic now recommends migrating to Claude Opus 5 for improved performance.",
+    "sourceIds": [
+      "anthropic-opus-4-8-announcement",
+      "anthropic-opus-4-8-docs",
+      "anthropic-model-deprecations"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
     "id": "alibaba-qwen3-8-2-4t-a95b",
     "slug": "qwen3-8-2-4t-a95b",
     "canonicalName": "Qwen3.8-2.4T-A95B",
@@ -2397,8 +2457,7 @@
     "releaseDate": "2026-08-12",
     "datePrecision": "day",
     "status": "current",
-    "featured": true,
-    "featuredRationale": "Alibaba Cloud’s flagship Qwen3.8 release and the anchor for the creator record that keeps Qwen attributed to Alibaba Cloud rather than to any cloud that hosts it.",
+    "featured": false,
     "categories": [
       "language-reasoning",
       "coding"
@@ -2431,7 +2490,8 @@
     "intendedUse": "Text generation, coding and long-context work, run from the published weights rather than from a hosted endpoint.",
     "sourceIds": [
       "qwen3-8-2-4t-a95b-model-card",
-      "qwen3-8-repository"
+      "qwen3-8-repository",
+      "osi-license-index"
     ],
     "verifiedAt": "2026-08-28"
   },
@@ -2447,8 +2507,7 @@
     "releaseDate": "2026-08-14",
     "datePrecision": "day",
     "status": "current",
-    "featured": true,
-    "featuredRationale": "The dense Qwen3.8 vision-language release, and the model Amazon’s own announcement calls \"Alibaba’s Qwen 3.8-27B\" while offering it on Amazon SageMaker JumpStart — the clearest evidence in this dataset that availability is not authorship.",
+    "featured": false,
     "categories": [
       "multimodal-generalist",
       "coding",
@@ -2483,7 +2542,8 @@
     "intendedUse": "Multimodal understanding over text and images, coding and agentic tasks, either from the published weights or through a platform that hosts them.",
     "sourceIds": [
       "qwen3-8-27b-model-card",
-      "qwen3-8-repository"
+      "qwen3-8-repository",
+      "osi-approved-licenses"
     ],
     "verifiedAt": "2026-08-28"
   },
@@ -2570,7 +2630,8 @@
     "summary": "A computer-use agent model from Microsoft Research AI Frontiers that takes a text goal plus screenshots and emits reasoning followed by a tool call, released under the MIT licence with a 262,144-token context length. Its card states it was \"supervised fine-tuned from Qwen3.5-27B\", a model created by Alibaba Cloud; Microsoft created Fara1.5-27B and Alibaba Cloud created the base it started from, and neither fact makes either the author of the other’s work. Qwen3.5-27B is not recorded in this dataset, so the derivation is stated here rather than linked.",
     "intendedUse": "Completing end-to-end web tasks from screenshots, inside the agent harness its card recommends.",
     "sourceIds": [
-      "microsoft-fara-1-5-27b-model-card"
+      "microsoft-fara-1-5-27b-model-card",
+      "osi-license-mit"
     ],
     "verifiedAt": "2026-08-28"
   },
@@ -2586,8 +2647,7 @@
     "releaseDate": "2025-12-02",
     "datePrecision": "day",
     "status": "current",
-    "featured": true,
-    "featuredRationale": "Amazon’s own speech-to-speech model, recorded to show that Amazon creates model families as well as operating the Bedrock platform on which hundreds of other companies’ models are served.",
+    "featured": false,
     "categories": [
       "audio-speech"
     ],
@@ -2665,5 +2725,841 @@
       "osi-approved-licenses"
     ],
     "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "ai2-olmo-2-7b",
+    "slug": "olmo-2-7b",
+    "canonicalName": "OLMo 2 7B",
+    "displayName": "OLMo 2 7B",
+    "organizationId": "ai2",
+    "familyId": "ai2-olmo-2",
+    "version": "7B",
+    "variant": "Base",
+    "releaseDate": "2024-11-26",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 7.3
+    },
+    "contextWindow": 4096,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "A fully open 7B base language model from AI2’s second-generation OLMo release, published with open weights, data, and code.",
+    "intendedUse": "Open research and downstream fine-tuning where reproducible training data and weights are required.",
+    "sourceIds": [
+      "ai2-olmo-2-model-card",
+      "ai2-olmo-2-announcement",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "tii-falcon-h1-34b-instruct",
+    "slug": "falcon-h1-34b-instruct",
+    "canonicalName": "Falcon-H1-34B-Instruct",
+    "displayName": "Falcon-H1 34B Instruct",
+    "organizationId": "tii",
+    "familyId": "tii-falcon-h1",
+    "version": "34B",
+    "variant": "Instruct",
+    "releaseDate": "2025-05-21",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Falcon LLM License",
+      "url": "https://falconllm.tii.ae/falcon-terms-and-conditions.html",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 34
+    },
+    "contextWindow": 262144,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The instruction-tuned 34B member of TII’s Falcon-H1 hybrid attention–state-space series, released with downloadable weights.",
+    "intendedUse": "Instruction-following and long-context assistant tasks where open weights are needed.",
+    "sourceIds": [
+      "tii-falcon-h1-model-card",
+      "tii-falcon-h1-announcement",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "nvidia-nemotron-4-340b-base",
+    "slug": "nemotron-4-340b-base",
+    "canonicalName": "Nemotron-4-340B-Base",
+    "displayName": "Nemotron-4 340B Base",
+    "organizationId": "nvidia",
+    "familyId": "nvidia-nemotron-4-340b",
+    "version": "340B",
+    "variant": "Base",
+    "releaseDate": "2024-06-14",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "NVIDIA Open Model License",
+      "url": "https://developer.download.nvidia.com/licenses/nvidia-open-model-license-agreement-june-2024.pdf",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 340
+    },
+    "contextWindow": 4096,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The open-weight 340B base model of NVIDIA’s Nemotron-4 340B release, intended primarily for synthetic data generation.",
+    "intendedUse": "Generating synthetic training data and serving as a base for further alignment under the NVIDIA Open Model License.",
+    "sourceIds": [
+      "nvidia-nemotron-4-340b-model-card",
+      "nvidia-nemotron-4-340b-research",
+      "nvidia-nemotron-4-340b-announcement",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "ai21-labs-jamba-v0-1",
+    "slug": "jamba-v0-1",
+    "canonicalName": "Jamba v0.1",
+    "displayName": "Jamba v0.1",
+    "organizationId": "ai21-labs",
+    "familyId": "ai21-labs-jamba",
+    "version": "0.1",
+    "variant": "Base",
+    "releaseDate": "2024-03-28",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 52,
+      "activeBillions": 12
+    },
+    "contextWindow": 262144,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "AI21 Labs’ first open-weight hybrid Mamba–Transformer model, a 52B Mixture-of-Experts with 12B active parameters and long context.",
+    "intendedUse": "Open research and long-context generation; a base release rather than an aligned chat model.",
+    "sourceIds": [
+      "ai21-labs-jamba-announcement",
+      "ai21-labs-jamba-paper",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "zhipu-ai-glm-4-5-air",
+    "slug": "glm-4-5-air",
+    "canonicalName": "GLM-4.5-Air",
+    "displayName": "GLM-4.5-Air",
+    "organizationId": "zhipu-ai",
+    "familyId": "zhipu-ai-glm-4-5",
+    "version": "Air",
+    "variant": "Air",
+    "releaseDate": "2025-07",
+    "datePrecision": "month",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "MIT License",
+      "spdxId": "MIT",
+      "url": "https://opensource.org/license/mit",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 106,
+      "activeBillions": 12
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The compact “Air” Mixture-of-Experts model of Zhipu AI’s GLM-4.5 series, with 106B total and 12B active parameters, released with open weights.",
+    "intendedUse": "Reasoning, coding, and agentic tasks where a smaller open-weight GLM-4.5 model is preferred.",
+    "sourceIds": [
+      "zhipu-ai-glm-4-5-model-card",
+      "zhipu-ai-glm-4-5-paper",
+      "zhipu-ai-glm-4-5-announcement",
+      "osi-license-mit"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "moonshot-ai-kimi-k2-instruct",
+    "slug": "kimi-k2-instruct",
+    "canonicalName": "Kimi-K2-Instruct",
+    "displayName": "Kimi K2 Instruct",
+    "organizationId": "moonshot-ai",
+    "familyId": "moonshot-ai-kimi-k2",
+    "version": "Instruct",
+    "variant": "Instruct",
+    "releaseDate": "2025-07-11",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "both",
+    "license": {
+      "name": "Modified MIT License",
+      "url": "https://huggingface.co/moonshotai/Kimi-K2-Instruct/blob/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 1000,
+      "activeBillions": 32
+    },
+    "contextWindow": 131072,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The instruction-tuned member of Moonshot AI’s Kimi K2 series, a 1T-parameter Mixture-of-Experts with 32B active parameters, offered as open weights and via API.",
+    "intendedUse": "Agentic, tool-use, and coding tasks, available as downloadable weights or through the Moonshot API.",
+    "sourceIds": [
+      "moonshot-ai-kimi-k2-model-card",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "eleutherai-pythia-12b",
+    "slug": "pythia-12b",
+    "canonicalName": "Pythia-12B",
+    "displayName": "Pythia 12B",
+    "organizationId": "eleutherai",
+    "familyId": "eleutherai-pythia",
+    "version": "12B",
+    "variant": "12B",
+    "releaseDate": "2023-04-03",
+    "datePrecision": "day",
+    "status": "research",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 11.84607232
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The largest member of EleutherAI’s Pythia suite, trained on the Pile with 154 saved checkpoints per model so that the same training run can be inspected at any step.",
+    "intendedUse": "Research on the behaviour, functionality, and limitations of large language models; the model card states the suite is not intended for deployment.",
+    "sourceIds": [
+      "eleutherai-pythia-12b-model-card",
+      "eleutherai-pythia-repository",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "lg-ai-research-exaone-3-5-7-8b-instruct",
+    "slug": "exaone-3-5-7-8b-instruct",
+    "canonicalName": "EXAONE-3.5-7.8B-Instruct",
+    "displayName": "EXAONE 3.5 7.8B Instruct",
+    "organizationId": "lg-ai-research",
+    "familyId": "lg-ai-research-exaone-3-5",
+    "version": "3.5",
+    "variant": "7.8B Instruct",
+    "releaseDate": "2024-12-09",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "EXAONE AI Model License Agreement 1.1 - NC",
+      "url": "https://huggingface.co/LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct/blob/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 7.8
+    },
+    "contextWindow": 32768,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The 7.8B instruction-tuned member of LG AI Research’s EXAONE 3.5 series, a bilingual English and Korean model with a 32,768-token context length.",
+    "intendedUse": "Bilingual English and Korean instruction following and long-context work. The licence is non-commercial, so commercial use is not granted by it.",
+    "sourceIds": [
+      "lg-ai-research-exaone-3-5-model-card",
+      "lg-ai-research-exaone-3-5-repository",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "snowflake-arctic-instruct",
+    "slug": "snowflake-arctic-instruct",
+    "canonicalName": "snowflake-arctic-instruct",
+    "displayName": "Snowflake Arctic Instruct",
+    "organizationId": "snowflake",
+    "familyId": "snowflake-arctic",
+    "version": "Instruct",
+    "variant": "Instruct",
+    "releaseDate": "2024-04-24",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache-2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 480,
+      "activeBillions": 17
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The instruction-tuned Arctic model from Snowflake AI Research, a dense-MoE hybrid pairing a 10B dense transformer with a 128x3.66B residual MoE MLP for 480B total and 17B active parameters.",
+    "intendedUse": "Text and code generation from text input, with ungated weights under Apache-2.0. Snowflake’s two pages disagree on the release year; see the source notes.",
+    "sourceIds": [
+      "snowflake-arctic-instruct-model-card",
+      "snowflake-arctic-repository",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "upstage-solar-pro-preview-instruct",
+    "slug": "solar-pro-preview-instruct",
+    "canonicalName": "solar-pro-preview-instruct",
+    "displayName": "Solar Pro Preview Instruct",
+    "organizationId": "upstage",
+    "familyId": "upstage-solar-pro",
+    "version": "Preview",
+    "variant": "Preview Instruct",
+    "releaseDate": "2024-09-08",
+    "datePrecision": "day",
+    "status": "preview",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "MIT",
+      "spdxId": "MIT",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 22
+    },
+    "contextWindow": 4096,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Upstage’s 22B pre-release of Solar Pro, produced by depth up-scaling a 14B model, with a 4K maximum context length and weights under MIT.",
+    "intendedUse": "Instruction following on a single GPU. The model card describes this as a pre-release version of the official Solar Pro, so it is recorded with preview status.",
+    "sourceIds": [
+      "upstage-solar-pro-preview-model-card",
+      "osi-license-mit"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "ibm-granite-4-2-30b",
+    "slug": "granite-4-2-30b",
+    "canonicalName": "granite-4.2-30b",
+    "displayName": "Granite 4.2 30B",
+    "organizationId": "ibm",
+    "familyId": "ibm-granite-4-2",
+    "version": "4.2",
+    "variant": "30B",
+    "releaseDate": "2026-08-25",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 30
+    },
+    "contextWindow": 131072,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "IBM’s largest Granite 4.2 model: a 30B dense decoder-only reasoning model post-trained on the Granite 4.1 base, with a thinking / non-thinking switch and weights under Apache 2.0.",
+    "intendedUse": "IBM describes the generation as built for enterprise and research use, with the 8B and 30B models additionally trained through agentic reinforcement learning for tool calling, code editing and terminal use.",
+    "sourceIds": [
+      "ibm-granite-4-2-30b-model-card",
+      "ibm-granite-4-2-technical-blog",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "baidu-ernie-4-5-300b-a47b",
+    "slug": "ernie-4-5-300b-a47b",
+    "canonicalName": "ERNIE-4.5-300B-A47B-PT",
+    "displayName": "ERNIE 4.5 300B A47B",
+    "organizationId": "baidu",
+    "familyId": "baidu-ernie-4-5",
+    "version": "4.5",
+    "variant": "300B-A47B",
+    "releaseDate": "2025-06-28",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 300,
+      "activeBillions": 47
+    },
+    "contextWindow": 131072,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Baidu’s text mixture-of-experts model in the ERNIE 4.5 generation, with 300B total and 47B activated parameters and a 131072-token context length, released under Apache 2.0.",
+    "intendedUse": "General text generation and instruction following. The card states its training stage two ways without reconciling them, so no training stage is recorded here, and the -PT in the repository name is the card's own label for Transformer-style PyTorch weights rather than a training stage; the vision-language members of the same generation are not recorded here.",
+    "sourceIds": [
+      "baidu-ernie-4-5-300b-model-card",
+      "hugging-face-ernie-4-5-300b-hub-record",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "tencent-hunyuan-video-t2v",
+    "slug": "hunyuan-video-t2v",
+    "canonicalName": "HunyuanVideo",
+    "displayName": "HunyuanVideo",
+    "organizationId": "tencent",
+    "familyId": "tencent-hunyuan-video",
+    "version": "1",
+    "variant": "Base",
+    "releaseDate": "2024-12-03",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "video"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "video"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Tencent Hunyuan Community License Agreement",
+      "url": "https://huggingface.co/tencent/HunyuanVideo/raw/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Tencent’s open-weight video foundation model, released with inference code and weights under Tencent’s own community licence, which does not apply in the European Union, United Kingdom or South Korea.",
+    "intendedUse": "Video generation from text prompts. The card describes the model as having over 13 billion parameters without stating an exact count, so no parameter count is recorded.",
+    "sourceIds": [
+      "tencent-hunyuan-video-model-card",
+      "tencent-hunyuan-community-license",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "bytedance-seed-oss-36b-instruct",
+    "slug": "seed-oss-36b-instruct",
+    "canonicalName": "Seed-OSS-36B-Instruct",
+    "displayName": "Seed-OSS 36B Instruct",
+    "organizationId": "bytedance-seed",
+    "familyId": "bytedance-seed-oss",
+    "version": "36B",
+    "variant": "36B Instruct",
+    "releaseDate": "2025-08-20",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 36
+    },
+    "contextWindow": 512000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "ByteDance Seed’s instruction-tuned 36B open-weight model, trained on 12T tokens with a context length the card states as 512K, released under Apache 2.0 alongside its base counterparts.",
+    "intendedUse": "Instruction following and reasoning. The card states a context length of \"512K\" rather than an exact token count; the recorded contextWindow applies this dataset’s documented mapping of a stated K figure to a token number.",
+    "sourceIds": [
+      "bytedance-seed-oss-36b-instruct-model-card",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "stability-ai-stable-diffusion-3-5-large",
+    "slug": "stable-diffusion-3-5-large",
+    "canonicalName": "stable-diffusion-3.5-large",
+    "displayName": "Stable Diffusion 3.5 Large",
+    "organizationId": "stability-ai",
+    "familyId": "stability-ai-stable-diffusion-3-5",
+    "version": "3.5",
+    "variant": "Large",
+    "releaseDate": "2024-10-22",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "image"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "image"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Stability AI Community License",
+      "url": "https://stability.ai/community-license-agreement",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 8.1
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Stability AI’s 8.1 billion parameter Multimodal Diffusion Transformer, the base model of the Stable Diffusion 3.5 generation, released under the Stability AI Community License.",
+    "intendedUse": "Text-to-image generation, which Stability describes as suited to professional use at 1 megapixel resolution. The licence is free below a stated annual revenue threshold and requires a separate enterprise agreement above it.",
+    "sourceIds": [
+      "stability-ai-sd-3-5-announcement",
+      "stability-ai-sd-3-5-large-model-card",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "databricks-dbrx-instruct",
+    "slug": "dbrx-instruct",
+    "canonicalName": "DBRX Instruct",
+    "displayName": "DBRX Instruct",
+    "organizationId": "databricks",
+    "familyId": "databricks-dbrx",
+    "version": "1",
+    "variant": "Instruct",
+    "releaseDate": "2024-03-27",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "both",
+    "license": {
+      "name": "Databricks Open Model License",
+      "url": "https://www.databricks.com/legal/open-model-license",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 132,
+      "activeBillions": 36
+    },
+    "contextWindow": 32000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Databricks’ fine-grained mixture-of-experts model with 132B total and 36B active parameters, pre-trained on 12T tokens of text and code, published as downloadable weights and served to Databricks customers through APIs.",
+    "intendedUse": "General text generation and instruction following. Recorded as both open-weight and hosted because Databricks states the weights are available under an open licence and that DBRX is available to its customers via APIs. The weight repositories were gated at the time of verification.",
+    "sourceIds": [
+      "databricks-dbrx-announcement",
+      "databricks-open-model-license",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "minimax-m1-40k",
+    "slug": "minimax-m1-40k",
+    "canonicalName": "MiniMax-M1-40k",
+    "displayName": "MiniMax-M1-40k",
+    "organizationId": "minimax",
+    "familyId": "minimax-m1",
+    "version": "M1",
+    "variant": "40K thinking budget",
+    "releaseDate": "2025-06-16",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "both",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://raw.githubusercontent.com/MiniMax-AI/MiniMax-M1/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "contextWindow": 1000000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [
+      "minimax-m1-80k"
+    ],
+    "summary": "The 40K thinking-budget version of MiniMax-M1, a hybrid Mixture-of-Experts reasoning model with lightning attention, offered as downloadable weights and through MiniMax’s paid API.",
+    "intendedUse": "Long-input and extended-reasoning work — the card names complex software engineering, tool use, and long-context tasks — run either from downloaded weights or through the MiniMax API.",
+    "sourceIds": [
+      "minimax-m1-40k-model-card",
+      "minimax-m1-announcement",
+      "minimax-m1-repository",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "minimax-m1-80k",
+    "slug": "minimax-m1-80k",
+    "canonicalName": "MiniMax-M1-80k",
+    "displayName": "MiniMax-M1-80k",
+    "organizationId": "minimax",
+    "familyId": "minimax-m1",
+    "version": "M1",
+    "variant": "80K thinking budget",
+    "releaseDate": "2025-06-16",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "both",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://raw.githubusercontent.com/MiniMax-AI/MiniMax-M1/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "contextWindow": 1000000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [
+      "minimax-m1-40k"
+    ],
+    "summary": "The 80K thinking-budget version of MiniMax-M1, a hybrid Mixture-of-Experts reasoning model with lightning attention, offered as downloadable weights and through MiniMax’s paid API.",
+    "intendedUse": "Long-input and extended-reasoning work — the card names complex software engineering, tool use, and long-context tasks — run either from downloaded weights or through the MiniMax API.",
+    "sourceIds": [
+      "minimax-m1-80k-model-card",
+      "minimax-m1-announcement",
+      "minimax-m1-repository",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-29"
   }
 ]

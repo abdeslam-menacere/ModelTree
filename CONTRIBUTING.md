@@ -206,7 +206,9 @@ make by hand — takes the ordinary reviewed path.
 
 Code contributions follow the same route, with two additions: behaviour that
 changes needs a test that fails without the change, and the change must stay
-inside the issue it belongs to.
+inside the issue it belongs to. Before you write that test, read
+[Testing conventions](#testing-conventions) below — a test that cannot fail is
+worse than none, and this repository has shipped several.
 
 This repository is worked with [Drydock](docs/product/): each issue gets its own
 branch, worktree, and agent session, and a pull request cannot open until review
@@ -214,6 +216,144 @@ and QA have both passed against the current commit. Architecture decisions are
 recorded in [`docs/adr/`](docs/adr/) and product context in
 [`docs/product/`](docs/product/); read the relevant one before changing
 structure.
+
+## Testing conventions
+
+**An assertion is only coverage if it can fail.** A vacuous assertion — one that
+passes no matter what the code does — is worse than no assertion, because it
+reads as coverage. It appears in the count, it appears in review, and it goes
+green forever, including on the exact regression it was written to catch.
+
+Every rule below has been paid for here: each was written after an assertion
+that could not fail shipped past a green suite, and some concealed a real,
+user-visible defect. None were found by the suite; every one was found by a
+person or agent deliberately reverting the code under test and watching what
+happened. That reverting is the practice these conventions ask you to keep.
+
+The examples cited are real tests in this repository, quoted from the commit
+these conventions were written against. Grep them by name — a name is far more
+durable than a line number, which is why it is the citation form rule 5 asks
+for, though nothing in the suite verifies these particular citations stay
+accurate (see rule 5).
+
+### 1. Guard against vacuity: prove the collection is non-empty first
+
+An assertion of the form "for every X, ..." passes trivially when there are zero
+Xs. Before sweeping a derived collection, assert it is non-empty, so an empty
+derivation fails loudly instead of passing silently.
+
+The worked example is the test named, in
+[`web/src/lib/organization-name.test.ts`](web/src/lib/organization-name.test.ts):
+
+```
+it('has organizations to check, so a passing sweep below means something', () => {
+  // The control for every "for each organization" assertion in this file: an
+  // empty dataset would satisfy all of them vacuously.
+  expect(everyOrganization().length).toBeGreaterThan(0);
+});
+```
+
+The test's **name is the rule**: a contributor who greps it understands the
+convention without reading the body. The same file's platform-operator sweep
+carries an inline guard for the same reason — `expect(platforms.length)
+.toBeGreaterThan(0)`, commented *"no platforms and the loop below asserts
+nothing at all."*
+
+### 2. Use a discriminating fixture: it must differ along the axis under test
+
+If the property is "A is used rather than B", a fixture where A and B are
+identical cannot test it — both readings produce the same output, so the
+assertion passes whichever field the code reads. The fixture must be a case
+where A and B differ.
+
+The worked example is the fixture factory in
+[`web/src/lib/provider-directory.test.ts`](web/src/lib/provider-directory.test.ts),
+whose organizations deliberately record two different name forms:
+
+```
+// The two recorded name forms deliberately differ, because the directory
+// displays, sorts, and files creators by the label (`shortName`) while
+// `name` stays the fuller recorded form. A fixture where both agree cannot
+// tell the two apart, so every assertion about a displayed creator name in
+// this file would pass whichever field the code read.
+shortName: name.split(' ')[0],
+```
+
+When you *cannot yet* build the discriminating case — the dataset has no example
+of the difference — say so in the test rather than pretending the sweep
+discriminates. The test named `it('names a serving-platform operator by the
+label')` in `organization-name.test.ts` does exactly this, under an **"Honest
+limit"** comment: it records that every platform operator on today's dataset has
+identical name forms, names the sibling test (`provider-directory.test.ts`) whose
+fixture *does* discriminate, and explains that this sweep "guards the rule as the
+dataset grows: the day a differing operator is recorded, it acquires teeth
+without being edited." An honestly-labelled weak test is coverage of the future;
+a weak test dressed as a strong one is a trap.
+
+### 3. Revert and observe: for a test written against a specific defect
+
+If your test exists to catch a specific defect, prove it can: restore the
+defect, run the test, and confirm it fails. **Record in the pull request that you
+did so, with the failure count** (for example, `1 failed | 41 passed`, exit 1).
+A test written against a bug that was never observed to fail on that bug is a
+claim, not a measurement.
+
+### 4. A control must share the probe's failure mode
+
+A control only vouches for a probe if it could have failed the way the probe
+did. A passing control that exercises a different path than the probe tells you
+nothing. State this generally, because it reaches past tests into any
+measurement you make while investigating:
+
+> **A probe that returns the same thing whether it works or not is not a
+> measurement.**
+
+This has bitten repeatedly here — a shell `-match` against a string array that
+returned elements rather than a boolean, so a deliberately fabricated control
+term read as "present"; a JSON array decoded and printed as `System.Object[]`;
+a test runner that crashed at startup and reported four confident failures that
+were all the same crash. Each looked like a clean result. Each was caught only
+by a control whose expected value was predicted in advance and differed from the
+answer being hoped for.
+
+### 5. Cite tests by name, never by line number
+
+When documentation, a comment, or a pull request points at a test, name it —
+`it('has organizations to check, ...')` — rather than `file.ts:333`. Line
+numbers expire the moment the file is edited; this repository tracks that decay
+as its own class of bug (see issue #527). Every citation in this section is by
+name for exactly this reason.
+
+**An accepted gap, named as one.** A test name is markedly more durable than a
+line number, but it is not immune: renaming a cited `it('…')`, or editing a
+quoted code block, would make this section wrong and nothing in the suite or CI
+would fail. `web/tests/contributing/issue-forms.test.ts` reads this file, but
+only to check that the `npm run` scripts it names exist, that it links
+`/methodology`, and that it names both issue-form filenames — it does not pin
+any test-name citation or quoted block; and the `instruction-references`
+workflow that resolves references elsewhere covers the instruction and skill
+documents (`.github/copilot-instructions.md`, `.github/skills/**`, and
+`tools/instruction_refs/**`), not `CONTRIBUTING.md`. So by rule 6's own standard
+this is an **accepted gap**, recorded here rather than presented as an enforced
+guarantee: the citations above are verified accurate at the commit that added
+them, and re-verified whenever this section is edited, but that discipline is
+manual. Closing it would mean a test that greps each cited name out of its
+source file and fails when one goes missing — deliberately out of scope for the
+issue that wrote these conventions, which is documentation-only, and left to
+[issue #544](https://github.com/abdeslam-menacere/ModelTree/issues/544) so it
+can change a test legitimately. Issue #543 is a live instance of the same rule-6
+failure mode in the dataset code.
+
+### 6. A decision defended only in a comment is not enforced
+
+If a design decision matters — this derivation rather than that one, this field
+rather than a plausibly-equal sibling — a test must be able to tell that it was
+reversed. A well-argued comment is not a constraint: swapping the implementation
+to the rejected alternative can leave the whole suite green when the two agree
+only by a coincidence in today's data, and that comment decays exactly like a
+stale line number. If you cannot write a test that distinguishes the decision
+from its alternative, record it explicitly as an **accepted gap** rather than
+presenting it as an enforced decision.
 
 ## Reporting something that is not a data problem
 

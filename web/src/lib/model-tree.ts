@@ -1,5 +1,7 @@
 import type { Dataset, ModelFamily, ModelRelease, Organization } from '../data/schema';
 import { comparePartialDates, comparePartialDatesDescending } from '../data/partial-date';
+import { hasRecordedRelease } from './family-branch';
+import { compareLabels, organizationLabel } from './organization-name';
 
 export interface ModelTreeFamily {
   family: ModelFamily;
@@ -51,8 +53,10 @@ function newestFamilyReleaseDate(dataset: Dataset, familyId: string) {
 function buildCreators(dataset: Dataset, organizations: Organization[]): ModelTreeCreator[] {
   // Copy before sorting: the caller passes a filtered view of dataset.organizations
   // and must not have its own array reordered underneath it.
+  // Ordered by the creator label, not by `name`: a creator must appear where the
+  // string the reader sees says it will. See `organization-name.ts`.
   return [...organizations]
-    .sort((a, b) => compare(a.name, b.name) || compare(a.id, b.id))
+    .sort((a, b) => compareLabels(organizationLabel(a), organizationLabel(b)) || compare(a.id, b.id))
     .map((organization) => ({
       organization,
       families: dataset.families
@@ -73,7 +77,10 @@ function buildCreators(dataset: Dataset, organizations: Organization[]): ModelTr
               || compare(a.id, b.id)
             )),
         }))
-        .filter(({ releases }) => releases.length > 0),
+        // The shared rule, not a local one: `homepage.ts` reads the same
+        // predicate, which is what stops the two hierarchies answering
+        // differently again (#554).
+        .filter(hasRecordedRelease),
     }));
 }
 

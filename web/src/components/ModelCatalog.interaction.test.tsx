@@ -14,6 +14,7 @@ import {
   deriveCatalogResults,
 } from '../lib/catalog-view';
 import ModelCatalog from './ModelCatalog';
+import { organizationLabel } from '../lib/organization-name';
 
 const index = buildCatalogIndex(dataset, '/');
 const total = index.models.length;
@@ -39,8 +40,37 @@ function tableRowCount() {
   return document.querySelectorAll('.catalog-table tbody tr').length;
 }
 
-function creatorCheckbox(name: string) {
-  return screen.getByRole('checkbox', { name: new RegExp(`^${name}`) });
+// Selects a creator facet checkbox unambiguously, then asserts it is *named*
+// by the creator label.
+//
+// A name-prefix query -- `getByRole('checkbox', { name: /^Foo/ })` -- is not
+// safe here: as soon as one creator label is a prefix of another the pattern
+// resolves to two checkboxes and the query throws. Matching the whole
+// accessible name is not a reliable fix either, because the label and the
+// visually hidden count are concatenated with no separator, so a shorter
+// creator label followed by its count can read exactly as a longer creator
+// label followed by its own. The `value` attribute carries the creator slug and
+// is unique by construction, so it does the selecting; the label assertion is
+// what keeps this helper honest about #479's rule.
+function creatorCheckbox(creator: { value: string; label: string }) {
+  const box = screen
+    .getAllByRole('checkbox')
+    .find((node) => (
+      node.getAttribute('name') === 'creator'
+      && (node as HTMLInputElement).value === creator.value
+    )) as HTMLInputElement | undefined;
+  expect(box, `no creator checkbox with value "${creator.value}"`).toBeDefined();
+  // Compared against the rule applied to the dataset record, deliberately not
+  // against `creator.label`. The facet's own label is built from the same code
+  // path that renders it, so asserting one against the other cannot fail: a
+  // mutation that reverted the facet to recorded names moved both sides at once
+  // and this file stayed green. Reaching past the facet to the organization is
+  // what gives the assertion something to disagree with.
+  const organization = dataset.organizations.find(({ slug }) => slug === creator.value)!;
+  expect(
+    box!.closest('label')?.querySelector('.catalog-filter-label')?.textContent?.trim(),
+  ).toBe(organizationLabel(organization));
+  return box!;
 }
 
 function firstPageRows(sort: ReturnType<typeof defaultCatalogState>['sort'] = 'release-date') {
@@ -138,7 +168,7 @@ describe('ModelCatalog', () => {
     renderCatalog();
     await waitFor(() => screen.getByRole('status'));
 
-    await user.click(creatorCheckbox(firstCreator.label));
+    await user.click(creatorCheckbox(firstCreator));
 
     await waitFor(() => expect(screen.getByRole('status').textContent).toContain(String(firstCreator.count)));
     expect(window.location.search).toContain(`creator=${firstCreator.value}`);
@@ -163,7 +193,7 @@ describe('ModelCatalog', () => {
     window.history.replaceState({}, '', `/models/?creator=${firstCreator.value}&sort=name&view=list`);
     renderCatalog();
 
-    await waitFor(() => expect((creatorCheckbox(firstCreator.label) as HTMLInputElement).checked).toBe(true));
+    await waitFor(() => expect((creatorCheckbox(firstCreator) as HTMLInputElement).checked).toBe(true));
     expect((screen.getByLabelText('Sort by') as HTMLSelectElement).value).toBe('name');
     expect(document.querySelector('.catalog-list')).not.toBeNull();
     expect(document.querySelector('.catalog-table')).toBeNull();
@@ -204,7 +234,7 @@ describe('ModelCatalog', () => {
     renderCatalog();
     await waitFor(() => screen.getByRole('status'));
 
-    await user.click(creatorCheckbox(firstCreator.label));
+    await user.click(creatorCheckbox(firstCreator));
     await waitFor(() => expect(screen.getByRole('status').textContent).toContain(String(firstCreator.count)));
 
     const activeFilters = screen.getByRole('list', { name: 'Active filters' });
@@ -221,7 +251,7 @@ describe('ModelCatalog', () => {
 
     // Reach the empty state via a FILTER (not search alone) so results.active is
     // non-empty and the per-filter clear branch actually renders.
-    await user.click(creatorCheckbox(firstCreator.label));
+    await user.click(creatorCheckbox(firstCreator));
     await user.type(screen.getByLabelText('Search models'), 'zzzznomatchzzzz');
 
     await waitFor(() => expect(screen.getByRole('status').textContent).toContain('No models match'));

@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import { withEmptyFamily } from '../../tests/fixtures/empty-family';
 import { dataset as seedDataset } from '../data/dataset';
 import type { Dataset } from '../data/schema';
 import { validateDataset } from '../data/validate';
-import { buildCatalogIndex, providerRoute } from './catalog';
-import { parseCatalogState } from './catalog-view';
+import { providerRoute } from './catalog';
 import { providerStaticPaths } from './routes';
 import {
   buildDirectoryLetters,
   buildProviderDirectory,
-  creatorCatalogHref,
   DIRECTORY_LETTERS,
   directoryInitial,
   filterDirectory,
@@ -37,6 +36,11 @@ function makeOrganization(id: string, name: string, extra: Record<string, unknow
     id,
     slug: id,
     name,
+    // The two recorded name forms deliberately differ, because the directory
+    // displays, sorts, and files creators by the label (`shortName`) while
+    // `name` stays the fuller recorded form. A fixture where both agree cannot
+    // tell the two apart, so every assertion about a displayed creator name in
+    // this file would pass whichever field the code read.
     shortName: name.split(' ')[0],
     type: 'company',
     website: `https://${id}.example/`,
@@ -131,9 +135,14 @@ function makeDataset(overrides: Record<string, unknown> = {}): Dataset {
  * and names that exercise initial normalization. The seed dataset holds no
  * serving platform at all, so without this fixture every platform assertion in
  * this file would pass by having nothing to check.
+ *
+ * `eclair` publishes a family and no release, which is the state the directory's
+ * "No release recorded yet" copy exists for. The validator refuses that shape
+ * (#554), so the family is added after validation by `withEmptyFamily` rather
+ * than through it — the copy is a second line of defence and still has to work.
  */
 function makePopulatedDataset(): Dataset {
-  return makeDataset({
+  return withEmptyFamily(makeDataset({
     organizations: [
       makeOrganization('alpha', 'Alpha Labs'),
       makeOrganization('eclair', 'Éclair Research', { type: 'research-lab' }),
@@ -143,7 +152,6 @@ function makePopulatedDataset(): Dataset {
     ],
     families: [
       makeFamily('alpha-one', 'alpha'),
-      makeFamily('eclair-one', 'eclair', { categories: ['coding'] }),
       makeFamily('numeric-one', 'numeric'),
     ],
     releases: [
@@ -177,7 +185,7 @@ function makePopulatedDataset(): Dataset {
         verifiedAt: '2026-01-01',
       },
     ],
-  });
+  }), makeFamily('eclair-one', 'eclair', { categories: ['coding'] }));
 }
 
 function group(dataset: Dataset, id: DirectoryGroupId, base = '/') {
@@ -302,16 +310,27 @@ describe('grouping by evidenced role', () => {
     expect(onlyCreates.roleText).toBe('Model creator');
   });
 
-  it('names the operator on a platform row and says whether it also creates', () => {
+  it('names the operator on a platform row by the label and says whether it also creates', () => {
     const firstParty = platform(dataset, 'alpha-api');
     const thirdParty = platform(dataset, 'hosting-cloud');
 
-    expect(firstParty.operatorName).toBe('Alpha Labs');
+    // An operator is an Organization record, so it is named by the same label
+    // rule as a creator -- "Alpha", not the fuller recorded "Alpha Labs".
+    // Naming the operator is not naming the platform: the platform keeps its
+    // own name, and the two entities stay distinct.
+    expect(firstParty.operatorName).toBe('Alpha');
+    expect(firstParty.name).toBe('Alpha API');
     expect(firstParty.operatorIsCreator).toBe(true);
     expect(firstParty.roleText).toBe('Serving platform, operated by a model creator');
-    expect(thirdParty.operatorName).toBe('Hosting Co');
+    expect(thirdParty.operatorName).toBe('Hosting');
     expect(thirdParty.operatorIsCreator).toBe(false);
     expect(thirdParty.roleText).toBe('Serving platform');
+
+    // Relabelling the displayed operator must not cost the fuller recorded
+    // form its searchability, which is the regression this rule caused once
+    // already in the catalog.
+    expect(firstParty.terms).toContain('alpha labs');
+    expect(firstParty.terms).toContain('alpha');
   });
 
   it('names an organization with neither role instead of defaulting it into one', () => {
@@ -406,37 +425,37 @@ describe('derived counts', () => {
 });
 
 describe('where a row leads', () => {
-  it('points a creator at the catalog filtered to that creator', () => {
-    const dataset = makePopulatedDataset();
+  it('resolves every creator that has releases to its generated page, with no fallback', () => {
+    // The invariant that replaces the removed catalog fallback, and the reason
+    // removing it was safe. Three tests here previously pinned that fallback: a
+    // creator with releases but no generated page linked to `/models/?creator=`
+    // instead. Generating a page for every creator that has a release makes that
+    // state unreachable -- the branch's precondition is the negation of what its
+    // own antecedent guarantees -- so the branch is gone and this asserts what
+    // holds in its place.
+    //
+    // Asserted on the seed catalog and on the fixture, as a property rather than
+    // one row, and against populations proven non-empty so neither can pass by
+    // matching nothing.
+    for (const [label, dataset] of [
+      ['seed', seedDataset],
+      ['fixture', makePopulatedDataset()],
+    ] as const) {
+      const rows = group(dataset, 'creators').entries.filter(
+        (entry): entry is CreatorEntry => entry.kind === 'creator',
+      );
+      const withReleases = rows.filter((entry) => entry.releaseCount > 0);
+      expect(withReleases.length, label).toBeGreaterThan(0);
 
-    expect(creator(dataset, 'alpha').href).toBe('/models/?creator=alpha');
-    expect(creator(dataset, 'alpha').unlinkedNote).toBeNull();
-  });
+      for (const entry of withReleases) {
+        expect(entry.href, `${label}:${entry.slug}`).toBe(`/providers/${entry.slug}/`);
+      }
+      // No row anywhere in the group points at the catalog, whatever its shape.
+      expect(rows.filter((entry) => entry.href?.includes('creator=')), label).toEqual([]);
+    }
 
-  it('respects a deployed base path', () => {
-    expect(creatorCatalogHref('/ModelTree', 'openai')).toBe('/ModelTree/models/?creator=openai');
-    expect(creatorCatalogHref('/ModelTree/', 'openai')).toBe('/ModelTree/models/?creator=openai');
-  });
-
-  it('produces a link the catalog itself restores to that creator filter', () => {
-    // End-to-end against the catalog's own parser: if the emitted query key or
-    // value ever stopped matching what the catalog reads, this fails rather than
-    // silently linking to an unfiltered catalog. Uses a creator with no generated
-    // provider page, since those are the ones that fall back to the catalog link
-    // -- a creator that does have a page links there instead.
-    const index = buildCatalogIndex(seedDataset, '/');
-    const routed = new Set(providerStaticPaths().map((path) => path.params.slug));
-    const entry = group(seedDataset, 'creators').entries.find(
-      (candidate): candidate is CreatorEntry =>
-        candidate.kind === 'creator' && !routed.has(candidate.slug) && candidate.href !== null,
-    );
-    if (!entry) throw new Error('expected a pageless creator that links to the catalog');
-    const href = entry.href;
-    if (!href) throw new Error('seed creator should link to the catalog');
-
-    const state = parseCatalogState(new URL(href, 'https://example.test').search, index.facets);
-
-    expect(state.filters.creators).toEqual([entry.slug]);
+    expect(creator(makePopulatedDataset(), 'alpha').href).toBe('/providers/alpha/');
+    expect(creator(makePopulatedDataset(), 'alpha').unlinkedNote).toBeNull();
   });
 
   it('links every organization that has a generated provider page to that page', () => {
@@ -494,6 +513,8 @@ describe('search', () => {
     const entry = platform(dataset, 'hosting-cloud');
 
     expect(matchesDirectorySearch(entry, 'hosting cloud')).toBe(true);
+    // The operator's fuller recorded form, which is no longer what the row
+    // displays. It still has to find the platform.
     expect(matchesDirectorySearch(entry, 'hosting co')).toBe(true);
     expect(matchesDirectorySearch(entry, 'cloud platform')).toBe(true);
     expect(matchesDirectorySearch(entry, 'alpha')).toBe(false);
@@ -553,13 +574,23 @@ describe('shareable search url', () => {
 });
 
 describe('ordering and verification', () => {
-  it('sorts entries by name within each group', () => {
+  it('sorts entries by the displayed label within each group', () => {
     const dataset = makePopulatedDataset();
 
     // "01 Systems" sorts ahead of the letters by codepoint; the letter bucket it
     // renders in is separate from this order.
+    //
+    // The entries are named by the label, not the fuller recorded form, so
+    // these are the first words of the fixture names above. That is the
+    // assertion, not an accident of the fixture: reading `name` instead of the
+    // label here yields '01 Systems'/'Alpha Labs'/'Éclair Research' and fails.
     expect(group(dataset, 'creators').entries.map((entry) => entry.name))
-      .toEqual(['01 Systems', 'Alpha Labs', 'Éclair Research']);
+      .toEqual(['01', 'Alpha', 'Éclair']);
+
+    // The fuller recorded forms are still recorded and still searchable, so
+    // relabelling has not discarded one of the two forms.
+    expect(group(dataset, 'creators').entries.map((entry) => entry.terms))
+      .toEqual([['01', '01 systems'], ['alpha', 'alpha labs'], ['éclair', 'éclair research']]);
   });
 
   it('reports the latest verification date across both entity kinds', () => {

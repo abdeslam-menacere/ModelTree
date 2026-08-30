@@ -127,6 +127,58 @@ export function withheldGroups(run: RefreshRun): WithheldGroup[] {
     .filter(({ items }) => items.length > 0);
 }
 
+/**
+ * One thing a refresh run looked at and did not put in the dataset, carried
+ * with the run that decided it.
+ */
+export interface CoverageGap {
+  runId: string;
+  runTitle: string;
+  ranOn: string;
+  item: WithheldItem;
+  label: string;
+}
+
+/**
+ * Every gap the recorded runs left, newest run first.
+ *
+ * This is derived from the runs rather than kept as its own list, because a
+ * second list would be a second thing to keep true. What it reports is
+ * historical and stays historical: that a run did not add something, and the
+ * reason it gave on the day. It is deliberately *not* a statement that the gap
+ * is still open — a later reviewed change may have closed it, and several here
+ * have been closed exactly that way — so any surface rendering these must say
+ * which of the two it is showing.
+ */
+export function knownCoverageGaps(log: RefreshLog): CoverageGap[] {
+  return runsNewestFirst(log).flatMap((run) =>
+    run.withheld.map((item) => ({
+      runId: run.id,
+      runTitle: run.title,
+      ranOn: run.ranOn,
+      item,
+      label: withheldCategoryLabel(item.category),
+    })),
+  );
+}
+
+export interface CoverageGapTally {
+  category: WithheldCategory;
+  label: string;
+  count: number;
+}
+
+/** Gap counts by category, in the same order the run pages group them. */
+export function coverageGapTally(log: RefreshLog): CoverageGapTally[] {
+  const gaps = knownCoverageGaps(log);
+
+  return WITHHELD_ORDER.map((category) => ({
+    category,
+    label: withheldCategoryLabel(category),
+    count: gaps.filter(({ item }) => item.category === category).length,
+  })).filter(({ count }) => count > 0);
+}
+
 export interface GateTally {
   total: number;
   passed: number;

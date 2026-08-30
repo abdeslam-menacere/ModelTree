@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { withEmptyFamily } from '../../tests/fixtures/empty-family';
 import { dataset as seedDataset } from '../data/dataset';
 import { validateDataset } from '../data/validate';
-import { buildLineageEcosystems } from './lineage-view';
+import { buildCreatorEcosystems, buildLineageEcosystems } from './lineage-view';
+import { organizationFullNameIfDistinct } from './organization-name';
 import {
   assertRoutesResolve,
   buildCatalogIndex,
@@ -48,6 +50,34 @@ function makeRelease(
   };
 }
 
+const ALPHA_ONE_FAMILY = {
+  id: 'alpha-one',
+  slug: 'alpha-one',
+  organizationId: 'alpha',
+  name: 'Alpha One',
+  description: 'Fixture family.',
+  categories: ['language-reasoning'],
+  firstReleaseDate: '2025-01-01',
+  datePrecision: 'day',
+  status: 'current',
+  sourceIds: ['src-a'],
+  verifiedAt: '2026-01-01',
+};
+
+const BETA_ONE_FAMILY = {
+  id: 'beta-one',
+  slug: 'beta-one',
+  organizationId: 'beta',
+  name: 'Beta One',
+  description: 'Fixture family.',
+  categories: ['coding'],
+  firstReleaseDate: '2025-01-01',
+  datePrecision: 'day',
+  status: 'current',
+  sourceIds: ['src-a'],
+  verifiedAt: '2026-01-01',
+};
+
 function makeDataset(overrides: Record<string, unknown> = {}) {
   return validateDataset({
     sources: [{
@@ -64,6 +94,8 @@ function makeDataset(overrides: Record<string, unknown> = {}) {
         id: 'alpha',
         slug: 'alpha',
         name: 'Alpha Labs',
+        // Deliberately distinct from `name`: this is the creator label, and the
+        // alias-collision test below depends on it normalizing to "alpha".
         shortName: 'Alpha',
         type: 'company',
         website: 'https://alpha.example/',
@@ -86,32 +118,8 @@ function makeDataset(overrides: Record<string, unknown> = {}) {
       },
     ],
     families: [
-      {
-        id: 'alpha-one',
-        slug: 'alpha-one',
-        organizationId: 'alpha',
-        name: 'Alpha One',
-        description: 'Fixture family.',
-        categories: ['language-reasoning'],
-        firstReleaseDate: '2025-01-01',
-        datePrecision: 'day',
-        status: 'current',
-        sourceIds: ['src-a'],
-        verifiedAt: '2026-01-01',
-      },
-      {
-        id: 'beta-one',
-        slug: 'beta-one',
-        organizationId: 'beta',
-        name: 'Beta One',
-        description: 'Fixture family.',
-        categories: ['coding'],
-        firstReleaseDate: '2025-01-01',
-        datePrecision: 'day',
-        status: 'current',
-        sourceIds: ['src-a'],
-        verifiedAt: '2026-01-01',
-      },
+      ALPHA_ONE_FAMILY,
+      BETA_ONE_FAMILY,
     ],
     releases: [
       makeRelease('alpha-new', 'alpha', 'alpha-one', '2025-06-01', { apiAliases: ['alpha'] }),
@@ -295,15 +303,32 @@ describe('pagination planning', () => {
 });
 
 describe('route resolution and payload budget', () => {
-  it('publishes no provider route while no provider page is generated', () => {
-    const index = buildCatalogIndex(makeDataset());
+  it('publishes a provider route for an organization with releases and none for one without', () => {
+    // beta keeps its family but holds no release, so it is the organization no
+    // provider page is generated for. Both branches of the route decision are
+    // exercised here; the previous assertion could only ever see the null one,
+    // because no fixture organization was featured.
+    //
+    // The empty family is added after validation (#554): the validator refuses
+    // that shape, and this test is about what the catalog does if one reaches it
+    // anyway.
+    const index = buildCatalogIndex(withEmptyFamily(makeDataset({
+      families: [ALPHA_ONE_FAMILY],
+      releases: [
+        makeRelease('alpha-new', 'alpha', 'alpha-one', '2025-06-01', { apiAliases: ['alpha'] }),
+      ],
+    }), BETA_ONE_FAMILY));
 
     expect(index.providers).not.toHaveLength(0);
-    expect(index.providers.map((provider) => provider.route)).toEqual([null, null]);
+    expect(Object.fromEntries(index.providers.map((provider) => [provider.slug, provider.route])))
+      .toEqual({ alpha: '/providers/alpha/', beta: null });
 
     const organizationAliases = index.aliases.filter((alias) => alias.entity === 'organization');
     expect(organizationAliases).not.toHaveLength(0);
-    for (const alias of organizationAliases) expect(alias.route).toBeNull();
+    for (const alias of organizationAliases) {
+      expect(alias.route, alias.targetSlug)
+        .toBe(alias.targetSlug === 'alpha' ? '/providers/alpha/' : null);
+    }
   });
 
   it('fails when a model index row has no detail route to land on', () => {
@@ -349,25 +374,32 @@ describe('route resolution and payload budget', () => {
 
     expect(assertRoutesResolve(index, {
       models: index.models.map((model) => model.slug),
+      // Both fixture organizations hold releases, so both now get a page and the
+      // caller must declare them.
+      providers: index.providers.map((provider) => provider.slug),
     })).toBe(index);
   });
 
   it('holds the real dataset index to the routes the build generates', () => {
     const index = buildCatalogIndex(seedDataset, '/ModelTree');
-    const providerSlugs = buildLineageEcosystems(seedDataset)
+    const providerSlugs = buildCreatorEcosystems(seedDataset)
       .map((ecosystem) => ecosystem.organization.slug);
 
-    // Positive control: the real dataset must feature at least one organization,
-    // or the routed-provider assertions below would pass on an empty set.
+    // Positive control: the real dataset must record a release for at least one
+    // organization, or the routed-provider assertions below would pass on an
+    // empty set. The stronger control is differential -- the routed set must be
+    // larger than the featured one, or this test would still pass against the
+    // old featured-only derivation it exists to rule out.
     expect(providerSlugs.length).toBeGreaterThan(0);
+    expect(providerSlugs.length).toBeGreaterThan(buildLineageEcosystems(seedDataset).length);
 
     expect(assertRoutesResolve(index, {
       models: seedDataset.releases.map((release) => release.slug),
       providers: providerSlugs,
     })).toBe(index);
 
-    // A featured organization now carries its generated provider route; every
-    // other organization keeps a null route, because no page lands it.
+    // An organization with releases now carries its generated provider route;
+    // any organization without them keeps a null route, because no page lands it.
     const routed = new Set(providerSlugs);
     for (const provider of index.providers) {
       if (routed.has(provider.slug)) {
@@ -378,8 +410,8 @@ describe('route resolution and payload budget', () => {
     }
 
     // Organization aliases route the same way, from the same helper, so a search
-    // hit on a featured creator's name opens its page and an unfeatured one does
-    // not advertise a route that would 404.
+    // hit on any creator with releases opens its page and an organization with
+    // no page does not advertise a route that would 404.
     const organizationAliases = index.aliases.filter((alias) => alias.entity === 'organization');
     expect(organizationAliases).not.toHaveLength(0);
     for (const alias of organizationAliases) {
@@ -394,10 +426,10 @@ describe('route resolution and payload budget', () => {
   it('refuses the real dataset index when its provider routes are not declared', () => {
     const index = buildCatalogIndex(seedDataset, '/ModelTree');
 
-    // The index now publishes a real provider route for every featured
-    // organization; omitting the providers key states no provider page is
+    // The index now publishes a real provider route for every organization with
+    // releases; omitting the providers key states no provider page is
     // built, so the fail-closed guard must reject rather than wave them through.
-    expect(buildLineageEcosystems(seedDataset).length).toBeGreaterThan(0);
+    expect(buildCreatorEcosystems(seedDataset).length).toBeGreaterThan(0);
     expect(() => assertRoutesResolve(index, {
       models: seedDataset.releases.map((release) => release.slug),
     })).toThrow(/provider index row ".+" has no generated detail route/);
@@ -411,6 +443,33 @@ describe('route resolution and payload budget', () => {
     // with the catalog while a catalog page only ever ships one page slice.
     expect(size.bytesPerModelRow).toBeLessThanOrEqual(600);
     expect(size.bytesPerModelRow * 24).toBeLessThanOrEqual(20_480);
+  });
+
+  it('carries the creator\'s fuller recorded form only where it differs from the label', () => {
+    // This is what keeps the row inside the budget above. Search must match
+    // either recorded form (#479), but carrying both on every row breached that
+    // budget, while carrying the fuller form only where the record actually
+    // distinguishes the two stays inside it. The measured figures are not
+    // restated here: the assertion above is what holds them, and it fails
+    // loudly when the dataset moves them, which a comment cannot do.
+    // A present value also states that the record makes a distinction, so
+    // repeating the label here would assert one it does not make.
+    const index = buildCatalogIndex(seedDataset, '/');
+    const organizationBySlug = new Map(seedDataset.organizations.map((item) => [item.slug, item]));
+    expect(index.models.length).toBeGreaterThan(0);
+
+    let carried = 0;
+    for (const row of index.models) {
+      const organization = organizationBySlug.get(row.organizationSlug)!;
+      const distinct = organizationFullNameIfDistinct(organization);
+      expect(row.organizationFullName).toBe(distinct ?? undefined);
+      if (row.organizationFullName) carried += 1;
+    }
+
+    // Controls: the sweep is neither vacuous nor universal. Some rows carry it
+    // and some do not, so `toBe` above discriminates in both directions.
+    expect(carried).toBeGreaterThan(0);
+    expect(carried).toBeLessThan(index.models.length);
   });
 
   it('routes every real model row at its generated detail page', () => {

@@ -226,6 +226,12 @@ export function serializeCatalogState(
   return query ? `?${query}` : '';
 }
 
+/**
+ * A row matches when the needle is in its name, its family, or *either* of its
+ * creator's recorded name forms. Matching only the label would mean a reader
+ * who knows the creator by the fuller recorded form finds nothing, which is the
+ * regression this restores (abdeslam-menacere/ModelTree#479).
+ */
 function matchesSearch(row: ModelIndexRow, search: string): boolean {
   if (!search) return true;
   const needle = search.toLowerCase();
@@ -233,6 +239,7 @@ function matchesSearch(row: ModelIndexRow, search: string): boolean {
     row.name.toLowerCase().includes(needle)
     || row.familyName.toLowerCase().includes(needle)
     || row.organizationName.toLowerCase().includes(needle)
+    || (row.organizationFullName?.toLowerCase().includes(needle) ?? false)
   );
 }
 

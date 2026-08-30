@@ -51,6 +51,7 @@ import {
 } from './comparability';
 import { EVIDENCE_MODELS_PARAMETER } from './evidence-actions';
 import { MAX_COMPARISON_MODELS, MIN_COMPARISON_MODELS, compareUrl } from './compare-route';
+import { organizationLabel } from './organization-name';
 
 // The parameter name and the ceiling are consumed, not redefined: importing them
 // is what keeps a URL the drawer writes readable by the route that resolves it.
@@ -112,7 +113,7 @@ export type EvidenceSourceRecord = Pick<
 
 export type BenchmarkExplorerDataset = {
   releases: EvidenceRelease[];
-  organizations: Array<Pick<Organization, 'id' | 'name'>>;
+  organizations: Array<Pick<Organization, 'id' | 'name' | 'shortName'>>;
   families: Array<Pick<ModelFamily, 'id' | 'name'>>;
   publishers: Array<Pick<Publisher, 'id' | 'name'>>;
   sources: EvidenceSourceRecord[];
@@ -139,9 +140,13 @@ export function buildBenchmarkExplorerPayload(
       familyId: release.familyId,
       verifiedAt: release.verifiedAt,
     })),
+    // Both recorded name forms travel: the label is what a creator is displayed
+    // as, and the fuller recorded form has to stay available so neither this
+    // view nor anything built on it has to choose between them.
     organizations: dataset.organizations.map((organization) => ({
       id: organization.id,
       name: organization.name,
+      shortName: organization.shortName,
     })),
     families: dataset.families.map((family) => ({ id: family.id, name: family.name })),
     publishers: dataset.publishers.map((publisher) => ({
@@ -703,12 +708,13 @@ export function buildBenchmarkExplorerView(
 
   const models: EvidenceModelCard[] = selection.slugs.map((slug) => {
     const release = releaseBySlug.get(slug)!;
+    const organization = organizationById.get(release.organizationId);
     const resultCount = selectedResults.filter((result) => result.releaseId === release.id).length;
     return {
       slug,
       displayName: release.displayName,
       canonicalName: release.canonicalName,
-      organizationName: organizationById.get(release.organizationId)?.name ?? release.organizationId,
+      organizationName: organization ? organizationLabel(organization) : release.organizationId,
       familyName: familyById.get(release.familyId)?.name ?? release.familyId,
       route: modelRoute(base, slug),
       verifiedAt: release.verifiedAt,
@@ -721,10 +727,11 @@ export function buildBenchmarkExplorerView(
   const candidates: EvidenceCandidate[] = dataset.releases.map((release) => {
     const selected = selection.slugs.includes(release.slug);
     const hasEvidence = dataset.benchmarkResults.some((result) => result.releaseId === release.id);
+    const organization = organizationById.get(release.organizationId);
     return {
       slug: release.slug,
       displayName: release.displayName,
-      organizationName: organizationById.get(release.organizationId)?.name ?? release.organizationId,
+      organizationName: organization ? organizationLabel(organization) : release.organizationId,
       familyName: familyById.get(release.familyId)?.name ?? release.familyId,
       selected,
       hasEvidence,

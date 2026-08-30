@@ -112,8 +112,20 @@ function fixture(overrides: Record<string, unknown> = {}): Dataset {
       type: 'official-announcement',
       publisherId: 'example',
       lastCheckedDate: '2026-01-01',
+    }, {
+      // A release recording `license.osiApproved` has to cite OSI at either
+      // value, so the two licence-bearing fixtures below carry this.
+      id: 'osi-list',
+      url: 'https://opensource.org/licenses',
+      title: 'OSI Approved Licenses',
+      type: 'official-docs',
+      publisherId: 'open-source-initiative',
+      lastCheckedDate: '2026-01-01',
     }],
-    publishers: [{ id: 'example', name: 'Example' }],
+    publishers: [
+      { id: 'example', name: 'Example' },
+      { id: 'open-source-initiative', name: 'Open Source Initiative' },
+    ],
     organizations: [organization('alpha', 'Alpha Labs'), organization('beta', 'Beta Corp')],
     families: [
       family('alpha-one', 'alpha', ['language-reasoning']),
@@ -124,12 +136,14 @@ function fixture(overrides: Record<string, unknown> = {}): Dataset {
       release('alpha-summer', 'alpha', 'alpha-one', '2024-07-23', {
         accessType: 'open-weight',
         license: { name: 'Apache-2.0', weightsDownloadable: true, osiApproved: false },
+        sourceIds: ['src-a', 'osi-list'],
       }),
       release('beta-winter', 'beta', 'beta-one', '2025-11-05', {
         categories: ['image'],
         outputModalities: ['image'],
         accessType: 'both',
         license: { name: 'Llama-3', weightsDownloadable: true, osiApproved: false },
+        sourceIds: ['src-a', 'osi-list'],
       }),
     ],
     releaseEvents: [
@@ -231,7 +245,10 @@ describe('buildTimelineIndex', () => {
   it('credits an event to the creator of the model, carrying the release facets over', () => {
     const eventEntry = entry('event:beta-winter-year');
     expect(eventEntry.creatorSlug).toBe('beta');
-    expect(eventEntry.creatorName).toBe('Beta Corp');
+    // The label, not the recorded name: this fixture records "Beta Corp" with a
+    // short form of "Beta", and the timeline prints what every other surface
+    // prints (abdeslam-menacere/ModelTree#479).
+    expect(eventEntry.creatorName).toBe('Beta');
     expect(eventEntry.modelName).toBe('beta-winter');
     expect(eventEntry.route).toBe('/models/beta-winter/');
     expect(eventEntry.categories).toEqual(['image']);
@@ -241,8 +258,11 @@ describe('buildTimelineIndex', () => {
 
   it('counts facets over every entry, releases and events alike', () => {
     expect(index.facets.creators).toEqual([
-      { value: 'alpha', label: 'Alpha Labs', count: 4 },
-      { value: 'beta', label: 'Beta Corp', count: 2 },
+      // Labelled by the creator label, because the chip is counted off the
+      // entries and a filter that reads differently from the rows it filters is
+      // the defect in #479 wearing a different hat.
+      { value: 'alpha', label: 'Alpha', count: 4 },
+      { value: 'beta', label: 'Beta', count: 2 },
     ]);
     expect(index.facets.categories).toEqual([
       { value: 'image', label: 'Image', count: 2 },

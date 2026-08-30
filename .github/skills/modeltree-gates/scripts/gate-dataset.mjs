@@ -299,6 +299,112 @@ function gateReferences(docs, ids) {
 }
 
 // ---------------------------------------------------------------------------
+// Gate: every family is pointed at by at least one release.
+//
+// This is the *reverse* of every other `familyId` check in this file, and the
+// direction is the whole point. The three checks above and below all run
+// release -> family: `gateReferences` asserts a release's `familyId` resolves,
+// the entity-boundary rule asserts the family it resolves to shares its owner,
+// and the date rule asserts it does not predate that family. Each starts from a
+// release. None starts from a family, so a family that no release points at was
+// not merely unchecked here -- it was *unreachable* by this gate as written, and
+// no amount of data could have made it fire (#441).
+//
+// The state is not hypothetical. PR #417 added seven families and gave all
+// seven zero releases; `npm run validate`, `web-ci` and the Pages deploy all
+// stayed green, and `web/src/lib/model-tree.ts` dropped them with
+// `.filter(({ releases }) => releases.length > 0)`, so the published tree went
+// quietly smaller than the dataset claimed. Nothing was malformed. That is the
+// "well-formed but wrong" residual ADR 0003 names, arriving through a direction
+// the gates could not see.
+//
+// REFUSE rather than RENDER EXPLICITLY, decided rather than defaulted into
+// (#441 AC2). Both were defensible and they are not equivalent, so the reason
+// is recorded here rather than left to be re-derived:
+//
+//   Rendering an empty family explicitly is the option that matches this
+//   project's rule that unknown data stays explicit instead of being smoothed
+//   over, and it is the better option *if* the dataset can say that a family is
+//   deliberately awaiting its first release. It cannot. `lifecycleStatus` in
+//   `web/src/data/schema.ts` is exactly
+//   `['preview', 'current', 'legacy', 'deprecated', 'research']` -- there is no
+//   `announced`, `upcoming` or `unreleased` member -- and the doc comment above
+//   it states that the absence of an escape hatch is deliberate, that a record
+//   which cannot be mapped is withheld rather than guessed, and in as many
+//   words that "a tree branch rendering rows of blanks is not a fact this
+//   dataset states".
+//
+//   So an announced-but-unreleased family and a data error are byte-for-byte
+//   indistinguishable in this dataset. Rendering the empty case would therefore
+//   publish bugs on /tree/ with the site's authority behind them, presented
+//   exactly as legitimate announcements -- worse than dropping them silently,
+//   because it makes an error look like a fact. The seven families #417
+//   introduced were a side effect, not announcements.
+//
+// The reasoning rests on that absent vocabulary, so it is conditional and says
+// so: if a genuinely announced family ever needs recording, the honest fix is
+// to add a lifecycle member deliberately, in its own issue, with the rendering
+// that goes with it -- and to revisit this gate at the same time. Adding one
+// here would have been the escape hatch the schema refuses.
+//
+// #554 closed the divergence that paragraph describes, so what this gate is
+// *for* changed and the failure message below was restated to match. The
+// homepage no longer disagrees with /tree/: all three hierarchy builders now
+// share one `hasRecordedRelease` predicate, and `validateDataset` in
+// `web/src/data/validate.ts` refuses an empty family outright, so `npm run
+// validate` and the build fail instead of publishing a hollow branch. That
+// makes this rule the *earlier* of two independent refusals rather than the
+// only one. It is still worth running first, and not redundant with it: this
+// gate runs over a claim bundle in the refresh pipeline, before a dataset
+// change is committed, and names every offending family at once (see the test
+// below), where the build fails later and reports through Zod's funnel. Do not
+// delete this on the grounds that validate.ts covers it -- losing it would move
+// the discovery of an empty family from review time to deploy time.
+//
+// Stated as coverage rather than as a count: "every family is referenced by
+// some release", never "there are N families". A dataset that grows keeps
+// passing, and the rule holds for any dataset rather than for the one that
+// happens to exist today.
+// ---------------------------------------------------------------------------
+function gateFamilyHasRelease(docs) {
+  const referenced = new Set();
+  for (const release of docs.releases) {
+    // Only a usable reference counts: treating a non-string `familyId` as
+    // coverage would let a malformed release vouch for a family it cannot
+    // actually name.
+    //
+    // Which gate then reports that release is measured, not assumed, and it
+    // splits by value (#441 QA). For `null` or `undefined`, this rule is the
+    // *only* in-gate signal: `gateReferences`' `check()` returns early on
+    // exactly those two values, and `well-formed` checks document shape and
+    // that each entry is an object, never the type of a field -- so neither
+    // sees it, the family simply goes uncovered, and it is named here. Zod
+    // rejects it independently at `npm run validate`, since `familyId` is a
+    // required `entityId` (`z.string()`), but that is outside this script.
+    // For any other non-string -- a number, say -- `references` fires too,
+    // because `check()` does run and the id set holds only strings.
+    //
+    // That early-return is pre-existing and deliberately left alone: #441 adds
+    // the family-side rule and does not repair the release-side check.
+    if (typeof release.familyId === 'string') referenced.add(release.familyId);
+  }
+  for (const family of docs.families) {
+    if (!referenced.has(family.id)) {
+      fail(
+        'family-has-release',
+        'no release belongs to this family, so the site cannot be built: `validateDataset` in '
+          + '`web/src/data/validate.ts` refuses the dataset outright (`family <id> has no releases`), '
+          + 'failing `npm run validate`, `web-ci` and the Pages deploy. This gate names the family '
+          + 'first, while the change is still a claim bundle. Give the family a release or drop it '
+          + '(the dataset cannot express "announced but unreleased", so this is a data error rather '
+          + 'than a fact)',
+        `families:${family.id}`,
+      );
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Gate: lineage. Self-reference, contradictory direction, and cycles.
 // ---------------------------------------------------------------------------
 function gateLineage(docs) {
@@ -652,6 +758,7 @@ function main() {
   gateNonEmpty(docs);
   const ids = gateIdentity(docs);
   gateReferences(docs, ids);
+  gateFamilyHasRelease(docs);
   gateLineage(docs);
   gateDates(docs, today);
   gateUrls(docs);
