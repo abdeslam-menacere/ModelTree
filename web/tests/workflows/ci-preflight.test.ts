@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { parse } from 'yaml';
 
 /**
@@ -28,6 +28,13 @@ import { parse } from 'yaml';
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 const script = join(repoRoot, '.github', 'scripts', 'ci-preflight.mjs');
 const workflowDir = join(repoRoot, '.github', 'workflows');
+
+// Almost every case here runs git and then the script itself in a child process,
+// which is far slower than the default per-test budget allows for -- and slower
+// again when the suite is running inside the preflight, on a machine already
+// busy building the site. A timeout in that position reports a script defect
+// that is not there, so the budget is raised rather than the work made cheaper.
+vi.setConfig({ testTimeout: 120_000 });
 
 type YamlValue = string | number | boolean | null | YamlValue[] | YamlMapping;
 
@@ -444,6 +451,48 @@ describe('the preflight cannot be talked into a pass', () => {
 
       expect(run.status).toBe(1);
       expect(run.stdout).toContain('FAIL');
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it('exits 0 only when the commands really ran and really passed', () => {
+    // The companion to the failure case, and the more important of the two. An
+    // exit of 1 proves nothing on its own: a command that was never spawned also
+    // exits non-zero, which is how a Windows quoting bug once turned every
+    // node-based check red while this suite stayed green. Standing in the three
+    // scripts that skills-ci runs, each exiting 0, distinguishes "the check ran
+    // and passed" from "the check could not start".
+    const repo = scratchRepo();
+
+    try {
+      const git = (...args: string[]) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' });
+
+      // The two gate scripts are published rather than changed, so they stand in
+      // for commands that exist without widening the diff: the change itself is
+      // the one file under .github/scripts/, which selects skills-ci alone.
+      for (const stub of [
+        '.github/skills/modeltree-gates/scripts/gates.test.mjs',
+        '.github/skills/modeltree-gates/scripts/gate-dataset.mjs',
+      ]) {
+        const target = join(repo, stub);
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, 'process.stdout.write("stub ok\\n");\n');
+      }
+      git('add', '-A');
+      git('commit', '-qm', 'publish the gate scripts');
+      git('update-ref', 'refs/remotes/origin/main', git('rev-parse', 'HEAD').trim());
+
+      const changed = join(repo, '.github/scripts/check-skill-doc-test-counts.mjs');
+      mkdirSync(dirname(changed), { recursive: true });
+      writeFileSync(changed, 'process.stdout.write("stub ok\\n");\n');
+
+      const run = spawnSync(process.execPath, [script, '--repo', repo], { encoding: 'utf8' });
+
+      expect(run.stdout).toContain('stub ok');
+      expect(run.stdout).toContain('PASS');
+      expect(run.stdout).not.toContain('FAIL');
+      expect(run.status).toBe(0);
     } finally {
       rmSync(repo, { recursive: true, force: true });
     }

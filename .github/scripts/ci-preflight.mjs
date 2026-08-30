@@ -492,12 +492,34 @@ function resolvePython() {
   return pythonCache;
 }
 
-/** The executable name for a command's `bin`, or null when it cannot be found. */
+/**
+ * How a command's `bin` is spawned, or null when it cannot be found.
+ *
+ * The shell is requested for exactly one case: npm on Windows is a `.cmd` shim,
+ * which Node refuses to spawn directly. It must not be requested for anything
+ * else, because cmd.exe re-splits the command on spaces -- and the interpreter
+ * running this script is routinely at "C:\Program Files\nodejs\node.exe", where
+ * shelling out silently ran "C:\Program" and reported the resulting exit 1 as a
+ * failing check. A check that fails because its command never started is a false
+ * report, and a preflight that cries wolf is one a reader learns to skip.
+ */
 function resolveBin(bin) {
-  if (bin === 'node') return process.execPath;
-  if (bin === 'npm') return process.platform === 'win32' ? 'npm.cmd' : 'npm';
-  if (bin === 'python') return resolvePython();
+  if (bin === 'node') return { file: process.execPath, shell: false };
+  if (bin === 'npm') {
+    return process.platform === 'win32'
+      ? { file: 'npm.cmd', shell: true }
+      : { file: 'npm', shell: false };
+  }
+  if (bin === 'python') {
+    const python = resolvePython();
+    return python === null ? null : { file: python, shell: false };
+  }
   throw new Error(`unknown command binary ${JSON.stringify(bin)}`);
+}
+
+/** Quote one token for a shell that would otherwise re-split it on spaces. */
+function quoteForShell(token) {
+  return /[\s"]/.test(token) ? `"${token.replaceAll('"', '\\"')}"` : token;
 }
 
 /**
@@ -538,8 +560,8 @@ function runCheck(cwd, check, quiet) {
 
   const results = [];
   for (const command of check.commands) {
-    const bin = resolveBin(command.bin);
-    if (bin === null) {
+    const resolved = resolveBin(command.bin);
+    if (resolved === null) {
       return {
         status: 'unknown',
         reasons: [`no python interpreter on PATH for "${command.label}"`],
@@ -548,13 +570,15 @@ function runCheck(cwd, check, quiet) {
     }
     const shown = `${command.bin} ${command.args.join(' ')}`;
     if (!quiet) process.stdout.write(`\n  ${check.id}: ${command.label}\n  $ ${shown}\n`);
-    const run = spawnSync(bin, command.args, {
-      cwd: resolve(cwd, command.cwd),
-      stdio: quiet ? 'ignore' : 'inherit',
-      // npm and pytest are batch/console shims on Windows; without this they are
-      // not spawnable by name at all.
-      shell: process.platform === 'win32',
-    });
+    const run = spawnSync(
+      resolved.shell ? quoteForShell(resolved.file) : resolved.file,
+      resolved.shell ? command.args.map(quoteForShell) : command.args,
+      {
+        cwd: resolve(cwd, command.cwd),
+        stdio: quiet ? 'ignore' : 'inherit',
+        shell: resolved.shell,
+      },
+    );
     if (run.error) {
       results.push({ label: command.label, command: shown, status: 'unknown' });
       return {
