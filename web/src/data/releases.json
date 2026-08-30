@@ -3866,7 +3866,8 @@
     ],
     "accessType": "open-weight",
     "license": {
-      "name": "hyperclovax-seed",
+      "name": "HyperCLOVA X SEED Model License Agreement",
+      "url": "https://huggingface.co/naver-hyperclovax/HyperCLOVAX-SEED-Text-Instruct-1.5B/blob/main/LICENSE",
       "weightsDownloadable": true,
       "osiApproved": false
     },
@@ -3883,6 +3884,7 @@
       "naver-hyperclova-x-seed-announcement",
       "naver-hyperclova-x-seed-1-5b-model-card",
       "hugging-face-hyperclova-x-seed-1-5b-hub-record",
+      "naver-hyperclova-x-seed-license",
       "osi-license-index"
     ],
     "verifiedAt": "2026-08-30"
