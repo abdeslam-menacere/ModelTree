@@ -463,6 +463,7 @@ export function validateDataset(input: unknown): Dataset {
   const organizationById = new Map(data.organizations.map((organization) => [organization.id, organization]));
   const familyById = new Map(data.families.map((family) => [family.id, family]));
   const releaseById = new Map(data.releases.map((release) => [release.id, release]));
+  const familyIdsWithReleases = new Set(data.releases.map(({ familyId }) => familyId));
 
   for (const source of data.sources) {
     if (!publisherIds.has(source.publisherId)) {
@@ -515,6 +516,38 @@ export function validateDataset(input: unknown): Dataset {
   for (const family of data.families) {
     if (!organizationById.has(family.organizationId)) {
       issues.push(`family ${family.id}.organizationId references missing id "${family.organizationId}"`);
+    }
+    // Checked family -> release, the opposite direction from every other
+    // `familyId` check here, because that direction was the gap: a family
+    // nothing points at satisfies all of them and still cannot be rendered.
+    //
+    // REFUSED rather than filtered away, and the reason is a count. The
+    // homepage prints `dataset.families.length` (`pages/index.astro`) and
+    // `buildCoverageStats` reports the same figure again in prose
+    // (`lib/release-pulse.ts`), while the hierarchies drop a family holding no
+    // releases (`lib/family-branch.ts`). Dropping it quietly therefore makes
+    // the printed count disagree with the branches rendered beneath it, so
+    // filtering alone cannot settle #554 — it trades a hollow branch for a
+    // wrong number. Refusing keeps the two equal by construction, and it is the
+    // only fix that reaches `/compare/`, `/benchmarks/` and
+    // `/catalog-index.json`, which read `data.families` directly and would each
+    // need a filter of their own — six more places to hide one data error.
+    //
+    // It is a data error and not a fact about the world: `lifecycleStatus` has
+    // no `announced`/`upcoming` member (see the note beside it in `schema.ts`),
+    // so the dataset cannot distinguish a family deliberately awaiting its
+    // first release from a record that was never finished, and rendering the
+    // empty case would publish the second as though it were the first. That is
+    // the position `schema.ts` already states in as many words — a tree branch
+    // rendering rows of blanks is not a fact this dataset states.
+    //
+    // This does not replace the `family-has-release` rule in
+    // `.github/skills/modeltree-gates/scripts/gate-dataset.mjs`, which refuses
+    // the same shape earlier, before a refresh writes it. This is the same rule
+    // at the build boundary, so a family that reached the tree by some route
+    // that gate never saw still cannot ship.
+    if (!familyIdsWithReleases.has(family.id)) {
+      issues.push(`family ${family.id} has no releases`);
     }
     addPrecisionIssue(
       issues,
