@@ -4,6 +4,12 @@ dist/
 .astro/
 # vitest json report consumed by scripts/verify-test-coverage.mjs
 .vitest/
+# playwright output: traces, failure screenshots and the HTML report. Nothing
+# here is a baseline -- the e2e suite asserts geometry, not pixels.
+test-results/
+playwright-report/
+blob-report/
+.playwright/
 
 # dependencies
 node_modules/

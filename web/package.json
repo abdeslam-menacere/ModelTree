@@ -11,6 +11,7 @@
     "build": "npm run validate && astro build",
     "check": "astro check",
     "test": "vitest run --reporter=default --reporter=json --outputFile=.vitest/report.json && node scripts/verify-test-coverage.mjs .vitest/report.json",
+    "test:e2e": "playwright test",
     "validate": "npm run test && npm run check",
     "preview": "astro preview",
     "astro": "astro"
@@ -27,11 +28,14 @@
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.62.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.3",
     "@types/node": "^26.2.0",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
+    "axe-core": "4.13.0",
     "jsdom": "^29.1.1",
     "typescript": "6.0.3",
     "vitest": "4.1.10",
