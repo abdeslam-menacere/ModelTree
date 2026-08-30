@@ -17,6 +17,7 @@ Run commands from `web/`:
 |---|---|
 | `npm ci` | Install dependencies exactly from the lockfile |
 | `npm test` | Run data-integrity and URL-state tests |
+| `npm run test -- <path>` | Run only the test files matching `<path>`; refuses if none do |
 | `npm run check` | Run Astro and TypeScript diagnostics |
 | `npm run validate` | Run tests and diagnostics |
 | `npm run build` | Validate and generate the static site in `dist/` |
