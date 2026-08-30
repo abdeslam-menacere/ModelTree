@@ -202,6 +202,69 @@ human watching the loop, the comment trail is what a later reader has to
 reconstruct your work from, and the reviewer and QA gates are oversight in
 their own right.
 
+Two of those lines are measurements taken as you write, never facts recalled
+from earlier in the session: the commit you are standing on now,
+`git rev-parse HEAD`, and how many commits your branch carries,
+`git rev-list --count <merge-base>..HEAD`, with the merge-base computed the way
+the gates compute it. A SHA remembered from mid-session names a commit you have
+since built on top of, so it under-reports your own work — the quiet direction,
+and the one nobody checks. The dock for abdeslam-menacere/ModelTree#584 reported
+the first of its three commits, and read against that SHA its record looked
+strictly *worse* than trunk's, because everything that improved it sat in the
+two commits it did not name.
+
+**Establish whether your work has already landed, before you post.** Nothing
+inside a worktree changes when its branch merges into trunk, which makes the
+dock structurally the last party able to notice that it shipped; a summary that
+offers finished work for review buys a redundant gate cycle over a question
+trunk has already settled. From your worktree:
+
+```bash
+git merge-tree --write-tree refs/remotes/origin/main HEAD
+git rev-parse refs/remotes/origin/main^{tree}
+```
+
+Capture the **exit code** of the first command. It is not decoration, it is the
+whole of the discrimination, and reading stdout without it is the one way this
+probe fails while looking like it worked. `merge-tree` prints a tree OID when
+the merge is clean *and equally when it conflicts* — in the conflicted case it
+writes conflict markers into the blobs and prints the OID of the tree holding
+them, exiting non-zero. Since a tree carrying markers can never equal trunk's,
+reading the OID alone makes every conflict report "unlanded". That is not
+hypothetical: it was hit while adjudicating abdeslam-menacere/ModelTree#584,
+where an already-landed branch was credited with delivering real work. The
+conflicted OID is not even stable across equivalent invocations, because the
+marker text embeds the label you supplied — naming a side by ref where you
+could have named it by SHA changes the tree that is printed. A non-zero exit
+means the printed tree is not a comparable artefact at all: do not compare it,
+and conclude nothing from it.
+
+So there are three readings, not two. Exit zero with the printed OID equal to
+trunk's tree: merging your branch into trunk would change trunk in no way, so
+your work is already there. Exit zero with a different OID: it is not. Non-zero:
+fall back to the paths themselves, comparing every path your branch changed
+against trunk with `git rev-parse <ref>:<path>` on each side, since identical
+blob OIDs across all of them are that same finding reached without the
+conflicted tree. Any of the three is only as current as
+`refs/remotes/origin/main`, which moves when something fetches and not
+otherwise; a stale ref errs toward "not landed", which is the safe direction to
+err in.
+
+`git merge-base --is-ancestor` and `git cherry` answer a different question and
+will mislead you here. Both reason about commits, and this repository squash
+merges: trunk carries your content under a new commit that is neither your tip
+nor patch-equivalent to anything you wrote, so both report "not merged" about
+work that is wholly present on trunk. Content is what is being asked about, and
+the tree comparison above is what asks about content.
+
+If the probe says you have landed, report exactly that — the SHA, the count, and
+the comparison that establishes it — and stop there. Do not post a
+ready-for-review summary. If it says you have not, you have spent two commands
+and two lines and everything below applies unchanged. This is the general form
+stated near the top of this file, moved from invocation to status: an
+instruction that names a probe must not predict the probe's result, and a
+summary must not either.
+
 Then stop and hand off to the review gate. Whether that gate is run by a human
 or by a reviewer agent is set by this repo's configuration; either way it is not
 you, and you do not run it against your own work.
