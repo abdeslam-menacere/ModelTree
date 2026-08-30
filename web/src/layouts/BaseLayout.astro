@@ -23,6 +23,7 @@ interface Props {
 const { title, description, passportHref, verifiedAt, currentPage } = Astro.props;
 const base = import.meta.env.BASE_URL;
 const iconHref = `${base}favicon.svg`;
+const maskIconHref = `${base}mask-icon.svg`;
 const refreshHref = `${base}refresh/`;
 const navigation = buildPrimaryNavigation({ base, passportHref });
 ---
@@ -36,6 +37,22 @@ const navigation = buildPrimaryNavigation({ base, passportHref });
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href={iconHref} />
+    {/* Safari pinned tabs ignore the SVG favicon and want a monochrome
+        silhouette they can recolour themselves. */}
+    <link rel="mask-icon" href={maskIconHref} color="#0e1417" />
+    {/* Paints the browser chrome to match the page ground rather than leaving a
+        white bar above a dark page. Both are declared so the chrome follows the
+        system scheme; the in-page theme is a separate, user-set choice. */}
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: light)"
+      content="#f4f6f7"
+    />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: dark)"
+      content="#0e1417"
+    />
     <title>{title}</title>
   </head>
   <body>
