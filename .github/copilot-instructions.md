@@ -172,6 +172,27 @@ The site is a static Astro build; everything lives under `web/`.
 - **Run every command from `web/`.** The repository root is not a Node project.
 - `npm run validate` (tests + Astro/TypeScript diagnostics) must keep passing.
   `npm run build` runs it, so a broken change cannot ship.
+- **`npm run validate` is not the whole verification set, and a diff that
+  touches `.github/`, `tools/`, or `docs/adr/` needs more than it.** That
+  command reads `web/`. It never reads the paths that trigger
+  `instruction-references`, `adr-numbers`, or the `tools/updater` pytest suite,
+  so a change to an instruction or skill document can satisfy every gate and
+  still redden `main` on merge — which is what happened, over one bare issue
+  citation, in abdeslam-menacere/ModelTree#560. Before you hand off, from the
+  repository root:
+
+  ```bash
+  node .github/scripts/ci-preflight.mjs
+  ```
+
+  It selects the pull-request checks your branch's diff actually triggers,
+  measured from `git merge-base HEAD refs/remotes/origin/main`, and runs their
+  commands locally. Exit 0 passed, 1 a check failed, 2 a check could not run or
+  there was nothing to run — and 2 is never a pass. It prints what it does
+  **not** cover on every run, including the networked link-health sweep and the
+  second Python interpreter; read that before treating a green preflight as a
+  green CI.
+  `.github/workflows/README.md` records the full mapping and its limits.
 - **Data changes are reviewable repository changes.** Seed data is versioned
   JSON in `web/src/data/`, validated with Zod. Never fetch at runtime — there is
   no database and no live API monitoring.
