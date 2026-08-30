@@ -962,6 +962,103 @@ describe('gate-dataset', () => {
     assert.equal(mutate('1950-01-01').code, 0);
   });
 
+  // -------------------------------------------------------------------------
+  // Years 0001-0099 reach the floor rather than being called malformed
+  // (abdeslam-menacere/ModelTree#586). `isRealDate` used to build its
+  // comparison date with `Date.UTC`, which remaps a year in 0-99 to 1900-1999,
+  // so `0049-12-31` failed the round-trip and was reported as *not a real
+  // date*. Nothing got through -- the value was refused either way -- but the
+  // message named date parsing when the rule that should have spoken is the
+  // 1950 floor, and the message is the only thing a gate failure hands a human.
+  //
+  // The two paths are tested separately on purpose: `isRealPartialDate` returns
+  // true at its year- and month-precision branches *without* calling
+  // `isRealDate`, so `0049` and `0049-12` already reached the floor while
+  // `0049-12-31` did not. One value moving does not move the other, and a test
+  // on either path alone would miss it.
+  //
+  // `publishedDate` carries the exact-date arm and `windowStart` the partial
+  // one: neither has a precision companion, `publishedDate` is only compared
+  // against a `lastCheckedDate` that is later still, and neither is read by the
+  // evidence gate -- so a refusal here can have come from nothing but the date
+  // rules.
+  // -------------------------------------------------------------------------
+
+  /** Every `dates` message a mutated-dataset run produced, in order. */
+  const dateMessages = (result) => JSON.parse(result.stdout).failures
+    .filter((failure) => failure.gate === 'dates')
+    .map((failure) => failure.message);
+
+  const withExactDate = (value) => gateMutatedDataset(({ read, write }) => {
+    const sources = read('sources.json');
+    assert.ok(sources.length > 0, 'sources.json must load as a non-empty array');
+    sources[0].publishedDate = value;
+    write('sources.json', sources);
+  });
+
+  const withPartialDate = (value) => gateMutatedDataset(({ read, write }) => {
+    const observations = read('usage-observations.json');
+    assert.ok(observations.length > 0, 'usage-observations.json must load as a non-empty array');
+    observations[0].windowStart = value;
+    write('usage-observations.json', observations);
+  });
+
+  test('an early full date is refused by the floor rather than reported as malformed', () => {
+    const result = withExactDate('0049-12-31');
+    assertFailed(result, 'dates', 'publishedDate "0049-12-31" predates 1950');
+    // The upper bound, and the half that actually regresses: asserting the
+    // floor fired says nothing if the malformed-date message fired beside it.
+    assert.deepEqual(
+      dateMessages(result).filter((message) => message.includes('is not a real')),
+      [],
+      '0049-12-31 is a well-formed date, so nothing may report it as unreal',
+    );
+  });
+
+  test('all three precisions of an early year are refused by the same rule', () => {
+    // Acceptance criterion 2, read literally: not "each is refused" but "each
+    // names the same rule". Comparing the messages to one another rather than
+    // to a literal is what makes that a single assertion instead of three
+    // independent ones that could drift apart.
+    const rules = ['0049', '0049-12', '0049-12-31'].map((value) => {
+      const result = withPartialDate(value);
+      assertFailed(result, 'dates', `windowStart "${value}" predates 1950`);
+      return dateMessages(result).map((message) => message.replace(value, '<value>'));
+    });
+    assert.deepEqual(rules[1], rules[0], '0049-12 must be refused for the same reason as 0049');
+    assert.deepEqual(rules[2], rules[0], '0049-12-31 must be refused for the same reason as 0049');
+
+    // And the same day-precision value on the exact-date path, which reaches
+    // `isRealDate` directly rather than through `isRealPartialDate`.
+    assertFailed(withExactDate('0049-12-31'), 'dates', 'predates 1950');
+  });
+
+  test('year 0000 is still refused, at every precision', () => {
+    // The remap used to refuse `0000-12-31` as a side effect. An explicit guard
+    // now carries that verdict, so this is the test that would notice if the
+    // fix had taken year 0 along with the years it meant to admit.
+    assertFailed(withExactDate('0000-12-31'), 'dates', 'publishedDate "0000-12-31" is not a real');
+    for (const value of ['0000', '0000-12', '0000-12-31']) {
+      // No fragment: what criterion 3 asks is that the value is refused. Which
+      // rule speaks differs by precision here -- the floor at year and month
+      // precision, unreality at day precision -- and narrowing the partial
+      // branch to match is a behaviour change #586 does not ask for.
+      assertFailed(withPartialDate(value), 'dates');
+    }
+  });
+
+  test('genuinely malformed dates are still refused as unreal on both paths', () => {
+    // The other side of the fix. Admitting years 0001-0099 must not admit a
+    // month of 13, a 30th of February, or a value that is not a date at all --
+    // and each takes a different route out: `not-a-date` fails the shape test,
+    // `2023-13-01` fails the month range, and `2023-02-30` survives both and is
+    // caught only by the calendar round-trip.
+    for (const value of ['2023-13-01', '2023-02-30', 'not-a-date']) {
+      assertFailed(withExactDate(value), 'dates', `publishedDate "${value}" is not a real`);
+      assertFailed(withPartialDate(value), 'dates', `windowStart "${value}" is not a real date`);
+    }
+  });
+
   test('a release that predates its predecessor is still caught when stated as a year', () => {
     const result = gateMutatedDataset(({ read, write }) => {
       const releases = read('releases.json');

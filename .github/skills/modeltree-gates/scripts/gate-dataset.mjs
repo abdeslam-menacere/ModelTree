@@ -101,10 +101,40 @@ function repoRoot() {
   return resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
 }
 
+/**
+ * Whether `value` is a well-formed `YYYY-MM-DD` calendar date.
+ *
+ * Built with `setUTCFullYear` rather than `Date.UTC`, and that is the whole
+ * reason this is not a one-liner. `Date.UTC` remaps a year in 0-99 to
+ * 1900-1999, so `Date.UTC(49, 11, 31)` yields 1949, the round-trip below
+ * disagrees with the parsed year, and `0049-12-31` gets reported as malformed
+ * -- when it is a perfectly well-formed date that the 1950 floor should refuse
+ * instead (#586). The message named the wrong rule and sent the reader to date
+ * parsing rather than to the policy that actually applies.
+ *
+ * Dropping the year comparison would dodge the remap too, but it would leave
+ * the month and day normalised against a year the value never stated: whether
+ * `MM-DD` is a real day depends on the year through the leap rule, so the
+ * comparison would be judging a different calendar than the one written.
+ * Writing the stated year into the date first keeps all three comparisons
+ * about the value in hand.
+ *
+ * Year 0000 stays refused, and is now refused on purpose rather than as a side
+ * effect of the remap: `YYYY-MM-DD` here denotes a year of the common era, and
+ * no such year is numbered 0. The explicit guard is what carries that verdict
+ * across the fix.
+ *
+ * Recognising 0001-0099 as real is not a relaxation and accepts nothing new.
+ * Every such value meets the 1950 floor at the call site instead, and the
+ * ordering and precision rules that skip an unreal value now run on it, so the
+ * set of inputs this gate accepts is unchanged.
+ */
 function isRealDate(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const [y, m, d] = value.split('-').map(Number);
-  const date = new Date(Date.UTC(y, m - 1, d));
+  if (y < 1) return false;
+  const date = new Date(0);
+  date.setUTCFullYear(y, m - 1, d);
   return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
 }
 
