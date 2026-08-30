@@ -19,11 +19,14 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
+import { parseCLI } from 'vitest/node';
 
 import {
   COVERAGE_VERIFIER,
   FULL_RUN_ARGS,
   REPORT_PATH,
+  classifyForwarded,
+  formatDiscardedRefusal,
   formatFileList,
   formatNoMatchRefusal,
   formatScopeNotice,
@@ -109,7 +112,7 @@ describe('the plan an argv produces', () => {
   });
 
   it('hands a forwarded path to vitest, where the old chain sent it to the verifier', () => {
-    const plan = planRun([SCOPED_TARGET]);
+    const plan = planRun([SCOPED_TARGET], parseCLI);
 
     expect(plan.scoped).toBe(true);
     expect(plan.vitestArgs).toEqual(['run', '--reporter=default', SCOPED_TARGET]);
@@ -121,7 +124,7 @@ describe('the plan an argv produces', () => {
   });
 
   it('leaves filtering to vitest once an option is present, rather than guessing', () => {
-    const plan = planRun(['-t', 'formats']);
+    const plan = planRun(['-t', 'formats'], parseCLI);
 
     expect(plan.scoped).toBe(true);
     // `formats` is a value of `-t`, not a path. Claiming it as one would
@@ -129,6 +132,67 @@ describe('the plan an argv produces', () => {
     expect(plan.pathFilters).toEqual([]);
     expect(plan.vitestArgs).toEqual(['run', '--reporter=default', '-t', 'formats']);
     expect(plan.verifyCoverage).toBe(false);
+  });
+
+  it('still counts the path when an option precedes it, which the old guess did not', () => {
+    const plan = planRun(['-t', 'formats', SCOPED_TARGET], parseCLI);
+
+    // The old rule -- "claim path filters only when no argument starts with a
+    // dash" -- gave up here and printed no `Matched N of M` line at all, so a
+    // run that honoured the path looked the same as one that ignored it.
+    expect(plan.pathFilters).toEqual([SCOPED_TARGET]);
+    expect(plan.refuseDiscarded).toBe(false);
+  });
+});
+
+// The token that made a whole-suite green print under a `SCOPED run` banner.
+// npm eats the first `--`, so `npm run test -- -- <path>` forwards a second one,
+// and vitest discards everything past it instead of filtering on it.
+describe('a `--` separator, which vitest discards rather than filters on', () => {
+  it.each([
+    ['a path that exists', SCOPED_TARGET],
+    ['a path that does not', UNMATCHABLE_TARGET],
+  ])('refuses rather than running all files under a scoped banner: %s', (_label, target) => {
+    const plan = planRun(['--', target], parseCLI);
+
+    expect(plan.refuseDiscarded).toBe(true);
+    // The diagnostic that named the defect: the token never became a filter,
+    // which is why nothing narrowed and the count was never printed.
+    expect(plan.pathFilters).toEqual([]);
+    expect(plan.discarded).toEqual([target]);
+  });
+
+  it('refuses a bare `--` too, so the rule does not need something to follow it', () => {
+    const plan = planRun(['--'], parseCLI);
+
+    expect(plan.refuseDiscarded).toBe(true);
+    expect(plan.discarded).toEqual([]);
+  });
+
+  it('classifies tokens the way vitest itself will, rather than by their shape', () => {
+    // The whole point of asking vitest: `--` and `-t` both start with a dash and
+    // are read completely differently, and this file is not the place that
+    // decides which is which.
+    expect(classifyForwarded([SCOPED_TARGET], parseCLI)).toEqual({
+      fileFilters: [SCOPED_TARGET],
+      discarded: [],
+    });
+    expect(classifyForwarded(['--', SCOPED_TARGET], parseCLI)).toEqual({
+      fileFilters: [],
+      discarded: [SCOPED_TARGET],
+    });
+  });
+
+  it('names the one-token edit that fixes the invocation', () => {
+    const refusal = formatDiscardedRefusal({
+      forwarded: ['--', SCOPED_TARGET],
+      discarded: [SCOPED_TARGET],
+    });
+
+    expect(refusal).toContain('refusing to run');
+    expect(refusal).toContain('discards everything after a `--`');
+    expect(refusal).toContain('not a pass');
+    expect(refusal).toContain(`npm run test -- ${SCOPED_TARGET}`);
   });
 });
 
@@ -214,5 +278,40 @@ describe('the script run as a process', () => {
       expect(code).toBe(1);
     },
     120_000,
+  );
+
+  // The regression case. Asserted on the count rather than the exit code,
+  // because the exit code was the lie: this invocation exited 0 having run all
+  // 90 files, under a banner reading `SCOPED run`.
+  //
+  // Both halves run together because either alone proves less. A wrapper that
+  // refused everything would pass the `--` half and fail the control; one that
+  // refused nothing does the reverse. Only the pair distinguishes "refuses the
+  // malformed filter" from "refuses" and from "runs".
+  it(
+    'never reports a scoped run without a match count, whatever the `--` is doing',
+    async () => {
+      const [control, doubled] = await Promise.all([
+        runScript([SCOPED_TARGET]),
+        runScript(['--', SCOPED_TARGET]),
+      ]);
+
+      // The positive control: the documented invocation still scopes, and the
+      // count is present and strictly smaller than the suite.
+      const counts = control.stdout.match(/Matched (\d+) of (\d+) discovered test file\(s\)/u);
+      expect(counts, `no scope notice in:\n${control.stdout}`).not.toBeNull();
+      expect(Number(counts?.[1])).toBe(1);
+      expect(Number(counts?.[2])).toBeGreaterThan(1);
+      expect(control.code).toBe(0);
+
+      // The defect: a `SCOPED run` banner with no count, followed by the whole
+      // suite passing. Asserting the absence of the banner and of any `Test
+      // Files` line is what tells "refused" apart from "ran everything".
+      expect(doubled.stdout).not.toContain('SCOPED run');
+      expect(doubled.stdout).not.toContain('Test Files');
+      expect(doubled.stderr).toContain('refusing to run');
+      expect(doubled.code).not.toBe(0);
+    },
+    180_000,
   );
 });

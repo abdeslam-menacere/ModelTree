@@ -67,12 +67,36 @@
 // A filter that matches nothing must not degrade into anything that runs. The
 // pre-check uses vitest's own `globTestSpecifications`, the same discovery the
 // run itself uses, so the count in the message cannot drift from the count that
-// decides what runs. It applies when every forwarded argument is a path filter;
-// once an option is present, this script does not guess which of the remaining
-// arguments is an option's value and which is a path, and lets vitest -- which
-// does know -- do the filtering. vitest exits non-zero on no matching files, so
-// the guarantee holds either way; what is lost in that case is only the count in
-// the message, not the refusal.
+// decides what runs.
+//
+// Which forwarded tokens are path filters is asked of vitest rather than
+// guessed, via `parseCLI` from `vitest/node` -- the parser the real run uses.
+// An earlier version of this file guessed, with the rule "no argument starts
+// with `-`", and deferred to vitest otherwise on the reasoning that vitest exits
+// non-zero when nothing matches. Both halves were wrong, and the second is why
+// the first was not merely imprecise:
+//
+//   npm run test -- -- somebogus.test.ts
+//
+// npm forwards `['--', 'somebogus.test.ts']`. `--` starts with a dash, so the
+// pre-check was skipped; vitest then discards everything after a `--` instead of
+// treating it as a filter, so it matched nothing, ran all 90 files and exited 0
+// -- under a banner reading `SCOPED run`. A whole-suite green labelled as scoped
+// is worse than the defect this file was written to fix, which at least never
+// claimed to be scoped. Deferring is only safe where vitest would object, and on
+// a discarded token it has nothing to object to.
+//
+// So the rule is uniform over every token, and is about what vitest does with
+// it rather than how it is spelled: a token that vitest will act on is fine
+// (a file filter is counted, an option is passed through and vitest rejects the
+// ones it does not know -- measured, unlike `astro check`), and a token vitest
+// would silently discard is refused. Only `--` discards, so only `--` is
+// refused, but it is refused because it discards and not because of its shape.
+//
+// Asking vitest also fixed a quieter case of the same guess: `-t formats
+// src/lib/format.test.ts` has an option, so the old rule claimed no path filters
+// and skipped the count. The path was honoured, but the run printed no
+// `Matched N of M` line to say so.
 
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -106,17 +130,46 @@ export const FULL_RUN_ARGS = Object.freeze([
 export const SCOPED_RUN_ARGS = Object.freeze(['run', '--reporter=default']);
 
 /**
+ * Ask vitest how it will read these tokens, using the parser the real run uses.
+ *
+ * `parseCLI` returns the file filters in `filter` and, in `options['--']`,
+ * everything it discarded after a `--` separator. Anything it throws on is
+ * something the run itself would throw on, so that case defers rather than
+ * guesses: vitest rejects an unknown option loudly and non-zero.
+ *
+ * @param {string[]} forwarded arguments npm forwarded
+ * @param {Function} parseCLI vitest's own argv parser, from `vitest/node`
+ */
+export function classifyForwarded(forwarded, parseCLI) {
+  // Parse what is actually passed, options included, so this cannot describe a
+  // different argv from the one that runs.
+  try {
+    const parsed = parseCLI(['vitest', ...SCOPED_RUN_ARGS, ...forwarded]);
+    const discarded = parsed.options?.['--'];
+    return {
+      fileFilters: [...(parsed.filter ?? [])],
+      discarded: Array.isArray(discarded) ? [...discarded] : [],
+    };
+  } catch {
+    return { fileFilters: [], discarded: [] };
+  }
+}
+
+/**
  * Decide what a given argv means. Pure, so the wiring below is the only part
  * that needs a process to test.
  *
  * @param {string[]} forwarded arguments npm forwarded, `process.argv.slice(2)`
+ * @param {Function} [parseCLI] vitest's own argv parser; required when there are arguments
  */
-export function planRun(forwarded) {
+export function planRun(forwarded, parseCLI) {
   if (forwarded.length === 0) {
     return {
       scoped: false,
       forwarded: [],
       pathFilters: [],
+      discarded: [],
+      refuseDiscarded: false,
       // Only an unfiltered run can satisfy a check that every discovered file
       // reported, so this is the only plan that runs it.
       verifyCoverage: true,
@@ -124,15 +177,19 @@ export function planRun(forwarded) {
     };
   }
 
-  const options = forwarded.filter((argument) => argument.startsWith('-'));
+  const { fileFilters, discarded } = classifyForwarded(forwarded, parseCLI);
 
   return {
     scoped: true,
     forwarded: [...forwarded],
-    // Claimed as path filters only when nothing in the list could be an
-    // option's value. Naming a flag's value as an unmatched path would produce
-    // a confident, wrong refusal, which is worse than no pre-check at all.
-    pathFilters: options.length === 0 ? [...forwarded] : [],
+    // vitest's own classification, so a token counted here as a path is a token
+    // the run will filter on.
+    pathFilters: fileFilters,
+    discarded,
+    // A `--` contributes nothing to vitest and hides whatever follows it. Both
+    // the separator on its own and the tokens it swallows are refused, so the
+    // rule does not depend on someone having typed something after it.
+    refuseDiscarded: forwarded.includes('--'),
     verifyCoverage: false,
     vitestArgs: [...SCOPED_RUN_ARGS, ...forwarded],
   };
@@ -154,8 +211,8 @@ export function formatScopeNotice({ forwarded, matched, discoveredCount }) {
 
   if (matched === null) {
     lines.push(
-      '  An option was passed, so vitest applies the filtering and this notice does',
-      '  not count the files first. vitest fails the run if nothing matches.',
+      '  No file filter was given, so vitest will run every discovered test file',
+      '  with the options you passed. Nothing here is narrowed by path.',
     );
   } else {
     lines.push(`  Matched ${matched.length} of ${discoveredCount} discovered test file(s):`);
@@ -166,6 +223,41 @@ export function formatScopeNotice({ forwarded, matched, discoveredCount }) {
     `  This is NOT the full suite, and ${COVERAGE_VERIFIER} does not run for a`,
     '  scoped run -- it requires every discovered file to have reported. Run',
     '  `npm run test` with no arguments before claiming the suite passes.',
+  );
+
+  return lines.join('\n');
+}
+
+/**
+ * What a `--` separator prints, on the way to exit 1.
+ *
+ * Refused rather than stripped. Stripping would have to guess which of two
+ * things the extra `--` meant -- npm's forwarding typed twice out of reflex, or
+ * a deliberate vitest passthrough -- and a wrong guess puts back exactly the
+ * quiet, plausible-looking run this file exists to prevent. Refusing needs no
+ * guess, matches how a filter that matches nothing is already treated, and the
+ * message names the one-token edit that fixes it.
+ */
+export function formatDiscardedRefusal({ forwarded, discarded }) {
+  const lines = [`npm run test: refusing to run -- filters: ${forwarded.join(' ')}`];
+
+  if (discarded.length > 0) {
+    lines.push(
+      `  vitest discards everything after a \`--\`, so ${discarded.join(' ')} would not have`,
+      '  selected anything. The whole suite would have run and passed, under a',
+      '  banner reading SCOPED run. Nothing ran, and this exit code is not a pass.',
+    );
+  } else {
+    lines.push(
+      '  A `--` on its own selects nothing and narrows nothing, so the whole suite',
+      '  would have run under a banner reading SCOPED run.',
+      '  Nothing ran, and this exit code is not a pass.',
+    );
+  }
+
+  lines.push(
+    '  npm already consumes the first `--`, so a second one is one too many.',
+    `  Drop it: \`npm run test -- ${[...discarded, ...forwarded.filter((token) => token !== '--')].filter((token, index, all) => all.indexOf(token) === index).join(' ')}\`.`,
   );
 
   return lines.join('\n');
@@ -217,7 +309,18 @@ export function run(command, args) {
 }
 
 export async function main(forwarded) {
-  const plan = planRun(forwarded);
+  // vitest's parser is only needed when there is something to classify, so a
+  // bare `npm run test` still starts without importing it.
+  const parseCLI =
+    forwarded.length > 0 ? (await import('vitest/node')).parseCLI : undefined;
+  const plan = planRun(forwarded, parseCLI);
+
+  if (plan.refuseDiscarded) {
+    console.error(
+      formatDiscardedRefusal({ forwarded: plan.forwarded, discarded: plan.discarded }),
+    );
+    return 1;
+  }
 
   if (plan.scoped) {
     let matched = null;
