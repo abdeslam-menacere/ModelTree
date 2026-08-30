@@ -1,0 +1,102 @@
+---
+import ReleaseUpdates from '../../components/ReleaseUpdates';
+import { dataset } from '../../data/dataset';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { buildCatalogIndex } from '../../lib/catalog';
+import { formatDate } from '../../lib/format';
+import { buildUpdateIndex, groupUpdatesByPeriod } from '../../lib/updates';
+
+const base = import.meta.env.BASE_URL;
+const { records, facets, latestVerifiedAt } = buildUpdateIndex(dataset, base);
+const catalog = buildCatalogIndex(dataset, base);
+
+// A page per filter combination would be unbounded, so the view is resolved from
+// the query string in the browser against this one prerendered page. The island
+// renders the default view server-side, so every recorded change and every
+// `#event-…` anchor is in the static HTML, and without JavaScript the same
+// records stay readable in the list below.
+const firstModel = catalog.models[0];
+if (!firstModel) throw new Error('Release updates requires at least one release');
+const passportHref = firstModel.route;
+
+const years = groupUpdatesByPeriod(records);
+const changelogHref = `${base}updates/changelog.md`;
+---
+
+<BaseLayout
+  title="Release updates | ModelTree"
+  description="Every recorded change to a reviewed AI model release, grouped by month and year, with what changed, the kind of change, the primary source it rests on, and the day it was last re-checked."
+  passportHref={passportHref}
+  verifiedAt={formatDate(catalog.latestVerifiedAt)}
+  currentPage="updates"
+>
+  <main id="main-content" class="updates-page">
+    <header class="updates-intro">
+      <div>
+        <span class="eyebrow">What changed</span>
+        <h1>Read the recorded release updates.</h1>
+      </div>
+      <p>
+        {records.length} recorded {records.length === 1 ? 'change' : 'changes'} to reviewed
+        releases, newest first. Every entry states what changed in its source's own words, the
+        kind of change it was, the primary source it rests on, and the day we last re-checked it.
+        Entries are ordered by the date the <strong>source</strong> stated, never by the day we
+        checked them, so re-verifying an old record does not make it look new.
+      </p>
+      <p class="updates-intro-links">
+        <a href={`${base}timeline/`}>The release timeline</a> answers a different question — when
+        each model first appeared — and covers releases as well as events. This page is the change
+        ledger: only recorded events, each with its evidence.
+        {latestVerifiedAt && (
+          <Fragment>
+            {' '}A <a href={changelogHref}>plain-text changelog</a> is generated from these same
+            records at every build; everything in it was last re-checked on or before{' '}
+            <time datetime={latestVerifiedAt}>{formatDate(latestVerifiedAt)}</time>.
+          </Fragment>
+        )}
+      </p>
+    </header>
+
+    <ReleaseUpdates client:load records={records} facets={facets} />
+
+    <noscript>
+      <section class="updates-noscript">
+        <h2>Every recorded change</h2>
+        {years.map((year) => (
+          <Fragment>
+            <h3>{year.year}</h3>
+            {year.months.map((month) => (
+              <Fragment>
+                <h4>{month.label}</h4>
+                {month.note && <p>{month.note}</p>}
+                <ol>
+                  {month.records.map((record) => (
+                    <li>
+                      <time datetime={record.date}>{record.dateLabel}</time>
+                      {` — ${record.typeLabel} — `}
+                      <a href={record.modelRoute}>{record.modelName}</a>
+                      {` — ${record.creatorName}`}
+                      <p>{record.note}</p>
+                      <p>
+                        Source:{' '}
+                        {record.sources.map((source, index) => (
+                          <Fragment>
+                            {index > 0 && ', '}
+                            <a href={source.url}>{source.title}</a>
+                          </Fragment>
+                        ))}
+                        {'. Last checked '}
+                        <time datetime={record.verifiedAt}>{record.verifiedAtLabel}</time>
+                        {' — when this record was re-checked, not when the change happened.'}
+                      </p>
+                    </li>
+                  ))}
+                </ol>
+              </Fragment>
+            ))}
+          </Fragment>
+        ))}
+      </section>
+    </noscript>
+  </main>
+</BaseLayout>

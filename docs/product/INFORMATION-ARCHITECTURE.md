@@ -13,7 +13,25 @@
 | `/benchmarks` | Benchmark evidence | Compare source-backed results within compatible contexts |
 | `/compare` | Two-to-four-model comparison | Compare facts and comparable evidence without a winner |
 | `/timeline` | Chronological release view | Group releases and release events by period; filter by creator, category, and access |
+| `/updates` | Recorded release-event ledger | Read what changed with its note, kind, source, and check date; filter by creator and category |
+| `/updates/changelog.md` | Generated public changelog | Read or copy the same records as plain Markdown; build-emitted, never committed |
 | `/methodology` | Editorial and data policy | Understand inclusion, terminology, and verification |
+
+`/timeline` and `/updates` answer different questions and are deliberately not
+merged. `/timeline` is the chronology — when each model appeared — and covers
+releases as well as events, one line each. `/updates` is the change ledger: only
+recorded release events, each carrying the source's own what-changed note, the
+kind of change, the primary sources, and the day the record was last re-checked.
+Both order by the date the *source* stated; neither treats a verification date as
+a release date.
+
+`/updates/changelog.md` is generated at build time from the records `/updates`
+renders, through one intermediate feed-shaped representation. It is not committed
+to the repository: a checked-in copy would be a second source for facts the
+dataset already holds, and would drift the first time one was edited and not the
+other. That representation is deliberately feed-shaped, but no RSS or Atom
+document is served — a subscribable feed is a promise about update cadence this
+project does not yet make.
 
 All user selections that define a useful view use stable query parameters. The
 homepage starts with `provider` and `model`; catalog routes add filters and sort;

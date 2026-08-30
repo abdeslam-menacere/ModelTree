@@ -6260,6 +6260,503 @@ a.directory-letter:hover {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Release updates (/updates) -- issue #26
+
+   The what-changed ledger. Nothing here animates and nothing rests on colour
+   alone: the kind of each change is rendered as words, and `data-event-type`
+   only tints an accent bar beside text that already says the same thing.
+   --------------------------------------------------------------------------- */
+
+.updates-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 40px 0 80px;
+}
+
+.updates-intro {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 30px;
+  align-items: end;
+  padding-bottom: 26px;
+  border-bottom: 1px solid var(--cp-border-strong);
+}
+
+.updates-intro h1 {
+  margin: 8px 0 0;
+}
+
+.updates-intro p {
+  margin: 0;
+  color: var(--cp-text-soft);
+  line-height: 1.65;
+}
+
+.updates-intro-links {
+  grid-column: 1 / -1;
+  font-size: 0.94rem;
+}
+
+.release-updates {
+  margin-top: 28px;
+}
+
+.updates-body {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+/* Filters ------------------------------------------------------------------ */
+
+.updates-filters {
+  position: sticky;
+  top: 84px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  border: 1px solid var(--cp-border);
+  border-radius: 14px;
+  background: var(--cp-panel);
+}
+
+.updates-filters-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.updates-filters-head h2 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  color: var(--cp-text-muted);
+}
+
+.updates-clear-all {
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--cp-link);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.updates-clear-all:hover:not(:disabled) {
+  border-color: var(--cp-border-strong);
+}
+
+.updates-clear-all:disabled {
+  color: var(--cp-text-muted);
+  cursor: not-allowed;
+}
+
+.updates-filter-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.updates-filter-group legend {
+  padding: 0 0 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--cp-text);
+}
+
+.updates-filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.updates-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  color: var(--cp-text-soft);
+  cursor: pointer;
+}
+
+.updates-filter-option:hover {
+  background: var(--cp-surface-soft);
+}
+
+.updates-filter-option input {
+  flex: none;
+  margin: 0;
+  accent-color: var(--cp-accent);
+}
+
+.updates-filter-label {
+  flex: 1 1 auto;
+}
+
+.updates-filter-count {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.82rem;
+  color: var(--cp-text-muted);
+}
+
+.updates-legend {
+  padding-top: 16px;
+  border-top: 1px solid var(--cp-border);
+}
+
+.updates-legend h3 {
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: var(--cp-text-muted);
+}
+
+.updates-legend dl {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+
+.updates-legend dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.88rem;
+}
+
+.updates-legend dt {
+  color: var(--cp-text-soft);
+}
+
+.updates-legend dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--cp-text-muted);
+}
+
+/* Results ------------------------------------------------------------------ */
+
+.updates-results-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--cp-border);
+}
+
+.updates-count {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--cp-text);
+}
+
+.updates-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.updates-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 0.84rem;
+  color: var(--cp-text-soft);
+  background: var(--cp-surface-soft);
+  border: 1px solid var(--cp-border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.updates-chip:hover {
+  border-color: var(--cp-border-strong);
+  color: var(--cp-text);
+}
+
+.updates-hidden-target {
+  margin: 16px 0 0;
+  padding: 12px 16px;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 10px;
+  background: var(--cp-surface-soft);
+  font-size: 0.92rem;
+  color: var(--cp-text-soft);
+}
+
+.updates-show-target {
+  padding: 2px 8px;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--cp-link);
+  background: none;
+  border: 1px solid var(--cp-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.updates-empty {
+  margin-top: 28px;
+  padding: 28px;
+  border: 1px dashed var(--cp-border-strong);
+  border-radius: 14px;
+  text-align: center;
+  color: var(--cp-text-soft);
+}
+
+.updates-empty p {
+  margin: 0 0 12px;
+}
+
+/* Year and month rails ----------------------------------------------------- */
+
+.updates-years,
+.updates-months,
+.updates-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.updates-year {
+  margin-top: 30px;
+}
+
+.updates-year-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--cp-border-strong);
+}
+
+.updates-year-label {
+  margin: 0;
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.updates-year-count {
+  font-size: 0.85rem;
+  color: var(--cp-text-muted);
+}
+
+.updates-month {
+  margin-top: 22px;
+}
+
+.updates-month-label {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  color: var(--cp-text-muted);
+}
+
+.updates-month-note {
+  margin: 0 0 10px;
+  font-size: 0.88rem;
+  font-style: italic;
+  color: var(--cp-text-soft);
+}
+
+/* A year-precision bucket is marked with a dashed rule as well as its heading
+   text, so the "month not stated" distinction survives without colour. */
+.updates-month[data-imprecise='true'] .updates-month-label {
+  border-left: 3px dashed var(--cp-border-strong);
+  padding-left: 10px;
+}
+
+/* One recorded change ------------------------------------------------------ */
+
+.updates-item {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 20px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--cp-border);
+}
+
+.updates-item:target {
+  background: var(--cp-highlight);
+  border-radius: 10px;
+  padding-inline: 12px;
+}
+
+.updates-item-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 12px;
+  border-left: 3px solid var(--cp-border-strong);
+}
+
+.updates-item-date {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.92rem;
+  color: var(--cp-text);
+}
+
+.updates-item-type {
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: var(--cp-text-muted);
+}
+
+/* Accent only. The same fact is already stated in words in `.updates-item-type`,
+   so losing these colours costs nothing. */
+.updates-item[data-event-type='announced'] .updates-item-rail,
+.updates-item[data-event-type='preview'] .updates-item-rail {
+  border-left-color: var(--cp-warning);
+}
+
+.updates-item[data-event-type='api-available'] .updates-item-rail,
+.updates-item[data-event-type='generally-available'] .updates-item-rail {
+  border-left-color: var(--cp-success);
+}
+
+.updates-item[data-event-type='deprecated'] .updates-item-rail,
+.updates-item[data-event-type='retired'] .updates-item-rail {
+  border-left-color: var(--cp-danger);
+}
+
+.updates-item[data-event-type='corrected'] .updates-item-rail {
+  border-left-color: var(--cp-accent);
+}
+
+.updates-item-body {
+  min-width: 0;
+}
+
+.updates-item-model {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+}
+
+.updates-item-creator {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--cp-text-muted);
+}
+
+.updates-item-note {
+  margin: 0 0 10px;
+  line-height: 1.6;
+  color: var(--cp-text-soft);
+}
+
+.updates-item-companions {
+  margin: 0 0 10px;
+  font-size: 0.88rem;
+  color: var(--cp-text-muted);
+}
+
+.updates-item-evidence {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 0 0 10px;
+  padding: 12px;
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+  background: var(--cp-surface-soft);
+  font-size: 0.87rem;
+}
+
+.updates-item-evidence dt {
+  margin-bottom: 4px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  font-size: 0.75rem;
+  color: var(--cp-text-muted);
+}
+
+.updates-item-evidence dd {
+  margin: 0;
+  color: var(--cp-text-soft);
+}
+
+.updates-item-evidence ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.updates-source-publisher {
+  margin-left: 6px;
+  color: var(--cp-text-muted);
+}
+
+.updates-item-hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.8rem;
+  color: var(--cp-text-muted);
+}
+
+.updates-item-permalink {
+  margin: 0;
+  font-size: 0.84rem;
+}
+
+.updates-noscript ol {
+  padding-left: 20px;
+}
+
+.updates-noscript li {
+  margin-bottom: 14px;
+}
+
+@media (max-width: 960px) {
+  .updates-intro {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .updates-body {
+    grid-template-columns: 1fr;
+  }
+
+  .updates-filters {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .updates-item {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .updates-item-rail {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 10px;
+  }
+}
+
 /* --- Lineage experience hardening (issue #14) ---------------------------------
  * Everything below is appended: no rule above this comment is edited, and the
  * issue #523 marker comment further up is untouched.
