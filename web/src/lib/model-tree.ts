@@ -1,5 +1,6 @@
 import type { Dataset, ModelFamily, ModelRelease, Organization } from '../data/schema';
 import { comparePartialDates, comparePartialDatesDescending } from '../data/partial-date';
+import { hasRecordedRelease } from './family-branch';
 import { compareLabels, organizationLabel } from './organization-name';
 
 export interface ModelTreeFamily {
@@ -76,7 +77,10 @@ function buildCreators(dataset: Dataset, organizations: Organization[]): ModelTr
               || compare(a.id, b.id)
             )),
         }))
-        .filter(({ releases }) => releases.length > 0),
+        // The shared rule, not a local one: `homepage.ts` reads the same
+        // predicate, which is what stops the two hierarchies answering
+        // differently again (#554).
+        .filter(hasRecordedRelease),
     }));
 }
 

@@ -523,9 +523,16 @@ describe('gate-dataset', () => {
   // The bug these cover is a *direction*, not a value. Every `familyId` check in
   // `gate-dataset.mjs` used to run release -> family, so a family nothing points
   // at could not fail the gate however broken it was -- and `model-tree.ts`
-  // drops it with `.filter(({ releases }) => releases.length > 0)`, so the
+  // dropped it with `.filter(({ releases }) => releases.length > 0)`, so the
   // published tree went quietly smaller than the dataset while every check
   // stayed green. PR #417 did exactly that to seven families at once.
+  //
+  // Both halves of that sentence are history as of #554: the filter now reads
+  // `.filter(hasRecordedRelease)` and lives in `web/src/lib/family-branch.ts`,
+  // shared by all three hierarchy builders, and `validateDataset` refuses an
+  // empty family before any page renders. These tests are unchanged by that --
+  // they assert this gate's behaviour, which is deliberately independent of the
+  // web build.
   //
   // Refuse rather than render, decided in the gate's own header: the dataset has
   // no `announced`/`upcoming` member in `lifecycleStatus`, so a deliberately

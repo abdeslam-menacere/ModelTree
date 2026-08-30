@@ -347,6 +347,20 @@ function gateReferences(docs, ids) {
 // that goes with it -- and to revisit this gate at the same time. Adding one
 // here would have been the escape hatch the schema refuses.
 //
+// #554 closed the divergence that paragraph describes, so what this gate is
+// *for* changed and the failure message below was restated to match. The
+// homepage no longer disagrees with /tree/: all three hierarchy builders now
+// share one `hasRecordedRelease` predicate, and `validateDataset` in
+// `web/src/data/validate.ts` refuses an empty family outright, so `npm run
+// validate` and the build fail instead of publishing a hollow branch. That
+// makes this rule the *earlier* of two independent refusals rather than the
+// only one. It is still worth running first, and not redundant with it: this
+// gate runs over a claim bundle in the refresh pipeline, before a dataset
+// change is committed, and names every offending family at once (see the test
+// below), where the build fails later and reports through Zod's funnel. Do not
+// delete this on the grounds that validate.ts covers it -- losing it would move
+// the discovery of an empty family from review time to deploy time.
+//
 // Stated as coverage rather than as a count: "every family is referenced by
 // some release", never "there are N families". A dataset that grows keeps
 // passing, and the rule holds for any dataset rather than for the one that
@@ -378,9 +392,10 @@ function gateFamilyHasRelease(docs) {
     if (!referenced.has(family.id)) {
       fail(
         'family-has-release',
-        'no release belongs to this family, so the build contradicts itself: /tree/ drops the family '
-          + '(model-tree.ts filters out families with no releases) while the homepage still counts it '
-          + 'and renders it as an empty branch, so one page hides the error and the other publishes it '
+        'no release belongs to this family, so the site cannot be built: `validateDataset` in '
+          + '`web/src/data/validate.ts` refuses the dataset outright (`family <id> has no releases`), '
+          + 'failing `npm run validate`, `web-ci` and the Pages deploy. This gate names the family '
+          + 'first, while the change is still a claim bundle. Give the family a release or drop it '
           + '(the dataset cannot express "announced but unreleased", so this is a data error rather '
           + 'than a fact)',
         `families:${family.id}`,

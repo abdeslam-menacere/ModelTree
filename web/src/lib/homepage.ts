@@ -1,4 +1,5 @@
 import type { Dataset, ModelFamily, ModelRelease, Organization } from '../data/schema';
+import { hasRecordedRelease } from './family-branch';
 import { compareLabels, organizationLabel } from './organization-name';
 
 export interface HomepageFamily {
@@ -34,7 +35,13 @@ export function buildHomepageHierarchy(dataset: Dataset): HomepageOrganization[]
           releases: dataset.releases
             .filter((release) => release.familyId === family.id)
             .sort((a, b) => compare(a.displayName, b.displayName) || compare(a.slug, b.slug)),
-        })),
+        }))
+        // The same rule `/tree/` applies, read from one place so the two
+        // hierarchies cannot answer differently again. Without it this builder
+        // rendered a family with no releases as a heading above an empty list
+        // while `buildModelTree` dropped it, so `/` published a data error that
+        // `/tree/` hid (#554).
+        .filter(hasRecordedRelease),
     }));
 }
 

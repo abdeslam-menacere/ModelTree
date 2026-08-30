@@ -1,5 +1,6 @@
 import type { Dataset, ModelFamily, ModelRelease, Organization } from '../data/schema';
 import { comparePartialDates, comparePartialDatesDescending } from '../data/partial-date';
+import { hasRecordedRelease } from './family-branch';
 import { compareLabels, organizationLabel } from './organization-name';
 
 /**
@@ -233,7 +234,7 @@ function buildEcosystems(
       const families = dataset.families
         .filter((family) => family.organizationId === organization.id && seedFamilyIds.has(family.id))
         .map((family) => buildFamilyView(family, releasesByFamily.get(family.id) ?? []))
-        .filter(({ releases }) => releases.length > 0)
+        .filter(hasRecordedRelease)
         .sort((a, b) => (
           compare(newestReleaseDate(b.releases), newestReleaseDate(a.releases))
           || compare(a.family.id, b.family.id)

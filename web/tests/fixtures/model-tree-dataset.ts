@@ -2,6 +2,7 @@ import { dataset } from '../../src/data/dataset';
 import { precisionOf } from '../../src/data/partial-date';
 import type { Dataset, ModelFamily, ModelRelease, Organization } from '../../src/data/schema';
 import { validateDataset } from '../../src/data/validate';
+import { withEmptyFamily } from './empty-family';
 
 /**
  * Test-only scaffolding, deliberately outside `src/` so no page or component can
@@ -122,9 +123,10 @@ const families: ModelFamily[] = [
   family('other-zulu-nova', 'other-zulu', 'Zulu Nova', '2025-01-01'),
   family('other-zulu-atlas', 'other-zulu', 'Zulu Atlas', '2025-06-01'),
   family('other-zulu-orion', 'other-zulu', 'Zulu Orion', '2025-06-01'),
-  // No releases: must be dropped rather than rendered as an empty branch.
-  family('other-zulu-void', 'other-zulu', 'Zulu Void', '2025-01-01'),
 ];
+
+/** No releases: must be dropped rather than rendered as an empty branch. */
+const voidFamily = family('other-zulu-void', 'other-zulu', 'Zulu Void', '2025-01-01');
 
 const releases: ModelRelease[] = [
   release('other-alpha-core-one', 'other-alpha', 'other-alpha-core', 'Zenith Flagship', '2025-03-01'),
@@ -140,15 +142,21 @@ const releases: ModelRelease[] = [
  * The reviewed catalog plus three synthetic creators that hold releases but no
  * featured release. Run through the real validator so the fixture cannot drift
  * into a shape the production dataset could never take.
+ *
+ * `other-zulu-void` is the one exception and it is added after validation, by
+ * `withEmptyFamily`: the validator now refuses a family that no release belongs
+ * to (#554), and this fixture exists partly to prove the hierarchies drop such a
+ * family anyway. See the note on that helper for why only that one rule is
+ * bypassed.
  */
-export const datasetWithOtherCreators: Dataset = validateDataset({
+export const datasetWithOtherCreators: Dataset = withEmptyFamily(validateDataset({
   ...dataset,
   publishers: [...dataset.publishers, publisher],
   sources: [...dataset.sources, source],
   organizations: [...dataset.organizations, ...organizations],
   families: [...dataset.families, ...families],
   releases: [...dataset.releases, ...releases],
-});
+}), voidFamily);
 
 /** Creator ids the fixture expects under `others`, in exact render order. */
 export const expectedOtherCreatorIds = ['other-bravo', 'other-zulu', 'other-alpha'];
