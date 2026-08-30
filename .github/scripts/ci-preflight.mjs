@@ -402,8 +402,7 @@ const NOT_COVERED = [
     why:
       'it drives a real Chromium over a built preview, so running it here would put a browser '
       + 'download in the pre-merge path of every dock and every gate agent -- the same cost that '
-      + 'keeps it out of `npm run validate`, and the reason it is a separate workflow at all. It '
-      + 'is advisory and never required, so it blocks no merge whether it runs here or not; what '
+      + 'keeps it out of `npm run validate`, and the reason it is a separate workflow at all. What '
       + 'it does catch is a rendering, focus, motion or accessibility regression that jsdom '
       + 'cannot see, so run it deliberately with `npm run test:e2e` in `web/` when touching the '
       + 'lineage view, and read its result on the pull request otherwise.',

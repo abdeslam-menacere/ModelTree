@@ -167,5 +167,5 @@ route in the same spec that must fail that fingerprint.
 The browser suite runs as `npm run test:e2e` and in `.github/workflows/web-e2e.yml`.
 It is deliberately **not** part of `npm run validate`, because `validate` is
 inside `npm run build` and a Chromium download does not belong in every install.
-`web-e2e` is not a required status check; see
+Whether `web-e2e` is a required status check is a branch-protection matter; see
 [`.github/workflows/README.md`](../../.github/workflows/README.md).

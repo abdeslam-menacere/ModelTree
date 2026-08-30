@@ -37,7 +37,7 @@ satisfied, because GitHub waits for a check that no longer reports.
 | `skills-ci` | `skills-ci.yml` | **Yes** — but not required today, see below |
 | `source-link-health-tests` | `source-link-health.yml` | **Yes** — but not required today, see below |
 | `source-link-health` | `source-link-health.yml` | **No, and never** — see below |
-| `web-e2e` | `web-e2e.yml` | **Yes** — but not required today, see below |
+| `web-e2e` | `web-e2e.yml` | **Yes** — see below |
 
 ### Why `web-ci` is safe to require
 
@@ -241,19 +241,14 @@ pointed at a private host, all of which it can decide by reading the string.
 Whether a well-formed URL still resolves is not knowable without asking, and no
 gate asks.
 
-### `web-e2e` runs in CI and cannot block a merge
+### `web-e2e` runs in CI as a separate workflow
 
 `web-e2e` reports on every pull request that touches `web/`, and it goes red when
-the browser assertions fail. **It is not a required status check**, so a red
-`web-e2e` does not stop a merge — only `web-ci` does that today.
-
-That is deliberate rather than an oversight. Making a check required is a change
-to branch protection, which is repository settings and a human decision, not
-something a workflow file can grant itself; recording it here is what keeps the
-gap visible instead of leaving someone to infer from a green tick that a gate was
-passed. The job id and its `name:` are both the literal string `web-e2e` and the
-job carries no `strategy.matrix`, so the name is stable enough to require
-whenever that decision is taken.
+the browser assertions fail. Whether that red stops a merge is a property of
+branch protection — a repository setting this file cannot read and does not
+assert here, precisely so the statement cannot rot the next time protection
+changes. The job id and its `name:` are both the literal string `web-e2e` and the
+job carries no `strategy.matrix`, so the name is stable and requirable.
 
 It follows `web-ci`'s pattern in the way that matters for requirability: no
 `on.pull_request.paths` filter, an in-job scope gate instead, so it reports
