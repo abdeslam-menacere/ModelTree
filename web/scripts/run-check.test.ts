@@ -10,7 +10,10 @@
 // So `check` refuses a positional argument, and the refusal is what these cases
 // pin. The scope of the refusal is narrow on purpose: options still reach astro,
 // because a flag it does not know is a flag it will reject and word better than
-// this wrapper could.
+// this wrapper could. An option's *value* is not a positional either --
+// `--root .` is two tokens and only the first is a flag -- so the cases below
+// pin both directions: the value is passed through, and a path that merely
+// follows a valueless flag is still refused.
 
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -85,8 +88,53 @@ describe('the plan an argv produces', () => {
     expect(plan.astroArgs).toEqual(['check', '--watch']);
   });
 
+  // The regression this block exists for: `--root .` is an option and its value,
+  // and reading the value as a stray path narrowed a command that worked.
+  it.each([
+    ['--root', '.'],
+    ['--tsconfig', 'tsconfig.json'],
+    ['--minimumSeverity', 'warning'],
+    // yargs-parser folds this spelling onto the same option, so this must too.
+    ['--minimum-severity', 'warning'],
+  ])('takes the token after %s as its value, not as a path', (option, value) => {
+    const plan = planCheck([option, value]);
+
+    expect(plan.refuse).toBe(false);
+    expect(plan.astroArgs).toEqual(['check', option, value]);
+  });
+
+  it('still refuses a path that follows a boolean flag, which astro would swallow', () => {
+    // astro declares almost nothing boolean to yargs-parser, so it binds this
+    // path to `--verbose` and checks everything -- #601 exactly.
+    const plan = planCheck(['--verbose', SWALLOWED_PATH]);
+
+    expect(plan.refuse).toBe(true);
+    expect(plan.positional).toEqual([SWALLOWED_PATH]);
+  });
+
+  it('refuses rather than trusts an option it does not know takes a value', () => {
+    const plan = planCheck(['--qa-invented-option', SWALLOWED_PATH]);
+
+    expect(plan.refuse).toBe(true);
+    expect(formatPositionalRefusal(plan.strays)).toContain('--option=value');
+  });
+
+  it('refuses a path hidden behind a bare `--`, which yargs also treats as positional', () => {
+    const plan = planCheck(['--', SWALLOWED_PATH]);
+
+    expect(plan.refuse).toBe(true);
+    expect(plan.positional).toEqual([SWALLOWED_PATH]);
+  });
+
+  it('lets `--option=value` carry its own value without consuming the next token', () => {
+    const plan = planCheck(['--root=.']);
+
+    expect(plan.refuse).toBe(false);
+    expect(plan.astroArgs).toEqual(['check', '--root=.']);
+  });
+
   it('names the invocation that does scope a run', () => {
-    const refusal = formatPositionalRefusal([SWALLOWED_PATH]);
+    const refusal = formatPositionalRefusal([{ token: SWALLOWED_PATH, after: null }]);
 
     expect(refusal).toContain(SWALLOWED_PATH);
     expect(refusal).toContain('npm run test -- <path>');
@@ -111,5 +159,34 @@ describe('the script run as a process', () => {
       expect(code).toBe(1);
     },
     60_000,
+  );
+
+  // Both halves of the control together, because either alone proves less: a
+  // wrapper that accepted everything would pass the first two and fail the
+  // third, and one that refused everything would pass the third and fail the
+  // first two. The two real checks are awaited concurrently -- one full check is
+  // ~30s and the pair costs about the same wall clock as one.
+  it(
+    'runs `--root .` and `--root=.` for real and still refuses a real stray path',
+    async () => {
+      const [spaced, equals, stray] = await Promise.all([
+        runScript(['--root', '.']),
+        runScript(['--root=.']),
+        runScript([SWALLOWED_PATH]),
+      ]);
+
+      for (const [form, result] of [
+        ['--root .', spaced],
+        ['--root=.', equals],
+      ] as const) {
+        expect(`${form}: ${result.stderr}`).not.toContain('refusing to run');
+        expect(`${form}: ${result.stdout}`).toContain('Result (');
+        expect({ form, code: result.code }).toEqual({ form, code: 0 });
+      }
+
+      expect(stray.stderr).toContain('refusing to run');
+      expect(stray.code).not.toBe(0);
+    },
+    180_000,
   );
 });
