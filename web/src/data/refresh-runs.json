@@ -1,5 +1,395 @@
 [
   {
+    "id": "2026-08-30-c0b6e9",
+    "title": "Data refresh 2026-08-30",
+    "ranOn": "2026-08-30",
+    "outcome": "published",
+    "summary": "An agent-run, source-backed refresh under ADR 0003, and a re-verification run rather than a discovery one: not a single recorded fact value changed. All 33 creators in organizations.json were scouted, each against at least one primary page fetched and hashed this run, and 20 of them produced claims — 45 in total. Three rubrics voted blind on every one; 38 met their creator’s threshold and 7 long-tail claims died one vote short. 36 edits landed across two documents, all of them a verification date moving to 2026-08-30, before GitHub merged PR #597 on a green web-ci and Pages deployed successfully. The most useful finding is a refusal rather than an edit: five licence re-verifications failed because a model card saying “Apache-2.0” does not source the osiApproved flag recorded beside it, which is a claim about what OSI decided. No human reviewed any part of it. This entry was transcribed after the fact — see the caveats.",
+    "scope": "Every creator in organizations.json — all 33 — with pilot creators judged 2-of-3 and long-tail creators 3-of-3. Re-verification only: confirming recorded facts against their primary sources and moving verification dates forward, not adding breadth.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Anchor 7ca5802e, selected by merge-base with refs/remotes/origin/main and computed by the gate rather than supplied — requestedBase was null. The approved-origin catalogue parsed cleanly at that anchor: 198 dataset sources and 12 profile catalogues out of 13 profile files, yielding 41 approved origins. The one profile listed but not drawn on is tools/updater/profiles/generic/long-tail.json, which configures no origins. The anchor is therefore full rather than silently narrowed."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "All 33 creators were scouted, each against at least one primary page fetched and hashed this run; every quote in the pull request body was sliced from a page read during the run rather than recalled. Three creator hosts refused automated fetches and were worked around on approved origins instead: openai.com/news/ (403) via openai.com/news/rss.xml, ai.meta.com/blog/ (403) via huggingface.co/meta-llama, and x.ai/news (403) via docs.x.ai/developers/models. No claim rested on an unreachable page. 13 of the 33 creators produced no claim, because nothing they publish had changed in a way this run could evidence."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Three rubrics — provenance, consistency, editorial — voted independently on all 45 claims, each blind to the others and to the scout’s reasoning. Consistency and editorial accepted every claim; provenance accepted 38 and rejected 7. No claim was revised and re-reviewed to chase a verdict. Every verdict and rationale is published verbatim in the pull request body."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-evidence and gate-source-approval ran across all 20 bundles before anything was applied; gate-dataset, npm run validate, gate-scope and ci-preflight.mjs ran afterwards. No gate was skipped, forced, or re-run to obtain a different answer, no threshold was lowered, and nothing was pushed to main. gate-scope reported changed: 2, empty: false, outOfClass: [], so the change sat inside the ADR 0003 qualifying class and was eligible to auto-merge."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "PR #597 carried the full evidence trail and was merged by GitHub via --auto once web-ci was green, not by the agent. Merge commit 2f490766, merged 2026-08-30T11:37:33Z."
+      },
+      {
+        "stage": "deploy",
+        "status": "ran",
+        "note": "Pages deploy run 33309402080 on 2f490766 succeeded and https://abdeslam-menacere.github.io/ModelTree/ served HTTP 200. No revert needed."
+      }
+    ],
+    "found": {
+      "scouts": 33,
+      "pagesFetched": 45,
+      "claimsProposed": 45,
+      "bundles": [
+        {
+          "creator": "01-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "ai2",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "amazon",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "anthropic",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "baidu",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "bytedance-seed",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "cohere",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "databricks",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "deepseek",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "eleutherai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "hugging-face",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "ibm",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "lg-ai-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "moonshot-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "nvidia",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "sarvam-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "snowflake",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "upstage",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "xai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "zhipu-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "unchanged",
+          "count": 24,
+          "effect": "A recorded model fact re-read from its primary source and found to still hold. 17 reached their threshold; of those, 15 advanced a release verifiedAt to 2026-08-30 and 2 were withheld. The other 7 were refused by the provenance rubric."
+        },
+        {
+          "kind": "change",
+          "count": 21,
+          "effect": "A source page re-read this run, moving its lastCheckedDate to 2026-08-30. All 21 were accepted unanimously and all 21 were applied."
+        }
+      ],
+      "notCovered": [
+        "13 of the 33 creators scouted produced no claim at all. That is an honest zero per creator rather than a skipped stage, but it also means their records carry this run’s attention without carrying its verification date.",
+        "Three creator hosts refused automated fetches this run — openai.com/news/ (403), ai.meta.com/blog/ (403) and x.ai/news (403). Approved alternatives were used and no claim rested on an unread page, but the announcement indexes themselves went unread.",
+        "Breadth remains uncovered by design: OpenAI’s realtime, transcribe and tts models, roughly twenty Cohere Command models against the one recorded, Microsoft’s MAI-Code-1.1-Flash, MAI-Image-2.5, MAI-Voice-2 and MAI-Transcribe-1.5, and Amazon’s Nova Act, Nova Forge and Nova Multimodal Embeddings. Each is breadth work with its own sourcing burden, not re-verification.",
+        "Microsoft MAI-Image-2.6, announced 2026-08-10, was deliberately not added. Its only availability statement names a product and a serving platform rather than the creator’s own release, so accessType has no creator-level statement and status is ambiguous between preview and current. It also has no recorded family. The ambiguity was left explicit rather than resolved by guess.",
+        "xai grok-4.20 appears on docs.x.ai only in a passing note that logprobs are unsupported by \"grok-4.20 and newer\", never as a listed model. That is not enough to create a release."
+      ]
+    },
+    "evaluated": {
+      "reviewers": 60,
+      "verdictsCast": 135,
+      "acceptedByPanel": 38,
+      "rejectedByPanel": 7,
+      "dissents": [],
+      "gates": [
+        {
+          "gate": "gate-evidence.mjs",
+          "scope": "20 claim bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "45 claims admissible with complete panels across 20 bundles. Thresholds were applied per profile — 2 for a pilot creator, 3 for a long-tail one — and no bundle omitted its policy."
+        },
+        {
+          "gate": "gate-source-approval.mjs",
+          "scope": "20 claim bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Zero proposed sources across all 20 bundles: every cited source was already in the dataset at anchor 7ca5802e, on one of the 41 origins approved there. No source was refused, and no origin was introduced."
+        },
+        {
+          "gate": "gate-dataset.mjs",
+          "scope": "web/src/data",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "419 records validated across the documents raw.ts composes."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "web/",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "990 tests executed; astro check reported 0 errors. This is the gate that caught the two withheld verification dates, by refusing guidance older than the evidence beneath it."
+        },
+        {
+          "gate": "gate-scope.mjs",
+          "scope": "branch vs merge-base",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "changed: 2, empty: false, outOfClass: []. Anchored on 7ca5802e, the merge base the gate computed rather than one supplied to it."
+        },
+        {
+          "gate": "ci-preflight.mjs",
+          "scope": "web-ci, skills-ci, source-link-health-tests",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": false,
+          "detail": "Run locally before the branch was pushed; all three workflows predicted green."
+        },
+        {
+          "gate": "web-ci",
+          "scope": "PR #597",
+          "outcome": "pass",
+          "required": true,
+          "detail": "SUCCESS. GitHub performed the merge via --auto on this check going green; the agent did not merge."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 36,
+      "documents": [
+        {
+          "document": "releases.json",
+          "recordsBefore": 82,
+          "recordsAfter": 82,
+          "note": "15 verifiedAt dates moved to 2026-08-30 — anthropic-claude-fable-5, anthropic-claude-opus-5 and anthropic-claude-sonnet-5 from 2026-08-26; ai2-olmo-2-7b, amazon-nova-2-sonic, cohere-command-a-plus-05-2026, deepseek-v4-pro, nvidia-nemotron-4-340b-base and xai-grok-4-6 from 2026-08-28; baidu-ernie-4-5-300b-a47b, bytedance-seed-oss-36b-instruct, databricks-dbrx-instruct, hugging-face-smollm3-3b, ibm-granite-4-2-30b and lg-ai-research-exaone-3-5-7-8b-instruct from 2026-08-29. No release was added or removed and no other field changed, so the record count is identical either side of the merge commit."
+        },
+        {
+          "document": "sources.json",
+          "recordsBefore": 198,
+          "recordsAfter": 198,
+          "note": "21 lastCheckedDate values moved to 2026-08-30, one per page re-read this run. No source was added: the approved-source gate recorded zero proposed sources, so every date moved on a record that already existed. Sources are listed here rather than under the posted records below, which carry links and so hold only the collections the site routes."
+        }
+      ],
+      "records": []
+    },
+    "withheld": [
+      {
+        "id": "releases/anthropic-claude-mythos-5.verifiedAt",
+        "category": "verification-held",
+        "detail": "Held at 2026-08-15 despite the claim reaching its threshold. validate.ts forbids guidance dated before the evidence beneath it, and fit-claude-mythos-5-limited-availability, verified 2026-08-15, rests on this release. Advancing the release would have stranded that fit statement behind its own evidence; npm run validate failed exactly this way when it was attempted. Re-dating guidance this run gathered no evidence for would have been the larger claim, so the write was withheld rather than the rule weakened.",
+        "blockedBy": [
+          "fit-claude-mythos-5-limited-availability",
+          "validate.ts"
+        ]
+      },
+      {
+        "id": "releases/anthropic-claude-haiku-4-5.verifiedAt",
+        "category": "verification-held",
+        "detail": "Held at 2026-08-15 for the same reason, against fit-claude-haiku-4-5-release-current. Two accepted claims applying nothing is the honest outcome here: the panel judged the model facts still true, and the dataset still refuses to say so until the guidance resting on them is re-verified too.",
+        "blockedBy": [
+          "fit-claude-haiku-4-5-release-current",
+          "validate.ts"
+        ]
+      },
+      {
+        "id": "releases/01-ai-yi-1-5-34b-chat.verifiedAt",
+        "category": "rejected-by-panel",
+        "detail": "Refused 2-of-3 under the long-tail unanimous bar. The Hugging Face card states \"License: apache-2.0\", but the recorded license object also asserts osiApproved, which is a claim about what OSI decided and needs an OSI source. The licence name cannot stand in for it.",
+        "blockedBy": [
+          "provenance rubric"
+        ]
+      },
+      {
+        "id": "releases/eleutherai-pythia-12b.verifiedAt",
+        "category": "rejected-by-panel",
+        "detail": "Refused 2-of-3 on the same osiApproved grounds: the Pythia-12B card states the licence name and nothing about OSI approval status.",
+        "blockedBy": [
+          "provenance rubric"
+        ]
+      },
+      {
+        "id": "releases/snowflake-arctic-instruct.verifiedAt",
+        "category": "rejected-by-panel",
+        "detail": "Refused 2-of-3 on the same osiApproved grounds; the Arctic card carries an apache-2.0 tag and no OSI provenance.",
+        "blockedBy": [
+          "provenance rubric"
+        ]
+      },
+      {
+        "id": "releases/sarvam-ai-sarvam-m-v1.verifiedAt",
+        "category": "rejected-by-panel",
+        "detail": "Refused 2-of-3 on the same osiApproved grounds. Its source record still had its lastCheckedDate advanced, because that claim was about the page being read rather than about what the page proves.",
+        "blockedBy": [
+          "provenance rubric"
+        ]
+      },
+      {
+        "id": "releases/zhipu-ai-glm-4-5-air.verifiedAt",
+        "category": "rejected-by-panel",
+        "detail": "Refused 2-of-3. The GLM-4.5-Air card states the models are released under the MIT open-source licence, which supports the licence name and still does not cite OSI approval for the osiApproved flag.",
+        "blockedBy": [
+          "provenance rubric"
+        ]
+      },
+      {
+        "id": "releases/moonshot-ai-kimi-k2-instruct.verifiedAt",
+        "category": "rejected-by-panel",
+        "detail": "Refused 2-of-3. The card states \"Context Length 128K\" while the dataset records 131072. The quote does not force the binary 128x1024 reading, so the stored precision is not directly sourced — an assumed multiplier, not a stated number.",
+        "blockedBy": [
+          "provenance rubric"
+        ]
+      },
+      {
+        "id": "releases/upstage-solar-pro-preview-instruct.verifiedAt",
+        "category": "rejected-by-panel",
+        "detail": "Refused 2-of-3 on the same binary-multiplier grounds: the page states \"a maximum context length of 4K\" and the dataset records 4096.",
+        "blockedBy": [
+          "provenance rubric"
+        ]
+      }
+    ],
+    "caveats": [
+      "This entry was transcribed after the run rather than by it. The run could not write its own line: refresh-runs.json is not one of the documents raw.ts composes, so gate-scope.mjs correctly reports it out of class, and including it would have cost the run its auto-merge. That gap is issue #419 and it has now recurred on every published run.",
+      "pagesFetched is the summary issue’s approximate figure of \"~45 pages\" recorded as 45. Neither durable record states an exact count, so this number is the only one available rather than a counted one.",
+      "reviewers and verdictsCast are derived, not quoted: 20 bundles x 3 rubrics = 60 reviewer invocations, and 45 claims x 3 rubrics = 135 verdicts, which reconciles with the published rubric tallies of 45, 45 and 45. Neither field has a verbatim source in the pull request body or the summary issue.",
+      "The pull request body says \"36 records, 38 changed lines\". The merge commit shows 36 insertions and 36 deletions across the two documents, and the per-record diff reconciles to exactly 15 releases and 21 sources. Where the two disagree this entry follows the commit, as #419 already recommended after the same class of discrepancy on the 2026-08-27 run.",
+      "A green run proves the recorded facts still match the pages this run read. It does not prove those pages are complete, that the 13 creators without claims are unchanged, or that anything on a host that refused the fetch is still current.",
+      "No human reviewed any claim, verdict or edit in this run before it merged and deployed."
+    ],
+    "followUps": [
+      "osiApproved blocks routine licence re-verification for long-tail creators — five claims died on it this run. Either the recorded license objects need an OSI source attached once, or re-verification needs to target a licence sub-field a model card can actually source.",
+      "Context windows recorded as exact integers cannot be re-verified against pages that state them as \"128K\" or \"4K\". Two claims died on the assumed 1024 multiplier.",
+      "Three creator announcement indexes refuse automated fetches — openai.com/news/, ai.meta.com/blog/ and x.ai/news. The working alternatives this run used are worth recording in the reviewed catalogues so future runs do not rediscover them.",
+      "Microsoft MAI-Image-2.6 needs a creator-level source before it can be recorded, following the precedent set for microsoft-mai-thinking-1."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "PR #597 — chore(data): re-verify 36 records against primary sources",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/597",
+        "state": "merged"
+      },
+      {
+        "kind": "issue",
+        "label": "Issue #598 — run summary for 2026-08-30-c0b6e9",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/598",
+        "state": "open"
+      },
+      {
+        "kind": "issue",
+        "label": "Issue #419 — why no auto-merged run can write its own ledger entry",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/419",
+        "state": "open"
+      },
+      {
+        "kind": "commit",
+        "label": "Merge commit 2f490766",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/2f490766a1ca159e48bcce3df29dab23eba36f60"
+      },
+      {
+        "kind": "deployment",
+        "label": "Pages deploy run 33309402080",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/actions/runs/33309402080",
+        "state": "success"
+      }
+    ],
+    "recordedAt": "2026-08-30"
+  },
+  {
     "id": "2026-08-29-34e751",
     "title": "Data refresh 2026-08-29",
     "ranOn": "2026-08-29",
