@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { test, expect, type Page } from '@playwright/test';
 
 /**
@@ -194,17 +196,48 @@ test.describe('the ink probe can fail', () => {
     expect(await inkCoverage(page, solid, 16)).toBeGreaterThan(inkBand.max);
   });
 
-  test('an SVG that is not well-formed XML fails to decode', async ({ page }) => {
+  test('every standalone copy of the mark decodes as XML', async ({ page }) => {
+    // A standalone `.svg` is parsed as XML, which is strict, and a file that
+    // breaks that rule renders as nothing while looking entirely correct in an
+    // editor. The favicon shipped exactly that defect during this issue.
+    //
+    // The docs logo is read from disk rather than fetched, because it lives
+    // under `docs/` and the site never serves it -- but it is the copy GitHub
+    // renders, so it has the same obligation.
     await page.goto('/');
 
-    // The exact defect this spec caught before it shipped: `--` is illegal
-    // inside an XML comment, and a standalone `.svg` carrying one renders as
-    // nothing at all while looking entirely correct in a text editor.
+    const assets: Array<[string, string]> = [
+      ['favicon.svg', readFileSync(fileURLToPath(new URL('../public/favicon.svg', import.meta.url)), 'utf8')],
+      ['mask-icon.svg', readFileSync(fileURLToPath(new URL('../public/mask-icon.svg', import.meta.url)), 'utf8')],
+      ['modeltree-logo.svg', readFileSync(fileURLToPath(new URL('../../docs/assets/modeltree-logo.svg', import.meta.url)), 'utf8')],
+    ];
+
+    for (const [name, svg] of assets) {
+      const error = await page.evaluate((source) => {
+        const parsed = new DOMParser().parseFromString(source, 'image/svg+xml');
+        return parsed.querySelector('parsererror')?.textContent ?? null;
+      }, svg);
+
+      expect(error, `${name} is not well-formed XML, so a browser renders nothing`).toBeNull();
+    }
+  });
+
+  test('the ink probe rejects an SVG that is not well-formed XML', async ({ page }) => {
+    await page.goto('/');
+
+    // The control for the check above, replaying the exact defect that occurred:
+    // a double hyphen is illegal inside an XML comment.
     const malformed =
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
       '<!-- refined in issue #31 -- the stroke grew -->' +
       '<rect width="64" height="64" fill="#3fd0e6" /></svg>';
 
+    const error = await page.evaluate((source) => {
+      const parsed = new DOMParser().parseFromString(source, 'image/svg+xml');
+      return parsed.querySelector('parsererror')?.textContent ?? null;
+    }, malformed);
+
+    expect(error, 'the parser accepted illegal XML, so the check above proves nothing').not.toBeNull();
     await expect(inkCoverage(page, malformed, 16)).rejects.toThrow();
   });
 });

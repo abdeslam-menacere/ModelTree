@@ -1,6 +1,5 @@
 import { readFileSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { JSDOM } from 'jsdom';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -265,44 +264,48 @@ describe('the brand assets stay inside the byte budget', () => {
   });
 });
 
-describe('the standalone assets are well-formed XML', () => {
-  // Not pedantry, and not hypothetical: this caught the favicon shipping with
-  // `-- ` inside a comment, which is illegal XML. An HTML parser is lenient and
-  // the inline copy renders fine, but a standalone `.svg` is parsed strictly, so
-  // the file decoded to nothing while looking entirely correct in an editor.
-  // Nothing else in the suite would have noticed -- the geometry assertions read
-  // the text, not the rendering.
+describe('the standalone assets can be parsed as XML', () => {
+  // Not pedantry, and not hypothetical: this caught the favicon shipping with a
+  // double hyphen inside a comment. That is illegal XML, an HTML parser is
+  // lenient enough to hide it in the inline copy, and a standalone `.svg` is
+  // parsed strictly -- so the file decoded to nothing while looking entirely
+  // correct in an editor. No geometry assertion would have noticed, because they
+  // all read the text rather than the rendering.
+  //
+  // The textual rule is checked here because it is the defect that actually
+  // occurred and it costs nothing. Whether the file *decodes* is a rendering
+  // question, and this repository puts those in a real engine rather than in
+  // jsdom: `e2e/brand-mark.e2e.ts` parses all three assets in Chromium, with a
+  // control that replays this exact malformed comment and requires it to fail.
+  //
+  // Running a DOM parser here instead was tried and reverted. It meant importing
+  // jsdom into a node-environment suite, and that import measurably slowed the
+  // whole worker pool: two unrelated `userEvent` tests elsewhere began timing
+  // out at 5000ms in the full run and passed in isolation. A test that makes
+  // other tests fail is not worth the coverage it adds when a real engine
+  // already covers it.
   const standalone = ['favicon', 'maskIcon', 'docsLogo'] as const;
 
-  // jsdom is pulled in directly rather than by switching the whole file to the
-  // jsdom environment: everything else here reads the filesystem and has no use
-  // for a DOM, and only this block needs a strict XML parser.
-  const { DOMParser } = new JSDOM().window;
-  const parse = (source: string) => new DOMParser().parseFromString(source, 'image/svg+xml');
-
-  it.each(standalone)('parses %s without an XML error', (key) => {
-    const parsed = parse(read(key));
-
-    expect(
-      parsed.querySelector('parsererror')?.textContent ?? null,
-      `${SOURCES[key]} is not well-formed XML, so a browser renders nothing`,
-    ).toBeNull();
-    expect(parsed.documentElement.tagName).toBe('svg');
-  });
-
   it.each(standalone)('keeps %s free of a double hyphen inside a comment', (key) => {
-    for (const comment of read(key).match(/<!--[\s\S]*?-->/g) ?? []) {
+    const comments = read(key).match(/<!--[\s\S]*?-->/g) ?? [];
+
+    expect(comments.length, 'no comment was found, so this check screened nothing').toBeGreaterThan(0);
+    for (const comment of comments) {
       expect(comment.slice(4, -3)).not.toContain('--');
     }
   });
 
-  it('reports malformed XML as malformed', () => {
-    // The control. A parser that silently accepts anything would make every
-    // assertion above vacuous, so the exact defect that occurred is replayed.
-    expect(
-      parse('<svg xmlns="http://www.w3.org/2000/svg"><!-- issue #31 -- refined --></svg>')
-        .querySelector('parsererror'),
-    ).not.toBeNull();
+  it.each(standalone)('leaves no bare ampersand in %s', (key) => {
+    // The other way to make an SVG undecodable, and the same silent failure.
+    expect(read(key)).not.toMatch(/&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-f]+);)/i);
+  });
+
+  it('recognises the malformed comment it screens for', () => {
+    // The control. Without it the rule above passes on any file that happens to
+    // contain no comments at all, which is how a guard quietly stops guarding.
+    const malformed = '<!-- issue #31 -- refined -->';
+
+    expect(malformed.slice(4, -3)).toContain('--');
   });
 });
 
