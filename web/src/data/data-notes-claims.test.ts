@@ -548,6 +548,125 @@ describe('README data notes claims', () => {
     expect(findings[0].datasetSays).toBe('2026-08-13');
   });
 
+  // The other direction of the same promise, which the test above is not
+  // (abdeslam-menacere/ModelTree#592). That one pins that an anchored value the
+  // dataset contradicts reddens. This one pins that the sentence carrying the
+  // anchor may be rewritten freely, which is what the section's own legend
+  // promises in the README -- "It never reads the prose: the anchor is the
+  // claim" -- and what the header of this file commits to. Read the two
+  // together: an anchor is load-bearing, and everything around it is not.
+  //
+  // "passes a prose-only bullet" is a neighbour of this claim and not a
+  // substitute for it. That test establishes an *unanchored* bullet is ignored.
+  // An evaluator changed to cross-check a bullet's sentence against its own
+  // anchor would leave it green while breaking the property here, which is
+  // exactly the regression that would make anchors redden on innocent
+  // copy-edits until someone reasonably deleted the mechanism.
+  //
+  // The limit, so this is not read as claiming more than it does: the bold
+  // lead-in is an identifier, not prose. Findings are reported against it and
+  // DELIBERATELY_UNANCHORED is keyed on it, so the evaluator reads it by design.
+  // It is held byte-identical across the two arms on purpose; what is asserted
+  // invariant is the sentence around the anchor.
+  //
+  // A second limit, from the fixture rather than the design: one pair of arms
+  // catches an evaluator that requires a bullet's prose to corroborate its own
+  // anchor, which is the shape a prose-reading change would actually take. It
+  // does not catch every conceivable rule about prose, and no single fixture
+  // could.
+  it('keeps its verdict when the prose around an anchor is reworded', () => {
+    const holds = anchor({
+      kind: 'records',
+      entity: 'releases',
+      id: 'google-gemini-3-7-flash',
+      field: 'releaseDate',
+      value: '2026-08-13',
+    });
+    const contradicted = anchor({
+      kind: 'records',
+      entity: 'releases',
+      id: 'google-gemini-3-7-flash',
+      field: 'releaseDate',
+      value: '2026-08-14',
+    });
+
+    // Both arms carry an anchor that holds *and* one the dataset contradicts, so
+    // the expected verdict is a named finding rather than silence. Two empty
+    // findings lists would compare equal for an evaluator that read nothing at
+    // all, and a green from a dead instrument is the failure this pair of
+    // assertions exists to rule out.
+    const before = fixture(
+      '- **A date the dataset records.** Gemini 3.7 Flash carries a day-precision release date of 2026-08-13.',
+      holds,
+      '- **A date the dataset contradicts.** The same release is put at 2026-08-14 here, one day later than it is held.',
+      contradicted,
+    );
+    // Meaning preserved, wording not. The rewrite also drops the literal dates
+    // and the record id from the prose, so an evaluator that read the sentence
+    // could not agree with itself across the two arms.
+    const after = fixture(
+      '- **A date the dataset records.** What is stored for that Google release is a full calendar day, not a month.',
+      holds,
+      '- **A date the dataset contradicts.** That same release is dated one day on from what is actually stored.',
+      contradicted,
+    );
+
+    const bulletLines = (markdown: string) =>
+      markdown.split('\n').filter((line) => line.startsWith('- '));
+    const anchorLines = (markdown: string) =>
+      markdown.split('\n').filter((line) => line.includes('<!-- claim:'));
+    const proseLines = (markdown: string) =>
+      markdown.split('\n').filter((line) => !line.includes('<!-- claim:'));
+
+    // The rewrite has to have landed, per bullet rather than per file: a rewrite
+    // that silently no-ops would satisfy the invariance below for the wrong
+    // reason, and a whole-file inequality would be satisfied by one bullet
+    // changing while the other did not.
+    expect(bulletLines(before)).toHaveLength(2);
+    expect(bulletLines(after)).toHaveLength(2);
+    for (const [index, line] of bulletLines(before).entries()) {
+      expect({ index, same: bulletLines(after)[index] === line }).toEqual({ index, same: false });
+    }
+
+    // ...and it has to have landed only there. If an anchor moved too, the test
+    // would be measuring something other than rewording.
+    expect(anchorLines(after)).toEqual(anchorLines(before));
+    expect(anchorLines(before)).toHaveLength(2);
+
+    // A non-zero count of anchors actually reached the evaluator. An empty
+    // findings list cannot distinguish "nothing failed" from "nothing ran", so
+    // the number evaluated is asserted rather than inferred from silence.
+    const anchorsSeen = (markdown: string) =>
+      parseBullets(dataNotesSection(markdown)).bullets.flatMap((bullet) => bullet.anchors);
+    expect(anchorsSeen(before)).toHaveLength(2);
+    expect(anchorsSeen(after)).toEqual(anchorsSeen(before));
+
+    const verdict = evaluateDataNotes(before);
+    expect(verdict.map(({ bullet, problem, datasetSays }) => ({ bullet, problem, datasetSays }))).toEqual([
+      {
+        bullet: 'A date the dataset contradicts.',
+        problem: 'expects "releaseDate" on releases "google-gemini-3-7-flash" to be "2026-08-14"',
+        datasetSays: '2026-08-13',
+      },
+    ]);
+
+    // The claim of this test: same anchors, different sentences, same verdict --
+    // deep-equal down to the reported problem and what the dataset says, not
+    // merely the same number of findings.
+    expect(evaluateDataNotes(after)).toEqual(verdict);
+
+    // The differential control, and the reason the equality above is not
+    // vacuous. Editing the *anchor* of this very fixture, while leaving every
+    // prose line untouched, does change the verdict. The contradiction test
+    // above proves the evaluator can fail at all; this proves it is sensitive to
+    // precisely the bytes this test holds fixed, on the fixture this test uses.
+    expect(after.split('"2026-08-13"')).toHaveLength(2);
+    const anchorEdited = after.replace('"2026-08-13"', '"2026-08-12"');
+    expect(proseLines(anchorEdited)).toEqual(proseLines(after));
+    expect(anchorLines(anchorEdited)).not.toEqual(anchorLines(after));
+    expect(evaluateDataNotes(anchorEdited)).not.toEqual(verdict);
+  });
+
   it('fails each remaining kind when the dataset disagrees', () => {
     const cases: ReadonlyArray<{ label: string; claim: Json; problem: string; says: unknown }> = [
       {
