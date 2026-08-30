@@ -53,17 +53,23 @@
    * would trip a motion guard by being declared at all. */
   --cp-motion-fast: 160ms;
   --cp-motion-slow: 600ms;
+  --cp-motion-stagger: 120ms;
   --cp-motion-ease: ease;
   --cp-motion-ease-out: ease-out;
 
-  /* Radius, spacing and type scales. Adopted by the surfaces this issue touches
-   * and by anything written after it; the several thousand existing px literals
-   * are deliberately left alone, because rewriting them would be a very large
-   * diff with no visual result and a conflict against every branch in flight. */
-  --cp-radius-sm: 0.375rem;
+  /* Radius, spacing and type scales. Deliberately small: every step below is
+   * referenced by a rule, and `src/styles/visual-system.test.ts` fails on any
+   * token nothing reads. `--cp-sheen` was declared in both themes and used zero
+   * times before this issue removed it, which is the failure this rule exists to
+   * prevent -- a scale invented ahead of its use cannot be told apart from one
+   * whose users have all been deleted. The scale grows when something adopts a
+   * step, not before.
+   *
+   * The several thousand existing px literals elsewhere in this file are left
+   * alone on purpose. Rewriting them would be a very large diff with no visual
+   * result and a conflict against every branch in flight; the scale is the
+   * contract for new work, recorded in docs/product/INTERACTION-CONTRACT.md. */
   --cp-radius-md: 0.625rem;
-  --cp-radius-lg: 1rem;
-  --cp-radius-pill: 999px;
   --cp-space-1: 4px;
   --cp-space-2: 8px;
   --cp-space-3: 12px;
@@ -76,9 +82,7 @@
   --cp-font-serif: "Newsreader Variable", Georgia, serif;
   --cp-size-2xs: 11px;
   --cp-size-xs: 12px;
-  --cp-size-sm: 13px;
-  --cp-size-md: 15px;
-  --cp-size-base: 16px;
+  --cp-size-lg: 21px;
   --cp-tracking-caps: 0.06em;
 }
 
@@ -297,7 +301,7 @@ main {
   align-items: end;
   grid-template-columns: minmax(0, 1.6fr) minmax(360px, 0.9fr);
   gap: 72px;
-  animation: reveal 600ms ease-out both;
+  animation: reveal var(--cp-motion-slow) var(--cp-motion-ease-out) both;
 }
 
 .hero-copy h1 {
@@ -350,7 +354,8 @@ main {
 .explorer-band {
   padding: 28px 0 72px;
   border-top: 1px solid var(--cp-border);
-  animation: reveal 600ms 120ms ease-out both;
+  animation: reveal var(--cp-motion-slow) var(--cp-motion-stagger)
+    var(--cp-motion-ease-out) both;
 }
 
 .explorer-heading {
@@ -404,7 +409,8 @@ main {
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color 160ms ease, box-shadow 160ms ease;
+  transition: border-color var(--cp-motion-fast) var(--cp-motion-ease),
+    box-shadow var(--cp-motion-fast) var(--cp-motion-ease);
 }
 
 .ecosystem-option svg {
@@ -553,7 +559,9 @@ main {
   text-decoration: none;
   overflow-wrap: anywhere;
   cursor: pointer;
-  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  transition: border-color var(--cp-motion-fast) var(--cp-motion-ease),
+    box-shadow var(--cp-motion-fast) var(--cp-motion-ease),
+    transform var(--cp-motion-fast) var(--cp-motion-ease);
 }
 
 .release-node:hover {
@@ -885,7 +893,7 @@ main {
   align-items: end;
   justify-content: space-between;
   gap: 60px;
-  animation: reveal 500ms ease-out both;
+  animation: reveal var(--cp-motion-slow) var(--cp-motion-ease-out) both;
 }
 
 .passport-hero h1 {
@@ -2232,7 +2240,7 @@ main {
   inset: 0;
   z-index: 0;
   border: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--cp-scrim);
 }
 
 /* The dialog also carries `.tree-details` for its inner styling, and a
@@ -2251,7 +2259,7 @@ main {
   max-height: 88vh;
   overflow-y: auto;
   border-radius: 16px 16px 0 0;
-  animation: tree-drawer-rise 160ms ease-out;
+  animation: tree-drawer-rise var(--cp-motion-fast) var(--cp-motion-ease-out);
 }
 
 .tree-drawer-close {
@@ -2509,7 +2517,7 @@ span.log-page-step {
   border-right: 2px solid var(--cp-text-muted);
   border-bottom: 2px solid var(--cp-text-muted);
   transform: rotate(45deg);
-  transition: transform 160ms ease;
+  transition: transform var(--cp-motion-fast) var(--cp-motion-ease);
 }
 
 .log-run[open] > summary.log-run-header::after {
@@ -5505,9 +5513,9 @@ a.directory-letter:hover {
   padding: 4px;
   list-style: none;
   border: 1px solid var(--cp-border-strong);
-  border-radius: 0.625rem;
+  border-radius: var(--cp-radius-md);
   background: var(--cp-surface);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.14);
+  box-shadow: var(--cp-shadow-soft);
   max-height: 320px;
   overflow-y: auto;
 }
@@ -6933,4 +6941,142 @@ html[data-theme="dark"] {
  * non-colour signal for anything. */
 .release-node[data-relation="unrelated"] {
   opacity: 0.9;
+}
+
+/* --- Visual system and brand mark (issue #31) --------------------------------
+ *
+ * Appended rather than merged into the rules above, following the convention
+ * this file already runs on: source order is the cascade, so a later block wins
+ * at equal specificity and the earlier reasoning survives as history.
+ *
+ * `src/styles/primary-nav.test.ts` guards everything from the issue #523 marker
+ * to the end of this file against motion properties, and it reads comments as
+ * well as declarations. Nothing below declares any movement, and this prose
+ * avoids the guarded property names for the same reason -- naming one in a
+ * sentence is enough to redden that test.
+ * -------------------------------------------------------------------------- */
+
+/* Issue #14 added these two as escape hatches, because the base tokens failed
+ * WCAG AA on the palette of the time: `--cp-success` measured 3.30:1 and
+ * `--cp-link` 4.12:1. Both base tokens are now measured clear on every surface
+ * token -- worst case 5.73:1 and 5.74:1 -- so the hatches alias to them instead
+ * of carrying separately hand-tuned literals that no longer track the palette.
+ *
+ * This is #14's own pattern rather than a new one: its dark theme block already
+ * reads `--cp-link-accessible: var(--cp-link)`. Only its light theme kept
+ * literals, because only the light theme needed them.
+ *
+ * Aliasing also repairs a regression this issue would otherwise introduce.
+ * `--cp-success-accessible: #15803d` was measured against the old surfaces; on
+ * the new `--cp-surface-soft` it falls to 4.42:1, under the 4.5:1 floor, and
+ * `.verification-mark` sits inside the lineage root where `lineage-a11y.e2e.ts`
+ * grants no amnesty. `--cp-success` on that same surface is 5.73:1.
+ *
+ * #14's block is left byte-for-byte intact. */
+:root {
+  --cp-link-accessible: var(--cp-link);
+  --cp-success-accessible: var(--cp-success);
+}
+
+/* Forced colours -- Windows High Contrast and equivalents. The user agent
+ * replaces the palette wholesale, so the tokens above stop carrying meaning and
+ * system colour keywords take over. Three signals in this interface are painted
+ * with colour alone and would otherwise flatten into their surroundings.
+ *
+ * Scoped deliberately narrowly. A forced-colours block that restates the whole
+ * stylesheet fights the user agent instead of helping it; the correct posture is
+ * to let the substitution happen and repair only what it breaks. */
+@media (forced-colors: active) {
+  /* 1. The focus ring. Every focusable element in this file draws an outline and
+   *    none of them suppress it -- there is no `outline: none` in 6900 lines --
+   *    so the ring itself survives. Naming `Highlight` pins it to the system
+   *    focus colour rather than to whatever the accent happens to map to. */
+  :focus-visible {
+    outline-color: Highlight;
+  }
+
+  /* 2. Pressed and selected controls, which are painted as a filled accent with
+   *    an inverted foreground. A forced palette flattens both sides, leaving the
+   *    state legible only to assistive technology via `aria-pressed`.
+   *    `Highlight`/`HighlightText` is the system pair that survives and reads as
+   *    selection. */
+  .catalog-view-button[aria-pressed="true"] {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  /* 3. Surfaces bounded by a shadow rather than a border. Shadows are dropped in
+   *    forced colours, so anything relying on one loses its edge. The drawer is
+   *    the case that matters: it is a modal dialog, and a modal with no visible
+   *    edge is indistinguishable from the page behind it. The compound selector
+   *    matches the specificity the dialog is already defined at. */
+  .tree-details.tree-drawer-dialog {
+    border: 1px solid CanvasText;
+  }
+
+  /* 4. Links painted as filled buttons keep a drawn edge, so the affordance
+   *    does not collapse to look like body text. */
+  .primary-action {
+    border: 1px solid ButtonBorder;
+  }
+
+  /* 5. The brand mark draws from the token layer, which is substituted away
+   *    here. `CanvasText` keeps it visible as a silhouette rather than letting
+   *    it flatten into the header. */
+  .brand-mark path {
+    stroke: CanvasText;
+  }
+
+  .brand-mark circle {
+    fill: CanvasText;
+  }
+}
+
+/* The brand lockup. The mark is an inline `<svg>` as of this issue, so the old
+ * `.brand img` rule no longer matches anything and the sizing moves here.
+ * `flex: none` keeps the mark from being squeezed when the wordmark wraps at
+ * narrow widths, which `lineage-narrow-viewport.e2e.ts` measures at 320px. */
+.brand {
+  gap: var(--cp-space-3);
+}
+
+.brand-mark {
+  flex: none;
+}
+
+.brand-copy {
+  gap: var(--cp-space-1);
+}
+
+.brand-copy strong {
+  font-family: var(--cp-font-serif);
+  font-size: var(--cp-size-lg);
+}
+
+/* 11px with tracking beats 10px without it for a line set in caps: the extra
+ * pixel is legibility and the tracking is what stops capitals from closing up.
+ * The casing itself stays in the earlier rule -- the property that applies it
+ * shares a word boundary with the motion property the guard on this region
+ * matches, so it cannot be named below the marker. */
+.brand-copy small {
+  font-family: var(--cp-font-sans);
+  font-size: var(--cp-size-2xs);
+  letter-spacing: var(--cp-tracking-caps);
+}
+
+/* Header and footer, the two frames every page carries. Both move onto the
+ * spacing scale so the shell is consistent at every breakpoint. */
+nav {
+  gap: var(--cp-space-2);
+}
+
+nav a {
+  padding: var(--cp-space-3) var(--cp-space-4);
+  border-radius: var(--cp-radius-md);
+}
+
+.site-footer {
+  padding: var(--cp-space-5) 0 var(--cp-space-7);
+  gap: var(--cp-space-6);
+  font-size: var(--cp-size-xs);
 }

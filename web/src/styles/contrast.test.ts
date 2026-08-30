@@ -164,6 +164,14 @@ const TEXT_TOKENS = [
   '--cp-success',
   '--cp-warning',
   '--cp-danger',
+  // Issue #14's escape hatches, still live on `.lineage-longtail a` and
+  // `.verification-mark` -- both inside the lineage root, where the e2e
+  // accessibility suite grants no site-wide amnesty. They are aliased to the
+  // base tokens rather than hand-tuned, and this measures that rather than
+  // assuming it: the hardcoded light-theme `#15803d` they replaced fell to
+  // 4.42:1 once this issue moved `--cp-surface-soft` underneath it.
+  '--cp-link-accessible',
+  '--cp-success-accessible',
 ] as const;
 
 /** WCAG 1.4.3 for text below 18.66px bold / 24px regular, which is all of it. */
