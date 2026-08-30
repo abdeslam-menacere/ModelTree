@@ -3490,7 +3490,7 @@
     ],
     "accessType": "open-weight",
     "license": {
-      "name": "apple-amlr",
+      "name": "Apple Machine Learning Research Model License Agreement",
       "url": "https://huggingface.co/apple/OpenELM-3B-Instruct/raw/main/LICENSE",
       "weightsDownloadable": true,
       "osiApproved": false
