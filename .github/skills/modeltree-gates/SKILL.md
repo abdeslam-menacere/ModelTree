@@ -59,6 +59,39 @@ That runs vitest plus `astro check`, which parses the dataset through the Zod
 contracts in `web/src/data/schema.ts`. The schema is the last word. If these
 scripts and Zod ever disagree, Zod wins and the script is wrong.
 
+### And that is not the whole verification set
+
+`npm run validate` reads `web/`. It never reads this directory, so a change to
+these documents or these scripts can pass every command above and still turn CI
+red once it merges. That is not hypothetical: on
+abdeslam-menacere/ModelTree#441 / PR abdeslam-menacere/ModelTree#558 both dock
+gates passed at `6925d5a`, having run exactly the commands above, and the merge
+reddened `instruction-references` and both `pytest` legs over one bare issue
+citation in this file. Neither gate was careless; nothing local invoked those
+checks at all (abdeslam-menacere/ModelTree#560).
+
+So before opening a pull request, from the repository root:
+
+```bash
+node .github/scripts/ci-preflight.mjs
+```
+
+It works out which of the repository's pull-request checks this branch's diff
+triggers — measured from `git merge-base HEAD refs/remotes/origin/main`, the
+same anchor `gate-scope` and `gate-source-approval` use — and runs their
+commands locally. A change under `.github/skills/` selects `skills-ci`,
+`instruction-references` and the updater `pytest` suite, which are the checks
+the break above needed and which no command in this file invokes.
+
+Exit codes match the gates: **0** passed, **1** a check failed, **2** a check
+could not run. `--plan` prints what it would run without running anything and
+exits **2**, because a plan verifies nothing.
+
+Every run prints what it does **not** cover — the networked `source-link-health`
+sweep, the second Python interpreter of the `pytest` matrix, the runner itself,
+and branch protection. Read that list before reading a green preflight as a
+green CI; treating it as complete is the same mistake, one level up.
+
 ## What each gate refuses
 
 **`gate-evidence.mjs`** reads a claim bundle (contract:
