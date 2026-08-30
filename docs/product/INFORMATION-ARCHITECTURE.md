@@ -37,6 +37,31 @@ derive membership from reviewed catalog flags and neither implies popularity or
 rank. The complete hierarchy is server-rendered; client JavaScript enhances
 disclosure, selection, and stable `?model=<release-id>` deep links.
 
+Membership in either branch presupposes a record that was admitted to the catalog
+at all, which is a separate and earlier decision. That procedure is recorded
+beside `datasetSchema` in `web/src/data/schema.ts`, published here word for word
+so this document and the schema cannot say different things:
+
+<!-- catalog-inclusion-policy:start -->
+What earns a record a place in this dataset, and what keeps it out. Apply in
+order: record exactly one entity kind per record, so a fact about a creator, a
+family, a release, a product, a serving platform, a source, or a publisher lives
+on that entity and never on a neighbour; cite at least one primary source and
+carry the day it was read, which every record-bearing schema above requires of
+itself rather than leaving to judgement; leave a field unset when no cited source
+states it, because a blank is a fact this dataset publishes happily -- nobody has
+sourced this yet -- and a plausible value no source states is not a fact at all;
+withhold the whole record when its required fields cannot be sourced that way,
+and record the gap rather than the guess, so that what is missing stays visible
+instead of being smoothed over; and admit the record only as a reviewed change to
+this repository, never as runtime input and never as an open crawl, per ADR 0002.
+Inclusion decides presence and nothing else. It states no order, no score, and no
+rank; it is not the `featured` procedure recorded beside that field, which is
+applied afterwards and only to releases already admitted here; and a record
+admitted by this procedure gains its catalog entry, its canonical route, and its
+correction path whether or not any editorial list names it.
+<!-- catalog-inclusion-policy:end -->
+
 The criterion for the Featured branch is the decision procedure recorded beside
 the `featured` field in `web/src/data/schema.ts`, published here word for word so
 this document and the schema cannot say different things:

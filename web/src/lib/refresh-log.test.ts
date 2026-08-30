@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { refreshLog } from '../data/refresh-log';
-import type { RefreshRun } from '../data/refresh-log-schema';
+import type { RefreshRun, WithheldItem } from '../data/refresh-log-schema';
 import {
   claimKindLabel,
   countLabel,
@@ -14,6 +14,8 @@ import {
   runsNewestFirst,
   stageLabel,
   stageStatusLabel,
+  coverageGapTally,
+  knownCoverageGaps,
   withheldCategoryLabel,
   withheldGroups,
 } from './refresh-log';
@@ -264,5 +266,84 @@ describe('countLabel', () => {
     expect(countLabel(1234, 'page')).toBe('1,234 pages');
     expect(countLabel(3, 'entry', 'entries')).toBe('3 entries');
     expect(countLabel(1, 'entry', 'entries')).toBe('1 entry');
+  });
+});
+
+describe('known coverage gaps', () => {
+  const gap = (id: string, category: WithheldItem['category']): WithheldItem => ({
+    id,
+    category,
+    detail: `Withheld ${id}.`,
+    blockedBy: [],
+  });
+
+  it('carries every withheld item forward with the run that withheld it', () => {
+    const gaps = knownCoverageGaps([
+      run({
+        id: '2026-01-02-aaaaaa',
+        ranOn: '2026-01-02',
+        withheld: [gap('alpha', 'blocked-by-policy'), gap('beta', 'source-refused')],
+      }),
+    ]);
+
+    // A gap is only useful with its provenance attached: which run declined it,
+    // and when. Dropping either would leave an assertion nobody can re-check.
+    expect(gaps.map(({ item }) => item.id)).toEqual(['alpha', 'beta']);
+    expect(gaps.every(({ runId }) => runId === '2026-01-02-aaaaaa')).toBe(true);
+    expect(gaps.every(({ ranOn }) => ranOn === '2026-01-02')).toBe(true);
+  });
+
+  it('orders gaps newest run first', () => {
+    const gaps = knownCoverageGaps([
+      run({ id: '2026-01-02-aaaaaa', ranOn: '2026-01-02', withheld: [gap('older', 'source-refused')] }),
+      run({ id: '2026-05-09-bbbbbb', ranOn: '2026-05-09', withheld: [gap('newer', 'source-refused')] }),
+    ]);
+
+    // Fixture order is deliberately oldest-first, so a helper that merely
+    // preserved input order would fail here rather than coincidentally pass.
+    expect(gaps.map(({ item }) => item.id)).toEqual(['newer', 'older']);
+  });
+
+  it('tallies by category and omits categories nothing landed in', () => {
+    const tally = coverageGapTally([
+      run({
+        id: '2026-01-02-aaaaaa',
+        withheld: [
+          gap('a', 'blocked-by-policy'),
+          gap('b', 'blocked-by-policy'),
+          gap('c', 'source-refused'),
+        ],
+      }),
+    ]);
+
+    const counts = Object.fromEntries(tally.map(({ category, count }) => [category, count]));
+    expect(counts).toEqual({ 'blocked-by-policy': 2, 'source-refused': 1 });
+    // A zero-count row would read as a gap category that exists and is empty,
+    // which is a different and false claim from the category not arising.
+    expect(tally.every(({ count }) => count > 0)).toBe(true);
+  });
+
+  it('labels every tallied category the same way the run pages do', () => {
+    const tally = coverageGapTally(refreshLog);
+
+    // Positive control: an empty tally would satisfy the label assertion
+    // vacuously, and the committed log does record withheld items.
+    expect(tally.length).toBeGreaterThan(0);
+    for (const { category, label } of tally) {
+      expect(label).toBe(withheldCategoryLabel(category));
+    }
+  });
+
+  it('accounts for every withheld item in the committed log exactly once', () => {
+    const gaps = knownCoverageGaps(refreshLog);
+    const withheldInLog = refreshLog.flatMap((entry) => entry.withheld);
+
+    // Bound to the log's own contents rather than to any fixed number, so
+    // adding or closing a run cannot falsify it. The control keeps it honest
+    // if the log ever carries no withheld items at all.
+    expect(withheldInLog.length).toBeGreaterThan(0);
+    expect(gaps.length).toBe(withheldInLog.length);
+    expect(coverageGapTally(refreshLog).reduce((sum, { count }) => sum + count, 0))
+      .toBe(withheldInLog.length);
   });
 });

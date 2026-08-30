@@ -435,8 +435,10 @@ export const methodologySections: MethodologySection[] = [
     summary:
       'Why a record is here, and why coverage is deliberately incomplete.',
     subsections: [
+      { id: 'catalog-inclusion', title: 'What earns a record a place' },
       { id: 'featured-vs-complete', title: 'Featured versus complete coverage' },
       { id: 'reviewed-set', title: 'A reviewed set, not a ranking' },
+      { id: 'coverage-gaps', title: 'Known coverage gaps' },
     ],
   },
   {

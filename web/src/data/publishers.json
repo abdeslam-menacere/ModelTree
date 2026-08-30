@@ -184,5 +184,10 @@
     "id": "databricks",
     "name": "Databricks, Inc.",
     "organizationId": "databricks"
+  },
+  {
+    "id": "minimax",
+    "name": "MiniMax",
+    "organizationId": "minimax"
   }
 ]
