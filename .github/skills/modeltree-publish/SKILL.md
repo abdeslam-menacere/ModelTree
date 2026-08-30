@@ -94,7 +94,8 @@ Until ADR 0006 it could not be: the ledger sat outside the ADR 0003 qualifying
 class, so a run that wrote its own entry was refused by `gate-scope.mjs` and
 forfeited the auto-merge it needed. The entry was therefore always transcribed by
 a human afterwards, and on three published runs out of three
-(abdeslam-menacere/ModelTree#422, #577, #607) the transcription was missed and
+(abdeslam-menacere/ModelTree#422, abdeslam-menacere/ModelTree#577,
+abdeslam-menacere/ModelTree#607) the transcription was missed and
 the `/refresh` page ran a full run stale. ADR 0006 put the ledger in class so
 this stage can exist. Read
 [`../../../docs/adr/0006-a-refresh-run-records-itself-in-its-own-pull-request.md`](../../../docs/adr/0006-a-refresh-run-records-itself-in-its-own-pull-request.md).

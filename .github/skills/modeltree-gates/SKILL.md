@@ -317,9 +317,10 @@ Those belong in `caveats`, and the schema's job — not this gate's — is to re
 a published run to carry its pull request reference.
 
 Two modes. Bare, it checks the branch as above. `--history [<ref>]` asks the
-different question that #419 was filed about: does the ledger record every run
-that published history declares? That is the completeness check, it needs no
-bundle, and `skills-ci` runs it on every pull request as `--history HEAD`.
+different question that abdeslam-menacere/ModelTree#419 was filed about: does the
+ledger record every run that published history declares? That is the completeness
+check, it needs no bundle, and `skills-ci` runs it on every pull request as
+`--history HEAD`.
 
 An entry added on a branch that changed no dataset document is a **transcription**
 — it describes work already published, so there is no diff here to reconcile it
