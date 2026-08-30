@@ -6259,3 +6259,123 @@ a.directory-letter:hover {
     padding-inline: 8px;
   }
 }
+
+/* --- Lineage experience hardening (issue #14) ---------------------------------
+ * Everything below is appended: no rule above this comment is edited, and the
+ * issue #523 marker comment further up is untouched.
+ *
+ * There is deliberately no transition, animation, or transform in this block. The
+ * universal `@media (prefers-reduced-motion: reduce)` killswitch above already
+ * neutralises motion with `!important`, and a block that declares none cannot
+ * have forgotten to stay inside its reach.
+ */
+
+/* `.tree-scroll` is `overflow-x: auto` above 980px, which makes it a scrollable
+ * region, so the markup gives it `role="region"` and `tabIndex={0}` -- content
+ * that only a pointer can reach fails WCAG 2.1.1. This gives that focus a visible
+ * ring, exactly as `.passport-table-scroll:focus-visible` already does for the
+ * passport's wide tables. */
+.tree-scroll:focus-visible {
+  outline: 2px solid var(--cp-accent);
+  outline-offset: 3px;
+}
+
+/* A word, not a hue. `.tree-release-node[data-selected="true"]` above changes only
+ * a border colour and a coloured ring, so which release was selected could not be
+ * read without perceiving colour. `aria-pressed` on the button already carries the
+ * state programmatically, so the chip is `aria-hidden` in the markup and exists
+ * purely to be seen.
+ *
+ * The selector is compounded on purpose. `.tree-release-node button span` above is
+ * (0,1,2) and would otherwise win on specificity over a lone `.tree-release-selected`
+ * (0,1,0), dropping this chip back to the muted body colour. (0,2,0) outranks it
+ * regardless of source order, so a later append cannot silently mute it again.
+ *
+ * No `text-transform` here, deliberately. `src/styles/primary-nav.test.ts` slices
+ * from the issue #523 marker to end of file and asserts `/\btransform\s*:/` never
+ * appears, and `\b` sits between the hyphen and the `t` -- so `text-transform`
+ * trips a guard about motion. That guard belongs to #523 and is not mine to widen,
+ * so the chip is cased in its own text instead. Both facts are filed as a
+ * follow-up; neither is worked around here. */
+.tree-release-node .tree-release-selected {
+  justify-self: start;
+  margin-top: 6px;
+  padding: 2px 9px;
+  border: 1px solid var(--cp-accent);
+  border-radius: 999px;
+  color: var(--cp-text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* WCAG 2.2 AA 2.5.8. `.text-action` is 13px type standing on its own in an action
+ * row, which lands near 20px tall; its neighbour `.primary-action` already floors
+ * at 44px. A minimum rather than a fixed height, so a label that wraps still grows
+ * rather than clipping. */
+.text-action {
+  min-height: 24px;
+}
+
+/* Contrast, measured rather than eyeballed. Two colours inside the lineage view
+ * fail WCAG AA 1.4.3 for normal-size text, and axe rates both `serious`:
+ *
+ *   .verification-mark      --cp-success #16a34a on #ffffff  = 3.30:1  (12px bold)
+ *   .lineage-longtail a     --cp-link    #0078d4 on #f7f4ef  = 4.12:1  (13px)
+ *
+ * 12px bold is not WCAG "large text" -- that starts at 18.66px bold -- so both
+ * need 4.5:1. The replacements are the same hues darkened until they clear it:
+ * #15803d is 5.01:1 on white, #0067b8 is 5.27:1 on #f7f4ef.
+ *
+ * Scoped to the one element that actually fails, not to every link in the
+ * lineage view. The wider `.lineage-explorer a` was tried first and was a
+ * regression: `.primary-action` is a link painted as a filled accent button, so
+ * recolouring its text put #0067b8 on #b11f4b at 1.14:1 -- a far worse violation
+ * than the one being fixed, and one the scan caught immediately. A link's colour
+ * is only safe to change where its background is known.
+ *
+ * `--cp-link` itself is a site-wide token and fails the same way on the
+ * homepage's release-pulse links and on the "data refresh" link in
+ * `BaseLayout.astro`; correcting it there is a site-wide change and is filed as
+ * a follow-up rather than taken here. `e2e/lineage-a11y.e2e.ts` records that
+ * remainder explicitly and still fails if it ever appears inside a lineage root.
+ *
+ * Light theme only. Dark theme's values (`--cp-link: #4da6ff`, `--cp-success:
+ * #4ade80`) sit on a #292929 surface and were not measured here, so nothing is
+ * claimed or changed for them. */
+:root {
+  --cp-link-accessible: #0067b8;
+  --cp-success-accessible: #15803d;
+}
+
+html[data-theme="dark"] {
+  --cp-link-accessible: var(--cp-link);
+  --cp-success-accessible: var(--cp-success);
+}
+
+.lineage-longtail a {
+  color: var(--cp-link-accessible);
+}
+
+/* Equal specificity to `.verification-mark` above, so this wins on source
+ * order -- which is the whole mechanism an append-only stylesheet runs on. */
+.verification-mark {
+  color: var(--cp-success-accessible);
+}
+
+/* The homepage explorer dims release nodes unrelated to the current selection:
+ * `.release-node[data-relation="unrelated"] { opacity: 0.72 }` above. Opacity
+ * composites the text too, so `--cp-text-muted` #5c5c5c on #ffffff -- 6.7:1
+ * on its own -- renders as #898989 on #fdfcfb, which is 3.41:1 and fails
+ * WCAG 1.4.3 for 12px and 13.3px normal text. Measured by axe on four nodes,
+ * settled, at both 1280px and 320px; it is a permanent state, not a transient
+ * one, and it is enabled text rather than disabled, so no exemption applies.
+ *
+ * 0.9 is the value that clears 4.5:1 with room (5.2:1 by the same composite,
+ * where 0.85 lands at 4.6:1 and 0.8 fails at 4.1:1). The dimming survives as
+ * reinforcement, which is all it was ever doing: the relation is already stated
+ * in words by the `.node-relation` chip, so nothing here is the sole
+ * non-colour signal for anything. */
+.release-node[data-relation="unrelated"] {
+  opacity: 0.9;
+}
