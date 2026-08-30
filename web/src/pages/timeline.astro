@@ -42,6 +42,10 @@ const eventCount = entries.length - releaseCount;
         each dated no more precisely than its source states. Every entry links to its
         source-backed Model Passport.
       </p>
+      <p>
+        For what each recorded change actually says — the note, the primary source, and the day it
+        was last re-checked — read the <a href={`${base}updates/`}>release updates</a> ledger.
+      </p>
     </header>
 
     <Timeline client:load entries={entries} facets={facets} years={years} />
