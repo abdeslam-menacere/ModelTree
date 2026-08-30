@@ -16,6 +16,7 @@ the right ones.
 | [`pages.yml`](pages.yml) | `push` to `main`, `workflow_dispatch` | Builds and deploys the site, reports a failed deploy, and resolves that report when the deploy recovers |
 | [`source-link-health.yml`](source-link-health.yml) | `schedule` (weekly), `pull_request` (every one), `workflow_dispatch`; both jobs scoped **inside the job** to `web/src/data/sources.json`, `.github/scripts/source-link-health/**` and `.github/workflows/source-link-health.yml` | Requests every recorded primary source URL and reports the ones that are definitively broken (404, 410) or permanently moved (301, 308), grouped by URL so one dead link is one finding however many records cite it. A rate-limit, a block, a timeout and a 5xx are each classified and **never** reported as a finding, because none of them is evidence the link is bad. On a schedule it opens or updates one maintenance issue and closes it when a later sweep is clean; on a pull request it can only report, and only about URLs that pull request itself introduced. It never writes to `web/src/data/` |
 | [`publish-updater-proposals.yml`](publish-updater-proposals.yml) | `workflow_dispatch` only | Files creator proposals as issues |
+| [`web-e2e.yml`](web-e2e.yml) | `pull_request` (every one) and `push` to `main`, both scoped **inside the job** to `web/**` and `.github/workflows/web-e2e.yml`; `workflow_dispatch` | The browser half of the site's checks: Playwright drives a real Chromium over `astro preview`, and asserts the lineage view's 320px layout, its keyboard journey, its reduced-motion behaviour, and axe accessibility scans at desktop and mobile widths. Separate from `web-ci.yml` because it needs a Chromium download, which does not belong inside `npm run build` and therefore inside every dock's and every gate agent's install |
 
 ## Status check names
 
@@ -34,6 +35,7 @@ satisfied, because GitHub waits for a check that no longer reports.
 | `skills-ci` | `skills-ci.yml` | **Yes** — but not required today, see below |
 | `source-link-health-tests` | `source-link-health.yml` | **Yes** — but not required today, see below |
 | `source-link-health` | `source-link-health.yml` | **No, and never** — see below |
+| `web-e2e` | `web-e2e.yml` | **Yes** — but not required today, see below |
 
 ### Why `web-ci` is safe to require
 
@@ -228,6 +230,29 @@ pointed at a private host, all of which it can decide by reading the string.
 Whether a well-formed URL still resolves is not knowable without asking, and no
 gate asks.
 
+### `web-e2e` runs in CI and cannot block a merge
+
+`web-e2e` reports on every pull request that touches `web/`, and it goes red when
+the browser assertions fail. **It is not a required status check**, so a red
+`web-e2e` does not stop a merge — only `web-ci` does that today.
+
+That is deliberate rather than an oversight. Making a check required is a change
+to branch protection, which is repository settings and a human decision, not
+something a workflow file can grant itself; recording it here is what keeps the
+gap visible instead of leaving someone to infer from a green tick that a gate was
+passed. The job id and its `name:` are both the literal string `web-e2e` and the
+job carries no `strategy.matrix`, so the name is stable enough to require
+whenever that decision is taken.
+
+It follows `web-ci`'s pattern in the way that matters for requirability: no
+`on.pull_request.paths` filter, an in-job scope gate instead, so it reports
+unconditionally and cannot become a check that never arrives. What it adds over
+`web-ci` is `npx playwright install --with-deps chromium`, roughly a
+150 MB download per run. That cost is the whole reason it is a separate
+workflow — inside `web-ci` it would land in `npm run build`, and therefore in
+every dock's install and both gate agents' runs, for a check almost none of them
+need.
+
 ### `drydock-gates` does not exist
 
 `drydock land` instructs the maintainer to require a `drydock-gates` check. **No
@@ -335,9 +360,9 @@ start from a wider default. Write scopes are granted per job, never globally:
 | `pages.yml` → `report-recovery` | `issues: write` | Close the stale-site issue once a deploy succeeds |
 | `publish-updater-proposals.yml` → `publish` | `issues: write`, `id-token: write` | Write proposal issues; sign in with workload identity |
 
-`web-ci.yml`, `skills-ci.yml`, `updater-tests.yml`, `instruction-references.yml`
-and `adr-numbers.yml` hold no write scope at all. Nothing in this directory can
-write repository content.
+`web-ci.yml`, `skills-ci.yml`, `updater-tests.yml`, `instruction-references.yml`,
+`adr-numbers.yml` and `web-e2e.yml` hold no write scope at all. Nothing in this
+directory can write repository content.
 
 ## A failed deploy is not a broken site
 
