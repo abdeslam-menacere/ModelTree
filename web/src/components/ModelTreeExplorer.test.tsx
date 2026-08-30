@@ -84,5 +84,23 @@ describe('ModelTreeExplorer', () => {
 
     expect(markup).toContain('Choose a model release');
     expect(markup).not.toContain('data-selected="true"');
+    // Nothing is selected, so the written selection marker must not be there either.
+    expect(markup).not.toContain('tree-release-selected');
+  });
+
+  it('names the scrollable hierarchy on an element that can carry the name', () => {
+    // `.tree-scroll` is `overflow-x: auto` above 980px. An `aria-label` on a
+    // role-less <div> is not exposed at all, and a scroll container no pointer
+    // reaches fails WCAG 2.1.1, so it is a focusable region -- the same shape
+    // `ModelPassport` already uses for its wide tables.
+    const markup = renderToStaticMarkup(
+      <ModelTreeExplorer tree={buildModelTree(dataset)} sourceByReleaseId={{}} basePath="/" />,
+    );
+    const scroll = markup.match(/<div class="tree-scroll"[^>]*>/)?.[0];
+
+    expect(scroll, 'Expected a .tree-scroll container').toBeDefined();
+    expect(scroll).toContain('role="region"');
+    expect(scroll).toContain('tabindex="0"');
+    expect(scroll).toContain('aria-label="Reviewed model ecosystem hierarchy"');
   });
 });

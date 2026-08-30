@@ -102,26 +102,38 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
                     <small>{releases.length} {releases.length === 1 ? 'release' : 'releases'}</small>
                   </button>
                   <ol id={familyContentId} className="tree-release-list" hidden={!familyOpen}>
-                    {releases.map((release) => (
-                      <li key={release.id}>
-                        <div
-                          className="tree-release-node"
-                          data-selected={release.id === selectedId ? 'true' : 'false'}
-                        >
-                          <button
-                            type="button"
-                            aria-pressed={release.id === selectedId}
-                            onClick={() => selectRelease(release.id)}
+                    {releases.map((release) => {
+                      const isSelected = release.id === selectedId;
+                      return (
+                        <li key={release.id}>
+                          <div
+                            className="tree-release-node"
+                            data-selected={isSelected ? 'true' : 'false'}
                           >
-                            <strong>{release.displayName}</strong>
-                            <span>{formatReleaseDate(release.releaseDate, release.datePrecision)} · {statusLabel(release.status)}</span>
-                          </button>
-                          <a href={`${normalizedBase}models/${release.slug}/`}>
-                            Passport<span className="visually-hidden"> for {release.displayName}</span>
-                          </a>
-                        </div>
-                      </li>
-                    ))}
+                            <button
+                              type="button"
+                              aria-pressed={isSelected}
+                              onClick={() => selectRelease(release.id)}
+                            >
+                              <strong>{release.displayName}</strong>
+                              <span>{formatReleaseDate(release.releaseDate, release.datePrecision)} · {statusLabel(release.status)}</span>
+                              {/* Selection is a border colour and a coloured ring otherwise,
+                                  which no one perceiving hue poorly can read. The word is
+                                  `aria-hidden` because `aria-pressed` above already carries
+                                  the state, and announcing it twice helps nobody. */}
+                              {isSelected && (
+                                <span className="tree-release-selected" aria-hidden="true">
+                                  Selected
+                                </span>
+                              )}
+                            </button>
+                            <a href={`${normalizedBase}models/${release.slug}/`}>
+                              Passport<span className="visually-hidden"> for {release.displayName}</span>
+                            </a>
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ol>
                 </li>
               );
@@ -135,7 +147,16 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
   return (
     <section className="model-tree-explorer" aria-label="Model lineage explorer">
       <div className="tree-workspace">
-        <div className="tree-scroll" aria-label="Reviewed model ecosystem hierarchy">
+        {/* `overflow-x: auto` above 980px makes this a scrollable region, so it has
+            to be reachable without a pointer, and `aria-label` only names an element
+            that has a role to carry the name. Both are the same shape the passport's
+            wide tables already use. */}
+        <div
+          className="tree-scroll"
+          role="region"
+          aria-label="Reviewed model ecosystem hierarchy"
+          tabIndex={0}
+        >
           <ul className="model-tree-list model-tree-root">
             <li>
               <button

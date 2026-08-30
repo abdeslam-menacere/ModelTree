@@ -166,4 +166,48 @@ describe('ModelTreeExplorer interactions', () => {
       'aria-expanded',
     )).toBe('true');
   });
+
+  it('says in words which release is selected, and moves the word with the selection', async () => {
+    // Selection was otherwise a border colour and a coloured ring, which is
+    // exactly the "colour is the only signal" failure. The word is `aria-hidden`
+    // because `aria-pressed` already carries the state, so this asserts the two
+    // signals separately: the attribute for assistive technology, the text for
+    // everyone reading the screen.
+    const user = userEvent.setup();
+    renderExplorer();
+
+    await waitFor(() => expect(creatorButton('Anthropic').getAttribute('aria-expanded')).toBe('false'));
+    await user.click(creatorButton('Anthropic'));
+    await user.click(screen.getByRole('button', { name: /^Claude 5/ }));
+
+    const opus = screen.getByRole('button', { name: /^Claude Opus 5/ });
+    const marker = () => document.querySelectorAll('.tree-release-selected');
+    expect(marker()).toHaveLength(0);
+
+    await user.click(opus);
+    expect(marker()).toHaveLength(1);
+    expect(opus.querySelector('.tree-release-selected')?.textContent?.trim()).toBe('Selected');
+    expect(opus.querySelector('.tree-release-selected')?.getAttribute('aria-hidden')).toBe('true');
+    expect(opus.getAttribute('aria-pressed')).toBe('true');
+
+    const sibling = screen.getAllByRole('button', { name: /^Claude Sonnet 5/ })[0];
+    await user.click(sibling);
+    expect(marker()).toHaveLength(1);
+    expect(opus.querySelector('.tree-release-selected')).toBeNull();
+    expect(sibling.querySelector('.tree-release-selected')?.textContent?.trim()).toBe('Selected');
+  });
+
+  it('exposes the scrollable hierarchy as a named region in the tab order', async () => {
+    renderExplorer();
+    const scroll = screen.getByRole('region', { name: 'Reviewed model ecosystem hierarchy' });
+
+    expect(scroll.classList.contains('tree-scroll')).toBe(true);
+    expect(scroll.getAttribute('tabindex')).toBe('0');
+
+    // Verified by test only as far as jsdom can go: the element is in the tab
+    // order and accepts focus. Whether the ring is painted is asserted in the
+    // browser, in `e2e/lineage-keyboard.e2e.ts`.
+    scroll.focus();
+    expect(document.activeElement).toBe(scroll);
+  });
 });
