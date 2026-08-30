@@ -98,7 +98,17 @@ const CHECKS = [
     checks: ['web-ci'],
     workflow: '.github/workflows/web-ci.yml',
     job: 'web-ci',
-    trigger: { kind: 'in-job-scope', pattern: '^(web/|\\.github/workflows/web-ci\\.yml$)' },
+    trigger: {
+      kind: 'in-job-scope',
+      pattern:
+        '^(web/|\\.github/workflows/|\\.github/scripts/ci-preflight\\.mjs$'
+        + '|\\.github/skills/modeltree-gates/scripts/gate-(dataset|evidence|scope)\\.mjs$'
+        + '|\\.github/skills/modeltree-review/SKILL\\.md$|\\.github/ISSUE_TEMPLATE/'
+        + '|\\.github/CODEOWNERS$|\\.github/pull_request_template\\.md$|CONTRIBUTING\\.md$'
+        + '|docs/contributing/minimal-dataset-example\\.json$'
+        + '|docs/product/INFORMATION-ARCHITECTURE\\.md$'
+        + '|tools/updater/profiles/[^/]+\\.[jJ][sS][oO][nN]$)',
+    },
     // Three commands rather than one `npm run build`, matching the workflow's
     // three separately-named steps, so a red preflight names which one failed.
     // `npm run build` is `npm run validate && astro build` and `npm run
@@ -293,19 +303,29 @@ const CHECKS = [
    * It exists because every entry above is a *copy* of a workflow's triggers and
    * commands, and a copy can drift from its original. The tests in
    * `web/tests/workflows/ci-preflight.test.ts` compare both sides and catch that
-   * drift -- but they run under `web-ci`, whose scope is `^(web/|...web-ci\.yml$)`,
-   * so a change to `.github/workflows/skills-ci.yml` selected `skills-ci` alone
-   * and never ran them. The guard existed and was simply never chosen: editing a
-   * workflow could make this script's copy wrong while the run still reported
-   * PASS, which is the unearned green this script exists to remove, one level up.
+   * drift -- but they ran under `web-ci`, whose scope was
+   * `^(web/|\.github/workflows/web-ci\.yml$)`, so a change to
+   * `.github/workflows/skills-ci.yml` selected `skills-ci` alone and never ran
+   * them. The guard existed and was simply never chosen: editing a workflow
+   * could make this script's copy wrong while the run still reported PASS, which
+   * is the unearned green this script exists to remove, one level up.
    *
    * The fix is selection, not a YAML interpreter. When the change touches a
    * workflow -- or this script, or its tests -- run the fidelity tests directly.
    *
-   * Note it deliberately does **not** mirror `web-ci`'s trigger. Widening that
-   * copy would break `copies the in-job scope pattern of every unfiltered
-   * workflow exactly`, which asserts the copy equals the committed original --
-   * reddening the very test this entry exists to run.
+   * `web-ci`'s own scope has since been widened to cover `.github/workflows/`
+   * and this script (#477), so these paths now select `web-ci` as well. That
+   * does not make this entry redundant. `web-ci` runs the whole suite, the
+   * diagnostics and a production build and needs `web/node_modules` to do any of
+   * it; this runs the one file that compares the copies, so the fidelity answer
+   * survives a `web-ci` leg that could not run. It also keeps the fidelity tests
+   * selected on their own terms rather than as a consequence of another check's
+   * scope, which is the coupling that produced the gap in the first place.
+   *
+   * Note it deliberately does **not** mirror `web-ci`'s trigger, then or now.
+   * Copying that pattern here would break `copies the in-job scope pattern of
+   * every unfiltered workflow exactly`, which asserts each copy equals its
+   * committed original -- reddening the very test this entry exists to run.
    */
   {
     id: 'preflight-self-check',

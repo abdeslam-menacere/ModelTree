@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 
@@ -314,12 +315,153 @@ describe('web-ci.yml scope detection', () => {
     expect(matchesPath.test('.github/workflows/web-ci.yml')).toBe(true);
   });
 
-  // Acceptance criterion: a pull request touching only tools/updater/ is
-  // unaffected. That package belongs to updater-tests.yml.
-  it('skips a change confined to tools/updater/', () => {
+  // #477. `web/tests/workflows/` holds a test per workflow, and the scope step
+  // decided by `^(web/|\.github/workflows/web-ci\.yml$)` -- so a pull request
+  // changing only `skills-ci.yml` ran no web test at all, including the one
+  // whose entire subject is that workflow. The test that guards a workflow did
+  // not run when that workflow changed.
+  //
+  // Read out of the real directory rather than from a list, so a workflow added
+  // later is covered without anyone remembering to extend this test. Same
+  // arrangement, and same reason, as the per-workflow case in
+  // `ci-preflight.test.ts`.
+  it('builds when any workflow changes, since a test under web/ reads each one', () => {
+    const workflowDir = fileURLToPath(new URL('../../../.github/workflows/', import.meta.url));
+    const entries = readdirSync(workflowDir);
+
+    expect(entries.length).toBeGreaterThan(1);
+
+    for (const entry of entries) {
+      expect(
+        matchesPath.test(`.github/workflows/${entry}`),
+        `a change to .github/workflows/${entry} must run the web suite`,
+      ).toBe(true);
+    }
+  });
+
+  /**
+   * The rest of the derived set: every path outside `web/` that a file under
+   * `web/` reads, paired with the reader that makes it qualify. The scope
+   * comment in the workflow records the same derivation; this pins it, so
+   * narrowing the regex fails here rather than silently leaving a test
+   * unselected when its own subject changes.
+   */
+  const readOutsideWeb: [path: string, reader: string][] = [
+    ['.github/workflows/README.md', 'web-ci.test.ts and skills-ci.test.ts'],
+    ['.github/scripts/ci-preflight.mjs', 'tests/workflows/ci-preflight.test.ts'],
+    [
+      '.github/skills/modeltree-gates/scripts/gate-dataset.mjs',
+      'tests/workflows/skills-ci.test.ts',
+    ],
+    [
+      '.github/skills/modeltree-gates/scripts/gate-evidence.mjs',
+      'src/data/featured-creator-profile.test.ts, which imports it',
+    ],
+    [
+      '.github/skills/modeltree-gates/scripts/gate-scope.mjs',
+      'tests/contributing/issue-forms.test.ts',
+    ],
+    [
+      '.github/skills/modeltree-review/SKILL.md',
+      'src/data/organization-type-policy.test.ts and osi-approved-evidence-policy.test.ts',
+    ],
+    ['.github/ISSUE_TEMPLATE/data-correction.yml', 'tests/contributing/issue-forms.test.ts'],
+    ['.github/CODEOWNERS', 'tests/contributing/issue-forms.test.ts'],
+    ['.github/pull_request_template.md', 'tests/contributing/issue-forms.test.ts'],
+    ['CONTRIBUTING.md', 'tests/contributing/issue-forms.test.ts'],
+    [
+      'docs/contributing/minimal-dataset-example.json',
+      'tests/contributing/issue-forms.test.ts',
+    ],
+    [
+      'docs/product/INFORMATION-ARCHITECTURE.md',
+      'src/data/catalog-inclusion-policy.test.ts, featured-policy.test.ts and '
+        + 'organization-type-policy.test.ts',
+    ],
+    [
+      'tools/updater/profiles/anthropic.json',
+      'src/data/featured-creator-profile.test.ts, through the gate-evidence.mjs it imports',
+    ],
+  ];
+
+  it.each(readOutsideWeb)('builds when %s changes, which %s reads', (path) => {
+    expect(matchesPath.test(path)).toBe(true);
+  });
+
+  // #477, second instance and the one the first derivation missed.
+  // `src/data/featured-creator-profile.test.ts` imports `reviewedCreatorIds`
+  // from `gate-evidence.mjs`, and that function reads `tools/updater/profiles/`
+  // off disk -- so a profile document changes the set that test asserts over,
+  // while the literal naming the directory lives in the imported module and
+  // nowhere under `web/`. Deriving the scope from literals inside `web/` alone
+  // therefore selected the script but not the data the script reads, leaving
+  // the same defect standing one level down: editing a profile could redden the
+  // web suite with `web-ci` never running.
+  //
+  // Read out of the real directory rather than from a list, so a creator
+  // profile added later is covered without anyone remembering to extend this.
+  it('builds when a reviewed profile document changes', () => {
+    const profileDir = fileURLToPath(new URL('../../../tools/updater/profiles/', import.meta.url));
+    const documents = readdirSync(profileDir, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.json'));
+
+    expect(documents.length).toBeGreaterThan(0);
+
+    for (const entry of documents) {
+      expect(
+        matchesPath.test(`tools/updater/profiles/${entry.name}`),
+        `a change to tools/updater/profiles/${entry.name} must run the web suite`,
+      ).toBe(true);
+    }
+  });
+
+  // The extension is matched case-insensitively because `reviewedCreatorIds`
+  // *throws* on a name whose extension differs from `.json` only in case rather
+  // than skipping it: that file is one document alongside its lowercase twin on
+  // Windows and two documents on the Linux CI runs, so the reviewed set would
+  // otherwise depend on which filesystem read it (#246). A throw reddens the
+  // importing test, so such a rename has to select this workflow -- an
+  // extension-exact pattern would leave precisely the platform divergence that
+  // reader exists to refuse sitting unbuilt.
+  it('builds for a profile whose extension is misspelled only in case', () => {
+    expect(matchesPath.test('tools/updater/profiles/anthropic.JSON')).toBe(true);
+    expect(matchesPath.test('tools/updater/profiles/anthropic.Json')).toBe(true);
+  });
+
+  // The paired control, and the reason the entry above names documents in one
+  // directory rather than the directory itself. That read is not recursive and
+  // skips anything that is not a file, so nothing nested here can change its
+  // answer -- the long-tail profiles under `generic/` and `origins/` least of
+  // all. The rest of the Python package is not read by any test under `web/`
+  // and belongs to `updater-tests.yml`.
+  //
+  // `.github/workflows/updater-tests.yml` was itself asserted as a non-match
+  // until #477. It is a workflow, and `ci-preflight.test.ts` parses every
+  // workflow, so a change to it can redden the web suite; it now matches on
+  // purpose. The Python package it covers still does not.
+  it('skips a change confined to the rest of tools/updater/', () => {
     expect(matchesPath.test('tools/updater/pyproject.toml')).toBe(false);
     expect(matchesPath.test('tools/updater/src/modeltree_updater/run.py')).toBe(false);
-    expect(matchesPath.test('.github/workflows/updater-tests.yml')).toBe(false);
+    expect(matchesPath.test('tools/updater/profiles/README.md')).toBe(false);
+    expect(matchesPath.test('tools/updater/profiles/generic/long-tail.json')).toBe(false);
+    expect(matchesPath.test('tools/updater/profiles/origins/cohere.json')).toBe(false);
+    expect(matchesPath.test('tools/updater/profiles/origins/README.md')).toBe(false);
+  });
+
+  // The paired control, and the one that stops the widening above turning into
+  // "run the suite on everything". Each of these sits in a directory the scope
+  // step does match part of, so a regex that reached for the directory instead
+  // of the file would fail here -- which is the whole difference between a
+  // derived predicate and a broad one.
+  it('does not match a neighbour of a derived path that no web test reads', () => {
+    expect(matchesPath.test('.github/skills/modeltree-gates/SKILL.md')).toBe(false);
+    expect(matchesPath.test('.github/skills/modeltree-gates/scripts/gate-source-approval.mjs'))
+      .toBe(false);
+    expect(matchesPath.test('.github/scripts/check-skill-doc-test-counts.mjs')).toBe(false);
+    expect(matchesPath.test('.github/copilot-instructions.md')).toBe(false);
+    expect(matchesPath.test('docs/adr/0001-static-first-architecture.md')).toBe(false);
+    expect(matchesPath.test('docs/product/BACKLOG.md')).toBe(false);
+    expect(matchesPath.test('README.md')).toBe(false);
   });
 
   it('does not over-match paths that merely begin with the letters web', () => {
