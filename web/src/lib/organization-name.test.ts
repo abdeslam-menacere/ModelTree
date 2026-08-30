@@ -837,6 +837,82 @@ describe('the creator naming rule on surfaces added later', () => {
     return recordRoutes(source).length > 0;
   }
 
+  /**
+   * The word characters `\b` treats as part of an identifier, spelled out so the
+   * recogniser below can find a whole-word `organization` without a regex.
+   */
+  const IDENTIFIER_CHARACTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_';
+
+  /** The index of the last non-whitespace character at or before `from`. */
+  function lastNonSpace(source: string, from: number): number {
+    let at = from;
+    while (at >= 0 && source[at].trim() === '') at -= 1;
+    return at;
+  }
+
+  /** Whether `bindings` names the record itself, as a whole identifier. */
+  function namesTheRecord(bindings: string): boolean {
+    let token = '';
+    for (const character of `${bindings} `) {
+      if (IDENTIFIER_CHARACTERS.includes(character)) {
+        token += character;
+        continue;
+      }
+      if (token === 'organization') return true;
+      token = '';
+    }
+    return false;
+  }
+
+  /**
+   * Whether a module unpacks a record in a braced callback parameter --
+   * the same shape clause four of `RECORD_ROUTES` recognises, decided by a
+   * different mechanism: a backward scan from each `=>` for `)`, `}`, the `{`
+   * that opens it, and the `(` before it, with no regex anywhere in the shape
+   * test.
+   *
+   * This is deliberately a *second opinion* and never the finder. A test that
+   * located the clause's surfaces with its own copy of the clause's pattern
+   * would agree with a narrowed clause by construction and pass while real
+   * surfaces left the judged set -- which is the reason the sole-route
+   * assertion below asks the gate which route reached a module rather than
+   * re-deriving it. Used differentially the duplication inverts: the two
+   * mechanisms are only ever asserted to *agree*, so narrowing one and not the
+   * other is exactly what reddens. That is the membership pin, and it is what
+   * non-emptiness alone cannot give -- see the two assertions that follow.
+   *
+   * It mirrors the clause's semantics, not its syntax: `[^}]*` forbids a nested
+   * `}` inside the destructuring, so the backward walk to `{` refuses to cross
+   * one; `\(\s*\{` and `\}\s*\)` allow only whitespace on either side, so the
+   * scan skips whitespace and nothing else. Both forms are therefore blind to
+   * the same things -- a typed parameter `({ organization }: Props) =>`, a bare
+   * one, a comment -- and neither is blind to what follows the arrow, which is
+   * the axis a narrowing attacks.
+   *
+   * Keeping the two in step is a real cost, paid deliberately: a future
+   * *legitimate* change to the clause has to be made here too, and until it is,
+   * the pair below reddens. That is the alarm working, not a false one -- it
+   * says the shape the gate recognises has moved and no longer matches the shape
+   * the suite believes it recognises.
+   */
+  function unpacksRecordInBracedCallbackParameter(source: string): boolean {
+    for (let arrow = source.indexOf('=>'); arrow !== -1; arrow = source.indexOf('=>', arrow + 2)) {
+      const closeParen = lastNonSpace(source, arrow - 1);
+      if (source[closeParen] !== ')') continue;
+
+      const closeBrace = lastNonSpace(source, closeParen - 1);
+      if (source[closeBrace] !== '}') continue;
+
+      let openBrace = closeBrace - 1;
+      while (openBrace >= 0 && source[openBrace] !== '{' && source[openBrace] !== '}') openBrace -= 1;
+      if (openBrace < 0 || source[openBrace] !== '{') continue;
+
+      if (source[lastNonSpace(source, openBrace - 1)] !== '(') continue;
+      if (namesTheRecord(source.slice(openBrace + 1, closeBrace))) return true;
+    }
+    return false;
+  }
+
   it('reads a non-empty corpus from every swept directory, so the sweep below means something', () => {
     expect(modules.length).toBeGreaterThan(0);
     // Per-directory, not just in total: a corpus that silently lost one whole
@@ -997,6 +1073,41 @@ describe('the creator naming rule on surfaces added later', () => {
     expect(holdsOrganizationRecords(bareParameter)).toBe(false);
   });
 
+  it('recognises the braced callback parameter whatever follows the arrow, and never a bare one', () => {
+    // The recogniser's own contract, asserted at the shape level so it is a
+    // stated property rather than something inferred from today's corpus.
+    //
+    // The first three fixtures are the same parameter shape with three different
+    // callback bodies -- parenthesised, an expression, a block -- and that is the
+    // point rather than padding: the demonstrated narrowing in #573 works by
+    // making the gate care what follows the arrow, and the surfaces it drops are
+    // exactly the ones whose bodies are not parenthesised. A recogniser that
+    // shared that sensitivity would agree with the narrowed clause and the
+    // membership assertion would go quiet. So its blindness to the body is the
+    // property under test.
+    const bodies = [
+      'hierarchy.map(({ organization, families }) => (\n  <li>{organization.name}</li>\n));',
+      'ecosystems.map(({ organization }) => organization.slug);',
+      'creators.map(({ organization, families }) => {\n  return organization.id;\n});',
+    ];
+    for (const body of bodies) {
+      expect(unpacksRecordInBracedCallbackParameter(body), body).toBe(true);
+    }
+
+    // ...and the exclusions the clause makes, made here too, because the pair of
+    // assertions below is an agreement check and a recogniser that judged the
+    // bare-parameter view model would report the gate as having narrowed past a
+    // surface it is correct to skip. `ProviderDirectory.tsx` is that shape.
+    const notRecords = [
+      'directory.unclassified.map((organization) => (\n  <li>{organization.name}</li>\n));',
+      'families.map(({ family, releases }) => family.id);',
+      'items.map(({ organizationId }) => organizationId);',
+    ];
+    for (const source of notRecords) {
+      expect(unpacksRecordInBracedCallbackParameter(source), source).toBe(false);
+    }
+  });
+
   it('judges at least one real swept surface through the callback-parameter clause alone', () => {
     // The assertion above pins the clause's *verdict on synthetic strings*.
     // This one pins its *membership of the judged set*, and the two are not the
@@ -1019,9 +1130,18 @@ describe('the creator naming rule on surfaces added later', () => {
     // is added; a floor pins today's carriers from below, so deleting or
     // refactoring one of them would redden this suite for a reason that has
     // nothing to do with the creator-naming rule -- the same coupling objection
-    // that rules out pinning a filename. Non-emptiness is also enough: the
-    // demonstrated narrowing empties the set outright rather than thinning it,
-    // because the clause is these surfaces' only route in.
+    // that rules out pinning a filename.
+    //
+    // Non-emptiness is necessary and *not* sufficient, and the difference was
+    // measured rather than argued (#573). Narrowing this clause to require a
+    // parenthesised callback body leaves the homepage judged and drops the two
+    // lineage explorers -- three sole-route surfaces become one -- and this
+    // assertion stays green on the survivor while two real surfaces stop being
+    // read at all. So the set can thin without emptying, which is the same class
+    // of silent coverage loss one level in. What closes that is a membership
+    // pin, and it is the pair of assertions below; this one stays because a set
+    // that empties outright must still fail here, and because it is what makes
+    // the sole-route notion the next two build on worth asserting at all.
     //
     // Structural, not by path. No filename appears here: carriers are found by
     // asking the gate which of its routes reached each swept module, so a
@@ -1037,6 +1157,93 @@ describe('the creator naming rule on surfaces added later', () => {
       + 'so narrowing that clause would drop real surfaces out of the judged set '
       + `unnoticed (clause carriers: ${carriers.map(({ file }) => file).join(', ') || 'none'})`,
     ).toBeGreaterThan(0);
+  });
+
+  it('keeps every surface that unpacks a record in a braced callback parameter inside the judged set', () => {
+    // The membership pin. The assertion above says the sole-route set is not
+    // empty; this says no member of it silently leaves, which is the gap #573
+    // measured: narrow the clause to require a parenthesised callback body and
+    // the judged set goes from three of these surfaces to one while every
+    // assertion in this file stays green.
+    //
+    // Stated as a property, not as a list: every module that unpacks a record in
+    // a braced callback parameter must be judged by *some* route. No filename
+    // appears, so a rename or a move changes nothing; no count appears, so a new
+    // surface of this shape joins the corpus and passes on its own merits, and
+    // deleting one leaves an empty violation set rather than a missed floor.
+    // Judgement is asked of the whole gate rather than of clause four, because
+    // the defect is a surface that stops being read at all -- a future clause
+    // that reaches the same module by another route has lost nothing, and should
+    // not redden here.
+    //
+    // The independent recogniser is what makes this more than a tautology: ask
+    // the clause which modules it reaches and the answer moves with the clause,
+    // so a narrowing agrees with itself. See
+    // `unpacksRecordInBracedCallbackParameter` for why the duplication is the
+    // mechanism rather than a smell, and for the cost it carries.
+    const unpacking = modules.filter(({ source }) => (
+      unpacksRecordInBracedCallbackParameter(source)
+    ));
+
+    // Vacuity guard, in the same assertion rather than a separate test: an empty
+    // corpus, a broken sweep, or a recogniser that matches nothing would make the
+    // check below pass by having nothing to check.
+    expect(
+      unpacking.length,
+      'no swept surface unpacks a record in a braced callback parameter -- the recogniser '
+      + 'found nothing, so the membership check below is vacuous',
+    ).toBeGreaterThan(0);
+
+    const dropped = unpacking.filter(({ source }) => !holdsOrganizationRecords(source));
+
+    expect(
+      dropped.map(({ file }) => file),
+      'these surfaces unpack a record in a braced callback parameter but are no longer judged '
+      + 'by any route, so the sweep never reads them -- the record gate has narrowed past real '
+      + 'surfaces that were previously in the judged set',
+    ).toEqual([]);
+  });
+
+  it('recognises every surface the callback-parameter clause alone carries, so the membership check cannot go vacuous', () => {
+    // The other direction, and the reason the pair is a pin rather than a pair of
+    // one-way checks. The assertion above compares the recogniser against the
+    // gate; it would pass just as quietly if the *recogniser* were the thing that
+    // narrowed, because a recogniser that finds fewer surfaces has fewer to find
+    // unjudged. This catches that: a surface whose only route into the judged set
+    // is clause four must be one the recogniser also sees. Narrow either side
+    // alone and exactly one of these two assertions reddens.
+    //
+    // Scoped to sole-route carriers rather than to every clause carrier, because
+    // the clause's `[^}]*` can run past a `{` that opens an object literal and
+    // close on a `}` belonging to a later, inner destructuring -- so a module can
+    // match the clause without unpacking anything in a callback parameter at all.
+    // `model-tree.ts` did exactly that at the time of writing, and it is judged
+    // through the type import and a `.organizations` read regardless, so nothing
+    // about its coverage rests on the clause. Asserting agreement on every
+    // carrier would fail on that accident and teach the next reader to delete the
+    // check; asserting it where the clause is the only route is where agreement
+    // actually has to hold.
+    const soleRoute = modules.filter(({ source }) => {
+      const routes = recordRoutes(source);
+      return routes.length === 1 && routes.includes(CALLBACK_PARAMETER_ROUTE);
+    });
+
+    expect(
+      soleRoute.length,
+      `no swept surface is judged through ${CALLBACK_PARAMETER_ROUTE} alone, so this `
+      + 'agreement check has nothing to compare',
+    ).toBeGreaterThan(0);
+
+    const unrecognised = soleRoute.filter(({ source }) => (
+      !unpacksRecordInBracedCallbackParameter(source)
+    ));
+
+    expect(
+      unrecognised.map(({ file }) => file),
+      'the record gate judges these surfaces through the callback-parameter clause alone, but '
+      + 'the independent recogniser no longer sees the shape in them -- the two have drifted '
+      + 'apart, and the membership assertion above can no longer be trusted',
+    ).toEqual([]);
   });
 
   it('sweeps a module that only ever destructures an organization record', () => {
