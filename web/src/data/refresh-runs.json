@@ -1,5 +1,264 @@
 [
   {
+    "id": "2026-08-29-34e751",
+    "title": "Data refresh 2026-08-29",
+    "ranOn": "2026-08-29",
+    "outcome": "published",
+    "summary": "An agent-run, source-backed refresh under ADR 0003. All 17 creators in organizations.json were scouted; 32 pages were fetched and hashed across 18 creator slugs, and only two creators produced claims at all — Anthropic with three and OpenAI with one. Fifteen blind reviewers cast fifteen verdicts across three rubrics, eight deterministic checks passed, and three edits landed across two dataset documents before GitHub merged PR #529 on a green web-ci and Pages deployed successfully. The principal finding is small and was sitting in plain sight: the anthropic-claude-4-8 family existed with no release record and therefore rendered empty, so this run added the missing Claude Opus 4.8 release and the docs page it is sourced from. No human reviewed any part of it. This entry was transcribed a day late — see the caveats.",
+    "scope": "Every creator in organizations.json — ai2, ai21-labs, amazon, anthropic, alibaba-cloud, cohere, deepseek, google-deepmind, meta, microsoft, mistral-ai, moonshot-ai, nvidia, openai, tii, xai, zhipu-ai — under the pilot 2-of-3 policy.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Anchor a6a3dfc, selected by merge-base with refs/remotes/origin/main and computed by the gate rather than supplied — requestedBase was null. The approved-origin catalogue parsed cleanly at that anchor: 147 dataset sources and 12 profile catalogues out of 13 profile files, yielding 33 approved origins. The one profile listed but not drawn on is tools/updater/profiles/generic/long-tail.json, which configures no origins. The anchor is therefore full rather than silently narrowed."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "32 pages fetched and hashed across 18 creator slugs. Every quote was extracted by anchor from fetched page text, so none is a recollection. No page budget was exhausted. ai.meta.com/blog/ returned HTTP 400 to every request tried, including with a browser User-Agent and a cookie jar, so Meta scouting fell back to huggingface.co/meta-llama, an approved origin; no Meta claim rested on the unreachable page and no Meta record changed. The 15 creators outside Anthropic and OpenAI produced coverage observations rather than claims."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Three independent reviewers per claim, launched in parallel across different model families, none seeing the scout's reasoning, another reviewer's verdict, or the running tally. The chair did not vote. One claim was reviewed twice and this is disclosed rather than hidden: round 1's provenance reviewer rejected the Opus 4.8 release because no attached quote stated the modalities, which was a mechanical defect — the bundle generator's block extractor matched an earlier occurrence of \"Context window 1M tokens\", so the \"Input → output Text and images → text\" line was never attached. The rubric's own remedy for a missing quote is to attach it, so the anchor was fixed, intendedUse was tightened to attribute rather than assert, and three fresh reviewers re-reviewed. Round 2's provenance reviewer rejected again on different, judgment-based grounds and the claim was not revised a third time: repeated revision to chase a verdict is vote-shopping. Fifteen verdicts were cast in total; the twelve from the final panels are published verbatim in the pull request body, and round 1's three rationales were not preserved."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-evidence and gate-source-approval ran per creator before anything was applied; gate-dataset, npm run validate and gate-scope ran afterwards. No gate was skipped, no threshold lowered, no --force, no --admin, no --base override, and no direct push to main. gate-scope reported changed: 2, empty: false, outOfClass: [], so the change sat inside the ADR 0003 qualifying class and was eligible to auto-merge."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "PR #529 carried the full evidence trail and was merged by GitHub via --auto once web-ci was green, not by the agent. Merge commit 0794286."
+      },
+      {
+        "stage": "deploy",
+        "status": "ran",
+        "note": "Pages deploy run 33250588183 on main succeeded, and https://abdeslam-menacere.github.io/ModelTree/models/claude-opus-4-8/ returned HTTP 200 serving the new record. No revert needed."
+      }
+    ],
+    "found": {
+      "scouts": 17,
+      "pagesFetched": 32,
+      "claimsProposed": 4,
+      "bundles": [
+        {
+          "creator": "anthropic",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 1
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "add",
+          "count": 2,
+          "effect": "One release and one source proposed; both survived every stage and were applied."
+        },
+        {
+          "kind": "unchanged",
+          "count": 2,
+          "effect": "Re-verified against a primary source; no value changed. One had its verification date advanced and one had it withheld."
+        }
+      ],
+      "notCovered": [
+        "Fifteen of the seventeen creators scouted produced no claim at all. That is an honest zero per creator rather than a skipped stage, but it also means their records carry this run's attention without carrying its verification date.",
+        "ai.meta.com/blog/ returns HTTP 400 to this client and was not read; huggingface.co/meta-llama was used instead.",
+        "Google, Microsoft, Amazon, Cohere and OpenAI audio models remain uncovered by any claim this run could assemble.",
+        "Mistral Medium 3.5 was deliberately not claimed. Its release date is ambiguous between a product post dated 2026-05-22 and a version string reading \"v 26.04\", and an ambiguity is a finding rather than a coin to toss."
+      ]
+    },
+    "evaluated": {
+      "reviewers": 15,
+      "verdictsCast": 15,
+      "acceptedByPanel": 4,
+      "rejectedByPanel": 0,
+      "dissents": [
+        {
+          "claimId": "anthropic-claude-opus-4-8-release-add",
+          "rubric": "provenance",
+          "objection": "accessType \"proprietary-hosted\" is not forced by the quotes, because hosted availability does not exclude downloadable weights; and predecessorIds: [] under-states an announcement that calls Opus 4.7 \"its predecessor\". Outvoted 2-1. The claim was applied and both points are recorded here and in the pull request body as unresolved dissent rather than smoothed over."
+        },
+        {
+          "claimId": "anthropic-claude-mythos-5-limited-release-unchanged",
+          "rubric": "provenance",
+          "objection": "The quotes do not uniquely force status \"preview\" over \"current\", and do not re-state the recorded intendedUse. Outvoted 2-1, and materially right in the event: the claim reached its threshold and still applied nothing, because the verification date it would have advanced was withheld on separate grounds."
+        }
+      ],
+      "gates": [
+        {
+          "gate": "gate-evidence.mjs",
+          "scope": "anthropic",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Policy pilot, threshold 2. Three claims, of which two were applicable."
+        },
+        {
+          "gate": "gate-evidence.mjs",
+          "scope": "openai",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Policy pilot, threshold 2. One claim, none applicable — an unchanged claim applies nothing."
+        },
+        {
+          "gate": "gate-source-approval.mjs",
+          "scope": "anthropic",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Four cited sources were inherited and one was proposed: anthropic-opus-4-8-docs, on https://platform.claude.com — an origin already approved at the anchor commit and already carrying inherited sources, so no new origin was introduced. No source was refused."
+        },
+        {
+          "gate": "gate-source-approval.mjs",
+          "scope": "openai",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "The one cited source, openai-gpt-5-6-sol-docs, was inherited from an already approved origin. No source was refused."
+        },
+        {
+          "gate": "gate-dataset.mjs",
+          "scope": "web/src/data",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "148 sources, 26 publishers, 17 organizations, 37 families, 64 releases, 7 model-fit statements."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "web/",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "1613 tests executed across 71 files; astro check reported 0 errors."
+        },
+        {
+          "gate": "gate-scope.mjs",
+          "scope": "branch vs merge-base",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "changed: 2, empty: false, outOfClass: []. Anchored on the merge-base the gate computed rather than one supplied to it."
+        },
+        {
+          "gate": "web-ci",
+          "scope": "PR #529",
+          "outcome": "pass",
+          "required": true,
+          "detail": "SUCCESS. GitHub performed the merge via --auto on this check going green; the agent did not merge."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 3,
+      "documents": [
+        {
+          "document": "releases.json",
+          "recordsBefore": 63,
+          "recordsAfter": 64,
+          "note": "One release added: anthropic-claude-opus-4-8. openai-gpt-5-6-sol had its verifiedAt advanced to 2026-08-29."
+        },
+        {
+          "document": "sources.json",
+          "recordsBefore": 147,
+          "recordsAfter": 148,
+          "note": "One source added: anthropic-opus-4-8-docs — the platform.claude.com model overview page the Opus 4.8 release is drawn from, accepted 3-of-3 on an origin already approved at the anchor commit. lastCheckedDate moved to 2026-08-29 on three of the four inherited sources re-read this run; anthropic-fable-5-mythos-5-docs was held at 2026-08-26 with the Mythos 5 claim it belongs to. Sources are listed here rather than under the posted records below, which carry links and so hold only the collections the site routes."
+        }
+      ],
+      "records": [
+        {
+          "id": "anthropic-claude-opus-4-8",
+          "collection": "releases",
+          "note": "New release — released 2026-05-28, status legacy, 1M context and 128K max output, text and image in, text out, API alias claude-opus-4-8. Fills the anthropic-claude-4-8 family, which until now had no release and rendered empty. Carries the recorded provenance dissent on accessType and on its empty lineage arrays."
+        }
+      ]
+    },
+    "withheld": [
+      {
+        "id": "releases/anthropic-claude-mythos-5.verifiedAt",
+        "category": "verification-held",
+        "detail": "Held at 2026-08-15; nothing was applied for this claim despite it reaching its threshold. validate.ts forbids guidance dated before the evidence beneath it, and fit-claude-mythos-5-limited-availability, verified 2026-08-15, rests on this release's status and intendedUse. Advancing the release would have silently invalidated that fit statement — validation failed exactly this way when it was first attempted. Re-dating guidance this run gathered no evidence for would have been the larger claim, so the date was withheld instead. This also matches how gate-evidence treats unchanged claims, which apply nothing.",
+        "blockedBy": [
+          "fit-claude-mythos-5-limited-availability",
+          "validate.ts"
+        ]
+      },
+      {
+        "id": "mistral-medium-3-5",
+        "category": "conflict-recorded",
+        "detail": "Not claimed at all. Its release date is ambiguous between a product post dated 2026-05-22 and a version string reading \"v 26.04\". Neither reading is forced by the other, so the run recorded the disagreement rather than picking a side. The dataset still holds nothing on this model, which is the cost of leaving the ambiguity explicit.",
+        "blockedBy": []
+      },
+      {
+        "id": "meta-announcement-index",
+        "category": "not-covered",
+        "detail": "https://ai.meta.com/blog/ returns HTTP 400 to every request tried, including with a browser User-Agent and a cookie jar. Meta scouting fell back to huggingface.co/meta-llama, an approved origin. No Meta claim rested on the unreachable page and no Meta record changed, so absence of a Meta finding here is not evidence that there was nothing to find.",
+        "blockedBy": [
+          "https://ai.meta.com/blog/"
+        ]
+      },
+      {
+        "id": "coverage-google-microsoft-amazon-cohere-openai-audio",
+        "category": "not-covered",
+        "detail": "Google, Microsoft, Amazon, Cohere and OpenAI audio models were scouted and produced coverage observations rather than claims. The observations are carried as follow-ups below rather than being written into the dataset as inferences.",
+        "blockedBy": []
+      }
+    ],
+    "caveats": [
+      "No human reviewed the pull request. The evidence trail, the deterministic gates and the required web-ci check are the whole of the oversight.",
+      "A green run proves the dataset is internally coherent and that every applied claim carried a quote from an approved origin. It does not prove the sources are right.",
+      "Two creators out of seventeen produced claims. The other fifteen were read and yielded nothing claimable, so this run moved the dataset barely at all and its silence about them is not a clean bill of health.",
+      "Round 1's three review rationales for the Opus 4.8 release claim were not preserved verbatim in the run artifacts, so the audit trail for that claim starts at round 2. That gap is follow-up 6 and it is the reason the reviewer count here exceeds the twelve rationales published.",
+      "editsApplied counts the three claims that reached the dataset — two adds and one advanced verification date — following the convention of the earlier entries here. The merge commit also moves lastCheckedDate on three sources that rode along with those claims, which the diff shows and this count does not.",
+      "This entry was written on 2026-08-30, a day after the run, because the run could not record itself: refresh-runs.json sits outside the ADR 0003 qualifying class that gate-scope enforces, so including it in PR #529 would have failed that gate and forfeited auto-merge. The transcription needs its own human-merged pull request, and for this run that pull request was initially never opened. The absence was noticed only when a reader asked why the page showed no 2026-08-29 line."
+    ],
+    "followUps": [
+      "Re-verify fit-claude-mythos-5-limited-availability so the Mythos 5 release verifiedAt can move. It is blocking a routine re-verification today.",
+      "Populate predecessorIds and successorIds across the Claude Opus line. Opus 4.6, 4.7 and now 4.8 all carry empty lineage arrays while the announcements state the relationships explicitly. Fix the line as a whole rather than one record.",
+      "Resolve the Mistral Medium 3.5 release-date ambiguity — decide which of the two published dates the dataset should record, or record the ambiguity explicitly.",
+      "Close coverage gaps for Google, Microsoft, Amazon, Cohere, and OpenAI audio models.",
+      "Find a reachable Meta announcement index to replace ai.meta.com/blog.",
+      "Persist superseded review rounds verbatim in the run artifacts, so a corrected claim's first-round rationales survive for audit.",
+      "Nothing notices when a published run never gets transcribed into this log. The publishing skill set opens the dataset pull request and files the summary issue, and the log entry is a separate human-merged change that no check requires; this run's line was missing for a day and only a reader's question surfaced it."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "PR #529 — feat(data): add Claude Opus 4.8 release and its docs source",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/529",
+        "state": "merged"
+      },
+      {
+        "kind": "issue",
+        "label": "Issue #530 — Data refresh 2026-08-29 run summary",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/530",
+        "state": "open"
+      },
+      {
+        "kind": "commit",
+        "label": "Merge commit 0794286",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/079428654acff7c76e1d73f4c43e3d3eb91da4f6",
+        "state": "on main"
+      },
+      {
+        "kind": "deployment",
+        "label": "Pages deploy run 33250588183",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/actions/runs/33250588183",
+        "state": "success"
+      }
+    ],
+    "recordedAt": "2026-08-30"
+  },
+  {
     "id": "2026-08-28-cff539",
     "title": "Long-tail refresh 2026-08-28 — Cohere",
     "ranOn": "2026-08-28",
