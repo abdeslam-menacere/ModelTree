@@ -771,6 +771,38 @@ describe('comparison payload', () => {
     // per-release figure moved 0.6% and kept 158 bytes of headroom under 1,600,
     // so this is the "catalogue simply grew" case again, and the total budget was
     // raised from 102,400 to 122,880 as a deliberate page-weight decision.
+    //
+    // abdeslam-menacere/ModelTree#584 added NAVER as one creator, one family and
+    // one release, growing the catalogue to 83 releases and 124,410 bytes (1,499
+    // per release). Measured against merge-base 7ca5802, which carried 82
+    // releases and 121,916 bytes at 1,487 per release: the per-release figure
+    // moved 0.8% and kept 101 bytes of headroom under 1,600, so this is the
+    // "catalogue simply grew" case a third time and the per-release guard below
+    // is untouched.
+    //
+    // Those figures are measured at the tip of the #584 branch and not at its
+    // first commit, because the branch moved its own number afterwards: the
+    // review correction that added the licence as a fourth cited source, with
+    // the agreement's proper name and its url on the release, took the total
+    // from 123,999 to 124,410. A page-weight figure recorded before the last
+    // data commit on the same branch understates it, so re-measure at the tip.
+    //
+    // Trimming was tried first, because that is what the smaller total asks for
+    // before it is raised, and it could not close the gap. 7ca5802 left 964 bytes
+    // of headroom under 122,880 while this creator costs 2,494 across the release
+    // record, the four source records the payload cites, and the licence name and
+    // url. Trimming the record's `intendedUse` and shortening the source ids
+    // recovered 204 of those bytes and left it 1,530 over 122,880; untrimmed it
+    // would have been 1,734 over. The rest could only have come from dropping a
+    // cited source or reducing the record to a stub, which trades away the
+    // provenance this dataset exists to carry for page weight. So the total was
+    // raised from 122,880 to 143,360, the same 20,480-byte step the two raises
+    // above took.
+    //
+    // Where not to look for those savings: buildComparisonPayload ships id, url,
+    // title, publisherId and lastCheckedDate for each cited source and drops
+    // `notes`, so the verbatim quotes this dataset argues from cost nothing here.
+    // Trimming a note buys no bytes and spends provenance.
     expect(
       size.bytesPerRelease,
       'a record got fatter — trim the payload rather than raising this',
@@ -778,10 +810,11 @@ describe('comparison payload', () => {
     expect(
       size.totalBytes,
       `/compare ships ${size.totalBytes} bytes for ${payload.releases.length} releases `
-      + `(${size.bytesPerRelease}/release, budget 122,880). Measured 106,676 over 74 releases at `
-      + 'the #545 merge-base. If the catalogue simply grew and the per-release figure held, raising '
-      + 'this is a deliberate page-weight decision; if the per-release figure moved too, trim instead.',
-    ).toBeLessThanOrEqual(122_880);
+      + `(${size.bytesPerRelease}/release, budget 143,360). Measured 124,410 over 83 releases at 1,499 `
+      + 'each when #584 last raised this, against 121,916 over 82 at its 7ca5802 merge-base. If the '
+      + 'catalogue simply grew and the per-release figure held, raising this is a deliberate '
+      + 'page-weight decision; if the per-release figure moved too, trim instead.',
+    ).toBeLessThanOrEqual(143_360);
   });
 
   it('ships only the sources something in the payload cites', () => {

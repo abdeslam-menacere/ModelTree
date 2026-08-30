@@ -140,6 +140,7 @@ describe('organization type policy', () => {
       '01-ai': 'company',
       'sakana-ai': 'company',
       'sarvam-ai': 'company',
+      naver: 'company',
     });
   });
 
@@ -396,6 +397,18 @@ describe('organization type policy', () => {
       // states that access is paid, so the paid-company clause is not claimed
       // from the existence of an API alone.
       'sarvam-ai': {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
+      },
+      // NAVER's announcement states the opposite of a paid offering for these
+      // weights -- the SEED models "can now be used for commercial purposes free
+      // of charge" -- and no NAVER page read for this record states that NAVER
+      // sells model products or access under its own name, so no fact is
+      // asserted and the fallback clause types it. NAVER Cloud's separate
+      // commercial offerings are not NAVER's sales for this purpose, and no
+      // source read here states the relation between the two anyway.
+      naver: {
         facts: {},
         type: 'company',
         clause: 'company-fallback',
