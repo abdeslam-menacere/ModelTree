@@ -1,0 +1,36 @@
+# Line-ending policy for this repository. See issue #570 for the measurements.
+#
+# Without this file the repository states no policy at all, so the working-tree
+# form of every checkout is decided by whatever `core.autocrlf` the machine
+# happens to carry -- per-user config, not versioned, and different for every
+# contributor.
+#
+# On a Windows checkout with `core.autocrlf=true` that produced a standing false
+# positive. `npm run validate` rewrites
+# web/src/components/__snapshots__/ModelPassport.test.tsx.snap with LF endings.
+# Git had recorded the CRLF checkout's size (40484 bytes) in the index stat
+# cache, and the LF rewrite is 40475 bytes, so the sizes disagreed. Git treats a
+# size mismatch as a modification without hashing the file, so `git status`
+# reported the snapshot modified while `git diff` reported nothing whatsoever --
+# the working-tree bytes hashed to the stored blob exactly.
+#
+# A path that reads as modified with an empty diff is indistinguishable from a
+# real uncommitted change to anyone checking their own scope before handing off,
+# and `git add -A` stages it just the same. The only thing that kept that from
+# corrupting an unrelated commit was that this particular rewrite happened to be
+# content-identical, which is a coincidence rather than a refusal by git.
+#
+# `eol=lf` is the half that fixes it: it pins the working-tree form to LF on
+# every platform, so a checkout matches byte-for-byte what the tooling writes
+# and no size ever disagrees. `text=auto` on its own would leave the working
+# tree on `core.eol`, which is native -- CRLF on Windows -- and the churn would
+# continue unchanged. `text=auto` is still worth stating, because it is what
+# normalises newly added files to LF in the index and what keeps genuinely
+# binary content out of the conversion.
+#
+# Deliberate limit: git does not convert a path whose indexed blob already
+# contains CR, so adding this file renormalises nothing and changes no tracked
+# content. 75 blobs are currently stored with CRLF and are left exactly as they
+# are. Converting them is a real decision with a real diff and belongs on its
+# own issue rather than arriving as a side effect of this one.
+* text=auto eol=lf
