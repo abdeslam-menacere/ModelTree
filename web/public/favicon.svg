@@ -1,10 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ModelTree">
-    <style>
-        :root { --cp-surface: #292929; --cp-accent: #fd8ea1; --cp-text: #ffffff; }
-    </style>
-    <rect width="64" height="64" rx="12" fill="var(--cp-surface)" />
-    <path d="M15 48V18l17 18 17-18v30M32 36V19" fill="none" stroke="var(--cp-accent)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
-    <circle cx="15" cy="18" r="4" fill="var(--cp-text)" />
-    <circle cx="32" cy="16" r="4" fill="var(--cp-text)" />
-    <circle cx="49" cy="18" r="4" fill="var(--cp-text)" />
+    <!-- The ModelTree mark: an abstract M whose strokes are branches, with three
+         release nodes across the crown. Refined for favicon scale in issue #31:
+         the stroke went 5 to 6 and the nodes 4 to 5.5, and the drawing widened
+         from x15..49 to x13..51 so it carries optical weight at 16px, where the
+         previous stroke resolved to 1.25 device pixels.
+
+         Deliberately not adaptive to `prefers-color-scheme`. A favicon's job is
+         instant recognition at 16px, and showing a different icon depending on
+         the reader's system setting works against that. Contrast is carried by
+         the cyan, which reads against both a light and a dark tab strip, so the
+         ground does not need to invert to stay legible. The in-page mark in
+         `BrandMark.astro` does adapt, because it sits on a themed page surface
+         rather than in chrome this document cannot see.
+
+         `src/components/brand-mark.test.ts` asserts this geometry stays in step
+         with the inline mark, `mask-icon.svg`, and `docs/assets/modeltree-logo.svg`. -->
+    <rect width="64" height="64" rx="14" fill="#0e1417" />
+    <path d="M13 50V17l19 20 19-20v33M32 37V18" fill="none" stroke="#3fd0e6" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+    <circle cx="13" cy="17" r="5.5" fill="#e4edf1" />
+    <circle cx="32" cy="15" r="5.5" fill="#e4edf1" />
+    <circle cx="51" cy="17" r="5.5" fill="#e4edf1" />
 </svg>

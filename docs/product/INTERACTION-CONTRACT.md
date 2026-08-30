@@ -6,10 +6,10 @@ below names the test that fails when it stops being true.
 
 It exists because these properties keep being re-derived. Issue #10 built the
 homepage explorer, #11 the release drawer, #12 search and filters, #523 the
-grouped navigation, and #14 hardened the lineage view across all of them. Each
-one settled the same handful of questions independently, and each one had to
-rediscover the answers by reading the stylesheet. This is the answer written
-down.
+grouped navigation, #14 hardened the lineage view across all of them, and #31
+settled the visual system and the brand mark. Each one settled the same handful
+of questions independently, and each one had to rediscover the answers by reading
+the stylesheet. This is the answer written down.
 
 ## Motion
 
@@ -95,20 +95,168 @@ release is not merely ringed in the accent colour — it says "Selected". An
 unrelated node is not merely dimmed — it carries a written relation chip.
 
 **Dimming composites text.** `opacity` on a container multiplies through to the
-text inside it, so a node dimmed to 0.72 renders `#5c5c5c` on white as `#898989`
-on `#fdfcfb` — 3.41:1, a WCAG 1.4.3 failure, on text that is enabled and
-therefore exempt from nothing. Dimming is safe as reinforcement only at a value
-that leaves the composited text above 4.5:1.
+text inside it, so a node dimmed to 0.72 rendered `#5c5c5c` on `#fdfcfb` as
+`#898989` — 3.41:1, a WCAG 1.4.3 failure, on text that is enabled and therefore
+exempt from nothing. (Those hexes are the pre-#31 palette; the mechanism is what
+survives the retune, and the current value is measured in the table below.)
+Dimming is safe as reinforcement only at a value that leaves the composited text
+above 4.5:1, which is why the tree's dimming is 0.9 and not the 0.8 it looks like
+it could be.
 
 **Colour choices are measured, not eyeballed.** A hex that "looks fine" on a
-white surface may sit on `--cp-bg` `#f7f4ef` where it is a full ratio worse, and
-a link recoloured without checking its background can land on a filled accent
-button at 1.14:1 — worse than what it was fixing. Read the background before
-changing a foreground.
+white surface may sit on `--cp-bg` where it is a full ratio worse, and a link
+recoloured without checking its background can land on a filled accent button at
+1.14:1 — worse than what it was fixing. Read the background before changing a
+foreground.
 
-*Enforced by:* `e2e/lineage-a11y.e2e.ts` (axe at `wcag2a` through `wcag22aa`,
-failing on `serious` and `critical`, at 1280px and 320px, on both lineage
-surfaces and with the drawer open).
+### The measured palette
+
+Every text token is required to clear 4.5:1 on **any** of the four surfaces the
+stylesheet can place it over — `--cp-bg`, `--cp-bg-elevated`, `--cp-surface`,
+`--cp-surface-soft` — not merely on the one it happens to sit on today. Which
+surface a component lands on is a fact about markup that moves; requiring the
+cross product means nobody has to re-ask the question per component.
+
+The figures below are the **worst** of those four, computed from the committed
+stylesheet (issue #31). They are the expectation an audit can test against
+rather than re-derive.
+
+| Token | Light | worst | Dark | worst |
+|---|---|---|---|---|
+| `--cp-text` | `#12191c` | 15.67 | `#e4edf1` | 12.99 |
+| `--cp-text-muted` | `#4a565b` | 6.67 | `#9aabb2` | 6.49 |
+| `--cp-text-soft` | `#5c696e` | 5.00 | `#b6c5cb` | 8.69 |
+| `--cp-accent` | `#0b6a76` | 5.55 | `#3fd0e6` | 8.36 |
+| `--cp-link` | `#0f5fa8` | 5.74 | `#63c8f5` | 8.16 |
+| `--cp-success` | `#136c37` | 5.73 | `#6ad884` | 8.64 |
+| `--cp-warning` | `#8a5300` | 5.58 | `#f0b542` | 8.37 |
+| `--cp-danger` | `#b3261e` | 5.76 | `#ff8f85` | 6.99 |
+
+Non-text and composited cases, against WCAG 1.4.11's 3:1:
+
+| Pair | Light | Dark |
+|---|---|---|
+| `--cp-accent-fg` on `--cp-accent` (filled button label) | 6.29 | 9.79 |
+| `--cp-accent` focus ring on `--cp-bg` | 5.80 | 10.06 |
+| `--cp-border-strong` on `--cp-bg` | 3.32 | 3.44 |
+| `--cp-border-strong` on `--cp-surface` | 3.60 | 3.10 |
+| `--cp-text-muted` dimmed to `opacity: 0.9` on `--cp-bg` | 5.45 | 6.53 |
+
+`--cp-border` is **not** in that table and is not required to reach 3:1 — it
+measures 1.40 light and 1.37 dark. It is a grouping hairline, never the sole
+indicator of a control's boundary or state; `--cp-border-strong` is the token for
+anything a user has to perceive. Confusing the two is the easy mistake here.
+
+**The accent is a hue family, not a hex.** `--cp-accent` is cyan in both themes
+but not the *same* cyan: a value light enough to read as electric on near-black
+is a deep teal by the time it has to be 13px text on paper. Dark carries the
+identity; light is the adaptive case. Both are measured above, and neither is
+allowed to fail the floor for the sake of matching the other.
+
+**Colour never implies a category the data does not record.** Creator, model,
+product and serving platform are separate entities, and no hue is assigned per
+provider or per vendor. There is no composite score and no universal ranking, so
+there is no scale for a colour ramp to encode. Status colours mean status.
+
+### Forced colours
+
+When `forced-colors: active`, the user has replaced the palette and the tokens no
+longer apply. The stylesheet defers rather than resists: system keywords take
+over the focus ring, selection fills, modal edges and button affordance, and the
+brand mark draws in `CanvasText` so it does not vanish into a background it can
+no longer see.
+
+Nothing in the stylesheet sets `outline: none`, anywhere, so focus survives the
+mode by construction rather than by a rule that has to be remembered.
+
+*Enforced by:* `src/styles/contrast.test.ts`, which parses both token blocks,
+resolves `var()` chains, composites translucent values and asserts the whole
+cross product above — with controls asserting it found the tokens it expected and
+that a deliberately failing pair is reported as failing;
+`src/styles/visual-system.test.ts` for the forced-colors block and for no raw
+colour literal surviving outside the token layer; and `e2e/lineage-a11y.e2e.ts`
+(axe at `wcag2a` through `wcag22aa`, failing on `serious` and `critical`, at
+1280px and 320px, on both lineage surfaces and with the drawer open).
+
+## Visual system
+
+The tokens are the contract. A component that needs a value should reach for a
+token, and a value that has no token is a signal that the system is missing a
+step rather than licence to write a literal.
+
+**Motion** is `--cp-motion-fast` (160ms), `--cp-motion-slow` (600ms),
+`--cp-motion-stagger` (120ms) and `--cp-motion-ease`. No duration is stated
+inline. See the Motion section above for why no component needs its own
+reduced-motion escape hatch.
+
+**Elevation** is `--cp-shadow-soft` and `--cp-scrim`. There are two of them
+because there are two things a raised surface does — cast a shadow, and dim what
+is behind a modal — and neither is a gradient, a blur or a glow.
+
+**Spacing, radius and type** exist as scales and are adopted at the surfaces
+issue #31 touched. They are deliberately **not** retrofitted across the whole
+stylesheet: a blanket sweep would be thousands of lines of churn with no visual
+delta. New work should use the scale; existing literals are left where they are
+until something else needs to change nearby.
+
+A token that nothing references is a defect, not a spare part. `--cp-sheen` sat
+declared and unused in both themes until #31 removed it, and the first draft of
+the #31 scale declared eighteen more of the same kind. `visual-system.test.ts`
+now fails on an unreferenced token, which is why the scale is the size it is.
+
+### Prohibited decoration
+
+Not stylistic preference — each of these either encodes something the data does
+not record, or costs legibility that the rest of this document is spent
+defending.
+
+- **No hotlinked company logos or brand imagery.** Assets are repository-
+  controlled files. A remote logo is a third-party request, a licensing
+  question, and a broken image in someone's future.
+- **No bokeh, orbs, glow, or glassmorphism.** Translucent panels put text on an
+  unpredictable background, which makes every ratio in the table above
+  unverifiable.
+- **No per-provider or rainbow colour coding.** See above: it implies a category
+  the dataset does not have.
+- **No decorative tree illustration behind content.** A dramatic visual tree
+  competes with the scanning task the explorer exists to serve. The palette
+  carries the identity; the layout carries the meaning.
+- **No composite score, badge, or ranking.** There is nothing to rank.
+
+*Enforced by:* `src/styles/visual-system.test.ts` for the token hygiene and the
+motion tokens; `src/components/brand-mark.test.ts` for the mark being a committed
+file in every copy rather than a remote reference.
+
+## Brand mark
+
+The mark exists in four copies, for four reasons that cannot be collapsed:
+inline in `BrandMark.astro` so it reads the token layer and the theme;
+`public/favicon.svg` because `<link rel="icon">` needs a file;
+`public/mask-icon.svg` as the monochrome silhouette Safari re-colours itself; and
+`docs/assets/modeltree-logo.svg` with literal colours, because GitHub's sanitiser
+strips embedded style blocks.
+
+**The in-page copy is inline, not an `<img>`.** An `<img>` is a separate
+document: it cannot see `html[data-theme]`, cannot read the token layer, and
+cannot respond to forced colours. A themed mark has to be inline to be themed at
+all.
+
+**The mark is decorative.** The anchor is labelled and the wordmark repeats the
+name in text, so the SVG is `aria-hidden` and the text stays the accessible name.
+A named mark would announce the brand three times for one link.
+
+**A standalone `.svg` is parsed as XML, which is strict.** A `--` inside a
+comment or an unescaped `&` makes the file undecodable and the icon renders as
+nothing, while looking entirely correct in an editor. This is not hypothetical —
+it happened during #31 and was caught by the parser check, not by any assertion
+that read the file as text.
+
+*Enforced by:* `src/components/brand-mark.test.ts` (geometry parity across all
+four copies, the 16px legibility arithmetic, XML well-formedness, and the byte
+budget) and `e2e/brand-mark.e2e.ts`, which renders the served asset in a real
+engine at 16px and 32px and measures ink coverage against a band set from
+measurement — with controls proving a blank plate falls under it and a filled
+block rises above it.
 
 ## Target size
 
@@ -167,5 +315,21 @@ route in the same spec that must fail that fingerprint.
 The browser suite runs as `npm run test:e2e` and in `.github/workflows/web-e2e.yml`.
 It is deliberately **not** part of `npm run validate`, because `validate` is
 inside `npm run build` and a Chromium download does not belong in every install.
-`web-e2e` is not a required status check; see
-[`.github/workflows/README.md`](../../.github/workflows/README.md).
+`web-e2e` **is** a required status check on `main` today, alongside `web-ci` and
+`skills-ci`. It was advisory when this document was first written, and the
+sentence that said so is corrected here; the table in
+[`.github/workflows/README.md`](../../.github/workflows/README.md) still records
+it as "not required today" and lags the same change. Branch protection is the
+authority for that question, and it lives outside the tree, so both documents are
+describing something neither of them controls.
+
+A flaky assertion in a required suite blocks every merge in the repository, not
+only the change that introduced it — which is why a threshold in it is expected
+to arrive with the measurement it was set from and a stated margin, rather than a
+round number that looked about right.
+
+One consequence is easy to miss: **`web-ci` and `web-e2e` self-skip on a pull
+request that touches no `web/` files, and still report SUCCESS.** That is a
+conditional step inside the job rather than a `paths:` filter, so the check
+appears green having executed nothing. A green tick is not evidence a suite ran;
+the run's own test summary is.
