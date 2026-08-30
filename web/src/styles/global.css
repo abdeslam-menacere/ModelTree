@@ -7030,6 +7030,27 @@ html[data-theme="dark"] {
   .brand-mark circle {
     fill: CanvasText;
   }
+
+  /* 6. The lineage connectors. These are the one case a screenshot caught and
+   *    reasoning did not: the branch lines between tree nodes, and the timeline
+   *    spine, are hairlines drawn as the `background` of a pseudo-element rather
+   *    than as a border. A forced palette rewrites `background-color` to
+   *    `Canvas`, so every connector disappeared while the nodes it joins stayed
+   *    perfectly visible -- leaving a lineage view that still showed what the
+   *    releases are and no longer showed what descends from what. That is the
+   *    structure this site exists to display, so it is restored to `CanvasText`
+   *    rather than left to the boxes to imply.
+   *
+   *    `.timeline-stop-head::before` is deliberately absent: it carries a real
+   *    border, so it survives the mode as a ring, and filling it here would turn
+   *    a stop marker into a blob to fix a problem it does not have. */
+  .model-tree-list ul::before,
+  .tree-release-list::before,
+  .model-tree-list ul > li::before,
+  .tree-release-list > li::before,
+  .timeline-entry::before {
+    background: CanvasText;
+  }
 }
 
 /* The brand lockup. The mark is an inline `<svg>` as of this issue, so the old

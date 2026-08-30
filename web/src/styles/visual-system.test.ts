@@ -94,6 +94,40 @@ describe('the stylesheet paints through the token layer, not around it', () => {
 describe('forced colours are handled where the palette stops applying', () => {
   const block = css.match(/@media \(forced-colors: active\) \{([\s\S]*?)\n\}/)?.[1];
 
+  it('keeps the lineage connectors visible when backgrounds are rewritten', () => {
+    // The branch lines between tree nodes are hairlines drawn as the
+    // `background` of a pseudo-element, not as borders. A forced palette
+    // rewrites `background-color` to `Canvas`, so without this rule every
+    // connector vanishes while the nodes stay visible -- a lineage view that
+    // shows the releases and not the lineage.
+    //
+    // Found by looking at a rendered screenshot, not by reading the stylesheet,
+    // which is why this assertion pairs the selector with the paint: a rule that
+    // listed the selectors and set the wrong property would read as correct.
+    for (const selector of [
+      '\\.model-tree-list ul::before',
+      '\\.tree-release-list::before',
+      '\\.model-tree-list ul > li::before',
+      '\\.tree-release-list > li::before',
+      '\\.timeline-entry::before',
+    ]) {
+      expect(block, `${selector} is not restored in forced colours`).toMatch(
+        new RegExp(selector),
+      );
+    }
+
+    expect(block).toMatch(/\.timeline-entry::before[^{]*\{[^}]*background:\s*CanvasText/);
+  });
+
+  it('leaves the connectors drawn from a border token outside forced colours', () => {
+    // The control for the rule above: the connectors must still be tokenised in
+    // the normal case. A blanket `CanvasText` that leaked out of the media query
+    // would satisfy the assertion above and wreck the default rendering.
+    expect(css).toMatch(
+      /\.model-tree-list ul::before,\s*\n\s*\.tree-release-list::before\s*\{[^}]*background:\s*var\(--cp-border-strong\)/,
+    );
+  });
+
   it('has a forced-colours block at all', () => {
     expect(block, 'no @media (forced-colors: active) block in global.css').toBeDefined();
   });
