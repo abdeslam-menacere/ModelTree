@@ -172,13 +172,14 @@ The empty-family rule runs family → release, the opposite direction from every
 other `familyId` check in that file, and it exists because the direction was the
 gap: a family nothing pointed at was unreachable by the gate rather than merely
 unchecked, and `web/src/lib/model-tree.ts` drops such a family from `/tree/`, so
-the published tree went quietly smaller than the dataset while every check stayed
-green (#441). It **refuses** rather than rendering the family with an empty
-state, and the reason is recorded in full above the rule itself: `lifecycleStatus`
-has no `announced`/`upcoming` member, so the dataset cannot distinguish a family
-deliberately awaiting its first release from a data error, and rendering the
-empty case would publish the error as though it were an announcement. If that
-vocabulary is ever added deliberately, revisit the rule with it.
+the published tree went quietly smaller than the dataset while every check
+stayed green (abdeslam-menacere/ModelTree#441). It **refuses** rather than
+rendering the family with an empty state, and the reason is recorded in full
+above the rule itself: `lifecycleStatus` has no `announced`/`upcoming` member,
+so the dataset cannot distinguish a family deliberately awaiting its first
+release from a data error, and rendering the empty case would publish the error
+as though it were an announcement. If that vocabulary is ever added
+deliberately, revisit the rule with it.
 
 Two things it deliberately does **not** check, so you do not assume coverage that
 is not there. Ids may be shared across collections: a single-release family and
