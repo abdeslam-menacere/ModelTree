@@ -85,7 +85,10 @@ the break above needed and which no command in this file invokes.
 
 Exit codes match the gates: **0** passed, **1** a check failed, **2** a check
 could not run. `--plan` prints what it would run without running anything and
-exits **2**, because a plan verifies nothing.
+exits **2**, because a plan verifies nothing. A run that selects no check at all
+exits **2** as well and says `NOTHING SELECTED`, because a run in which nothing
+executed has verified nothing either — the zero is reserved for a check that
+actually ran and actually passed.
 
 Every run prints what it does **not** cover — the networked `source-link-health`
 sweep, the second Python interpreter of the `pytest` matrix, the runner itself,

@@ -28,8 +28,16 @@
 // verifier is looking green while inspecting nothing.
 //
 // `--plan` prints what would run and exits **2**, not 0, precisely because it
-// verifies nothing. The only zero this script emits means "everything selected
+// verifies nothing. `--help` exits 2 for the same reason. So does a run that
+// selected no checks at all -- with nothing executed there is no failure and no
+// unknown to count, and returning 0 there would report a pass from a run that
+// inspected nothing. The only zero this script emits means "everything selected
 // ran and passed", so a caller cannot obtain a pass from it without one.
+//
+// Because exit 2 now covers both "a check could not run" and "there was nothing
+// to check", `--json` carries `empty` so the two can be told apart without
+// parsing prose. Exit 0 in `gate-scope.mjs` has the same dual reading and is
+// separated the same way.
 //
 // -- What decides which checks run --
 //
@@ -605,9 +613,13 @@ function main() {
   if (args.help) {
     process.stdout.write(
       'usage: ci-preflight.mjs [--repo <dir>] [--json]\n'
-      + '       ci-preflight.mjs --plan [--json]   (prints the plan, runs nothing, exits 2)\n',
+      + '       ci-preflight.mjs --plan [--json]   (prints the plan, runs nothing, exits 2)\n'
+      + '\n'
+      + 'Exit 0 means every selected check ran and passed. Printing this text\n'
+      + 'verifies nothing, so --help exits 2 for the same reason --plan does:\n'
+      + 'the only zero this script emits is one that was earned.\n',
     );
-    return 0;
+    return 2;
   }
 
   const cwd = args.repo ? resolve(args.repo) : repoRoot();
@@ -707,9 +719,25 @@ function main() {
   const failed = results.filter((result) => result.status === 'fail');
   const unknown = results.filter((result) => result.status === 'unknown');
   const passed = results.filter((result) => result.status === 'pass');
+  /*
+   * An empty selection is not a pass, and this is the case worth being careful
+   * about. When the branch changes nothing a pull-request check reads, no command
+   * runs -- so there is no failure and no unknown, and counting only those two
+   * returns zero from a run that verified nothing. A dock reading that PASS
+   * concludes CI is clear on the strength of a check that never executed, which is
+   * the exact inference abdeslam-menacere/ModelTree#560 exists to close, and it
+   * would be reproduced here inside the fix for it.
+   *
+   * So it is reported as exit 2 -- nothing was verified -- and never as a pass.
+   * `empty` is carried in the JSON as well, because "nothing to check" and
+   * "everything checked and passed" are different claims and a caller has to be
+   * able to tell them apart. Same reasoning, and the same field name, as the two
+   * readings of exit 0 that `gate-scope.mjs` separates.
+   */
+  const empty = selected.length === 0;
   // A definite red dominates an unknown, because it is the actionable one. Both
   // are non-zero; neither is a pass.
-  const code = failed.length > 0 ? 1 : unknown.length > 0 ? 2 : 0;
+  const code = failed.length > 0 ? 1 : (unknown.length > 0 || empty) ? 2 : 0;
 
   if (args.json) {
     process.stdout.write(`${JSON.stringify({
@@ -718,6 +746,7 @@ function main() {
       results,
       notSelected: skipped.map((entry) => ({ id: entry.check.id, checks: entry.check.checks })),
       notCovered: NOT_COVERED,
+      empty,
       passed: code === 0,
       exitCode: code,
     }, null, 2)}\n`);
@@ -731,7 +760,13 @@ function main() {
     for (const reason of result.reasons) process.stdout.write(`                ${reason}\n`);
   }
 
-  if (code === 0) {
+  if (empty) {
+    process.stdout.write(
+      '\nci-preflight: NOTHING SELECTED - no pull-request check reads anything this '
+      + 'branch changed.\nThis is not a pass: nothing was verified here, so it says '
+      + 'nothing about what CI will report.\n',
+    );
+  } else if (code === 0) {
     process.stdout.write(`\nci-preflight: PASS - ${passed.length} selected check group(s) ran and passed\n`);
   } else if (code === 1) {
     process.stdout.write(

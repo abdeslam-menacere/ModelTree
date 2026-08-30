@@ -187,10 +187,11 @@ The site is a static Astro build; everything lives under `web/`.
 
   It selects the pull-request checks your branch's diff actually triggers,
   measured from `git merge-base HEAD refs/remotes/origin/main`, and runs their
-  commands locally. Exit 0 passed, 1 a check failed, 2 a check could not run —
-  and 2 is never a pass. It prints what it does **not** cover on every run,
-  including the networked link-health sweep and the second Python interpreter;
-  read that before treating a green preflight as a green CI.
+  commands locally. Exit 0 passed, 1 a check failed, 2 a check could not run or
+  there was nothing to run — and 2 is never a pass. It prints what it does
+  **not** cover on every run, including the networked link-health sweep and the
+  second Python interpreter; read that before treating a green preflight as a
+  green CI.
   `.github/workflows/README.md` records the full mapping and its limits.
 - **Data changes are reviewable repository changes.** Seed data is versioned
   JSON in `web/src/data/`, validated with Zod. Never fetch at runtime — there is

@@ -264,8 +264,21 @@ every command it runs is a command one of the workflows above already runs.
 
 Exit **0** means every selected check ran and passed; **1** that one failed;
 **2** that one could not be run, which is never a pass. `--plan` exits 2 as
-well, because it verifies nothing, so the only zero this script emits is one
-that was earned.
+well, because it verifies nothing, and `--help` exits 2 for the same reason, so
+the only zero this script emits is one that was earned.
+
+A run that selects **no** checks exits 2 as well, and says `NOTHING SELECTED`.
+That case is worth stating on its own, because it is the one that reads most
+like a pass and is furthest from being one: with nothing selected there is no
+failure and no unknown to count, so tallying only those two would return 0 from
+a run in which no command executed. A dock told `PASS` there would conclude CI
+is clear on the strength of a check that never ran — the inference this whole
+section exists to prevent. Exit 2 also means the code carries two readings, "a
+check could not run" and "there was nothing to check", so `--json` reports
+`empty` to tell them apart; exit 0 in `gate-scope.mjs` is separated the same way
+and for the same reason. An empty selection is not a licence to skip anything:
+it says only that no *pull-request* check reads what changed, and `web-ci` still
+reports on every pull request whatever the preflight selected.
 
 | Check | Run locally by the preflight as |
 |---|---|

@@ -421,6 +421,49 @@ describe('the preflight cannot be talked into a pass', () => {
     expect(stderr).toContain('verified nothing');
   });
 
+  it('exits 2 from --help, because printing usage verifies nothing', () => {
+    // The same rule --plan is held to, and the one this script published about
+    // itself: the only zero it emits is one that was earned. --help earns none.
+    for (const flag of ['--help', '-h']) {
+      const run = spawnSync(process.execPath, [script, flag], { encoding: 'utf8' });
+
+      expect(run.stdout, `${flag} should still print usage`).toContain('usage: ci-preflight.mjs');
+      expect(run.status, `${flag} must not exit 0`).toBe(2);
+    }
+  });
+
+  it('exits 2 when it selected nothing, rather than reporting a pass for a run that did nothing', () => {
+    // The dangerous reading of an empty selection. No check is selected, so
+    // there is no failure and no unknown to count, and a tally of only those two
+    // returns 0 from a run in which no command executed. A dock reading that
+    // PASS concludes CI is clear on the strength of a check that never ran --
+    // the exact inference this script exists to prevent.
+    const repo = scratchRepo();
+
+    try {
+      // A path no pull-request check reads: not under web/, .github/, tools/ or
+      // docs/adr/. The tree is otherwise identical to published history.
+      touch(repo, 'docs/product/BACKLOG.md');
+      const run = spawnSync(process.execPath, [script, '--repo', repo], { encoding: 'utf8' });
+
+      expect(run.stdout).toContain('NOTHING SELECTED');
+      expect(run.stdout).not.toContain('PASS');
+      expect(run.status).toBe(2);
+
+      // Exit 2 now carries two readings, so a caller that never parses the prose
+      // still has to be able to tell "nothing to check" from "a check could not
+      // run". Same separation gate-scope.mjs makes for its own exit 0.
+      const json = spawnSync(process.execPath, [script, '--repo', repo, '--json'], { encoding: 'utf8' });
+      const report = JSON.parse(json.stdout) as { empty: boolean; passed: boolean; exitCode: number };
+
+      expect(report.empty).toBe(true);
+      expect(report.passed).toBe(false);
+      expect(report.exitCode).toBe(2);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
   it('reports a check it could not run as unverified, never as a pass', () => {
     // web-ci needs the site dependencies. In a scratch repository they are
     // absent, so the check must come back as "could not run" with a non-zero
