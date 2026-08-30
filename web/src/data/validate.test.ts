@@ -724,7 +724,9 @@ describe('partial dates on family and release dates', () => {
         // Sakana AI's announcement post carries a page date of March 21, 2024,
         // its body describes the release retrospectively as "Back in March
         // 2024", and the Hub first measured the repository on 2024-03-06. Three
-        // primaries, three different days, one month they all agree on.
+        // primaries, but only two state a day and those two differ; the
+        // retrospective names no day at all. Month is the floor all three
+        // support.
       },
       {
         id: 'zhipu-ai-glm-4-5-air',
