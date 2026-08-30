@@ -198,11 +198,38 @@ ids that are not kebab-case or repeat within a collection, references that do no
 resolve, a family that no release belongs to, lineage that is self-referential or
 cyclic or contradicts itself, a
 release attributed away from its family's owner, a publisher taking a creator's
-id without being that creator's voice, dates that never existed or lie in the
-future, a release predating its family or its own predecessor, a source checked
+id without being that creator's voice, dates that never existed, lie in the
+future, or fall before 1950, a release predating its family or its own
+predecessor, a source checked
 before it was published, non-https or credential-bearing URLs, a fact with no
 `sourceIds` or no `verifiedAt`, and any field whose name reads as a ranking or
 composite score.
+
+Its date rules and `gates.py`'s stand in three different relations to each other,
+and flattening them into "parity" would be its own defect, so read them
+separately.
+
+- **The 1950 floor now matches.** `EARLIEST_YEAR = 1950` was enforced only on
+  the Python side until abdeslam-menacere/ModelTree#488 added it here, and a
+  floor present there and missing here was the *permissive* direction — the one
+  ADR 0003 stops the automation for, with no grandfathering for a gap that
+  predates adoption. It is applied to the **year segment**, so a partial date is
+  judged by its year alone; `gates.py` reaches the same verdict by expanding a
+  partial value to its earliest possible day purely to read the year.
+- **The future-date rule does not match, and is not meant to.** This gate
+  refuses any date past the day it runs; `gates.py` allows a release date up to
+  `MAX_YEARS_AHEAD` years ahead, on the reasoning that a preview can be
+  announced before it ships. That is the publishing path being *stricter*, which
+  the ADR permits, so it is a finding to raise against `tools/updater/` rather
+  than drift that stops a run — the same disposition the source-approval
+  difference above has.
+- **The unregistered fields are neither.** `validation.py` registers only some
+  of the date fields this gate checks; `lastCheckedDate`, `publishedDate`,
+  `effectiveTo`, `windowStart`, `windowEnd` and `evaluationDate` were outside
+  what it proposes at all when abdeslam-menacere/ModelTree#488 measured it. A
+  field the updater never proposes is outside its scope, not governed by a
+  stricter rule there, so registering those fields to "close" the difference
+  would invent a divergence rather than close one.
 
 The empty-family rule runs family → release, the opposite direction from every
 other `familyId` check in that file, and it exists because the direction was the

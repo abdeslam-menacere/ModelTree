@@ -479,8 +479,22 @@ function gateLineage(docs) {
 }
 
 // ---------------------------------------------------------------------------
-// Gate: dates. Impossible dates, and dates that claim the future.
+// Gate: dates. Impossible dates, dates that claim the future, and dates that
+// fall before this project could have anything to record.
 // ---------------------------------------------------------------------------
+// ModelTree records nothing from before modern computing, so a year below this
+// is a parsing accident rather than a fact -- a truncated string or a
+// mis-split field, arriving as a date nobody typed.
+//
+// This mirrors `EARLIEST_YEAR` in
+// `tools/updater/src/modeltree_updater/gates.py`, which carried the floor while
+// this file had none. That gap was a permissive divergence of the kind ADR 0003
+// stops the automation for, and abdeslam-menacere/ModelTree#488 closed it here
+// rather than by lowering the Python side. Changing the number is therefore a
+// change to *both* implementations or to neither: this file being looser again
+// is what the ADR refuses.
+const EARLIEST_YEAR = 1950;
+
 // Dates *we* recorded. We were the observer, so the day is always known and
 // anything less than a full calendar date is a mistake rather than a limit of
 // the source.
@@ -511,6 +525,28 @@ const PRECISION_COMPANIONS = [
 function gateDates(docs, today) {
   const todayMs = startOf(today);
 
+  /**
+   * The floor, for a value already established as a real date at some precision.
+   *
+   * Judged on the **year segment**, so a partial date is refused or accepted by
+   * its year alone: `1823`, `1823-04` and `1823-04-05` are each refused, `1950`
+   * is accepted. `gates.py` reaches the same verdict from the other direction --
+   * `_partial_date_issues` expands a partial value to the earliest day it could
+   * mean purely so it can read `.year`, and every day in that interval shares
+   * the year -- so reading the segment matches its behaviour without inventing a
+   * day here either.
+   *
+   * One helper for all three call sites rather than three copies, because the
+   * exact-date fields, the partial-date fields and the nested `control.verifiedAt`
+   * are one rule; a copy left behind is the shape of the divergence this exists
+   * to close.
+   */
+  const failIfBelowFloor = (label, value, where) => {
+    if (Number(String(value).split('-')[0]) < EARLIEST_YEAR) {
+      fail('dates', `${label} "${value}" predates ${EARLIEST_YEAR}`, where);
+    }
+  };
+
   const inspect = (collection, entry) => {
     for (const field of EXACT_DATE_FIELDS) {
       const value = entry[field];
@@ -519,6 +555,7 @@ function gateDates(docs, today) {
         fail('dates', `${field} "${value}" is not a real YYYY-MM-DD date`, `${collection}:${entry.id}`);
         continue;
       }
+      failIfBelowFloor(field, value, `${collection}:${entry.id}`);
       if (startOf(value) > todayMs) {
         fail('dates', `${field} "${value}" is in the future (today is ${today})`, `${collection}:${entry.id}`);
       }
@@ -528,7 +565,13 @@ function gateDates(docs, today) {
       if (value === undefined) continue;
       if (!isRealPartialDate(value)) {
         fail('dates', `${field} "${value}" is not a real date`, `${collection}:${entry.id}`);
-      } else if (startOf(value) > todayMs) {
+        continue;
+      }
+      failIfBelowFloor(field, value, `${collection}:${entry.id}`);
+      // Not an `else`: the floor and the future are opposite ends of the same
+      // line, so neither refusal can suppress the other and no value reaches
+      // both.
+      if (startOf(value) > todayMs) {
         fail('dates', `${field} "${value}" is in the future (today is ${today})`, `${collection}:${entry.id}`);
       }
     }
@@ -555,8 +598,11 @@ function gateDates(docs, today) {
     if (entry.control?.verifiedAt !== undefined) {
       if (!isRealDate(entry.control.verifiedAt)) {
         fail('dates', `control.verifiedAt "${entry.control.verifiedAt}" is not a real date`, `${collection}:${entry.id}`);
-      } else if (startOf(entry.control.verifiedAt) > todayMs) {
-        fail('dates', `control.verifiedAt "${entry.control.verifiedAt}" is in the future`, `${collection}:${entry.id}`);
+      } else {
+        failIfBelowFloor('control.verifiedAt', entry.control.verifiedAt, `${collection}:${entry.id}`);
+        if (startOf(entry.control.verifiedAt) > todayMs) {
+          fail('dates', `control.verifiedAt "${entry.control.verifiedAt}" is in the future`, `${collection}:${entry.id}`);
+        }
       }
     }
   };

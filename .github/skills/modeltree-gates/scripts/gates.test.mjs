@@ -839,6 +839,129 @@ describe('gate-dataset', () => {
     assert.equal(result.code, 0, result.stdout);
   });
 
+  // -------------------------------------------------------------------------
+  // The 1950 floor (abdeslam-menacere/ModelTree#488). `tools/updater`'s
+  // `gates.py` has carried
+  // `EARLIEST_YEAR = 1950` throughout; this file carried no lower bound at all,
+  // which is a *permissive* divergence and the one direction ADR 0003 stops the
+  // automation for. These tests are what makes the floor's presence here a fact
+  // rather than a claim.
+  //
+  // Written as literals, unlike the future-date tests above, and the asymmetry
+  // is real rather than an oversight: a literal *future* date stops being the
+  // future when it arrives, so those must be computed from the clock. 1823 was
+  // before 1950 when this was written and will be in every year this repository
+  // sees. A past literal cannot rot.
+  // -------------------------------------------------------------------------
+
+  test('a date before 1950 is caught, and the refusal names the field, the value and the floor', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      // `verifiedAt` rather than `releaseDate`: it is an exact-date field with
+      // no precision companion and no ordering rule pointed at it, so the only
+      // thing this mutation can provoke is the floor.
+      releases[0].verifiedAt = '1823-04-05';
+      write('releases.json', releases);
+    });
+    assertFailed(result, 'dates', 'predates 1950');
+
+    // The whole message, not a fragment. The acceptance criteria ask for all
+    // three parts, and a fragment assertion passes on a message that dropped
+    // the value -- which is the part a reader needs to find the record.
+    const report = JSON.parse(result.stdout);
+    const floor = report.failures.filter((failure) => failure.message.includes('predates'));
+    assert.deepEqual(
+      floor.map((failure) => failure.message),
+      ['verifiedAt "1823-04-05" predates 1950'],
+      'the refusal must name the field, the offending value and the floor',
+    );
+  });
+
+  test('the floor reads the year segment, so a partial date is judged by its year alone', () => {
+    // Exactly the three shapes the issue enumerates. `windowStart` carries no
+    // `datePrecision` companion, so each arm can vary precision freely without
+    // provoking the precision-agreement rule and muddying what is being proved.
+    for (const value of ['1823', '1823-04', '1823-04-05']) {
+      const result = gateMutatedDataset(({ read, write }) => {
+        const observations = read('usage-observations.json');
+        assert.ok(observations.length > 0, 'usage-observations.json must load as a non-empty array');
+        observations[0].windowStart = value;
+        write('usage-observations.json', observations);
+      });
+      assertFailed(result, 'dates', `windowStart "${value}" predates 1950`);
+    }
+  });
+
+  test('the floor covers the shared fields the divergence was measured on', () => {
+    // `releaseDate` and `firstReleaseDate` are registered on both sides and were
+    // the fields #488 named. A pre-1950 release also lands before its family, so
+    // the ordering rule speaks too -- same gate, and declaring the floor message
+    // specifically is what keeps this attributable.
+    const release = gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      releases[0].releaseDate = '1823';
+      releases[0].datePrecision = 'year';
+      write('releases.json', releases);
+    });
+    assertFailed(release, 'dates', 'releaseDate "1823" predates 1950');
+
+    const family = gateMutatedDataset(({ read, write }) => {
+      const families = read('families.json');
+      families[0].firstReleaseDate = '1823';
+      families[0].datePrecision = 'year';
+      write('families.json', families);
+    });
+    assertFailed(family, 'dates', 'firstReleaseDate "1823" predates 1950');
+  });
+
+  test('the floor is exclusive: 1949 is refused and 1950 is accepted', () => {
+    // One field, one difference, opposite verdicts. Without the accepting arm
+    // the refusing one is satisfied just as well by a rule that refuses every
+    // date, which would be a far larger defect wearing this test as cover.
+    const refused = gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      releases[0].verifiedAt = '1949-12-31';
+      write('releases.json', releases);
+    });
+    assertFailed(refused, 'dates', 'verifiedAt "1949-12-31" predates 1950');
+
+    const accepted = gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      releases[0].verifiedAt = '1950-01-01';
+      write('releases.json', releases);
+    });
+    assert.equal(accepted.code, 0, accepted.stdout);
+
+    // And the same boundary on the partial path, where the year *is* the whole
+    // value. `1950` must survive being read as a year segment rather than being
+    // expanded into something the comparison then mishandles.
+    const partial = gateMutatedDataset(({ read, write }) => {
+      const families = read('families.json');
+      families[0].firstReleaseDate = '1950';
+      families[0].datePrecision = 'year';
+      write('families.json', families);
+    });
+    assert.equal(partial.code, 0, partial.stdout);
+  });
+
+  test('the floor reaches the nested control.verifiedAt, not only the top-level fields', () => {
+    // No committed record carries a `control` block today, so this path is
+    // reachable only by fixture -- which is exactly why it needs one. A date
+    // rule applied to two of its three call sites is the divergence #488 closed,
+    // reproduced one level down.
+    const mutate = (verifiedAt) => gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      releases[0].control = { verifiedAt };
+      write('releases.json', releases);
+    });
+
+    assertFailed(mutate('1823-01-01'), 'dates', 'control.verifiedAt "1823-01-01" predates 1950');
+    // The control: an identical fixture differing only in the year. It proves
+    // the refusal above came from the date rather than from the gate disliking a
+    // `control` block it had never seen.
+    assert.equal(mutate('1950-01-01').code, 0);
+  });
+
   test('a release that predates its predecessor is still caught when stated as a year', () => {
     const result = gateMutatedDataset(({ read, write }) => {
       const releases = read('releases.json');
