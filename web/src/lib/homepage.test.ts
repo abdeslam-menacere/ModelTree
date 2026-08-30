@@ -164,7 +164,16 @@ describe('homepage hierarchy', () => {
     const organization = dataset.organizations[0];
     const hierarchy = buildHomepageHierarchy({
       ...dataset,
-      organizations: [{ ...organization, id: 'aaa-empty', name: 'A Empty', shortName: 'A Empty' }, ...dataset.organizations],
+      // This fixture only bites while its label sorts ahead of every real
+      // creator's: `compareLabels` folds case and then compares code units, so
+      // digits precede letters. The catalog now records a creator labelled
+      // "01.AI", which "A Empty" no longer sorts ahead of, and an `aaa-empty`
+      // that does not sort first leaves `hierarchy[0]` pointing at a populated
+      // creator, so both assertions below would stop testing what they name.
+      // `shortName` is chosen to lead rather than to read well; `name` stays
+      // "A Empty" so this fails loudly if the sort is ever changed back to
+      // reading the name.
+      organizations: [{ ...organization, id: 'aaa-empty', name: 'A Empty', shortName: '0 Empty' }, ...dataset.organizations],
     });
 
     expect(hierarchy[0].families).toEqual([]);

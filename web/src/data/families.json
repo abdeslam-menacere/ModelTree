@@ -920,5 +920,115 @@
       "minimax-m1-80k-model-card"
     ],
     "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "apple-openelm",
+    "slug": "openelm",
+    "organizationId": "apple",
+    "name": "OpenELM",
+    "description": "Apple’s family of open efficient language models, released in pretrained and instruction-tuned form at 270M, 450M, 1.1B and 3B parameters under a licence limiting them to scientific research.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2024-04-12",
+    "datePrecision": "day",
+    "status": "research",
+    "sourceIds": [
+      "apple-openelm-3b-instruct-model-card",
+      "apple-openelm-research-page",
+      "apple-openelm-license",
+      "hugging-face-openelm-3b-instruct-hub-record"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "hugging-face-smollm3",
+    "slug": "smollm3",
+    "organizationId": "hugging-face",
+    "name": "SmolLM3",
+    "description": "Hugging Face’s own small language model line, published as a fully open 3B model with dual-mode reasoning and long-context support.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2025-07-08",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "hugging-face-smollm3-model-card",
+      "hugging-face-smollm3-blog"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "01-ai-yi-1-5",
+    "slug": "yi-1-5",
+    "organizationId": "01-ai",
+    "name": "Yi-1.5",
+    "description": "01.AI’s upgraded Yi series, continuously pre-trained on Yi with a further 500B-token corpus and fine-tuned on 3M samples, distributed under the Apache 2.0 licence.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2024-05-13",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "01-ai-yi-repository",
+      "01-ai-yi-1-5-34b-chat-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "minimax-text-01",
+    "slug": "minimax-text-01",
+    "organizationId": "minimax",
+    "name": "MiniMax-Text-01",
+    "description": "MiniMax’s text-only mixture-of-experts language model line, with 456 billion total parameters and 45.9 billion activated per token, published as downloadable weights under the MiniMax Model License.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2025-01-15",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "minimax-text-01-model-card",
+      "minimax-model-license"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "sakana-ai-evollm-jp",
+    "slug": "evollm-jp",
+    "organizationId": "sakana-ai",
+    "name": "EvoLLM-JP",
+    "description": "Sakana AI’s experimental general-purpose Japanese language model, produced by merging existing models with its Evolutionary Model Merge method and released as a research prototype.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2024-03",
+    "datePrecision": "month",
+    "status": "research",
+    "sourceIds": [
+      "sakana-ai-evollm-jp-model-card",
+      "sakana-ai-evolutionary-model-merge-blog"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "sarvam-ai-sarvam-m",
+    "slug": "sarvam-m",
+    "organizationId": "sarvam-ai",
+    "name": "Sarvam-M",
+    "description": "Sarvam AI’s multilingual hybrid-reasoning language model, post-trained from Mistral Small on Indian languages alongside English.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2025-05-20",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "sarvam-ai-sarvam-m-model-card",
+      "sarvam-ai-sarvam-m-blog"
+    ],
+    "verifiedAt": "2026-08-29"
   }
 ]

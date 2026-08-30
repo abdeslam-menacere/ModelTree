@@ -135,6 +135,11 @@ describe('organization type policy', () => {
       'stability-ai': 'company',
       databricks: 'company',
       minimax: 'company',
+      apple: 'company',
+      'hugging-face': 'company',
+      '01-ai': 'company',
+      'sakana-ai': 'company',
+      'sarvam-ai': 'company',
     });
   });
 
@@ -351,6 +356,49 @@ describe('organization type policy', () => {
         facts: { offersPaidModelProductsOrAccess: true },
         type: 'company',
         clause: 'paid-company',
+      },
+      // Apple's OpenELM licence establishes that Apple developed and released
+      // the weights for scientific research. No Apple page read for this record
+      // states that Apple sells model products or access, so no fact is
+      // asserted and the fallback clause types it.
+      apple: {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
+      },
+      // Hugging Face is recorded as a creator for SmolLM3 only. Its blog and
+      // model card establish that it made the model; neither states a paid
+      // model offering, and the Hub it operates is a hosting platform rather
+      // than a model product of its own, so no fact is asserted here.
+      'hugging-face': {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
+      },
+      // 01.AI's README states the Yi series is trained from scratch by 01.AI
+      // and distributed under Apache 2.0. Nothing read for this record states a
+      // paid offering.
+      '01-ai': {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
+      },
+      // Sakana AI's post states its "core research focus", which is not the
+      // same claim as existing primarily for research, and no page read
+      // establishes that an institution controls its releases. Both halves of
+      // the research-lab clause are therefore unmet and neither is invented.
+      'sakana-ai': {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
+      },
+      // Sarvam AI publishes API documentation, but no page read for this record
+      // states that access is paid, so the paid-company clause is not claimed
+      // from the existence of an API alone.
+      'sarvam-ai': {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
       },
     };
 

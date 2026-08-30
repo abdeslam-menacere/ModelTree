@@ -1578,5 +1578,187 @@
     "publisherId": "minimax",
     "lastCheckedDate": "2026-08-29",
     "notes": "MiniMax’s own repository for the generation, carrying the same model overview as the cards. Cited here for the licence *name*: the repository’s LICENSE file, read at https://raw.githubusercontent.com/MiniMax-AI/MiniMax-M1/main/LICENSE on 2026-08-29 (HTTP 200), is the verbatim text of the \"Apache License, Version 2.0, January 2004\". Whether OSI approved the licence so named is a distinct fact this page does not state, so osiApproved is cited to OSI’s own page rather than inferred from the name here."
+  },
+  {
+    "id": "apple-openelm-3b-instruct-model-card",
+    "url": "https://huggingface.co/apple/OpenELM-3B-Instruct",
+    "title": "OpenELM-3B-Instruct model card",
+    "type": "model-card",
+    "publisherId": "apple",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "Apple's card for the model. \"We introduce **OpenELM**, a family of **Open** **E**fficient **L**anguage **M**odels.\" and \"We release both pretrained and instruction tuned models with 270M, 450M, 1.1B and 3B parameters.\" are the basis for the family record and for the 3B parameter figure on this release. The card's own front matter states two different licence identifiers and they do not agree: \"license: apple-amlr\" on one line and \"license_name: apple-sample-code-license\" on another, with \"license_link: LICENSE\" pointing at a file whose text is the Apple Machine Learning Research Model terms rather than a sample code licence. Both keys are quoted here because neither can be dismissed from the card alone. The linked file settles what to record without either key having to be picked: it names itself, and that self-stated title is the licence name on the release, quoted under apple-openelm-license. The disagreement between these two front-matter keys is left visible rather than resolved, because the card does not resolve it. No context length is stated anywhere on this card, so no contextWindow is recorded for this release."
+  },
+  {
+    "id": "apple-openelm-license",
+    "url": "https://huggingface.co/apple/OpenELM-3B-Instruct/raw/main/LICENSE",
+    "title": "Apple licence shipped with the OpenELM weights",
+    "type": "official-docs",
+    "publisherId": "apple",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "The licence file the card links. Its opening sentence is the strongest attribution any Apple page read for this record makes: \"Disclaimer: IMPORTANT: This Apple Machine Learning Research Model is specifically developed and released by Apple Inc. (\"Apple\") for the sole purpose of scientific research of artificial intelligence and machine-learning technology.\" The file is hard-wrapped, so the line breaks inside quoted passages are rendered here as single spaces; no other character is changed. That sentence is the source of the recorded organization name \"Apple Inc.\" and of this release's research status. The file has no title line, opening instead on that disclaimer, but it does name itself, in the attribution notice its redistribution clause requires third parties to carry: “Apple Machine Learning Research Model is licensed under the Apple Machine Learning Research Model License Agreement.” The typographic quotation marks around that sentence are the file's own, not delimiters added here. The licence name recorded on the release is that self-stated title, quoted from this file rather than constructed. It is the third of three labels this release has for one licence, and all three are quoted rather than the tidiest being chosen: the card's front matter also gives the short identifier \"license: apple-amlr\" and the different \"license_name: apple-sample-code-license\". That \"apple-amlr\" abbreviates the title above is an inference no page states, so it is not relied on; \"apple-sample-code-license\" names a different Apple licence and does not match this file's text at all. The recorded value is the name the governing document, which the card's \"license_link\" points at, applies to itself. These terms are not published by the Open Source Initiative, so osiApproved is false."
+  },
+  {
+    "id": "apple-openelm-research-page",
+    "url": "https://machinelearning.apple.com/research/openelm",
+    "title": "OpenELM on Apple Machine Learning Research",
+    "type": "official-announcement",
+    "publisherId": "apple",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "Apple's own research page for OpenELM. \"we release OpenELM, a state-of-the-art open language model.\" and \"This paper has been accepted at the Efficient Systems for Foundation Models workshop at ICML 2024.\" and \"We also release code to convert models to MLX library for inference and fine-tuning on Apple devices.\" The page carries no publication date in its markup that could be read on the check date, and it states no release date for the weights, which is why this release's date rests on the Hub record instead."
+  },
+  {
+    "id": "hugging-face-openelm-3b-instruct-hub-record",
+    "url": "https://huggingface.co/api/models/apple/OpenELM-3B-Instruct",
+    "title": "Hugging Face Hub record for apple/OpenELM-3B-Instruct",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "The Hub's machine-readable record, carrying the createdAt of 2024-04-12T21:52:23.000Z used as this release's date, and cardData license \"apple-amlr\". No Apple page read on 2026-08-29 stated a release date for these weights, so the date rests on the Hub's measurement of when Apple first published the repository, which is a weaker claim than a creator-stated release date and is recorded as such. The record also reports safetensors.total of 3036647424, which is consistent with the card's \"3B\" but is a platform measurement rather than an Apple statement; the recorded parameter figure comes from the card's prose, not from this count. The license field here agrees with the card's \"license\" key and not with its \"license_name\" key, which does not settle the disagreement recorded on the card because the Hub simply mirrors the first key."
+  },
+  {
+    "id": "hugging-face-smollm3-model-card",
+    "url": "https://huggingface.co/HuggingFaceTB/SmolLM3-3B",
+    "title": "SmolLM3-3B model card",
+    "type": "model-card",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "The card for the one model in this dataset that Hugging Face created rather than hosted. \"SmolLM3 is a 3B parameter language model designed to push the boundaries of small models. It supports dual mode reasoning, 6 languages and long context. SmolLM3 is a fully open model that offers strong performance at the 3B–4B scale.\" Front matter states \"license: apache-2.0\". On context, the card states one figure for the shipped configuration and larger ones the operator has to enable, and these are not rival claims. Its long-context section reads: \"The current `config.json` is set for context length up to 65,536 tokens. To handle longer inputs (128k or 256k), we utilize YaRN you can change the `max_position_embeddings` and rope_scaling` to:\" — the run-on and the unpaired backtick after rope_scaling are the card's own — followed by a config block carrying \"\"original_max_position_embeddings\": 65536,\" and a \"yarn\" rope_scaling type with a factor of 2.0, which the block's inline comment applies to 65,536 to reach the 128k figure. The feature bullet states that same relationship rather than contradicting it: \"Trained on 64k context and supports up to **128k tokens** using YARN extrapolation\"; reading its \"64k\" as the 65,536 the config names is an inference from the usual binary sense of k rather than something the card spells out. The recorded contextWindow is 65536 because that is the only figure the card presents as the setting the model ships with, while 128k and 256k are reachable only once the operator edits max_position_embeddings and rope_scaling, which makes them properties of a changed configuration. That the same sentence offers 256k on the same footing as 128k is what settles it: were 128k a competing account of the shipped window, 256k would be one too, and nothing would recommend recording 256k. The long-context benchmark rows also report a \"Ruler 128k\" score for SmolLM3-3B, and the card does not state whether YaRN was applied to obtain it; an evaluation result is not a statement of the shipped configuration either way. On languages, the card names six as native: \"- **Multilingual**: 6 natively supported (English, French, Spanish, German, Italian, and Portuguese)\". Its front matter \"language:\" list has eight entries — en, fr, es, it, pt, zh, ar, ru — and the three of those that are not among the six are accounted for by the card itself rather than contradicting it: \"The model has also been trained on Arabic (standard), Chinese and Russian data, but has seen fewer tokens in these languages compared to the 6 above. We report the performance on these langages for information.\" (the misspelling of \"languages\" is the card's own), and the benchmark tables carry a section headed \"| Other supported languages |\" covering exactly Arabic, Chinese and Russian. So the front matter is those six native languages plus these three secondary ones, less one: it carries no \"- de\" entry, while the prose counts German among the six and the \"| Main supported languages |\" table reports a \"| German| MLMM Hellaswag |\" row. That single omission is the whole of the discrepancy — a gap in the front matter, not a disagreement about what the model supports. No language fact is recorded for this release, and not because of that gap: the release schema has no field for natural-language coverage, so there is nowhere to record one."
+  },
+  {
+    "id": "hugging-face-smollm3-blog",
+    "url": "https://huggingface.co/blog/smollm3",
+    "title": "SmolLM3: smol, multilingual, long-context reasoner",
+    "type": "official-announcement",
+    "publisherId": "hugging-face",
+    "publishedDate": "2025-07-08",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "Hugging Face's own announcement post, on its corporate blog path rather than a user namespace, which is what makes it the company speaking rather than a community member: contrast https://huggingface.co/blog/ibm-granite/granite-4-2, where the namespace segment names the posting organization. \"excited to contribute a new competitive fully open 3B model\" is the first person claim of authorship this record rests on, and the page states \"Published July 8, 2025\", which is the release date recorded here and which the Hub's createdAt independently agrees with. The post repeats the card's \"6 languages\" framing without enumerating them, so it neither widens nor closes the one narrow gap in the card's front matter that is set out under hugging-face-smollm3-model-card. Note on entity boundaries: the model repository sits in the HuggingFaceTB namespace, whose Hub organization record gives fullname \"Hugging Face Smol Models Research\", a team name rather than the company name. The creator recorded for this release is the company, on the strength of this corporate-blog post; the team namespace is noted rather than recorded as a separate organization."
+  },
+  {
+    "id": "hugging-face-smollm3-hub-record",
+    "url": "https://huggingface.co/api/models/HuggingFaceTB/SmolLM3-3B",
+    "title": "Hugging Face Hub record for HuggingFaceTB/SmolLM3-3B",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "The Hub's machine-readable record, carrying createdAt 2025-07-08T10:11:45.000Z and cardData license \"apache-2.0\". Unlike the other Hub records cited in this tranche, nothing here is load-bearing: the release date comes from Hugging Face's own \"Published July 8, 2025\" on the announcement post and this timestamp only agrees with it. Recorded so that the agreement is visible rather than assumed. The record also reports safetensors.total of 3075098624; the recorded 3B parameter figure comes from the card's prose, not from this count. This source is published by Hugging Face about a model Hugging Face created, so it is a creator self-report and is not independent evidence."
+  },
+  {
+    "id": "01-ai-yi-repository",
+    "url": "https://github.com/01-ai/Yi",
+    "title": "01-ai/Yi repository README",
+    "type": "repository",
+    "publisherId": "01-ai",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "01.AI's own repository. Attribution: \"- 🤖 The Yi series models are the next generation of open-source large language models trained from scratch by [01.AI](https://01.ai/).\" The release date comes from the README's news list, which is written as HTML inside the markdown; quoted verbatim with its tags rather than reflowed into markdown, because rewriting it would change the characters: \"  <summary>🎯 <b>2024-05-13</b>: The <a href=\"https://github.com/01-ai/Yi-1.5\">Yi-1.5 series models </a> are open-sourced, further improving coding, math, reasoning, and instruction-following abilities.</summary>\". Licence: \"The code and weights of the Yi-1.5 series models are distributed under the [Apache 2.0 license](https://github.com/01-ai/Yi/blob/main/LICENSE).\" The same README also carries an older news entry showing the series has not always been under that licence: \"  <summary>🔔 <b>2023-11-23</b>: The Yi Series Models Community License Agreement is updated to <a href=\"https://github.com/01-ai/Yi/blob/main/MODEL_LICENSE_AGREEMENT.txt\">v2.1</a>.</summary>\". Both are quoted because the second could otherwise look withheld; the recorded licence is Apache 2.0 on the strength of the first, which is the later statement and is scoped to the Yi-1.5 series specifically. No prose anywhere in this README states a parameter count for Yi-1.5-34B-Chat, which is why no parameters are recorded for it."
+  },
+  {
+    "id": "01-ai-yi-1-5-34b-chat-model-card",
+    "url": "https://huggingface.co/01-ai/Yi-1.5-34B-Chat",
+    "title": "Yi-1.5-34B-Chat model card",
+    "type": "model-card",
+    "publisherId": "01-ai",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "01.AI's card for the model. \"Yi-1.5 is an upgraded version of Yi. It is continuously pre-trained on Yi with a high-quality corpus of 500B tokens and fine-tuned on 3M diverse fine-tuning samples.\" Front matter states \"license: apache-2.0\", agreeing with the repository README. Two figures are deliberately not taken from this card. The card states no parameter count in prose; the only bases for a 34B figure would be the model's own name and the Hub's measured tensor total, so no parameters are recorded. On context length the card carries a family-level table whose Yi-1.5 row offers three lengths rather than one, so assigning any single value to this variant would be an inference from the variant's name rather than a reading of the source, and no contextWindow is recorded."
+  },
+  {
+    "id": "hugging-face-yi-1-5-34b-chat-hub-record",
+    "url": "https://huggingface.co/api/models/01-ai/Yi-1.5-34B-Chat",
+    "title": "Hugging Face Hub record for 01-ai/Yi-1.5-34B-Chat",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "The Hub's machine-readable record, carrying createdAt 2024-05-10T06:47:21.000Z and cardData license \"apache-2.0\". That timestamp is three days earlier than the 2024-05-13 date 01.AI states in its own README news list, and the recorded release date follows 01.AI rather than the Hub because a creator statement outranks a platform measurement. The disagreement is recorded here rather than smoothed over: the repository can be measured as existing before the announcement that it was open-sourced. The record also reports safetensors.total of 34388917248; this is a platform measurement, no 01.AI page read states a parameter count in prose, and no parameters are recorded for this release."
+  },
+  {
+    "id": "minimax-text-01-model-card",
+    "url": "https://huggingface.co/MiniMaxAI/MiniMax-Text-01",
+    "title": "MiniMax-Text-01 model card",
+    "type": "model-card",
+    "publisherId": "minimax",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "MiniMax's card for the model. \"MiniMax-Text-01 is a powerful language model with 456 billion total parameters, of which 45.9 billion are activated per token.\" is stated in prose and is the basis for both recorded parameter figures. No context window is recorded, because the card gives two different figures for two different things and neither is an exact token count: \"MiniMax-Text-01's training context length is extended to 1 million tokens, and it can handle a context of up to 4 million tokens during the inference.\" Recording either as the context window would mean choosing between training and inference and then expanding a rounded \"million\" into a precise integer, so both are quoted and neither is recorded. The card also distinguishes two licences that must not be collapsed: its badges label a Model License covering the weights and separately a Code License of MIT covering the code. Only the model licence governs the weights, and that is what the release records."
+  },
+  {
+    "id": "minimax-model-license",
+    "url": "https://huggingface.co/MiniMaxAI/MiniMax-Text-01/raw/main/LICENSE-MODEL",
+    "title": "MiniMax Model License",
+    "type": "official-docs",
+    "publisherId": "minimax",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "The licence covering the weights, served at LICENSE-MODEL; a plain LICENSE path on the same repository returns 404, so the file name matters. Its heading is \"MINIMAX MODEL LICENSE\" and it names itself in its attribution clause as \"the MiniMax Model License\", which is the licence name recorded on the release. It states \"Model Release Date: 15 January 2025\", which is the recorded release date and the only creator statement of a date found for this model. It defines the company in a clause that carries its own quotation marks, reproduced here exactly: \"MiniMax\" or \"we\" means MiniMax AI. The recorded organization name is \"MiniMax\" rather than the \"MiniMax AI\" named here, so this clause is not the source of that name; it is quoted because both forms appear in the creator's own text and that difference should stay visible rather than be smoothed to match the record. Read strictly, the clause defines the term \"MiniMax\" as denoting the entity MiniMax AI, which makes the \"distributed by MiniMax\" in the clause quoted next a use of that defined term rather than an independent second name. Nothing in this file settles which form is the company's legal name, and none is inferred. It also states where the company distributes the model, in a definition quoted here in part: \"distributed by MiniMax at https://huggingface.co/MiniMaxAI and https://github.com/MiniMax-AI.\" These terms are not published by the Open Source Initiative, so osiApproved is false."
+  },
+  {
+    "id": "hugging-face-minimax-text-01-hub-record",
+    "url": "https://huggingface.co/api/models/MiniMaxAI/MiniMax-Text-01",
+    "title": "Hugging Face Hub record for MiniMaxAI/MiniMax-Text-01",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "The Hub's machine-readable record, carrying createdAt 2025-01-12T13:48:31.000Z. That is three days earlier than the \"Model Release Date: 15 January 2025\" stated in MiniMax's own licence, and the recorded release date follows MiniMax rather than the Hub. The disagreement is recorded here rather than resolved. This record carries no cardData license value at all, so it neither confirms nor contradicts the model licence; the card's front matter likewise declares only a pipeline_tag, which is why the licence recorded on this release comes from the licence file itself. The record reports safetensors.total of 456089655296, consistent with the card's prose figure of 456 billion, but the recorded parameters come from that prose and not from this measurement."
+  },
+  {
+    "id": "sakana-ai-evollm-jp-model-card",
+    "url": "https://huggingface.co/SakanaAI/EvoLLM-JP-v1-7B",
+    "title": "EvoLLM-JP-v1-7B model card",
+    "type": "model-card",
+    "publisherId": "sakana-ai",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "Sakana AI's card for the model, and the least ambiguous attribution in this tranche: \"**Developed by:** [Sakana AI](https://sakana.ai/)\". Description: \"**EvoLLM-JP-v1-7B** is an experimental general-purpose Japanese LLM.\" and \"This model was created using the Evolutionary Model Merge method.\" The recorded research status comes from \"This model is provided for research and development purposes only and should be considered as an experimental prototype.\" The card also states \"**License:** [MICROSOFT RESEARCH LICENSE TERMS](./LICENSE) (due to the inclusion of the WizardMath model)\", while its front matter declares only \"license: other\"; both are recorded because the front-matter value is a Hub category rather than a competing claim about which terms apply. The card names three merged models as inputs. None of them is a recorded entity in this dataset, so derivedFromIds is left empty rather than pointing at records that do not exist. No context length is stated on the card and none is recorded."
+  },
+  {
+    "id": "sakana-ai-evolutionary-model-merge-blog",
+    "url": "https://sakana.ai/evolutionary-model-merge/",
+    "title": "Evolving New Foundation Models: Unleashing the Power of Automating Model Development",
+    "type": "official-announcement",
+    "publisherId": "sakana-ai",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "Sakana AI's announcement post, which the page dates with \"<time datetime=\"2024-03-21T00:00:00+09:00\">March 21, 2024</time>\". \"The core research focus of Sakana AI is in applying nature-inspired ideas\" is the basis for how the organization is described. The post lists what it released: \"we applied this method to evolve 3 powerful foundation models for Japan\" naming the language model as EvoLLM-JP, and, in a sentence whose links are quoted with their markup rather than flattened to their link text: \"We are excited to release 2 state-of-the-art Japanese foundation models, EvoLLM-JP and EvoVLM-JP, on <a href=\"https://huggingface.co/SakanaAI\">Hugging Face</a> and <a href=\"https://github.com/SakanaAI\">GitHub</a> (with EvoSDXL-JP coming up)\". The recorded parameter figure rests on an identification that is stated here rather than assumed silently: the post says \"our evolved Japanese Math LLM, a 7B parameter model\", and the same post's list is what identifies that language model as EvoLLM-JP; the model repository is itself named EvoLLM-JP-v1-7B. Reading \"7B\" as 7 billion is an expansion of an abbreviation, not a figure any page states in full, and the Hub reports a measured tensor total of 7241732096, so 7 is the creator's rounded label rather than an exact count. On dates, this page contradicts itself: it is dated March 21, 2024 yet its body says \"Back in March 2024, Sakana AI released “Evolutionary Model Merge,”\", which speaks of its own publication month in the past tense and shows the text has been revised since publication. Because the page's own date, its retrospective sentence, and the Hub's repository timestamp of 2024-03-06 do not agree on a day, the release is recorded at month precision as 2024-03, which every one of the three supports."
+  },
+  {
+    "id": "sakana-ai-evollm-jp-license",
+    "url": "https://huggingface.co/SakanaAI/EvoLLM-JP-v1-7B/raw/main/LICENSE",
+    "title": "Microsoft Research License Terms shipped with EvoLLM-JP-v1-7B",
+    "type": "official-docs",
+    "publisherId": "sakana-ai",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "The licence file shipped in Sakana AI's repository. Its heading is \"MICROSOFT RESEARCH LICENSE TERMS\" and it opens \"These license terms are an agreement between you and Microsoft Corporation (or one of its affiliates).\" Recorded as an entity-boundary caution: the terms are Microsoft's and apply because Sakana AI merged a Microsoft model into this one, as the card states. They say nothing about who created EvoLLM-JP-v1-7B, which the card attributes to Sakana AI, and this dataset records Sakana AI as its creator. These terms are not published by the Open Source Initiative, so osiApproved is false. The source is filed under the Sakana AI publisher because Sakana AI is who ships this file with these weights, not because Sakana AI wrote the terms."
+  },
+  {
+    "id": "hugging-face-evollm-jp-hub-record",
+    "url": "https://huggingface.co/api/models/SakanaAI/EvoLLM-JP-v1-7B",
+    "title": "Hugging Face Hub record for SakanaAI/EvoLLM-JP-v1-7B",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "The Hub's machine-readable record, carrying createdAt 2024-03-06T08:00:07.000Z and cardData license \"other\". That timestamp is fifteen days earlier than the date Sakana AI's own announcement post carries, and those are the only two of the three signals that state a day at all: they disagree, while the post's retrospective wording names a month and no day. That is what led to recording this release at month precision rather than picking a day; the reasoning is set out on sakana-ai-evolutionary-model-merge-blog. The record also reports safetensors.total of 7241732096, cited on that same note as the measurement against which the creator's rounded \"7B\" label is read."
+  },
+  {
+    "id": "sarvam-ai-sarvam-m-model-card",
+    "url": "https://huggingface.co/sarvamai/sarvam-m",
+    "title": "sarvam-m model card",
+    "type": "model-card",
+    "publisherId": "sarvam-ai",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "Sarvam AI's card for the model. \"`sarvam-m` is a multilingual, hybrid-reasoning, text-only language model built on Mistral-Small.\" and a key-feature bullet reading \"**Advanced Indic Skills**: Specifically post-trained on Indian languages alongside English, embodying a character that authentically reflects and emphasizes Indian cultural values.\" Front matter states \"license: apache-2.0\" and \"base_model_relation: finetune\", and gives the base model as a YAML list rather than a single-line mapping, so it is quoted here as the two lines it actually occupies: \"base_model:\" then \"- mistralai/Mistral-Small-3.1-24B-Base-2503\". The base model is not a recorded release in this dataset, so derivedFromIds is left empty rather than pointing at a record that does not exist; the derivation is stated in the release summary instead. No parameter count and no context length are stated on this card: the only \"24B\" anywhere on it is inside the base model identifier quoted above, which names the base rather than this model. No context window is recorded for this release. The parameter figure that is recorded comes from Sarvam AI's announcement post and the Hub's measurement of this model's weights instead, set out on sarvam-ai-sarvam-m-blog."
+  },
+  {
+    "id": "sarvam-ai-sarvam-m-blog",
+    "url": "https://www.sarvam.ai/blogs/sarvam-m",
+    "title": "Sarvam-M announcement",
+    "type": "official-announcement",
+    "publisherId": "sarvam-ai",
+    "publishedDate": "2025-05-23",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "Sarvam AI's announcement on its own domain, which the page dates 2025-05-23 in its markup. \"The resultant model, which we call Sarvam-M (M stands for Mistral)\" is the first person claim of authorship this record rests on, and it is also where the recorded variant letter comes from. The post situates the company: \"Sovereign AI Ecosystem in India\" is its own framing of what it is building towards, and it is the basis for how the organization is described; no page read for this record states where the company is headquartered, so no headquarters is recorded. On size, the post applies 24B both to the base model and to Sarvam-M itself, and both are quoted here rather than only the first. Of the base: \"We apply our SFT and RLVR steps on Mistral Small which is a 24B Apache 2.0 licensed model.\" Of Sarvam-M: the figure sits in the column headers of both of the post's comparison tables, in rows where every entry is a model name followed by that model's own size. The table captioned \"Benchmark Comparison Results\" heads its columns \"Benchmark\", \"Sarvam-M (24B)\", \"Mistral Small (24B)\", \"Gemma 3 (27B)\", \"Llama 4 Scout (17B/109B)\", \"Llama 3.3 (70B)\", and the later uncaptioned per-language table heads its columns \"Language\", \"Sarvam M (24B)\", \"Mistral 3 Small (24B)\", \"Gemma 3 (27B)\", \"Llama 4 Scout (17B/109B)\", \"Llama 3.3 (70B)\". The hyphen in the model's name differs between the two headers and each is quoted as it appears. Because the sibling entries in those rows carry the sizes of the models they name, the reading that 24B there describes the base rather than Sarvam-M is not available. Nothing has to be assumed about whether post-training preserves a parameter count either, because the Hub measured this model's own weights and not the base model's: safetensors.total is 23572403200, which is 23.57 billion and rounds to the 24 the creator labels it with. The recorded totalBillions is 24, which is that label rather than an exact count, and the measured total is recorded on hugging-face-sarvam-m-hub-record. The post does not state a release date for the weights, and it is dated three days after the Hub first measured the repository, so the recorded release date comes from the Hub and that gap is recorded on hugging-face-sarvam-m-hub-record."
+  },
+  {
+    "id": "hugging-face-sarvam-m-hub-record",
+    "url": "https://huggingface.co/api/models/sarvamai/sarvam-m",
+    "title": "Hugging Face Hub record for sarvamai/sarvam-m",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "The Hub's machine-readable record, carrying the createdAt of 2025-05-20T06:39:05.000Z used as this release's date, and cardData license \"apache-2.0\". No Sarvam AI page read on 2026-08-29 stated a release date, so the date rests on the Hub's measurement of when Sarvam AI first published the repository, which is a weaker claim than a creator-stated release date and is recorded as such. Sarvam AI's own announcement post is dated 2025-05-23, three days later, so the weights were measurable before the company announced them; both are recorded rather than one being presented as the release. The record also reports safetensors.total of 23572403200, which is a measurement of this model's own weights rather than the base model's. At 23.57 billion it rounds to the 24B that Sarvam AI's announcement post labels this model with in its comparison tables, and the two together are what the recorded parameter figure rests on; the quotes are set out on sarvam-ai-sarvam-m-blog."
   }
 ]

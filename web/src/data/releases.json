@@ -3561,5 +3561,285 @@
       "osi-approved-licenses"
     ],
     "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "apple-openelm-3b-instruct",
+    "slug": "openelm-3b-instruct",
+    "canonicalName": "OpenELM-3B-Instruct",
+    "displayName": "OpenELM 3B Instruct",
+    "organizationId": "apple",
+    "familyId": "apple-openelm",
+    "version": "1",
+    "variant": "3B Instruct",
+    "releaseDate": "2024-04-12",
+    "datePrecision": "day",
+    "status": "research",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apple Machine Learning Research Model License Agreement",
+      "url": "https://huggingface.co/apple/OpenELM-3B-Instruct/raw/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 3
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The instruction-tuned 3B member of Apple’s OpenELM family, released with downloadable weights under a licence restricting use to scientific research. No context length is stated on any Apple page read for this record, so none is recorded.",
+    "intendedUse": "Scientific research into efficient language models. The licence shipped with the weights states they are released for the sole purpose of research into artificial intelligence and machine-learning technology, which is why the record carries research status rather than current. The card’s two licence identifiers disagree with each other and the disagreement is recorded on the model card source rather than resolved here.",
+    "sourceIds": [
+      "apple-openelm-3b-instruct-model-card",
+      "apple-openelm-license",
+      "apple-openelm-research-page",
+      "hugging-face-openelm-3b-instruct-hub-record",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "hugging-face-smollm3-3b",
+    "slug": "smollm3-3b",
+    "canonicalName": "SmolLM3-3B",
+    "displayName": "SmolLM3 3B",
+    "organizationId": "hugging-face",
+    "familyId": "hugging-face-smollm3",
+    "version": "3",
+    "variant": "3B",
+    "releaseDate": "2025-07-08",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://huggingface.co/HuggingFaceTB/SmolLM3-3B",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 3
+    },
+    "contextWindow": 65536,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "A 3B parameter model that Hugging Face created rather than hosted, published as fully open weights under Apache 2.0 with dual-mode reasoning. The recorded context window is the 65,536 tokens the card states its shipped configuration is set to; the card separately claims 128k tokens via extrapolation, and both figures are recorded on the model card source.",
+    "intendedUse": "General text generation and reasoning at the 3B scale. No language fact is recorded for this release because the release schema has no field for natural-language coverage. The card is not in conflict on the point: it names six natively supported languages and three more it trained on with fewer tokens, and its front-matter list carries every one of those but German. That single omission is recorded on the model card source.",
+    "sourceIds": [
+      "hugging-face-smollm3-model-card",
+      "hugging-face-smollm3-blog",
+      "hugging-face-smollm3-hub-record",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "01-ai-yi-1-5-34b-chat",
+    "slug": "yi-1-5-34b-chat",
+    "canonicalName": "Yi-1.5-34B-Chat",
+    "displayName": "Yi-1.5 34B Chat",
+    "organizationId": "01-ai",
+    "familyId": "01-ai-yi-1-5",
+    "version": "1.5",
+    "variant": "34B Chat",
+    "releaseDate": "2024-05-13",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://github.com/01-ai/Yi/blob/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The chat-tuned 34B member of 01.AI’s Yi-1.5 series, continuously pre-trained on Yi with a 500B-token corpus and fine-tuned on 3M samples, distributed under Apache 2.0.",
+    "intendedUse": "General conversation and instruction following. Neither a parameter count nor a context window is recorded: no 01.AI page read states a parameter count in prose, and the card’s context figures are given for the Yi-1.5 family as three alternatives rather than for this variant, so either would be an inference from the model’s name. Both omissions are explained on the model card and repository sources.",
+    "sourceIds": [
+      "01-ai-yi-repository",
+      "01-ai-yi-1-5-34b-chat-model-card",
+      "hugging-face-yi-1-5-34b-chat-hub-record",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "minimax-text-01-456b",
+    "slug": "minimax-text-01-456b",
+    "canonicalName": "MiniMax-Text-01",
+    "displayName": "MiniMax-Text-01",
+    "organizationId": "minimax",
+    "familyId": "minimax-text-01",
+    "version": "01",
+    "variant": "456B",
+    "releaseDate": "2025-01-15",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "MiniMax Model License",
+      "url": "https://huggingface.co/MiniMaxAI/MiniMax-Text-01/raw/main/LICENSE-MODEL",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 456,
+      "activeBillions": 45.9
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "MiniMax’s mixture-of-experts language model with 456 billion total parameters and 45.9 billion activated per token, published as downloadable weights under the MiniMax Model License.",
+    "intendedUse": "General text generation. No context window is recorded: the card states a training context of 1 million tokens and an inference capability of up to 4 million, and neither is an exact token count, so both are recorded on the model card source instead. The MIT licence the card lists applies to the accompanying code and not to these weights.",
+    "sourceIds": [
+      "minimax-text-01-model-card",
+      "minimax-model-license",
+      "hugging-face-minimax-text-01-hub-record",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "sakana-ai-evollm-jp-v1-7b",
+    "slug": "evollm-jp-v1-7b",
+    "canonicalName": "EvoLLM-JP-v1-7B",
+    "displayName": "EvoLLM-JP v1 7B",
+    "organizationId": "sakana-ai",
+    "familyId": "sakana-ai-evollm-jp",
+    "version": "1",
+    "variant": "7B",
+    "releaseDate": "2024-03",
+    "datePrecision": "month",
+    "status": "research",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Microsoft Research License Terms",
+      "url": "https://huggingface.co/SakanaAI/EvoLLM-JP-v1-7B/raw/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 7
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "An experimental general-purpose Japanese language model that Sakana AI produced by merging existing models with its Evolutionary Model Merge method, released as a research prototype. Recorded at month precision because the announcement post’s date, its own retrospective wording, and the repository timestamp do not agree on a day.",
+    "intendedUse": "Research and development only; the card states the model is an experimental prototype, which is why the record carries research status. The weights ship under Microsoft Research License Terms because a Microsoft model was merged in, which is a licence fact and not an attribution: the card names Sakana AI as the developer and this dataset records Sakana AI as the creator. The three merged input models are not recorded entities here, so no derivation links are recorded.",
+    "sourceIds": [
+      "sakana-ai-evollm-jp-model-card",
+      "sakana-ai-evolutionary-model-merge-blog",
+      "sakana-ai-evollm-jp-license",
+      "hugging-face-evollm-jp-hub-record",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "sarvam-ai-sarvam-m-v1",
+    "slug": "sarvam-m-v1",
+    "canonicalName": "sarvam-m",
+    "displayName": "Sarvam-M",
+    "organizationId": "sarvam-ai",
+    "familyId": "sarvam-ai-sarvam-m",
+    "version": "1",
+    "variant": "M",
+    "releaseDate": "2025-05-20",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://huggingface.co/sarvamai/sarvam-m",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 24
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Sarvam AI’s multilingual hybrid-reasoning language model, post-trained from Mistral Small on Indian languages alongside English and published under Apache 2.0.",
+    "intendedUse": "Multilingual text generation and reasoning across Indian languages and English. No context window is recorded, because no Sarvam AI page read for this record states one. The recorded parameter figure is the 24B label Sarvam AI applies to this model in its announcement post's comparison tables, which the Hub's measurement of this model's own weights at 23.57 billion rounds to. The base model is not a recorded release here, so the derivation is stated in prose rather than as a link.",
+    "sourceIds": [
+      "sarvam-ai-sarvam-m-model-card",
+      "sarvam-ai-sarvam-m-blog",
+      "hugging-face-sarvam-m-hub-record",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-29"
   }
 ]
