@@ -6120,3 +6120,142 @@ a.directory-letter:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Primary navigation grouping (issue #523) ---------------------------------
+ * Eleven flat header links overflowed their bar. They are now five top-level
+ * items, two of which are native <details>/<summary> disclosures holding the
+ * rest. Everything below is appended: no rule above this comment is edited.
+ *
+ * There is deliberately no transition, animation, or transform anywhere in this
+ * block. A submenu that appears instantly needs no `prefers-reduced-motion`
+ * escape hatch, and cannot have one that was forgotten.
+ */
+.primary-nav .nav-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.primary-nav .nav-item {
+  display: flex;
+  position: relative;
+}
+
+/* `nav a { min-height: 44px }` above is inert on an inline box; this is what
+ * makes the existing 44px touch target real, at both levels of the menu.
+ *
+ * It also overrides `nav a:first-child { display: none }` in the 700px media
+ * query above. That rule hid the first link to buy room in an eleven-item row;
+ * with every link now wrapped in its own <li> it would match every link in the
+ * menu instead of one, and the row it was compensating for no longer exists.
+ * The attribute selector is what wins the cascade on specificity rather than on
+ * source order, so a later append cannot silently take the links away again.
+ */
+.primary-nav a[href] {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.nav-disclosure {
+  position: relative;
+}
+
+.nav-trigger {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 13px;
+  border-radius: 0.625rem;
+  color: var(--cp-text-muted);
+  font-size: 14px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  list-style: none;
+}
+
+.nav-trigger::-webkit-details-marker {
+  display: none;
+}
+
+/* A shape, not a colour: the open state is legible without perceiving hue. */
+.nav-trigger::after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-top: 5px solid currentcolor;
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+}
+
+.nav-disclosure[open] > .nav-trigger::after {
+  border-top: 0;
+  border-bottom: 5px solid currentcolor;
+}
+
+.nav-trigger:hover,
+.nav-trigger:focus-visible,
+.nav-disclosure[open] > .nav-trigger {
+  background: var(--cp-accent-soft);
+  color: var(--cp-text);
+}
+
+/* The page being viewed keeps `aria-current` on its own link inside the menu.
+ * This marks the closed trigger that hides it, with a weight and an underline
+ * rather than the accent bar, so the two states stay distinguishable.
+ */
+.nav-trigger[data-holds-current="true"] {
+  color: var(--cp-text);
+  box-shadow: inset 0 -2px 0 var(--cp-border-strong);
+}
+
+/* Anchored to the right edge: the header puts this nav against the right of the
+ * page, so a panel that grows leftwards can never leave the viewport. `top:
+ * 100%` leaves no dead gap between trigger and panel, which is what lets a
+ * pointer travel into the submenu without it closing underneath.
+ */
+.nav-submenu {
+  position: absolute;
+  z-index: 60;
+  top: 100%;
+  right: 0;
+  left: auto;
+  display: grid;
+  min-width: 100%;
+  gap: 2px;
+  margin: 0;
+  padding: 6px;
+  border: 1px solid var(--cp-border);
+  border-radius: 0.625rem;
+  background: var(--cp-panel-strong);
+  box-shadow: var(--cp-shadow);
+  list-style: none;
+}
+
+.primary-nav .nav-submenu a[href] {
+  display: flex;
+  border-radius: 0.5rem;
+}
+
+@media (max-width: 700px) {
+  .primary-nav .nav-row {
+    gap: 2px;
+  }
+
+  .nav-trigger {
+    padding-inline: 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .nav-trigger {
+    padding-inline: 8px;
+  }
+}
