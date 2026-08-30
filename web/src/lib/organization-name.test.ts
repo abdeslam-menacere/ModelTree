@@ -751,15 +751,77 @@ describe('the creator naming rule on surfaces added later', () => {
   }
 
   /**
+   * The name of the callback-parameter route, so the assertion that pins its
+   * judged-set membership can refer to it without restating its pattern.
+   */
+  const CALLBACK_PARAMETER_ROUTE = 'a record destructured in a callback parameter';
+
+  /**
+   * The four routes by which the gate below recognises a held record.
+   *
+   * These are the gate's clauses, named rather than written inline as a bare
+   * `||` chain, because *which* route reached a module is itself a property
+   * worth asserting: a clause that is the sole route to a real surface can be
+   * narrowed until that surface silently leaves the judged set, and a gate that
+   * only ever answers yes-or-no cannot tell that from a surface that was never
+   * judged in the first place. See 'judges at least one real swept surface
+   * through the callback-parameter clause alone' -- the naming exists to make
+   * that assertion expressible without duplicating a pattern that could then
+   * drift away from the one actually in use.
+   *
+   * The patterns are unchanged and the gate is still their disjunction, so this
+   * is a decomposition of the gate and not a widening of it.
+   */
+  const RECORD_ROUTES: ReadonlyArray<{ route: string; pattern: RegExp }> = [
+    {
+      route: 'the Organization type import',
+      pattern: /import\s+type\s*\{[^}]*\bOrganization\b[^}]*\}\s*from\s*'(?:\.\.\/)+data\/schema'/,
+    },
+    { route: 'a dataset.organizations read', pattern: /\.organizations\b/ },
+    // ...or destructures one out of a prepared view: `const { organization } =
+    // ecosystem`. `homepage-search.ts` arrived with a later surface holding
+    // real records exactly this way -- naming neither the type nor the
+    // collection -- and the gate skipped the whole module, so five raw reads
+    // were never even offered to the sweep. A module handed an
+    // already-labelled view model still matches none of the four.
+    { route: 'a record destructured out of a prepared view', pattern: /\{\s*organization\s*(?:,[^}]*)?\}\s*=/ },
+    // ...or destructures one in a callback *parameter*, the shape the homepage
+    // and the two lineage explorers use to walk a hierarchy:
+    // `hierarchy.map(({ organization, families }) => ...)`. The record is real
+    // and raw -- it never passed through the label -- but it is named in an
+    // arrow parameter rather than a `const`, so the clause above steps over it.
+    // This is the original #504 regression shape on a fresh surface, and
+    // `index.astro` rendered a raw name through it while the gate skipped the
+    // whole file. Matched here so the record is judged wherever it is unpacked.
+    //
+    // The braces are load-bearing: this matches a *destructured* parameter and
+    // deliberately not a bare one. `ProviderDirectory.tsx` maps
+    // `(organization) => <li>{organization.name}</li>` over a prepared
+    // `DirectoryEntry` whose `.name` is already the label, so rendering it is
+    // correct; widening to bare parameters would judge that file and fail on
+    // correct code. Requiring `{ ... }` keeps the bare-parameter view model out
+    // by mechanism, which is why this clause adds three judged modules
+    // (`index.astro`, `LineageExplorer.tsx`, `ModelTreeExplorer.tsx`) and
+    // reddens none.
+    { route: CALLBACK_PARAMETER_ROUTE, pattern: /\(\s*\{[^}]*\borganization\b[^}]*\}\s*\)\s*=>/ },
+  ];
+
+  /** Which of the gate's routes reach a record in this source. */
+  function recordRoutes(source: string): string[] {
+    return RECORD_ROUTES.filter(({ pattern }) => pattern.test(source)).map(({ route }) => route);
+  }
+
+  /**
    * Whether a module holds an actual Organization record, as opposed to a view
    * model built from one. This is the sweep's gate, and it is what correctly
    * excludes `ProviderDirectory.tsx`.
    *
    * This gate -- not the corpus -- is what bounds the sweep's reach, and it is
-   * deliberately narrow: it recognises a module by four routes -- it imports the
-   * `Organization` type, reads `dataset.organizations`, destructures a record
-   * out of a prepared view with `const { organization } = ...`, or destructures
-   * one in a callback parameter with `({ organization }) => ...`. The two
+   * deliberately narrow: it recognises a module by the four routes in
+   * `RECORD_ROUTES` -- it imports the `Organization` type, reads
+   * `dataset.organizations`, destructures a record out of a prepared view with
+   * `const { organization } = ...`, or destructures one in a callback parameter
+   * with `({ organization }) => ...`. The two
    * destructure forms are distinct shapes, and the distinction is load-bearing:
    * the callback-parameter form is the one `index.astro` used, and the sweep was
    * blind to it until it was added. Most swept modules match none of the four
@@ -772,36 +834,7 @@ describe('the creator naming rule on surfaces added later', () => {
    * discovered but never judged still fails.
    */
   function holdsOrganizationRecords(source: string): boolean {
-    return (
-      /import\s+type\s*\{[^}]*\bOrganization\b[^}]*\}\s*from\s*'(?:\.\.\/)+data\/schema'/.test(source)
-      || /\.organizations\b/.test(source)
-      // ...or destructures one out of a prepared view: `const { organization } =
-      // ecosystem`. `homepage-search.ts` arrived with a later surface holding
-      // real records exactly this way -- naming neither the type nor the
-      // collection -- and the gate skipped the whole module, so five raw reads
-      // were never even offered to the sweep. A module handed an
-      // already-labelled view model still matches none of the four.
-      || /\{\s*organization\s*(?:,[^}]*)?\}\s*=/.test(source)
-      // ...or destructures one in a callback *parameter*, the shape the homepage
-      // and the two lineage explorers use to walk a hierarchy:
-      // `hierarchy.map(({ organization, families }) => ...)`. The record is real
-      // and raw -- it never passed through the label -- but it is named in an
-      // arrow parameter rather than a `const`, so the clause above steps over it.
-      // This is the original #504 regression shape on a fresh surface, and
-      // `index.astro` rendered a raw name through it while the gate skipped the
-      // whole file. Matched here so the record is judged wherever it is unpacked.
-      //
-      // The braces are load-bearing: this matches a *destructured* parameter and
-      // deliberately not a bare one. `ProviderDirectory.tsx` maps
-      // `(organization) => <li>{organization.name}</li>` over a prepared
-      // `DirectoryEntry` whose `.name` is already the label, so rendering it is
-      // correct; widening to bare parameters would judge that file and fail on
-      // correct code. Requiring `{ ... }` keeps the bare-parameter view model out
-      // by mechanism, which is why this clause adds three judged modules
-      // (`index.astro`, `LineageExplorer.tsx`, `ModelTreeExplorer.tsx`) and
-      // reddens none.
-      || /\(\s*\{[^}]*\borganization\b[^}]*\}\s*\)\s*=>/.test(source)
-    );
+    return recordRoutes(source).length > 0;
   }
 
   it('reads a non-empty corpus from every swept directory, so the sweep below means something', () => {
@@ -962,6 +995,48 @@ describe('the creator naming rule on surfaces added later', () => {
       '));',
     ].join('\n');
     expect(holdsOrganizationRecords(bareParameter)).toBe(false);
+  });
+
+  it('judges at least one real swept surface through the callback-parameter clause alone', () => {
+    // The assertion above pins the clause's *verdict on synthetic strings*.
+    // This one pins its *membership of the judged set*, and the two are not the
+    // same guarantee. The review of #528 showed the gap by mutation: narrow the
+    // clause so it still matches the braced fixture but no longer matches the
+    // real homepage -- the fixture's callback body opens with `<li>`, the
+    // homepage's with `<section>` -- then render a raw `{organization.name}` on
+    // that homepage. Every assertion in this file stayed green while the page
+    // shipped the exact defect this tripwire exists to catch.
+    //
+    // The asymmetry is the whole point. A *widening* of the clause reddens
+    // loudly, because it pulls extra real files into the judged set and they
+    // fail on correct code -- that is what the permissive mutation in #528
+    // proved. A *narrowing* is silent, because it drops real files out, and
+    // until this assertion nothing said they were ever in. The clause is the
+    // sole route by which three live surfaces are judged at all, so when it
+    // narrows past them they leave the judged set and are simply never read.
+    //
+    // Non-emptiness, not a floor and not a count. A count moves whenever a page
+    // is added; a floor pins today's carriers from below, so deleting or
+    // refactoring one of them would redden this suite for a reason that has
+    // nothing to do with the creator-naming rule -- the same coupling objection
+    // that rules out pinning a filename. Non-emptiness is also enough: the
+    // demonstrated narrowing empties the set outright rather than thinning it,
+    // because the clause is these surfaces' only route in.
+    //
+    // Structural, not by path. No filename appears here: carriers are found by
+    // asking the gate which of its routes reached each swept module, so a
+    // legitimate rename or move of the homepage changes nothing.
+    const carriers = modules.filter(({ source }) => (
+      recordRoutes(source).includes(CALLBACK_PARAMETER_ROUTE)
+    ));
+    const soleRoute = carriers.filter(({ source }) => recordRoutes(source).length === 1);
+
+    expect(
+      soleRoute.length,
+      `no swept surface is judged through ${CALLBACK_PARAMETER_ROUTE} alone, `
+      + 'so narrowing that clause would drop real surfaces out of the judged set '
+      + `unnoticed (clause carriers: ${carriers.map(({ file }) => file).join(', ') || 'none'})`,
+    ).toBeGreaterThan(0);
   });
 
   it('sweeps a module that only ever destructures an organization record', () => {
