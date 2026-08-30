@@ -300,12 +300,29 @@ for a human: stop, and file an issue describing what it needed and why.
 **`gate-ledger.mjs`** is what pays for the widening above. Admitting
 `refresh-runs.json` to the qualifying class lets a run publish a report card
 about itself, so this gate reads that report against the change it describes
-rather than against itself. Four rules: the documents the entry names must be
+rather than against itself. Six rules: the documents the entry names must be
 exactly the dataset documents the branch changed, in both directions; every
 `recordsBefore` and `recordsAfter` is **counted** at the anchor and in the working
 tree rather than believed; a branch adds at most one entry, so a bad run stays one
-revert; and a commit whose subject declares `(run <id>)` must have an entry for
-that id.
+revert; a commit whose subject declares `(run <id>)` must have an entry for that id
+that *this branch adds*, so a reused id cannot be satisfied by an entry that was
+already there; a change confined to the qualifying class must add an entry at all,
+because that is the shape that merges with nobody watching and writing nothing was
+otherwise the cheapest way through; and the ledger is append-only, because every
+other rule reasons about what was *added* and so a deletion paired with an equal
+addition nets out and is invisible to all of them.
+
+That fifth rule is keyed on the diff's shape rather than on the `(run <id>)`
+marker, and the difference matters: the marker is written by the run, so a run that
+omitted both the marker and the entry would satisfy a marker-triggered rule by
+staying silent. The shape of a diff measured from a merge-base is the one thing a
+run cannot talk its way out of. The cost is that it cannot tell a hand edit
+confined to the dataset documents from a refresh — 7 of the last 250 commits are
+that shape, and roughly four of them are hand edits. Those are asked for an entry
+they should not have to write. It is accepted rather than solved: branch mode does
+not run in CI, so it never blocks such a pull request, and the alternative is
+letting absence be the more permissive option in the one gate added to stop exactly
+that.
 
 It anchors exactly as `gate-scope.mjs` does, and a self-test asserts the two
 resolve the same commit and agree on what a dataset document is — if they drift,
@@ -329,6 +346,12 @@ that the numbers went unchecked. That is the shape of a correction to a historic
 entry. It is *not* an acceptable shape for a run that is publishing data: there,
 `transcription: true` means the entry and its data got separated and belong in one
 commit.
+
+Transcription relaxes the reconciliation rules and the no-rewriting half of the
+append-only rule, because editing a historical entry in place is exactly what a
+correction is. It never relaxes the no-deletion half. A branch may repair what an
+entry says; no branch may make a published run disappear from the page, whatever
+it says it is doing.
 
 ## Verifying the gates themselves
 

@@ -4511,14 +4511,20 @@ describe('gate-ledger', () => {
   // -------------------------------------------------------------------------
 
   test('an ordinary data change that records no run is not required to write an entry', () => {
+    // Out of class - it carries a test alongside the data, which is what the
+    // ordinary human data pull request looks like: 15 of the last 22 commits
+    // touching a dataset document also touched something outside the class.
+    // Rule 5 deliberately does not reach these, because they cannot auto-merge.
     const result = ledgerRepo(({ writeJson: w }) => {
       w('web/src/data/releases.json', [{ id: 'r1' }, { id: 'r2' }]);
+      w('web/src/data/schema-note.txt', 'a file outside the qualifying class');
     });
     assert.equal(result.code, 0, result.stdout);
     const r = report(result);
     assert.deepEqual(r.entriesAdded, []);
     assert.deepEqual(r.failures, []);
     assert.equal(r.transcription, false);
+    assert.equal(r.unattended, false);
   });
 
   test('a branch that changes nothing at all passes', () => {
@@ -4706,6 +4712,9 @@ describe('gate-ledger', () => {
   test('Rule 4 - a commit subject with no run id declares nothing', () => {
     const result = ledgerRepo(({ git, writeJson: w }) => {
       w('web/src/data/releases.json', [{ id: 'r1' }, { id: 'r2' }]);
+      // Out of class, so rule 5 does not also fire and this stays a test about
+      // rule 4 alone.
+      w('web/src/data/schema-note.txt', 'outside the class');
       git('add', '-A');
       git('commit', '-qm', 'data: correct a release date');
     });
@@ -4939,10 +4948,199 @@ describe('gate-ledger', () => {
   });
 
   // -------------------------------------------------------------------------
-  // The live repository. The rules above are proved on fixtures; this asserts
-  // the real ledger is complete over everything published to date, which is the
-  // condition #419 was filed about.
+  // Rule 5. A change that may merge unattended records itself.
+  //
+  // The #419 failure was never a wrong entry - it was a missing one, three
+  // times. Rules 1-4 all reason about an entry that exists, so before this rule
+  // the cheapest way through the gate was to write nothing at all. That inverts
+  // this skill's own rule that absence must never be the more permissive
+  // option, which is why the trigger is the diff's shape and not a marker the
+  // run writes: a run that stays silent cannot silence the anchor.
   // -------------------------------------------------------------------------
+
+  test('Rule 5 - a dataset change confined to the qualifying class must record itself', () => {
+    const result = ledgerRepo(({ writeJson: w }) => {
+      w('web/src/data/releases.json', [{ id: 'r1' }, { id: 'r2' }]);
+    });
+    assert.equal(result.code, 1, result.stdout);
+    const r = report(result);
+    assert.equal(r.unattended, true);
+    assert.deepEqual(r.outOfClass, []);
+    assert.deepEqual(r.entriesAdded, []);
+    assert.match(r.failures.join('\n'), /adds no entry/);
+    assert.match(r.failures.join('\n'), /auto-merge unattended/);
+  });
+
+  test('Rule 5 - the same change with its entry passes', () => {
+    const result = ledgerRepo(({ writeJson: w }) => {
+      w('web/src/data/releases.json', [{ id: 'r1' }, { id: 'r2' }]);
+      w(LEDGER, [entry('2026-09-01-aaaaaa', [doc('releases.json', 1, 2)])]);
+    });
+    assert.equal(result.code, 0, result.stdout);
+    assert.deepEqual(report(result).failures, []);
+  });
+
+  test('Rule 5 - a change touching anything outside the class is not required to record a run', () => {
+    const result = ledgerRepo(({ writeJson: w }) => {
+      w('web/src/data/releases.json', [{ id: 'r1' }, { id: 'r2' }]);
+      w('web/src/components/Thing.tsx', 'export const Thing = () => null;\n');
+    });
+    assert.equal(result.code, 0, result.stdout);
+    const r = report(result);
+    assert.equal(r.unattended, false);
+    assert.deepEqual(r.outOfClass, ['web/src/components/Thing.tsx']);
+    assert.deepEqual(r.failures, []);
+  });
+
+  test('Rule 5 - changing only the ledger is a transcription, not an unrecorded publish', () => {
+    const result = ledgerRepo(({ writeJson: w }) => {
+      w(LEDGER, [entry('2026-09-01-aaaaaa', [doc('releases.json', 1, 2)])]);
+    });
+    assert.equal(result.code, 0, result.stdout);
+    const r = report(result);
+    assert.equal(r.transcription, true);
+    assert.deepEqual(r.failures, []);
+  });
+
+  // -------------------------------------------------------------------------
+  // Rule 6. The ledger is append-only.
+  //
+  // The defect this rule exists for: every other rule asks what the working
+  // tree *gained*, so a removal plus an equal-sized addition nets out and is
+  // invisible to all of them. The first test is that swap exactly - the fixture
+  // deletes a published run while adding a correctly reconciled one, and every
+  // other rule in this gate is satisfied by it.
+  // -------------------------------------------------------------------------
+
+  test('Rule 6 - deleting a published run while adding a valid one is refused', () => {
+    const result = ledgerRepo(({ writeJson: w }) => {
+      w('web/src/data/releases.json', [{ id: 'r1' }, { id: 'r2' }]);
+      // 2026-08-28-cff539 was recorded at the anchor and is simply gone. The
+      // added entry reconciles perfectly, so rules 1, 2, 3 and 4 all pass.
+      w(LEDGER, [entry('2026-09-01-aaaaaa', [doc('releases.json', 1, 2)])]);
+    }, [], { ledger: [entry('2026-08-28-cff539', [doc('families.json', 0, 1)])] });
+    assert.equal(result.code, 1, result.stdout);
+    const r = report(result);
+    assert.deepEqual(r.entriesRemoved, ['2026-08-28-cff539']);
+    assert.deepEqual(r.entriesAdded, ['2026-09-01-aaaaaa']);
+    assert.match(r.failures.join('\n'), /removes 1 recorded run/);
+    assert.match(r.failures.join('\n'), /append-only/);
+  });
+
+  test('Rule 6 - a deletion with no addition at all is refused', () => {
+    const result = ledgerRepo(({ writeJson: w }) => {
+      w(LEDGER, []);
+    }, [], { ledger: [entry('2026-08-28-cff539', [doc('families.json', 0, 1)])] });
+    assert.equal(result.code, 1, result.stdout);
+    assert.deepEqual(report(result).entriesRemoved, ['2026-08-28-cff539']);
+  });
+
+  test('Rule 6 - a deletion is refused in transcription mode too', () => {
+    // No dataset document changes here, so this is a transcription and rules 1
+    // and 2 are relaxed. The no-deletion half is not relaxed with them.
+    const result = ledgerRepo(({ writeJson: w }) => {
+      w(LEDGER, [entry('2026-09-01-aaaaaa', [doc('releases.json', 1, 2)])]);
+    }, [], { ledger: [entry('2026-08-28-cff539', [doc('families.json', 0, 1)])] });
+    assert.equal(result.code, 1, result.stdout);
+    const r = report(result);
+    assert.equal(r.transcription, true);
+    assert.deepEqual(r.entriesRemoved, ['2026-08-28-cff539']);
+  });
+
+  test('Rule 6 - rewriting a prior entry in place while publishing is refused', () => {
+    // The id set is unchanged, so an id-only comparison sees nothing. The
+    // numbers inside a published entry moved, and there is no diff in front of
+    // this gate to re-derive them from.
+    const result = ledgerRepo(({ writeJson: w }) => {
+      w('web/src/data/releases.json', [{ id: 'r1' }, { id: 'r2' }]);
+      w(LEDGER, [
+        entry('2026-09-01-aaaaaa', [doc('releases.json', 1, 2)]),
+        entry('2026-08-28-cff539', [doc('families.json', 0, 99)]),
+      ]);
+    }, [], { ledger: [entry('2026-08-28-cff539', [doc('families.json', 0, 1)])] });
+    assert.equal(result.code, 1, result.stdout);
+    const r = report(result);
+    assert.deepEqual(r.entriesRemoved, []);
+    assert.match(r.failures.join('\n'), /alters 1 entry/);
+  });
+
+  test('Rule 6 - correcting a historical entry in transcription mode is allowed', () => {
+    // The repair route ADR 0006 keeps open: no dataset document changes, so
+    // there is no run being published and nothing for the edit to contradict.
+    const result = ledgerRepo(({ writeJson: w }) => {
+      w(LEDGER, [entry('2026-08-28-cff539', [doc('families.json', 0, 7)])]);
+    }, [], { ledger: [entry('2026-08-28-cff539', [doc('families.json', 0, 1)])] });
+    assert.equal(result.code, 0, result.stdout);
+    const r = report(result);
+    assert.deepEqual(r.entriesRemoved, []);
+    assert.deepEqual(r.failures, []);
+  });
+
+  test('Rule 6 - appending while leaving prior entries untouched passes', () => {
+    const result = ledgerRepo(({ writeJson: w }) => {
+      w('web/src/data/releases.json', [{ id: 'r1' }, { id: 'r2' }]);
+      w(LEDGER, [
+        entry('2026-09-01-aaaaaa', [doc('releases.json', 1, 2)]),
+        entry('2026-08-28-cff539', [doc('families.json', 0, 1)]),
+      ]);
+    }, [], { ledger: [entry('2026-08-28-cff539', [doc('families.json', 0, 1)])] });
+    assert.equal(result.code, 0, result.stdout);
+    assert.deepEqual(report(result).failures, []);
+  });
+
+  // -------------------------------------------------------------------------
+  // Rule 4, reused ids. Declaring an id the anchor already records is not
+  // satisfied by the entry that was already there.
+  // -------------------------------------------------------------------------
+
+  test('Rule 4 - declaring an id the ledger already recorded is refused', () => {
+    const result = ledgerRepo(({ git, writeJson: w }) => {
+      w('web/src/data/releases.json', [{ id: 'r1' }, { id: 'r2' }]);
+      git('add', '-A');
+      git('commit', '-qm', 'chore(data): re-verify records (run 2026-08-28-cff539)');
+    }, [], { ledger: [entry('2026-08-28-cff539', [doc('families.json', 0, 1)])] });
+    assert.equal(result.code, 1, result.stdout);
+    const r = report(result);
+    assert.deepEqual(r.entriesAdded, []);
+    assert.match(r.failures.join('\n'), /already recorded/);
+  });
+
+  test('Rule 4 - a declared id must be satisfied by an entry this branch adds', () => {
+    const result = ledgerRepo(({ git, writeJson: w }) => {
+      w('web/src/data/releases.json', [{ id: 'r1' }, { id: 'r2' }]);
+      w(LEDGER, [
+        entry('2026-09-01-aaaaaa', [doc('releases.json', 1, 2)]),
+        entry('2026-08-28-cff539', [doc('families.json', 0, 1)]),
+      ]);
+      git('add', '-A');
+      git('commit', '-qm', 'chore(data): re-verify records (run 2026-09-01-aaaaaa)');
+    }, [], { ledger: [entry('2026-08-28-cff539', [doc('families.json', 0, 1)])] });
+    assert.equal(result.code, 0, result.stdout);
+    assert.deepEqual(report(result).failures, []);
+  });
+
+  // -------------------------------------------------------------------------
+  // The class this gate computes must be the class `gate-scope.mjs` enforces.
+  // Two gates disagreeing about which paths are in class is how a file ends up
+  // auto-mergeable by one and not the other.
+  // -------------------------------------------------------------------------
+
+  test('the qualifying class this gate computes equals gate-scope ALLOWED_PATHS', () => {
+    const scopeSource = readFileSync(GATE_SCOPE, 'utf8');
+    const ledgerSource = readFileSync(GATE_LEDGER, 'utf8');
+    const between = (source, marker) => {
+      const start = source.indexOf(marker);
+      assert.notEqual(start, -1, `${marker} not found`);
+      const open = source.indexOf('[', start);
+      const close = source.indexOf(']', open);
+      return new Set([...source.slice(open, close).matchAll(/'([^']+)'/g)].map((m) => m[1]));
+    };
+    const scope = between(scopeSource, 'const ALLOWED_PATHS');
+    const dataset = between(ledgerSource, 'const DATASET_PATHS');
+    dataset.add('web/src/data/refresh-runs.json');
+    assert.deepEqual([...dataset].sort(), [...scope].sort());
+  });
+
 
   test('the live repository ledger records every run its published history declares', () => {
     const result = run(GATE_LEDGER, ['--repo', REPO, '--history', '--json']);

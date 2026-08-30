@@ -28,7 +28,7 @@
 // different ways is how this class of bug survives, so they answer it the same
 // way and a self-test pins that they agree.
 //
-// The four rules, and what each refuses:
+// The six rules, and what each refuses:
 //
 //   1. **Declared documents match changed documents.** A run may not quietly
 //      edit a document its entry does not mention, nor claim one it never
@@ -40,21 +40,43 @@
 //      an internally-coherent lie does not survive.
 //   3. **A run id is added at most once, and is new.** The branch may add one
 //      entry, and its id may not already exist at the anchor.
-//   4. **A declared run has an entry.** Any commit subject on this branch of the
-//      form `(run <id>)` must have a matching entry. This is the specific
-//      recurrence of #419 made structurally impossible rather than discouraged.
+//   4. **A declared run has an entry added here.** Any commit subject on this
+//      branch of the form `(run <id>)` must have a matching entry *that this
+//      branch adds*. Matching it against the whole ledger would let a run
+//      declare an id the anchor already records and satisfy the rule with an
+//      entry someone else wrote, which is id reuse passing as compliance.
+//   5. **A change that may merge unattended records itself.** If this branch
+//      changes a dataset document and touches nothing outside the qualifying
+//      class, it is by construction a change ADR 0003 permits to reach `main`
+//      with no human approving it, and it must add an entry. Without this rule
+//      omitting the entry is the cheapest way through the gate, which inverts
+//      `modeltree-gates`' own rule that absence must never be the more
+//      permissive option - and it is exactly the #419 failure, which was an
+//      entry that never existed rather than a wrong one.
+//   6. **The ledger is append-only.** An id recorded at the anchor must still be
+//      there, and in run mode the prior entries must be untouched and in the
+//      same order. Rules 1-4 all reason about *added* entries, so without this
+//      one a deletion is invisible to every one of them: remove a published run
+//      and add a correctly reconciled one and every aggregate nets out. That
+//      would let the runs this page audits rewrite the audit trail.
 //
 // Rules 1 and 2 fire only when an entry was added *and* this branch changed a
-// dataset document, and rule 4 only when a run id was declared. Two ordinary
-// cases therefore pass untouched. A pull request that changes dataset documents
-// without recording a run - an ordinary human data change, which is not a
-// refresh run - is not required to write a ledger entry; requiring one would
-// make every breadth pull request file a report about a run that never happened.
-// And an entry added on a branch that changes no dataset document is a
+// dataset document; rule 4 only when a run id was declared; rule 5 only for a
+// change confined to the qualifying class. So an ordinary human data change
+// bundled with anything outside that class - a schema edit, a test, a component -
+// is out of class, cannot merge unattended, and is not required to file a report
+// about a run that never happened. What rule 5 does catch is the *pure* data
+// change, because that one is indistinguishable from a refresh at the only
+// boundary that matters: it auto-merges. Anything that reaches `main` unattended
+// belongs on the page that exists to audit what reached `main` unattended.
+//
+// An entry added on a branch that changes no dataset document is a
 // *transcription* of already-published work, which has no diff here to be
 // reconciled against; the report marks it `transcription: true` and says the
 // numbers went unchecked, rather than passing it silently as though they had
-// been.
+// been. Transcription relaxes rules 1 and 2 and the ordering half of rule 6,
+// because repairing a historical entry is editing one in place and that is the
+// repair route ADR 0006 preserves. It never relaxes the no-deletion half.
 //
 // `--history <ref>` answers #419's fourth acceptance criterion over published
 // history instead of over a branch: every run id that appears in a commit subject
@@ -353,9 +375,21 @@ function gateBranch(cwd, args) {
   const addedEntries = after.records.filter(
     (run) => typeof run?.id === 'string' && !knownIds.has(run.id),
   );
+  const addedIds = new Set(addedEntries.map((run) => run.id));
+  // The other direction, which is the whole point of rule 6. Everything above
+  // asks what the working tree gained; only this asks what it lost. An additive
+  // check nets out a swap - drop a published run, add a well-formed one, and
+  // every count above agrees with itself.
+  const afterIds = new Set(after.records.map((run) => run?.id).filter((id) => typeof id === 'string'));
+  const removedIds = [...knownIds].filter((id) => !afterIds.has(id));
 
   const paths = changedPaths(cwd, anchor.anchor);
   const changedDatasetPaths = paths.filter((path) => DATASET_PATHS.has(path));
+  // The qualifying class exactly as `gate-scope.mjs` computes it: the dataset
+  // documents plus the ledger. Recomputed here rather than imported because the
+  // two scripts are invoked independently and a gate that depends on another
+  // gate having run is a gate that can be skipped. A self-test pins them equal.
+  const outOfClass = paths.filter((path) => !DATASET_PATHS.has(path) && path !== LEDGER_PATH);
 
   const failures = [];
 
@@ -399,16 +433,99 @@ function gateBranch(cwd, args) {
     }
   }
 
-  // Rule 4. A commit that names its run id has promised an entry.
-  const declared = declaredRunIds(cwd, `${anchor.anchor}..HEAD`);
-  const recordedIds = new Set(after.records.map((run) => run?.id));
-  for (const [id, commits] of [...declared].sort(([a], [b]) => a.localeCompare(b))) {
-    if (!recordedIds.has(id)) {
-      failures.push(
-        `commit ${commits.join(', ')} declares run ${id}, but no entry for it reaches `
-        + `${LEDGER_PATH}. A published run records itself (ADR 0006)`,
-      );
+  // Rule 6, first half: nothing published may vanish. This half holds in every
+  // mode, transcription included - repairing an entry is editing it, never
+  // dropping it, and a branch that removes a published run is rewriting the
+  // record of what reached `main` regardless of why it says it is doing so.
+  if (removedIds.length > 0) {
+    failures.push(
+      `removes ${removedIds.length} recorded run(s) (${removedIds.sort().join(', ')}) from `
+      + `${LEDGER_PATH}. The ledger is append-only: it is the public record of what `
+      + 'reached `main` unattended, and a run may not edit that record (ADR 0006)',
+    );
+  }
+
+  // Rule 6, second half: in run mode the entries that were already there must be
+  // untouched and in the same order. Comparing ids alone would miss a run that
+  // keeps every id and rewrites the numbers inside one - the counts in a prior
+  // entry describe a diff that is not in front of this gate, so there is nothing
+  // to re-derive them from and the only safe statement is that they may not move.
+  // Transcription is exempt by design: editing a historical entry in place is
+  // precisely the repair route ADR 0006 keeps open.
+  if (!transcription) {
+    const withId = (records) => records.filter((run) => typeof run?.id === 'string');
+    const priorAfter = withId(after.records).filter((run) => !addedIds.has(run.id));
+    const serialise = (records) => records.map((run) => JSON.stringify(run));
+    const priorBefore = serialise(withId(before.records));
+    const priorNow = serialise(priorAfter);
+    if (priorBefore.length === priorNow.length) {
+      const priorBeforeRecords = withId(before.records);
+      const moved = [];
+      for (let i = 0; i < priorBefore.length; i += 1) {
+        if (priorBefore[i] !== priorNow[i]) moved.push(priorBeforeRecords[i]?.id ?? `index ${i}`);
+      }
+      if (moved.length > 0) {
+        failures.push(
+          `alters ${moved.length} entry/entries already recorded at the anchor (${moved.join(', ')}) `
+          + 'while publishing a run. A run appends its own entry and leaves the rest alone; '
+          + 'correcting a historical entry is a separate change that publishes no data (ADR 0006)',
+        );
+      }
     }
+  }
+
+  // Rule 5. A change confined to the qualifying class merges with nobody
+  // watching, so it has to appear on the page that records what did.
+  //
+  // The trigger is deliberately not self-reported. A `(run <id>)` marker is
+  // written by the run, so a run that omits both the marker and the entry would
+  // satisfy a marker-triggered rule by staying silent - absence as the cheaper
+  // path, which is the failure this whole gate exists to remove. What the run
+  // cannot fake is the shape of its own diff, measured from an anchor it cannot
+  // move: changing a dataset document and nothing outside the class *is* the
+  // qualifying class, computed the same way `gate-scope.mjs` computes it.
+  //
+  // An ordinary human data change is not caught, because it is not in this set:
+  // in practice it carries a test, a schema tweak, a component, or a source
+  // note, all of which are out of class. One confined so exactly to the dataset
+  // documents that it is indistinguishable from a refresh is treated as one -
+  // correctly, because at the only boundary that matters it behaves like one.
+  // The escape is not a flag; it is to stop being an unattended change, and a
+  // human-merged pull request is out of class the moment it touches anything
+  // else.
+  if (!transcription && outOfClass.length === 0 && addedEntries.length === 0) {
+    failures.push(
+      `changes ${changedDatasetPaths.length} dataset document(s) and nothing outside the `
+      + `qualifying class, so this may auto-merge unattended (ADR 0003), but adds no entry to `
+      + `${LEDGER_PATH}. A change that can reach \`main\` with no human approving it records `
+      + 'itself on the /refresh page (ADR 0006). This is the #419 failure exactly: the page went '
+      + 'stale because publishing without recording was the cheaper path. If this is a refresh '
+      + 'run, add its entry. If it is a hand edit that records no run, it is shaped exactly like '
+      + 'an unattended publish and the gate cannot tell them apart from the diff, so say so in '
+      + 'the pull request and let a human merge it - this gate does not run in CI and does not '
+      + 'block that',
+    );
+  }
+
+  // Rule 4. A commit that names its run id has promised an entry *here*. Matched
+  // against the entries this branch adds and not against the whole ledger: an id
+  // the anchor already records is not a new run, and letting a pre-existing entry
+  // satisfy the promise is how a reused id passes as compliance.
+  const declared = declaredRunIds(cwd, `${anchor.anchor}..HEAD`);
+  for (const [id, commits] of [...declared].sort(([a], [b]) => a.localeCompare(b))) {
+    if (addedIds.has(id)) continue;
+    if (knownIds.has(id)) {
+      failures.push(
+        `commit ${commits.join(', ')} declares run ${id}, which ${LEDGER_PATH} already recorded `
+        + 'at the anchor. A run id names one run once, so this is either a reused id or an '
+        + 'entry that was never added (ADR 0006)',
+      );
+      continue;
+    }
+    failures.push(
+      `commit ${commits.join(', ')} declares run ${id}, but no entry for it reaches `
+      + `${LEDGER_PATH}. A published run records itself (ADR 0006)`,
+    );
   }
 
   return {
@@ -429,7 +546,13 @@ function gateBranch(cwd, args) {
     // reported rather than inferred from the absence of failures.
     transcription: transcription && addedEntries.length > 0,
     changedDatasetDocuments: changedDatasetPaths,
+    // Empty means this change is confined to the qualifying class and so may
+    // merge unattended, which is what makes rule 5 apply. Reported because it is
+    // the input to that rule and a reader should not have to re-derive it.
+    outOfClass,
+    unattended: outOfClass.length === 0 && changedDatasetPaths.length > 0,
     entriesAdded: addedEntries.map((run) => run.id),
+    entriesRemoved: [...removedIds].sort(),
     runIdsDeclared: [...declared.keys()].sort(),
     failures,
     passed: failures.length === 0,
@@ -521,8 +644,19 @@ function main() {
   if (result.entriesAdded.length === 0) {
     process.stdout.write(
       `gate-ledger: no ledger entry added since ${result.anchor.commit.slice(0, 10)}, and no commit `
-      + 'declares a run id, so there is no run record to check.\n',
+      + 'declares a run id.\n',
     );
+    // Why that was allowed is the whole of rule 5, so say which branch of it
+    // applied rather than leaving a reader to infer it from silence.
+    if (result.changedDatasetDocuments.length === 0) {
+      process.stdout.write('  This branch changes no dataset document, so it publishes no run.\n');
+    } else {
+      process.stdout.write(
+        `  This branch changes ${result.changedDatasetDocuments.length} dataset document(s) but also `
+        + `${result.outOfClass.length} file(s) outside the qualifying class, so it cannot merge `
+        + 'unattended and is not a refresh run recording itself.\n',
+      );
+    }
     return 0;
   }
 

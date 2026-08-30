@@ -65,7 +65,7 @@ grant is paired with a control that did not exist before.
 **`gate-ledger.mjs` cross-checks the entry against the change it describes.** It
 is deterministic, offline, and anchored the same way every other gate here is —
 `git merge-base HEAD refs/remotes/origin/main`, computed rather than supplied. It
-enforces four things:
+enforces six things:
 
 1. **Every dataset document the branch changed is declared**, and every document
    the entry declares was really changed. A run cannot quietly edit a document it
@@ -75,9 +75,39 @@ enforces four things:
    nine releases and reports three fails here.
 3. **A run id is declared exactly once.** The entry's `id` must be new against
    the anchor's ledger, and the branch may add only one.
-4. **A declared run has an entry.** Any commit subject on the branch carrying
-   `(run <id>)` must have a matching ledger entry, which is the specific
-   recurrence above made impossible rather than merely discouraged.
+4. **A declared run has an entry added by this branch.** Any commit subject on
+   the branch carrying `(run <id>)` must have a matching ledger entry *that the
+   branch adds*, which is the specific recurrence above made impossible rather
+   than merely discouraged. Matching against the whole ledger instead would let a
+   run declare an id the anchor already recorded and be credited with an entry
+   somebody else wrote.
+5. **A change that can merge unattended records itself.** If the branch changes a
+   dataset document and touches nothing outside the qualifying class, it must add
+   an entry. Rules 1–4 all reason about an entry that exists, so without this one
+   the cheapest way through the gate is to write nothing — which is not a
+   hypothetical, it is precisely what happened three times.
+6. **The ledger is append-only.** A run id recorded at the anchor must still be
+   recorded, and while publishing, the entries already there must be byte-identical
+   and in the same order. Without this, a deletion is invisible to every rule
+   above: they all ask what the branch *added*, and a removal paired with an
+   equal-sized addition nets out of every count.
+
+Rule 5's trigger is the shape of the diff, not the `(run <id>)` marker, and that
+choice is load-bearing. The marker is written by the run, so a rule triggered by it
+is satisfied by a run that stays silent — absence as the cheaper path, which is the
+failure being fixed. A diff measured from a computed merge-base is the one thing
+the run cannot influence. The cost is real and is accepted rather than hidden: the
+gate cannot distinguish a hand edit confined to the dataset documents from a
+refresh run, because at the boundary that matters they are the same thing. Measured
+over the last 250 commits, 7 touch only in-class paths and roughly four of those
+are hand edits that record no run; each would be asked for an entry it should not
+need. Branch mode does not run in CI, so this never blocks such a pull request — it
+fires for the publishing agent, which is where it is needed.
+
+Rule 6's second half catches what an id comparison cannot: a run that keeps every
+id and rewrites the numbers inside a published entry. Those numbers describe a diff
+that is not in front of the gate, so there is nothing to re-derive them from and
+the only safe rule is that they may not move.
 
 The same script, run with `--history`, answers #419's fourth acceptance
 criterion over `main`: every run id published in a commit subject has a ledger
@@ -96,6 +126,11 @@ numbers went unchecked rather than passing it as though they had been. Rules 3
 and 4 still apply. For a run that is publishing data, `transcription: true` is a
 failure rather than a mode: it means the entry and its data were separated, and
 they belong in one commit.
+
+Transcription also relaxes rule 6's ordering half, since a correction *is* an edit
+to a published entry, and relaxes rule 5, since a branch that changes no dataset
+document publishes nothing that needs recording. It does not relax rule 6's
+no-deletion half. There is no mode in which a published run may leave this page.
 
 **`.github/CODEOWNERS` clears ownership on the ledger too.** The path list there
 duplicates `ALLOWED_PATHS` because CODEOWNERS cannot import, and a test asserts
