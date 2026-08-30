@@ -137,19 +137,64 @@ jobs:
           echo "Changed files:"
           echo "$changed"
 
-          # web/ is the site itself. This workflow file is included so that a
-          # change to it is verified by the workflow it changes. Nothing else
-          # matches, so a pull request confined to tools/updater/ skips the
-          # build entirely.
+          # The question this asks is "could this change break something the web
+          # suite verifies?", not "did the site's own sources change?". Those
+          # were the same question while every test under web/ tested web/, and
+          # web/tests/workflows/ ended that: the test whose whole subject is
+          # skills-ci.yml did not run when skills-ci.yml changed, so the guard
+          # existed and was never selected (#477).
+          #
+          # The list below is therefore derived rather than intuited. It is
+          # every path outside web/ that a file under web/ reads, obtained by
+          # resolving each relative path literal in web/ against its own file
+          # and keeping the ones that escape web/. Each entry, with its reader:
+          #
+          #   .github/workflows/
+          #       every .yml is parsed by tests/workflows/ci-preflight.test.ts,
+          #       and README.md is read by web-ci.test.ts and skills-ci.test.ts,
+          #       so the whole directory qualifies rather than a file list
+          #   .github/scripts/ci-preflight.mjs      ci-preflight.test.ts
+          #   .github/skills/modeltree-gates/scripts/gate-dataset.mjs
+          #       tests/workflows/skills-ci.test.ts
+          #   .github/skills/modeltree-gates/scripts/gate-evidence.mjs
+          #       src/data/featured-creator-profile.test.ts, which imports it
+          #   .github/skills/modeltree-gates/scripts/gate-scope.mjs
+          #       tests/contributing/issue-forms.test.ts
+          #   .github/skills/modeltree-review/SKILL.md
+          #       src/data/organization-type-policy.test.ts and
+          #       src/data/osi-approved-evidence-policy.test.ts
+          #   .github/ISSUE_TEMPLATE/               issue-forms.test.ts
+          #   .github/CODEOWNERS                    issue-forms.test.ts
+          #   .github/pull_request_template.md      issue-forms.test.ts
+          #   CONTRIBUTING.md                       issue-forms.test.ts
+          #   docs/contributing/minimal-dataset-example.json
+          #       issue-forms.test.ts
+          #   docs/product/INFORMATION-ARCHITECTURE.md
+          #       src/data/catalog-inclusion-policy.test.ts,
+          #       src/data/featured-policy.test.ts and
+          #       src/data/organization-type-policy.test.ts
+          #
+          # Named files rather than whole directories wherever the directory
+          # also holds files no web/ test reads. .github/skills/ is the case
+          # that matters: matching it whole would build the site for a SKILL.md
+          # nothing here opens, and the point of this step is to skip work that
+          # cannot change the answer. Still deliberately unmatched, for the same
+          # reason: tools/, docs/adr/, .github/copilot-instructions.md, and
+          # every other document under docs/. Their checks live elsewhere.
+          #
+          # Add a test under web/ that reads a new path outside web/, and add it
+          # here in the same change -- otherwise that test will not run when its
+          # own subject changes, which is the defect above, restored.
+          # `web/tests/workflows/web-ci.test.ts` pins every entry in this list.
           #
           # A here-string rather than a pipe: `grep -q` exits on its first match,
           # which can leave the left-hand side of a pipe killed by SIGPIPE and
           # the whole pipeline non-zero under `set -o pipefail`.
-          if grep -Eq '^(web/|\.github/workflows/web-ci\.yml$)' <<< "$changed"; then
-            echo "Web files changed; running the full web build."
+          if grep -Eq '^(web/|\.github/workflows/|\.github/scripts/ci-preflight\.mjs$|\.github/skills/modeltree-gates/scripts/gate-(dataset|evidence|scope)\.mjs$|\.github/skills/modeltree-review/SKILL\.md$|\.github/ISSUE_TEMPLATE/|\.github/CODEOWNERS$|\.github/pull_request_template\.md$|CONTRIBUTING\.md$|docs/contributing/minimal-dataset-example\.json$|docs/product/INFORMATION-ARCHITECTURE\.md$)' <<< "$changed"; then
+            echo "Files the web suite reads changed; running the full web build."
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
-            echo "No web files changed; nothing to build."
+            echo "Nothing the web suite reads changed; nothing to build."
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
 
@@ -220,4 +265,4 @@ jobs:
       - name: Record that no web build was needed
         if: steps.scope.outputs.run != 'true'
         run: |
-          echo 'No files under `web/` changed, so the site was not rebuilt.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Nothing the web suite reads changed, so the site was not rebuilt.' >> "$GITHUB_STEP_SUMMARY"

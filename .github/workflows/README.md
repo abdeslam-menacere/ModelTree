@@ -10,7 +10,7 @@ waiting for a merge to tell it.
 
 | Workflow | Triggers | Covers |
 |---|---|---|
-| [`web-ci.yml`](web-ci.yml) | `pull_request` (every one) and `push` to `main`, both scoped **inside the job** to `web/**` and `.github/workflows/web-ci.yml`; `workflow_dispatch` | Validates and builds the Astro site under `web/`, as three separately-named steps — the vitest suite, the Astro and TypeScript diagnostics, and the production build — so a red run names which one failed |
+| [`web-ci.yml`](web-ci.yml) | `pull_request` (every one) and `push` to `main`, both scoped **inside the job** to `web/**` and to every path outside `web/` that a test under `web/` reads — all of `.github/workflows/**`, `.github/scripts/ci-preflight.mjs`, `gate-dataset.mjs`, `gate-evidence.mjs` and `gate-scope.mjs` under `.github/skills/modeltree-gates/scripts/`, `.github/skills/modeltree-review/SKILL.md`, `.github/ISSUE_TEMPLATE/**`, `.github/CODEOWNERS`, `.github/pull_request_template.md`, `CONTRIBUTING.md`, `docs/contributing/minimal-dataset-example.json` and `docs/product/INFORMATION-ARCHITECTURE.md`; `workflow_dispatch` | Validates and builds the Astro site under `web/`, as three separately-named steps — the vitest suite, the Astro and TypeScript diagnostics, and the production build — so a red run names which one failed |
 | [`skills-ci.yml`](skills-ci.yml) | `pull_request` (every one), `workflow_dispatch`; scoped **inside the job** to `.github/skills/**`, `.github/scripts/**`, `.github/workflows/skills-ci.yml` and `web/src/data/**` | The data-refresh gates' self-tests, `gate-dataset` run against the live dataset, and a refusal of a hand-written test count in the skill documentation — a numeral described as tests, self-tests, test cases or assertions, in either order, with markdown emphasis tolerated around the numeral, and a table column whose heading is one of those nouns and whose body cell is a bare number. Noun-first needs a real separator, of the kind a label or a table cell supplies (`tests: 103`), so the verb reading — "the gate tests 4 kinds of emptiness" — is not a count, and nor is a year after `in` or `since`, a written-out number, a singular `N test`, or `N checks`, which in this repository usually means a status check. It reads one line at a time, so a count split across two lines of prose is not seen, and where it errs it over-matches: "adds 3 tests" is flagged although it sizes a change rather than the suite. The script header carries the same list with the reasoning |
 | [`updater-tests.yml`](updater-tests.yml) | `pull_request` and `push` to `main`, path-filtered to `tools/updater/**`, `.github/workflows/updater-tests.yml`, `.github/workflows/publish-updater-proposals.yml`, `tools/instruction_refs/**`, `.github/skills/**`, `.github/workflows/instruction-references.yml`, `tools/adr_numbers/**`, `.github/workflows/adr-numbers.yml` and `docs/adr/**`, `workflow_dispatch` | The updater's pytest suite, which is also where this repository's stdlib-Python invariants are asserted |
 | [`instruction-references.yml`](instruction-references.yml) | `pull_request` and `push` to `main`, path-filtered to `.github/copilot-instructions.md`, `.github/skills/**`, `tools/instruction_refs/**` and `.github/workflows/instruction-references.yml`, `workflow_dispatch` | Resolves the paths, issue citations, and section markers in the instructions file, and every issue citation in the skill documents. A `#NNN` inside a fenced code block is not read as a citation — it is sample content such as a colour or a quoted shell argument — and each is reported as a named exemption rather than skipped in silence. The delimiter lines stay in scope, so a citation in an info string, or on the line above or below a block, is still refused; indented code blocks and inline `` `#N` `` spans are deliberately still scanned, for reasons the checker's module docstring records. Only the citation rule consults that fence model, so a broken path inside a fenced example is still reported. Not every path, and the shortfall is narrower than it was. A backticked reference the file wraps across one line break is read as one span whether or not either fragment carries whitespace, so the backtick pairing stays in phase and the reference after it is still checked; the wrapped one is not itself resolved, because what the document renders is its fragments joined by a space, which is not a path, and joining them without the space would be a guess at what the author meant. A blank line inside a span is a paragraph break rather than a wrap, and is still not paired. What separates a wrap from a stray unpaired backtick followed by prose is the character immediately before the closing backtick: a wrap closes on its own last character, whereas a backtick *opening* the next reference is preceded by whatever prose puts there, which is a space or an opening bracket or quote, and each of those is refused. The residual is the case where that prose ends on some other non-whitespace character — `and then--` before a reference, say — which is still read as a wrap, so the pairing goes out of phase and the next reference on that line is missed, unreported rather than reported wrong. Closing that means pairing backticks the way CommonMark does, which the checker's module docstring records as a separate decision |
@@ -41,9 +41,18 @@ satisfied, because GitHub waits for a check that no longer reports.
 
 It runs on **every** pull request. It has no `on.pull_request.paths` filter;
 instead its first step diffs the pull request against its base and decides
-whether the site actually needs building. A pull request that touches nothing
-under `web/` gets a green `web-ci` in a few seconds without installing Node or
+whether the site actually needs building. A pull request that touches nothing the
+web suite reads gets a green `web-ci` in a few seconds without installing Node or
 running the suite.
+
+What "nothing the web suite reads" means is derived rather than assumed, and the
+scope step's own comment records the derivation: `web/**` plus every path outside
+`web/` that a file under `web/` opens. It was `web/**` and this workflow alone
+until [#477](https://github.com/abdeslam-menacere/ModelTree/issues/477), which
+meant a pull request changing only `skills-ci.yml` ran no web test — including
+`web/tests/workflows/skills-ci.test.ts`, whose entire subject is that workflow.
+The predicate had encoded a value that was true once, that every test under
+`web/` tests `web/`, as though it were an invariant.
 
 That distinction matters. A workflow filtered at the trigger does not start at
 all on a non-matching pull request, so it reports **no check** — and a required
@@ -65,9 +74,9 @@ know the answer lives inside a deploy workflow, and it covers a direct push to
 `main`, which branch protection still permits for administrators.
 
 The duplicate cost is paid down rather than accepted whole: the same in-job scope
-step diffs a push's own range, so a `main` push that touched nothing under `web/`
-finishes green in seconds and only a push that really changed the site builds
-twice.
+step diffs a push's own range, so a `main` push that touched nothing the web
+suite reads finishes green in seconds and only a push that really changed the
+site builds twice.
 
 ### Why the `pytest` checks are not
 
@@ -307,17 +316,22 @@ step — is quietly read as applying to something with no original to be compare
 against.
 
 That group exists because the fidelity tests used to live under `web-ci` alone,
-whose scope is `^(web/|\.github/workflows/web-ci\.yml$)`. Editing
+whose scope was then `^(web/|\.github/workflows/web-ci\.yml$)`. Editing
 `skills-ci.yml` therefore selected `skills-ci` and nothing else, and the tests
 written to catch exactly that drift were never chosen: a workflow edit could make
 the script's copy wrong while the preflight still reported PASS. The guard was
 not missing, it was not selected — the same shape of defect as #560 itself, one
 level up.
 
-Note the fix is preflight's selection only. The real `web-ci.yml` has the
-matching gap in CI, which is
-[#477](https://github.com/abdeslam-menacere/ModelTree/issues/477) and is
-deliberately untouched here.
+`web-ci`'s own scope has since been widened to cover `.github/workflows/` and
+`ci-preflight.mjs`, so those paths now select `web-ci` too
+([#477](https://github.com/abdeslam-menacere/ModelTree/issues/477)). The
+self-check stays: `web-ci` runs the whole suite, the diagnostics and a
+production build and needs `web/node_modules` for any of it, while this runs the
+single file that compares the copies, so the fidelity answer survives a `web-ci`
+leg that could not run — and it keeps those tests selected on their own terms
+rather than as a side effect of another check's scope, which is the coupling
+that produced the gap.
 
 ### What the preflight does not cover
 
@@ -512,6 +526,13 @@ additionally reads the data directory and the dataset documents out of
 it. Both run as part of
 `npm run validate` from `web/`. If you change one of those properties on
 purpose, update the test and this file in the same change.
+
+`web-ci.test.ts` also pins the derived scope set: it reads `.github/workflows/`
+off disk and asserts every entry matches, names each qualifying path outside
+`web/` alongside the test that reads it, and asserts that a neighbour of one of
+those paths which no `web/` test reads does **not** match. So adding a test under
+`web/` that opens a new file outside `web/` without widening the scope step fails
+there — and reaching for a directory where only some files qualify fails too.
 
 `tools/updater/tests/test_adr_numbers.py` does the same job for `adr-numbers.yml`
 — its path filters, its job name, its permission model, and that it invokes the
