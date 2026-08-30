@@ -23,6 +23,7 @@ export const NAV_PAGE_IDS = [
   'explore',
   'tree',
   'catalog',
+  'updates',
   'directory',
   'timeline',
   'compare',
@@ -79,6 +80,12 @@ export function buildPrimaryNavigation({ base, passportHref }: NavigationInput):
       label: 'Catalog',
       items: [
         destination('catalog', 'Browse models', `${base}models/`),
+        // Grouped under Catalog rather than under "How it works", and the
+        // distinction is an entity one. "How it works" documents ModelTree's own
+        // process -- `/refresh/` is a log of *our* refresh runs. This route is
+        // the recorded change history of the *models*, so it belongs with the
+        // surfaces that browse the dataset.
+        destination('updates', 'Release updates', `${base}updates/`),
         // Not "per Creator". This route is an A-Z of model *creators and serving
         // platforms*, which this dataset holds as two roles that never merge, so
         // a creator-only label here would collapse an entity boundary the
