@@ -1030,5 +1030,23 @@
       "sarvam-ai-sarvam-m-blog"
     ],
     "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "naver-hyperclova-x-seed",
+    "slug": "hyperclova-x-seed",
+    "organizationId": "naver",
+    "name": "HyperCLOVA X SEED",
+    "description": "NAVER’s line of lightweight HyperCLOVA X models, announced as three models — 3B, 1.5B and 0.5B — released as open source and free for commercial use. The announcement describes the 3B sibling as a vision-language model; only the 1.5B text model is recorded as a release here, so the family carries only that release’s category rather than claiming a modality no recorded release covers.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2025-04-24",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "naver-hyperclova-x-seed-announcement",
+      "naver-hyperclova-x-seed-1-5b-model-card"
+    ],
+    "verifiedAt": "2026-08-30"
   }
 ]

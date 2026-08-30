@@ -210,5 +210,10 @@
     "id": "sarvam-ai",
     "name": "Sarvam AI",
     "organizationId": "sarvam-ai"
+  },
+  {
+    "id": "naver",
+    "name": "NAVER",
+    "organizationId": "naver"
   }
 ]

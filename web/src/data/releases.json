@@ -3841,5 +3841,50 @@
       "osi-approved-licenses"
     ],
     "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "naver-hyperclova-x-seed-text-instruct-1-5b",
+    "slug": "hyperclova-x-seed-text-instruct-1-5b",
+    "canonicalName": "HyperCLOVAX-SEED-Text-Instruct-1.5B",
+    "displayName": "HyperCLOVA X SEED Text Instruct 1.5B",
+    "organizationId": "naver",
+    "familyId": "naver-hyperclova-x-seed",
+    "version": "1",
+    "variant": "Text Instruct 1.5B",
+    "releaseDate": "2025-04-24",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "hyperclovax-seed",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 1.5
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "An instruction-tuned text model, one of the three lightweight HyperCLOVA X SEED models NAVER announced as its first major generative AI release made free and open source for commercial use. No context window is recorded: every statement of the length is a bare “16k” and the Hugging Face repository is access-gated, so its config.json could not be read and no exact figure exists in any source here. The version is recorded as 1 because the model’s own name carries none and no source states one.",
+    "intendedUse": "General text understanding and generation, with the card reporting competitive results on Korean-language and Korean-culture benchmarks. NAVER’s announcement states these weights may be downloaded and used commercially or academically free of charge.",
+    "sourceIds": [
+      "naver-hyperclova-x-seed-announcement",
+      "naver-hyperclova-x-seed-1-5b-model-card",
+      "hugging-face-hyperclova-x-seed-1-5b-hub-record",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-08-30"
   }
 ]

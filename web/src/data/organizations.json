@@ -493,5 +493,20 @@
       "sarvam-ai-sarvam-m-model-card"
     ],
     "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "naver",
+    "slug": "naver",
+    "name": "NAVER Corp.",
+    "shortName": "NAVER",
+    "type": "company",
+    "website": "https://www.navercorp.com",
+    "releasePage": "https://huggingface.co/naver-hyperclovax",
+    "description": "The Korean internet company behind the HyperCLOVA X generative AI line. Its English newsroom calls that line “NAVER’s generative AI” and the card for the model recorded here says the model “is a model developed by NAVER”, which is what this dataset records the creator on. The same announcement attributes the open-source SEED release to NAVER Cloud — “NAVER Cloud (CEO Kim Yuwon) announced the completion of three lightweight HyperCLOVA X SEED models” — and that is stated here rather than collapsed into NAVER or split off as a second creator, because no source read for this record states the ownership relation between the two that a separate entity would need.",
+    "sourceIds": [
+      "naver-hyperclova-x-seed-announcement",
+      "naver-hyperclova-x-seed-1-5b-model-card"
+    ],
+    "verifiedAt": "2026-08-30"
   }
 ]

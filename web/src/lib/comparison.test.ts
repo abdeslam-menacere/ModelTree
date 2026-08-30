@@ -771,6 +771,25 @@ describe('comparison payload', () => {
     // per-release figure moved 0.6% and kept 158 bytes of headroom under 1,600,
     // so this is the "catalogue simply grew" case again, and the total budget was
     // raised from 102,400 to 122,880 as a deliberate page-weight decision.
+    //
+    // abdeslam-menacere/ModelTree#584 added NAVER as one creator, one family and
+    // one release, growing the catalogue to 83 releases and 123,999 bytes (1,494
+    // per release). Measured against merge-base 7ca5802, which carried 82
+    // releases and 121,916 bytes at 1,487 per release: the per-release figure
+    // moved 0.5% and kept 106 bytes of headroom under 1,600, so this is the
+    // "catalogue simply grew" case a third time and the per-release guard below
+    // is untouched.
+    //
+    // Trimming was tried first, because that is what the smaller total asks for
+    // before it is raised, and it could not close the gap. 7ca5802 left 964 bytes
+    // of headroom under 122,880 while one sourced creator costs about 2,100 —
+    // roughly 1,250 for the release record and 850 for the three source records
+    // the payload cites. Trimming the record's `intendedUse` and shortening the
+    // three source ids recovered 204 of those bytes and left it 1,119 over. The
+    // rest could only have come from dropping a cited source or reducing the
+    // record to a stub, which trades away the provenance this dataset exists to
+    // carry for page weight. So the total was raised from 122,880 to 143,360,
+    // the same 20,480-byte step the two raises above took.
     expect(
       size.bytesPerRelease,
       'a record got fatter — trim the payload rather than raising this',
@@ -778,10 +797,10 @@ describe('comparison payload', () => {
     expect(
       size.totalBytes,
       `/compare ships ${size.totalBytes} bytes for ${payload.releases.length} releases `
-      + `(${size.bytesPerRelease}/release, budget 122,880). Measured 106,676 over 74 releases at `
-      + 'the #545 merge-base. If the catalogue simply grew and the per-release figure held, raising '
+      + `(${size.bytesPerRelease}/release, budget 143,360). Measured 123,999 over 83 releases at `
+      + 'the #584 merge-base. If the catalogue simply grew and the per-release figure held, raising '
       + 'this is a deliberate page-weight decision; if the per-release figure moved too, trim instead.',
-    ).toBeLessThanOrEqual(122_880);
+    ).toBeLessThanOrEqual(143_360);
   });
 
   it('ships only the sources something in the payload cites', () => {
