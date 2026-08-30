@@ -377,6 +377,18 @@ const NOT_COVERED = [
     why: 'same jobs, same reason: issue bookkeeping, skipped on a pull request.',
   },
   {
+    check: 'web-e2e',
+    what: 'the `web-e2e` browser check',
+    why:
+      'it drives a real Chromium over a built preview, so running it here would put a browser '
+      + 'download in the pre-merge path of every dock and every gate agent -- the same cost that '
+      + 'keeps it out of `npm run validate`, and the reason it is a separate workflow at all. It '
+      + 'is advisory and never required, so it blocks no merge whether it runs here or not; what '
+      + 'it does catch is a rendering, focus, motion or accessibility regression that jsdom '
+      + 'cannot see, so run it deliberately with `npm run test:e2e` in `web/` when touching the '
+      + 'lineage view, and read its result on the pull request otherwise.',
+  },
+  {
     what: 'the second Python interpreter',
     why:
       'CI runs the updater suite on 3.11 and 3.13. This runs it once, on whatever `python` '
