@@ -2,7 +2,9 @@
 
 What runs, when, with what permissions, and — the point of this file — the exact
 **status check names**, so branch protection can require the right ones and only
-the right ones.
+the right ones. [Running these checks before the
+merge](#running-these-checks-before-the-merge) is how a dock sees them without
+waiting for a merge to tell it.
 
 ## What runs
 
@@ -234,6 +236,126 @@ gate asks.
 such workflow exists in this repository**, and requiring a check that no workflow
 reports deadlocks every pull request. Do not add it to branch protection.
 
+## Running these checks before the merge
+
+Nothing in a dock's local loop used to invoke most of the checks above. The
+gates run `npm run validate`, the deterministic gate scripts, and the gate
+self-tests; none of those reads `.github/`, `tools/`, or `docs/adr/`. So a
+change to an instruction document could pass both gates and redden `main` on
+merge, and did: on #441 / PR #558, merged as
+`3d3f4b1`, `review-441` and `qa-441` both passed at `6925d5a` and the merge
+turned `instruction-references`, `pytest (Python 3.11)` and `pytest (Python
+3.13)` red. One bare issue citation, three red checks, and no local command that
+could have seen any of them (#560).
+
+[`../scripts/ci-preflight.mjs`](../scripts/ci-preflight.mjs) closes that. From
+the repository root:
+
+```bash
+node .github/scripts/ci-preflight.mjs          # run what this diff triggers
+node .github/scripts/ci-preflight.mjs --plan   # print what it would run, run nothing
+```
+
+It diffs the branch against `git merge-base HEAD refs/remotes/origin/main` — the
+same anchor `gate-scope.mjs` and `gate-source-approval.mjs` compute for
+themselves, so committing first changes nothing — selects the checks whose
+triggers that diff matches, and runs their commands. It adds no rule of its own:
+every command it runs is a command one of the workflows above already runs.
+
+Exit **0** means every selected check ran and passed; **1** that one failed;
+**2** that one could not be run, which is never a pass. `--plan` exits 2 as
+well, because it verifies nothing, and `--help` exits 2 for the same reason, so
+the only zero this script emits is one that was earned.
+
+A run that selects **no** checks exits 2 as well, and says `NOTHING SELECTED`.
+That case is worth stating on its own, because it is the one that reads most
+like a pass and is furthest from being one: with nothing selected there is no
+failure and no unknown to count, so tallying only those two would return 0 from
+a run in which no command executed. A dock told `PASS` there would conclude CI
+is clear on the strength of a check that never ran — the inference this whole
+section exists to prevent. Exit 2 also means the code carries two readings, "a
+check could not run" and "there was nothing to check", so `--json` reports
+`empty` to tell them apart; exit 0 in `gate-scope.mjs` is separated the same way
+and for the same reason. An empty selection is not a licence to skip anything:
+it says only that no *pull-request* check reads what changed, and `web-ci` still
+reports on every pull request whatever the preflight selected.
+
+| Check | Run locally by the preflight as |
+|---|---|
+| `web-ci` | `npm run test`, `npm run check`, `npm run astro -- build`, from `web/` |
+| `skills-ci` | the gate self-tests, `gate-dataset.mjs`, and the skill-doc test-count refusal |
+| `instruction-references` | `python tools/instruction_refs/check_instruction_references.py` |
+| `adr-numbers` | `python tools/adr_numbers/check_adr_numbers.py` |
+| `pytest (Python 3.11)`, `pytest (Python 3.13)` | `python -m pytest` from `tools/updater`, **once** |
+| `source-link-health-tests` | the link-health tests and the `--dry-run` extraction |
+
+Every row above is a **mirror**: a copy, in the script, of what some workflow
+already runs. A copy can drift from its original, so the script carries one more
+group that is not a mirror of anything —
+
+| Not a CI check | Run locally by the preflight as |
+|---|---|
+| `preflight-self-check` | `vitest run tests/workflows/ci-preflight.test.ts`, from `web/` |
+
+— which compares the script's table against the committed workflow YAML and
+fails if the two have parted. It is selected by a change to
+`.github/workflows/**`, to `ci-preflight.mjs`, or to those tests. It reports no
+CI check, prints as `preflight self-check, not a CI check`, and the two kinds are
+labelled `mirror` and `self` in the table itself so that no assertion about
+mirrors — that the trigger is copied exactly, that each command maps onto a real
+step — is quietly read as applying to something with no original to be compared
+against.
+
+That group exists because the fidelity tests used to live under `web-ci` alone,
+whose scope is `^(web/|\.github/workflows/web-ci\.yml$)`. Editing
+`skills-ci.yml` therefore selected `skills-ci` and nothing else, and the tests
+written to catch exactly that drift were never chosen: a workflow edit could make
+the script's copy wrong while the preflight still reported PASS. The guard was
+not missing, it was not selected — the same shape of defect as #560 itself, one
+level up.
+
+Note the fix is preflight's selection only. The real `web-ci.yml` has the
+matching gap in CI, which is
+[#477](https://github.com/abdeslam-menacere/ModelTree/issues/477) and is
+deliberately untouched here.
+
+### What the preflight does not cover
+
+Printed on every run, passing runs included, because the failure being closed
+here is a reader inferring a completeness that is not there:
+
+- **`source-link-health`.** It requests every recorded URL. Advisory, never
+  required, network-bound; a preflight that needed the network would fail for
+  reasons that are not the change's.
+- **The second Python interpreter.** CI runs the updater suite on 3.11 and 3.13.
+  The preflight runs it once, on whatever `python` resolves to locally, so an
+  interpreter-specific failure is still CI's to find first.
+- **`pip install --dry-run '.[foundry]'`.** Resolving that optional group reaches
+  the index, so an unsatisfiable pin in it still arrives unseen.
+- **`pages.yml`.** It deploys on push to `main` and reports no pull-request
+  check.
+- **The runner.** Same commands, different machine: Node and Python versions,
+  the OS, and a populated `node_modules` all differ from a clean
+  `ubuntu-latest` checkout. A green preflight predicts CI; it does not bind it.
+- **The merge result.** Selection is anchored at the merge base, so it judges
+  this branch, not this branch merged into a `main` that has moved since.
+- **Workflow edits beyond the script's copy of them.** `preflight-self-check`
+  compares two files; it never executes the edited workflow. An edit that this
+  script copies faithfully and that still fails on the runner — a bad
+  `runs-on`, a missing secret, an action version that no longer resolves — passes
+  it.
+- **Branch protection.** Which checks are required lives outside the tree. A
+  green preflight says the checks passed, never that the pull request is
+  mergeable.
+
+Two of those are worth stating as a rule rather than a list item. A check that
+never ran reports the same absence as one that passed — the trap #560 was filed
+about, where querying whether `instruction-references` had failed on `33b2222`
+and `418b5e5` returned zero rows because it had never run on them. The preflight
+refuses to reproduce that: a check whose prerequisites are missing is reported
+`COULD NOT RUN` with a non-zero exit, never omitted and never green. And
+`--plan` exits 2 for the same reason.
+
 ## What gates a dataset change
 
 Two different checks read `web/src/data/`, and they do not enforce the same
@@ -396,3 +518,14 @@ purpose, update the test and this file in the same change.
 checker with no arguments. It also asserts `push.branches` is exactly `[main]`,
 because verifying a new workflow before it reaches `main` means adding a branch
 to that list for a commit, and a leftover entry is a trigger nobody expects.
+
+`web/tests/workflows/ci-preflight.test.ts` is the one that will notice a *new*
+workflow. It enumerates every job that can report a pull-request check, expands
+the matrix legs, and asserts each reported name is either run by
+[`../scripts/ci-preflight.mjs`](../scripts/ci-preflight.mjs) or named in that
+script's uncovered list. It also reads each covered workflow's `paths:` filter
+or in-job `grep -E` pattern and asserts the preflight copies it exactly, and
+that every command the preflight runs is a `run:` step of the real job. So a
+workflow cannot be added, retriggered, or have its command changed without the
+local preflight following it — which is the drift that would otherwise put this
+repository back where #560 found it.
