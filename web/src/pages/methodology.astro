@@ -1,8 +1,11 @@
 ---
 import { dataset } from '../data/dataset';
+import { refreshLog } from '../data/refresh-log';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { formatDate } from '../lib/format';
 import { buildHomepageHierarchy, firstHomepageRelease } from '../lib/homepage';
+import { coverageGapTally, knownCoverageGaps } from '../lib/refresh-log';
+import { buildCoverageStats } from '../lib/release-pulse';
 import {
   accessTypeGlossary,
   benchmarkConfigurationFields,
@@ -33,6 +36,9 @@ const benchmarkComparabilityExamples = deriveBenchmarkComparabilityExamples(
 );
 const comparableExample = benchmarkComparabilityExamples.find((example) => example.comparable);
 const unrecordedConfigFields = unrecordedBenchmarkConfigFields(dataset.benchmarkResults);
+const coverage = buildCoverageStats(dataset);
+const gapTally = coverageGapTally(refreshLog);
+const gapCount = knownCoverageGaps(refreshLog).length;
 ---
 
 <BaseLayout
@@ -76,6 +82,40 @@ const unrecordedConfigFields = unrecordedBenchmarkConfigFields(dataset.benchmark
 
         {section.id === 'inclusion' && (
           <div class="method-body">
+            <h3 id="catalog-inclusion">What earns a record a place</h3>
+            <p>
+              Inclusion in the catalog and selection for the homepage are two different
+              decisions, and this section states the first one. The procedure is recorded beside
+              <code>datasetSchema</code> in <code>web/src/data/schema.ts</code>, published here
+              word for word so the page and the schema cannot say different things:
+            </p>
+            <!-- catalog-inclusion-policy:start -->
+            <p>
+              What earns a record a place in this dataset, and what keeps it out. Apply in order:
+              record exactly one entity kind per record, so a fact about a creator, a family, a
+              release, a product, a serving platform, a source, or a publisher lives on that entity
+              and never on a neighbour; cite at least one primary source and carry the day it was
+              read, which every record-bearing schema above requires of itself rather than leaving
+              to judgement; leave a field unset when no cited source states it, because a blank is a
+              fact this dataset publishes happily -- nobody has sourced this yet -- and a plausible
+              value no source states is not a fact at all; withhold the whole record when its
+              required fields cannot be sourced that way, and record the gap rather than the guess,
+              so that what is missing stays visible instead of being smoothed over; and admit the
+              record only as a reviewed change to this repository, never as runtime input and never
+              as an open crawl, per ADR 0002. Inclusion decides presence and nothing else. It states
+              no order, no score, and no rank; it is not the <code>featured</code> procedure recorded
+              beside that field, which is applied afterwards and only to releases already admitted
+              here; and a record admitted by this procedure gains its catalog entry, its canonical
+              route, and its correction path whether or not any editorial list names it.
+            </p>
+            <!-- catalog-inclusion-policy:end -->
+            <p>
+              The two decisions run in that order, and only that order: a record is admitted on the
+              evidence behind it, and only then does the editorial list below decide where a reader
+              meets it. Nothing about being admitted argues for being featured, and nothing about
+              being left off the featured list removes a record or any of its pages.
+            </p>
+
             <h3 id="featured-vs-complete">Featured versus complete coverage</h3>
             <p>
               Coverage is deliberately incomplete. Complete historical coverage is a stated
@@ -139,6 +179,30 @@ const unrecordedConfigFields = unrecordedBenchmarkConfigFields(dataset.benchmark
               disclosures the Featured branch uses, and every release under it is listed in the
               full catalog exactly as any other release is. Inclusion is a reviewable repository
               change like any other fact here.
+            </p>
+
+            <h3 id="coverage-gaps">Known coverage gaps</h3>
+            <p>
+              Coverage being incomplete is only honest if the incompleteness is visible, so the
+              gaps are published rather than left to be inferred from an absence. Each automated
+              refresh run records what it looked at and did not add, and the reason it gave on the
+              day; those records are the list below, derived from the runs themselves so there is
+              no second list to keep true. Across
+              {' '}<a href={refreshHref}>every recorded run</a>, {gapCount} such decisions stand:
+            </p>
+            <ul>
+              {gapTally.map(({ category, label, count }) => (
+                <li><strong>{label}</strong> — {count} (<code>{category}</code>)</li>
+              ))}
+            </ul>
+            <p>
+              Read these as history, not as a live inventory: each says that a particular run did
+              not add a particular thing, which stays true forever. It does not say the gap is
+              still open, and several have since been closed by ordinary reviewed changes — a
+              creator an automated run had to withhold for want of an approved origin is exactly
+              the kind of record a reviewed change may later add on its own evidence. The reason a
+              run gives is kept whichever way that goes, because a withheld record and the reason
+              for withholding it are the part a bare count of what is present cannot show.
             </p>
           </div>
         )}
@@ -330,6 +394,15 @@ const unrecordedConfigFields = unrecordedBenchmarkConfigFields(dataset.benchmark
               checked against its source — and the site footer shows the most recent one. A Model
               Passport marks a figure stale against the build date rather than the day it happens to
               be read, so freshness does not drift silently.
+            </p>
+            <p>
+              The most recent date alone would be a poor freshness claim, because a single record
+              checked today sets it however long everything else has gone unchecked. So the span is
+              stated instead: verification across this dataset runs from
+              {' '}<strong>{coverage.earliestVerifiedAt && formatDate(coverage.earliestVerifiedAt)}</strong>
+              {' '}to <strong>{coverage.latestVerifiedAt && formatDate(coverage.latestVerifiedAt)}</strong>.
+              The older end is the honest half of that pair, and the per-record date remains the
+              only thing to trust for any particular fact.
             </p>
             <p>
               What this page will <strong>not</strong> promise is a fixed verification cadence the

@@ -240,6 +240,58 @@ describe('coverage statistics', () => {
     expect(buildCoverageStats({ ...makeDataset(), releases: [], releaseEvents: [] }).latestVerifiedAt)
       .toBeNull();
   });
+
+  it('reports the earliest verification day, so one fresh record cannot hide a stale set', () => {
+    const stats = buildCoverageStats(
+      makeDataset({
+        releases: [
+          release('rel-stale', { verifiedAt: '2026-01-05' }),
+          release('rel-fresh', { verifiedAt: '2026-07-15' }),
+        ],
+        releaseEvents: [],
+      }),
+    );
+
+    // The defect this pins: reporting only the newest day reads as a freshness
+    // claim about the dataset, when it is set by whichever single record was
+    // touched last. The older end is what makes the stale record visible.
+    expect(stats.latestVerifiedAt).toBe('2026-07-15');
+    expect(stats.earliestVerifiedAt).toBe('2026-01-05');
+    expect(stats.earliestVerifiedAt).not.toBe(stats.latestVerifiedAt);
+  });
+
+  it('draws both ends of the range from releases and recorded changes alike', () => {
+    const stats = buildCoverageStats(
+      makeDataset({
+        releases: [release('rel-a', { verifiedAt: '2026-03-01' })],
+        releaseEvents: [
+          event('ev-old', '2025-12-01', 'day', { verifiedAt: '2026-01-01' }),
+          event('ev-new', '2026-02-02', 'day', { verifiedAt: '2026-07-15' }),
+        ],
+      }),
+    );
+
+    // Both ends come from events here, so a builder that read only releases
+    // would get both wrong rather than passing on the release date in between.
+    expect(stats.earliestVerifiedAt).toBe('2026-01-01');
+    expect(stats.latestVerifiedAt).toBe('2026-07-15');
+  });
+
+  it('reports a real span over the committed dataset, not a collapsed point', () => {
+    const stats = buildCoverageStats(seedDataset);
+
+    // Positive control: with no verification dates at all both ends are null
+    // and every ordering assertion below would hold vacuously.
+    expect(stats.earliestVerifiedAt).not.toBeNull();
+    expect(stats.latestVerifiedAt).not.toBeNull();
+    expect(stats.earliestVerifiedAt! <= stats.latestVerifiedAt!).toBe(true);
+  });
+
+  it('has no earliest verification day only when the dataset would be empty', () => {
+    expect(
+      buildCoverageStats({ ...makeDataset(), releases: [], releaseEvents: [] }).earliestVerifiedAt,
+    ).toBeNull();
+  });
 });
 
 describe('release pulse window bound', () => {

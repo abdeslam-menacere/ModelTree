@@ -901,5 +901,24 @@
       "databricks-open-model-license"
     ],
     "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "minimax-m1",
+    "slug": "minimax-m1",
+    "organizationId": "minimax",
+    "name": "MiniMax-M1",
+    "description": "MiniMax’s M1 series of open-weight hybrid Mixture-of-Experts reasoning models, combining a lightning attention mechanism with a natively supported context length of 1 million tokens, published in two thinking-budget versions.",
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "firstReleaseDate": "2025-06-16",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "minimax-m1-announcement",
+      "minimax-m1-80k-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
   }
 ]

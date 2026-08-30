@@ -3465,5 +3465,101 @@
       "osi-license-index"
     ],
     "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "minimax-m1-40k",
+    "slug": "minimax-m1-40k",
+    "canonicalName": "MiniMax-M1-40k",
+    "displayName": "MiniMax-M1-40k",
+    "organizationId": "minimax",
+    "familyId": "minimax-m1",
+    "version": "M1",
+    "variant": "40K thinking budget",
+    "releaseDate": "2025-06-16",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "both",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://raw.githubusercontent.com/MiniMax-AI/MiniMax-M1/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "contextWindow": 1000000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [
+      "minimax-m1-80k"
+    ],
+    "summary": "The 40K thinking-budget version of MiniMax-M1, a hybrid Mixture-of-Experts reasoning model with lightning attention, offered as downloadable weights and through MiniMax’s paid API.",
+    "intendedUse": "Long-input and extended-reasoning work — the card names complex software engineering, tool use, and long-context tasks — run either from downloaded weights or through the MiniMax API.",
+    "sourceIds": [
+      "minimax-m1-40k-model-card",
+      "minimax-m1-announcement",
+      "minimax-m1-repository",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "minimax-m1-80k",
+    "slug": "minimax-m1-80k",
+    "canonicalName": "MiniMax-M1-80k",
+    "displayName": "MiniMax-M1-80k",
+    "organizationId": "minimax",
+    "familyId": "minimax-m1",
+    "version": "M1",
+    "variant": "80K thinking budget",
+    "releaseDate": "2025-06-16",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "both",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://raw.githubusercontent.com/MiniMax-AI/MiniMax-M1/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "contextWindow": 1000000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [
+      "minimax-m1-40k"
+    ],
+    "summary": "The 80K thinking-budget version of MiniMax-M1, a hybrid Mixture-of-Experts reasoning model with lightning attention, offered as downloadable weights and through MiniMax’s paid API.",
+    "intendedUse": "Long-input and extended-reasoning work — the card names complex software engineering, tool use, and long-context tasks — run either from downloaded weights or through the MiniMax API.",
+    "sourceIds": [
+      "minimax-m1-80k-model-card",
+      "minimax-m1-announcement",
+      "minimax-m1-repository",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-29"
   }
 ]

@@ -134,6 +134,7 @@ describe('organization type policy', () => {
       'bytedance-seed': 'company',
       'stability-ai': 'company',
       databricks: 'company',
+      minimax: 'company',
     });
   });
 
@@ -338,6 +339,15 @@ describe('organization type policy', () => {
       // Databricks' own announcement states "DBRX is available for Databricks
       // customers to use via APIs", which is access under its own name.
       databricks: {
+        facts: { offersPaidModelProductsOrAccess: true },
+        type: 'company',
+        clause: 'paid-company',
+      },
+      // MiniMax's own launch announcement prices the API it sells under its own
+      // name -- "providing APIs on our official website at the industry's
+      // lowest prices", at "$0.4/million tokens for input" -- so the paid
+      // clause is stated rather than inferred, unlike Baidu and Tencent above.
+      minimax: {
         facts: { offersPaidModelProductsOrAccess: true },
         type: 'company',
         clause: 'paid-company',

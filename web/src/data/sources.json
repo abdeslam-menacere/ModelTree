@@ -1541,5 +1541,42 @@
     "publisherId": "databricks",
     "lastCheckedDate": "2026-08-29",
     "notes": "Databricks' own licence for DBRX, cited for the licence name the release records and for the fuller recorded form of the creator's name: it defines \"'Databricks' or 'we' means Databricks, Inc.\" It carries \"Version Release Date: March 27, 2024\", which agrees with the announcement's publication date, and it imposes use restrictions and an acceptable use policy, which is why the release records the licence as not OSI-approved. Read on 2026-08-29; the DBRX weight repositories at huggingface.co/databricks/dbrx-instruct and /dbrx-base returned HTTP 401 on the same read and are gated, so no model card is cited for this release."
+  },
+  {
+    "id": "minimax-m1-announcement",
+    "url": "https://www.minimax.io/news/minimaxm1",
+    "title": "MiniMax-M1, the World's First Open-Source, Large-Scale, Hybrid-Attention Reasoning Model",
+    "type": "official-announcement",
+    "publisherId": "minimax",
+    "publishedDate": "2025-06-16",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "MiniMax’s own launch announcement. Fetched 2026-08-29: HTTP 200. States \"A significant advantage of M1 is its support for an industry-leading 1 million token context window\", and that MiniMax is \"providing APIs on our official website at the industry’s lowest prices\" at \"$0.4/million tokens for input and $2.2/million tokens for output\" for 0-200k input lengths; that paid access under its own name is what types the creator as a company. The rendered page states no date anywhere in its prose. The recorded release date is read instead from this page’s own schema.org metadata, which carries \"datePublished\":\"2025-06-16T00:00:00.000Z\" with MiniMax named as both author and publisher. That is the day MiniMax published the launch announcement; no MiniMax-published page read for this record states a separate weights-availability date, and none is invented to supply one."
+  },
+  {
+    "id": "minimax-m1-80k-model-card",
+    "url": "https://huggingface.co/MiniMaxAI/MiniMax-M1-80k",
+    "title": "MiniMax-M1-80k model card",
+    "type": "model-card",
+    "publisherId": "minimax",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "MiniMax’s own card for the 80k variant. Fetched 2026-08-29: HTTP 200. States \"We introduce MiniMax-M1, the world’s first open-weight, large-scale hybrid-attention reasoning model\" and \"the M1 model natively supports a context length of 1 million tokens\", which is the stated context length recorded as 1000000. It also states \"We train two versions of MiniMax-M1 models with 40K and 80K thinking budgets respectively\", which is why two sibling releases are recorded rather than one. The card’s \"456 billion parameters with 45.9 billion parameters activated per token\" is stated of MiniMax-Text-01, the earlier model M1 \"is developed based on\", not of M1 itself — the only property the card calls \"consistent with\" Text-01 is the context length. No parameter count is therefore recorded on either M1 release, because no source read here states one for M1."
+  },
+  {
+    "id": "minimax-m1-40k-model-card",
+    "url": "https://huggingface.co/MiniMaxAI/MiniMax-M1-40k",
+    "title": "MiniMax-M1-40k model card",
+    "type": "model-card",
+    "publisherId": "minimax",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "MiniMax’s own card for the 40k variant, carrying the same model overview as the 80k card. Fetched 2026-08-29: HTTP 200. Cited for the identity of the 40K thinking-budget version named in that overview, which is recorded as the sibling release rather than folded into one record."
+  },
+  {
+    "id": "minimax-m1-repository",
+    "url": "https://github.com/MiniMax-AI/MiniMax-M1",
+    "title": "MiniMax-AI/MiniMax-M1 repository",
+    "type": "repository",
+    "publisherId": "minimax",
+    "lastCheckedDate": "2026-08-29",
+    "notes": "MiniMax’s own repository for the generation, carrying the same model overview as the cards. Cited here for the licence *name*: the repository’s LICENSE file, read at https://raw.githubusercontent.com/MiniMax-AI/MiniMax-M1/main/LICENSE on 2026-08-29 (HTTP 200), is the verbatim text of the \"Apache License, Version 2.0, January 2004\". Whether OSI approved the licence so named is a distinct fact this page does not state, so osiApproved is cited to OSI’s own page rather than inferred from the name here."
   }
 ]
