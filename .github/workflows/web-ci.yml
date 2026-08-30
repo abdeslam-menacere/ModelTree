@@ -145,9 +145,15 @@ jobs:
           # existed and was never selected (#477).
           #
           # The list below is therefore derived rather than intuited. It is
-          # every path outside web/ that a file under web/ reads, obtained by
-          # resolving each relative path literal in web/ against its own file
-          # and keeping the ones that escape web/. Each entry, with its reader:
+          # every path outside web/ that a file under web/ reads, obtained in
+          # two passes: resolve each relative path literal in web/ against its
+          # own file and keep the ones that escape web/, then follow every
+          # module web/ imports from outside web/ and scan that module's own
+          # path literals too. The second pass is not optional. A path a test
+          # reaches *through* an import has no literal anywhere under web/, so
+          # the first pass alone is structurally unable to see it -- which is
+          # how tools/updater/profiles/ was missed when this list was first
+          # derived. Each entry, with its reader:
           #
           #   .github/workflows/
           #       every .yml is parsed by tests/workflows/ci-preflight.test.ts,
@@ -158,6 +164,17 @@ jobs:
           #       tests/workflows/skills-ci.test.ts
           #   .github/skills/modeltree-gates/scripts/gate-evidence.mjs
           #       src/data/featured-creator-profile.test.ts, which imports it
+          #   tools/updater/profiles/<name>.json
+          #       the same test, reached through that import rather than by a
+          #       literal of its own: the imported reviewedCreatorIds() reads
+          #       this directory off disk, so a profile document changes the
+          #       set the test asserts over. Top-level *.json only, because
+          #       that read is not recursive and skips anything that is not a
+          #       file, so generic/ and origins/ cannot change its answer. The
+          #       extension is matched case-insensitively on purpose: a name
+          #       differing from ".json" only in case makes that reader throw
+          #       rather than skip it (#246), and a throw reddens the test as
+          #       surely as a wrong value does.
           #   .github/skills/modeltree-gates/scripts/gate-scope.mjs
           #       tests/contributing/issue-forms.test.ts
           #   .github/skills/modeltree-review/SKILL.md
@@ -178,9 +195,14 @@ jobs:
           # also holds files no web/ test reads. .github/skills/ is the case
           # that matters: matching it whole would build the site for a SKILL.md
           # nothing here opens, and the point of this step is to skip work that
-          # cannot change the answer. Still deliberately unmatched, for the same
-          # reason: tools/, docs/adr/, .github/copilot-instructions.md, and
-          # every other document under docs/. Their checks live elsewhere.
+          # cannot change the answer. tools/updater/profiles/ is that same
+          # shape one level down, which is why the entry above names the *.json
+          # documents in that one directory rather than the directory itself.
+          #
+          # Still deliberately unmatched: the rest of tools/updater/, docs/adr/,
+          # .github/copilot-instructions.md, and every other document under
+          # docs/. Their checks live elsewhere -- for the Python package that is
+          # updater-tests.yml, which this step does not affect either way.
           #
           # Add a test under web/ that reads a new path outside web/, and add it
           # here in the same change -- otherwise that test will not run when its
@@ -190,7 +212,7 @@ jobs:
           # A here-string rather than a pipe: `grep -q` exits on its first match,
           # which can leave the left-hand side of a pipe killed by SIGPIPE and
           # the whole pipeline non-zero under `set -o pipefail`.
-          if grep -Eq '^(web/|\.github/workflows/|\.github/scripts/ci-preflight\.mjs$|\.github/skills/modeltree-gates/scripts/gate-(dataset|evidence|scope)\.mjs$|\.github/skills/modeltree-review/SKILL\.md$|\.github/ISSUE_TEMPLATE/|\.github/CODEOWNERS$|\.github/pull_request_template\.md$|CONTRIBUTING\.md$|docs/contributing/minimal-dataset-example\.json$|docs/product/INFORMATION-ARCHITECTURE\.md$)' <<< "$changed"; then
+          if grep -Eq '^(web/|\.github/workflows/|\.github/scripts/ci-preflight\.mjs$|\.github/skills/modeltree-gates/scripts/gate-(dataset|evidence|scope)\.mjs$|\.github/skills/modeltree-review/SKILL\.md$|\.github/ISSUE_TEMPLATE/|\.github/CODEOWNERS$|\.github/pull_request_template\.md$|CONTRIBUTING\.md$|docs/contributing/minimal-dataset-example\.json$|docs/product/INFORMATION-ARCHITECTURE\.md$|tools/updater/profiles/[^/]+\.[jJ][sS][oO][nN]$)' <<< "$changed"; then
             echo "Files the web suite reads changed; running the full web build."
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
