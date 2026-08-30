@@ -252,28 +252,53 @@ predecessor, successor, or architecture relationship.
 Where sources disagree or fall short, the dataset records the conservative
 reading and the disagreement is written down here rather than resolved silently.
 
+<!-- data-notes-anchors: A bullet below that states something checkable about a
+     named record carries one machine-readable anchor per atomic claim, written
+     as an HTML comment opening with "claim:" and holding one JSON object,
+     indented inside the bullet it belongs to.
+     src/data/data-notes-claims.test.ts reads those anchors and asserts each one
+     against the composed dataset. It never reads the prose: the anchor is the
+     claim. The kinds are records, omits, lists, absent, and none-matching; that
+     test defines each one and pins which bullets are deliberately unanchored. A
+     bullet that only judges, explains, or states policy takes no anchor and is
+     added to that pin instead. -->
+
 - **Claude Haiku 4.5 date.** The model identifier is `claude-haiku-4-5-20251001`
   but the launch announcement is dated 15 October 2025. The announcement date is
   recorded, because a dated announcement is a stronger claim than a date embedded
   in an identifier. Identifier dates are not treated as release dates anywhere.
+  <!-- claim: {"kind":"records","entity":"releases","id":"anthropic-claude-haiku-4-5","field":"releaseDate","value":"2025-10-15"} -->
 - **Llama 3.3 date.** The `meta-llama/llama-models` README table says 12/04/2024
   while the model card and the licence both say 6 December 2024. The model card
   date is recorded.
+  <!-- claim: {"kind":"records","entity":"releases","id":"meta-llama-3-3-70b","field":"releaseDate","value":"2024-12-06"} -->
 - **Gemini 2.5 shutdown.** `ai.google.dev` states that no shutdown date has been
   announced for Gemini 2.5 Pro and Flash, while the Cloud platform model pages
   give a retirement date of 2026-10-20. Both models are recorded as `current`
   and no shutdown date is asserted.
+  <!-- claim: {"kind":"records","entity":"releases","id":"google-gemini-2-5-pro","field":"status","value":"current"} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"google-gemini-2-5-flash","field":"status","value":"current"} -->
+  <!-- claim: {"kind":"none-matching","entity":"releaseEvents","where":{"releaseId":"google-gemini-2-5-pro","type":"retired"}} -->
+  <!-- claim: {"kind":"none-matching","entity":"releaseEvents","where":{"releaseId":"google-gemini-2-5-pro","type":"deprecated"}} -->
+  <!-- claim: {"kind":"none-matching","entity":"releaseEvents","where":{"releaseId":"google-gemini-2-5-flash","type":"retired"}} -->
+  <!-- claim: {"kind":"none-matching","entity":"releaseEvents","where":{"releaseId":"google-gemini-2-5-flash","type":"deprecated"}} -->
 - **Gemini 3.7 Flash release date precision.** The Gemini API documentation
   announces "August 2026" without a day, while the Gemini Enterprise Agent
   Platform documentation gives 2026-08-13. The platform date is recorded at `day`
   precision, and that source is cited for it.
+  <!-- claim: {"kind":"records","entity":"releases","id":"google-gemini-3-7-flash","field":"releaseDate","value":"2026-08-13"} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"google-gemini-3-7-flash","field":"datePrecision","value":"day"} -->
+  <!-- claim: {"kind":"lists","entity":"releases","id":"google-gemini-3-7-flash","field":"sourceIds","value":"google-gemini-3-7-flash-platform-docs"} -->
 - **Llama 4 Maverick parameter count.** The model card's own table gives 400B
   total, while the Hugging Face repository metadata on the same page reports
   402B. The model card figure is recorded, because it is the count Meta states in
   prose rather than one derived from the uploaded weights.
+  <!-- claim: {"kind":"records","entity":"releases","id":"meta-llama-4-maverick","field":"parameters.totalBillions","value":400} -->
 - **Gemini 2.5 Pro and Flash are siblings** because a single technical report
   covers "our Gemini 2.5 models" as one set, not merely because they shared a
   general-availability date.
+  <!-- claim: {"kind":"lists","entity":"releases","id":"google-gemini-2-5-pro","field":"siblingIds","value":"google-gemini-2-5-flash"} -->
+  <!-- claim: {"kind":"lists","entity":"releases","id":"google-gemini-2-5-flash","field":"siblingIds","value":"google-gemini-2-5-pro"} -->
 - **Claude Mythos 5 records no derivation.** Anthropic's docs say Mythos 5 "shares
   the same capabilities" as Claude Fable 5 and that the two "share the same specs
   and pricing". That is a statement of equivalence, not of parentage — it does not
@@ -282,24 +307,47 @@ reading and the disagreement is written down here rather than resolved silently.
   `derivedFromIds` is therefore empty and the relationship is carried by the
   sibling link. Mythos 5 is not featured, because it is only available to invited
   customers.
+  <!-- claim: {"kind":"records","entity":"releases","id":"anthropic-claude-mythos-5","field":"derivedFromIds","value":[]} -->
+  <!-- claim: {"kind":"lists","entity":"releases","id":"anthropic-claude-mythos-5","field":"siblingIds","value":"anthropic-claude-fable-5"} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"anthropic-claude-mythos-5","field":"featured","value":false} -->
 - **Gemini 3.1 Flash-Lite's successor is a migration recommendation.** The
   deprecations table names Gemini 3.5 Flash-Lite as its recommended replacement.
   That is recorded as `successorIds` because the two are the same tier in the same
   family; a recommended replacement in a different tier would not be.
+  <!-- claim: {"kind":"lists","entity":"releases","id":"google-gemini-3-1-flash-lite","field":"successorIds","value":"google-gemini-3-5-flash-lite"} -->
 - **No Meta lineage is recorded.** The Llama 4 announcement does state that Llama
   4 Maverick was codistilled from Llama 4 Behemoth, but Behemoth was never
   released and has no record here, so there is no id to point at. `derivedFromIds`
   is empty because the parent cannot be referenced, not because no source names
   one. The Llama 3 cards state no derivation at all.
+  <!-- claim: {"kind":"records","entity":"releases","id":"meta-llama-4-maverick","field":"derivedFromIds","value":[]} -->
+  <!-- claim: {"kind":"absent","entity":"releases","id":"meta-llama-4-behemoth"} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"meta-llama-3-1-405b","field":"derivedFromIds","value":[]} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"meta-llama-3-3-70b","field":"derivedFromIds","value":[]} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"meta-llama-3-2-1b","field":"derivedFromIds","value":[]} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"meta-llama-3-2-3b","field":"derivedFromIds","value":[]} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"meta-llama-3-2-11b-vision","field":"derivedFromIds","value":[]} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"meta-llama-3-2-90b-vision","field":"derivedFromIds","value":[]} -->
 - **Claude 4.5 lifecycle wording differs between two cited pages.** The
   deprecations table lists `claude-sonnet-4-5-20250929` and
   `claude-haiku-4-5-20251001` as Active, while the models overview places Sonnet
   4.5 in its Legacy accordion. The family follows the overview's grouping and is
   recorded as `legacy`; no retirement date is asserted for either model.
+  <!-- claim: {"kind":"records","entity":"families","id":"anthropic-claude-4-5","field":"status","value":"legacy"} -->
+  <!-- claim: {"kind":"none-matching","entity":"releaseEvents","where":{"releaseId":"anthropic-claude-haiku-4-5","type":"retired"}} -->
+  <!-- claim: {"kind":"none-matching","entity":"releaseEvents","where":{"releaseId":"anthropic-claude-haiku-4-5","type":"deprecated"}} -->
 - **Llama licences are open-weight, not open source.** Each Llama Community
   License requires a separate licence from Meta above 700 million monthly active
   users, which is incompatible with free redistribution, so `osiApproved` is
   `false` on every Meta release.
+  <!-- claim: {"kind":"records","entity":"releases","id":"meta-llama-4-scout","field":"license.osiApproved","value":false} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"meta-llama-4-maverick","field":"license.osiApproved","value":false} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"meta-llama-3-1-405b","field":"license.osiApproved","value":false} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"meta-llama-3-3-70b","field":"license.osiApproved","value":false} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"meta-llama-3-2-1b","field":"license.osiApproved","value":false} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"meta-llama-3-2-3b","field":"license.osiApproved","value":false} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"meta-llama-3-2-11b-vision","field":"license.osiApproved","value":false} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"meta-llama-3-2-90b-vision","field":"license.osiApproved","value":false} -->
 - **Lifecycle mapping.** Anthropic "Retired" maps to `deprecated`, invitation-only
   availability maps to `preview`, and the docs' "Legacy models" section maps to
   `legacy`. On Hugging Face, Meta's "Current" and "History" groupings map to
@@ -320,12 +368,18 @@ reading and the disagreement is written down here rather than resolved silently.
   Claude 4.5 note above). Both readings are published as conflicting statements,
   linked reciprocally, and neither is marked correct. This is the intended
   behaviour of the conflict state, not an error awaiting correction.
+  <!-- claim: {"kind":"records","entity":"releases","id":"anthropic-claude-haiku-4-5","field":"status","value":"current"} -->
+  <!-- claim: {"kind":"records","entity":"families","id":"anthropic-claude-4-5","field":"status","value":"legacy"} -->
 - **Evidence gaps are recorded for Llama 4 Scout and GPT-5.** Their count and
   per-release breakdown are owned by `src/data/model-fit.test.ts` alongside the
   statement counts, so this note names the releases without restating a number
   nothing checks. Each gap names a rubric dimension that was looked at and could
   not be supported — a missing usage observation for Llama 4 Scout, a missing
   benchmark result for GPT-5 — so the absence is visible rather than silent.
+  <!-- claim: {"kind":"records","entity":"modelFitEvidenceGaps","id":"gap-llama-4-scout-usage","field":"releaseId","value":"meta-llama-4-scout"} -->
+  <!-- claim: {"kind":"records","entity":"modelFitEvidenceGaps","id":"gap-llama-4-scout-usage","field":"dimension","value":"usage-evidence"} -->
+  <!-- claim: {"kind":"records","entity":"modelFitEvidenceGaps","id":"gap-gpt-5-benchmarks","field":"releaseId","value":"openai-gpt-5"} -->
+  <!-- claim: {"kind":"records","entity":"modelFitEvidenceGaps","id":"gap-gpt-5-benchmarks","field":"dimension","value":"measured-benchmark-evidence"} -->
 - **xAI is recorded once, under both of the names it uses for itself.** The
   creator's own site titles its pages "… | SpaceXAI" and carries the footer
   "© 2026 SpaceXAI LLC", while its developer documentation calls the product
@@ -333,21 +387,29 @@ reading and the disagreement is written down here rather than resolved silently.
   `shortName` is "xAI", so both stay searchable as organization aliases. No
   rename, succession, or corporate relationship between the two names is
   asserted, because no source states one.
+  <!-- claim: {"kind":"records","entity":"organizations","id":"xai","field":"name","value":"SpaceXAI"} -->
+  <!-- claim: {"kind":"records","entity":"organizations","id":"xai","field":"shortName","value":"xAI"} -->
 - **No Grok release records a parameter count.** xAI publishes none on either the
   announcements or the model documentation pages, so `parameters` is omitted
   entirely rather than zeroed or estimated.
+  <!-- claim: {"kind":"omits","entity":"releases","id":"xai-grok-4-6","field":"parameters"} -->
+  <!-- claim: {"kind":"omits","entity":"releases","id":"xai-grok-4-5","field":"parameters"} -->
 - **Grok 4 anchors its family but is not itself a release record.** The Grok 4
   announcement is dated 9 July 2025 and that date is the family's
   `firstReleaseDate`, but the model's documentation page is no longer served, so
   its modalities and context window cannot be sourced and no release is recorded
   for it. A family is dated to its first release whether or not that release is
   represented, which is the same reading the Gemini 3 family already uses.
+  <!-- claim: {"kind":"records","entity":"families","id":"xai-grok-4","field":"firstReleaseDate","value":"2025-07-09"} -->
+  <!-- claim: {"kind":"absent","entity":"releases","id":"xai-grok-4"} -->
 - **Mistral Large 3 parameter count disagreement.** The model card's header gives
   675B total and 41B active, while its body text gives "673B params and 39B
   active" alongside "a 2.5B Vision Encoder" — the two readings differ by roughly
   the size of that encoder. The header figures are recorded, because they are the
   counts the card states for the model as published, and the disagreement is
   written down here rather than averaged away.
+  <!-- claim: {"kind":"records","entity":"releases","id":"mistral-large-3-675b-instruct","field":"parameters.totalBillions","value":675} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"mistral-large-3-675b-instruct","field":"parameters.activeBillions","value":41} -->
 - **Downloadable weights are recorded separately from licensing, and the two do
   not track each other.** Mistral Large 3 is offered both through a hosted API and
   as downloadable weights under Apache-2.0, so its `accessType` is `both` and
@@ -355,6 +417,12 @@ reading and the disagreement is written down here rather than resolved silently.
   MIT licence with an added condition, so its weights are downloadable while
   `osiApproved` is false. The Grok releases are hosted only and carry no `license`
   object at all, rather than a licence recorded as unknown.
+  <!-- claim: {"kind":"records","entity":"releases","id":"mistral-large-3-675b-instruct","field":"accessType","value":"both"} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"mistral-large-3-675b-instruct","field":"license.osiApproved","value":true} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"mistral-devstral-2-123b-instruct","field":"license.weightsDownloadable","value":true} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"mistral-devstral-2-123b-instruct","field":"license.osiApproved","value":false} -->
+  <!-- claim: {"kind":"omits","entity":"releases","id":"xai-grok-4-6","field":"license"} -->
+  <!-- claim: {"kind":"omits","entity":"releases","id":"xai-grok-4-5","field":"license"} -->
 - **DeepSeek dates come from repository publication, not from an announcement.**
   The creator's own domain could not be reached from this environment during the
   2026-08-28 pass, using two independent tools, so no dated first-party
@@ -373,6 +441,10 @@ reading and the disagreement is written down here rather than resolved silently.
   DeepSeek-V3.2 declares a base model of DeepSeek-V3.2-Exp-Base, which has no
   record here, so there is no id to point at. Naming similarity between
   repositories is not treated as evidence of lineage anywhere.
+  <!-- claim: {"kind":"records","entity":"releases","id":"deepseek-v4-pro","field":"derivedFromIds","value":[]} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"deepseek-v4-flash","field":"derivedFromIds","value":[]} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"deepseek-v3-2","field":"derivedFromIds","value":[]} -->
+  <!-- claim: {"kind":"absent","entity":"releases","id":"deepseek-v3-2-exp-base"} -->
 
 ## Catalog indexes
 
