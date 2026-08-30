@@ -212,6 +212,30 @@ ModelTree is a source-backed map of AI creators, model families, and releases.
 The site is a static Astro build; everything lives under `web/`.
 
 - **Run every command from `web/`.** The repository root is not a Node project.
+- **`npm` has the same pair of shims this file describes for `drydock`, so
+  establish which form runs here before you read anything into a failure from
+  it.** The paragraph near the top is about npm's shims already — it borrows
+  them to explain the mechanism — and it transfers to npm itself unchanged. Run
+  both forms:
+
+  ```
+  npm --version
+  npm.cmd --version
+  ```
+
+  The bare name is the correct invocation everywhere, and where no `.cmd` shim
+  exists it is the only one, so "command not found" on the second line is the
+  expected result there and means nothing on its own. Use whichever form printed
+  a version for every `npm` command below; those are written by name, which says
+  what to run and not which form your shell resolves. An `npm` that is refused
+  rather than missing is installed and blocked — a fact about the execution
+  policy, reported as that, and not repaired by changing the policy. The failure
+  that costs something is quieter than a loud refusal: reading one as a missing
+  toolchain and reporting a validation you never ran. Unrun is not passed.
+
+  The same general form as above, moved from detection to invocation: an
+  instruction that names a command must not assume the form it names is the form
+  that runs.
 - `npm run validate` (tests + Astro/TypeScript diagnostics) must keep passing.
   `npm run build` runs it, so a broken change cannot ship.
 - **`npm run validate` is not the whole verification set, and a diff that
