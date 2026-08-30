@@ -77,7 +77,7 @@ tools/updater/     proposal-only data updater (Python, run separately)
 .github/agents/    the Drydock role contracts — dev, reviewer, QA
 .github/workflows/ CI, the Pages deploy, and scheduled source-link health
 .drydock/          per-dock records and the gate verdicts bound to each commit
-docs/product/      product brief, information architecture, backlog, deployment runbook
+docs/product/      product brief, information architecture, backlog, deployment runbook, interaction contract
 docs/adr/          architecture decision records
 docs/assets/       repository images
 ```
