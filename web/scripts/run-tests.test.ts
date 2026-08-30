@@ -211,6 +211,41 @@ describe('what a scoped run says about itself', () => {
     expect(notice).toContain('NOT the full suite');
   });
 
+  // The reported defect was a whole suite running under a `SCOPED run` banner
+  // with no `Matched N of M` line under it. `--` was one route to it; an
+  // options-only forward is the other, and it does not go through `--` at all.
+  // Pinning the two strings to each other closes the shape rather than a token.
+  it('never says SCOPED without a count, whichever way the count is missing', () => {
+    const shapes = [
+      { forwarded: [SCOPED_TARGET], matched: [SCOPED_TARGET], discoveredCount: 88 },
+      { forwarded: ['-t', 'formats'], matched: null, discoveredCount: 0 },
+      { forwarded: ['--reporter=dot'], matched: null, discoveredCount: 0 },
+    ];
+
+    for (const shape of shapes) {
+      const notice = formatScopeNotice(shape);
+      expect(notice.includes('SCOPED run')).toBe(notice.includes('Matched '));
+      // Whatever it says, it never lets an argument-bearing run stand in for the
+      // bare one the coverage verifier needs.
+      expect(notice).toContain(COVERAGE_VERIFIER);
+    }
+  });
+
+  it('calls an options-only run unfiltered, since it narrows nothing by path', () => {
+    const notice = formatScopeNotice({
+      forwarded: ['-t', 'formats'],
+      matched: null,
+      discoveredCount: 0,
+    });
+
+    expect(notice).toContain('UNFILTERED run');
+    expect(notice).toContain('every discovered test file');
+    expect(notice).not.toContain('Matched ');
+    // `UNSCOPED` would have contained `SCOPED run` as a substring and made the
+    // assertion above vacuous. This is the guard on that.
+    expect(notice).not.toContain('SCOPED run');
+  });
+
   it('says nothing ran, and does not call the exit code a pass, when nothing matched', () => {
     const refusal = formatNoMatchRefusal({ forwarded: [UNMATCHABLE_TARGET], discoveredCount: 88 });
 

@@ -203,26 +203,40 @@ export function formatFileList(files, limit = 10) {
 }
 
 /**
- * What a scoped run prints before it starts. Both counts come from the same
- * discovery, so the line is a comparison a reader can make rather than a label.
+ * What a run with arguments prints before it starts. Both counts come from the
+ * same discovery, so the line is a comparison a reader can make rather than a
+ * label.
+ *
+ * The banner is chosen by whether there is a count to show, which keeps one
+ * invariant true by construction: `SCOPED run` is never printed without a
+ * `Matched N of M` line under it. A full suite wearing a scoped banner is the
+ * defect this file exists to prevent, and options-only arguments -- `-t name`,
+ * `--reporter=dot` -- narrow nothing by path, so they get the honest word.
+ * `UNFILTERED` rather than `UNSCOPED`, because `UNSCOPED run` still contains
+ * `SCOPED run` and would defeat both the test below and anyone grepping.
  */
 export function formatScopeNotice({ forwarded, matched, discoveredCount }) {
-  const lines = [`npm run test: SCOPED run -- filters: ${forwarded.join(' ')}`];
+  const lines = [];
 
   if (matched === null) {
     lines.push(
+      `npm run test: UNFILTERED run -- options only: ${forwarded.join(' ')}`,
       '  No file filter was given, so vitest will run every discovered test file',
       '  with the options you passed. Nothing here is narrowed by path.',
     );
   } else {
+    lines.push(`npm run test: SCOPED run -- filters: ${forwarded.join(' ')}`);
     lines.push(`  Matched ${matched.length} of ${discoveredCount} discovered test file(s):`);
     lines.push(formatFileList(matched));
+    lines.push('  This is NOT the full suite.');
   }
 
+  // True of both branches: the verifier requires every discovered file to have
+  // reported, and neither an option nor a filter can promise that.
   lines.push(
-    `  This is NOT the full suite, and ${COVERAGE_VERIFIER} does not run for a`,
-    '  scoped run -- it requires every discovered file to have reported. Run',
-    '  `npm run test` with no arguments before claiming the suite passes.',
+    `  ${COVERAGE_VERIFIER} does not run when arguments are passed -- it requires`,
+    '  every discovered file to have reported, which only a bare run guarantees.',
+    '  Run `npm run test` with no arguments before claiming the suite passes.',
   );
 
   return lines.join('\n');
