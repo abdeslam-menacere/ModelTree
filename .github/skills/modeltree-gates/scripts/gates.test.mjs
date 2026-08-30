@@ -1747,9 +1747,21 @@ describe('gate-evidence', () => {
     assert.equal(JSON.parse(result.stdout).applicable, 0, 'an unchanged finding applies nothing');
   });
 
+  // The code on its own does not say which rule fired (#251, #374). Delete the
+  // `existsSync` guard and `readFileSync` throws `ENOENT` straight into the JSON
+  // catch, which exits 2 as well -- while telling the caller their bundle is
+  // malformed. That is a different fault reported to someone whose file is not
+  // there at all, so the message is what separates the two refusals, not the
+  // code. The path is pinned too: a refusal that does not name what it looked
+  // for cannot be acted on.
   test('a missing bundle exits 2 rather than passing', () => {
     const result = run(GATE_EVIDENCE, ['--claims', join(tmpdir(), 'no-such-bundle.json'), '--json']);
-    assert.equal(result.code, 2);
+    assert.equal(result.code, 2, result.stdout);
+    assert.match(result.stdout, /gate-evidence: no claim bundle at .*no-such-bundle\.json/);
+    assert.ok(
+      !result.stdout.includes('is not valid JSON'),
+      `an absent bundle must not be reported as a malformed one:\n${result.stdout}`,
+    );
   });
 
   // -------------------------------------------------------------------------
@@ -1912,9 +1924,20 @@ describe('gate-evidence', () => {
     assert.equal(control.code, 0, `--claims with a real value must still gate:\n${control.stdout}`);
   });
 
+  // Masked by the derivation check further down (#374). With the membership test
+  // gone, `"whatever"` is not rejected here; it survives to contradict the policy
+  // derived from the reviewed-profile set and is refused *there* instead, at the
+  // same exit code under a different message. So the code alone cannot tell the
+  // two apart, and only the message can: a value that is not a policy at all is
+  // refused as unknown, never as a mismatch between two real policies.
   test('an unknown policy exits 2 rather than falling back to the loose one', () => {
     const result = gateBundle({ policy: 'whatever', claims: [claim()] });
     assert.equal(result.code, 2, result.stdout);
+    assert.match(result.stdout, /gate-evidence: unknown policy "whatever"/);
+    assert.ok(
+      !result.stdout.includes('but the bundle declares'),
+      `a value that is not a policy must be refused as unknown, not as a derivation mismatch:\n${result.stdout}`,
+    );
   });
 
   // The sibling of the test above, and the more dangerous half. An unknown
@@ -1924,11 +1947,24 @@ describe('gate-evidence', () => {
   // unanimity would publish under the pilot bar. `tools/updater` refuses the
   // same way -- naming a long-tail profile without choosing its threshold exits
   // 2 -- because the threshold a change was decided under must be a choice.
+  //
+  // These two guards are adjacent in the gate and each absorbs the other's case:
+  // with this one gone, `declaredPolicy` is `undefined`, which `THRESHOLDS` does
+  // not have, so the unknown-policy check immediately after it refuses the bundle
+  // and still exits 2 (#374). The gate itself states the equivalence -- "an
+  // absent policy is refused exactly as an unknown one is" -- which is precisely
+  // why a code-only assertion here could never tell the pair apart. The message
+  // can, so it is pinned.
   test('a missing policy exits 2 rather than defaulting to the loose one', () => {
     const bundle = { runId: 'r1', creator: 'some-long-tail-creator', claims: [claim()] };
     assert.ok(!Object.hasOwn(bundle, 'policy'), 'the fixture must not carry a policy');
     const result = gateBundle(bundle);
     assert.equal(result.code, 2, result.stdout);
+    assert.match(result.stdout, /gate-evidence: bundle has no policy/);
+    assert.ok(
+      !result.stdout.includes('unknown policy'),
+      `a policy that was never reported must be refused as absent, not as the string "undefined":\n${result.stdout}`,
+    );
   });
 
   // The failure this protects against, stated as the scenario rather than as a
