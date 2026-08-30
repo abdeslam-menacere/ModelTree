@@ -343,7 +343,7 @@ describe("featured membership follows the site's editorial lead list", () => {
         'Hugging Face',
         'IBM',
         'LG AI Research',
-        'MiniMax AI',
+        'MiniMax',
         'Mistral AI',
         'Moonshot AI',
         'NVIDIA',

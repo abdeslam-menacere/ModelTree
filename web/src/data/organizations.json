@@ -404,6 +404,21 @@
     "verifiedAt": "2026-08-29"
   },
   {
+    "id": "minimax",
+    "slug": "minimax",
+    "name": "MiniMax",
+    "shortName": "MiniMax",
+    "type": "company",
+    "website": "https://www.minimax.io/",
+    "releasePage": "https://huggingface.co/MiniMaxAI",
+    "description": "The AI company that develops the MiniMax-M1 hybrid-attention reasoning models, published as open weights under the Apache License 2.0 and sold as API access under its own name.",
+    "sourceIds": [
+      "minimax-m1-announcement",
+      "minimax-m1-80k-model-card"
+    ],
+    "verifiedAt": "2026-08-29"
+  },
+  {
     "id": "apple",
     "slug": "apple",
     "name": "Apple Inc.",
@@ -446,21 +461,6 @@
     "sourceIds": [
       "01-ai-yi-repository",
       "01-ai-yi-1-5-34b-chat-model-card"
-    ],
-    "verifiedAt": "2026-08-29"
-  },
-  {
-    "id": "minimax",
-    "slug": "minimax",
-    "name": "MiniMax AI",
-    "shortName": "MiniMax",
-    "type": "company",
-    "website": "https://www.minimax.io",
-    "releasePage": "https://huggingface.co/MiniMaxAI",
-    "description": "The company behind the MiniMax-Text-01 mixture-of-experts language model, whose weights it distributes under its own MiniMax Model License, separately from the MIT licence it applies to the accompanying code.",
-    "sourceIds": [
-      "minimax-model-license",
-      "minimax-text-01-model-card"
     ],
     "verifiedAt": "2026-08-29"
   },

@@ -243,6 +243,21 @@ export interface CoverageStats {
    * checked — and is deliberately distinct from a release date.
    */
   latestVerifiedAt: string | null;
+  /**
+   * The earliest day any release or recorded change was re-verified, over the
+   * same population as `latestVerifiedAt`, or null when the dataset carries
+   * neither.
+   *
+   * It is published beside the latest stamp because the latest one alone cannot
+   * be read as a freshness claim about the dataset: a single record verified
+   * today sets it, no matter how long every other record has gone unchecked. A
+   * reader who sees only the newest date learns when *something* was checked,
+   * and would reasonably infer something stronger. The pair states the span the
+   * dataset was verified across, which is the honest form of the same fact and
+   * the one that makes staleness visible rather than hiding it behind the most
+   * recently touched record.
+   */
+  earliestVerifiedAt: string | null;
 }
 
 /**
@@ -281,6 +296,7 @@ export function buildCoverageStats(dataset: Dataset): CoverageStats {
     sources: dataset.sources.length,
     events: dataset.releaseEvents.length,
     latestVerifiedAt: verifiedDates.at(-1) ?? null,
+    earliestVerifiedAt: verifiedDates.at(0) ?? null,
   };
 }
 

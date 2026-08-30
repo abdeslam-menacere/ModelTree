@@ -187,6 +187,11 @@
     "organizationId": "databricks"
   },
   {
+    "id": "minimax",
+    "name": "MiniMax",
+    "organizationId": "minimax"
+  },
+  {
     "id": "apple",
     "name": "Apple Inc.",
     "organizationId": "apple"
@@ -195,11 +200,6 @@
     "id": "01-ai",
     "name": "01.AI",
     "organizationId": "01-ai"
-  },
-  {
-    "id": "minimax",
-    "name": "MiniMax AI",
-    "organizationId": "minimax"
   },
   {
     "id": "sakana-ai",

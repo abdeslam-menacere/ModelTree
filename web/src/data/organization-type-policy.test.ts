@@ -134,10 +134,10 @@ describe('organization type policy', () => {
       'bytedance-seed': 'company',
       'stability-ai': 'company',
       databricks: 'company',
+      minimax: 'company',
       apple: 'company',
       'hugging-face': 'company',
       '01-ai': 'company',
-      minimax: 'company',
       'sakana-ai': 'company',
       'sarvam-ai': 'company',
     });
@@ -348,6 +348,15 @@ describe('organization type policy', () => {
         type: 'company',
         clause: 'paid-company',
       },
+      // MiniMax's own launch announcement prices the API it sells under its own
+      // name -- "providing APIs on our official website at the industry's
+      // lowest prices", at "$0.4/million tokens for input" -- so the paid
+      // clause is stated rather than inferred, unlike Baidu and Tencent above.
+      minimax: {
+        facts: { offersPaidModelProductsOrAccess: true },
+        type: 'company',
+        clause: 'paid-company',
+      },
       // Apple's OpenELM licence establishes that Apple developed and released
       // the weights for scientific research. No Apple page read for this record
       // states that Apple sells model products or access, so no fact is
@@ -370,14 +379,6 @@ describe('organization type policy', () => {
       // and distributed under Apache 2.0. Nothing read for this record states a
       // paid offering.
       '01-ai': {
-        facts: {},
-        type: 'company',
-        clause: 'company-fallback',
-      },
-      // MiniMax's own licence establishes that it distributes the weights, and
-      // names the company. Neither the licence nor the card states that MiniMax
-      // sells model products or access, so no fact is asserted.
-      minimax: {
         facts: {},
         type: 'company',
         clause: 'company-fallback',
