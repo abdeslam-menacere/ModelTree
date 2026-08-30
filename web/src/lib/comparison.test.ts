@@ -831,11 +831,14 @@ describe('comparison payload', () => {
     // abdeslam-menacere/ModelTree#563 added six more sourced creators and merged
     // the MiniMax-M1 records that landed on main in parallel, growing the
     // catalogue to 82 releases and 9,259 bytes (113 per release). Measured
-    // against merge-base f785a1d1, which carried 74 releases and 8,362 bytes at
-    // 113 per release: the per-release figure did not move (-0.08%) and kept 15
+    // against merge-base 0842ff1d, which carried 76 releases and 8,586 bytes at
+    // 113 per release: the per-release figure did not move (-0.05%) and kept 15
     // bytes of headroom under 128, so this is the "catalogue simply grew" case
     // the message below names, and the total was raised from 9,216 to 10,240 as
-    // a deliberate page-weight decision.
+    // a deliberate page-weight decision. An earlier draft of this note anchored
+    // on f785a1d1 and its 74 releases, which was this branch's merge-base until
+    // the MiniMax-M1 records landed on main and moved it; the anchor has to be
+    // the merge-base a later reader recomputes, so it is restated against that.
     expect(
       bytesPerRelease,
       'a picker row got fatter — trim the row rather than raising this',
@@ -843,9 +846,10 @@ describe('comparison payload', () => {
     expect(
       bytes,
       `the picker index ships ${bytes} bytes for ${index.length} releases `
-      + `(${bytesPerRelease}/release, budget 10,240). Measured 8,362 over 74 releases at the #563 `
-      + 'merge-base. If the catalogue simply grew and the per-release figure held, raising this is '
-      + 'a deliberate page-weight decision; if the per-release figure moved too, trim instead.',
+      + `(${bytesPerRelease}/release, budget 10,240). Measured 8,586 over 76 releases `
+      + 'at the #563 merge-base 0842ff1d. If the catalogue simply grew and the per-release '
+      + 'figure held, raising this is a deliberate page-weight decision; if the per-release '
+      + 'figure moved too, trim instead.',
     ).toBeLessThanOrEqual(10_240);
     for (const row of index) {
       expect(row.displayName).toBeTruthy();
