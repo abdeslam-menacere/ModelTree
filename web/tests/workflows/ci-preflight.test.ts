@@ -135,9 +135,12 @@ interface PlanCommand {
 
 interface PlanCheck {
   id: string;
+  // 'mirror' stands in for a CI check; 'self' is the preflight verifying itself.
+  // A self-check names no workflow and no job, so both are optional here.
+  kind: 'mirror' | 'self';
   checks: string[];
-  workflow: string;
-  job: string;
+  workflow?: string;
+  job?: string;
   trigger: { kind: string; paths?: string[]; pattern?: string };
   commands: PlanCommand[];
   selectedBy?: string[];
@@ -224,7 +227,56 @@ function allChecks(): PlanCheck[] {
   return [...baseline.selected, ...baseline.notSelected];
 }
 
+/**
+ * The two kinds of entry in the script's table, kept apart on purpose.
+ *
+ * A **mirror** stands in for a check some committed workflow reports on a pull
+ * request. Every assertion below that reads a workflow -- that the trigger is
+ * copied exactly, that each local command maps onto a real step, that no CI
+ * check is invented -- applies to mirrors and only to mirrors, because only a
+ * mirror has an original to be compared against.
+ *
+ * A **self-check** is the preflight verifying itself. It mirrors nothing, names
+ * no workflow and no job, and claims no CI check, so those same assertions have
+ * nothing to compare it to and would either throw or read it as a false claim.
+ * Filtering it out is therefore not a weakening: it is the only reading under
+ * which the assertion means what it says. The corresponding obligation -- that a
+ * self-check claims no CI check at all -- is asserted directly below rather than
+ * left to the entry's name to imply.
+ */
+function mirrors(): PlanCheck[] {
+  return allChecks().filter((check) => check.kind === 'mirror');
+}
+
+function selfChecks(): PlanCheck[] {
+  return allChecks().filter((check) => check.kind === 'self');
+}
+
+/**
+ * The workflow and job a mirror stands for.
+ *
+ * Throws rather than substituting a placeholder: a mirror that names neither is
+ * a self-check that slipped past the kind filter, and that must stop the test
+ * rather than quietly compare nothing.
+ */
+function originOf(check: PlanCheck): { workflow: string; job: string } {
+  const { workflow, job } = check;
+  if (workflow === undefined || job === undefined) {
+    throw new Error(`${check.id} names no workflow or job, so it mirrors nothing`);
+  }
+  return { workflow, job };
+}
+
 describe('the preflight knows about every check CI can report on a pull request', () => {
+  it('labels every entry as either a mirror of a CI check or its own self-check', () => {
+    // No third kind, and no entry without one: an unlabelled entry would fall
+    // out of both the mirror assertions and the self-check assertion and be
+    // verified by neither.
+    expect(allChecks().length).toBe(mirrors().length + selfChecks().length);
+    expect(mirrors().length).toBeGreaterThan(0);
+    expect(selfChecks().length).toBeGreaterThan(0);
+  });
+
   it('accounts for each reported check, either by running it or by naming it as uncovered', () => {
     const reported = reportedPullRequestChecks();
     expect(reported.length).toBeGreaterThan(0);
@@ -247,10 +299,21 @@ describe('the preflight knows about every check CI can report on a pull request'
 
   it('claims no check that no workflow reports', () => {
     const reported = new Set(reportedPullRequestChecks().map(({ check }) => check));
-    const claimed = allChecks().flatMap((check) => check.checks);
+    const claimed = mirrors().flatMap((check) => check.checks);
 
     expect(claimed.length).toBeGreaterThan(0);
     expect(claimed.filter((check) => !reported.has(check))).toEqual([]);
+  });
+
+  it('lets no self-check pass itself off as a reported CI check', () => {
+    // The other half of the mirror/self split. A self-check is exempted from the
+    // assertion above only because it claims nothing; if one ever did claim a
+    // check name, the exemption would become a hole and this fails instead.
+    for (const check of selfChecks()) {
+      expect(check.checks, `${check.id} is a self-check and must claim no CI check`).toEqual([]);
+      expect(check.workflow, `${check.id} mirrors no workflow`).toBeUndefined();
+      expect(check.job, `${check.id} mirrors no job`).toBeUndefined();
+    }
   });
 
   it('covers the three checks the historical merge turned red', () => {
@@ -270,13 +333,14 @@ describe('the preflight triggers are the workflows own triggers', () => {
     expect(filtered.length).toBeGreaterThan(0);
 
     for (const check of filtered) {
-      const parsed = workflows.get(check.workflow.replace('.github/workflows/', ''));
-      if (parsed === undefined) throw new Error(`no committed workflow at ${check.workflow}`);
+      const { workflow } = originOf(check);
+      const parsed = workflows.get(workflow.replace('.github/workflows/', ''));
+      if (parsed === undefined) throw new Error(`no committed workflow at ${workflow}`);
 
-      const pullRequest = mapping(mapping(parsed.on, 'on').pull_request, `${check.workflow} on.pull_request`);
-      const paths = sequence(pullRequest.paths, `${check.workflow} on.pull_request.paths`).map(String);
+      const pullRequest = mapping(mapping(parsed.on, 'on').pull_request, `${workflow} on.pull_request`);
+      const paths = sequence(pullRequest.paths, `${workflow} on.pull_request.paths`).map(String);
 
-      expect(check.trigger.paths, `${check.id} must copy ${check.workflow}'s paths filter`).toEqual(paths);
+      expect(check.trigger.paths, `${check.id} must copy ${workflow}'s paths filter`).toEqual(paths);
     }
   });
 
@@ -285,21 +349,22 @@ describe('the preflight triggers are the workflows own triggers', () => {
     expect(scoped.length).toBeGreaterThan(0);
 
     for (const check of scoped) {
-      const parsed = workflows.get(check.workflow.replace('.github/workflows/', ''));
-      if (parsed === undefined) throw new Error(`no committed workflow at ${check.workflow}`);
+      const { workflow, job: jobName } = originOf(check);
+      const parsed = workflows.get(workflow.replace('.github/workflows/', ''));
+      if (parsed === undefined) throw new Error(`no committed workflow at ${workflow}`);
 
-      const job = mapping(mapping(parsed.jobs, 'jobs')[check.job], `jobs.${check.job}`);
-      const scopeStep = sequence(job.steps, `jobs.${check.job}.steps`)
-        .map((step, index) => mapping(step, `jobs.${check.job}.steps[${index}]`))
+      const job = mapping(mapping(parsed.jobs, 'jobs')[jobName], `jobs.${jobName}`);
+      const scopeStep = sequence(job.steps, `jobs.${jobName}.steps`)
+        .map((step, index) => mapping(step, `jobs.${jobName}.steps[${index}]`))
         .find((step) => step.id === 'scope');
 
-      if (scopeStep === undefined) throw new Error(`no scope step in ${check.workflow} jobs.${check.job}`);
+      if (scopeStep === undefined) throw new Error(`no scope step in ${workflow} jobs.${jobName}`);
 
       // The ERE the workflow greps the changed-file list with, read out of the
       // committed script rather than restated, exactly as skills-ci.test.ts does.
       const pattern = String(scopeStep.run).match(/grep -Eq '([^']+)'/)?.[1];
 
-      expect(pattern, `${check.workflow} jobs.${check.job} must grep with a single-quoted ERE`).toBeDefined();
+      expect(pattern, `${workflow} jobs.${jobName} must grep with a single-quoted ERE`).toBeDefined();
       expect(check.trigger.pattern, `${check.id} must copy that pattern`).toBe(pattern);
     }
   });
@@ -319,13 +384,14 @@ describe('the preflight triggers are the workflows own triggers', () => {
 
 describe('the preflight runs the commands the workflow runs', () => {
   it('maps every local command onto a real step of the real job', () => {
-    for (const check of allChecks()) {
-      const parsed = workflows.get(check.workflow.replace('.github/workflows/', ''));
-      if (parsed === undefined) throw new Error(`no committed workflow at ${check.workflow}`);
+    for (const check of mirrors()) {
+      const { workflow, job: jobName } = originOf(check);
+      const parsed = workflows.get(workflow.replace('.github/workflows/', ''));
+      if (parsed === undefined) throw new Error(`no committed workflow at ${workflow}`);
 
-      const job = mapping(mapping(parsed.jobs, 'jobs')[check.job], `jobs.${check.job}`);
-      const runs = sequence(job.steps, `jobs.${check.job}.steps`)
-        .map((step, index) => mapping(step, `jobs.${check.job}.steps[${index}]`))
+      const job = mapping(mapping(parsed.jobs, 'jobs')[jobName], `jobs.${jobName}`);
+      const runs = sequence(job.steps, `jobs.${jobName}.steps`)
+        .map((step, index) => mapping(step, `jobs.${jobName}.steps[${index}]`))
         .filter((step) => typeof step.run === 'string')
         .map((step) => String(step.run).trim());
 
@@ -335,7 +401,7 @@ describe('the preflight runs the commands the workflow runs', () => {
         expect(
           runs,
           `${check.id} runs "${command.local}" locally, which claims to stand for "${command.ciRun}" `
-            + `in ${check.workflow} jobs.${check.job}, but that job runs no such step`,
+            + `in ${workflow} jobs.${jobName}, but that job runs no such step`,
         ).toContain(command.ciRun);
       }
     }
@@ -394,6 +460,41 @@ describe('selection follows the change', () => {
     // The control. A selector that fires on everything carries no information,
     // so it has to be shown declining as well as firing.
     expect(selectionFor(['docs/product/BACKLOG.md', 'README.md'])).toEqual([]);
+  });
+
+  it('runs its own fidelity tests whenever a workflow changes, whichever mirrors were selected', () => {
+    // The regression this test exists for. Every mirror above is a *copy* of a
+    // workflow's trigger and commands, and the fidelity tests in this file are
+    // what stop a copy drifting from its original -- but they run under
+    // `web-ci`, whose scope is `^(web/|...web-ci\.yml$)`. So editing
+    // `skills-ci.yml` selected `skills-ci` alone, the fidelity tests were never
+    // chosen, and a workflow edit that made the script's copy wrong still
+    // reported PASS. The guard was not missing; it was never selected.
+    //
+    // Asserted per workflow rather than on one example, so a workflow added
+    // later is covered without anyone remembering to extend this list.
+    for (const workflow of readdirSync(workflowDir).filter((name) => name.endsWith('.yml'))) {
+      const selected = selectionFor([`.github/workflows/${workflow}`]);
+      expect(
+        selected,
+        `a change to ${workflow} must select the preflight's own fidelity tests`,
+      ).toContain('preflight-self-check');
+    }
+  });
+
+  it('runs its own fidelity tests when the script or those tests change', () => {
+    // The other two ways the copy and the original can be made to disagree:
+    // editing the copy, and editing the test that compares them.
+    expect(selectionFor(['.github/scripts/ci-preflight.mjs'])).toContain('preflight-self-check');
+    expect(selectionFor(['web/tests/workflows/ci-preflight.test.ts'])).toContain('preflight-self-check');
+  });
+
+  it('does not run the self-check on a change that touches no workflow and no preflight file', () => {
+    // The paired control. A self-check selected by everything would be noise,
+    // and would say nothing about whether selection actually follows the change.
+    expect(selectionFor(['web/src/data/releases.json'])).not.toContain('preflight-self-check');
+    expect(selectionFor(['.github/skills/modeltree-gates/SKILL.md'])).not.toContain('preflight-self-check');
+    expect(selectionFor(['docs/adr/0006-a-decision.md'])).not.toContain('preflight-self-check');
   });
 });
 

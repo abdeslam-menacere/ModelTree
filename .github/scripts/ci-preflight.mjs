@@ -94,6 +94,7 @@ const PUBLISHED_REF = 'refs/remotes/origin/main';
 const CHECKS = [
   {
     id: 'web-ci',
+    kind: 'mirror',
     checks: ['web-ci'],
     workflow: '.github/workflows/web-ci.yml',
     job: 'web-ci',
@@ -118,6 +119,7 @@ const CHECKS = [
   },
   {
     id: 'skills-ci',
+    kind: 'mirror',
     checks: ['skills-ci'],
     workflow: '.github/workflows/skills-ci.yml',
     job: 'skills-ci',
@@ -149,6 +151,7 @@ const CHECKS = [
   },
   {
     id: 'instruction-references',
+    kind: 'mirror',
     checks: ['instruction-references'],
     workflow: '.github/workflows/instruction-references.yml',
     job: 'instruction-references',
@@ -175,6 +178,7 @@ const CHECKS = [
   },
   {
     id: 'adr-numbers',
+    kind: 'mirror',
     checks: ['adr-numbers'],
     workflow: '.github/workflows/adr-numbers.yml',
     job: 'adr-numbers',
@@ -194,6 +198,7 @@ const CHECKS = [
   },
   {
     id: 'updater-pytest',
+    kind: 'mirror',
     // One local run stands for both matrix legs. They are one suite on two
     // interpreters, and the historical case is the reason that matters: the two
     // red `pytest` checks on `3d3f4b1` were a single root cause reported twice,
@@ -253,6 +258,7 @@ const CHECKS = [
   },
   {
     id: 'source-link-health-tests',
+    kind: 'mirror',
     checks: ['source-link-health-tests'],
     workflow: '.github/workflows/source-link-health.yml',
     job: 'source-link-health-tests',
@@ -278,6 +284,59 @@ const CHECKS = [
       },
     ],
     requires: [],
+  },
+  /*
+   * Preflight verifying itself. Not a mirror of any CI check, which is why it
+   * carries `kind: 'self'` and an empty `checks` -- no workflow reports it, and
+   * claiming otherwise would be a lie the tests below rightly refuse.
+   *
+   * It exists because every entry above is a *copy* of a workflow's triggers and
+   * commands, and a copy can drift from its original. The tests in
+   * `web/tests/workflows/ci-preflight.test.ts` compare both sides and catch that
+   * drift -- but they run under `web-ci`, whose scope is `^(web/|...web-ci\.yml$)`,
+   * so a change to `.github/workflows/skills-ci.yml` selected `skills-ci` alone
+   * and never ran them. The guard existed and was simply never chosen: editing a
+   * workflow could make this script's copy wrong while the run still reported
+   * PASS, which is the unearned green this script exists to remove, one level up.
+   *
+   * The fix is selection, not a YAML interpreter. When the change touches a
+   * workflow -- or this script, or its tests -- run the fidelity tests directly.
+   *
+   * Note it deliberately does **not** mirror `web-ci`'s trigger. Widening that
+   * copy would break `copies the in-job scope pattern of every unfiltered
+   * workflow exactly`, which asserts the copy equals the committed original --
+   * reddening the very test this entry exists to run.
+   */
+  {
+    id: 'preflight-self-check',
+    kind: 'self',
+    checks: [],
+    trigger: {
+      kind: 'self-paths',
+      paths: [
+        '.github/workflows/**',
+        '.github/scripts/ci-preflight.mjs',
+        'web/tests/workflows/ci-preflight.test.ts',
+      ],
+    },
+    commands: [
+      {
+        label: 'Check this script still matches the committed workflows',
+        cwd: 'web',
+        // vitest's own entry point rather than `npm run test`, which runs the
+        // whole suite and then a coverage verifier that requires every
+        // discovered file to have reported. A single-file filter fails it.
+        bin: 'node',
+        args: ['node_modules/vitest/vitest.mjs', 'run', 'tests/workflows/ci-preflight.test.ts'],
+      },
+    ],
+    requires: [
+      {
+        kind: 'path',
+        path: 'web/node_modules',
+        hint: 'run `npm ci` in web/ so the fidelity tests can run',
+      },
+    ],
   },
 ];
 
@@ -347,6 +406,15 @@ const NOT_COVERED = [
     why:
       'selection is anchored at the merge base with `' + PUBLISHED_REF + '`, so this judges this '
       + 'branch and not this branch merged into a `main` that has since moved.',
+  },
+  {
+    what: 'workflow edits beyond this script\'s copy of them',
+    why:
+      'a change under `.github/workflows/**` selects `preflight-self-check`, which runs the '
+      + 'fidelity tests and so catches this script\'s table drifting from the committed YAML. It '
+      + 'is a comparison of two files, not an interpretation of one: it never executes the edited '
+      + 'workflow, so an edit that is faithfully copied here and still wrong on the runner -- a '
+      + 'bad `runs-on`, a missing secret, an action version that no longer resolves -- passes it.',
   },
   {
     what: 'branch protection',
@@ -467,7 +535,7 @@ function globMatches(glob, path) {
 
 /** The changed paths that select a check, in the order they were reported. */
 function selectingPaths(check, paths) {
-  if (check.trigger.kind === 'workflow-paths') {
+  if (check.trigger.kind === 'workflow-paths' || check.trigger.kind === 'self-paths') {
     return paths.filter((path) => check.trigger.paths.some((glob) => globMatches(glob, path)));
   }
   if (check.trigger.kind === 'in-job-scope') {
@@ -608,6 +676,18 @@ function writeNotCovered(write) {
   for (const item of NOT_COVERED) write(`  - ${item.what}: ${item.why}\n`);
 }
 
+/**
+ * How a check group is labelled in the printed report.
+ *
+ * A mirror is named by the CI checks it stands in for. The self-check stands in
+ * for none, and says so, so a reader never takes it for a CI check that passed.
+ */
+function label(check) {
+  return check.kind === 'self'
+    ? 'preflight self-check, not a CI check'
+    : check.checks.join(', ');
+}
+
 function main() {
   const args = parseArgs(process.argv);
   if (args.help) {
@@ -646,6 +726,7 @@ function main() {
   if (args.plan) {
     const describe = (check) => ({
       id: check.id,
+      kind: check.kind,
       checks: check.checks,
       workflow: check.workflow,
       job: check.job,
@@ -673,7 +754,7 @@ function main() {
     else {
       process.stdout.write(`ci-preflight: plan against ${anchor.slice(0, 10)}, ${paths.length} file(s) changed\n`);
       for (const entry of selected) {
-        process.stdout.write(`  would run ${entry.check.id} (${entry.check.checks.join(', ')})\n`);
+        process.stdout.write(`  would run ${entry.check.id} (${label(entry.check)})\n`);
         for (const command of entry.check.commands) {
           process.stdout.write(`    $ ${command.bin} ${command.args.join(' ')}\n`);
         }
@@ -691,7 +772,7 @@ function main() {
       + `${selected.length} of ${CHECKS.length} local check group(s) selected\n`,
     );
     for (const entry of selected) {
-      process.stdout.write(`  selected ${entry.check.id} (${entry.check.checks.join(', ')})`);
+      process.stdout.write(`  selected ${entry.check.id} (${label(entry.check)})`);
       process.stdout.write(` <- ${entry.selectedBy.slice(0, 3).join(', ')}`);
       if (entry.selectedBy.length > 3) process.stdout.write(` (+${entry.selectedBy.length - 3} more)`);
       process.stdout.write('\n');
@@ -709,6 +790,8 @@ function main() {
     }
     results.push({
       id: entry.check.id,
+      kind: entry.check.kind,
+      label: label(entry.check),
       checks: entry.check.checks,
       workflow: entry.check.workflow,
       selectedBy: entry.selectedBy,
@@ -756,7 +839,7 @@ function main() {
   process.stdout.write('\n');
   for (const result of results) {
     const verdict = result.status === 'pass' ? 'PASS' : result.status === 'fail' ? 'FAIL' : 'COULD NOT RUN';
-    process.stdout.write(`  ${verdict.padEnd(14)}${result.id} (${result.checks.join(', ')})\n`);
+    process.stdout.write(`  ${verdict.padEnd(14)}${result.id} (${result.label})\n`);
     for (const reason of result.reasons) process.stdout.write(`                ${reason}\n`);
   }
 

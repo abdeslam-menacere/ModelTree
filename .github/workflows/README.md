@@ -289,6 +289,36 @@ reports on every pull request whatever the preflight selected.
 | `pytest (Python 3.11)`, `pytest (Python 3.13)` | `python -m pytest` from `tools/updater`, **once** |
 | `source-link-health-tests` | the link-health tests and the `--dry-run` extraction |
 
+Every row above is a **mirror**: a copy, in the script, of what some workflow
+already runs. A copy can drift from its original, so the script carries one more
+group that is not a mirror of anything —
+
+| Not a CI check | Run locally by the preflight as |
+|---|---|
+| `preflight-self-check` | `vitest run tests/workflows/ci-preflight.test.ts`, from `web/` |
+
+— which compares the script's table against the committed workflow YAML and
+fails if the two have parted. It is selected by a change to
+`.github/workflows/**`, to `ci-preflight.mjs`, or to those tests. It reports no
+CI check, prints as `preflight self-check, not a CI check`, and the two kinds are
+labelled `mirror` and `self` in the table itself so that no assertion about
+mirrors — that the trigger is copied exactly, that each command maps onto a real
+step — is quietly read as applying to something with no original to be compared
+against.
+
+That group exists because the fidelity tests used to live under `web-ci` alone,
+whose scope is `^(web/|\.github/workflows/web-ci\.yml$)`. Editing
+`skills-ci.yml` therefore selected `skills-ci` and nothing else, and the tests
+written to catch exactly that drift were never chosen: a workflow edit could make
+the script's copy wrong while the preflight still reported PASS. The guard was
+not missing, it was not selected — the same shape of defect as #560 itself, one
+level up.
+
+Note the fix is preflight's selection only. The real `web-ci.yml` has the
+matching gap in CI, which is
+[#477](https://github.com/abdeslam-menacere/ModelTree/issues/477) and is
+deliberately untouched here.
+
 ### What the preflight does not cover
 
 Printed on every run, passing runs included, because the failure being closed
@@ -309,6 +339,11 @@ here is a reader inferring a completeness that is not there:
   `ubuntu-latest` checkout. A green preflight predicts CI; it does not bind it.
 - **The merge result.** Selection is anchored at the merge base, so it judges
   this branch, not this branch merged into a `main` that has moved since.
+- **Workflow edits beyond the script's copy of them.** `preflight-self-check`
+  compares two files; it never executes the edited workflow. An edit that this
+  script copies faithfully and that still fails on the runner — a bad
+  `runs-on`, a missing secret, an action version that no longer resolves — passes
+  it.
 - **Branch protection.** Which checks are required lives outside the tree. A
   green preflight says the checks passed, never that the pull request is
   mergeable.
