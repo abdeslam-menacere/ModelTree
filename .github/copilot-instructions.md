@@ -8,13 +8,55 @@ Read this before doing anything. If this worktree has a `DOCK.md` at its root,
 read it first — it is your complete brief and it wins on scope. If there is no
 `DOCK.md`, read the next paragraph.
 
-**Do not assume the Drydock CLI is there — check with `drydock --version`.** It
-has not been installed in any environment these docks have run in so far. If it
-is not on your PATH, then none of the `drydock` commands named below are
-available to you, and the manual posture applies: implement, commit, post your
+**Do not assume whether the Drydock CLI is there — determine it, here, before
+you either rely on it or rule it out.** This file deliberately does not tell you
+the answer. What is installed on the machine you are running on is a fact about
+your environment, and a document checked into a repository cannot know it.
+
+Three outcomes matter, and they are genuinely different states: **installed and
+runnable**, **installed but not runnable the way you invoked it**, and **not
+installed**. Reading the middle one as the last is how an agent talks itself out
+of tooling that is sitting right there. So run both forms before concluding
+anything:
+
+```
+drydock --version
+drydock.cmd --version
+```
+
+The bare name is the correct invocation everywhere, and on a non-Windows machine
+it is the only one — no `.cmd` shim exists there, so "command not found" on the
+second line is expected and means nothing on its own. On Windows, npm installs a
+`.cmd` shim and a PowerShell one side by side; PowerShell resolves the bare name
+to the PowerShell one, and the default execution policy refuses to run it. What
+comes back is then an error about running scripts, which is a fact about the
+policy and not a report about what is installed — the `.cmd` form can return a
+version on the very same machine. This repository already carries the lesson for
+a different command: `.github/scripts/ci-preflight.mjs` spawns npm through its
+`.cmd` shim on Windows for exactly this reason. Do not change the execution
+policy to make the first form work, and do not tell anyone else to: that is a
+machine-wide security change made to satisfy a probe.
+
+Read the result this way. If either form prints a version, the CLI is available
+to you, and you use whichever form ran for every `drydock` command named below.
+If both fail because the command was not found, it is not installed. If both
+fail because something refused to run them, it is installed and blocked — which
+you cannot use either, but say *blocked* rather than *absent* in your summary,
+because the two send the next reader somewhere different. Where this file later
+says a command is "on your PATH", it means available in the first sense: a form
+of it that runs.
+
+In both failing cases the manual posture applies: implement, commit, post your
 summary, and stop at the review gate. With no `DOCK.md` at your root, your brief
 is the issue itself plus whatever kicked off your session. Every rule in this
-file still holds — only the tooling that would have carried it out is missing.
+file still holds either way — tooling changes what would carry a rule out, never
+whether it binds.
+
+The general form, worth carrying past this one command: **an instruction that
+names a probe must not also predict the probe's result.** A predicted result is
+not re-tested, so a wrong prediction and a false negative confirm each other and
+the pair survives every reading of the file. Say how to find out; never say what
+will be found.
 
 ## The invariant
 
@@ -207,5 +249,6 @@ The site is a static Astro build; everything lives under `web/`.
   `docs/adr/`. Read them before changing structure.
 
 The Drydock CLI is a tool, not a dependency of this project. Its source is not
-in this repository, and — as noted at the top — whether it is on your PATH is
-something you check with `drydock --version` rather than assume.
+in this repository, and — as noted at the top — whether it is available to you
+is something you determine by running both probe forms, never something you
+assume and never something this file can tell you.
