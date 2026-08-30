@@ -3648,7 +3648,7 @@
     "successorIds": [],
     "siblingIds": [],
     "summary": "A 3B parameter model that Hugging Face created rather than hosted, published as fully open weights under Apache 2.0 with dual-mode reasoning. The recorded context window is the 65,536 tokens the card states its shipped configuration is set to; the card separately claims 128k tokens via extrapolation, and both figures are recorded on the model card source.",
-    "intendedUse": "General text generation and reasoning at the 3B scale. No language support is recorded for this model: the card names six languages in prose while its own front-matter list has eight and is not the same set, and that contradiction is recorded on the model card source rather than settled here.",
+    "intendedUse": "General text generation and reasoning at the 3B scale. No language fact is recorded for this release because the release schema has no field for natural-language coverage. The card is not in conflict on the point: it names six natively supported languages and three more it trained on with fewer tokens, and its front-matter list carries every one of those but German. That single omission is recorded on the model card source.",
     "sourceIds": [
       "hugging-face-smollm3-model-card",
       "hugging-face-smollm3-blog",
