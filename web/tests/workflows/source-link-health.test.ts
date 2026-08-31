@@ -233,7 +233,10 @@ describe('source-link-health.yml cannot file an issue from a pull request', () =
   });
 
   it('opens the issue only when there is something a person can act on', () => {
-    expect(String(issueJob.if ?? '')).toContain("needs.source-link-health.outputs.actionable != '0'");
+    // `clean != 'true'` rather than a URL count: the checker exits 1 both for an
+    // actionable URL and for a source record whose URL cannot be requested at
+    // all, and only the first reaches `.actionableUrls`.
+    expect(String(issueJob.if ?? '')).toContain("needs.source-link-health.outputs.clean != 'true'");
     expect(String(issueJob.if ?? '')).toContain("needs.source-link-health.outputs.ran == 'true'");
   });
 
@@ -241,8 +244,28 @@ describe('source-link-health.yml cannot file an issue from a pull request', () =
     // `ran == 'true'` is load-bearing: a skipped check produces an empty
     // actionable count, and closing an alert because nothing was checked would
     // report a recovery that never happened.
-    expect(String(resolveJob.if ?? '')).toContain("needs.source-link-health.outputs.actionable == '0'");
+    //
+    // `clean == 'true'` is load-bearing for a second reason. Closing is the one
+    // action here that destroys information, so it answers to the checker's own
+    // exit 0 and not to `actionable == '0'`, which is a different question: a
+    // sweep whose only finding is a malformed source record reports zero
+    // actionable *URLs* while the checker is saying it found something. Gated on
+    // the count, that sweep closed the standing alert and posted an all-clear
+    // over its own finding (#632).
+    expect(String(resolveJob.if ?? '')).toContain("needs.source-link-health.outputs.clean == 'true'");
     expect(String(resolveJob.if ?? '')).toContain("needs.source-link-health.outputs.ran == 'true'");
+    expect(
+      String(resolveJob.if ?? ''),
+      'closing must not be gated on the URL count, which is zero for a malformed-record finding',
+    ).not.toContain('outputs.actionable');
+  });
+
+  it('makes the two issue jobs exact complements, so no sweep leaves the alert unanswered', () => {
+    // One question, asked once, in two directions. If these ever key on
+    // different facts, a sweep can fall into the gap between them -- opening
+    // nothing and closing nothing -- or into the overlap, doing both.
+    expect(String(issueJob.if ?? '')).toContain("outputs.clean != 'true'");
+    expect(String(resolveJob.if ?? '')).toContain("outputs.clean == 'true'");
   });
 
   it('files and closes under one title defined once, so the two cannot drift apart', () => {
@@ -387,24 +410,42 @@ interface StepOutcome {
   stepSummary: string | null;
 }
 
+/** The fields of the sweep's JSON that the step's outputs are derived from. */
+interface CheckerJson {
+  /** `.actionableUrls`: URLs found definitively broken or permanently moved. */
+  actionableUrls?: number;
+  /** `.malformedRecords`: records whose URL could not be requested at all. */
+  malformedRecords?: number;
+}
+
 /**
  * Run the `check` step's script the way the runner would, with a checker that
- * exits `checkerExit`.
+ * exits `checkerExit` after writing `json`.
+ *
+ * The exit code and the JSON are set independently on purpose. They are two
+ * different channels and the whole of #632's second defect was assuming they
+ * agree: the checker exits 1 when `actionableUrls` is 0 but a source record is
+ * malformed, and a harness that could not express that combination could not
+ * catch it.
  */
-function runCheckStep(checkerExit: number): StepOutcome {
+function runCheckStep(checkerExit: number, json: CheckerJson = {}): StepOutcome {
+  const actionableUrls = json.actionableUrls ?? 3;
+  const malformedRecords = json.malformedRecords ?? 0;
+
   const directory = mkdtempSync(join(tmpdir(), 'source-link-health-'));
   temporaryDirectories.push(directory);
 
   const stubs = `
 node() {
   printf '# link health report\\n' > "$RUNNER_TEMP/link-health.md"
-  printf '{"actionableUrls":3,"findings":[{"url":"https://example.invalid/"}]}\\n' > "$RUNNER_TEMP/link-health.json"
+  printf '{"actionableUrls":${actionableUrls},"malformedRecords":${malformedRecords}}\\n' > "$RUNNER_TEMP/link-health.json"
   return ${checkerExit}
 }
 
 jq() {
   case "$*" in
-    *actionableUrls*) printf '3\\n' ;;
+    *actionableUrls*) printf '${actionableUrls}\\n' ;;
+    *malformedRecords*) printf '${malformedRecords}\\n' ;;
     *findings*) printf '[{"url":"https://example.invalid/"}]\\n' ;;
     *) printf 'unstubbed jq filter: %s\\n' "$*" >&2 ; return 1 ;;
   esac
@@ -466,6 +507,7 @@ describe('source-link-health.yml reports an actionable finding instead of aborti
     expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
     expect(outcome.githubOutput ?? '').toContain('ran=true');
     expect(outcome.githubOutput ?? '').toContain('actionable=3');
+    expect(outcome.githubOutput ?? '').toContain('clean=false');
     expect(outcome.githubOutput ?? '').toContain('findings<<');
     // The report reaches the job summary, and the artefact step's `ran` gate is
     // satisfied, so the run that had something to say can say it.
@@ -473,11 +515,46 @@ describe('source-link-health.yml reports an actionable finding instead of aborti
   });
 
   it('writes its outputs and its summary when the checker exits 0', () => {
-    const outcome = runCheckStep(0);
+    const outcome = runCheckStep(0, { actionableUrls: 0 });
 
     expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
     expect(outcome.githubOutput ?? '').toContain('ran=true');
+    expect(outcome.githubOutput ?? '').toContain('clean=true');
     expect(outcome.stepSummary ?? '').toContain('link health report');
+  });
+
+  it('does not call a malformed-record finding clean, so the alert is never closed over it', () => {
+    // The checker exits 1 for two reasons, and this is the second: a source
+    // record whose URL cannot be turned into a request at all. `summarise()`
+    // never counts those into `actionableUrls`, so this sweep reports zero
+    // actionable URLs while the checker is saying it found something.
+    //
+    // Gated on that count, `resolve-issue` ran and *closed* the standing
+    // maintenance issue, posting an all-clear over a finding the checker had
+    // just raised -- strictly worse than the abort this fix replaced, which at
+    // least said nothing. `clean` is derived from the exit code precisely so
+    // this combination cannot read as a clean sweep.
+    const outcome = runCheckStep(1, { actionableUrls: 0, malformedRecords: 1 });
+
+    expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+    expect(outcome.githubOutput ?? '').toContain('ran=true');
+    expect(outcome.githubOutput ?? '').toContain('actionable=0');
+    expect(outcome.githubOutput ?? '').toContain('malformed=1');
+    expect(
+      outcome.githubOutput ?? '',
+      'a sweep the checker flagged must never report clean=true, or resolve-issue closes the alert',
+    ).toContain('clean=false');
+  });
+
+  it('keeps the two counts apart, so a whole-dataset defect cannot redden a pull request', () => {
+    // `actionable` is a URL count and stays one. Malformed records are collected
+    // by `extractTargets` over every record, before the baseline narrowing a
+    // pull-request run depends on, so summing them into `actionable` would fail
+    // every pull request for one pre-existing bad record it did not introduce.
+    const outcome = runCheckStep(1, { actionableUrls: 0, malformedRecords: 4 });
+
+    expect(outcome.githubOutput ?? '').toContain('actionable=0');
+    expect(outcome.githubOutput ?? '').toContain('malformed=4');
   });
 
   it.each([[2], [3]])('fails loudly and reports nothing when the checker exits %i', (checkerExit) => {
@@ -490,7 +567,22 @@ describe('source-link-health.yml reports an actionable finding instead of aborti
     expect(outcome.status).not.toBe(0);
     expect(outcome.stdout).toContain('::error::The link checker could not run');
     expect(outcome.githubOutput ?? '', 'a checker that could not run must set no outputs').not.toContain('ran=true');
+    expect(
+      outcome.githubOutput ?? '',
+      'a checker that could not run must never report a clean sweep',
+    ).not.toContain('clean=true');
     expect(outcome.stepSummary).toBeNull();
+  });
+
+  it('exposes clean and malformed as job outputs, so the issue jobs can read them', () => {
+    // A guard `if:` reading an output the job never declares is silently empty,
+    // which for `clean != 'true'` would open the issue on every sweep and for
+    // `clean == 'true'` would close it on none.
+    const outputs = mapping(checkJob.outputs, 'jobs.source-link-health.outputs');
+
+    expect(String(outputs.clean)).toContain('steps.check.outputs.clean');
+    expect(String(outputs.malformed)).toContain('steps.check.outputs.malformed');
+    expect(String(outputs.ran)).toContain('steps.check.outputs.ran');
   });
 
   it('leaves the issue jobs gated on the sweep succeeding, with no always()', () => {
@@ -521,6 +613,14 @@ describe('source-link-health.yml reports an actionable finding instead of aborti
     expect(reportStep, 'the pull-request report step must exist').toBeDefined();
     expect(String(reportStep?.if)).toContain("github.event_name == 'pull_request'");
     expect(String(reportStep?.run)).toContain('exit 1');
+    // Keyed on the URL count and deliberately not on `malformed` or `clean`:
+    // malformed records are whole-dataset, so either of those would redden a
+    // pull request for a defect it did not introduce. The scheduled sweep's
+    // maintenance issue is where those are reported.
+    expect(
+      String(reportStep?.if),
+      'a pull request must not go red for a whole-dataset finding it did not introduce',
+    ).not.toContain('malformed');
     expect(stepList.indexOf(reportStep as YamlMapping)).toBeGreaterThan(stepList.indexOf(checkStep as YamlMapping));
   });
 });
