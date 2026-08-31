@@ -15,6 +15,8 @@ import {
   RIVAL_FAMILY_NAME,
   RIVAL_ORGANIZATION_NAME,
   SECOND_FIXTURE_SOURCE,
+  SHORTENED_ORGANIZATION_ALIAS,
+  SHORTENED_ORGANIZATION_NAME,
   TWO_SOURCE_VARIANT,
   positioningFixtureDataset,
   positioningFixtureRecords,
@@ -242,6 +244,59 @@ describe('guards that fail the build', () => {
       .toThrow(/names another creator's family/);
   });
 
+  /**
+   * The gap issue #648 was filed on. A creator's colloquial short form — "Google"
+   * for "Google DeepMind" — is registered as neither `name` nor `shortName`, so a
+   * guard matching only those two forms lets it through. The positive control
+   * that predates the fix is the full registered name below: the guard caught
+   * that all along. The two tests after it inject the short form alone, at both
+   * prose sites the issue names — `editorial.summary` and a record-level `note` —
+   * and pass only because the widened guard now reads the organization's
+   * registered `aliases`. Weaken the guard by dropping the alias branch in
+   * `assertStaysWithinCreator` and both go red while the control above stays
+   * green, which is what distinguishes the fix from the pre-existing behaviour.
+   */
+  it('catches the full registered name of the shortened-form creator (control that predates the fix)', () => {
+    const [entry] = positioningFixtureRecords[0].variants;
+    const records = withFirstRecord({
+      variants: [{
+        ...entry,
+        editorial: {
+          ...entry.editorial,
+          summary: `This name is framed the way ${SHORTENED_ORGANIZATION_NAME} frames its own comparable name.`,
+        },
+      }],
+    });
+
+    expect(() => buildVariantPositioningIndex(positioningFixtureDataset, records))
+      .toThrow(new RegExp(`names creator "${SHORTENED_ORGANIZATION_NAME}"`));
+  });
+
+  it('refuses an editorial summary that names a creator by its shortened form alone', () => {
+    const [entry] = positioningFixtureRecords[0].variants;
+    const records = withFirstRecord({
+      variants: [{
+        ...entry,
+        editorial: {
+          ...entry.editorial,
+          summary: `This name sits roughly where ${SHORTENED_ORGANIZATION_ALIAS} places its own comparable name.`,
+        },
+      }],
+    });
+
+    expect(() => buildVariantPositioningIndex(positioningFixtureDataset, records))
+      .toThrow(new RegExp(`names creator "${SHORTENED_ORGANIZATION_ALIAS}"`));
+  });
+
+  it('refuses a record-level note that names a creator by its shortened form alone', () => {
+    const records = withFirstRecord({
+      note: `These names are read much as ${SHORTENED_ORGANIZATION_ALIAS} reads its own.`,
+    });
+
+    expect(() => buildVariantPositioningIndex(positioningFixtureDataset, records))
+      .toThrow(new RegExp(`names creator "${SHORTENED_ORGANIZATION_ALIAS}"`));
+  });
+
   it('allows a sibling generation from the same creator, which is the point of generation scoping', () => {
     const records = withFirstRecord({
       note: 'These names are scoped to this family; Tier Four reuses one of them for different work.',
@@ -253,6 +308,17 @@ describe('guards that fail the build', () => {
   it('does not mistake a creator name inside a longer word for a mention of that creator', () => {
     const records = withFirstRecord({
       note: 'These names describe the work each one is aimed at, with no rivalry implied by the ordering.',
+    });
+
+    expect(() => buildVariantPositioningIndex(positioningFixtureDataset, records)).not.toThrow();
+  });
+
+  it('does not mistake a registered short form buried in a longer word for a mention', () => {
+    // The alias branch matches on word boundaries, like the name branch, so a
+    // short form registered as "Vega" is a mention of that creator only as a
+    // whole word — "Vegas" and "vegan" carry it as a fragment and must not trip.
+    const records = withFirstRecord({
+      note: `These names read the same in ${SHORTENED_ORGANIZATION_ALIAS}s and to a vegan audience alike.`,
     });
 
     expect(() => buildVariantPositioningIndex(positioningFixtureDataset, records)).not.toThrow();
