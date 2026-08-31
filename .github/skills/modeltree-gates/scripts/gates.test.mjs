@@ -2038,6 +2038,19 @@ describe('gate-evidence', () => {
   // nothing to derive a policy from, so it exits 2 rather than falling through to
   // the declared (looser) value. Built inline rather than through `gateBundle`,
   // which would supply a default creator and hide the case under test.
+  //
+  // Exit 2 on its own did not establish that (abdeslam-menacere/ModelTree#616).
+  // Delete the no-creator guard and `bundle.creator` is `undefined`, which the
+  // reviewed set does not hold; the derivation check immediately below it then
+  // calls the bundle long-tail, finds it declared "pilot", and refuses the same
+  // fixture at the same exit code under a different message. So the bare
+  // assertion this test used to make stayed green against a gate that no longer
+  // contained the rule the test is named after -- it read the right code off the
+  // wrong behaviour, exactly as the `--repo` test below records for itself. The
+  // two assertions added here are what make it discriminate, and both halves are
+  // load-bearing: pinning only this refusal still passes if some other guard
+  // happens to emit matching text, and refusing only the mismatch still passes on
+  // any third exit-2 path.
   test('a bundle with no creator cannot be classified and exits 2', () => {
     const bundle = { runId: 'r1', policy: 'pilot', claims: [claim()] };
     assert.ok(!Object.hasOwn(bundle, 'creator'), 'the fixture must not carry a creator');
@@ -2047,6 +2060,16 @@ describe('gate-evidence', () => {
       writeFileSync(path, JSON.stringify(bundle, null, 2));
       const result = run(GATE_EVIDENCE, ['--claims', path, '--today', TODAY, '--json']);
       assert.equal(result.code, 2, `an unclassifiable creator must exit 2: ${result.stdout}`);
+      assert.match(
+        result.stdout,
+        /gate-evidence: bundle names no creator to classify/,
+        `the refusal must name the missing creator, not merely exit 2:\n${result.stdout}`,
+      );
+      assert.ok(
+        !result.stdout.includes('but the bundle declares'),
+        'a bundle naming no creator must be refused as unclassifiable, never as a derivation '
+        + `mismatch against the string "undefined":\n${result.stdout}`,
+      );
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
