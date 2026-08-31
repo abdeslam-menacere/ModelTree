@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
+import { scopeStepRunner } from './scope-step';
 
 // Workflow-shape assertions for `.github/workflows/source-link-health.yml`,
 // following the pattern the three files beside this one already use: parse the
@@ -622,5 +623,151 @@ describe('source-link-health.yml reports an actionable finding instead of aborti
       'a pull request must not go red for a whole-dataset finding it did not introduce',
     ).not.toContain('malformed');
     expect(stepList.indexOf(reportStep as YamlMapping)).toBeGreaterThan(stepList.indexOf(checkStep as YamlMapping));
+  });
+});
+
+// #691, the same defect #609 fixed in web-ci.yml, in both of this workflow's
+// scope steps. `grep` exits 0 on a match, 1 on no match and 2 on an error, and
+// both steps used to truth-test it -- one with `if`, one with `if !` -- which
+// collapses 1 and 2 into a single branch. A matcher that could not run therefore
+// read as "nothing matched" and the job skipped, reporting a conclusion over a
+// change nothing had read.
+//
+// These assertions run the committed scripts through a real bash rather than
+// reading their text, because the defect lives in what the shell *does* with an
+// exit code and no substring check can see that. Statuses 0 and 1 come from the
+// real `grep` against the real committed matcher; 2 and 127 are injected,
+// because the committed patterns are well-formed and a here-string cannot fail
+// to be read. That a malformed ERE really does exit 2 while a clean miss exits 1
+// is measured in `web-ci.test.ts`, which shares this suite; it is a fact about
+// `grep` rather than about this workflow.
+describe('source-link-health.yml tests-job scope tells a broken matcher from a clean miss', () => {
+  // `mapping` throws when no step carries the id, so a rename reddens this file
+  // by name rather than leaving the assertions to exercise an empty script.
+  const step = steps(testsJob, 'jobs.source-link-health-tests').find((candidate) => candidate.id === 'scope');
+  const script = String(mapping(step ?? null, 'jobs.source-link-health-tests step "scope"').run);
+
+  const runner = scopeStepRunner(script, {
+    GITHUB_EVENT_NAME: 'pull_request',
+    PR_BASE_SHA: 'a1b2c3d',
+    PR_HEAD_SHA: 'e4f5a6b',
+  });
+
+  afterAll(() => {
+    runner.cleanup();
+  });
+
+  it('extracts the step under test, so a mis-read cannot pass as a green run', () => {
+    expect(step, 'jobs.source-link-health-tests must have a step with id `scope`').toBeDefined();
+    expect(script).toContain('grep -Eq');
+    expect(script).toContain('GITHUB_OUTPUT');
+  });
+
+  it('runs the tests when the matcher finds a checker input', () => {
+    const outcome = runner.run('web/src/data/sources.json\n');
+
+    expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+    expect(outcome.githubOutput ?? '').toContain('run=true');
+    expect(outcome.githubOutput ?? '').not.toContain('run=false');
+  });
+
+  // The over-broad direction, which the fix must not reach for. A step that
+  // always runs satisfies "never skip on an error" while destroying the scope
+  // filter this job exists to apply. `not.toContain` is the half that catches it.
+  it('still skips when the matcher runs and no checker input changed', () => {
+    const outcome = runner.run('docs/product/BACKLOG.md\n');
+
+    expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+    expect(outcome.githubOutput ?? '').toContain('run=false');
+    expect(outcome.githubOutput ?? '').not.toContain('run=true');
+  });
+
+  // The regression this block exists for. Reverting the fix leaves the two cases
+  // above green and turns these red. 2 is grep's own "an error occurred"; 127 is
+  // the shell's "command not found", which is how a `grep` missing from the
+  // runner image would present.
+  it.each([[2], [127]])('runs the tests rather than skipping when the matcher exits %i', (grepExit) => {
+    const outcome = runner.run('docs/product/BACKLOG.md\n', grepExit);
+
+    expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+    expect(outcome.githubOutput ?? '').toContain('run=true');
+    expect(outcome.githubOutput ?? '').not.toContain('run=false');
+  });
+});
+
+// The fifth site named in #691, and the one a find-and-replace keyed on the
+// positive form leaves standing: this matcher is negated, so `if ! grep` reads
+// as a different shape while collapsing the same statuses. `!` inverts all
+// three at once -- a match is 0 and falls through to the check, no match is 1
+// and skips, an error is 2 and skips as well -- and only the middle one is a
+// statement about the changed-file list.
+//
+// Routing the error to the checking path is cheap here, which is what makes it a
+// different judgement from the diff guard immediately above it rather than a
+// reversal of that guard. A failed diff points at an unusable base commit, which
+// empties the baseline and turns every URL in the dataset into a "new" one; a
+// failed match leaves both `$changed` and the base revision intact, so the
+// baseline still narrows the run to the URLs the pull request introduced.
+describe('source-link-health.yml link-check scope tells a broken matcher from a clean miss', () => {
+  const step = steps(checkJob, 'jobs.source-link-health').find((candidate) => candidate.id === 'scope');
+  const script = String(mapping(step ?? null, 'jobs.source-link-health step "scope"').run);
+
+  const runner = scopeStepRunner(script, {
+    GITHUB_EVENT_NAME: 'pull_request',
+    PR_BASE_SHA: 'a1b2c3d',
+    PR_HEAD_SHA: 'e4f5a6b',
+  });
+
+  afterAll(() => {
+    runner.cleanup();
+  });
+
+  it('extracts the negated step under test, so a mis-read cannot pass as a green run', () => {
+    expect(step, 'jobs.source-link-health must have a step with id `scope`').toBeDefined();
+    // `-Fxq`, not `-Eq`. Asserted so this block cannot drift onto the positive
+    // matcher in the other job and quietly test it twice.
+    expect(script).toContain('grep -Fxq');
+    expect(script).toContain('GITHUB_OUTPUT');
+  });
+
+  it('checks the new URLs when the source records are in the changed list', () => {
+    const outcome = runner.run('web/src/data/sources.json\n');
+
+    expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+    expect(outcome.githubOutput ?? '').toContain('run=true');
+    expect(outcome.githubOutput ?? '').not.toContain('run=false');
+    // The baseline is what keeps a pull-request run from becoming a full sweep.
+    expect(outcome.githubOutput ?? '').toContain('baseline=');
+  });
+
+  // The over-broad direction. This job reaches third-party hosts, so a scope
+  // step that always ran would be worse than the bug it was fixing.
+  it('still skips when the matcher runs and no source record changed', () => {
+    const outcome = runner.run('docs/product/BACKLOG.md\n');
+
+    expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+    expect(outcome.githubOutput ?? '').toContain('run=false');
+    expect(outcome.githubOutput ?? '').not.toContain('run=true');
+  });
+
+  it('matches the whole line, so a neighbouring path does not stand in for it', () => {
+    // `-Fx` is a fixed whole-line match. This is the property that makes the
+    // real `grep` the right thing to run here rather than a stub.
+    const outcome = runner.run('web/src/data/sources.json.bak\n');
+
+    expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+    expect(outcome.githubOutput ?? '').toContain('run=false');
+  });
+
+  // The regression this block exists for, and the one the issue predicts will be
+  // missed. Reverting the negated form leaves every case above green and turns
+  // these red.
+  it.each([[2], [127]])('checks rather than skipping when the negated matcher exits %i', (grepExit) => {
+    const outcome = runner.run('docs/product/BACKLOG.md\n', grepExit);
+
+    expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+    expect(outcome.githubOutput ?? '').toContain('run=true');
+    expect(outcome.githubOutput ?? '').not.toContain('run=false');
+    expect(outcome.stdout).toContain(`grep exited ${grepExit}`);
   });
 });

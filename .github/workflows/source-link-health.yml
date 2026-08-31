@@ -166,13 +166,36 @@ jobs:
           # A here-string rather than a pipe: `grep -q` exits on its first match,
           # which can leave the left of a pipe killed by SIGPIPE and the whole
           # pipeline non-zero under `set -o pipefail`.
-          if grep -Eq '^(\.github/scripts/source-link-health/|\.github/workflows/source-link-health\.yml$|web/src/data/sources\.json$)' <<< "$changed"; then
-            echo "Checker inputs changed; running the tests."
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "No checker input changed."
-            echo "run=false" >> "$GITHUB_OUTPUT"
-          fi
+          #
+          # `grep` exits 0 on a match, 1 on no match and 2 on an error, so
+          # truth-testing it with `if` collapses the last two: a matcher that
+          # never ran reads exactly like one that ran and matched nothing, the
+          # steps below are all gated on this output, and the job reports green
+          # over a change nothing read -- from the failure of the checker itself.
+          # The diff guard above already refuses that trade and runs the tests
+          # when it cannot compute an answer; this is the same decision applied
+          # to the other way this step can fail to produce one. The three
+          # statuses are therefore separated, and anything that is not a clean
+          # match-or-no-match runs the tests (#691, after #609).
+          set +e
+          grep -Eq '^(\.github/scripts/source-link-health/|\.github/workflows/source-link-health\.yml$|web/src/data/sources\.json$)' <<< "$changed"
+          status=$?
+          set -e
+
+          case "$status" in
+            0)
+              echo "Checker inputs changed; running the tests."
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              ;;
+            1)
+              echo "No checker input changed."
+              echo "run=false" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Could not match the changed-file list (grep exited $status); running the tests."
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
 
       - name: Set up Node.js
         if: steps.scope.outputs.run == 'true'
@@ -262,11 +285,44 @@ jobs:
             exit 0
           fi
 
-          if ! grep -Fxq 'web/src/data/sources.json' <<< "$changed"; then
-            echo "No source record changed; there is no new URL to check."
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          # The same status collapse as the scope step in the tests job above,
+          # in the negated form -- which is why a reader scanning for `if grep`
+          # walks straight past it, and why a find-and-replace keyed on the
+          # positive form would leave it in place. `!` inverts all three statuses
+          # at once: a match is 0, so `!` is false and the run falls through and
+          # checks; no match is 1, so `!` is true and the run skips; an error is
+          # 2, so `!` is true and the run skips as well. Only the middle one is a
+          # statement about the changed-file list. A list that could not be
+          # matched is not "no source record changed", so it goes to the checking
+          # path instead (#691, after #609).
+          #
+          # That is cheap here, which is what makes it a different judgement from
+          # the diff guard immediately above rather than a reversal of it. A
+          # failed diff points at a base commit that is unusable, which empties
+          # the baseline below and turns every URL in the dataset into a "new"
+          # one -- a full sweep aimed at third parties, on a pull request that
+          # may touch no source at all. A failed *match* leaves both `$changed`
+          # and the base revision intact, so the baseline still narrows this run
+          # to the URLs the pull request introduced; if `sources.json` is in fact
+          # untouched that set is empty and the run asks nothing of anyone.
+          set +e
+          grep -Fxq 'web/src/data/sources.json' <<< "$changed"
+          status=$?
+          set -e
+
+          case "$status" in
+            0)
+              # Matched. Fall through to the baseline and check the new URLs.
+              ;;
+            1)
+              echo "No source record changed; there is no new URL to check."
+              echo "run=false" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+            *)
+              echo "Could not match the changed-file list (grep exited $status); checking as though the source records changed."
+              ;;
+          esac
 
           # The base revision of the dataset, so the checker can tell a URL this
           # pull request introduced from one that was already there. A pull

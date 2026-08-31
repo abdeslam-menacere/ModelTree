@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
+import { scopeStepRunner } from './scope-step';
 
 type YamlValue = string | number | boolean | null | YamlValue[] | YamlMapping;
 
@@ -344,5 +345,86 @@ describe('the measured overlap between the two dataset checks is recorded', () =
     expect(workflowDocs).toContain('## What gates a dataset change');
     expect(workflowDocs).toContain('`RANKING_WORDS`');
     expect(workflowDocs).toContain('`FORBIDDEN_HOSTS`');
+  });
+});
+
+// #691, the same defect #609 fixed in web-ci.yml. `grep` exits 0 on a match, 1
+// on no match and 2 on an error, and this step used to truth-test it with `if`,
+// which collapses 1 and 2 into one branch. A matcher that could not run
+// therefore reported "nothing matched": every step below it is gated on
+// `steps.scope.outputs.run == 'true'`, so the gates all skipped and `skills-ci`
+// -- a required check on main -- reported green over a change no gate ever read.
+// The diff guard above it already refuses that trade and runs the gates instead.
+//
+// These assertions run the committed script through a real bash rather than
+// reading its text, because the defect lives in what the shell *does* with an
+// exit code and no substring check can see that. Statuses 0 and 1 come from the
+// real `grep` against the real committed ERE, so the wiring is exercised end to
+// end; 2 and 127 are injected, because the committed ERE is well-formed and a
+// here-string cannot fail to be read. That a malformed ERE really does exit 2
+// while a clean miss exits 1 is measured in `web-ci.test.ts`, which shares this
+// suite; it is a fact about `grep` rather than about this workflow.
+describe('skills-ci.yml scope detection tells a broken matcher from a clean miss', () => {
+  // Extracted at module scope through `mapping`, which throws when no step
+  // carries the id. A rename cannot leave these tests quietly exercising an
+  // empty script.
+  const runner = scopeStepRunner(scopeScript, {
+    GITHUB_EVENT_NAME: 'pull_request',
+    BASE_SHA: 'a1b2c3d',
+    HEAD_SHA: 'e4f5a6b',
+  });
+
+  afterAll(() => {
+    runner.cleanup();
+  });
+
+  it('extracts the step under test, so a mis-read cannot pass as a green run', () => {
+    // Guards every assertion below: an empty or wrong script would otherwise run
+    // clean and prove nothing at all.
+    expect(scopeStep, 'jobs.skills-ci must have a step with id `scope`').toBeDefined();
+    expect(scopeScript).toContain('grep -Eq');
+    expect(scopeScript).toContain('GITHUB_OUTPUT');
+  });
+
+  it('runs the gates when the matcher finds a gate input', () => {
+    const outcome = runner.run('.github/skills/modeltree-gates/scripts/gate-dataset.mjs\n');
+
+    expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+    expect(outcome.githubOutput ?? '').toContain('run=true');
+    expect(outcome.githubOutput ?? '').not.toContain('run=false');
+  });
+
+  // The over-broad direction, which the fix must not reach for. A step that
+  // always builds satisfies "never skip on an error" while destroying the scope
+  // filter and doubling what every unrelated pull request costs. `not.toContain`
+  // is the half that catches it.
+  it('still skips when the matcher runs and no gate input changed', () => {
+    const outcome = runner.run('docs/product/BACKLOG.md\n');
+
+    expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+    expect(outcome.githubOutput ?? '').toContain('run=false');
+    expect(outcome.githubOutput ?? '').not.toContain('run=true');
+  });
+
+  // The regression this block exists for. Reverting the fix leaves the two cases
+  // above green and turns these red, which is why the status is driven
+  // separately from the changed-file list: a test that only exercised match and
+  // no-match could not detect this coming back.
+  //
+  // 2 is grep's own "an error occurred"; 127 is the shell's "command not found",
+  // which is how a `grep` missing from the runner image would present. Neither
+  // is a statement about the changed-file list, so neither may decide to skip.
+  it.each([[2], [127]])('runs the gates rather than skipping when the matcher exits %i', (grepExit) => {
+    const outcome = runner.run('docs/product/BACKLOG.md\n', grepExit);
+
+    expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+    expect(outcome.githubOutput ?? '').toContain('run=true');
+    expect(outcome.githubOutput ?? '').not.toContain('run=false');
+  });
+
+  it('names the status it could not interpret, so a runner log says what happened', () => {
+    const outcome = runner.run('docs/product/BACKLOG.md\n', 2);
+
+    expect(outcome.stdout).toContain('grep exited 2');
   });
 });

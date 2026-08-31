@@ -112,13 +112,37 @@ jobs:
           # A here-string rather than a pipe: `grep -q` exits on its first match,
           # which can leave the left-hand side of a pipe killed by SIGPIPE and
           # the whole pipeline non-zero under `set -o pipefail`.
-          if grep -Eq '^(web/|\.github/workflows/web-e2e\.yml$)' <<< "$changed"; then
-            echo "Web files changed; running the browser suite."
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "No web files changed; nothing to exercise."
-            echo "run=false" >> "$GITHUB_OUTPUT"
-          fi
+          #
+          # `grep` exits 0 on a match, 1 on no match and 2 on an error, so
+          # truth-testing it with `if` collapses the last two: a matcher that
+          # never ran reads exactly like one that ran and matched nothing. Every
+          # step below is gated on this output, so that reads as run=false, the
+          # browser suite is skipped, and `web-e2e` -- a required check --
+          # reports green over a commit it never exercised, from the failure of
+          # the checker itself. The diff guard above already refuses that trade
+          # and runs when it cannot compute an answer; this is the same decision
+          # applied to the other way this step can fail to produce one. The three
+          # statuses are therefore separated, and anything that is not a clean
+          # match-or-no-match runs the suite (#691, after #609).
+          set +e
+          grep -Eq '^(web/|\.github/workflows/web-e2e\.yml$)' <<< "$changed"
+          status=$?
+          set -e
+
+          case "$status" in
+            0)
+              echo "Web files changed; running the browser suite."
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              ;;
+            1)
+              echo "No web files changed; nothing to exercise."
+              echo "run=false" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Could not match the changed-file list (grep exited $status); running the browser suite."
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
 
       - name: Set up Node.js
         if: steps.scope.outputs.run == 'true'
