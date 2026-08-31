@@ -693,35 +693,60 @@ test('a control cached for one directory never explains a redirect in another', 
 test('a control cached for one host never explains a redirect on another', async () => {
   // The same recorded path on two hosts, so both fabricate the same control
   // *path* and only the host tells the two measurements apart.
-  const { options, calls } = offline(
-    (url) => {
-      const parsed = new URL(url);
-      const path = parsed.pathname;
+  //
+  // A host-blind key can only be caught once one host's control is on record and
+  // a second host asks: two probes that both miss the cache each answer from
+  // their own measurement and agree whatever the key looks like. So this test
+  // needs the recording to precede the second question, and it establishes that
+  // ordering itself rather than borrowing it. The hosts are swept one after the
+  // other over a cache this test owns and hands to both, so the ordering is the
+  // `await` between the two calls -- a single target per sweep leaves a worker
+  // pool nothing to reorder, and `DEFAULTS.concurrency`, a dropped option, or a
+  // `Promise.all` rewrite cannot reach it.
+  //
+  // That is not an artificial arrangement: workers pick up a new host as queues
+  // drain, so measuring a host against a cache some earlier host already wrote
+  // to is the ordinary case in a real sweep, not the exception.
+  //
+  // An earlier revision instead pinned `{ concurrency: 1 }` and described the
+  // ordering as a property of the fixture. It was a property of the scheduler:
+  // at the default concurrency the two hosts raced, both probes missed, and
+  // deleting those three tokens left the test passing over a broken key with
+  // nothing to say so (#700).
+  const { options, calls } = offline((url) => {
+    const parsed = new URL(url);
+    const path = parsed.pathname;
 
-      if (parsed.host === 'blind.test') {
-        if (path.length > 1 && path.endsWith('/')) return reply(308, { location: path.slice(0, -1) });
-        return reply(path === '/releases' ? 200 : 404);
-      }
-
-      if (path === '/releases/') return reply(308, { location: '/releases' });
+    if (parsed.host === 'blind.test') {
+      if (path.length > 1 && path.endsWith('/')) return reply(308, { location: path.slice(0, -1) });
       return reply(path === '/releases' ? 200 : 404);
-    },
-    // One worker, so the blind host is measured first and the ordering this test
-    // depends on is a property of the fixture rather than of the scheduler.
-    { concurrency: 1 },
+    }
+
+    if (path === '/releases/') return reply(308, { location: '/releases' });
+    return reply(path === '/releases' ? 200 : 404);
+  });
+
+  const normalisationCache = new Map();
+  const [blind] = await checkAll([target('https://blind.test/releases/')], { ...options, normalisationCache });
+
+  // The precondition, asserted rather than assumed. With nothing recorded, the
+  // second sweep has nothing to inherit and would pass over any key at all --
+  // the vacuum this test exists to avoid. It asks whether a measurement was
+  // recorded, never how it was keyed, so the cache stays free to change shape.
+  assert.ok(normalisationCache.size > 0, 'the first host must be on record before the second host asks');
+  assert.ok(
+    calls.some((call) => call.url === `https://blind.test/${CONTROL_PATH}/`),
+    'what that record is made of, at the wire',
   );
 
-  const results = await checkAll(
-    [target('https://blind.test/releases/'), target('https://routed.test/releases/')],
-    options,
-  );
+  const [routed] = await checkAll([target('https://routed.test/releases/')], { ...options, normalisationCache });
 
   assert.deepEqual(
-    results.map((result) => result.state),
+    [blind.state, routed.state],
     [NORMALISED, REDIRECTED],
     'one host being blind says nothing about another host',
   );
-  assert.equal(results[1].normalisation, null);
+  assert.equal(routed.normalisation, null);
   assert.ok(
     calls.some((call) => call.url === `https://routed.test/${CONTROL_PATH}/`),
     'the second host must be asked about itself, not answered from the first',
