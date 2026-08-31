@@ -1,0 +1,51 @@
+{
+  "catalog": {
+    "id": "origins-ai-singapore",
+    "kind": "approved-origins",
+    "creator_id": "ai-singapore",
+    "creator_name": "AI Singapore",
+    "applies_to": "AI Singapore as the creator of the SEA-LION model families it trains and announces, published under the aisingapore account."
+  },
+  "notes": [
+    "Human origin approval only. It records where AI Singapore publishes primary release information; it adds no creator, family, release, product or deployment to the dataset, and it does not make AI Singapore a pilot creator.",
+    "github.com and huggingface.co are already-trusted generic hosts; the entries below bound link-following to AI Singapore's own aisingapore accounts on them, which is where its SEA-LION release information is published, rather than approving any new host."
+  ],
+  "source_catalog": [
+    {
+      "id": "aisingapore-sealion-repo",
+      "owner": "AI Singapore",
+      "url": "https://github.com/aisingapore/sealion",
+      "kind": "repository",
+      "allowed_paths": ["/aisingapore/"],
+      "allowed_content_types": ["repository", "model-doc"],
+      "trust": "primary",
+      "trust_notes": "The SEA-LION repository under AI Singapore's own aisingapore GitHub account; authoritative for the SEA-LION version documentation and the release months it states. github.com is an already-trusted generic host; this bounds it to the aisingapore account.",
+      "verified_at": "2026-08-30",
+      "verification": "Fetched 2026-08-30 (raw): https://raw.githubusercontent.com/aisingapore/sealion/main/models/sea-lion-v3/sea-lion-v3.md returned HTTP 200 stating 'SEA-LION version 3, released in Dec 2024' and 'Llama-SEA-LION-v3-8B, based on Llama 3.1 8B, now provides a larger context length of 128K'. The model card records 'Developed by: Products Pillar, AI Singapore' and 'Funded by: National Research Foundation, Singapore'."
+    }
+  ],
+  "deferred_origins": [
+    {
+      "origin": "https://huggingface.co/aisingapore",
+      "decision": "already-trusted generic host, not re-approved here",
+      "reason": "AI Singapore's SEA-LION model cards are published under the aisingapore Hugging Face account. huggingface.co is already a trusted origin through existing dataset sources, so it is noted rather than re-approved."
+    },
+    {
+      "origin": "https://aisingapore.org",
+      "decision": "not approved",
+      "reason": "AI Singapore's corporate site was not fetched or checked in this batch, so nothing about it could be verified. The SEA-LION release facts this batch relied on come from the aisingapore GitHub repository above. Approving aisingapore.org needs a fetch nobody performed here."
+    }
+  ],
+  "ambiguities": [
+    {
+      "topic": "SEA-LION v3 release date is stated to month precision",
+      "note": "The SEA-LION v3 documentation states 'released in Dec 2024' with no day.",
+      "guidance": "Record the release date as 2024-12 with month datePrecision. Do not synthesise a day the source does not give."
+    },
+    {
+      "topic": "Record the base Llama-SEA-LION-v3-8B, not the -IT variant",
+      "note": "The instruction-tuned -IT variant's card states a later checkpoint that would not match the Dec 2024 date for the base model.",
+      "guidance": "Record the base Llama-SEA-LION-v3-8B against Dec 2024. A date belonging to the base is not evidence about a later fine-tune."
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "catalog": {
+    "id": "origins-liquid-ai",
+    "kind": "approved-origins",
+    "creator_id": "liquid-ai",
+    "creator_name": "Liquid AI",
+    "applies_to": "Liquid AI as the creator of the LFM (Liquid Foundation Models) families it trains and announces."
+  },
+  "notes": [
+    "Human origin approval only. It records where Liquid AI publishes primary release information; it adds no creator, family, release, product or deployment to the dataset, and it does not make Liquid AI a pilot creator.",
+    "huggingface.co is an already-trusted generic host reached at https://huggingface.co/LiquidAI for the LFM2 model cards; it is not re-approved here."
+  ],
+  "source_catalog": [
+    {
+      "id": "liquid-blog",
+      "owner": "Liquid AI",
+      "url": "https://www.liquid.ai/blog",
+      "kind": "official-announcement",
+      "allowed_paths": ["/blog"],
+      "allowed_content_types": ["announcement", "research-post"],
+      "trust": "primary",
+      "trust_notes": "Liquid AI's official blog; authoritative for its model release announcements and the dates they carry. Bounded to /blog, the section checked.",
+      "verified_at": "2026-08-30",
+      "verification": "Fetched 2026-08-30: the LFM2 announcement at /blog/liquid-foundation-models-v2-our-second-series-of-generative-ai-models returned HTTP 200 with article:published_time content='2025-07-10' and the text 'Today, we release LFM2', on the Liquid-owned www.liquid.ai host. It describes three dense checkpoints at 0.35B, 0.7B and 1.2B parameters."
+    }
+  ],
+  "deferred_origins": [
+    {
+      "origin": "https://huggingface.co/LiquidAI",
+      "decision": "already-trusted generic host, not re-approved here",
+      "reason": "Reached 2026-08-30 for the LFM2-1.2B model card (HTTP 200). huggingface.co is already a trusted origin through existing dataset sources, so it is noted rather than re-approved."
+    }
+  ],
+  "ambiguities": [
+    {
+      "topic": "LFM2 is a hybrid transformer, not a non-transformer model",
+      "note": "The LFM2 announcement and the LFM2-1.2B card state it 'consists of 16 blocks: 10 double-gated short-range convolution blocks and 6 blocks of grouped query attention', and the card's config.json lists num_attention_heads 32.",
+      "guidance": "Record LFM2 as a hybrid architecture that includes grouped-query attention. Do not describe it as non-transformer; the source outranks any earlier framing that did."
+    },
+    {
+      "topic": "LFM Open License v1.0 is not OSI-approved",
+      "note": "LFM2 weights are published under the LFM Open License v1.0 (slug lfm1.0).",
+      "guidance": "Record the weights as downloadable and open-weight but osiApproved false, and cite the OSI licence index for the non-approval."
+    }
+  ]
+}

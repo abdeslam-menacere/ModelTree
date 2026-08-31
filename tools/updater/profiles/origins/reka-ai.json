@@ -1,0 +1,41 @@
+{
+  "catalog": {
+    "id": "origins-reka-ai",
+    "kind": "approved-origins",
+    "creator_id": "reka-ai",
+    "creator_name": "Reka AI",
+    "applies_to": "Reka AI as the creator of the Reka Flash and Reka Core model families it trains and announces."
+  },
+  "notes": [
+    "Human origin approval only. It records where Reka AI publishes primary release information; it adds no creator, family, release, product or deployment to the dataset, and it does not make Reka AI a pilot creator.",
+    "huggingface.co is an already-trusted generic host reached at https://huggingface.co/RekaAI for the Reka Flash model cards; it is not re-approved here."
+  ],
+  "source_catalog": [
+    {
+      "id": "reka-news",
+      "owner": "Reka AI",
+      "url": "https://reka.ai/news",
+      "kind": "official-announcement",
+      "allowed_paths": ["/news"],
+      "allowed_content_types": ["announcement", "research-post"],
+      "trust": "primary",
+      "trust_notes": "Reka AI's official news section; authoritative for its model release announcements. Bounded to /news, the section checked.",
+      "verified_at": "2026-08-30",
+      "verification": "Fetched 2026-08-30: /news/reka-flash-3-1-and-reka-quant returned HTTP 200 with the visible article date 'Jul 10, 2025' and the heading 'Reka Flash 3.1 and Reka Quant', on the Reka-owned reka.ai host. It states 'we are excited to open source' the 21-billion-parameter Reka Flash 3.1 under Apache 2.0."
+    }
+  ],
+  "deferred_origins": [
+    {
+      "origin": "https://huggingface.co/RekaAI",
+      "decision": "already-trusted generic host, not re-approved here",
+      "reason": "Reached 2026-08-30 for the reka-flash-3.1 model card (HTTP 200). huggingface.co is already a trusted origin through existing dataset sources, so it is noted rather than re-approved."
+    }
+  ],
+  "ambiguities": [
+    {
+      "topic": "The visible article date is authoritative, not the page front-matter",
+      "note": "The reka.ai/news article renders a human-visible date of 'Jul 10, 2025' while the underlying page front-matter carried a later 'published' value from a site rebuild.",
+      "guidance": "Take the visible article date as the release date and do not use a build/front-matter timestamp that post-dates the announcement."
+    }
+  ]
+}

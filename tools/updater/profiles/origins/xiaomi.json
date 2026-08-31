@@ -1,0 +1,46 @@
+{
+  "catalog": {
+    "id": "origins-xiaomi",
+    "kind": "approved-origins",
+    "creator_id": "xiaomi",
+    "creator_name": "Xiaomi",
+    "applies_to": "Xiaomi's LLM-Core team as the creator of the MiMo model families it trains and announces, published under the XiaomiMiMo account."
+  },
+  "notes": [
+    "Human origin approval only. It records where Xiaomi publishes primary release information; it adds no creator, family, release, product or deployment to the dataset, and it does not make Xiaomi a pilot creator.",
+    "github.com and huggingface.co are already-trusted generic hosts; the entries below bound link-following to Xiaomi's own XiaomiMiMo accounts on them, which is where its MiMo release information is published, rather than approving any new host."
+  ],
+  "source_catalog": [
+    {
+      "id": "xiaomi-mimo-repo",
+      "owner": "Xiaomi",
+      "url": "https://github.com/XiaomiMiMo/MiMo",
+      "kind": "repository",
+      "allowed_paths": ["/XiaomiMiMo/"],
+      "allowed_content_types": ["repository", "readme"],
+      "trust": "primary",
+      "trust_notes": "The MiMo repository under Xiaomi's own XiaomiMiMo GitHub account; authoritative for the MiMo release names and the dated update lines its README carries. github.com is an already-trusted generic host; this bounds it to the XiaomiMiMo account.",
+      "verified_at": "2026-08-30",
+      "verification": "Fetched 2026-08-30 (raw): https://raw.githubusercontent.com/XiaomiMiMo/MiMo/main/README.md returned HTTP 200. Its '## Updates' section carries exactly one dated line, '[2025.05.30] We scaled the SFT dataset ... the performance of MiMo-7B-RL-0530 on AIME24 can be continuously improved', and the text 'we present MiMo-7B, a series of models trained from scratch and born for reasoning tasks'."
+    }
+  ],
+  "deferred_origins": [
+    {
+      "origin": "https://huggingface.co/XiaomiMiMo",
+      "decision": "already-trusted generic host, not re-approved here",
+      "reason": "Xiaomi's MiMo model cards are published under the XiaomiMiMo Hugging Face account. huggingface.co is already a trusted origin through existing dataset sources, so it is noted rather than re-approved."
+    }
+  ],
+  "ambiguities": [
+    {
+      "topic": "MiMo-7B-RL-0530 is a later snapshot than MiMo-7B-RL",
+      "note": "The README's only dated update line names MiMo-7B-RL-0530, a scaled-SFT snapshot; the base MiMo-7B-RL has no dated line of its own.",
+      "guidance": "Record the dated snapshot (MiMo-7B-RL-0530) against 2025-05-30, and do not attach that date to the undated MiMo-7B-RL. A date belonging to one snapshot is not evidence about another."
+    },
+    {
+      "topic": "The creator is Xiaomi, its LLM-Core team the internal group",
+      "note": "MiMo is published under the XiaomiMiMo account by Xiaomi's LLM-Core team.",
+      "guidance": "Record Xiaomi as the creator; the internal team is an attribute, not a separate creator entity."
+    }
+  ]
+}
