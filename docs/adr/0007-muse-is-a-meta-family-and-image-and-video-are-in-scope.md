@@ -47,15 +47,18 @@ category, nor produced image or video output**. `meta-muse-image` and
 `meta-muse-video` were the first. The crossing from a text-only dataset to one
 that is not was made by an unattended refresh, and recorded nowhere.
 
-Two later changes then built on a precedent nobody had written down:
+Three later changes then built on a precedent nobody had written down. Each row
+names the entity kind it added, because a family and a release are different
+records and the distinction is this document's own subject:
 
 | Commit | Date | What it added |
 |---|---|---|
-| `0e9867b` (#302) | 2026-08-26 | `meta-muse-image`, `meta-muse-video` — the first image and video records |
-| `547691a` (#417) | 2026-08-27 | `openai-gpt-image` |
-| `9f08149` (#562) | 2026-08-29 | Stable Diffusion 3.5, Hunyuan Video — under the subject *"widen beyond text-only models"* |
+| `0e9867b` (#302) | 2026-08-26 | the `meta-muse-image` and `meta-muse-video` **releases** — the first image and video records |
+| `547691a` (#417) | 2026-08-27 | the `openai-gpt-image` **family**, carrying `categories: ["image"]` and no release of its own |
+| `0556ec7` (#438) | 2026-08-27 | `openai-gpt-image-2`, that family's first **release**, added under the subject *"add four OpenAI releases for families that rendered empty"* |
+| `9f08149` (#562) | 2026-08-29 | the Stable Diffusion 3.5 and Hunyuan Video families **and** their first releases — under the subject *"widen beyond text-only models"* |
 
-The third of those describes itself as the widening. It was three days late; the
+The last of those describes itself as the widening. It was three days late; the
 widening had already happened. That is the cost of deciding by data, and it is
 the concrete reason this ADR is worth the words rather than a formality.
 
