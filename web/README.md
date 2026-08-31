@@ -119,9 +119,10 @@ source supports an entry.
 
 `model-fit-statements.json` holds ModelTree's own editorial reading of the
 records: when a release is a good fit, where it is a trade-off, and when to avoid
-it. It is one of the two places where ModelTree speaks in its own voice — the
-other is the editorial summary in `variant-positioning.json`, described below —
-so it carries the strictest rules in the repository.
+it. ModelTree speaks in its own words in more than one document — the editorial
+summaries in `variant-positioning.json` and the definitions in `glossary.json`
+are two others — but this is the one that turns recorded facts into guidance, so
+it carries the strictest rules in the repository.
 
 A statement is filed as exactly one of `good-fit-when`, `trade-off`, or
 `avoid-when`, and states the `condition` it applies under. There is no fourth,
@@ -200,7 +201,8 @@ the point:
   `publisher`, the `quote` itself, and `lastCheckedDate`; the entry carries
   `effectiveAsOf`.
 - `editorial.summary` is ModelTree's reading of that claim, with its own
-  `verifiedAt`. It is the only free text ModelTree writes here.
+  `verifiedAt`. It is ModelTree-authored prose, as is the record-level `note`,
+  and both are held to the wording rules described below.
 
 Both are rendered with visible text labels rather than by colour, italics, or
 position, so the two voices stay distinguishable in reading order and to a screen

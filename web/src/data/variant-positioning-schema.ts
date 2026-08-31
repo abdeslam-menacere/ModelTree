@@ -61,10 +61,12 @@ import { findUniversalClaim } from './model-fit-rubric';
  * **The creator's claim and ModelTree's reading are different fields.**
  * `official` holds *only* verbatim quotes and their source metadata: there is no
  * ModelTree-authored string inside it, so the two voices cannot be blurred by an
- * author who is in a hurry. `editorial` is the only place this repository
- * speaks. The wording filters run over `editorial` and `note` and never over a
- * `quote`, for the reason `UNIVERSAL_CLAIM_PATTERNS` already gives: a creator's
- * superlative is reported as the creator's claim, not asserted as ModelTree's,
+ * author who is in a hurry. Where this repository speaks is named by
+ * `MODELTREE_PROSE_PATHS` — today `editorial.summary` and the record-level
+ * `note` — and a test holds that list to the committed document. The wording
+ * filters run over those and never over a `quote`, for the reason
+ * `UNIVERSAL_CLAIM_PATTERNS` already gives: a creator's superlative is reported
+ * as the creator's claim, not asserted as ModelTree's,
  * and silently editing it would make `official` no longer verbatim.
  *
  * **Absence is not a value here.** There is no "unknown" variant entry and no
@@ -197,8 +199,11 @@ export const variantOfficialPositioningSchema = z.object({
 });
 
 /**
- * ModelTree's reading of the official positioning. The only place in this
- * document where this repository speaks in its own voice.
+ * ModelTree's reading of the official positioning, per variant.
+ *
+ * This is one of the fields carrying ModelTree's own voice in this document;
+ * `MODELTREE_PROSE_PATHS` below names them all, and is the list to read rather
+ * than a count restated here that a later field would quietly falsify.
  *
  * Kept to a couple of sentences, because a reading longer than the claim it
  * reads has become an argument. The filters below are what stop that argument
@@ -270,6 +275,27 @@ export const variantPositioningRecordSchema = z.object({
     seen.add(key);
   }
 });
+
+/**
+ * Every field in this document that carries ModelTree's own words, as a path
+ * from one record.
+ *
+ * This list exists so that no comment, and no sentence of documentation, has to
+ * state a count. A definite enumeration over a set the author has not closed
+ * goes false the moment the set grows, and the growth is exactly the moment
+ * nobody rereads the prose. So the surrounding comments point here instead of
+ * counting, and `variant-positioning.test.ts` holds this list to the committed
+ * document and to the filters that enforce it.
+ *
+ * The limit, stated rather than glossed: the test derives prose paths from the
+ * committed records, so it sees a new authored field once a record uses one. An
+ * optional field added to the schema and left unused by every record would not
+ * redden it.
+ *
+ * `official` is deliberately absent, and the absence is the point: nothing
+ * inside it is ModelTree's to write.
+ */
+export const MODELTREE_PROSE_PATHS = ['note', 'variants[].editorial.summary'] as const;
 
 export const variantPositioningSchema = z
   .array(variantPositioningRecordSchema)

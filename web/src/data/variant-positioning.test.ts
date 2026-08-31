@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { variantPositioning, variantPositioningByFamilyId } from './variant-positioning';
 import {
+  MODELTREE_PROSE_PATHS,
   POSITIONING_CLAIM_PATTERNS,
   findPositioningClaim,
   findPositioningWordingProblem,
@@ -250,6 +251,101 @@ describe('the wording filters over ModelTree prose', () => {
     for (const { name, pattern } of POSITIONING_CLAIM_PATTERNS) {
       expect(name.trim().length).toBeGreaterThan(0);
       expect(pattern.flags).toContain('i');
+    }
+  });
+});
+
+/**
+ * `MODELTREE_PROSE_PATHS` says, in one place, where this repository speaks in
+ * this document. A prose enumeration nobody checks is a claim waiting to go
+ * stale -- the review of this branch caught exactly that failure in
+ * `web/README.md`, where a corrected sentence replaced a false "the only place"
+ * with a false "the two places" while a third such place, `glossary.json`, sat
+ * in the same repository. The lesson generalises past the sentence that earned
+ * it: a definite quantifier over a set the author has not closed is a defect,
+ * so the enumeration this document relies on is closed here by test rather than
+ * asserted in a comment.
+ */
+describe('the ModelTree-voice enumeration', () => {
+  type ProseHit = { path: string; value: string };
+
+  /**
+   * Every prose-like string in a value, by path shape. Prose-like means long
+   * enough to be a sentence and containing a space, which is what separates
+   * authored text from an id, a date, a URL or a short display name.
+   */
+  function proseStrings(value: unknown, path: string, out: ProseHit[] = []): ProseHit[] {
+    if (typeof value === 'string') {
+      if (value.length >= 40 && value.includes(' ')) out.push({ path, value });
+      return out;
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) proseStrings(item, `${path}[]`, out);
+      return out;
+    }
+
+    if (value && typeof value === 'object') {
+      for (const [key, child] of Object.entries(value)) {
+        proseStrings(child, path ? `${path}.${key}` : key, out);
+      }
+    }
+
+    return out;
+  }
+
+  function committedProsePaths() {
+    return new Set(
+      variantPositioning.flatMap((record) => proseStrings(record, '').map((hit) => hit.path)),
+    );
+  }
+
+  it('names every ModelTree-authored string the committed document carries', () => {
+    const outsideOfficial = [...committedProsePaths()]
+      .filter((path) => !path.startsWith('variants[].official.'))
+      .sort();
+
+    expect(outsideOfficial).toEqual([...MODELTREE_PROSE_PATHS].sort());
+  });
+
+  /**
+   * The other direction, without which the test above passes on a walk that
+   * finds nothing. A third authored field must be visible to it.
+   */
+  it('can see an authored string the enumeration does not name', () => {
+    const planted = {
+      ...validRecord(),
+      commentary: 'A third ModelTree-authored string, which the walk above has to be able to notice.',
+    };
+
+    expect(proseStrings(planted, '').map((hit) => hit.path)).toContain('commentary');
+  });
+
+  /**
+   * Everything the enumeration names must actually be filtered. Naming a path
+   * here and leaving it unfiltered would be the same defect one level down: a
+   * list that describes protection it does not have.
+   */
+  it('names only paths the wording filters refuse', () => {
+    const plant: Record<string, (bad: string) => unknown> = {
+      note: (bad) => validRecord({ note: bad }),
+      'variants[].editorial.summary': (bad) => validRecord({
+        variants: [validEntry({ editorial: { summary: bad, verifiedAt: '2026-08-30' } })],
+      }),
+    };
+
+    const bad = 'The creator scopes this name to batch work, and we recommend it for that.';
+
+    for (const path of MODELTREE_PROSE_PATHS) {
+      const build = plant[path];
+      expect(build, `no enforcement case is written for ${path}`).toBeDefined();
+      expect(() => validateVariantPositioning([build(bad)])).toThrow(/unsupported language/);
+    }
+  });
+
+  it('never names anything inside official, which is the creator speaking', () => {
+    for (const path of MODELTREE_PROSE_PATHS) {
+      expect(path).not.toContain('official');
     }
   });
 });
