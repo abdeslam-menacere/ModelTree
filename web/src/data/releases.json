@@ -4162,5 +4162,152 @@
       "osi-license-index"
     ],
     "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "01-ai-yi-34b-chat",
+    "slug": "yi-34b-chat",
+    "canonicalName": "Yi-34B-Chat",
+    "displayName": "Yi 34B Chat",
+    "organizationId": "01-ai",
+    "familyId": "01-ai-yi",
+    "version": "1",
+    "variant": "34B Chat",
+    "releaseDate": "2023-11-23",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://github.com/01-ai/Yi/blob/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The chat-tuned 34B member of 01.AI’s original Yi series, opened to the public on 2023-11-23 alongside the rest of the chat models. Its card declares Apache 2.0; the repository README records a Yi Series Models Community License Agreement update on the same date, and both statements are kept on the sources rather than reconciled.",
+    "intendedUse": "General conversation and instruction following. Neither a parameter count nor a context window is recorded: no 01.AI page read states either in prose for this variant, so a figure would have to be inferred from the model’s name, and the same omission is already made for Yi-1.5-34B-Chat.",
+    "sourceIds": [
+      "01-ai-yi-repository",
+      "01-ai-yi-34b-chat-model-card",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-31"
+  },
+  {
+    "id": "alibaba-qwen3-5-397b-a17b",
+    "slug": "qwen3-5-397b-a17b",
+    "canonicalName": "Qwen3.5-397B-A17B",
+    "displayName": "Qwen3.5-397B-A17B",
+    "organizationId": "alibaba-cloud",
+    "familyId": "qwen3-5",
+    "version": "3.5",
+    "variant": "397B-A17B",
+    "releaseDate": "2026-02-16",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "multimodal-generalist",
+      "coding",
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://huggingface.co/Qwen/Qwen3.5-397B-A17B/blob/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 397,
+      "activeBillions": 17
+    },
+    "contextWindow": 262144,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "The first Qwen3.5 release, a sparse mixture-of-experts model its card states as “397B in total and 17B activated” parameters with a native context length of 262,144 tokens, published as downloadable weights under Apache-2.0. The card describes it as a causal language model with a vision encoder and also carries a video-input quickstart example; the narrower vision-language statement is what this record states. Qwen3.5-Plus, described on the same card as the hosted version corresponding to these weights, is a separate artefact and is not recorded here.",
+    "intendedUse": "Multimodal understanding over text and images, coding and agentic work, either from the published weights or through a platform that hosts them.",
+    "sourceIds": [
+      "qwen3-5-397b-a17b-model-card",
+      "qwen3-8-repository",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-31"
+  },
+  {
+    "id": "alibaba-qwen3-6-35b-a3b",
+    "slug": "qwen3-6-35b-a3b",
+    "canonicalName": "Qwen3.6-35B-A3B",
+    "displayName": "Qwen3.6-35B-A3B",
+    "organizationId": "alibaba-cloud",
+    "familyId": "qwen3-6",
+    "version": "3.6",
+    "variant": "35B-A3B",
+    "releaseDate": "2026-04-16",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "multimodal-generalist",
+      "coding",
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://huggingface.co/Qwen/Qwen3.6-35B-A3B/blob/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 35,
+      "activeBillions": 3
+    },
+    "contextWindow": 262144,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "The first open-weight Qwen3.6 variant, a sparse mixture-of-experts model its card states as “35B in total and 3B activated” parameters with a native context length of 262,144 tokens, published under Apache-2.0. Its card presents the generation as following the February 2026 Qwen3.5 series and emphasises agentic coding. As with the Qwen3.5 card, the declared type is a causal language model with a vision encoder while a video-input quickstart also appears; the narrower statement is recorded.",
+    "intendedUse": "Agentic and repository-level coding work and multimodal understanding over text and images, from the published weights or a platform that hosts them.",
+    "sourceIds": [
+      "qwen3-6-35b-a3b-model-card",
+      "qwen3-8-repository",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-31"
   }
 ]

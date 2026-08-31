@@ -1,5 +1,336 @@
 [
   {
+    "id": "2026-08-31-651a1c",
+    "title": "Long-tail family depth, tranche 1 of abdeslam-menacere/ModelTree#651",
+    "ranOn": "2026-08-31",
+    "outcome": "published",
+    "summary": "A source-backed breadth run over six creators that each carried exactly one model family — alibaba-cloud, zhipu-ai, moonshot-ai, baidu, tencent and 01-ai — asking of each whether it has further documented family generations. Two do, on evidence that meets the bar: Alibaba published dated Qwen3.5 and Qwen3.6 news in the QwenLM/Qwen3.8 repository README, and 01.AI dated the original Yi series in 01-ai/Yi. Four do not, and the reason is the same one refresh run 2026-08-30-605b1a hit: their pages carry no dated release statement at all. The GLM, Kimi, Hunyuan and ERNIE repository READMEs have no dated news list, every date on their Hugging Face cards is Hub createdAt or lastModified metadata rather than a creator statement, and the z.ai GLM-5 blog URLs return 200 with a client-rendered shell under 600 bytes and no text. Nine claims were proposed, three rubrics voted independently on every one, and all nine met their creator threshold — the six Alibaba claims against a 2-of-3 pilot bar, the three 01.AI claims unanimously against the 3-of-3 long-tail bar. Three met it over a recorded provenance objection about mapped vocabulary fields, and are applied rather than overruled. Four creators are withheld, on the record and without softening. No human reviewed any part of the research; the run hands off at a reviewable commit for the independent review and QA gates.",
+    "scope": "Six creators from abdeslam-menacere/ModelTree#651 tranche 1: alibaba-cloud, zhipu-ai, moonshot-ai, baidu, tencent, 01-ai. Breadth rather than re-verification — asking whether each has a further documented family generation, not re-checking facts already recorded. No creator outside the tranche was scouted and no existing record was edited.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Anchor 8e8c319e, selected by merge-base with refs/remotes/origin/main and computed by each gate rather than supplied — requestedBase was null in every report. The approved-origin catalogue parsed cleanly at that anchor: 214 dataset sources and 18 profile catalogues out of 19 profile files, yielding 46 approved origins; the one profile listed without a catalogue is tools/updater/profiles/generic/long-tail.json, which configures no origins. Both npm and drydock were probed in both shim forms before either was relied on or ruled out: the bare names resolve to PowerShell shims the execution policy refuses, while npm.cmd reports 11.9.0 and drydock.cmd reports 0.1.0. Both are installed and blocked in bare form, not absent, and the execution policy was not changed. Dependencies were installed with npm ci; package-lock.json is unmodified."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "Six creators scouted against 48 pages, every one fetched and hashed during the run — retrieval is \"fetch\" on all 43 evidence entries and no claim rests on a search snippet. Each quote was verified to be literally present in the hashed body it is attributed to, by a builder that throws rather than emitting an unverifiable pair. The decisive finding is negative and general: model cards do not state release dates. The only pages in this tranche that date a release in the creator's own words are two GitHub README news lists, QwenLM/Qwen3.8 and 01-ai/Yi. Red herrings ruled out rather than used: PaddlePaddle/ERNIE's dated \"Recent updates\" dates the ERNIEKit toolkit and not a model; the Kimi-K2.5 changelog entry for 2026.1.29 is a system-prompt removal; Kimi-K3's \"July 9, 2026\" dates an evaluation branch; and Tencent's \"Following the Hy3 Preview launch in late April\" is about the preview and is not a valid partial date."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Three rubrics — provenance, consistency, editorial — voted independently on all nine claims, each blind to the others and to the scout's reasoning, seeing the claim bundle and the committed dataset only. 27 verdicts cast, every one with a rationale, all published verbatim. Consistency and editorial accepted all nine. Provenance accepted six and objected to three, in each case that a quote naming \"Type: Causal Language Model with Vision Encoder\" or open-weight availability does not by itself force the mapped modality or category vocabulary. All three sit in the alibaba-cloud bundle, whose threshold is 2-of-3 because alibaba-cloud is the only creator of the six with a reviewed profile on disk in tools/updater/profiles. They therefore met their threshold over a recorded objection and were applied, not overruled; they are listed in dissents. No claim was revised and re-reviewed to chase a verdict, no reviewer was re-run, and no threshold was adjusted."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-evidence and gate-source-approval ran across all six bundles before anything was applied, in that order and after the panel rather than before it. gate-dataset, npm run validate, gate-scope, gate-ledger and ci-preflight.mjs ran afterwards. No gate was skipped, forced, or re-run to obtain a different answer. gate-scope reports exit 1 by design and is the one number worth reading twice — see its entry in evaluated.gates and the caveats."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "Nine edits applied across three dataset documents in dependency order — sources, then families, then releases — and committed on the dock branch for abdeslam-menacere/ModelTree#651 together with this entry. Nothing was pushed, no pull request was opened and no merge was attempted: this run is a Drydock dock and its work ends at a reviewable commit, with the pull request and the merge belonging to the coordinating session after the independent review and QA gates have passed against that commit."
+      },
+      {
+        "stage": "deploy",
+        "status": "not-run",
+        "note": "Nothing was pushed or merged by this run, so no Pages deploy was triggered and none could be observed. Recorded as not-run rather than not-applicable: a deploy is applicable to a dataset change, it simply has not happened yet at the time this entry was written."
+      }
+    ],
+    "found": {
+      "scouts": 6,
+      "pagesFetched": 48,
+      "claimsProposed": 9,
+      "bundles": [
+        {
+          "creator": "alibaba-cloud",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "01-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "zhipu-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "moonshot-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "baidu",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "tencent",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "add",
+          "count": 9,
+          "effect": "Three sources, three families and three releases: the Qwen3.5 and Qwen3.6 generations with one sourced open-weight variant each, and the original Yi series with Yi-34B-Chat."
+        }
+      ],
+      "notCovered": [
+        "The other dated Qwen3.5 and Qwen3.6 variants — Qwen3.5-122B-A10B, Qwen3.5-35B-A3B and Qwen3.5-27B on 2026-02-24, and the 2026-04-22 Qwen3.6 entry. The QwenLM/Qwen3.8 news list dates them, but no model card was fetched and hashed for them this run, so no release record could carry a sourced parameter count, context window or licence.",
+        "The other dated Yi releases — Yi-34B-200K on 2023-11-05, Yi-VL on 2024-01-23, Yi-9B on 2024-03-06 and Yi-9B-200K on 2024-03-16. Same reason: dated in 01-ai/Yi, but no card fetched for them here.",
+        "Lineage between the new and existing families. Nothing wires Qwen3.5 to Qwen3.6 to the committed Qwen3.8, or the new Yi family to the committed Yi-1.5, because predecessorIds and successorIds on an existing record would be a change claim against a record this tranche was not asked to touch.",
+        "The 34 creators outside this tranche, including the other 28 that still carry exactly one family."
+      ]
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 27,
+      "acceptedByPanel": 9,
+      "rejectedByPanel": 0,
+      "dissents": [
+        {
+          "claimId": "qwen3-6-family-add",
+          "rubric": "provenance",
+          "objection": "The date and first-open-weight-variant facts are quoted, but no attached quote for this claim supports the proposed multimodal-generalist category. The quoted Qwen3.6 text mentions open-weight availability and coding/repository reasoning, not vision or multimodality."
+        },
+        {
+          "claimId": "alibaba-qwen3-5-397b-a17b-release-add",
+          "rubric": "provenance",
+          "objection": "The date, weights, Apache licence, OSI badge, parameters, and 262,144-token context are quoted. But \"Type: Causal Language Model with Vision Encoder\" does not by itself force inputModalities [\"text\",\"image\"] or the complete output modality list."
+        },
+        {
+          "claimId": "alibaba-qwen3-6-35b-a3b-release-add",
+          "rubric": "provenance",
+          "objection": "The model-card quotes support open weights, Apache licensing, parameters, and native context. The attached \"Type: Causal Language Model with Vision Encoder\" quote does not force the proposed text+image input modalities or exclude other vision inputs."
+        }
+      ],
+      "gates": [
+        {
+          "gate": "gate-evidence",
+          "scope": "all six claim bundles, before any dataset document was touched",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "passed=true on each of the six. alibaba-cloud: 6 claims, 6 applicable, threshold 2 under the pilot policy. 01-ai: 3 claims, 3 applicable, threshold 3 under long-tail. The four withheld bundles carry 0 claims and pass trivially. The threshold was derived by the gate from the reviewed-profile set on disk and not from any bundle's policy field."
+        },
+        {
+          "gate": "gate-source-approval",
+          "scope": "all six claim bundles, anchored at merge-base 8e8c319e",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "passed=true on each of the six, over 43 citations. Anchor 8e8c319e, selectedBy \"merge-base with refs/remotes/origin/main\", requestedBase null, 214 dataset sources and 46 approved origins. Inherited sources: qwen3-8-repository, osi-approved-licenses, 01-ai-yi-repository. Proposed sources: qwen3-5-397b-a17b-model-card, qwen3-6-35b-a3b-model-card, 01-ai-yi-34b-chat-model-card. Every citation sits on an origin the anchor already approves — huggingface.co, github.com and opensource.org — so the run introduced no new origin and approved nothing of its own."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "web/src/data after the nine claims were applied",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "passed=true, failures empty. Counts after: 217 sources, 48 publishers, 40 organizations, 64 families, 92 releases."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "web/ — the full vitest suite plus Astro and TypeScript diagnostics",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "2361 tests across 104 files. It failed on the first run, and the failure was real rather than incidental: the comparison picker index budget. Recorded in caveats, because the repair reaches outside the dataset."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "the branch diff against merge-base 8e8c319e",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": false,
+          "detail": "Exit 1, and the correct answer. The diff reaches web/src/lib/comparison.test.ts, which is outside the nine documents ADR 0003 lets merge unattended, so this change is not eligible for an unattended merge and the gate says so. It is recorded as not required because this run never sought that route: it is a Drydock dock handing off to the independent review and QA gates and then to a human-opened pull request, where a scope refusal is a fact about eligibility rather than a blocked merge. The change was not trimmed to satisfy the gate; the reason it reaches out of class is in the caveats."
+        },
+        {
+          "gate": "gate-ledger",
+          "scope": "this entry against the branch diff, anchored at merge-base 8e8c319e",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "passed=true. The three declared documents match the three dataset documents the branch changed, in both directions, and their record counts were counted at the anchor and in the working tree rather than taken from this entry."
+        },
+        {
+          "gate": "ci-preflight",
+          "scope": "repository root — the pull-request checks this branch's diff actually triggers",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Selected and ran the checks the diff triggers, measured from the computed merge-base: 5 files changed, 3 of 7 local check groups selected, all three passing — web-ci, skills-ci and source-link-health-tests. It does not cover the networked link-health sweep or the second Python interpreter, and says so on every run; a green preflight is therefore not a green CI. It was run twice: the first run reported web-ci as failing with \"npm run test\" exiting 1, and the second passed with 104 test files and 2,361 tests. See the caveats — the first result was never reproduced and is recorded rather than explained away."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 9,
+      "documents": [
+        {
+          "document": "sources.json",
+          "recordsBefore": 214,
+          "recordsAfter": 217,
+          "note": "Three Hugging Face model cards: Qwen3.5-397B-A17B, Qwen3.6-35B-A3B and 01-ai/Yi-34B-Chat. They are not listed individually under records because the refresh page resolves links for release and family records only, and a source record listed there would link nowhere."
+        },
+        {
+          "document": "families.json",
+          "recordsBefore": 61,
+          "recordsAfter": 64,
+          "note": "The Qwen3.5 and Qwen3.6 generations, and the original Yi series distinct from the committed Yi-1.5."
+        },
+        {
+          "document": "releases.json",
+          "recordsBefore": 89,
+          "recordsAfter": 92,
+          "note": "One sourced variant per new family, being the one whose model card was fetched and hashed this run."
+        }
+      ],
+      "records": [
+        {
+          "id": "qwen3-5",
+          "collection": "families",
+          "note": "First release 2026-02-16, per the QwenLM/Qwen3.8 news list."
+        },
+        {
+          "id": "qwen3-6",
+          "collection": "families",
+          "note": "First release 2026-04-16, per the same news list."
+        },
+        {
+          "id": "01-ai-yi",
+          "collection": "families",
+          "note": "First release 2023-11-02, the original Yi series; the committed Yi-1.5 family stays separate."
+        },
+        {
+          "id": "alibaba-qwen3-5-397b-a17b",
+          "collection": "releases",
+          "note": "397B total, 17B active, 262,144 native context, Apache-2.0."
+        },
+        {
+          "id": "alibaba-qwen3-6-35b-a3b",
+          "collection": "releases",
+          "note": "35B total, 3B active, Apache-2.0."
+        },
+        {
+          "id": "01-ai-yi-34b-chat",
+          "collection": "releases",
+          "note": "Dated 2023-11-23 by the 01-ai/Yi news list. Parameters and context window deliberately omitted, matching the committed Yi-1.5 34B Chat record."
+        }
+      ]
+    },
+    "withheld": [
+      {
+        "id": "zhipu-ai-further-generations",
+        "category": "verification-held",
+        "detail": "GLM-5, GLM-5.2, GLM-5.3 and GLM-5.3-Flash all exist as Hugging Face repositories under zai-org, and none of the pages fetched states a release date. The GLM repository READMEs carry no dated news list — scans for YYYY-MM-DD, YYYY.MM.DD and month-name forms returned nothing — and every date visible on the cards is Hub createdAt or lastModified metadata, which refresh run 2026-08-30-605b1a already ruled out as a release date. https://z.ai/blog/glm-5 and https://z.ai/blog/glm-5.3 return HTTP 200 but are client-rendered shells under 600 bytes with no text, and https://z.ai/blog is 404. A family cannot be added without a sourced firstReleaseDate, so nothing was proposed.",
+        "blockedBy": [
+          "no dated release statement on any fetched page",
+          "z.ai blog pages render client-side and serve no text"
+        ]
+      },
+      {
+        "id": "moonshot-ai-further-generations",
+        "category": "verification-held",
+        "detail": "Kimi-K2.5 and Kimi-K3 exist as Hugging Face repositories under moonshotai, and neither card nor the MoonshotAI GitHub organisation pages state a release date. The two date-like strings found were checked and are not release dates: the Kimi-K2.5 changelog entry for 2026.1.29 records a system-prompt removal, and Kimi-K3's \"July 9, 2026\" dates an evaluation branch. Every other date is Hub metadata.",
+        "blockedBy": [
+          "no dated release statement on any fetched page"
+        ]
+      },
+      {
+        "id": "baidu-further-generations",
+        "category": "verification-held",
+        "detail": "ERNIE-5.0 material and further ERNIE-4.5 variants exist under the baidu Hugging Face namespace, and no fetched page dates a release. PaddlePaddle/ERNIE does carry a dated \"Recent updates\" list, but it dates the ERNIEKit toolkit rather than a model, which is a different entity and was not used.",
+        "blockedBy": [
+          "no dated release statement on any fetched page",
+          "the only dated list found dates a toolkit, not a model"
+        ]
+      },
+      {
+        "id": "tencent-further-generations",
+        "category": "verification-held",
+        "detail": "HunyuanImage-3.0, HunyuanOCR and Hy3/Hy4 material exist under Tencent-Hunyuan, and no fetched page dates a release. The nearest statement, \"Following the Hy3 Preview launch in late April\", is about the preview rather than the release and \"late April\" is not a valid partial date in this schema. Recording it as one would be the guess this run exists to refuse.",
+        "blockedBy": [
+          "no dated release statement on any fetched page",
+          "\"late April\" is not a representable date"
+        ]
+      },
+      {
+        "id": "qwen3-5-and-qwen3-6-additional-variants",
+        "category": "not-covered",
+        "detail": "The QwenLM/Qwen3.8 news list dates Qwen3.5-122B-A10B, Qwen3.5-35B-A3B and Qwen3.5-27B to 2026-02-24 and a further Qwen3.6 entry to 2026-04-22. The dates are sourced, but no model card was fetched and hashed for those variants this run, so no release record could carry a sourced parameter count, context window or licence. One release per new family was proposed rather than an unsourced set.",
+        "blockedBy": [
+          "no model card fetched for these variants this run"
+        ]
+      },
+      {
+        "id": "01-ai-yi-additional-variants",
+        "category": "not-covered",
+        "detail": "The 01-ai/Yi news list dates Yi-34B-200K to 2023-11-05, Yi-VL to 2024-01-23, Yi-9B to 2024-03-06 and Yi-9B-200K to 2024-03-16. Same reason as the Qwen variants: dated, but no card fetched for them here.",
+        "blockedBy": [
+          "no model card fetched for these variants this run"
+        ]
+      },
+      {
+        "id": "01-ai-yi-licence-conflict",
+        "category": "conflict-recorded",
+        "detail": "The Yi-34B-Chat card states in prose that \"The code and weights of the Yi series models are distributed under the Apache 2.0 license\", while the 01-ai/Yi README records \"2023-11-23: The Yi Series Models Community License Agreement is updated to v2.1\". Both quotes are attached to the release claim and the disagreement is left explicit in the record's prose rather than resolved. The structured licence follows the model card, which is the artefact the release record is about.",
+        "blockedBy": [
+          "two primary pages of the same creator disagree"
+        ]
+      }
+    ],
+    "caveats": [
+      "The outcome is recorded as \"published\" because that is the only value the schema admits for a run that changed dataset documents, and it is not the whole truth at the time of writing. This run is a Drydock dock: its nine edits are applied and committed on a branch, and nothing has reached main. No pull request existed when this entry was written, which is why references names no pull request of this run's own — the pull-request reference below is the change whose merge set this run's baseline, labelled as such. Whoever opens the pull request should add it, its merge commit and the Pages deploy to references.",
+      "npm run validate failed on its first run, on the comparison picker index page-weight budget, and the repair reaches outside the dataset into web/src/lib/comparison.test.ts. The budget was raised from 10,240 to 11,264 bytes as a deliberate page-weight decision, on the test message's own terms: measured at merge-base 8e8c319e the index was 10,115 bytes over 89 releases (113.65 per release) and at the tip it is 10,449 over 92 (113.58 per release), so the catalogue simply grew and the per-release figure did not move. The scale-invariant guard of 128 bytes per row was not touched and keeps 14 bytes of headroom. That one file is why gate-scope exits 1 and why this change cannot merge unattended. It is also worth knowing that the merge-base already sat 125 bytes under the old budget — about one release — so this was going to land on whichever tranche came first.",
+      "ADR 0005's accepted limit applies to every hash and quote here: gate-evidence checks that a content hash is well-formed and that a quote is long enough, never that either matches the remote page, and both are self-authored by the run. What compensates for it in this run is mechanical but local: every page was fetched to disk, hashed from the bytes on disk, and every quote was checked to be literally present in the body it is attributed to, by a builder that throws rather than emit an unverifiable pair. That makes the pairs internally consistent. It does not make them independently verified, and a later reader who wants certainty must refetch.",
+      "Three claims were applied over a provenance objection, all of them about controlled-vocabulary fields — the modality lists and one family category. The objection is recorded in full in dissents and is not answered here. A reader who thinks provenance was right should read those three records as the weakest in this change.",
+      "status: \"current\" on the three new releases is the least directly sourced mapping in the run. No page states a lifecycle state in words; the value rests on the news lists saying the weights are released and available and on the absence of any deprecation or legacy notice. Qwen3.5 and Qwen3.6 are both superseded by the committed Qwen3.8, and the original Yi by Yi-1.5, so a reader who reads \"current\" as \"newest\" will be misled. It means \"not withdrawn\".",
+      "The input and output modality lists on the two Qwen releases record text and image while both cards also carry a video-input quickstart. The competing signal is disclosed in the source notes and the record summaries rather than resolved, and it is the substance of two of the three provenance objections.",
+      "Four of the six creators were withheld, and no negative claim is being made about them: the run did not establish that GLM, Kimi, Hunyuan or ERNIE have no further generations, only that no page it fetched states a release date for one. A page it did not fetch, or a page rendered server-side rather than in the browser, could settle any of the four.",
+      "Every fetch happened during one run on 2026-08-31 and each contentHash is a snapshot of that moment. Hugging Face and GitHub pages change without notice, so a refetch that produces a different hash is expected rather than evidence of an error.",
+      "One test result in this run was not reproducible. The first ci-preflight run reported web-ci failing with \"npm run test\" exiting 1, and printed no failing test name that was captured. Every subsequent run was green — a second ci-preflight with 104 test files and 2,361 tests passing, a bare npm run test with the same figures and the coverage verifier confirming all 104 discovered files reported, and two npm run validate runs. Four green runs do not turn a red one into a flake with any certainty, so it is recorded here as unexplained rather than dismissed, and a reviewer seeing web-ci fail once on this branch should suspect it is the same thing and not a new one."
+    ],
+    "followUps": [
+      "The committed release dates for moonshot-ai-kimi-k2-instruct (2025-07-11), zhipu-ai-glm-4-5-air (2025-07) and baidu-ernie-4-5-300b-a47b-pt (2025-06-28) are each exactly the Hugging Face Hub createdAt value of the cited repository, which refresh run 2026-08-30-605b1a explicitly ruled out as a release date. This run found that while looking for where those dates came from, did not fix it because the records are outside this tranche's scope, and records it here so it is not found a third time.",
+      "Lineage between generations is unwired: nothing connects Qwen3.5 to Qwen3.6 to Qwen3.8, or the Yi family to Yi-1.5, although the Yi-1.5 card states it was continuously pre-trained from Yi. Wiring it means editing existing records and is worth its own issue.",
+      "The remaining creators of the 32 that carried exactly one family are untouched by this tranche; 30 still do after it.",
+      "The comparison picker index budget has now been raised three times as the catalogue grew, each time by 1,024 bytes. Whether the row itself should shrink — four string fields per release, none of them abbreviated — is a page-weight question nobody has asked yet, and asking it once would be cheaper than raising the number a fourth time."
+    ],
+    "references": [
+      {
+        "kind": "issue",
+        "label": "Issue #651 — the brief this run implements, tranche 1 of the long-tail family depth work",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/651",
+        "state": "open"
+      },
+      {
+        "kind": "pull-request",
+        "label": "PR #647 — the last change to merge before this run, and the one whose merge set the 40 organizations / 61 families / 89 releases baseline this run moves. This is not this run's own pull request: none existed when this entry was written, and adding it is the job of whoever opens it.",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/647",
+        "state": "merged"
+      },
+      {
+        "kind": "commit",
+        "label": "Anchor commit 8e8c319e — the merge base every gate in this run computed for itself",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/8e8c319ee326168ff7ea248766f64840daea8436",
+        "state": "on main"
+      }
+    ],
+    "recordedAt": "2026-08-31"
+  },
+  {
     "id": "2026-08-30-c0b6e9",
     "title": "Data refresh 2026-08-30",
     "ranOn": "2026-08-30",
