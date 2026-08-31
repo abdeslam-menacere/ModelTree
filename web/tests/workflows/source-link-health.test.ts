@@ -1,5 +1,8 @@
-import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterAll, describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 
 // Workflow-shape assertions for `.github/workflows/source-link-health.yml`,
@@ -319,5 +322,205 @@ describe('source-link-health.yml runs the checker the way it is meant to be run'
       expect(checkScript).not.toContain(flag);
       expect(testScript).not.toContain(flag);
     }
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* The checking step, executed rather than read                               */
+/* -------------------------------------------------------------------------- */
+
+// Everything above asserts the shape of the workflow. This block runs one step
+// of it, because the defect in #632 was invisible to every assertion that reads
+// the file: the script said `set -uo pipefail` under a comment claiming that
+// left `-e` off, and it does not -- `set -uo` enables `u` and `pipefail` and
+// disables nothing, while the runner has already supplied `-e` through
+// `bash --noprofile --norc -e -o pipefail {0}`. So the checker's documented
+// exit 1, "found something actionable", aborted the step at the `node` call
+// before the exit code could be captured. No outputs, no job summary, no
+// artefact, and both issue jobs skipped -- on exactly the runs that had
+// something to report. The machinery was exercised only when it had nothing to
+// do, which is why it looked healthy.
+//
+// Running the step rather than reading it also showed the damage was wider than
+// the shape suggested: the exit-2 branch, the one that tells a broken checker
+// apart from a rotted link, never executed either. That case still failed,
+// because `-e` propagated the status, so it *looked* preserved -- but its
+// `::error::` was never printed, and a maintainer reading the run could not tell
+// "the checker is broken" from "a source is gone". Both are covered below, and
+// the second is the case a fix must not quietly collapse into the first.
+//
+// A text assertion could have caught that particular spelling and nothing else.
+// These tests take the step's own `run:` script out of the committed YAML and
+// execute it under the runner's exact shell invocation, so what is verified is
+// the behaviour rather than the wording -- and any other correct fix, such as
+// bracketing the call in `set +e` / `set -e`, passes them just as well.
+//
+// The step's two external collaborators are replaced by shell *functions*
+// defined ahead of the script. A function is found before PATH, so this needs
+// neither a `node` stub file nor a real `jq`, and needs no PATH manipulation --
+// which on Windows would have to survive MSYS's rewriting of that one variable.
+// It is the same hermeticity the checker's own suite gets by injecting `fetch`
+// and `sleep`: the collaborators are stubbed, the subject is not. The script
+// itself is used verbatim.
+
+const checkStep = steps(checkJob, 'jobs.source-link-health').find((step) => step.id === 'check');
+
+// `.gitattributes` pins the working tree to LF, but 75 blobs are still stored
+// with CRLF and a checkout elsewhere could carry one. A stray CR would make
+// bash fail on `$'\r': command not found`, which reads as an unrelated defect.
+const checkStepScript = String(checkStep?.run ?? '').replace(/\r\n/g, '\n');
+
+const temporaryDirectories: string[] = [];
+
+afterAll(() => {
+  for (const directory of temporaryDirectories) rmSync(directory, { recursive: true, force: true });
+});
+
+interface StepOutcome {
+  /** The step's exit status. 0 is what GitHub reads as a successful step. */
+  status: number | null;
+  stdout: string;
+  stderr: string;
+  /** `$GITHUB_OUTPUT` as written, or null when the step never wrote it. */
+  githubOutput: string | null;
+  /** `$GITHUB_STEP_SUMMARY` as written, or null when the step never wrote it. */
+  stepSummary: string | null;
+}
+
+/**
+ * Run the `check` step's script the way the runner would, with a checker that
+ * exits `checkerExit`.
+ */
+function runCheckStep(checkerExit: number): StepOutcome {
+  const directory = mkdtempSync(join(tmpdir(), 'source-link-health-'));
+  temporaryDirectories.push(directory);
+
+  const stubs = `
+node() {
+  printf '# link health report\\n' > "$RUNNER_TEMP/link-health.md"
+  printf '{"actionableUrls":3,"findings":[{"url":"https://example.invalid/"}]}\\n' > "$RUNNER_TEMP/link-health.json"
+  return ${checkerExit}
+}
+
+jq() {
+  case "$*" in
+    *actionableUrls*) printf '3\\n' ;;
+    *findings*) printf '[{"url":"https://example.invalid/"}]\\n' ;;
+    *) printf 'unstubbed jq filter: %s\\n' "$*" >&2 ; return 1 ;;
+  esac
+}
+`;
+
+  writeFileSync(join(directory, 'step.sh'), `${stubs}\n${checkStepScript}\n`, 'utf8');
+
+  const run = spawnSync('bash', ['--noprofile', '--norc', '-e', '-o', 'pipefail', 'step.sh'], {
+    // `cwd` here and `RUNNER_TEMP=.` below are load-bearing on Windows: an
+    // absolute path such as `C:\Users\...` inside a bash double-quoted string
+    // has its backslashes eaten as escapes. Relative paths have none.
+    cwd: directory,
+    env: {
+      ...process.env,
+      RUNNER_TEMP: '.',
+      GITHUB_OUTPUT: './github-output',
+      GITHUB_STEP_SUMMARY: './step-summary',
+      // Empty is the scheduled sweep: no `--baseline`, so the whole dataset.
+      BASELINE: '',
+    },
+    encoding: 'utf8',
+  });
+
+  if (run.error !== undefined) {
+    // Never a skip. A test that did not run is not a test that passed, and the
+    // shell semantics this file exists to pin are exactly what CI would stop
+    // checking. `bash` is present on `ubuntu-latest`, where these run in CI, and
+    // ships with Git for Windows.
+    throw new Error(`could not run bash, which these tests require: ${run.error.message}`);
+  }
+
+  const readIfWritten = (name: string): string | null =>
+    existsSync(join(directory, name)) ? readFileSync(join(directory, name), 'utf8') : null;
+
+  return {
+    status: run.status,
+    stdout: run.stdout ?? '',
+    stderr: run.stderr ?? '',
+    githubOutput: readIfWritten('github-output'),
+    stepSummary: readIfWritten('step-summary'),
+  };
+}
+
+describe('source-link-health.yml reports an actionable finding instead of aborting on it', () => {
+  it('extracts the step under test, so a mis-read cannot pass as a green run', () => {
+    // Guards every assertion below: an empty or wrong script would otherwise
+    // run clean and prove nothing at all.
+    expect(checkStep, 'the checking job must have a step with id `check`').toBeDefined();
+    expect(checkStepScript).toContain('check-source-links.mjs');
+    expect(checkStepScript).toContain('GITHUB_OUTPUT');
+  });
+
+  it('writes its outputs and its summary when the checker exits 1', () => {
+    // Exit 1 is the checker's documented "ran, and found something actionable".
+    // This is the case that produced nothing at all before #632.
+    const outcome = runCheckStep(1);
+
+    expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+    expect(outcome.githubOutput ?? '').toContain('ran=true');
+    expect(outcome.githubOutput ?? '').toContain('actionable=3');
+    expect(outcome.githubOutput ?? '').toContain('findings<<');
+    // The report reaches the job summary, and the artefact step's `ran` gate is
+    // satisfied, so the run that had something to say can say it.
+    expect(outcome.stepSummary ?? '').toContain('link health report');
+  });
+
+  it('writes its outputs and its summary when the checker exits 0', () => {
+    const outcome = runCheckStep(0);
+
+    expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+    expect(outcome.githubOutput ?? '').toContain('ran=true');
+    expect(outcome.stepSummary ?? '').toContain('link health report');
+  });
+
+  it.each([[2], [3]])('fails loudly and reports nothing when the checker exits %i', (checkerExit) => {
+    // "The checker could not run" must never read as a clean sweep. It is a
+    // fault in the checker or its inputs rather than a finding about a source,
+    // and collapsing it into exit 1 would let a crashed checker report an empty
+    // finding set -- and, through `ran`, let the issue jobs act on it.
+    const outcome = runCheckStep(checkerExit);
+
+    expect(outcome.status).not.toBe(0);
+    expect(outcome.stdout).toContain('::error::The link checker could not run');
+    expect(outcome.githubOutput ?? '', 'a checker that could not run must set no outputs').not.toContain('ran=true');
+    expect(outcome.stepSummary).toBeNull();
+  });
+
+  it('leaves the issue jobs gated on the sweep succeeding, with no always()', () => {
+    // The design decision this fix records, asserted rather than remembered. A
+    // finding is reported and the sweep still concludes green, so the two issue
+    // jobs keep their implicit `success()` and need no `always()`. That is what
+    // makes a checker which could not run skip both of them: it can neither
+    // file a false alarm nor close a real one. Adding `always()` here would
+    // have to rebuild that guard by hand.
+    for (const [id, value] of [
+      ['maintenance-issue', issueJob],
+      ['resolve-issue', resolveJob],
+    ] as const) {
+      expect(String(value.if ?? ''), `jobs.${id} must not weaken its gate to always()`).not.toContain('always(');
+    }
+  });
+
+  it('still fails a pull request for the URLs that pull request introduced', () => {
+    // Advisory does not mean never red. It means never red for somebody else's
+    // outage. A pull request owns the URLs it added, so this is the one place
+    // the check fails -- and it runs after the outputs and the summary are
+    // written, so failing there costs no reporting.
+    const stepList = steps(checkJob, 'jobs.source-link-health');
+    const reportStep = stepList.find((step) =>
+      String(step.if ?? '').includes("steps.check.outputs.actionable != '0'"),
+    );
+
+    expect(reportStep, 'the pull-request report step must exist').toBeDefined();
+    expect(String(reportStep?.if)).toContain("github.event_name == 'pull_request'");
+    expect(String(reportStep?.run)).toContain('exit 1');
+    expect(stepList.indexOf(reportStep as YamlMapping)).toBeGreaterThan(stepList.indexOf(checkStep as YamlMapping));
   });
 });

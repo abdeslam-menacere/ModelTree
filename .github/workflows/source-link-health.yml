@@ -23,6 +23,39 @@ name: Source link health
 # than the one it exists to catch. `.github/workflows/README.md` records this
 # alongside the checks that *are* safe to require.
 #
+# ## What an actionable finding does, and does not, turn red
+#
+# A finding is reported, not failed on. The sweep records it -- step outputs, a
+# job summary, an uploaded artefact, and the maintenance issue -- and the job
+# still concludes green. Nothing in this repository goes red because a link
+# rotted on somebody else's server: that is not a defect of any change here, and
+# a check that reddens on work nobody did is one people learn to ignore, which is
+# the failure this whole workflow is shaped around. A filed issue outlives a red
+# X on a scheduled run and names what to do about it.
+#
+# The one exception is where somebody here *is* answerable. A pull request owns
+# the URLs it introduced, so `Report on the URLs this pull request introduced`
+# below fails on them, and only on them. It runs after the outputs and the
+# summary are written, so failing there costs no reporting.
+#
+# Exit 2 and above -- "the checker could not run" -- still fails loudly and
+# writes no outputs. That is a fault in the checker or its inputs rather than a
+# finding about a source, and it must never read as a clean sweep. It also means
+# the two issue jobs below need no `if: always()`: they carry an implicit
+# `success()`, so a checker that could not run can neither file a false alarm nor
+# close a real one. Making the sweep green on a finding is what lets that stay
+# true.
+#
+# This was not the behaviour until #632. `set -uo pipefail` in the checking step
+# read as clearing the `-e` the runner supplies and did not, so *every* non-zero
+# checker exit aborted the step at the `node` call, before the code could be
+# read. An actionable finding therefore produced no outputs, no summary, no
+# artefact and no issue -- the reporting machinery ran to completion only when
+# there was nothing to report -- and the exit-2 branch never ran at all, so the
+# `::error::` naming a broken checker was never printed. That case still failed,
+# because `-e` propagated the status, but it failed indistinguishably from a
+# finding. The discrimination the step was built around had never once executed.
+#
 # Both jobs nevertheless always report a conclusion. Neither is filtered by
 # `on.pull_request.paths`; each decides inside the job whether it has anything to
 # do and finishes green in seconds when it does not. That is the shape `web-ci`
@@ -246,19 +279,35 @@ jobs:
         env:
           BASELINE: ${{ steps.scope.outputs.baseline }}
         run: |
-          # Deliberately not `set -e`: exit 1 means "found something actionable",
-          # which is a result rather than a failure, and the difference between
-          # that and exit 2 ("the checker could not run") is the whole point of
-          # capturing the code by hand.
-          set -uo pipefail
+          # `-e` is on. The runner invokes a `run:` block as
+          # `bash --noprofile --norc -e -o pipefail {0}`, so it arrives from the
+          # invocation rather than from this script, and it is restated here
+          # rather than half-inherited. This line previously read
+          # `set -uo pipefail` under a comment saying `-e` was deliberately off:
+          # that *enables* `u` and `pipefail` and disables nothing, so every
+          # non-zero checker exit aborted the step at the `node` call before the
+          # code could be captured -- losing the outputs, the summary, the
+          # artefact and the issue on precisely the runs that had something to
+          # report, and skipping the exit-2 branch below entirely (#632). Not
+          # writing `set -e` is not the same as `-e` being off.
+          set -euo pipefail
 
           args=(--report "$RUNNER_TEMP/link-health.md" --json "$RUNNER_TEMP/link-health.json")
           if [ -n "$BASELINE" ]; then
             args+=(--baseline "$BASELINE")
           fi
 
-          node .github/scripts/source-link-health/check-source-links.mjs "${args[@]}"
-          code=$?
+          # Exit 1 means "found something actionable", which is a result rather
+          # than a failure, and telling it apart from exit 2 ("the checker could
+          # not run") is the whole point of capturing the code by hand.
+          #
+          # `|| code=$?` rather than bracketing the call in `set +e` / `set -e`:
+          # a command whose failure is tested by `||` is exempt from `-e`, so
+          # this captures the code correctly whether or not `-e` is in force.
+          # The bug above came from an assumption about the ambient shell
+          # options, and this form does not make one.
+          code=0
+          node .github/scripts/source-link-health/check-source-links.mjs "${args[@]}" || code=$?
 
           if [ "$code" -ge 2 ]; then
             echo "::error::The link checker could not run (exit $code). This is a fault in the checker or its inputs, not a finding about a source."
