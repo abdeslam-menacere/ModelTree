@@ -215,8 +215,9 @@ against `tools/updater/` rather than drift that stops the automation.
 
 **`gate-dataset.mjs`** reads `web/src/data/` and refuses malformed documents,
 ids that are not kebab-case or repeat within a collection, references that do not
-resolve, a family that no release belongs to, lineage that is self-referential or
-cyclic or contradicts itself, a
+resolve, a family that no release belongs to, a collection standing empty that
+`web/src/data/schema.ts` floors at one or more records, lineage that is
+self-referential or cyclic or contradicts itself, a
 release attributed away from its family's owner, a publisher taking a creator's
 id without being that creator's voice, dates that never existed, lie in the
 future, or fall before 1950, a release predating its family or its own
@@ -224,6 +225,24 @@ predecessor, a source checked
 before it was published, non-https or credential-bearing URLs, a fact with no
 `sourceIds` or no `verifiedAt`, and any field whose name reads as a ranking or
 composite score.
+
+Which collections those floors cover is not written in the gate. It reads them
+out of `datasetSchema` at run time and reports them as `requiredCollections`,
+which is this rule applying the paragraph above to itself: the gate and the
+schema disagreeing about which collections are load-bearing was the defect
+(abdeslam-menacere/ModelTree#548), and a hand-kept list in the script would have
+been a second place for that disagreement to reappear. A collection becomes
+load-bearing by gaining `.min(1)` in the schema, once, with Zod and the gate
+moving together; the collections declared `.default([])` may be empty, which is
+why `usage-syntheses.json` holding no records is not a defect. A schema the gate
+cannot read, cannot parse, or that floors a collection it does not load is exit
+2 rather than a pass.
+
+`gates.py` cannot express this rule and is not expected to. It gates claim and
+source candidates within a single creator's run and never loads the composed
+dataset, so it has no collection to measure; the floor is a property of the
+assembled documents, which only this gate and Zod ever see. That is a gap in
+reach rather than the permissive divergence ADR 0003 stops the automation for.
 
 Its date rules and `gates.py`'s stand in three different relations to each other,
 and flattening them into "parity" would be its own defect, so read them
