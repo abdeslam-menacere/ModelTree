@@ -236,6 +236,30 @@ And the closing comment says out loud that a URL which has stopped answering
 altogether produces the same clean result as a healthy one, because a timeout is
 deliberately not a finding.
 
+A third, which decides what the check's colour means. **An actionable finding
+does not turn the sweep red.** It is reported instead — step outputs, a job
+summary, an uploaded artefact, and the maintenance issue — and the job still
+concludes green. Advisory does not mean never red; it means never red for
+somebody else's server, because a link rotting there is not a defect of any
+change here, and a check that reddens on work nobody did is one people learn to
+ignore. Where somebody here *is* answerable the check still fails: a pull request
+owns the URLs it introduced, and `Report on the URLs this pull request
+introduced` fails on those and only those, after the outputs and summary are
+written. And a checker that **could not run** — exit 2 or above — still fails
+loudly and writes no outputs, so it can never read as a clean sweep. That last
+part is what lets the two issue jobs keep their implicit `success()` rather than
+an `if: always()`: a broken checker fails the sweep, so it can neither file a
+false alarm nor close a real one.
+
+Until #632 none of that happened. `set -uo pipefail` in the checking step read as
+clearing the `-e` the runner supplies and does not, so every non-zero checker
+exit aborted the step before its code could be read: a finding produced no
+outputs, no summary, no artefact and no issue, and the exit-2 branch never ran at
+all. The reporting machinery worked only when it had nothing to report. The tests
+in `web/tests/workflows/source-link-health.test.ts` now execute that step's
+script under the runner's exact shell invocation rather than reading it, because
+no assertion over the file's text had seen or could have seen this.
+
 This complements, rather than duplicates, the `urls` rules in the table below:
 `gate-dataset` refuses a URL that is malformed, non-https, credential-bearing or
 pointed at a private host, all of which it can decide by reading the string.
