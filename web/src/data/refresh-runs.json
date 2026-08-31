@@ -91,7 +91,7 @@
         "The other dated Qwen3.5 and Qwen3.6 variants — Qwen3.5-122B-A10B, Qwen3.5-35B-A3B and Qwen3.5-27B on 2026-02-24, and the 2026-04-22 Qwen3.6 entry. The QwenLM/Qwen3.8 news list dates them, but no model card was fetched and hashed for them this run, so no release record could carry a sourced parameter count, context window or licence.",
         "The other dated Yi releases — Yi-34B-200K on 2023-11-05, Yi-VL on 2024-01-23, Yi-9B on 2024-03-06 and Yi-9B-200K on 2024-03-16. Same reason: dated in 01-ai/Yi, but no card fetched for them here.",
         "Lineage between the new and existing families. Nothing wires Qwen3.5 to Qwen3.6 to the committed Qwen3.8, or the new Yi family to the committed Yi-1.5, because predecessorIds and successorIds on an existing record would be a change claim against a record this tranche was not asked to touch.",
-        "The 34 creators outside this tranche, including the other 28 that still carry exactly one family."
+        "The 34 creators outside this tranche, including the other 26 that still carry exactly one family."
       ]
     },
     "evaluated": {
