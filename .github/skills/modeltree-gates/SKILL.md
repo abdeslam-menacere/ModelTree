@@ -30,12 +30,13 @@ not the form your shell resolves. Sequence steps with `;`, never `&&`: Windows
 PowerShell 5.1 rejects `&&` as a *parse* error, which discards the whole block
 rather than the one line and blames a token instead of naming a tool, while `;`
 separates statements in PowerShell, bash and zsh alike. And `npm` may not be the
-form that runs: on Windows the bare name is a PowerShell shim the default
-execution policy refuses while `npm.cmd` runs, and where no `.cmd` shim exists
-the bare name is the only form, so `npm.cmd --version` failing there is expected
-and means nothing on its own. Run both, use whichever printed a version, and
-read a refusal as installed-and-blocked rather than missing — a fact about the
-execution policy, not a licence to change one.
+form that runs: on Windows npm installs a `.cmd` shim and a PowerShell one side
+by side, and which of them your shell resolves — and whether it is allowed to
+run — are facts about your machine, not about this document. Where no `.cmd`
+shim exists the bare name is the only form, so `npm.cmd --version` failing there
+is expected and means nothing on its own. Run both, use whichever printed a
+version, and read a refusal as installed-and-blocked rather than missing — a
+fact about the execution policy, not a licence to change one.
 
 From the repository root:
 

@@ -101,12 +101,14 @@ instructions file by abdeslam-menacere/ModelTree#604 and inherited by no skill
 because none of them reads it: sequence steps with `;`, never `&&`, which Windows
 PowerShell 5.1 rejects as a parse error that discards the whole block rather than
 the one line; and never assume the bare `npm` is the form that runs, because on
-Windows it resolves to a shim the default execution policy refuses while
-`npm.cmd` runs. Name the working directory separately instead of folding a `cd`
-into the command, and never hard-code `.cmd` into a document — no such shim
-exists on the Linux runner these skills also run on.
-`.github/scripts/ci-preflight.mjs` resolves npm the same way in code, for the
-same reason.
+Windows npm installs a `.cmd` shim and a PowerShell one side by side, and which
+one resolves — and whether it may run — is a fact about the reader's machine.
+Name the probe, never its result: a predicted result is one the reader does not
+re-test, so a wrong prediction and a false negative confirm each other. Name the
+working directory separately instead of folding a `cd` into the command, and
+never hard-code `.cmd` into a document — no such shim exists on the Linux runner
+these skills also run on. `.github/scripts/ci-preflight.mjs` resolves npm the
+same way in code, for the same reason.
 
 ## Related
 
