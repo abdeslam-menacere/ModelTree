@@ -260,7 +260,6 @@ export default function ModelComparison({ dataset, initialSlugs, base, today }: 
               <a
                 href={candidate.toggleUrl}
                 aria-label={candidate.toggleLabel}
-                aria-pressed={candidate.selected}
                 data-selected={candidate.selected ? 'yes' : 'no'}
                 className="comparison-candidate"
                 onClick={(event) => toggle(candidate, event)}

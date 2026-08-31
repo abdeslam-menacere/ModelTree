@@ -249,7 +249,6 @@ export default function BenchmarkExplorer({ dataset, initialSlugs, initialFilter
               <a
                 href={candidate.toggleHref}
                 aria-label={candidate.toggleLabel}
-                aria-pressed={candidate.selected}
                 data-selected={candidate.selected ? 'yes' : 'no'}
                 className="evidence-candidate"
                 onClick={(event) => follow(candidate.toggleHref, event)}
@@ -309,7 +308,7 @@ export default function BenchmarkExplorer({ dataset, initialSlugs, initialFilter
                     <a
                       href={facet.href}
                       className="evidence-chip"
-                      aria-pressed={facet.active}
+                      aria-current={facet.active ? 'true' : undefined}
                       data-active={facet.active ? 'yes' : 'no'}
                       onClick={(event) => follow(facet.href, event)}
                     >
@@ -329,7 +328,7 @@ export default function BenchmarkExplorer({ dataset, initialSlugs, initialFilter
                     <a
                       href={facet.href}
                       className="evidence-chip"
-                      aria-pressed={facet.active}
+                      aria-current={facet.active ? 'true' : undefined}
                       data-active={facet.active ? 'yes' : 'no'}
                       onClick={(event) => follow(facet.href, event)}
                     >
