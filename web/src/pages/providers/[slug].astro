@@ -196,9 +196,7 @@ const structuredData = [
                 </span>
               </div>
               <p class="relation-refs">
-                {view.servedReleaseCount === 1
-                  ? '1 release served'
-                  : `${view.servedReleaseCount} releases served`}
+                {view.servedReleaseLabel}
                 {' · '}
                 <a href={view.platform.website}>{view.platform.website} <ExternalLink size={13} aria-hidden="true" /></a>
               </p>

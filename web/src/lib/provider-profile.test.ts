@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { dataset as seedDataset } from '../data/dataset';
 import { buildCreatorEcosystems, buildLineageEcosystems } from './lineage-view';
+import { organizationLabel } from './organization-name';
 import {
   buildProviderProfile,
   productRelationshipLabel,
   releaseEventTypeLabel,
+  servedReleaseLabel,
 } from './provider-profile';
 import {
   providerProfileFixtureDataset as fixture,
@@ -99,8 +101,54 @@ describe('buildProviderProfile against a controlled dataset', () => {
     expect(thirdParty.servedReleaseCount).toBe(2);
   });
 
-  it('keeps the creator and the platform it operates as separate roles', () => {
-    const view = buildProviderProfile(fixture, PRIME_ORG_ID)!;
+  it('states the scope of every served-release count, in singular, plural and zero', () => {
+    // The count is creator-scoped, so the sentence around it has to say whose
+    // releases were counted. Rendered as a bare "N releases served" the plain
+    // reading is the platform's total, and at zero that reading contradicts the
+    // section it sits in (abdeslam-menacere/ModelTree#578).
+    const prime = buildProviderProfile(fixture, PRIME_ORG_ID)!;
+    const byId = new Map(prime.servingPlatforms.map((p) => [p.platform.id, p]));
+
+    // Singular: the first-party platform carries one of Prime's releases.
+    expect(byId.get(FIRST_PARTY_PLATFORM_ID)!.servedReleaseLabel)
+      .toBe('Serves 1 Prime release');
+    // Plural: the third-party hub carries two.
+    expect(byId.get(THIRD_PARTY_PLATFORM_ID)!.servedReleaseLabel)
+      .toBe('Serves 2 Prime releases');
+
+    // Zero, and the shape the defect was reported against: Hub operates this
+    // platform, so it is listed on Hub's page, and none of Hub's own releases
+    // are served there. Exactly Amazon and SageMaker JumpStart.
+    const hub = buildProviderProfile(fixture, HUB_ORG_ID)!;
+    const operated = hub.servingPlatforms
+      .find((p) => p.platform.id === THIRD_PARTY_PLATFORM_ID)!;
+    expect(operated.operatedByProvider).toBe(true);
+    expect(operated.servedReleaseCount).toBe(0);
+    expect(operated.servedReleaseLabel).toBe('Serves no Hub releases');
+  });
+
+  it('leaves the counted number untouched while restating it in words', () => {
+    // The label is a labelling fix, so it must never move the number. Each
+    // view's count is re-derived here straight from the deployment records --
+    // distinct releases of this creator on this platform -- and compared.
+    for (const organizationId of [PRIME_ORG_ID, SPARE_ORG_ID, HUB_ORG_ID]) {
+      const view = buildProviderProfile(fixture, organizationId)!;
+      const ownReleaseIds = new Set(
+        fixture.releases.filter((r) => r.organizationId === organizationId).map((r) => r.id),
+      );
+      for (const platform of view.servingPlatforms) {
+        const expected = new Set(
+          fixture.deployments
+            .filter((d) => d.platformId === platform.platform.id && ownReleaseIds.has(d.releaseId))
+            .map((d) => d.releaseId),
+        ).size;
+        expect(platform.servedReleaseCount, `${organizationId}/${platform.platform.id}`)
+          .toBe(expected);
+      }
+    }
+  });
+
+  it('keeps the creator and the platform it operates as separate roles', () => {    const view = buildProviderProfile(fixture, PRIME_ORG_ID)!;
     expect(view.operatesServingPlatform).toBe(true);
     // The operated platform is still a serving platform with its own operator
     // label, never merged into the creator entity.
@@ -138,6 +186,38 @@ describe('buildProviderProfile against a controlled dataset', () => {
   });
 });
 
+describe('served-release labels never restate a bare, unscoped count', () => {
+  // The exact shape the page used to render, kept here as the thing that must
+  // never come back. Asserting it matches a fabricated sample first is the
+  // control: a regex that matched nothing would let every sweep below pass.
+  const UNSCOPED = /^\d+ releases? served$/;
+
+  it('recognises the unscoped shape it is sweeping for', () => {
+    expect(UNSCOPED.test('0 releases served')).toBe(true);
+    expect(UNSCOPED.test('1 release served')).toBe(true);
+    expect(UNSCOPED.test('12 releases served')).toBe(true);
+    // ...and is not so loose that it matches the replacement.
+    expect(UNSCOPED.test('Serves no Prime releases')).toBe(false);
+  });
+
+  it('names the creator at every count, so no count reads as a platform total', () => {
+    for (let count = 0; count <= 12; count += 1) {
+      const label = servedReleaseLabel(count, 'Prime');
+      expect(label, `count ${count}`).toContain('Prime');
+      expect(UNSCOPED.test(label), `count ${count}`).toBe(false);
+    }
+    // A creator label the function was not given must never appear: this would
+    // catch a hard-coded name surviving the interpolation.
+    expect(servedReleaseLabel(3, 'Prime')).not.toContain('Fabricated Creator');
+  });
+
+  it('agrees with the singular/plural boundary at one', () => {
+    expect(servedReleaseLabel(1, 'Prime')).toBe('Serves 1 Prime release');
+    expect(servedReleaseLabel(2, 'Prime')).toBe('Serves 2 Prime releases');
+    expect(servedReleaseLabel(0, 'Prime')).toBe('Serves no Prime releases');
+  });
+});
+
 describe('label maps stay total over the schema enums', () => {
   it('names every product model-selection mode', () => {
     for (const selection of ['fixed', 'routed', 'unknown'] as const) {
@@ -168,8 +248,7 @@ describe('buildProviderProfile over the real seed dataset', () => {
     expect(pagedSlugs.length).toBeGreaterThan(buildLineageEcosystems(seedDataset).length);
   });
 
-  it('builds a profile for every organization the site generates a page for', () => {
-    for (const ecosystem of buildCreatorEcosystems(seedDataset)) {
+  it('builds a profile for every organization the site generates a page for', () => {    for (const ecosystem of buildCreatorEcosystems(seedDataset)) {
       const profile = buildProviderProfile(seedDataset, ecosystem.organization.id, '/ModelTree');
       expect(profile, `profile for ${ecosystem.organization.id}`).toBeDefined();
       // Every organization with a generated page has at least one release to
@@ -196,5 +275,32 @@ describe('buildProviderProfile over the real seed dataset', () => {
         }).length,
       );
     }
+  });
+
+  it('scopes every served-release count it states, on every generated page', () => {
+    // The whole-catalog form of the same rule. Whatever the seed grows to, no
+    // provider page may end up with a count whose scope is left to the reader.
+    const unscoped = /^\d+ releases? served$/;
+    let platformViews = 0;
+
+    for (const ecosystem of buildCreatorEcosystems(seedDataset)) {
+      const view = buildProviderProfile(seedDataset, ecosystem.organization.id)!;
+      const creatorLabel = organizationLabel(ecosystem.organization);
+
+      for (const platform of view.servingPlatforms) {
+        platformViews += 1;
+        const where = `${ecosystem.organization.id}/${platform.platform.id}`;
+        expect(platform.servedReleaseLabel, where).toContain(creatorLabel);
+        expect(unscoped.test(platform.servedReleaseLabel), where).toBe(false);
+        // Operator-of and server-of stay two statements, never one. The count
+        // sentence must not be doing the operator's job or vice versa.
+        expect(platform.relationshipLabel, where).toContain('operated by');
+        expect(platform.servedReleaseLabel, where).not.toContain('operated by');
+      }
+    }
+
+    // Non-vacuity: the seed has to carry serving platforms for the sweep above
+    // to have examined anything at all.
+    expect(platformViews).toBeGreaterThan(0);
   });
 });

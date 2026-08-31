@@ -53,6 +53,11 @@ export interface ProviderPlatformView {
   relationshipLabel: string;
   /** Distinct releases of this creator recorded as deployed on the platform. */
   servedReleaseCount: number;
+  /**
+   * {@link servedReleaseCount} said out loud, with the scope it was counted in.
+   * Always use this to render the count -- see {@link servedReleaseLabel}.
+   */
+  servedReleaseLabel: string;
 }
 
 /** A recorded lifecycle change to one of this creator's releases. */
@@ -139,6 +144,36 @@ export function productRelationshipLabel(selection: Product['modelSelection']): 
 }
 
 /**
+ * States a served-release count together with the scope it was counted in.
+ *
+ * The count is creator-scoped: it is how many of *this* creator's releases the
+ * platform is recorded as serving, never how many releases the platform serves
+ * in total. The page rendered it as a bare "N releases served", a phrase whose
+ * plain reading is the total, and the two readings only visibly disagree at
+ * zero -- `/providers/amazon/` listed Amazon SageMaker JumpStart under a heading
+ * about where models are reached and then said "0 releases served", which reads
+ * as a contradiction and not as a fact (abdeslam-menacere/ModelTree#578). The
+ * data was right and the sentence was wrong: JumpStart is on that page because
+ * Amazon *operates* it, and the only release recorded as served there is
+ * Alibaba Cloud's.
+ *
+ * So the creator's label goes into the words. Every count then reads as an
+ * answer to a stated question rather than as a total, and zero stops being
+ * self-contradictory: a platform can serve none of its own operator's models
+ * and still be a serving platform. Operator-of and server-of stay two
+ * relationships, stated in two separate strings -- {@link ProviderPlatformView}
+ * carries `relationshipLabel` for the first and this for the second.
+ *
+ * Zero is worded "no", not "0". The count itself is untouched; only the sentence
+ * around it changes, and no branch here reads or re-derives the number.
+ */
+export function servedReleaseLabel(count: number, creatorLabel: string): string {
+  if (count === 0) return `Serves no ${creatorLabel} releases`;
+  if (count === 1) return `Serves 1 ${creatorLabel} release`;
+  return `Serves ${count} ${creatorLabel} releases`;
+}
+
+/**
  * Builds one creator's profile, or returns `undefined` when the organization id
  * is not in the dataset. Nothing here reads `featured`: the profile describes an
  * organization whole -- every family, every release, in whatever lifecycle state
@@ -219,6 +254,7 @@ export function buildProviderProfile(
       const operatedByProvider = platform.organizationId === organization.id;
       const operator = organizationById.get(platform.organizationId);
       const operatorName = operator ? organizationLabel(operator) : platform.organizationId;
+      const servedReleaseCount = servedByPlatform.get(platform.id)?.size ?? 0;
       return {
         platform,
         operatorName,
@@ -226,7 +262,11 @@ export function buildProviderProfile(
         relationshipLabel: operatedByProvider
           ? `First-party serving platform, operated by ${organizationLabel(organization)}`
           : `Third-party serving platform, operated by ${operatorName}`,
-        servedReleaseCount: servedByPlatform.get(platform.id)?.size ?? 0,
+        servedReleaseCount,
+        servedReleaseLabel: servedReleaseLabel(
+          servedReleaseCount,
+          organizationLabel(organization),
+        ),
       };
     });
 
