@@ -864,6 +864,18 @@ describe('comparison payload', () => {
     // on f785a1d1 and its 74 releases, which was this branch's merge-base until
     // the MiniMax-M1 records landed on main and moved it; the anchor has to be
     // the merge-base a later reader recomputes, so it is restated against that.
+    //
+    // abdeslam-menacere/ModelTree#651 added a second and third Qwen generation
+    // and the original Yi series, growing the catalogue to 92 releases and
+    // 10,449 bytes (114 per release). Measured against merge-base 8e8c319e,
+    // which carried 89 releases and 10,115 bytes: 113.65 bytes per release
+    // became 113.58, so the per-release figure did not move (-0.06%) and the
+    // scale-invariant guard keeps 14 bytes of headroom under 128. That is the
+    // "catalogue simply grew" case the message below names, so the total was
+    // raised from 10,240 to 11,264 as a deliberate page-weight decision. Worth
+    // recording for whoever meets this next: the merge-base already sat 125
+    // bytes under the old budget, so it had roughly one release of headroom
+    // left and the next tranche of any size was going to land here.
     expect(
       bytesPerRelease,
       'a picker row got fatter — trim the row rather than raising this',
@@ -871,11 +883,11 @@ describe('comparison payload', () => {
     expect(
       bytes,
       `the picker index ships ${bytes} bytes for ${index.length} releases `
-      + `(${bytesPerRelease}/release, budget 10,240). Measured 8,586 over 76 releases `
-      + 'at the #563 merge-base 0842ff1d. If the catalogue simply grew and the per-release '
+      + `(${bytesPerRelease}/release, budget 11,264). Measured 10,115 over 89 releases `
+      + 'at the #651 merge-base 8e8c319e. If the catalogue simply grew and the per-release '
       + 'figure held, raising this is a deliberate page-weight decision; if the per-release '
       + 'figure moved too, trim instead.',
-    ).toBeLessThanOrEqual(10_240);
+    ).toBeLessThanOrEqual(11_264);
     for (const row of index) {
       expect(row.displayName).toBeTruthy();
       expect(row.organizationName).toBeTruthy();
