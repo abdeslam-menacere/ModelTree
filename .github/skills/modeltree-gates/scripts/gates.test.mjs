@@ -1371,9 +1371,48 @@ describe('gate-dataset', () => {
   });
 
   // The **unknown** state of the same input: supplied, but naming nothing.
+  //
+  // Exit 2 on its own did not establish that this guard is what fired
+  // (abdeslam-menacere/ModelTree#637). `gate-dataset.mjs` refuses at 2 from four
+  // places -- the two `parseArgs` guards, this one, and the `--today` check --
+  // so the bare assertion this test used to make read a code without being able
+  // to say which of them produced it. Measured, not assumed: rename `--data` in
+  // `parseArgs` and the argv below becomes an unrecognised flag, the run refuses
+  // with `gate-dataset: unknown flag --data` at the same exit code, this guard is
+  // never reached at all, and the test stayed green while pinning a behaviour it
+  // no longer exercised.
+  //
+  // Each assertion has a job, and the order is deliberate:
+  //
+  //  * the positive one names the path that must have fired, and comes first
+  //    because it is the claim the test is named for. Deleting the guard
+  //    outright drops the run to exit **1** -- the nine documents then read as
+  //    missing and `non-empty` refuses, which is a verdict about the directory
+  //    rather than a refusal to gate it -- so a code-first ordering reports
+  //    `1 !== 2` where this one names the regression.
+  //  * the negative one rules out the two `parseArgs` refusals, the only other
+  //    exit-2 text this argv can reach, so a flag surface drifting away from
+  //    `--data` cannot keep this test green.
+  //  * the code is asserted last and is still load-bearing: strip only the
+  //    `return 2` and the guard warns without refusing, which satisfies both
+  //    message assertions and is caught by nothing else.
+  //
+  // The positive assertion stops at the identifying clause and never reaches the
+  // interpolated directory, which is a machine-specific temporary path carrying
+  // Windows backslashes -- the same reasoning recorded for `"dataDir"` below.
   test('a missing data directory exits 2 rather than passing', () => {
     const result = run(GATE_DATASET, ['--data', join(tmpdir(), 'modeltree-does-not-exist'), '--json']);
-    assert.equal(result.code, 2, 'a gate that cannot run must not report success');
+    assert.match(
+      result.stdout,
+      /gate-dataset: no data directory at/,
+      `the refusal must name the missing directory, not merely exit 2:\n${result.stdout}`,
+    );
+    assert.ok(
+      !/unknown flag|needs a value/.test(result.stdout),
+      'a directory that does not exist must be refused as missing, never as a flag this gate '
+      + `does not recognise nor as a flag carrying no value:\n${result.stdout}`,
+    );
+    assert.equal(result.code, 2, `a gate that cannot run must not report success:\n${result.stdout}`);
   });
 
   // `--data` in a fourth state, and the only one of the four that failed open:
