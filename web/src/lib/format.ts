@@ -74,6 +74,7 @@ export function statusLabel(status: ModelRelease['status']) {
     legacy: 'Legacy',
     deprecated: 'Deprecated',
     research: 'Research',
+    unknown: 'Unknown',
   }[status];
 }
 

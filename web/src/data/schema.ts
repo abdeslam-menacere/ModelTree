@@ -56,17 +56,35 @@ export const datePrecision = z.enum(DATE_PRECISIONS);
  * that adds a precision or scope the source never gave all remain rejections.
  * Nothing here licenses filling a field the source left unstated.
  *
- * **None of these enums has an `unknown` member, and that is deliberate.**
- * `familySchema` and `releaseSchema` below require `status`, `categories`,
- * `accessType` and both modality lists, so every record must map — there is no
- * escape hatch that would let a record be published with the field left open,
- * and a tree branch rendering rows of blanks is not a fact this dataset states.
- * The consequence is intended: where a field cannot be mapped from an approved
- * source, the whole record is withheld rather than guessed. Fields that may
- * honestly be absent are `.optional()` instead, and `partialDate` above is the
- * same principle applied to how much of a date a source actually gave.
+ * **`status` carries an explicit `unknown` member; the other enums here do
+ * not, and both halves of that are deliberate.** A lifecycle term is the one
+ * field in this group that an approved primary source routinely does not state
+ * at all: a bare model card names an architecture, a parameter count and a
+ * licence yet says nothing about whether the vendor still offers the model,
+ * whereas a card that omits its access type or its modalities is not publishing
+ * a model. So `unknown` is the faithful recording of "the source states no
+ * lifecycle state", exactly as `modelSelection` below carries `unknown` for a
+ * product that discloses no selection policy — a first-class sourced value, not
+ * an escape hatch, and it renders as its own label rather than a blank.
+ *
+ * It does not weaken the rule for the fields around it. `familySchema` and
+ * `releaseSchema` below still require `categories`, `accessType` and both
+ * modality lists to map to a stated term; there is still no member meaning
+ * "left open" for them, and a tree branch rendering rows of blanks is not a
+ * fact this dataset states. Where one of those fields cannot be mapped from an
+ * approved source, the whole record is withheld rather than guessed. Where a
+ * lifecycle is simply not stated, `status: 'unknown'` records that absence
+ * honestly instead of compelling the record to assert a state its source never
+ * gave — which is the case the schema previously had no way to express, so the
+ * only route to publishing a bare model card was to smooth the absence over.
+ * `unknown` says nothing about whether a release exists, so it does not reopen
+ * the empty-family rule in `gate-dataset.mjs`. Fields that may honestly be
+ * absent are `.optional()` instead, and `partialDate` above is the same
+ * principle applied to how much of a date a source actually gave. The decision
+ * and every consumer it touches are recorded in
+ * `docs/adr/0008-lifecycle-status-carries-an-explicit-unknown-member.md`.
  */
-export const lifecycleStatus = z.enum(['preview', 'current', 'legacy', 'deprecated', 'research']);
+export const lifecycleStatus = z.enum(['preview', 'current', 'legacy', 'deprecated', 'research', 'unknown']);
 export const modality = z.enum(['text', 'image', 'audio', 'video']);
 
 export const modelCategory = z.enum([

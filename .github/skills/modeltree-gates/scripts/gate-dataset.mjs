@@ -357,12 +357,17 @@ function gateReferences(docs, ids) {
 //   over, and it is the better option *if* the dataset can say that a family is
 //   deliberately awaiting its first release. It cannot. `lifecycleStatus` in
 //   `web/src/data/schema.ts` is exactly
-//   `['preview', 'current', 'legacy', 'deprecated', 'research']` -- there is no
-//   `announced`, `upcoming` or `unreleased` member -- and the doc comment above
-//   it states that the absence of an escape hatch is deliberate, that a record
-//   which cannot be mapped is withheld rather than guessed, and in as many
-//   words that "a tree branch rendering rows of blanks is not a fact this
-//   dataset states".
+//   `['preview', 'current', 'legacy', 'deprecated', 'research', 'unknown']` --
+//   there is no `announced`, `upcoming` or `unreleased` member -- and the doc
+//   comment above it states that the absence of an escape hatch is deliberate,
+//   that a record which cannot be mapped is withheld rather than guessed, and in
+//   as many words that "a tree branch rendering rows of blanks is not a fact
+//   this dataset states". The `unknown` member added under
+//   `docs/adr/0008-lifecycle-status-carries-an-explicit-unknown-member.md` does
+//   not change this: it records that a source states no lifecycle state, which
+//   says nothing about whether a release exists, so it neither distinguishes an
+//   announced-but-unreleased family from a data error nor otherwise reopens this
+//   rule. That ADR states the same conclusion from the vocabulary side.
 //
 //   So an announced-but-unreleased family and a data error are byte-for-byte
 //   indistinguishable in this dataset. Rendering the empty case would therefore

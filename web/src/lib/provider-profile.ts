@@ -117,6 +117,7 @@ const STATUS_ORDER: ModelRelease['status'][] = [
   'legacy',
   'deprecated',
   'research',
+  'unknown',
 ];
 
 const PRODUCT_SELECTION_LABEL: Record<Product['modelSelection'], string> = {

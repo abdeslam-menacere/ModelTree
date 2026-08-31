@@ -93,6 +93,7 @@ body:
         - legacy
         - deprecated
         - research
+        - unknown
     validations: { required: true }
 
   - type: dropdown

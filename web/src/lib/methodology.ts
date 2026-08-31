@@ -75,6 +75,8 @@ export const lifecycleStatusGlossary: GlossaryEntry<ModelRelease['status']>[] =
         'Marked by the vendor for removal, usually with a retirement date. Recorded from the vendor’s own deprecation notice.',
       research:
         'Released as a research artefact rather than a supported product. Availability and support are not implied.',
+      unknown:
+        'The creator’s own page states no lifecycle or availability term at all — common for a bare model card that names architecture, weights and licence but not whether the vendor still offers the model. It is the faithful value for “the source does not say”, not a claim that the model is unavailable; the record stays complete and is withheld from no filter.',
     }[value],
   }));
 
