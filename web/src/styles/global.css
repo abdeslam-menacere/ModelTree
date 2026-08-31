@@ -7157,6 +7157,17 @@ nav a {
   max-width: 70ch;
 }
 
+/* How many pages a name rests on, in words above the quotes rather than left to
+ * be counted off the blockquotes. Rendered only where there is more than one, so
+ * the ordinary single-source entry gains nothing to read. Nothing here is
+ * load-bearing: delete it and the sentence still says how many. */
+.tier-source-count {
+  margin: 0 0 var(--cp-space-2);
+  max-width: 70ch;
+  color: var(--cp-text-soft);
+  font-size: var(--cp-size-xs);
+}
+
 .tier-official p {
   margin: 0;
   font-family: var(--cp-font-serif);
@@ -7191,7 +7202,10 @@ nav a {
 }
 
 /* Beside a node in the lineage explorer. Wraps rather than truncating: a clipped
- * quote reads as a shorter claim than the creator made. */
+ * quote reads as a shorter claim than the creator made, and the same reasoning
+ * is why a name cited to several pages renders every quotation here instead of
+ * the first. Each is its own inline span so the wrap falls between quotations
+ * where it can. */
 .node-positioning {
   margin: var(--cp-space-1) 0 0;
   max-width: 46ch;

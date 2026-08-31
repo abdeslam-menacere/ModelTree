@@ -166,21 +166,36 @@ function TierPositioning({ view }: Props) {
           </p>
 
           {/* The creator's own words, quoted rather than paraphrased, so a reader
-              can see exactly what was claimed and by whom. */}
-          <blockquote className="tier-official">
-            <p>{entry.official.sources[0].quote}</p>
-            <footer>
-              {entry.official.sources[0].publisher} wrote this, current as of{' '}
-              {formatDate(entry.official.effectiveAsOf)}.{' '}
-              <a href={entry.official.sources[0].url}>
-                {entry.official.sources[0].title}
-                <ExternalLink size={13} strokeWidth={1.8} aria-hidden="true" />
-              </a>
-              <span className="tier-meta">
-                Checked {formatDate(entry.official.sources[0].lastCheckedDate)}
-              </span>
-            </footer>
-          </blockquote>
+              can see exactly what was claimed and by whom. Every cited page is
+              quoted, not the first: `sources` is unbounded because a creator
+              routinely explains one name across a model card, a docs page and a
+              launch post, and rendering one of them would make the evidence
+              trail read shorter than the evidence. Each blockquote carries its
+              own title, link and check date, so two pages from the same
+              publisher stay distinguishable by their own text rather than by
+              which one happens to be printed first. */}
+          {entry.official.sources.length > 1 ? (
+            <p className="tier-source-count">
+              {entry.official.sources.length} pages are recorded for this name, each quoted below.
+            </p>
+          ) : null}
+
+          {entry.official.sources.map((source, index) => (
+            <blockquote className="tier-official" key={`${source.url}-${index}`}>
+              <p>{source.quote}</p>
+              <footer>
+                {source.publisher} wrote this, current as of{' '}
+                {formatDate(entry.official.effectiveAsOf)}.{' '}
+                <a href={source.url}>
+                  {source.title}
+                  <ExternalLink size={13} strokeWidth={1.8} aria-hidden="true" />
+                </a>
+                <span className="tier-meta">
+                  Checked {formatDate(source.lastCheckedDate)}
+                </span>
+              </footer>
+            </blockquote>
+          ))}
 
           <p className="tier-editorial">
             <span className="tier-editorial-label">ModelTree editorial summary</span>

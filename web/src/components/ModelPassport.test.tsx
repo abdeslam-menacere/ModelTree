@@ -13,7 +13,9 @@ import {
 import {
   absentPositioning,
   completePositioning,
+  multiSourcePositioning,
   partialPositioning,
+  SECOND_BASE_SOURCE,
 } from '../../tests/fixtures/passport-positioning';
 import type { VariantPositioning } from '../data/variant-positioning-schema';
 import { buildModelPassport } from '../lib/passport';
@@ -363,6 +365,50 @@ describe('sibling tier positioning is rendered so the two voices stay apart', ()
 
   it('names the methodology page rule it is bound by', () => {
     expect(complete).toContain(`href="${BASE}methodology/#guidance"`);
+  });
+
+  /**
+   * A name cited to several pages.
+   *
+   * `sources` is `min(1)` and unbounded, and the block used to render
+   * `sources[0]`, so a second and third page could be recorded, verified, and
+   * gated — and then never shown. That is the evidence trail reading shorter
+   * than the evidence, at the one point where a reader is being asked to trust
+   * it, and nothing anywhere said so.
+   */
+  describe('a tier name whose positioning rests on more than one page', () => {
+    const multi = renderPositioned(COMPLETE_RELEASE_ID, multiSourcePositioning);
+    const baseEntryBlock = multi.match(/<div class="tier-entry" data-variant="base">[\s\S]*?(?=<div class="tier-entry")/)?.[0] ?? '';
+
+    it('quotes every page rather than the first one', () => {
+      expect(baseEntryBlock, 'expected the base tier entry to render').not.toBe('');
+      expect(baseEntryBlock).toContain('Our general-purpose model for long-running document work');
+      expect(baseEntryBlock).toContain(SECOND_BASE_SOURCE.quote);
+    });
+
+    it('gives each page its own blockquote, link and check date', () => {
+      expect(count(baseEntryBlock, /<blockquote class="tier-official">/g)).toBe(2);
+      expect(baseEntryBlock).toContain('href="https://example-lab.test/docs/models"');
+      expect(baseEntryBlock).toContain(`href="${SECOND_BASE_SOURCE.url}"`);
+      // Both pages carry the same publisher, so what tells them apart has to be
+      // their own text: the title and the date this one was last checked.
+      expect(baseEntryBlock).toContain('Model line-up');
+      expect(baseEntryBlock).toContain(SECOND_BASE_SOURCE.title);
+      expect(baseEntryBlock).toContain('Aug 21, 2026');
+    });
+
+    it('says in words how many pages the name rests on', () => {
+      // A reader should not have to count blockquotes to learn the evidence is
+      // plural, and a screen reader reaches the sentence before the quotes.
+      expect(baseEntryBlock).toContain('2 pages are recorded for this name');
+    });
+
+    it('leaves a single-source name in the same family showing one quotation', () => {
+      const miniBlock = multi.match(/<div class="tier-entry" data-variant="mini">[\s\S]*?<\/div>/)?.[0] ?? '';
+      expect(miniBlock, 'expected the mini tier entry to render').not.toBe('');
+      expect(count(miniBlock, /<blockquote class="tier-official">/g)).toBe(1);
+      expect(miniBlock).not.toContain('pages are recorded for this name');
+    });
   });
 
   it('states an unpositioned name as unknown instead of dropping or guessing it', () => {
