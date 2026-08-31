@@ -3279,13 +3279,13 @@
     "successorIds": [],
     "siblingIds": [],
     "summary": "Baidu’s text mixture-of-experts model in the ERNIE 4.5 generation, with 300B total and 47B activated parameters and a 131072-token context length, released under Apache 2.0.",
-    "intendedUse": "General text generation and instruction following. The card states its training stage two ways without reconciling them, so no training stage is recorded here, and the -PT in the repository name is the card's own label for Transformer-style PyTorch weights rather than a training stage; the vision-language members of the same generation are not recorded here.",
+    "intendedUse": "No task or capability claim is recorded beyond the card's Modality: Text row, because the card's only capability language sits in its Modality-Specific Post-Training section — it describes the ERNIE 4.5 LLMs as \"optimized for general-purpose language understanding and generation\" — and this repository's training stage is left unresolved: the Model Overview prose calls the model Post-trained while the configuration table's Training Stage row reads Pretraining, reconciled nowhere. Recording a post-training capability while the stage is unsettled would assert the contested side, so it is withheld rather than smoothed over. The -PT in the repository name is the card's own label for Transformer-style PyTorch weights rather than a training stage, and the vision-language members of the same generation are not recorded here.",
     "sourceIds": [
       "baidu-ernie-4-5-300b-model-card",
       "hugging-face-ernie-4-5-300b-hub-record",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-08-30"
+    "verifiedAt": "2026-08-31"
   },
   {
     "id": "tencent-hunyuan-video-t2v",
