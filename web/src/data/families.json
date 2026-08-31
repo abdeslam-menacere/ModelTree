@@ -1048,5 +1048,113 @@
       "naver-hyperclova-x-seed-1-5b-model-card"
     ],
     "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "aleph-alpha-pharia-1",
+    "slug": "pharia-1",
+    "organizationId": "aleph-alpha",
+    "name": "Pharia-1-LLM",
+    "description": "Aleph Alpha's Pharia-1 foundation model family, announced as \"our new foundation model family that includes Pharia-1-LLM-7B-control and Pharia-1-LLM-7B-control-aligned\". The 7B control model is recorded here; it is culturally and linguistically optimized for German, French and Spanish.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2024-08-26",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "aleph-alpha-pharia-1-llm-announcement",
+      "aleph-alpha-pharia-1-llm-7b-control-model-card"
+    ],
+    "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "reka-flash",
+    "slug": "reka-flash",
+    "organizationId": "reka-ai",
+    "name": "Reka Flash",
+    "description": "Reka AI's Reka Flash line of compact reasoning models. Reka Flash 3.1, recorded here, is described by Reka as \"an update to our Reka Flash 3\" that \"is particularly strong on coding and as a base model to be finetuned on agentic tasks\".",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2025-07-10",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "reka-flash-3-1-announcement",
+      "reka-flash-3-1-model-card"
+    ],
+    "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "nous-hermes-4",
+    "slug": "hermes-4",
+    "organizationId": "nous-research",
+    "name": "Hermes 4",
+    "description": "Nous Research's Hermes 4 generation of steerable, hybrid-mode reasoning models. The 14B member recorded here is described on its card as \"a frontier, hybrid-mode reasoning model based on Qwen 3 14B by Nous Research\".",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2025-08-26",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "nous-research-releases",
+      "nous-hermes-4-14b-model-card"
+    ],
+    "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "liquid-lfm2",
+    "slug": "lfm2",
+    "organizationId": "liquid-ai",
+    "name": "LFM2",
+    "description": "Liquid AI's second series of Liquid Foundation Models, built for on-device inference on a hybrid architecture of \"10 double-gated short-range convolution blocks and 6 blocks of grouped query attention\". Three dense checkpoints were released at 0.35B, 0.7B and 1.2B parameters; the 1.2B model is recorded here.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2025-07-10",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "liquid-lfm2-announcement",
+      "liquid-lfm2-1-2b-model-card"
+    ],
+    "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "xiaomi-mimo-7b",
+    "slug": "mimo-7b",
+    "organizationId": "xiaomi",
+    "name": "MiMo-7B",
+    "description": "Xiaomi's MiMo-7B series, \"a series of models trained from scratch and born for reasoning tasks\", spanning base, SFT and RL checkpoints. The RL checkpoint MiMo-7B-RL-0530 is recorded here.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2025-05-30",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "xiaomi-mimo-repository",
+      "xiaomi-mimo-7b-rl-0530-model-card"
+    ],
+    "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "ai-singapore-sea-lion-v3",
+    "slug": "sea-lion-v3",
+    "organizationId": "ai-singapore",
+    "name": "SEA-LION v3",
+    "description": "AI Singapore's third SEA-LION generation, \"a collection of 3 models (and their variants)\" for Southeast-Asian languages, \"released in Dec 2024\". The Llama-based 8B model is recorded here.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2024-12",
+    "datePrecision": "month",
+    "status": "current",
+    "sourceIds": [
+      "ai-singapore-sea-lion-v3-docs",
+      "ai-singapore-llama-sea-lion-v3-8b-model-card"
+    ],
+    "verifiedAt": "2026-08-30"
   }
 ]

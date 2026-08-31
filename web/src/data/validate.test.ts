@@ -729,6 +729,13 @@ describe('partial dates on family and release dates', () => {
         // support.
       },
       {
+        id: 'ai-singapore-sea-lion-v3',
+        precision: 'month',
+        // AI Singapore's SEA-LION v3 documentation states the family was
+        // "released in Dec 2024" with no day, so month is the honest floor and
+        // synthesising a day is the invention this field exists to prevent.
+      },
+      {
         id: 'zhipu-ai-glm-4-5-air',
         precision: 'month',
         // The Air variant shipped in the same GLM-4.5 launch; same reasoning.
@@ -740,6 +747,12 @@ describe('partial dates on family and release dates', () => {
         // with all three signals -- two of them Sakana AI's own post, its page
         // date and its retrospective wording, and the third the Hub's
         // measurement of the repository -- so none is recorded.
+      },
+      {
+        id: 'ai-singapore-llama-sea-lion-v3-8b',
+        precision: 'month',
+        // The base SEA-LION v3 8B release carries the family's Dec 2024 month
+        // and no finer day in any approved primary, so month precision holds.
       },
     ];
 

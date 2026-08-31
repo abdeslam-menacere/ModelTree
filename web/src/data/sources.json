@@ -1797,5 +1797,116 @@
     "publisherId": "naver",
     "lastCheckedDate": "2026-08-30",
     "notes": "The model’s licence agreement, and a NAVER document rather than a Hugging Face one: it titles itself “HyperCLOVA X SEED Model License Agreement” on its first line, which is the licence name this dataset records. Reading it needs no credentials, and the endpoint matters — the url recorded here is the repository’s blob page for the file, which is what a reader should open: this repository is gated (the Hub record reports gated “auto”), and /raw/main/LICENSE does return HTTP 401, but /resolve/main/LICENSE serves the agreement itself as text/plain to an unauthenticated request — 12,560 bytes, sha256:38ecac78adef21eceff609f917f3cf904b3381ee9a6c83f824b89f4f9d28bbb4, with no gate interstitial. Anyone re-checking this record should use that path rather than concluding from a 401 on /raw/ that the document is unreadable. It settles three things no other source read here states. First, the relation between the two NAVER entities: “NAVER Corp., as the holder of the intellectual property of the Model, and its affiliate, NAVER Cloud Corp., as the exclusive business operator of HyperCLOVA X, enter into this Agreement with you.” Section 9.2 adds “NAVER Corp. owns the Model”. Second, it corroborates the recorded release date from a second NAVER document, independently of the newsroom’s forward-looking “will make history on April 24” phrasing: its third line reads “Model Release Date: April 24, 2025”. That line is a statement about the model rather than about this document, so it is recorded as corroboration for releaseDate and is deliberately not used as this source’s publishedDate, which no part of the document states. Third, it is why osiApproved is false and no SPDX id is recorded: these are bespoke NAVER terms, not a standard licence. They carry conditions an OSI-approved licence would not, including a Section 4 requirement that a licensee above ten million monthly active users “must request a license from NAVER”, and Section 3.1 redistribution conditions requiring the attribution notice, a “Powered by HyperCLOVA X” display, and that derived model names begin with “HyperCLOVA X”. weightsDownloadable stays true on the separate evidence of the announcement and the Section 2.2 grant to “access, download, install, copy, use, reproduce, distribute, create derivative works of, and make modifications to the Model”."
+  },
+  {
+    "id": "aleph-alpha-pharia-1-llm-announcement",
+    "url": "https://aleph-alpha.com/en/blog/introducing-pharia-1-llm-transparent-and-compliant/",
+    "title": "Introducing Pharia-1-LLM: transparent and compliant",
+    "type": "official-announcement",
+    "publisherId": "aleph-alpha",
+    "publishedDate": "2024-08-26",
+    "lastCheckedDate": "2026-08-30",
+    "notes": "Aleph Alpha's own blog, dated \"26/08/2024\" at the top, which the recorded release date rests on. It announces \"our new foundation model family that includes Pharia-1-LLM-7B-control and Pharia-1-LLM-7B-control-aligned, now publicly available under the Open Aleph License, which explicitly allows for non-commercial research and educational use.\" The open-weight access type and osiApproved false rest on that sentence and on the page calling these \"weight-available foundation models\". The German/French/Spanish optimization and the 7B-8B parameter positioning are stated in the same paragraph."
+  },
+  {
+    "id": "aleph-alpha-pharia-1-llm-7b-control-model-card",
+    "url": "https://huggingface.co/Aleph-Alpha/Pharia-1-LLM-7B-control",
+    "title": "Pharia-1-LLM-7B-control model card",
+    "type": "model-card",
+    "publisherId": "aleph-alpha",
+    "lastCheckedDate": "2026-08-30",
+    "notes": "Aleph Alpha's own Hugging Face card for the recorded model, linked from the announcement as the accompanying model card. It carries the Open Aleph License and the 7B parameter count the record stores."
+  },
+  {
+    "id": "reka-flash-3-1-announcement",
+    "url": "https://reka.ai/news/reka-flash-3-1-and-reka-quant",
+    "title": "Reka Flash 3.1 and Reka Quant",
+    "type": "official-announcement",
+    "publisherId": "reka-ai",
+    "publishedDate": "2025-07-10",
+    "lastCheckedDate": "2026-08-30",
+    "notes": "Reka's own news post, which carries the visible article date \"Jul 10, 2025\" that the recorded release date rests on. The page's front-matter published field reads \"Aug 18, 2026\", a later site-rebuild timestamp that is deliberately not used as the release date. The post states \"Today, we are excited to open source a few of our building blocks\", listing Reka Flash 3.1, and describes it as \"a 21 billion parameter model\" that \"is particularly strong on coding and as a base model to be finetuned on agentic tasks\"."
+  },
+  {
+    "id": "reka-flash-3-1-model-card",
+    "url": "https://huggingface.co/RekaAI/reka-flash-3.1",
+    "title": "Reka Flash 3.1 model card",
+    "type": "model-card",
+    "publisherId": "reka-ai",
+    "lastCheckedDate": "2026-08-30",
+    "notes": "Reka's own Hugging Face card for the recorded model. It states \"Reka Flash 3.1 is an update to our Reka Flash 3\" and \"is particularly strong on coding and as a base model to be finetuned on agentic tasks\", and carries the Apache-2.0 licence the record stores."
+  },
+  {
+    "id": "nous-research-releases",
+    "url": "https://nousresearch.com/releases/",
+    "title": "Releases - Nous Research",
+    "type": "official-announcement",
+    "publisherId": "nous-research",
+    "lastCheckedDate": "2026-08-30",
+    "notes": "Nous Research's own releases page, whose table lists each release with a RELEASE DATE column. The recorded release date rests on the MODEL row for Hermes-4-14B: \"Hermes-4-14B | MODEL | Small and dense Hermes variant for local inference. | 08/26/25\". This is the model row, kept distinct from the separate Hermes 4 technical report; the arXiv paper's own date is not used for the release. The same page's structured metadata and footer describe Nous Research as \"The AI accelerator company\", which the company organization type rests on."
+  },
+  {
+    "id": "nous-hermes-4-14b-model-card",
+    "url": "https://huggingface.co/NousResearch/Hermes-4-14B",
+    "title": "Hermes 4 14B model card",
+    "type": "model-card",
+    "publisherId": "nous-research",
+    "lastCheckedDate": "2026-08-30",
+    "notes": "Nous Research's own Hugging Face card for the recorded model. It states \"Hermes 4 14B is a frontier, hybrid-mode reasoning model based on Qwen 3 14B by Nous Research that is aligned to you.\" The declared base is Qwen 3 14B and the licence slug is apache-2.0; the two agree because Qwen3-14B is itself Apache-2.0, which is why this model is recorded rather than Hermes-3-8B, whose licence slug and declared base disagree."
+  },
+  {
+    "id": "liquid-lfm2-announcement",
+    "url": "https://www.liquid.ai/blog/liquid-foundation-models-v2-our-second-series-of-generative-ai-models",
+    "title": "Liquid Foundation Models v2: Our second series of generative AI models",
+    "type": "official-announcement",
+    "publisherId": "liquid-ai",
+    "publishedDate": "2025-07-10",
+    "lastCheckedDate": "2026-08-30",
+    "notes": "Liquid AI's own blog, whose article:published_time and datePublished metadata both read \"2025-07-10\", which the recorded release date rests on. It states \"Today, we release LFM2\" and \"We're releasing the weights of three dense checkpoints with 0.35B, 0.7B, and 1.2B parameters.\" The architecture the record relies on is stated here verbatim: \"LFM2 is a hybrid Liquid model with multiplicative gates and short convolutions. It consists of 16 blocks: 10 double-gated short-range convolution blocks and 6 blocks of grouped query attention.\" That is why the model is recorded as a hybrid attention model and not as a non-transformer."
+  },
+  {
+    "id": "liquid-lfm2-1-2b-model-card",
+    "url": "https://huggingface.co/LiquidAI/LFM2-1.2B",
+    "title": "LFM2-1.2B model card",
+    "type": "model-card",
+    "publisherId": "liquid-ai",
+    "lastCheckedDate": "2026-08-30",
+    "notes": "Liquid AI's own Hugging Face card for the recorded model. It carries the LFM Open License v1.0 the record stores and the 1.2B parameter count, and its config lists grouped-query attention heads, consistent with the hybrid-attention architecture the blog states."
+  },
+  {
+    "id": "xiaomi-mimo-repository",
+    "url": "https://github.com/XiaomiMiMo/MiMo",
+    "title": "XiaomiMiMo/MiMo repository README",
+    "type": "repository",
+    "publisherId": "xiaomi",
+    "lastCheckedDate": "2026-08-30",
+    "notes": "Xiaomi's own MiMo repository README. Its Updates section carries exactly one dated line, which the recorded release date and the choice of snapshot both rest on: \"[2025.05.30] We scaled the SFT dataset from approximately 500K to 6M instances and continuously expanding the RL training window size from 32K to 48K, the performance of MiMo-7B-RL-0530 on AIME24 can be continuously improved and eventually surpass that of DeepSeek R1 (79.8).\" The README also states \"we present MiMo-7B, a series of models trained from scratch and born for reasoning tasks.\" The earlier MiMo-7B-RL checkpoint has no dated line, so the 0530 snapshot is recorded rather than it."
+  },
+  {
+    "id": "xiaomi-mimo-7b-rl-0530-model-card",
+    "url": "https://huggingface.co/XiaomiMiMo/MiMo-7B-RL-0530",
+    "title": "MiMo-7B-RL-0530 model card",
+    "type": "model-card",
+    "publisherId": "xiaomi",
+    "lastCheckedDate": "2026-08-30",
+    "notes": "Xiaomi's own Hugging Face card for the recorded checkpoint. It carries the MIT licence the record stores and identifies the model as the 0530 RL checkpoint of the MiMo-7B series."
+  },
+  {
+    "id": "ai-singapore-sea-lion-v3-docs",
+    "url": "https://github.com/aisingapore/sealion/blob/main/models/sea-lion-v3/sea-lion-v3.md",
+    "title": "SEA-LION v3 model documentation",
+    "type": "repository",
+    "publisherId": "ai-singapore",
+    "lastCheckedDate": "2026-08-30",
+    "notes": "AI Singapore's own SEA-LION repository documentation for the v3 collection. The recorded month-precision release date rests on \"SEA-LION version 3, released in Dec 2024\", and the recorded 128K context window rests on \"Llama-SEA-LION-v3-8B, based on Llama 3.1 8B, now provides a larger context length of 128K\". No day is stated for the release, so the record is kept at month precision rather than inventing one."
+  },
+  {
+    "id": "ai-singapore-llama-sea-lion-v3-8b-model-card",
+    "url": "https://huggingface.co/aisingapore/Llama-SEA-LION-v3-8B",
+    "title": "Llama-SEA-LION-v3-8B model card",
+    "type": "model-card",
+    "publisherId": "ai-singapore",
+    "lastCheckedDate": "2026-08-30",
+    "notes": "AI Singapore's own Hugging Face card for the recorded model, which records \"Developed by: Products Pillar, AI Singapore\" and \"Funded by: National Research Foundation, Singapore\" and identifies the base as Llama 3.1 8B. The base continued-pretraining model is recorded here rather than the separate instruction-tuned variant, whose card states a later \"Current Version\" checkpoint that would not match the Dec 2024 family date."
   }
 ]

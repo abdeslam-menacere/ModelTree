@@ -215,5 +215,35 @@
     "id": "naver",
     "name": "NAVER",
     "organizationId": "naver"
+  },
+  {
+    "id": "aleph-alpha",
+    "name": "Aleph Alpha",
+    "organizationId": "aleph-alpha"
+  },
+  {
+    "id": "reka-ai",
+    "name": "Reka AI",
+    "organizationId": "reka-ai"
+  },
+  {
+    "id": "nous-research",
+    "name": "Nous Research",
+    "organizationId": "nous-research"
+  },
+  {
+    "id": "liquid-ai",
+    "name": "Liquid AI",
+    "organizationId": "liquid-ai"
+  },
+  {
+    "id": "xiaomi",
+    "name": "Xiaomi",
+    "organizationId": "xiaomi"
+  },
+  {
+    "id": "ai-singapore",
+    "name": "AI Singapore",
+    "organizationId": "ai-singapore"
   }
 ]
