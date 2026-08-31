@@ -713,11 +713,13 @@
     ],
     "firstReleaseDate": "2025-07-11",
     "datePrecision": "day",
+    "dateBasis": "platform-first-published",
     "status": "current",
     "sourceIds": [
-      "moonshot-ai-kimi-k2-model-card"
+      "moonshot-ai-kimi-k2-model-card",
+      "hugging-face-kimi-k2-instruct-hub-record"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-08-31"
   },
   {
     "id": "eleutherai-pythia",
@@ -823,13 +825,14 @@
     ],
     "firstReleaseDate": "2025-06-28",
     "datePrecision": "day",
+    "dateBasis": "platform-first-published",
     "status": "current",
     "sourceIds": [
       "baidu-ernie-repository",
       "baidu-ernie-4-5-300b-model-card",
       "hugging-face-ernie-4-5-300b-hub-record"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-08-31"
   },
   {
     "id": "tencent-hunyuan-video",

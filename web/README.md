@@ -102,6 +102,21 @@ siblings, effective ranges that end before they start, prices with no rate,
 benchmark results whose unit contradicts their benchmark or that duplicate an
 existing setup, and featured releases without a primary source.
 
+<!-- date-basis-policy:start -->
+A release or family may record an optional `dateBasis`. Its single value,
+`platform-first-published`, means the committed date is a hosting platform's own
+measurement of when the artefact appeared there — a Hugging Face Hub `createdAt`,
+say — that no creator statement of a release date was found, and that the date is
+kept because it bounds when the model existed rather than because a creator stated
+it. **The absence of `dateBasis` asserts nothing.** It does not mean the date is
+creator-stated; it means no basis has been established either way, which is why
+there is no `creator-stated` value to reach for. Equality between a committed date
+and a cited repository's `createdAt` is evidence and not proof — a creator may
+genuinely release on the day they upload — so a record is marked only when the
+date appears in its cited sources solely as platform metadata. ADR 0007 records
+the decision.
+<!-- date-basis-policy:end -->
+
 Usage evidence carries its own rules. An observation is rejected when it cites
 no source, states no caveat, measures a window that closes after its own
 verification date or begins before the release existed, labels itself
@@ -367,6 +382,40 @@ reading and the disagreement is written down here rather than resolved silently.
   <!-- claim: {"kind":"records","entity":"releases","id":"google-gemini-3-7-flash","field":"releaseDate","value":"2026-08-13"} -->
   <!-- claim: {"kind":"records","entity":"releases","id":"google-gemini-3-7-flash","field":"datePrecision","value":"day"} -->
   <!-- claim: {"kind":"lists","entity":"releases","id":"google-gemini-3-7-flash","field":"sourceIds","value":"google-gemini-3-7-flash-platform-docs"} -->
+- **Kimi K2 Instruct date is the Hub's, not Moonshot AI's.** No Moonshot-published
+  page states a release date for this model. The committed 2025-07-11 is the
+  Hugging Face Hub `createdAt` of `moonshotai/Kimi-K2-Instruct`; on the cited card
+  page that string occurs only inside `"createdAt":"2025-07-11T00:55:12.000Z"`,
+  never in Moonshot AI's prose, whose own changelog instead lists 2025.7.15,
+  2025.7.18 and 2025.8.11 — card revisions, the earliest four days later. The date
+  is kept because it bounds when the model existed, and it declares `dateBasis`
+  `platform-first-published` so it is not read as a creator claim (ADR 0007).
+  <!-- claim: {"kind":"records","entity":"releases","id":"moonshot-ai-kimi-k2-instruct","field":"releaseDate","value":"2025-07-11"} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"moonshot-ai-kimi-k2-instruct","field":"dateBasis","value":"platform-first-published"} -->
+  <!-- claim: {"kind":"lists","entity":"releases","id":"moonshot-ai-kimi-k2-instruct","field":"sourceIds","value":"hugging-face-kimi-k2-instruct-hub-record"} -->
+  <!-- claim: {"kind":"records","entity":"families","id":"moonshot-ai-kimi-k2","field":"dateBasis","value":"platform-first-published"} -->
+- **ERNIE 4.5 300B A47B date is the Hub's, not Baidu's.** Same shape, and the
+  record already cited the Hub API endpoint it rests on. The committed 2025-06-28
+  is the `createdAt` of `baidu/ERNIE-4.5-300B-A47B-PT`; the card carries no
+  occurrence of it, and no Baidu-published page read for this record states a
+  release date. It declares `dateBasis` `platform-first-published` rather than
+  leaving that basis stated only in a source note.
+  <!-- claim: {"kind":"records","entity":"releases","id":"baidu-ernie-4-5-300b-a47b","field":"releaseDate","value":"2025-06-28"} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"baidu-ernie-4-5-300b-a47b","field":"dateBasis","value":"platform-first-published"} -->
+  <!-- claim: {"kind":"records","entity":"families","id":"baidu-ernie-4-5","field":"dateBasis","value":"platform-first-published"} -->
+- **GLM-4.5-Air is not a third case of that pattern.** Its Hub `createdAt` is
+  2025-07-20 and the committed value is `2025-07` at month precision, which that
+  timestamp matches only because a month matches all 31 of its days. Zhipu AI's own
+  announcement is dated 2025-07-28 and falls in the same month, so the recorded
+  month rests on a creator-dated announcement rather than on the platform
+  timestamp, and no `dateBasis` is recorded. A day-precision upgrade to 2025-07-28
+  was declined: the cited URL serves a client-rendered shell containing no date,
+  and the string is reachable only from a build-hashed script bundle that the
+  site's next deploy will rename.
+  <!-- claim: {"kind":"records","entity":"releases","id":"zhipu-ai-glm-4-5-air","field":"releaseDate","value":"2025-07"} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"zhipu-ai-glm-4-5-air","field":"datePrecision","value":"month"} -->
+  <!-- claim: {"kind":"omits","entity":"releases","id":"zhipu-ai-glm-4-5-air","field":"dateBasis"} -->
+  <!-- claim: {"kind":"omits","entity":"families","id":"zhipu-ai-glm-4-5","field":"dateBasis"} -->
 - **Llama 4 Maverick parameter count.** The model card's own table gives 400B
   total, while the Hugging Face repository metadata on the same page reports
   402B. The model card figure is recorded, because it is the count Meta states in

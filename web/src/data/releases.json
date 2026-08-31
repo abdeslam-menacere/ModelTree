@@ -2974,6 +2974,7 @@
     "variant": "Instruct",
     "releaseDate": "2025-07-11",
     "datePrecision": "day",
+    "dateBasis": "platform-first-published",
     "status": "current",
     "featured": false,
     "categories": [
@@ -3006,9 +3007,10 @@
     "intendedUse": "Agentic, tool-use, and coding tasks, available as downloadable weights or through the Moonshot API.",
     "sourceIds": [
       "moonshot-ai-kimi-k2-model-card",
+      "hugging-face-kimi-k2-instruct-hub-record",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-08-31"
   },
   {
     "id": "eleutherai-pythia-12b",
@@ -3251,6 +3253,7 @@
     "variant": "300B-A47B",
     "releaseDate": "2025-06-28",
     "datePrecision": "day",
+    "dateBasis": "platform-first-published",
     "status": "current",
     "featured": false,
     "categories": [
