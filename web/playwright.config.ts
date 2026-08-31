@@ -17,6 +17,12 @@ const PORT = 4321;
 const ORIGIN = `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
+  // Readiness gate: probe every static core route before any test runs.
+  // Playwright's `webServer.url` only confirms `/` is reachable; under CPU
+  // contention `astro preview` may serve the root before all routes are
+  // indexed, producing a 404 that is a fixture failure, not a finding.
+  // See issue #641.
+  globalSetup: './e2e/global-setup.ts',
   testDir: './e2e',
   // `*.e2e.ts`, never `*.test.ts`: vitest's default include is
   // `**/*.{test,spec}.?(c|m)[jt]s?(x)`, and `scripts/verify-test-coverage.mjs`
