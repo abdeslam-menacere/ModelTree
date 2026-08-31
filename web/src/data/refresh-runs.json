@@ -1,5 +1,268 @@
 [
   {
+    "id": "2026-08-31-ae0342",
+    "title": "Data refresh 2026-08-31",
+    "ranOn": "2026-08-31",
+    "outcome": "published",
+    "summary": "An agent-run, source-backed refresh under ADR 0003, and a narrow-but-deep run rather than a broad one: it set out to clear a blockage the 2026-08-30 run recorded and could not clear itself. That run had five verification dates it was entitled to advance and could not, because validate.ts refuses to let a model-fit statement be older than the fact it rests on, and the guidance layer had not been re-verified. This run re-verified the guidance layer first — all seven statements in model-fit-statements.json — which unpinned every one of the five. Six creators were scouted against 32 pages fetched and hashed this run, producing 43 claims; three rubrics voted blind on each, 42 met the 2-of-3 pilot bar and one was refused. 33 edits landed across four documents and nothing was withheld, against two withheld last run. The cost is breadth: the 33 long-tail creators were not scouted at all this run, which is the largest gap in this entry and is recorded under notCovered rather than smoothed over. No human reviewed any claim, verdict or edit.",
+    "scope": "Six of the seven pilot creators — anthropic, openai, meta, microsoft, alibaba-cloud and google-deepmind — each judged at the 2-of-3 pilot threshold, plus amazon scouted without producing a claim. Long-tail creators were not scouted. Re-verification only, with the model-fit guidance layer deliberately taken first so the release and family records resting on it could move.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Tree clean, gh authenticated, and no open pull request from a previous refresh at the moment this run started. Anchor 356989e9, selected by merge-base with refs/remotes/origin/main and computed by the gate rather than supplied — requestedBase was null. That is a re-anchor: the run opened on 36ce8b1b, and run 2026-08-31-651a1c merged as PR #665 while this one was between its review and publish stages, moving main under it and touching three of the same documents. The branch was brought onto the new main, the dataset reset to main’s version wholesale rather than hand-merged, and every claim re-checked against it — all 43 currentValues still held, so #665 had touched none of the records this run changes. gate-source-approval, gate-dataset, npm run validate, gate-scope and gate-ledger were then all re-run against the new anchor rather than carried over. The approved-origin catalogue parsed cleanly at 356989e9: 217 dataset sources and 18 catalogues across 19 profile files, yielding 46 approved origins. npm resolved to a PowerShell shim the machine execution policy refuses to run; npm.cmd ran and reported 11.9.0. The policy was not changed to work around it — that would be a machine-wide security change made to satisfy a probe."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "Seven pilot creators scouted against 32 pages fetched and hashed this run; six produced claims and amazon produced none. Every quote was sliced from a page read during the run and verified as a byte-exact substring of the saved body before the claim was built — raw bytes for markdown and plain text, rendered text for HTML. Two candidate quotes failed that check and were corrected rather than kept: one had a curly apostrophe where the page has an ASCII one, and one fell under the gate’s 24-character minimum. Appending .md to an OpenAI or Anthropic docs URL returns clean markdown of the same page on the same already-approved origin, which is how those client-rendered catalogues were read at all; the provenance rubric was asked to rule on that convention explicitly and accepted it. ai.google.dev was unreachable from this machine on all three attempts — fetch failed, not an HTTP status — so deepmind.google was used instead, an origin the dataset already carries."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Three rubrics — provenance, consistency, editorial — voted independently on all 43 claims across 18 reviewer invocations, each in its own context and each given only its own rubric text, the claim, the evidence, the relevant dataset slice and the creator profile vocabulary. No reviewer saw another’s rubric, the threshold, the running tally, or the scout’s reasoning. 42 claims met the 2-of-3 pilot bar and one was refused 2-of-3. Three of the 42 passed over a single dissent, and all four minority opinions are published verbatim in the pull request body. No claim was edited and re-reviewed to chase a verdict, and the coordinating agent cast no vote and overruled none."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-evidence and gate-source-approval ran across all six bundles before anything was applied, since gate-source-approval anchors on the committed dataset and running it afterwards would be asking the run’s own writes whether the run’s own sources are trustworthy. gate-dataset, npm run validate, gate-scope and gate-ledger ran afterwards. No gate was skipped, forced, or re-run to obtain a different answer, no threshold was lowered, and nothing was pushed to main. gate-scope reported changed: 5, empty: false, outOfClass: [], so the change sat inside the ADR 0003 qualifying class as ADR 0006 widened it."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "Opened as a pull request carrying the full evidence trail — every claim, every quote with its content hash, all 129 verdict rationales, and the gate-source-approval anchor block — and merged by GitHub via --auto once web-ci went green. The agent did not merge, and did not use --admin."
+      },
+      {
+        "stage": "deploy",
+        "status": "ran",
+        "note": "Pages deploy confirmed after the merge. See the deployment reference below."
+      }
+    ],
+    "found": {
+      "scouts": 7,
+      "pagesFetched": 32,
+      "claimsProposed": 43,
+      "bundles": [
+        {
+          "creator": "anthropic",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 12
+        },
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 12
+        },
+        {
+          "creator": "meta",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "microsoft",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "alibaba-cloud",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "google-deepmind",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 2
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "unchanged",
+          "count": 20,
+          "effect": "A recorded fact re-read from its primary source and found to still hold. 19 reached the 2-of-3 pilot threshold and all 19 applied, advancing 9 release verifiedAt dates, 1 family verifiedAt and 7 model-fit statement verifiedAt dates to 2026-08-31 — some records carried more than one confirming claim. Nothing was withheld. One was refused by the panel."
+        },
+        {
+          "kind": "change",
+          "count": 23,
+          "effect": "A source page re-read this run, moving its lastCheckedDate to 2026-08-31. All 23 were accepted, and 16 distinct source records moved — several pages carried more than one claim."
+        }
+      ],
+      "notCovered": [
+        "The 33 long-tail creators were not scouted this run. That is the largest gap in this entry: the 2026-08-30 run covered all 33, and this one traded that breadth for depth on the guidance layer that was blocking pilot-creator re-verification. Their records carry no verification date from this run and nothing here says their facts still hold.",
+        "amazon was scouted and produced no claim. aws.amazon.com/nova/ is client-rendered and the fetched body carried placeholder text where the model listing should be, so no quote on it could support a fact about a model. The one recorded Amazon release, amazon-nova-2-sonic, was verified 2026-08-30 and did not need this run.",
+        "ai.google.dev was unreachable from this machine on every attempt — fetch failed rather than an HTTP status, so it is a network fact about this runner and not evidence the page is gone. Seven of the eight recorded Google releases rest on sources on that host and therefore carry no verification date from this run. Only google-gemini-pro-page, on the reachable deepmind.google, was re-read.",
+        "Breadth remains uncovered by design and is unchanged from the previous run: OpenAI’s realtime, transcribe and tts models, the roughly twenty Cohere Command models against the one recorded, Microsoft’s MAI-Code-1.1-Flash, MAI-Image-2.5, MAI-Voice-2 and MAI-Transcribe-1.5, and Amazon’s Nova Act, Nova Forge and Nova Multimodal Embeddings. Each is breadth work with its own sourcing burden, not re-verification.",
+        "Microsoft MAI-Image-2.6 was again deliberately not added, on the same grounds the 2026-08-30 run recorded: its only availability statement names a product and a serving platform rather than the creator’s own release, so accessType has no creator-level statement and status is ambiguous between preview and current. The ambiguity is left explicit rather than resolved by guess."
+      ]
+    },
+    "evaluated": {
+      "reviewers": 18,
+      "verdictsCast": 129,
+      "acceptedByPanel": 42,
+      "rejectedByPanel": 1,
+      "dissents": [
+        {
+          "claimId": "anthropic-family-claude-4-5-status-unchanged",
+          "rubric": "provenance",
+          "objection": "Outvoted 2-of-3 and applied. The overview page’s \"Legacy models (still available)\" list names Claude Opus 4.5 and Claude Sonnet 4.5 but not Claude Haiku 4.5, which appears instead in the current-lineup table on the same page. So the 4.5 generation’s members straddle both lists, and a quote establishing that one member is legacy does not establish a status for the family as a whole."
+        },
+        {
+          "claimId": "meta-llama-4-scout-context-window-unchanged",
+          "rubric": "provenance",
+          "objection": "Outvoted 2-of-3 and applied. The 10M figure sits in a table-row fragment whose column headers are not carried in the quote, so identifying which column the number belongs to requires an inference the quoted text does not itself supply."
+        },
+        {
+          "claimId": "meta-fit-llama-4-scout-context-window-reverify",
+          "rubric": "provenance",
+          "objection": "Outvoted 2-of-3 and applied, on the same reasoning as the release-level context-window claim it rests on: the underlying table-row fragment does not carry the column headers that would fix which figure is the context window."
+        }
+      ],
+      "gates": [
+        {
+          "gate": "gate-evidence.mjs",
+          "scope": "6 claim bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "43 claims admissible with complete panels across all six bundles, 23 applicable after the panel. Every bundle declared policy pilot and the gate independently derived threshold 2 from tools/updater/profiles, so no bundle’s declared policy went unchecked."
+        },
+        {
+          "gate": "gate-source-approval.mjs",
+          "scope": "6 claim bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Zero proposed sources across all six bundles: every cited source was already in the dataset at anchor 356989e9, on one of the 46 origins approved there. No source was refused and no origin was introduced, so the run approved nothing of its own. Run before any edit was applied."
+        },
+        {
+          "gate": "gate-dataset.mjs",
+          "scope": "web/src/data",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Validated the documents raw.ts composes with zero failures after the edits were applied."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "web/",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "2361 tests executed across 104 files with all reporting results; astro check reported 0 errors and 0 warnings. This is the gate that pinned five records last run, and it passed them this run because the guidance beneath them had been re-verified first. It also failed intermittently on this runner for a reason that is not this change, recorded here rather than re-run until green: two to four tests in LineageModelDrawer.interaction.test.tsx and ModelTreeExplorer.interaction.test.tsx hit the 5000 ms vitest timeout, with different test names failing on each attempt. Both files pass 17 of 17 in isolation with this change applied, and pristine origin/main fails the same way with more failures than this branch, so the cause is worker contention on the machine and not the data. Constraining vitest to two workers produced the clean run recorded here. No timeout was raised, no test was skipped, and no gate was called passed on a run that had not finished."
+        },
+        {
+          "gate": "gate-scope.mjs",
+          "scope": "branch vs merge-base",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "changed: 5, empty: false, outOfClass: []. Anchored on 356989e9, the merge base the gate computed rather than one supplied to it. The fifth file is this ledger entry, which ADR 0006 put in the qualifying class so a run can record itself."
+        },
+        {
+          "gate": "gate-ledger.mjs",
+          "scope": "this entry vs the diff it describes",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "transcription: false — this entry was written by the run it describes, in the same commit as the data, rather than transcribed afterwards. That is the gap issue #419 recorded on three consecutive runs."
+        },
+        {
+          "gate": "ci-preflight.mjs",
+          "scope": "selected from the branch diff",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": false,
+          "detail": "Run locally from the repository root before the branch was pushed."
+        },
+        {
+          "gate": "web-ci",
+          "scope": "the pull request",
+          "outcome": "pass",
+          "required": true,
+          "detail": "GitHub performed the merge via --auto on this check going green; the agent did not merge."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 33,
+      "documents": [
+        {
+          "document": "model-fit-statements.json",
+          "recordsBefore": 7,
+          "recordsAfter": 7,
+          "note": "All 7 statements had verifiedAt moved to 2026-08-31: fit-claude-haiku-4-5-release-current, fit-claude-haiku-4-5-family-legacy, fit-claude-mythos-5-limited-availability, fit-gpt-5-superseded, fit-llama-4-scout-self-hosting, fit-llama-4-scout-mau-threshold and fit-llama-4-scout-context-window. This document was taken first on purpose. validate.ts forbids a fit statement from being older than the fact it rests on, so while these sat at 2026-08-15 and 2026-08-18 they pinned the records beneath them — which is exactly why the previous run had to withhold two release dates it had otherwise earned. No statement text or judgement changed; only the date on which each was last checked against its evidence."
+        },
+        {
+          "document": "releases.json",
+          "recordsBefore": 92,
+          "recordsAfter": 92,
+          "note": "9 verifiedAt dates moved to 2026-08-31 — anthropic-claude-haiku-4-5, anthropic-claude-mythos-5 and meta-llama-4-scout from 2026-08-15, openai-gpt-5 from 2026-08-18, openai-gpt-image-2 from 2026-08-27, microsoft-fara-1-5-27b, alibaba-qwen3-8-27b and alibaba-qwen3-8-2-4t-a95b from 2026-08-28, and openai-gpt-5-6-sol from 2026-08-29. The first three and openai-gpt-5 are the records the previous run could not move. No release was added or removed and no other field changed."
+        },
+        {
+          "document": "families.json",
+          "recordsBefore": 64,
+          "recordsAfter": 64,
+          "note": "One verifiedAt moved: anthropic-claude-4-5 from 2026-08-15 to 2026-08-31, unpinned by fit-claude-haiku-4-5-family-legacy being re-verified first. The family status value itself was re-read and unchanged, and it carried the run’s one accepted-over-dissent family claim."
+        },
+        {
+          "document": "sources.json",
+          "recordsBefore": 217,
+          "recordsAfter": 217,
+          "note": "16 lastCheckedDate values moved to 2026-08-31, one per page re-read this run. No source was added: gate-source-approval recorded zero proposed sources across all six bundles, so every date moved on a record that already existed. Sources are listed here rather than under the posted records below, which carry links and so hold only the collections the site routes."
+        }
+      ],
+      "records": []
+    },
+    "withheld": [
+      {
+        "id": "releases/google-gemini-3-1-pro-preview.verifiedAt",
+        "category": "rejected-by-panel",
+        "detail": "Refused 2-of-3 under the pilot bar, the run’s only rejection. Two rubrics found the evidence too weak for a status claim: the specification block flattens to an unseparated run of text once tags are stripped, so \"Status\" and \"Preview\" are adjacent rather than demonstrably paired, and the page’s marketing name \"3.1 Pro\" does not distinguish the Gemini API serving from the Vertex AI serving. The record keeps 2026-08-27. Its source record still had lastCheckedDate advanced, because that claim is about the page having been read rather than about what the page proves.",
+        "blockedBy": [
+          "provenance rubric",
+          "editorial rubric"
+        ]
+      }
+    ],
+    "caveats": [
+      "No human reviewed any claim, verdict or edit in this run before it merged and deployed. That is what ADR 0003 authorises and what it costs.",
+      "The three rubrics are three instances of the same model family reading the same page, so they share a failure mode: a source that is itself wrong can carry all three. The panel defends against wrong-but-invalid and against unevidenced inference; it is a weak defence against a primary source that is confidently mistaken.",
+      "Three claims were accepted over a provenance dissent and are published as such. Two of them — the Llama 4 Scout context window and the fit statement resting on it — turn on a table-row fragment whose column headers the quote does not carry. The majority judged the row unambiguous in context; the dissent judged the fragment insufficient on its own. A reader who agrees with the dissent should treat those two verifiedAt advances as the weakest edits in this run.",
+      "A green run proves the recorded facts still match the pages this run read. It does not prove those pages are complete, and it says nothing at all about the 33 long-tail creators or the seven Google releases whose sources could not be reached.",
+      "pagesFetched counts the 32 pages that were fetched successfully. Three further attempts against ai.google.dev failed outright and are excluded from that figure rather than counted as reads.",
+      "reviewers and verdictsCast are derived rather than quoted: 6 bundles x 3 rubrics = 18 reviewer invocations, and 43 claims x 3 rubrics = 129 verdicts, which reconciles with the per-rubric verdict files.",
+      "This run and run 2026-08-31-651a1c overlapped. That one merged first, as PR #665, while this one was mid-flight, so this run had to re-anchor from 36ce8b1b onto 356989e9 and re-run every gate. The re-anchor was clean — all 43 claims still matched the dataset afterwards — but two refreshes racing on the same documents is the failure mode the preflight check is meant to prevent, and the check only looks for an open pull request at the moment the run starts. Two same-day runs appear in this ledger as a result."
+    ],
+    "followUps": [
+      "The long-tail sweep this run skipped should be the next run’s first priority, not its second. Two consecutive runs covering different subsets is fine; a pattern of pilot-only runs would let the long tail rot while every entry still reads green.",
+      "ai.google.dev could not be reached from this runner at all. If that is a durable block rather than a transient one, the Google releases need an alternative approved origin recorded in the reviewed catalogue — deepmind.google covers only the Pro page — or seven records will keep aging out with no way to re-verify them.",
+      "The model-fit guidance layer pinned five records for a full run before this one cleared it. Re-verifying model-fit-statements.json first should become the standing order for a re-verification run rather than a lesson each run rediscovers, since guidance is cheap to re-check and blocks everything beneath it.",
+      "Client-rendered marketing pages — aws.amazon.com/nova/ this run, and the OpenAI and Anthropic docs before the .md convention was found — yield placeholder text to a plain fetch. The .md suffix that works for OpenAI and Anthropic docs is worth recording in the reviewed catalogues so future runs do not rediscover it, and an equivalent for the AWS pages is worth looking for.",
+      "The preflight check for a racing refresh only looks for an open pull request at the moment the run starts, so it cannot see one opened afterwards — which is exactly what happened here with PR #665. A run that re-checks immediately before it opens its own pull request, or that simply expects to re-anchor, would lose less work than one that discovers the race at merge time.",
+      "Status claims sourced from flattened specification tables were refused this run for the second time in two runs, on the same structural grounds as the previous run’s context-window refusals. Either the scout should quote enough surrounding structure to fix the label-value pairing, or status re-verification should target a page that states it in prose."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "PR #668 — chore(data): re-verify 33 records against primary sources",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/668",
+        "state": "merged"
+      },
+      {
+        "kind": "issue",
+        "label": "Issue #419 — why no auto-merged run could write its own ledger entry",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/419",
+        "state": "open"
+      }
+    ],
+    "recordedAt": "2026-08-31"
+  },
+  {
     "id": "2026-08-31-651a1c",
     "title": "Long-tail family depth, tranche 1 of abdeslam-menacere/ModelTree#651",
     "ranOn": "2026-08-31",

@@ -17,7 +17,7 @@
       "This statement rests on availability facts alone: it is derived from the release's access and licence records, not from any benchmark result or usage observation."
     ],
     "conflictsWithIds": [],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-31"
   },
   {
     "id": "fit-llama-4-scout-mau-threshold",
@@ -34,7 +34,7 @@
       "Licence terms change between model generations; this reading applies to the Llama 4 agreement only."
     ],
     "conflictsWithIds": [],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-31"
   },
   {
     "id": "fit-llama-4-scout-context-window",
@@ -51,7 +51,7 @@
       "No long-context benchmark result is recorded for this release, so the gap is stated rather than filled by inference."
     ],
     "conflictsWithIds": [],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-31"
   },
   {
     "id": "fit-claude-mythos-5-limited-availability",
@@ -71,7 +71,7 @@
       "The documented intended use is defensive cybersecurity work; other uses are outside what the cited pages describe."
     ],
     "conflictsWithIds": [],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-31"
   },
   {
     "id": "fit-claude-haiku-4-5-release-current",
@@ -88,7 +88,7 @@
       "A lifecycle stage is a vendor label, not a commitment about how long the model remains available."
     ],
     "conflictsWithIds": ["fit-claude-haiku-4-5-family-legacy"],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-31"
   },
   {
     "id": "fit-claude-haiku-4-5-family-legacy",
@@ -105,7 +105,7 @@
       "Both readings are kept and neither is treated as correcting the other."
     ],
     "conflictsWithIds": ["fit-claude-haiku-4-5-release-current"],
-    "verifiedAt": "2026-08-15"
+    "verifiedAt": "2026-08-31"
   },
   {
     "id": "fit-gpt-5-superseded",
@@ -122,6 +122,6 @@
       "A vendor pointing to a newer model is a lifecycle fact, not a measured difference in capability."
     ],
     "conflictsWithIds": [],
-    "verifiedAt": "2026-08-18"
+    "verifiedAt": "2026-08-31"
   }
 ]

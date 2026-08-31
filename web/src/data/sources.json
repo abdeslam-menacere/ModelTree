@@ -58,7 +58,7 @@
     "title": "GPT-5.6 Sol model documentation",
     "type": "official-docs",
     "publisherId": "openai",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-08-31",
     "notes": "Lists text and image input, text output, a 1,050,000-token context window, 128,000 max output tokens, and a 2026-02-16 knowledge cutoff. States the gpt-5.6 alias routes to Sol and that Sol roughly corresponds to the unsuffixed tier of earlier GPT-5 families."
   },
   {
@@ -131,7 +131,7 @@
     "title": "GPT-5 model documentation",
     "type": "official-docs",
     "publisherId": "openai",
-    "lastCheckedDate": "2026-08-18",
+    "lastCheckedDate": "2026-08-31",
     "notes": "Default snapshot gpt-5-2025-08-07, which is the basis for the recorded release date. OpenAI labels GPT-5 its previous model and recommends GPT-5.6. Lists text and image input, text output, a 400,000-token context window, 128,000 max output tokens, and a 2024-09-30 knowledge cutoff."
   },
   {
@@ -140,7 +140,7 @@
     "title": "Models overview",
     "type": "official-docs",
     "publisherId": "anthropic",
-    "lastCheckedDate": "2026-08-30"
+    "lastCheckedDate": "2026-08-31"
   },
   {
     "id": "anthropic-fable-5-mythos-5-docs",
@@ -148,7 +148,7 @@
     "title": "Introducing Claude Fable 5 and Claude Mythos 5",
     "type": "official-docs",
     "publisherId": "anthropic",
-    "lastCheckedDate": "2026-08-30"
+    "lastCheckedDate": "2026-08-31"
   },
   {
     "id": "anthropic-model-deprecations",
@@ -156,7 +156,7 @@
     "title": "Model deprecations",
     "type": "official-docs",
     "publisherId": "anthropic",
-    "lastCheckedDate": "2026-08-29"
+    "lastCheckedDate": "2026-08-31"
   },
   {
     "id": "anthropic-opus-5-announcement",
@@ -183,7 +183,7 @@
     "type": "official-announcement",
     "publisherId": "anthropic",
     "publishedDate": "2025-10-15",
-    "lastCheckedDate": "2026-08-26",
+    "lastCheckedDate": "2026-08-31",
     "notes": "The newsroom dates this announcement 15 Oct 2025, while the pinned model ID is claude-haiku-4-5-20251001."
   },
   {
@@ -225,7 +225,7 @@
     "title": "Gemini Pro",
     "type": "official-docs",
     "publisherId": "google-deepmind",
-    "lastCheckedDate": "2026-08-15"
+    "lastCheckedDate": "2026-08-31"
   },
   {
     "id": "google-gemini-3-1-flash-lite-docs",
@@ -303,7 +303,7 @@
     "title": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
     "type": "model-card",
     "publisherId": "meta",
-    "lastCheckedDate": "2026-08-15"
+    "lastCheckedDate": "2026-08-31"
   },
   {
     "id": "meta-llama-4-maverick-model-card",
@@ -319,7 +319,7 @@
     "title": "Llama 4 Community License Agreement",
     "type": "repository",
     "publisherId": "meta",
-    "lastCheckedDate": "2026-08-15",
+    "lastCheckedDate": "2026-08-31",
     "notes": "Section 2 requires a separate Meta licence above 700 million monthly active users, so the licence is not OSI-approved."
   },
   {
@@ -362,7 +362,7 @@
     "title": "meta-llama organization",
     "type": "repository",
     "publisherId": "meta",
-    "lastCheckedDate": "2026-08-15",
+    "lastCheckedDate": "2026-08-31",
     "notes": "Groups Llama 4 under Current and every Llama 3.x release under History."
   },
   {
@@ -425,7 +425,7 @@
     "title": "OpenAI News RSS feed",
     "type": "official-announcement",
     "publisherId": "openai",
-    "lastCheckedDate": "2026-08-26",
+    "lastCheckedDate": "2026-08-31",
     "notes": "OpenAI's news RSS feed. Used to date the GPT-5.6 Cyber introduction: the item 'Expanding Daybreak as the Cyber Defense Window Narrows', whose description introduces GPT-5.6-Cyber, carries pubDate Mon, 10 Aug 2026."
   },
   {
@@ -565,7 +565,7 @@
     "title": "GPT-Image-2 model documentation",
     "type": "official-docs",
     "publisherId": "openai",
-    "lastCheckedDate": "2026-08-27",
+    "lastCheckedDate": "2026-08-31",
     "notes": "Lists the gpt-image-2 and gpt-image-2-2026-04-21 API identifiers, text and image input, image output, and image-generation endpoint support."
   },
   {
@@ -574,7 +574,7 @@
     "title": "OpenAI model catalog",
     "type": "official-docs",
     "publisherId": "openai",
-    "lastCheckedDate": "2026-08-27",
+    "lastCheckedDate": "2026-08-31",
     "notes": "OpenAI's developer model catalogue. Names GPT-5.6 Sol as the flagship model and lists GPT-Image-2 as the current image-generation model."
   },
   {
@@ -1009,7 +1009,7 @@
     "title": "Qwen/Qwen3.8-2.4T-A95B model card",
     "type": "model-card",
     "publisherId": "alibaba-cloud",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-08-31",
     "notes": "States \"Number of Parameters: 2.4T in total and 95B activated\" and \"Context Length: 262,144 natively and extensible up to 1,010,000 tokens\". Its licence metadata names qwen3.8-max, a licence of the creator’s own drafting rather than an OSI-approved one. The card also describes Qwen3.8-Max as \"the official version based on Qwen3.8-2.4T-A95B\" served by Qwen Cloud, so that hosted service is a different artefact from these weights; no Qwen Cloud platform or deployment is recorded because no source consulted states who operates it."
   },
   {
@@ -1018,7 +1018,7 @@
     "title": "Qwen/Qwen3.8-27B model card",
     "type": "model-card",
     "publisherId": "alibaba-cloud",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-08-31",
     "notes": "States \"Number of Parameters: 27B\", \"Context Length: 262,144 natively and extensible up to 1,000,000 tokens\", apache-2.0 licensing and an image-text-to-text pipeline. The pipeline tag is the creator’s own modality statement and is what this dataset records, in preference to a third party’s broader description."
   },
   {
@@ -1086,7 +1086,7 @@
     "title": "microsoft/Fara1.5-27B model card",
     "type": "model-card",
     "publisherId": "microsoft",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-08-31",
     "notes": "States \"Developer: Microsoft Research AI Frontiers\", \"Release date: 21 May 2026\", MIT licensing, 27B parameters, \"Context length 262,144\", inputs of a text goal plus screenshots and text outputs, and that the model is \"supervised fine-tuned from Qwen3.5-27B\". The base model it names is created by Alibaba Cloud and is not recorded in this dataset, so the derivation is stated in prose rather than linked."
   },
   {
