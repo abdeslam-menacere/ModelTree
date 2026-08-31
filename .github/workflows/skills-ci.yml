@@ -20,13 +20,35 @@ name: Skills CI
 # have anything to read, and finishes green in seconds when they do not. That is
 # what makes the `skills-ci` check safe to mark required.
 #
+# It also runs on every push to `main`, unfiltered by path for that same reason.
+# Until #639 the trigger list named no push event, so this check never ran on
+# `main` at all: it reported on the pull request and then nothing re-ran it on
+# the commit that merged. With `strict` false — see the dated reading below —
+# two pull requests can each be green against different bases, merge with no
+# textual conflict, and still combine into a gate suite that is broken on `main`
+# with nothing there to notice. `web-ci` and `web-e2e` re-run on `main` and would
+# catch their own equivalent; this one could not.
+#
+# Unlike `web-ci`, the scope step below does not diff a push's own range — any
+# event other than a pull request runs the gates outright. That is a different
+# trade rather than a departure from the pattern: what `web-ci` buys by diffing a
+# push is skipping an `npm ci` and a full production build, while these steps
+# install nothing and run dependency-free Node scripts, so the run a skip would
+# save here is worth less than the coverage it would cost.
+#
+# The `concurrency` block below already tells the events apart, and needs no
+# change for the push trigger: `cancel-in-progress` is true only for a pull
+# request, so a `main` run is never cancelled by a later push and every commit on
+# `main` keeps its own verdict.
+#
 # Whether it *is* required is a branch-protection setting that lives outside the
 # repository tree, which no workflow file can observe and this one therefore does
 # not assert: read it with
-# `gh api "repos/{owner}/{repo}/branches/main/protection"`. Measured 2026-08-28
-# the required contexts were `web-ci` and `skills-ci`, dated because an undated
-# claim about that setting has no way to learn it has gone false — which is how
-# the sentence this replaces came to say the opposite of the truth (#471).
+# `gh api "repos/{owner}/{repo}/branches/main/protection"`. Measured 2026-08-31
+# the required contexts were `web-ci`, `skills-ci` and `web-e2e`, and `strict`
+# was false, dated because an undated claim about that setting has no way to
+# learn it has gone false — which is how the sentence this replaces came to say
+# the opposite of the truth (#471).
 #
 # The scope decision should cover everything the gates read, and one part of it
 # is pinned to its source: `gate-dataset.mjs` reads exactly one directory —
@@ -39,6 +61,9 @@ name: Skills CI
 
 on:
   pull_request:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -81,7 +106,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          # A manual dispatch has no base to diff against, so it always runs.
+          # Every event that is not a pull request runs the gates outright. The
+          # triggers above admit two of those today — a push to `main` and a
+          # manual dispatch — and this branch also catches whatever a later edit
+          # adds to that list, which is why it tests for the pull request rather
+          # than enumerating its complement. A dispatch has no base to diff
+          # against at all; a push has one, and the header records why this
+          # workflow spends the run rather than narrowing it.
           if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
             echo "Event is $GITHUB_EVENT_NAME; running the gates."
             echo "run=true" >> "$GITHUB_OUTPUT"
