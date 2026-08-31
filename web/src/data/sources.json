@@ -1503,7 +1503,7 @@
     "publisherId": "stability-ai",
     "publishedDate": "2024-10-22",
     "lastCheckedDate": "2026-08-29",
-    "notes": "Stability AI's own announcement of the generation. States \"Stable Diffusion 3.5 Large: At 8.1 billion parameters, with superior quality and prompt adherence, this base model is the most powerful in the Stable Diffusion family\" and that it is \"ideal for professional use cases at 1 megapixel resolution\". The page's own metadata carries \"<meta itemprop=\\\"datePublished\\\" content=\\\"2024-10-22T11:43:00+0000\\\"/>\", which is the recorded release date; the Hub's record for the weights reports the same day independently."
+    "notes": "Stability AI's own announcement of the generation. States \"Stable Diffusion 3.5 Large: At 8.1 billion parameters, with superior quality and prompt adherence, this base model is the most powerful in the Stable Diffusion family\" and that it is \"ideal for professional use cases at 1 megapixel resolution\". The page's own metadata carries \"<meta itemprop=\"datePublished\" content=\"2024-10-22T11:43:00+0000\"/>\", which is the recorded release date; the Hub's record for the weights reports the same day independently."
   },
   {
     "id": "stability-ai-sd-3-5-large-model-card",
