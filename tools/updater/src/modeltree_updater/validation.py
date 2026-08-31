@@ -51,6 +51,14 @@ LIFECYCLE_STATUS = (
     "legacy",
     "deprecated",
     "research",
+    # Mirrors `lifecycleStatus` in `web/src/data/schema.ts`, which is the source
+    # of truth for the dataset. `unknown` is the faithful value for a source that
+    # states no lifecycle term at all (a bare model card); it is a deliberate
+    # vocabulary member, not a nullable escape hatch, exactly like `unknown` in
+    # the `modelSelection` enum. Kept in lockstep so a record the web schema
+    # accepts is never rejected here in the permissive direction. See
+    # docs/adr/0007-lifecycle-status-carries-an-explicit-unknown-member.md.
+    "unknown",
 )
 MODEL_CATEGORY = (
     "language-reasoning",
