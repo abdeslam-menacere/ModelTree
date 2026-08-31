@@ -12,11 +12,11 @@ function read(relative: string): string {
 
 const schemaSource = read('./schema.ts');
 const readme = read('../../README.md');
-const adr = read('../../../docs/adr/0007-a-platform-api-record-is-corroborating-metadata.md');
+const adr = read('../../../docs/adr/0009-a-platform-api-record-is-corroborating-metadata.md');
 
 /**
  * `dateBasis` records that a committed date is a hosting platform's measurement
- * rather than a creator's statement (issue #682, ADR 0007). Two things make it
+ * rather than a creator's statement (issue #682, ADR 0009). Two things make it
  * worth anything, and neither is enforced by the Zod schema:
  *
  *  1. the marker names the artefact it rests on, rather than asserting a mood --
@@ -127,14 +127,14 @@ describe('dateBasis marks a platform-observed date', () => {
     }
   });
 
-  // ADR 0007's guardrail, as a check rather than a hope. Each surface that
+  // ADR 0009's guardrail, as a check rather than a hope. Each surface that
   // explains the field must carry the disclaimer; a rewrite that drops it fails
   // here rather than shipping a field whose silence reads as verification.
   it('states on every surface that absence asserts nothing', () => {
     const surfaces = [
       ['schema', schemaSource],
       ['README', readme],
-      ['ADR 0007', adr],
+      ['ADR 0009', adr],
     ] as const;
     for (const [name, text] of surfaces) {
       expect(`${name}: ${/absence[^.]{0,60}asserts nothing|absence[^.]{0,60}not an assertion/i.test(text)}`)

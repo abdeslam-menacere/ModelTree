@@ -1,4 +1,4 @@
-# ADR 0007: A Platform API Record Is Corroborating Metadata, Never a Creator Claim
+# ADR 0009: A Platform API Record Is Corroborating Metadata, Never a Creator Claim
 
 - Status: Accepted
 - Date: 2026-08-31
@@ -7,9 +7,13 @@
   *for*, without removing any source or origin from the approved set, and it adds
   one optional field to `releaseSchema` and `familySchema`. It does not modify ADR
   0003's qualifying class, ADR 0005's statement of what `gate-evidence.mjs` proves,
-  or ADR 0006's ledger rules. It is the first decision here to distinguish the
-  *kinds of fact* one source can carry, which is a distinction the approved-origin
-  set was never built to express.
+  or ADR 0006's ledger rules. It leaves ADR 0007's entity-boundary rule and ADR
+  0008's `lifecycleStatus` enum untouched, and touches a different part of
+  `web/src/data/schema.ts` than ADR 0008 does. Like ADR 0008, it changes the
+  schema, so it sits outside the ADR 0003 qualifying class and takes the ordinary
+  human-reviewed path rather than reaching `main` unattended. It is the first
+  decision here to distinguish the *kinds of fact* one source can carry, which is
+  a distinction the approved-origin set was never built to express.
 
 ## Context
 
@@ -131,8 +135,12 @@ Concretely:
 
 ### Positive
 
-- The site stops presenting a hosting platform's upload timestamp as a creator's
-  release date, which is the user-visible harm in #682.
+- The dataset can record that a committed date is a hosting platform's upload
+  timestamp rather than a creator's release claim — the distinction #682 is
+  about, which the schema previously had no way to express. This changes what is
+  **recordable**, not what the site renders: `dateBasis` is read by no component,
+  so page output is unchanged. Surfacing it to readers is a separate decision and
+  belongs to its own issue.
 - A reader and a later run can both tell, from the data alone, which dates are
   known not to be creator statements. That was previously recoverable only from
   prose in a source note, and only where a run happened to write it.

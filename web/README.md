@@ -113,7 +113,7 @@ creator-stated; it means no basis has been established either way, which is why
 there is no `creator-stated` value to reach for. Equality between a committed date
 and a cited repository's `createdAt` is evidence and not proof — a creator may
 genuinely release on the day they upload — so a record is marked only when the
-date appears in its cited sources solely as platform metadata. ADR 0007 records
+date appears in its cited sources solely as platform metadata. ADR 0009 records
 the decision.
 <!-- date-basis-policy:end -->
 
@@ -389,7 +389,7 @@ reading and the disagreement is written down here rather than resolved silently.
   never in Moonshot AI's prose, whose own changelog instead lists 2025.7.15,
   2025.7.18 and 2025.8.11 — card revisions, the earliest four days later. The date
   is kept because it bounds when the model existed, and it declares `dateBasis`
-  `platform-first-published` so it is not read as a creator claim (ADR 0007).
+  `platform-first-published` so it is not read as a creator claim (ADR 0009).
   <!-- claim: {"kind":"records","entity":"releases","id":"moonshot-ai-kimi-k2-instruct","field":"releaseDate","value":"2025-07-11"} -->
   <!-- claim: {"kind":"records","entity":"releases","id":"moonshot-ai-kimi-k2-instruct","field":"dateBasis","value":"platform-first-published"} -->
   <!-- claim: {"kind":"lists","entity":"releases","id":"moonshot-ai-kimi-k2-instruct","field":"sourceIds","value":"hugging-face-kimi-k2-instruct-hub-record"} -->

@@ -37,7 +37,7 @@ export const datePrecision = z.enum(DATE_PRECISIONS);
 
 /**
  * How a committed date came to be known, recorded **only** where it is known not
- * to be a creator statement (ADR 0007).
+ * to be a creator statement (ADR 0009).
  *
  * `platform-first-published` means: the value is a hosting platform's own
  * measurement of when an artefact appeared there — a Hugging Face Hub
@@ -55,7 +55,7 @@ export const datePrecision = z.enum(DATE_PRECISIONS);
  * sweep that writes `creator-stated` across every unmarked record on the
  * strength of nothing. That would convert an unverified field into a positive
  * claim across the whole dataset, which is the silent platform-fact-as-creator-
- * claim conversion of #682 rebuilt one level up. ADR 0007's Guardrails forbid
+ * claim conversion of #682 rebuilt one level up. ADR 0009's Guardrails forbid
  * any text — here, in `web/README.md`, or in a gate message — that reads absence
  * as verification.
  *
