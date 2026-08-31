@@ -348,10 +348,18 @@ export const releaseSchema = z.object({
   //    THE DECISION a bare "K"/"M" abbreviation is read by, when a *new* record
   //    is written, follows from those three routes rather than sitting open:
   //    read it decimally — "K" is 1000, "M" is 1,000,000 — which is route 2 and
-  //    what every bare-abbreviation record in this dataset except `upstage`
-  //    does. Depart from that only when the source's own context establishes a
-  //    binary buffer, as `upstage`'s Phi-3-`4K` lineage does, and when it does,
-  //    the record's note must state that basis so the departure is legible. The
+  //    the default a bare-abbreviation record takes. Depart from that only when
+  //    the source's own context establishes a binary buffer, as `upstage`'s
+  //    Phi-3-`4K` lineage does; when it does, the record's note must state the
+  //    resulting integer and that basis so the departure is legible. How many
+  //    records read which way is not a count this comment carries — the
+  //    `context-window-reading.test.ts` guard is the authority, flagging any
+  //    stored value that is the binary reading of a bare abbreviation in its
+  //    notes when no note states the resulting integer. A stored binary value
+  //    whose source fixes no such buffer is not a sanctioned reading but an
+  //    unresolved one: its note must say so and flag it, to be answered by its
+  //    own source and its own issue per the rule below, never by editing the
+  //    datum here. The
   //    binary reading is rejected as the *default* for a bare abbreviation
   //    because adopting it there would silently expand a card's bare "128k" to
   //    `131072` across many records — replacing a figure taken from a creator
