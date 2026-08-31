@@ -2,6 +2,12 @@ import type { Dataset, ModelFamily, ModelRelease, Organization } from '../data/s
 import { comparePartialDates, comparePartialDatesDescending } from '../data/partial-date';
 import { hasRecordedRelease } from './family-branch';
 import { compareLabels, organizationLabel } from './organization-name';
+import type { VariantPositioning } from '../data/variant-positioning-schema';
+import {
+  buildVariantPositioningForFamily,
+  type FamilyVariantPositioningView,
+  type PositioningCatalog,
+} from './variant-positioning';
 
 /**
  * Normalized view models for the homepage lineage explorer.
@@ -46,6 +52,12 @@ export interface LineageFamilyView {
   linkCount: number;
   /** True when the catalog records any predecessor, successor, or sibling here. */
   hasRecordedLineage: boolean;
+  /**
+   * What each variant name in this family is said to mean, and which names have
+   * nothing recorded. Carried on the view rather than fetched by the component so
+   * the explorer's props are unchanged and the homepage needs no edit.
+   */
+  positioning: FamilyVariantPositioningView;
   maxDepth: number;
 }
 
@@ -159,7 +171,12 @@ function assignPrimaryParents(
   return { primaryParent, additional };
 }
 
-function buildFamilyView(family: ModelFamily, familyReleases: readonly ModelRelease[]): LineageFamilyView {
+function buildFamilyView(
+  family: ModelFamily,
+  familyReleases: readonly ModelRelease[],
+  dataset: PositioningCatalog,
+  positioningRecords?: VariantPositioning,
+): LineageFamilyView {
   const releases = [...familyReleases].sort(byNewestRelease);
   const { parents } = familyEdges(releases);
   const { primaryParent, additional } = assignPrimaryParents(releases, parents);
@@ -193,6 +210,7 @@ function buildFamilyView(family: ModelFamily, familyReleases: readonly ModelRele
     // Every release is either a root or the child end of exactly one connector.
     linkCount: releases.length - roots.length,
     hasRecordedLineage,
+    positioning: buildVariantPositioningForFamily(dataset, family, releases, positioningRecords),
     maxDepth: deepest(roots),
   };
 }
@@ -214,6 +232,7 @@ function buildFamilyView(family: ModelFamily, familyReleases: readonly ModelRele
 function buildEcosystems(
   dataset: Dataset,
   seeds: (release: ModelRelease) => boolean,
+  positioningRecords?: VariantPositioning,
 ): LineageEcosystem[] {
   const seedReleases = dataset.releases.filter(seeds);
   const seedOrganizationIds = new Set(seedReleases.map(({ organizationId }) => organizationId));
@@ -233,7 +252,12 @@ function buildEcosystems(
     .map((organization) => {
       const families = dataset.families
         .filter((family) => family.organizationId === organization.id && seedFamilyIds.has(family.id))
-        .map((family) => buildFamilyView(family, releasesByFamily.get(family.id) ?? []))
+        .map((family) => buildFamilyView(
+          family,
+          releasesByFamily.get(family.id) ?? [],
+          dataset,
+          positioningRecords,
+        ))
         .filter(hasRecordedRelease)
         .sort((a, b) => (
           compare(newestReleaseDate(b.releases), newestReleaseDate(a.releases))
@@ -264,8 +288,17 @@ function buildEcosystems(
  * lead with is still recorded here whole. `buildCreatorEcosystems` is the
  * coverage view, and `routes.ts` uses that one.
  */
-export function buildLineageEcosystems(dataset: Dataset): LineageEcosystem[] {
-  return buildEcosystems(dataset, ({ featured }) => featured);
+export function buildLineageEcosystems(
+  dataset: Dataset,
+  /**
+   * Defaulted, so `index.astro` needs no change. Overridable only so the three
+   * coverage states can be rendered in a test: the shipped catalog happens to
+   * hold all three today, and a test that relied on that would start passing
+   * vacuously the moment a creator documented its ladder.
+   */
+  positioningRecords?: VariantPositioning,
+): LineageEcosystem[] {
+  return buildEcosystems(dataset, ({ featured }) => featured, positioningRecords);
 }
 
 /**
@@ -278,8 +311,11 @@ export function buildLineageEcosystems(dataset: Dataset): LineageEcosystem[] {
  * from, which is what makes a provider page a fact about having releases rather
  * than about being led with.
  */
-export function buildCreatorEcosystems(dataset: Dataset): LineageEcosystem[] {
-  return buildEcosystems(dataset, () => true);
+export function buildCreatorEcosystems(
+  dataset: Dataset,
+  positioningRecords?: VariantPositioning,
+): LineageEcosystem[] {
+  return buildEcosystems(dataset, () => true, positioningRecords);
 }
 
 export function lineageReleaseSlugs(ecosystems: readonly LineageEcosystem[]) {

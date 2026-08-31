@@ -59,6 +59,11 @@ import {
 } from './format';
 import { accessTypeGlossary, lifecycleStatusGlossary, methodologyReferences } from './methodology';
 import { daysSince } from './usage-evidence';
+import {
+  buildVariantPositioningForFamily,
+  type FamilyVariantPositioningView,
+} from './variant-positioning';
+import type { VariantPositioning } from '../data/variant-positioning-schema';
 
 /**
  * How long a price or an availability record is shown without a staleness note.
@@ -407,6 +412,24 @@ export interface ModelPassportView {
   relationships: RelationshipGroup[];
   /** Only the groups with at least one resolved link or dangling id. */
   presentRelationships: RelationshipGroup[];
+  /**
+   * What this release's creator says its variant name is for, and what ModelTree
+   * reads into that — strictly within this family, never against another
+   * creator's ladder. Always present as a view; `coverage` says whether anything
+   * is actually recorded.
+   */
+  positioning: FamilyVariantPositioningView;
+  /**
+   * Route for every release that a positioned variant name covers, keyed by
+   * release id. Built here because only the builder knows the site base; the
+   * component would otherwise have to be handed it.
+   */
+  positioningMemberHrefs: Record<string, string>;
+  /**
+   * The methodology section stating that ModelTree publishes no universal
+   * ranking, which is the rule the tier block is bound by.
+   */
+  positioningMethodologyHref: string;
 
   access: AccessView;
   availability: AvailabilityRow[];
@@ -500,6 +523,11 @@ export function buildModelPassport(
   releaseId: string,
   base: string,
   today: string,
+  /**
+   * Defaulted so the page that renders a passport never has to pass it, which
+   * keeps `pages/models/[slug].astro` out of this change entirely.
+   */
+  positioningRecords?: VariantPositioning,
 ): ModelPassportView {
   const release = dataset.releases.find((candidate) => candidate.id === releaseId);
   if (!release) throw new PassportError(`unknown release "${releaseId}"`);
@@ -576,6 +604,23 @@ export function buildModelPassport(
   const presentRelationships = relationships.filter(
     (group) => group.links.length > 0 || group.unresolvedIds.length > 0,
   );
+
+  // Sibling variants are family members, not relationship links: membership is
+  // derived from `release.variant` rather than asserted, so a release does not
+  // need a `siblingIds` entry to be told what its own tier name is for.
+  const positioning = buildVariantPositioningForFamily(
+    dataset,
+    family,
+    dataset.releases.filter((candidate) => candidate.familyId === family.id),
+    positioningRecords,
+  );
+  const positioningMethodologyHref = `${base.endsWith('/') ? base : `${base}/`}methodology/#guidance`;
+  const positioningMemberHrefs: Record<string, string> = {};
+  for (const entry of [...positioning.positioned, ...positioning.unpositioned]) {
+    for (const member of entry.releases) {
+      positioningMemberHrefs[member.id] = modelRoute(base, member.slug);
+    }
+  }
 
   // -------------------------------------------------------------------------
   // Access and licensing
@@ -779,8 +824,9 @@ export function buildModelPassport(
     lineage: {
       eyebrow: 'Lineage',
       title: 'Where it fits',
-      present: presentRelationships.length > 0,
-      reason: 'No predecessor, successor, sibling, or derivation is recorded for this release. '
+      present: presentRelationships.length > 0 || positioning.coverage !== 'absent',
+      reason: 'No predecessor, successor, sibling, or derivation is recorded for this release, and '
+        + 'its creator has published no statement of what its variant name is for. '
         + 'ModelTree records a lineage link only where a source states it, and does not infer one '
         + 'from names or release dates.',
     },
@@ -905,6 +951,9 @@ export function buildModelPassport(
 
     relationships,
     presentRelationships,
+    positioning,
+    positioningMethodologyHref,
+    positioningMemberHrefs,
 
     access,
     availability,

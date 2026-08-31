@@ -10,6 +10,12 @@ import {
   SPARSE_RELEASE_ID,
   passportFixtures,
 } from '../../tests/fixtures/passport-dataset';
+import {
+  absentPositioning,
+  completePositioning,
+  partialPositioning,
+} from '../../tests/fixtures/passport-positioning';
+import type { VariantPositioning } from '../data/variant-positioning-schema';
 import { buildModelPassport } from '../lib/passport';
 import ModelPassport from './ModelPassport';
 
@@ -305,6 +311,96 @@ describe('the shipped dataset renders both branches across its releases', () => 
         expect(html, `${release.slug} should offer ${kind}`).toContain(`data-action="${kind}"`);
       }
     }
+  });
+});
+
+/**
+ * The three coverage states, rendered.
+ *
+ * Rendering is where the constraints in issue #38 are actually kept or broken:
+ * a view model can hold the creator's words and ModelTree's separately and still
+ * ship markup that runs them together. Each state is asserted against real HTML
+ * for that reason.
+ */
+describe('sibling tier positioning is rendered so the two voices stay apart', () => {
+  const renderPositioned = (releaseId: string, records: VariantPositioning) =>
+    renderToStaticMarkup(
+      <ModelPassport
+        view={buildModelPassport(passportFixtures, releaseId, BASE, FIXTURE_TODAY, records)}
+      />,
+    );
+
+  const complete = renderPositioned(COMPLETE_RELEASE_ID, completePositioning);
+
+  it('quotes the creator inside a blockquote that names who said it and when', () => {
+    expect(complete).toContain('<blockquote class="tier-official">');
+    expect(complete).toContain('Our general-purpose model for long-running document work');
+    // The attribution is text inside the quote's own footer, so it is read out
+    // with the quote rather than inferred from a colour or a position.
+    expect(complete).toMatch(/<footer>Example Lab wrote this, current as of [^<]*Aug 20, 2026/);
+  });
+
+  it('labels ModelTree\'s reading in words rather than by styling', () => {
+    expect(complete).toContain('>ModelTree editorial summary<');
+    expect(complete).toContain('>ModelTree editorial note<');
+
+    // The label has to be inside the element a screen reader reaches, not a
+    // class name on it: strip the stylesheet and the sentence still says whose
+    // words these are.
+    const editorial = [...complete.matchAll(/<p class="tier-editorial">(.*?)<\/p>/gs)]
+      .map((match) => match[1])
+      .find((block) => block.includes('ModelTree editorial summary')) ?? '';
+    expect(editorial).toContain('ModelTree editorial summary');
+    expect(editorial).toContain('Example Lab describes the base name');
+  });
+
+  it('marks which tier this release is, in text', () => {
+    // `complete-release` carries variant `base`, so `base` is marked and `mini`
+    // is not. A count of one proves the marker is specific rather than global.
+    expect(count(complete, /tier-this-release/g)).toBe(1);
+    expect(complete).toContain('— this release');
+  });
+
+  it('names the methodology page rule it is bound by', () => {
+    expect(complete).toContain(`href="${BASE}methodology/#guidance"`);
+  });
+
+  it('states an unpositioned name as unknown instead of dropping or guessing it', () => {
+    const partial = renderPositioned(COMPLETE_RELEASE_ID, partialPositioning);
+
+    expect(partial).toContain('data-variant="mini"');
+    expect(partial).toContain('No statement from Example of what this name is for is');
+    // The guessing this replaces: nothing infers a meaning from the name itself.
+    expect(partial).toContain('does not infer a tier&#x27;s meaning from its name');
+  });
+
+  it('says a whole family is unrecorded once, listing the names it cannot explain', () => {
+    const absent = renderPositioned(COMPLETE_RELEASE_ID, absentPositioning);
+
+    expect(absent).toContain('has published no statement ModelTree could verify');    expect(absent).toContain('base, mini');
+    // Said once for the family, not repeated under every name.
+    expect(count(absent, /tier-entry/g)).toBe(0);
+  });
+
+  it('names no creator but this release\'s own, in any coverage state', () => {
+    // The issue's flat non-goal. `Example Cloud` is the fixture's other
+    // organization and appears elsewhere on the page, so this is scoped to the
+    // block under test rather than to the whole document.
+    for (const html of [complete, renderPositioned(COMPLETE_RELEASE_ID, partialPositioning),
+      renderPositioned(COMPLETE_RELEASE_ID, absentPositioning)]) {
+      const block = html.match(/<div class="tier-positioning">.*?<\/section>/s)?.[0] ?? '';
+      expect(block.length, 'expected the tier block to render').toBeGreaterThan(0);
+      expect(block).not.toContain('Example Cloud');
+      expect(block).not.toContain('ExCloud');
+    }
+  });
+
+  it('ships no client island, so the passport route stays free of new script', () => {
+    // `[slug].astro` renders this component with no `client:` directive; the
+    // markup is proof the block needs none, since it renders whole from the
+    // server with no hydration marker in it.
+    expect(complete).not.toContain('astro-island');
+    expect(complete).not.toContain('client:');
   });
 });
 

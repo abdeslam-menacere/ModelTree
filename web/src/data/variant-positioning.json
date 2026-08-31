@@ -1,0 +1,214 @@
+[
+  {
+    "id": "positioning-anthropic-claude-5",
+    "familyId": "anthropic-claude-5",
+    "note": "Anthropic gives the Claude 5 releases names rather than numbering them by size, so the name is most of what a reader has to go on. Below is what Anthropic says each name is for, quoted, and what ModelTree reads into it. The order is by first release, not by standing.",
+    "variants": [
+      {
+        "variant": "Opus",
+        "official": {
+          "effectiveAsOf": "2026-08-30",
+          "sources": [
+            {
+              "url": "https://platform.claude.com/docs/en/models/overview",
+              "title": "Models overview",
+              "publisher": "Anthropic",
+              "type": "official-docs",
+              "quote": "For complex agentic coding and enterprise work",
+              "lastCheckedDate": "2026-08-30"
+            }
+          ]
+        },
+        "editorial": {
+          "summary": "Anthropic scopes Opus by the kind of work — complex agentic coding, and enterprise deployment — rather than by a capability level. Whether that scope matches a particular workload is a question the wording leaves open.",
+          "verifiedAt": "2026-08-30"
+        }
+      },
+      {
+        "variant": "Sonnet",
+        "official": {
+          "effectiveAsOf": "2026-08-30",
+          "sources": [
+            {
+              "url": "https://platform.claude.com/docs/en/models/overview",
+              "title": "Models overview",
+              "publisher": "Anthropic",
+              "type": "official-docs",
+              "quote": "The best combination of speed and intelligence",
+              "lastCheckedDate": "2026-08-30"
+            }
+          ]
+        },
+        "editorial": {
+          "summary": "Anthropic's wording for Sonnet is about a balance between how quickly it answers and how much reasoning it brings, stated across its own Claude 5 lineup and no wider. ModelTree reports the claim rather than testing it.",
+          "verifiedAt": "2026-08-30"
+        }
+      },
+      {
+        "variant": "Fable",
+        "official": {
+          "effectiveAsOf": "2026-08-30",
+          "sources": [
+            {
+              "url": "https://platform.claude.com/docs/en/models/overview",
+              "title": "Models overview",
+              "publisher": "Anthropic",
+              "type": "official-docs",
+              "quote": "Next-generation intelligence for long-running agents",
+              "lastCheckedDate": "2026-08-30"
+            }
+          ]
+        },
+        "editorial": {
+          "summary": "Anthropic frames Fable around agent runs that continue over a long horizon rather than around a single exchange. That describes the shape of the work, and says nothing about where Fable falls against the other Claude 5 names.",
+          "verifiedAt": "2026-08-30"
+        }
+      }
+    ],
+    "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "positioning-anthropic-claude-4-5",
+    "familyId": "anthropic-claude-4-5",
+    "note": "Claude 4.5 is recorded here with a single variant, so its naming settles what Haiku is for in this generation and nothing about how the same name reads in another one.",
+    "variants": [
+      {
+        "variant": "Haiku",
+        "official": {
+          "effectiveAsOf": "2026-08-30",
+          "sources": [
+            {
+              "url": "https://platform.claude.com/docs/en/models/overview",
+              "title": "Models overview",
+              "publisher": "Anthropic",
+              "type": "official-docs",
+              "quote": "The fastest model with near-frontier intelligence",
+              "lastCheckedDate": "2026-08-30"
+            }
+          ]
+        },
+        "editorial": {
+          "summary": "Anthropic's description of Haiku pairs a latency claim with a hedge on reasoning — near the frontier rather than at it. ModelTree keeps the hedge, because it is the part a quick reading of the name tends to drop.",
+          "verifiedAt": "2026-08-30"
+        }
+      }
+    ],
+    "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "positioning-google-gemini-2-5",
+    "familyId": "google-gemini-2-5",
+    "note": "Google's wording for these two names is explicitly scoped to the 2.5 family, and ModelTree keeps that scope: the readings below apply to the releases in this family and are not carried forward to a later generation.",
+    "variants": [
+      {
+        "variant": "Pro",
+        "official": {
+          "effectiveAsOf": "2026-08-30",
+          "sources": [
+            {
+              "url": "https://ai.google.dev/gemini-api/docs/models",
+              "title": "Gemini API models",
+              "publisher": "Google",
+              "type": "official-docs",
+              "quote": "Our most advanced model for complex tasks, featuring deep reasoning and coding capabilities in the 2.5 family.",
+              "lastCheckedDate": "2026-08-30"
+            }
+          ]
+        },
+        "editorial": {
+          "summary": "Google qualifies the claim with the words \"in the 2.5 family\", and that qualifier is the useful part of it: the wording places Pro among the 2.5 releases and reaches no further than them.",
+          "verifiedAt": "2026-08-30"
+        }
+      },
+      {
+        "variant": "Flash",
+        "official": {
+          "effectiveAsOf": "2026-08-30",
+          "sources": [
+            {
+              "url": "https://ai.google.dev/gemini-api/docs/models",
+              "title": "Gemini API models",
+              "publisher": "Google",
+              "type": "official-docs",
+              "quote": "Our best price-performance model for low-latency, high-volume tasks that require reasoning.",
+              "lastCheckedDate": "2026-08-30"
+            }
+          ]
+        },
+        "editorial": {
+          "summary": "Google's Flash wording covers two things at once: how quickly a response comes back, and what it takes to run a great many of them. ModelTree reads the latency and volume half; the commercial half is a separate fact, recorded elsewhere with its own sources and dates.",
+          "verifiedAt": "2026-08-30"
+        }
+      }
+    ],
+    "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "positioning-google-gemini-3",
+    "familyId": "google-gemini-3",
+    "note": "Gemini 3 carries three variant names across several releases, and a name here covers every release in this family that uses it. Google states the positioning for the series; ModelTree does not extend it to any other Gemini generation.",
+    "variants": [
+      {
+        "variant": "Pro",
+        "official": {
+          "effectiveAsOf": "2026-08-30",
+          "sources": [
+            {
+              "url": "https://ai.google.dev/gemini-api/docs/gemini-3",
+              "title": "Gemini 3 developer guide",
+              "publisher": "Google",
+              "type": "official-docs",
+              "quote": "best for complex tasks that require broad world knowledge and advanced reasoning across modalities",
+              "lastCheckedDate": "2026-08-30"
+            }
+          ]
+        },
+        "editorial": {
+          "summary": "Google describes Pro here in terms of breadth — world knowledge, and reasoning that spans modalities. This is the Gemini 3 wording; Google words Gemini 2.5 Pro differently, which is why the two generations are recorded apart.",
+          "verifiedAt": "2026-08-30"
+        }
+      },
+      {
+        "variant": "Flash",
+        "official": {
+          "effectiveAsOf": "2026-08-30",
+          "sources": [
+            {
+              "url": "https://ai.google.dev/gemini-api/docs/gemini-3",
+              "title": "Gemini 3 developer guide",
+              "publisher": "Google",
+              "type": "official-docs",
+              "quote": "Gemini 3 Flash is our latest 3-series model, with Pro-level intelligence at the speed and pricing of Flash.",
+              "lastCheckedDate": "2026-08-30"
+            }
+          ]
+        },
+        "editorial": {
+          "summary": "Google defines Flash by reference to Pro inside the same series — a comparison drawn within one family rather than a rung on a ladder. ModelTree carries the wording as stated and adds no ordering of its own.",
+          "verifiedAt": "2026-08-30"
+        }
+      },
+      {
+        "variant": "Flash-Lite",
+        "official": {
+          "effectiveAsOf": "2026-08-30",
+          "sources": [
+            {
+              "url": "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite",
+              "title": "Gemini 3.1 Flash-Lite",
+              "publisher": "Google",
+              "type": "official-docs",
+              "quote": "a low-latency, cost-effective multimodal model optimized for high-frequency, lightweight tasks",
+              "lastCheckedDate": "2026-08-30"
+            }
+          ]
+        },
+        "editorial": {
+          "summary": "Google's Flash-Lite wording is about running a great deal of work rather than about how hard any single piece of it is. ModelTree reads that as a claim about throughput, not as a statement that Flash-Lite reasons less well than its siblings.",
+          "verifiedAt": "2026-08-30"
+        }
+      }
+    ],
+    "verifiedAt": "2026-08-30"
+  }
+]

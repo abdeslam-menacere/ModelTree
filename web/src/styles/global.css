@@ -7101,3 +7101,122 @@ nav a {
   gap: var(--cp-space-6);
   font-size: var(--cp-size-xs);
 }
+
+
+/* --- Sibling tier positioning (issue #38) -------------------------------------
+ *
+ * Two rules drive every declaration here.
+ *
+ * The creator's words and ModelTree's reading are told apart by their own text
+ * -- a quote inside a blockquote with a footer that names the publisher, and a
+ * summary carrying a written label -- so nothing below is load-bearing. Delete
+ * this whole block and the distinction still reads correctly, in order, which is
+ * the only version of it a screen reader ever hears.
+ *
+ * Which is also why the quote is marked by a start-edge border rather than a
+ * filled panel. Forced-colours mode rewrites backgrounds and keeps borders, so a
+ * fill would vanish exactly where a reader most needs the edge, and a border
+ * survives. The same reasoning is already applied to .glossary-sources
+ * blockquote above.
+ */
+
+.tier-positioning {
+  margin: var(--cp-space-5) 0 0;
+}
+
+.tier-positioning h3 {
+  margin: 0 0 var(--cp-space-2);
+}
+
+.tier-entry {
+  margin: var(--cp-space-4) 0 0;
+  border-block-start: 1px solid var(--cp-border);
+  padding-block-start: var(--cp-space-3);
+}
+
+.tier-entry h4 {
+  margin: 0 0 var(--cp-space-1);
+}
+
+/* Text, not a badge: which release you are reading has to survive a stylesheet
+ * being dropped, and a coloured pill does not. */
+.tier-this-release {
+  color: var(--cp-text-muted);
+  font-weight: 400;
+}
+
+.tier-members {
+  margin: 0 0 var(--cp-space-2);
+  font-size: 14px;
+}
+
+.tier-official {
+  margin: 0 0 var(--cp-space-3);
+  border-inline-start: 2px solid var(--cp-border-strong);
+  padding-inline-start: var(--cp-space-3);
+  max-width: 70ch;
+}
+
+.tier-official p {
+  margin: 0;
+  font-family: var(--cp-font-serif);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.tier-official footer {
+  margin-block-start: var(--cp-space-1);
+  color: var(--cp-text-soft);
+  font-size: var(--cp-size-xs);
+  line-height: 1.5;
+}
+
+.tier-editorial {
+  display: grid;
+  margin: 0 0 var(--cp-space-2);
+  gap: var(--cp-space-1);
+  max-width: 70ch;
+  font-size: 14px;
+}
+
+.tier-editorial-label {
+  color: var(--cp-text-muted);
+  font-size: var(--cp-size-2xs);
+  letter-spacing: var(--cp-tracking-caps);
+}
+
+.tier-meta {
+  color: var(--cp-text-soft);
+  font-size: var(--cp-size-xs);
+}
+
+/* Beside a node in the lineage explorer. Wraps rather than truncating: a clipped
+ * quote reads as a shorter claim than the creator made. */
+.node-positioning {
+  margin: var(--cp-space-1) 0 0;
+  max-width: 46ch;
+  color: var(--cp-text-muted);
+  font-size: var(--cp-size-xs);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.node-positioning-variant {
+  font-weight: 650;
+}
+
+.lineage-positioning-note {
+  max-width: 70ch;
+}
+
+@media (max-width: 420px) {
+  /* At 320px the explorer is one column and every node line has to fold rather
+   * than push the column wider. */
+  .node-positioning {
+    max-width: none;
+  }
+
+  .tier-official {
+    padding-inline-start: var(--cp-space-2);
+  }
+}

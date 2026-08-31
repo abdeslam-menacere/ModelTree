@@ -15,6 +15,7 @@
 import { AlertTriangle, ExternalLink, Info, ScrollText } from 'lucide-react';
 import { formatDate } from '../lib/format';
 import { organizationLabel } from '../lib/organization-name';
+import { variantPositioningCoverageLine } from '../lib/variant-positioning';
 import type {
   AvailabilityRow,
   ModelPassportView,
@@ -82,6 +83,131 @@ function StaleNote({ row }: { row: PricingRow | AvailabilityRow }) {
       <AlertTriangle size={13} aria-hidden="true" />
       Not re-checked for {row.daysSinceVerified} days
     </span>
+  );
+}
+
+/**
+ * What a creator says its sibling tier names are for, and what ModelTree reads
+ * into that.
+ *
+ * Three rules govern this block and each one is structural rather than
+ * cosmetic.
+ *
+ * The creator's words and ModelTree's reading are never the same element and
+ * never distinguished by styling alone: the quote sits in a `<blockquote>` whose
+ * `<footer>` names the publisher and the date the wording was current, and the
+ * summary carries a visible text label saying it is ModelTree's. Strip every
+ * stylesheet and the attribution still reads correctly, in order, which is the
+ * only version of this distinction a screen reader can hear.
+ *
+ * Nothing here compares this family to another creator's names. The data model
+ * cannot express that claim and this markup never invites it: the heading is the
+ * family's own, and the ordering is by first release rather than by any notion
+ * of better.
+ *
+ * A variant with nothing recorded says so in words. It is not dropped, because a
+ * dropped row and a well-positioned one look identical, and it is not filled in
+ * from the name, because the name is exactly what a reader came here unable to
+ * decode.
+ */
+function TierPositioning({ view }: Props) {
+  const { positioning } = view;
+
+  return (
+    <div className="tier-positioning">
+      <h3>What the tier names mean</h3>
+
+      <p className="relationship-note">{variantPositioningCoverageLine(positioning)}</p>
+      <p className="relationship-note">
+        Tier names are recorded for one family and generation at a time, because the same word can
+        mean different things in two generations of the same line. Entries are ordered by first
+        release, which is not a ranking, and ModelTree draws no comparison between this family's
+        names and any other creator's.{' '}
+        <a href={view.positioningMethodologyHref}>How ModelTree treats guidance and ranking</a>
+      </p>
+
+      {positioning.note ? (
+        <p className="tier-editorial">
+          <span className="tier-editorial-label">ModelTree editorial note</span>
+          <span className="tier-editorial-text">{positioning.note}</span>
+          {positioning.verifiedAt ? (
+            <span className="tier-meta">Verified {formatDate(positioning.verifiedAt)}</span>
+          ) : null}
+        </p>
+      ) : null}
+
+      {positioning.coverage === 'absent' ? (
+        <p className="passport-unknown">
+          {organizationLabel(view.organization)} has published no statement ModelTree could verify
+          about what {positioning.variantCount > 1 ? 'these names' : 'this name'} mean
+          {positioning.variantCount > 1 ? '' : 's'}:{' '}
+          {positioning.unpositioned.map((entry) => entry.variant).join(', ')}. ModelTree does not
+          infer a tier's meaning from its name, its price, or where it sits in a list.
+        </p>
+      ) : null}
+
+      {positioning.positioned.map((entry) => (
+        <div className="tier-entry" key={entry.variant} data-variant={entry.variant}>
+          <h4>
+            {entry.variant} tier
+            {entry.releases.some((member) => member.id === view.release.id) ? (
+              <span className="tier-this-release"> — this release</span>
+            ) : null}
+          </h4>
+
+          <p className="tier-members">
+            Releases carrying this name:{' '}
+            {entry.releases.map((member, index) => (
+              <span key={member.id}>
+                {index > 0 ? ', ' : ''}
+                <a href={view.positioningMemberHrefs[member.id]}>{member.displayName}</a>
+              </span>
+            ))}
+          </p>
+
+          {/* The creator's own words, quoted rather than paraphrased, so a reader
+              can see exactly what was claimed and by whom. */}
+          <blockquote className="tier-official">
+            <p>{entry.official.sources[0].quote}</p>
+            <footer>
+              {entry.official.sources[0].publisher} wrote this, current as of{' '}
+              {formatDate(entry.official.effectiveAsOf)}.{' '}
+              <a href={entry.official.sources[0].url}>
+                {entry.official.sources[0].title}
+                <ExternalLink size={13} strokeWidth={1.8} aria-hidden="true" />
+              </a>
+              <span className="tier-meta">
+                Checked {formatDate(entry.official.sources[0].lastCheckedDate)}
+              </span>
+            </footer>
+          </blockquote>
+
+          <p className="tier-editorial">
+            <span className="tier-editorial-label">ModelTree editorial summary</span>
+            <span className="tier-editorial-text">{entry.editorial.summary}</span>
+            <span className="tier-meta">Verified {formatDate(entry.editorial.verifiedAt)}</span>
+          </p>
+        </div>
+      ))}
+
+      {positioning.coverage === 'partial'
+        ? positioning.unpositioned.map((entry) => (
+          <div className="tier-entry" key={entry.variant} data-variant={entry.variant}>
+            <h4>
+              {entry.variant} tier
+              {entry.releases.some((member) => member.id === view.release.id) ? (
+                <span className="tier-this-release"> — this release</span>
+              ) : null}
+            </h4>
+            <p className="passport-unknown">
+              No statement from {organizationLabel(view.organization)} of what this name is for is
+              recorded. ModelTree does not infer a tier's meaning from its name, its price, or
+              where it sits in a list.
+            </p>
+          </div>
+        ))
+        : null}
+    </div>
   );
 }
 
@@ -218,6 +344,8 @@ export default function ModelPassport({ view }: Props) {
               ) : null}
             </div>
           ))}
+
+          <TierPositioning view={view} />
         </section>
       ) : null}
 
