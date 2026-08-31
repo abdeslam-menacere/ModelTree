@@ -222,7 +222,7 @@ actionable set.
 
 That is verified rather than asserted: with `fetch`, `net.connect`,
 `tls.connect`, `dns.lookup`, `http.request` and `https.request` all replaced by
-throwing stubs at process level — inherited by the CLI the suite spawns — all 88
+throwing stubs at process level — inherited by the CLI the suite spawns — all 90
 tests still pass. A control confirms the same stubs make a real request fail, so
 the pass is evidence and not a blocker that quietly failed to install.
 
