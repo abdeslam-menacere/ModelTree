@@ -1231,7 +1231,8 @@
     "title": "OLMo-2-1124-7B model card",
     "type": "model-card",
     "publisherId": "ai2",
-    "lastCheckedDate": "2026-08-30"
+    "lastCheckedDate": "2026-08-31",
+    "notes": "States a model-details table headed \"Size | Training Tokens | Layers | Hidden Size | Attention Heads | Context Length\" whose OLMo 2-7B row ends \"... | 32 | 4096 | 32 | 4096\", the final column being Context Length = 4096. The card states the context length as an exact integer, so contextWindow records that 4096 verbatim — route 1 (see releaseSchema.contextWindow), no abbreviation to read. Re-read 2026-08-31: the table was present with \"Context Length\" as its final column reading 4096; a fabricated \"8192\" appeared nowhere on the page, as a control. Cited for the context length and as the model's own card."
   },
   {
     "id": "tii-falcon-h1-announcement",
@@ -1240,7 +1241,8 @@
     "type": "official-announcement",
     "publisherId": "tii",
     "publishedDate": "2025-05-21",
-    "lastCheckedDate": "2026-08-28"
+    "lastCheckedDate": "2026-08-31",
+    "notes": "Announces Falcon-H1 (\"outperforming Meta's LLaMA and Alibaba's Qwen\", a \"30 to 70 billion parameters\" size class, and a \"34B, 7B, 3B, 1.5B, 1.5B-deep, and 500M\" family) alongside Falcon Arabic, and states no context length for any of them. Re-read 2026-08-31: \"Falcon-H1\" and that size list were present as positive controls, while no context-length figure and no fabricated \"context length of 8K\" needle appeared, as a control. Cited with the model card, whose note records that the committed contextWindow (262144) is unverified from these primary sources (issue #557)."
   },
   {
     "id": "tii-falcon-h1-model-card",
@@ -1248,7 +1250,8 @@
     "title": "Falcon-H1-34B-Instruct model card",
     "type": "model-card",
     "publisherId": "tii",
-    "lastCheckedDate": "2026-08-28"
+    "lastCheckedDate": "2026-08-31",
+    "notes": "The card gives Model Details (\"Model type: Causal decoder-only\", \"Architecture: Hybrid Transformers + Mamba architecture\", \"License: Falcon-LLM License\"), Training details that defer to an external blogpost and a technical report (arXiv:2507.22448), Usage snippets, an Evaluation benchmark table, and a citation — and states no context length anywhere on the card. The cited announcement (tii-falcon-h1-announcement) states none either. So the committed contextWindow value (262144) is not verified by either cited primary source; it is left as committed and flagged for review (issue #557), because a stored context value with no primary source is a separate and larger gap than a reading convention, to be answered by its own source and issue rather than edited or removed here. Re-read 2026-08-31: \"Hybrid Transformers + Mamba architecture\" was present as a positive control, while no context-length figure appeared anywhere — a fabricated \"context length of 8K\" needle was absent, as a control."
   },
   {
     "id": "nvidia-nemotron-4-340b-announcement",
@@ -1273,7 +1276,8 @@
     "title": "Nemotron-4-340B-Base model card",
     "type": "model-card",
     "publisherId": "nvidia",
-    "lastCheckedDate": "2026-08-30"
+    "lastCheckedDate": "2026-08-31",
+    "notes": "States \"This model has 340 billion parameters, and supports a context length of 4,096 tokens\" and, under Model Architecture, that it is \"trained with a global batch-size of 2304, a sequence length of 4096 tokens\". The card states the context length as an exact integer, so contextWindow records 4096 verbatim — route 1 (see releaseSchema.contextWindow), no abbreviation to read. Re-read 2026-08-31: both \"a context length of 4,096 tokens\" and \"a sequence length of 4096 tokens\" were present; a fabricated \"262144\" appeared nowhere on the page, as a control. Cited for the context length and as the model's own card."
   },
   {
     "id": "ai21-labs-jamba-announcement",
@@ -1281,7 +1285,8 @@
     "title": "Announcing Jamba: AI21’s Groundbreaking SSM-Transformer Model",
     "type": "official-announcement",
     "publisherId": "ai21-labs",
-    "lastCheckedDate": "2026-08-28"
+    "lastCheckedDate": "2026-08-31",
+    "notes": "States \"Offering a 256K context window\" and, under Key Features, \"Democratizes access to a massive 256K context window\"; it states no exact context integer. contextWindow records 262144, the binary reading of \"256K\" (256 x 1024), not the decimal 256000 a bare abbreviation takes by default (see releaseSchema.contextWindow). Neither this announcement nor the cited Jamba paper fixes a binary buffer — both state only \"256K\" — so the binary precision is not established by the cited sources. It is flagged for review as an unresolved binary reading (issue #557), the same shape as Kimi K2's \"128K\" stored as 131072. The value is left as committed, to be answered by its own source and issue rather than edited here. Re-read 2026-08-31: both \"256K context window\" strings were present; a fabricated \"262144\" appeared nowhere on the page, as a control. Also cited for the model's Apache-2.0 open-weights release."
   },
   {
     "id": "ai21-labs-jamba-paper",
@@ -1290,7 +1295,8 @@
     "type": "official-docs",
     "publisherId": "ai21-labs",
     "publishedDate": "2024-03-28",
-    "lastCheckedDate": "2026-08-28"
+    "lastCheckedDate": "2026-08-31",
+    "notes": "The abstract states \"Remarkably, the model presents strong results for up to 256K tokens context length\" — a bare \"256K\", with no exact integer. As with the announcement (see its note and releaseSchema.contextWindow), contextWindow records 262144, the binary reading of that \"256K\", flagged as an unresolved binary reading (issue #557) because no cited source fixes the binary buffer. Re-read 2026-08-31: the \"up to 256K tokens context length\" string was present in the abstract; a fabricated \"262144\" appeared nowhere, as a control."
   },
   {
     "id": "zhipu-ai-glm-4-5-model-card",
@@ -1314,7 +1320,8 @@
     "title": "Kimi-K2-Instruct model card",
     "type": "model-card",
     "publisherId": "moonshot-ai",
-    "lastCheckedDate": "2026-08-30"
+    "lastCheckedDate": "2026-08-31",
+    "notes": "States a Model Summary table with \"Context Length | 128K\" (beside \"Vocabulary Size | 160K\" and \"Total Parameters | 1T\"); the card states no exact context integer anywhere. contextWindow records 131072, the binary reading of \"128K\" (128 x 1024), not the decimal 128000 a bare abbreviation takes by default (see releaseSchema.contextWindow). Nothing on this card fixes a binary buffer — no exact integer, and no lineage to a fixed-buffer build as upstage's \"4K\" has — so the binary precision is not established by the cited source. It is flagged for review as an unresolved binary reading (issue #557): this bare \"128K\" is read the opposite way to the bare \"128k\" that meta-llama-3-1-405b records as 128000. The value is left as committed, to be answered by its own source and issue rather than edited here. Re-read 2026-08-31: \"Context Length | 128K\" was present in the Model Summary table; a fabricated \"131072\" appeared nowhere on the page, as a control."
   },
   {
     "id": "zhipu-ai-glm-4-5-announcement",
@@ -1393,8 +1400,8 @@
     "title": "upstage/solar-pro-preview-instruct model card",
     "type": "model-card",
     "publisherId": "upstage",
-    "lastCheckedDate": "2026-08-30",
-    "notes": "States \"Solar Pro Preview is an advanced large language model (LLM) with 22 billion parameters\", \"a maximum context length of 4K\", front-matter \"license: mit\", and a comparison table whose own column records \"*Release Date* | 2024.09.08\". States \"Solar Pro Preview is a pre-release version of the official Solar Pro\", which is why the release is recorded with preview status. Links to https://www.upstage.ai, which is the website the organization record carries."
+    "lastCheckedDate": "2026-08-31",
+    "notes": "States \"Solar Pro Preview is an advanced large language model (LLM) with 22 billion parameters\", \"a maximum context length of 4K\", front-matter \"license: mit\", and a comparison table whose own column records \"*Release Date* | 2024.09.08\". The card states no exact context integer anywhere; contextWindow records 4096, the binary reading of \"4K\" (4 x 1024) rather than the decimal 4000 a bare abbreviation would otherwise take. That reading is fixed by the card itself: its comparison table names \"Phi-3-medium-4K-instruct\", and the summary states Solar Pro Preview is depth-upscaled from a Phi-3-medium, so its \"4K\" is the Phi-3 \"-4K\" build's known 4096-token buffer. States \"Solar Pro Preview is a pre-release version of the official Solar Pro\", which is why the release is recorded with preview status. Links to https://www.upstage.ai, which is the website the organization record carries."
   },
   {
     "id": "ibm-granite-product-page",

@@ -308,7 +308,7 @@
       "window size"
     ],
     "short": "How much input and output a model can hold at once, counted in tokens rather than words or characters.",
-    "definition": "The maximum number of tokens a model can attend to in one request, spanning the prompt, any retrieved material, the conversation so far, and in most accountings the response. Publishers state it in tokens and usually abbreviate — 200K, 1M, 10M — so the unit is easy to lose. Maximum output is a separate, smaller limit stated separately, and a stated window is a capability claim, not a promise of quality at that length. ModelTree stores the token figure rather than the abbreviation so that 128K and 128000 cannot drift apart.",
+    "definition": "The maximum number of tokens a model can attend to in one request, spanning the prompt, any retrieved material, the conversation so far, and in most accountings the response. Publishers state it in tokens and usually abbreviate — 200K, 1M, 10M — so the unit is easy to lose. Maximum output is a separate, smaller limit stated separately, and a stated window is a capability claim, not a promise of quality at that length. ModelTree stores the token figure rather than the abbreviation, so that a page's 128K and the recorded 128000 cannot drift apart. That figure is the reading the source supports: usually the plain decimal one — 128K as 128000, 1M as 1,000,000 — but the exact integer where a page states one, and a binary size where the page fixes one (Solar Pro Preview's \"4K\" is 4096, on its Phi-3-4K lineage), so the stored number is never tidier than its source.",
     "distinctions": [
       {
         "from": "Max output tokens",

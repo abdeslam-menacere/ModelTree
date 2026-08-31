@@ -95,7 +95,10 @@ are a **controlled vocabulary**: a fixed set of dataset terms, defined in
 `current`, `legacy`, `deprecated`, `research` and nothing else. None of those
 fields has an `unknown` member and `releaseSchema` requires every one of them,
 so no release record can be written without mapping. Quantities pose the same
-step in another form: the page says "128K", the record stores `128000`.
+step in another form: the page says "128K", the record stores `128000` — the
+decimal reading a bare abbreviation takes by default, though a page that states
+an exact integer or fixes a binary size (Solar Pro Preview's "4K" is `4096`) is
+recorded by what it says, never smoothed toward the default. `releaseSchema.contextWindow` in `web/src/data/schema.ts` sets out the readings in full.
 
 Selecting the member that a quoted term denotes, and normalising a quoted
 quantity into the schema's unit, are **recording steps**, not new facts. Accept

@@ -2771,7 +2771,7 @@
       "ai2-olmo-2-announcement",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-08-30"
+    "verifiedAt": "2026-08-31"
   },
   {
     "id": "tii-falcon-h1-34b-instruct",
@@ -2864,7 +2864,7 @@
       "nvidia-nemotron-4-340b-announcement",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-08-30"
+    "verifiedAt": "2026-08-31"
   },
   {
     "id": "ai21-labs-jamba-v0-1",
@@ -3191,7 +3191,7 @@
       "upstage-solar-pro-preview-model-card",
       "osi-license-mit"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-08-31"
   },
   {
     "id": "ibm-granite-4-2-30b",
