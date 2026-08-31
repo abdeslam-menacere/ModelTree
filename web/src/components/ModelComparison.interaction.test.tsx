@@ -217,6 +217,33 @@ describe('links this page did not invent', () => {
       expect(link.getAttribute('aria-label')).toMatch(/^(Add|Remove) /);
     }
   });
+
+  it('marks a candidate through its accessible name, never aria-pressed on a link', async () => {
+    // Regression guard for issue #32: `aria-pressed` is invalid on role="link"
+    // (axe critical `aria-allowed-attr`). The candidate is a progressive-
+    // enhancement anchor, so its selected state rides the accessible name
+    // ("Add" before, "Remove" after) rather than an attribute links cannot carry.
+    const user = userEvent.setup();
+    at(`?models=${ATLAS_PRO},${BOREALIS_AIR}`);
+    renderComparison();
+    await waitFor(() => expect(columnHeaders()).toHaveLength(2));
+
+    expect(document.querySelectorAll('a.comparison-candidate').length).toBeGreaterThan(0);
+    expect(document.querySelectorAll('a[aria-pressed]')).toHaveLength(0);
+
+    const picker = document.querySelector('.comparison-candidates') as HTMLElement;
+    const add = within(picker).getByRole('link', { name: /^Add Atlas Mini to the comparison$/ });
+    await user.click(add);
+
+    await waitFor(() =>
+      expect(
+        within(document.querySelector('.comparison-candidates') as HTMLElement).getByRole('link', {
+          name: /^Remove Atlas Mini from the comparison$/,
+        }),
+      ).toBeTruthy(),
+    );
+    expect(document.querySelectorAll('a[aria-pressed]')).toHaveLength(0);
+  });
 });
 
 describe('filtering the picker', () => {

@@ -166,6 +166,39 @@ describe('filtering the evidence', () => {
     expect(params.get('benchmark')).toBe(COMPARABLE_BENCHMARK);
     expect(params.get('models')).toBe(`${ATLAS_PRO},${BOREALIS_AIR}`);
   });
+
+  it('exposes an applied facet with aria-current, and never aria-pressed on a link', async () => {
+    // Regression guard for issue #32. Candidate and facet toggles are anchors
+    // (progressive-enhancement links), and `aria-pressed` is not a valid ARIA
+    // attribute on role="link" -- axe rates it a critical `aria-allowed-attr`
+    // violation. Selected candidates carry their state in the accessible name
+    // ("Add"/"Remove"); applied facets carry it in `aria-current`, the idiom
+    // this codebase already uses for a current item on a link.
+    const user = userEvent.setup();
+    at(`?models=${ATLAS_PRO},${BOREALIS_AIR}`);
+    renderExplorer();
+    await waitFor(() => expect(groupHeadings().length).toBeGreaterThan(1));
+
+    const filters = screen
+      .getByRole('heading', { name: 'Filter evidence' })
+      .closest('section') as HTMLElement;
+
+    // Positive control: both link kinds are actually on the page, so the
+    // no-aria-pressed assertion below is not vacuous.
+    expect(document.querySelectorAll('a.evidence-candidate').length).toBeGreaterThan(0);
+    expect(within(filters).getAllByRole('link').length).toBeGreaterThan(0);
+    expect(document.querySelectorAll('a[aria-pressed]')).toHaveLength(0);
+
+    const facet = within(filters).getByRole('link', { name: /^Atlas Bench/ });
+    expect(facet.getAttribute('aria-current')).toBeNull();
+    await user.click(facet);
+
+    await waitFor(() => {
+      const applied = within(filters).getByRole('link', { name: /^Atlas Bench/ });
+      expect(applied.getAttribute('aria-current')).toBe('true');
+    });
+    expect(document.querySelectorAll('a[aria-pressed]')).toHaveLength(0);
+  });
 });
 
 describe('links this page did not invent', () => {
