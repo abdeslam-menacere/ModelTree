@@ -81,7 +81,7 @@ const scopeScript = String(mapping(scopeStep ?? null, 'the step with id "scope"'
 const pattern = scopeScript.match(/grep -Eq '([^']+)'/)?.[1];
 const matchesPath = new RegExp(pattern ?? '(?!)');
 
-describe('skills-ci.yml reports on every pull request, so it can be required', () => {
+describe('skills-ci.yml reports on every pull request and on every push to main', () => {
   // The whole point of #294. A trigger path filter is all-or-nothing: a
   // non-matching pull request reports no check at all, and a required check
   // that never reports leaves that pull request pending forever. The filtering
@@ -96,8 +96,35 @@ describe('skills-ci.yml reports on every pull request, so it can be required', (
     expect(Object.keys(triggers)).toContain('workflow_dispatch');
   });
 
-  it('leaves main alone; this check is about pull requests', () => {
-    expect(Object.keys(triggers)).not.toContain('push');
+  // #639. The reported check only exists on a commit the workflow was triggered
+  // for, so without this trigger a required `skills-ci` never ran on `main`: it
+  // reported on the pull request, and nothing re-ran it on the merge commit.
+  // With `strict` false two pull requests can be green against different bases
+  // and merge into a combination neither was gated in, which is precisely the
+  // case a `main` run is there to catch.
+  //
+  // Unfiltered by path for the same reason the `pull_request` trigger is: the
+  // job decides for itself whether the gates have anything to read.
+  it('also runs on pushes to main, so main carries the check by name', () => {
+    expect(Object.keys(triggers)).toContain('push');
+
+    const push = mapping(triggers.push, 'on.push');
+
+    expect(sequence(push.branches, 'on.push.branches')).toEqual(['main']);
+    expect(push.paths).toBeUndefined();
+  });
+
+  // What makes that trigger safe, and the reason the concurrency block needed no
+  // change alongside it. Every commit on `main` is verified on its own, so a run
+  // cancelled by the next push would leave a commit whose required check never
+  // reported — the same absence the push trigger exists to remove.
+  it('cancels a superseded pull request run, and never a main run', () => {
+    const concurrency = mapping(skillsCi.concurrency, 'concurrency');
+
+    expect(String(concurrency.group)).toContain('github.ref');
+    expect(String(concurrency['cancel-in-progress'])).toBe(
+      "${{ github.event_name == 'pull_request' }}",
+    );
   });
 
   // Branch protection identifies a check by its job name, so a name that varies
@@ -205,7 +232,11 @@ describe('skills-ci.yml scope detection', () => {
     expect(branch.slice(0, branch.indexOf('fi'))).toContain('run=true');
   });
 
-  it('runs the gates on a manual dispatch, which has no base to diff against', () => {
+  // Reached by a push to `main` as well as by a manual dispatch, which is what
+  // makes the push trigger useful rather than decorative: a `main` run has no
+  // pull-request base in the event payload, and this is the branch that decides
+  // to run the gates anyway instead of skipping them.
+  it('runs the gates for any event that is not a pull request', () => {
     const branch = scopeScript.slice(scopeScript.indexOf('!= "pull_request"'));
 
     expect(branch.slice(0, branch.indexOf('fi'))).toContain('run=true');
