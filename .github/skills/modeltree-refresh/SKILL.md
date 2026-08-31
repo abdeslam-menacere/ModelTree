@@ -64,12 +64,18 @@ node .github/skills/modeltree-gates/scripts/gate-source-approval.mjs --claims <b
 node .github/skills/modeltree-gates/scripts/gate-dataset.mjs --json
 cd web && npm run validate
 node .github/skills/modeltree-gates/scripts/gate-scope.mjs --json
+# write the run's own ledger entry, then check it against the diff it describes
+node .github/skills/modeltree-gates/scripts/gate-ledger.mjs --json
 ```
 
 Both bundle gates run **before** anything is applied. `gate-source-approval.mjs`
 anchors on the committed dataset, so running it after the patch would be asking
 the run's own writes whether the run's own sources are trustworthy. Keep its JSON
 — the pull request body has to carry it.
+
+`gate-ledger.mjs` runs last, because it reads the finished change. Its
+`transcription` field must be `false` for a publishing run: `true` means the entry
+was written on a branch with no data change, so nothing verified it.
 
 Exit 2 is a failure, never a pass. A gate that could not run has not run.
 
@@ -78,6 +84,12 @@ Exit 2 is a failure, never a pass. A gate that could not run has not run.
 Branch, conventional commits, pull request carrying the full evidence trail,
 `gh pr merge --auto --squash`. GitHub refuses to merge until `web-ci` is green.
 Merging `main` triggers `pages.yml`, which deploys the site.
+
+**The run's `/refresh` entry ships in that same commit**, and the commit subject
+carries `(run <run-id>)`. It is not a follow-up step and not a human's to
+remember: it was, for three published runs in a row, and it was missed all three
+times (abdeslam-menacere/ModelTree#419). ADR 0006 put the ledger in the qualifying
+class precisely so the run can record itself while auto-merging.
 
 ### 5. Confirm and report
 

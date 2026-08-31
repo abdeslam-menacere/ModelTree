@@ -13,7 +13,7 @@ ADR 0003 authorises this and bounds it. Read
 [`../../../docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md`](../../../docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md)
 before changing anything here.
 
-## Preconditions — all five, no exceptions
+## Preconditions — all six, no exceptions
 
 Refuse to publish unless every one holds:
 
@@ -25,6 +25,8 @@ Refuse to publish unless every one holds:
 5. `gate-scope.mjs` exited 0 **and its `--json` report shows `changed` above
    zero** — every changed path is a dataset document, and there was a change to
    judge.
+6. The run's ledger entry is written and `gate-ledger.mjs` exited 0, with its
+   `--json` report showing `transcription: false` — see **Recording the run**.
 
 `gate-scope.mjs` is the one precondition on this list whose exit code is
 ambiguous on its own, so read its report rather than its status. Exit 0
@@ -58,6 +60,18 @@ If **5** fails, the refresh needs a schema, component, or workflow change. That
 is not a failure — it is the run correctly finding work for a human. Stop, file
 an issue describing what it needed and why, and publish nothing.
 
+If **6** fails, the entry disagrees with the change it describes. Correct the
+entry to match what the diff actually did — never the reverse. The gate counts
+records at both ends of the diff itself, so an entry edited to satisfy it is an
+entry made true, but a *dataset* edited to satisfy it is the run altering
+published facts to flatter its own report card, which is the one repair this
+gate must never be used to justify.
+
+A `transcription: true` report is also a failure of precondition 6, and a
+specific one: it means an entry was added on a branch that changed no dataset
+document, so the gate had no diff to check it against. During publishing that
+can only mean the data and its entry got separated — commit them together.
+
 ## Applying claims
 
 Only `add`, `change`, and `remove` claims that reached their threshold. Apply in
@@ -70,16 +84,63 @@ including `unchanged` findings — that is the point of recording them. Keep JSO
 formatting exactly as the file already uses it, so the diff shows the change and
 not a reformat.
 
+## Recording the run
+
+**The run writes its own entry in `web/src/data/refresh-runs.json`, in the same
+commit as the data it describes.** This is a stage of publishing, not a courtesy
+afterwards, and it is not optional for a run that changes anything.
+
+Until ADR 0006 it could not be: the ledger sat outside the ADR 0003 qualifying
+class, so a run that wrote its own entry was refused by `gate-scope.mjs` and
+forfeited the auto-merge it needed. The entry was therefore always transcribed by
+a human afterwards, and on three published runs out of three
+(abdeslam-menacere/ModelTree#422, abdeslam-menacere/ModelTree#577,
+abdeslam-menacere/ModelTree#607) the transcription was missed and
+the `/refresh` page ran a full run stale. ADR 0006 put the ledger in class so
+this stage can exist. Read
+[`../../../docs/adr/0006-a-refresh-run-records-itself-in-its-own-pull-request.md`](../../../docs/adr/0006-a-refresh-run-records-itself-in-its-own-pull-request.md).
+
+The entry is a report a run writes about itself, which is exactly why
+`gate-ledger.mjs` exists — it counts the records in every document the entry
+names, at the merge base and in the working tree, and refuses an entry whose
+numbers do not match. Write the entry from what the run actually did, then run
+the gate; do not write it from the gate's output.
+
+```bash
+node .github/skills/modeltree-gates/scripts/gate-ledger.mjs --json
+```
+
+Prepend the entry — newest first, the order the `/refresh` page renders. Match
+the file's existing formatting exactly, including its line endings; a reserialised
+ledger buries a 40-line addition in a 600-line reformat that no reviewer can read.
+
+**The commit subject must carry `(run <run-id>)`.** That marker is what makes the
+promise enforceable: `gate-ledger.mjs --history` fails when a commit declares a
+run id that the ledger does not record, and `skills-ci` runs it on every pull
+request. A run that publishes data under a subject with no marker is not caught
+by that check, so the marker is the difference between a rule and a habit.
+
+```
+data(refresh): move 36 verification dates forward (run 2026-08-30-c0b6e9)
+```
+
+Unknowns stay explicit. Any figure the run cannot source — a derived reviewer
+count, an approximate page count — goes in the entry's `caveats` saying so
+rather than being presented as measured.
+
 ## Publishing
 
 ```bash
 git switch -c data/refresh-2026-08-25
 git add web/src/data
-git commit -m "feat(data): add GPT-5.7 and refresh four creator datasets"
+git commit -m "data(refresh): add GPT-5.7 and refresh four creator datasets (run 2026-08-25-a1b2c3)"
 git push -u origin data/refresh-2026-08-25
 gh pr create --title "..." --body-file .modeltree-refresh/runs/<run-id>/pr-body.md
 gh pr merge <number> --auto --squash --delete-branch
 ```
+
+`git add web/src/data` stages the ledger along with the data, which is the point:
+the entry and the change it describes land in one commit and revert as one.
 
 Conventional messages: `feat(data):` for new entities, `fix(data):` for
 corrections, `chore(data):` for verification dates moving with no fact changing.
@@ -216,7 +277,10 @@ merge entirely.
 - **Never commit run state.** `.modeltree-refresh/` is git-ignored and stays that
   way.
 - **Never publish a claim that did not reach its threshold**, and never publish
-  at all if any of the five preconditions failed.
+  at all if any of the six preconditions failed.
+- **Never publish data without its ledger entry**, and never write an entry the
+  diff does not support. If `gate-ledger.mjs` refuses, the entry is wrong — fix
+  the entry, never the data.
 - **Never approve a source to make a claim pass.** If
   `gate-source-approval.mjs` refuses a citation, the claim goes, not the gate.
 - **Never leave a failed deploy standing.** Revert, then report.

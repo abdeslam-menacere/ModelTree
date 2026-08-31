@@ -241,6 +241,25 @@ describe('skills-ci.yml scope detection', () => {
     expect(step, 'skills-ci must run gate-dataset.mjs').toBeDefined();
   });
 
+  // ADR 0006 widened the ADR 0003 qualifying class by one document, the run
+  // ledger, and paid for the widening with gate-ledger. The half of that gate
+  // which is CI's to run is the completeness check: no commit may declare a run
+  // id that the ledger does not record. If this step goes missing, the ledger
+  // can silently fall behind published history again, which is the condition
+  // #419 was filed about and which reached the live site three times.
+  it('runs the ledger gate over published history', () => {
+    const step = skillsCiSteps.find((candidate) =>
+      String(candidate.run ?? '').includes('gate-ledger.mjs'),
+    );
+
+    expect(step, 'skills-ci must run gate-ledger.mjs').toBeDefined();
+
+    // `--history` against an explicit ref, never the gate's default. The default
+    // is `refs/remotes/origin/main`, which actions/checkout does not reliably
+    // create; the gate would exit 2 there, and an exit 2 is not a pass.
+    expect(String(step?.run ?? '')).toContain('--history HEAD');
+  });
+
   // The complement of the assertion above, and the one that catches a step of a
   // kind this test did not anticipate: everything after the decision belongs to
   // one side of it or the other. Only the checkout and the decision itself may
