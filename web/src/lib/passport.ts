@@ -58,6 +58,7 @@ import {
   statusLabel,
 } from './format';
 import { accessTypeGlossary, lifecycleStatusGlossary, methodologyReferences } from './methodology';
+import { buildModelDna, type ModelDnaView } from './model-dna';
 import { daysSince } from './usage-evidence';
 import {
   buildVariantPositioningForFamily,
@@ -403,6 +404,14 @@ export interface ModelPassportView {
   featuredRationale: string | null;
 
   identityFacts: PassportFact[];
+  /**
+   * The Model DNA strip: the same identity dimensions the facts above state at
+   * length, compacted to one labelled value each, in a fixed order that does not
+   * vary between releases. Built by `model-dna.ts`, which is handed the release,
+   * its creator and its family and nothing else, so no benchmark, price, or
+   * usage figure can reach it.
+   */
+  dna: ModelDnaView;
   apiAliases: string[];
   /** Names the release is also known by, excluding the display name. */
   otherNames: string[];
@@ -944,6 +953,7 @@ export function buildModelPassport(
     featuredRationale: release.featuredRationale ?? null,
 
     identityFacts,
+    dna: buildModelDna(release, organization, family, base),
     apiAliases: release.apiAliases,
     otherNames,
     technicalFacts,

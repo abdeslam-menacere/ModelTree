@@ -32,6 +32,8 @@ import {
   relationshipDescription,
   relationshipLabel,
 } from './passport';
+import { MODEL_DNA_DIMENSIONS } from './model-dna';
+import { organizationLabel } from './organization-name';
 import { modelStaticPaths } from './routes';
 
 const BASE = '/ModelTree/';
@@ -669,5 +671,44 @@ describe('build failures are loud', () => {
     };
     expect(() => buildModelPassport(broken, SPARSE_RELEASE_ID, BASE, FIXTURE_TODAY))
       .toThrow(/missing organization/);
+  });
+});
+
+describe('the passport carries the Model DNA strip (issue #37)', () => {
+  it('builds an ordered strip on every view', () => {
+    const view = fixtureView(COMPLETE_RELEASE_ID);
+    const expected = MODEL_DNA_DIMENSIONS.map((dimension) => dimension.id);
+
+    expect(view.dna.segments.map((segment) => segment.id)).toEqual(expected);
+    expect(view.dna.headingId).toBe('model-dna-title');
+  });
+
+  it('keeps the strip in step with the identity facts it summarises', () => {
+    // The strip is a second reading of identity, so a disagreement between the
+    // two would be the passport contradicting itself on one page. The creator is
+    // compared through `organizationLabel`, which is this repository's single
+    // rule for which recorded name is displayed -- comparing against `name`
+    // directly would assert the strip breaks that rule.
+    const view = fixtureView(COMPLETE_RELEASE_ID);
+    const dnaValue = (id: string) =>
+      view.dna.segments.find((segment) => segment.id === id)?.value;
+
+    expect(dnaValue('creator')).toBe(organizationLabel(view.organization));
+    expect(dnaValue('family')).toBe(view.family.name);
+  });
+
+  it('marks weights unrecorded where the release carries no licence record', () => {
+    const view = fixtureView(SPARSE_RELEASE_ID);
+    const weights = view.dna.segments.find((segment) => segment.id === 'weights');
+
+    expect(weights?.recorded).toBe(false);
+    expect(weights?.value).toBe('Not recorded');
+  });
+
+  it('renders the same nine dimensions for every release on the real site', () => {
+    const expected = MODEL_DNA_DIMENSIONS.map((dimension) => dimension.id);
+    for (const release of dataset.releases) {
+      expect(realView(release.id).dna.segments.map((segment) => segment.id)).toEqual(expected);
+    }
   });
 });
