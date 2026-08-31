@@ -3097,5 +3097,464 @@
       }
     ],
     "recordedAt": "2026-08-30"
+  },
+  {
+    "id": "2026-08-31-b7c2d9",
+    "title": "Long-tail depth tranche 2026-08-31 — EleutherAI, Ai2, TII, NVIDIA, IBM, Cohere",
+    "ranOn": "2026-08-31",
+    "outcome": "no-change",
+    "summary": "Researched a second model family for six creators that each hold exactly one, intending to take the exactly-one-family count from 30 down to 24, and published none of them. Thirty claims were proposed, all of kind add, carrying 69 evidence entries; every quote was machine-checked as a contiguous verbatim substring of the exact bytes its contentHash names, with a positive and a negative control on the harness, and all 69 passed. Origin discipline was not the blocker: every page came from an origin the repository already approves, and gate-source-approval exited 0 on all six bundles. Dates were not the blocker either, which is what separates this run from the breadth tranche the day before: each proposed family took its firstReleaseDate from a document distinct from the one dating the release it ships with, so no family date was derived from its own release. The panel was the blocker. Under the unanimous 3-of-3 long-tail bar the provenance rubric rejected all 15 family and release claims, and the reason is nearly uniform: releaseSchema and familySchema both require status, and no model card or announcement read in this run states a lifecycle term that forces one member of the enum. An announcement verb — \"We are releasing the following three models on Hugging Face\" — is not an availability state, and a value filled from what is usual for the field is a guess wearing a vocabulary term. The same rubric rejected accessType: open-weight wherever it rested only on a licence name, since a licence is not a statement that weights are downloadable; it rejected two Falcon 3 parameter counts read out of the model name; and it rejected the Molmo family and release dates, which rested on a page dateline no quote carried. Two further rejections came from other rubrics and are worth recording because they found real defects rather than duplicating provenance: consistency applied the project’s own validateDataset to a clone with all 30 claims applied and showed that the EleutherAI and Cohere releases assert weight-bearing access types with no licence, which releaseSchema refuses outright; and editorial found that the Cohere weights card states \"This model is governed by a CC-BY-NC License with an acceptable use addendum\" in prose, so presenting those weights as openly available while omitting the licence understated a non-commercial restriction. The 15 source records were accepted unanimously and dropped anyway, because with every citing record rejected they would have landed as orphans. The dataset is unchanged, the exactly-one-family count stays at 30, and this entry is the only edit.",
+    "scope": "Six creators already in the catalogue, each holding exactly one family — EleutherAI, Ai2, TII, NVIDIA, IBM and Cohere — under the long-tail unanimous 3-of-3 policy of ADR 0002, since none of the six has a reviewed profile. One additional family per creator was sought, with at least one release under each, restricted to origins already approved at the merge-base. The six were taken from the issue’s own candidate table; a coordinating brief naming stability-ai in place of cohere arrived after the panel had returned its verdicts, too late to change what was scouted, so cohere is in this run and stability-ai is not. That substitution is recorded under notCovered along with a read-only probe of what stability-ai would have run into. No profile catalogue was edited, no origin was added, and no existing record was corrected: every claim was kind add, so a correction found along the way would have been a separate issue rather than folded in.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Re-measured the trunk baseline from the committed data rather than quoting the issue: 40 organizations, 64 families, 92 releases, 217 sources, and 30 organizations holding exactly one family — the number this run set out to reduce. Confirmed all six target creators sit at exactly one family, and that all six publishers already exist, so publishers.json needed no change. Merge-base and HEAD were both 3e255145ed, the same trunk commit the issue measured against."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "Stored 33 page bodies in total, of which 31 belong to the scout proper and 2 to a read-only stability-ai probe run after the panel reported. They cover that many distinct URLs across eight approved origins (huggingface.co, github.com, allenai.org, docs.cohere.com, cohere.com, www.ibm.com, research.nvidia.com, opensource.org). The count is of stored bodies, not fetch operations: a re-fetch overwrites its cached body rather than accumulating, so the number of operations was higher and is not separately recorded. Two fetches returned HTTP 401 behind a gated form (the Cohere Command R 08-2024 raw README and the Aya Expanse 32B card) and their bodies are stored and hashed as the 401 responses they are. Text extraction turned every HTML tag into a newline so that stripping markup could not concatenate text across element boundaries and invent a phrase that appears on no page."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Three reviewers, one per rubric, launched as parallel independent sub-agents. Each received the claims, their evidence, the dataset and its schema, the cached bytes, and its own rubric — and none received the scout’s reasoning, another reviewer’s verdicts, or the running tally. 90 verdicts cast, each with a written rationale. No reviewer was re-run and no tie was broken: with three reviewers and two outcomes there are no ties, and a claim short of its threshold is simply rejected. All three independently rebuilt the contentHash-to-file mapping by re-hashing the cache rather than trusting filenames, and all three confirmed the 69 quotes verbatim."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-source-approval exited 0 on all six bundles. gate-evidence exited 1 on all six, naming exactly the 15 family and release claims as short of the 3-of-3 long-tail threshold — the gate agreeing with the panel that they must not be applied, which is the gate working rather than failing. gate-dataset, gate-scope and gate-ledger each exited 0 over the unchanged dataset. No gate was skipped, overridden, or re-run with a different threshold."
+      },
+      {
+        "stage": "publish",
+        "status": "not-applicable",
+        "note": "Nothing reached the unanimous threshold and survived its dependencies, so there was nothing to apply. The dataset documents were never opened for writing. This entry is the only change the run made."
+      },
+      {
+        "stage": "deploy",
+        "status": "not-applicable",
+        "note": "Nothing merged, so nothing deployed."
+      }
+    ],
+    "found": {
+      "scouts": 6,
+      "pagesFetched": 33,
+      "claimsProposed": 30,
+      "bundles": [
+        {
+          "creator": "eleutherai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "ai2",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "tii",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "nvidia",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "ibm",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "cohere",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "add",
+          "count": 30,
+          "effect": "Every claim proposed a new record: 15 sources, 6 families and 9 releases. None reached the dataset. The run was scoped to additions only, so no existing record was changed or removed."
+        }
+      ],
+      "notCovered": [
+        "GPT-J-6B and GPT-NeoX-20B were read and withheld before review: neither card nor repository states a release date in prose, and the only date-bearing metadata is the Hub upload timestamp, which is not a stated release date.",
+        "The whole Cohere Aya line was read and withheld before review: the documentation states status, modality and context figures but no release date for any Aya model, and the Hugging Face weights cards are behind a gated form that returned HTTP 401.",
+        "command-r-03-2024 was named as the Command R family’s earliest member but never proposed as a release: Cohere states a deprecation date for it and no release date, and its month rests only on the timestamp in its identifier.",
+        "This run checked six creators for one additional family each. It is not a sweep of everything those six have published, and it says nothing about the other 24 creators holding exactly one family.",
+        "stability-ai was named in the coordinating brief in place of cohere, and that brief arrived after the panel had already returned its verdicts, so stability-ai was never scouted and no claim was proposed for it. It was probed read-only rather than left silent: its SDXL and Stable Video Diffusion model cards were fetched and searched for lifecycle, status and release-date wording. The SDXL card contains no line matching any of those terms at all, and the two matching lines on the Stable Video Diffusion card state a usage restriction and a download-statistics note, neither of which is a lifecycle state. On the evidence of that probe stability-ai would have failed on the same required status field as the other six, but a probe is not a scout and this is reported as an indication rather than a result.",
+        "No context window was recorded for Granite 4.0: the only figure sits in an HTML table whose column-to-model mapping is not legible from the text, so a value would have been read from a column position rather than from a statement."
+      ]
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 90,
+      "acceptedByPanel": 15,
+      "rejectedByPanel": 15,
+      "dissents": [],
+      "gates": [
+        {
+          "gate": "gate-source-approval",
+          "scope": "all six claim bundles against the approved origin set at merge-base 3e255145ed",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Exit 0 on every bundle. Each of the eight origins cited — huggingface.co, github.com, allenai.org, docs.cohere.com, cohere.com, www.ibm.com, research.nvidia.com and opensource.org — was already approved, so no origin needed widening and none was widened. This run therefore adds no evidence either way about creators whose own domain is unapproved."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "all six claim bundles, evidence form and review threshold",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": true,
+          "detail": "Exit 1 on all six bundles, naming the 15 family and release claims as short of the threshold — variously at 0, 1 or 2 of the 3 required accepts under the long-tail policy, never at 3. The evidence form itself was not the complaint: all 69 entries carry the six required fields with a sha256 hash, an https credential-free url, a real fetch date and a quote at or above the 24-character floor. The refusal is the threshold, and it agrees with the panel. Per ADR 0005 this gate checks form and never fetches, so the verbatim check was done separately against the stored bytes."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "the committed dataset, read-only coherence check",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Exit 0: all gates passed over 472 records. The dataset is unchanged by this run, so this records that trunk stayed coherent, not that anything this run produced was coherent."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "merge-base 3e255145ed to HEAD, plus the working tree",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Exit 0, reporting one dataset document changed since 3e255145ed and in class: refresh-runs.json, this entry. No other tracked file was touched, and in particular no test, no library and no workflow — a single out-of-class path would have disqualified the whole change. The run’s own artefacts — bundles, verdicts and cached page bodies — live under the git-ignored .modeltree-refresh directory and are invisible to this gate by design."
+        },
+        {
+          "gate": "gate-ledger",
+          "scope": "merge-base 3e255145ed to HEAD, this entry against the branch diff",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Exit 0, and the pass is narrower than it looks, which is worth stating rather than leaving to be discovered: the gate classified this entry as a transcription, because the branch changes no dataset document other than the ledger itself, and reported in as many words that the record counts were therefore NOT checked against a diff and should be read as unverified. That is the correct behaviour for a run that published nothing — there is no diff for the counts to be checked against — but it means the numbers here rest on the run’s own artefacts and on the reviewers’ verdict files, not on this gate having confirmed them. Counts were instead derived mechanically from the six bundles and three verdict files rather than typed by hand."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "web/, the full test suite plus Astro and TypeScript diagnostics",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "107 test files, 2395 tests, 0 failures; 232 files checked with 0 errors and 0 warnings. Run from web/ over this entry, so it covers the entry against refresh-log-schema.ts and not merely the unchanged dataset — which is the only thing this run gives it new to check."
+        },
+        {
+          "gate": "node .github/scripts/ci-preflight.mjs",
+          "scope": "repository root; the pull-request checks this branch’s diff selects, anchored at the merge-base",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Selected and passed two check groups, web-ci and skills-ci, the latter including gate-ledger’s own 221 tests over this entry. It does not run the networked source-link-health sweep, the browser end-to-end check, or the second Python interpreter, and it judges this branch rather than this branch merged into a main that has since moved, so a pass here predicts CI rather than binding it."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 0,
+      "documents": [],
+      "records": []
+    },
+    "withheld": [
+      {
+        "id": "eleutherai-family-gpt-neo-add",
+        "category": "rejected-by-panel",
+        "detail": "families record eleutherai-gpt-neo for eleutherai. [provenance] firstReleaseDate 2021-03-21 (day) is well-sourced by the dated release note '**Update 21/03/2021:** ... two pretrained GPT-Neo models', but status:'current' is unsourced. The two attached quotes state a release event and a family definition ('GPT-Neo refers to the class of models...'); neither states any lifecycle/availability state, so nothing forces 'current' over 'legacy'. A required status filled from what is usual for the field is a guess wearing a vocabulary term (SKILL.md provenance, reject bullet 1). [consistency] The family record itself is well-formed and is NOT a duplicate of the creator's existing eleutherai-pythia family (distinct slug, and GPT-Neo 2021-03-21 predates Pythia 2023-04-03). It is rejected on whole-dataset coherence: its only proposed release, eleutherai-release-gpt-neo-2-7b, is schema-invalid (open-weight with no license) and must be dropped, which leaves this family with zero releases. Running the real validateDataset with the release dropped but the family kept fails with 'family eleutherai-gpt-neo has no releases' (validate.ts:549). As submitted the pair cannot land coherently; fix is to add the missing license to the release and re-submit family+release together.",
+        "blockedBy": [
+          "rubric:provenance",
+          "rubric:consistency"
+        ]
+      },
+      {
+        "id": "eleutherai-release-gpt-neo-2-7b-add",
+        "category": "rejected-by-panel",
+        "detail": "releases record eleutherai-gpt-neo-2-7b for eleutherai. [provenance] status:'current' is unsourced: the attached quotes describe only architecture, parameter count and training data, none stating a lifecycle/availability state. Separately, accessType:'open-weight' rests on the bare labeled link '2.7B: https://mystic.the-eye.eu/public/AI/gptneo-release/GPT3_2-7B/'; the page's preceding 'The weights can be freely downloaded' sentence is NOT in the attached quote, so read alone the link does not state that weights are downloadable (mi4 / co5 precedent: a link or licence is not a downloadable-weights statement). [consistency] accessType is 'open-weight' but the record carries no license object. releaseSchema.superRefine (schema.ts:419-426) requires a license whenever accessType is open-weight or both. Running the actual datasetSchema over existing+all-30 fails with 'releases.92.license: is required when a release claims downloadable weights'. The bundle's own incomplete note concedes the license (mit) exists only in YAML front matter and was omitted. As submitted this record makes the dataset fail Zod validation, so it cannot be admitted.",
+        "blockedBy": [
+          "rubric:provenance",
+          "rubric:consistency"
+        ]
+      },
+      {
+        "id": "ai2-family-molmo-add",
+        "category": "rejected-by-panel",
+        "detail": "families record ai2-molmo for ai2. [provenance] Two provenance failures. (1) firstReleaseDate '2024-09' rests on the page's 'September 25, 2024' dateline, which the bundle itself says is not carried as a quote; a publication timestamp is not a stated release date, and no attached quote states any date ('Today we are releasing 4 samples' gives no date). (2) status:'current' has no attached availability quote, and the family's own released checkpoint is a 'preview', so more than one member could fit.",
+        "blockedBy": [
+          "rubric:provenance"
+        ]
+      },
+      {
+        "id": "ai2-release-molmo-7b-d-add",
+        "category": "rejected-by-panel",
+        "detail": "releases record ai2-molmo-7b-d for ai2. [provenance] status:'preview' is correctly sourced ('This checkpoint is a **preview** of the Molmo release.'). But accessType:'open-weight' and license.weightsDownloadable:true have no supporting quote: 'This model is licensed under Apache 2.0' is a licence name, not a statement that weights are downloadable (co5 reversal precedent), and 'open vision-language models' does not distinguish open-weight from source-available. releaseDate '2024-09' also rests on the unquoted page dateline rather than a stated release date.",
+        "blockedBy": [
+          "rubric:provenance"
+        ]
+      },
+      {
+        "id": "tii-family-falcon-3-add",
+        "category": "rejected-by-panel",
+        "detail": "families record tii-falcon-3 for tii. [provenance] firstReleaseDate 2024-12 is sourced ('- Model Release Date: December 2024'), and '...a set of pretrained and instruct LLMs ranging from 1B to 10B' defines the family, but status:'current' is unsourced. No attached quote states any lifecycle/availability state; the Falcon3 card carries no status wording at all. 'current' is filled from what is usual, which the rubric forbids.",
+        "blockedBy": [
+          "rubric:provenance"
+        ]
+      },
+      {
+        "id": "tii-release-falcon-3-10b-instruct-add",
+        "category": "rejected-by-panel",
+        "detail": "releases record tii-falcon-3-10b-instruct for tii. [provenance] Three gaps. status:'current' has no attached lifecycle/availability quote. accessType:'open-weight' rests on '- License: TII Falcon-LLM License 2.0' — a licence name, not a statement that weights are downloadable. parameters.totalBillions:10 is read from the model name; no attached quote states a 10B count ('under 10 billion parameters' describes the family, not this model's count). contextWindow 32000 and the date are fine, but the above sink it.",
+        "blockedBy": [
+          "rubric:provenance"
+        ]
+      },
+      {
+        "id": "tii-release-falcon-3-7b-base-add",
+        "category": "rejected-by-panel",
+        "detail": "releases record tii-falcon-3-7b-base for tii. [provenance] As with the 10B variant: status:'current' has no attached availability quote; accessType:'open-weight' rests only on the licence name '- License: TII Falcon-LLM License 2.0'; and parameters.totalBillions:7 is taken from the model name — the only count-bearing quote, '...ranging from 1B to 10B', is the family range, not this model's parameter count.",
+        "blockedBy": [
+          "rubric:provenance"
+        ]
+      },
+      {
+        "id": "nvidia-family-nemotron-nano-2-add",
+        "category": "rejected-by-panel",
+        "detail": "families record nvidia-nemotron-nano-2 for nvidia. [provenance] Release date 2025-08-18 is sourced ('### Release Date: 08/18/2025'), but status:'current' is unsourced. 'We are releasing the following three models on Hugging Face...' is an announcement verb, not a lifecycle/availability term (mi4 precedent: an availability/CTA statement does not state a status). No attached quote forces 'current'.",
+        "blockedBy": [
+          "rubric:provenance"
+        ]
+      },
+      {
+        "id": "nvidia-release-nemotron-nano-9b-v2-add",
+        "category": "rejected-by-panel",
+        "detail": "releases record nvidia-nemotron-nano-9b-v2 for nvidia. [provenance] status:'current' has no attached lifecycle/availability quote. accessType:'open-weight' rests on 'Governing Terms: Use of this model is governed by the NVIDIA Open Model License Agreement' — a licence name (despite the word 'Open'), not a statement that weights are downloadable (co5 reversal). Date, contextWindow 128000 and the licence name are otherwise fine, but status and access type are unsourced.",
+        "blockedBy": [
+          "rubric:provenance"
+        ]
+      },
+      {
+        "id": "nvidia-release-nemotron-nano-12b-v2-base-add",
+        "category": "rejected-by-panel",
+        "detail": "releases record nvidia-nemotron-nano-12b-v2-base for nvidia. [provenance] status:'current' unsourced; accessType:'open-weight' unsourced; and the record's license.name 'NVIDIA Open Model License Agreement' has NO attached quote in this claim at all (its evidence is only the release date, the three-model announcement, 'Model Developer: NVIDIA Corporation', and the OSI index). Nothing attached states downloadable weights or even names the licence.",
+        "blockedBy": [
+          "rubric:provenance"
+        ]
+      },
+      {
+        "id": "ibm-family-granite-4-0-add",
+        "category": "rejected-by-panel",
+        "detail": "families record ibm-granite-4-0 for ibm. [provenance] firstReleaseDate 2025-10-02 is sourced ('- **Release Date**: October 2nd, 2025'), but status:'current' is unsourced. 'The Granite 4.0 collection comprises multiple model sizes and architecture styles...' defines the collection and states no lifecycle/availability state; no attached quote forces 'current' over 'legacy' (the description itself notes a newer Granite 4.2 exists).",
+        "blockedBy": [
+          "rubric:provenance"
+        ]
+      },
+      {
+        "id": "ibm-release-granite-4-0-h-small-add",
+        "category": "rejected-by-panel",
+        "detail": "releases record ibm-granite-4-0-h-small for ibm. [provenance] parameters (32B total, 9B active) are well-sourced ('...a 32B parameter long-context instruct model...' and 'a hybrid mixture of experts (MoE) model with 32B total parameters (9B active)'), and osiApproved:true is backed by OSI's Apache page ('Open Source Initiative Approved License'). But status:'current' has no attached lifecycle/availability quote, and accessType:'open-weight' rests only on '- **License:** Apache 2.0' — a licence name, not a statement that weights are downloadable (co5 reversal).",
+        "blockedBy": [
+          "rubric:provenance"
+        ]
+      },
+      {
+        "id": "ibm-release-granite-4-0-h-tiny-add",
+        "category": "rejected-by-panel",
+        "detail": "releases record ibm-granite-4-0-h-tiny for ibm. [provenance] As with H-Small: parameters (7B total, 1B active) are sourced ('...a 7B parameter long-context instruct model...' and 'a hybrid MoE with 7B total parameters (1B active)'), but status:'current' has no attached availability quote and accessType:'open-weight' rests only on the Apache licence name, not a downloadable-weights statement.",
+        "blockedBy": [
+          "rubric:provenance"
+        ]
+      },
+      {
+        "id": "cohere-family-command-r-add",
+        "category": "rejected-by-panel",
+        "detail": "families record cohere-command-r for cohere. [provenance] status:'current' is scoped, not supported. The only lifecycle term attached is 'Deprecated Sept 15, 2025' for command-r-03-2024 — a different, earliest member — which does not establish the family as 'current'; the 'Live' status of command-r-08-2024 is in a different claim's evidence, not this one. A per-release status is not a family status (co5-family precedent). [consistency] The family record itself is well-formed and NOT a duplicate of the creator's existing cohere-command-a family (Command A, 2025-03) - the description correctly keeps the two lines apart, and Command R (2024-03) is the earlier separate line. Its firstReleaseDate 2024-03 also legitimately precedes its only release (2024-08) without tripping the predates-family rule. It is rejected on whole-dataset coherence: its only proposed release, cohere-release-command-r-08-2024, is schema-invalid (accessType 'both' with no license) and must be dropped, leaving this family with zero releases. The real validateDataset then fails with 'family cohere-command-r has no releases' (validate.ts:549). Fix is to supply the release's license and re-submit the pair together.",
+        "blockedBy": [
+          "rubric:provenance",
+          "rubric:consistency"
+        ]
+      },
+      {
+        "id": "cohere-release-command-r-08-2024-add",
+        "category": "rejected-by-panel",
+        "detail": "releases record cohere-command-r-08-2024 for cohere. [provenance] status:'current' (mapped from the quoted 'Live'), accessType:'both' ('a large language model with open weights' plus the API 'Live' listing), contextWindow 128000 ('supports a context length of 128K') and parameters 32B ('32 billion parameter') are all properly sourced. But the record and its statement assert a '4k maximum output' (maximumOutput 4000) with NO attached quote: the models-overview fragment stops at 'delivered in August 2024' and never reaches a max-output figure for this model. The claim states more than the attached sources do (codex precedent: attach the quote, do not map from nothing). [consistency] accessType is 'both' (Cohere API plus open weights), which claims downloadable weights, but the record carries no license object. releaseSchema.superRefine (schema.ts:419-426) requires a license for open-weight or both. Running the real datasetSchema over existing+all-30 fails with 'releases.100.license: is required when a release claims downloadable weights'. The bundle's incomplete note concedes the licence (CC-BY-NC) appears only inside a link element and was not captured. As submitted this record makes the dataset fail Zod validation and cannot be admitted. [editorial] Two editorial defects. (1) Licence/access: the record sets accessType \"both\" (open weights) yet omits `license`, justifying it as \"the weights card names one only inside a link element and states none in prose\" — but the cited weights card states in prose \"This model is governed by a CC-BY-NC License with an acceptable use addendum\". Dropping that CC-BY-NC non-commercial/research restriction while presenting the weights as openly available misrepresents how open the model is. (2) Context basis: the summary asserts \"Cohere publishes no integers for either\", but the cited command-r documentation page states \"a long 128,000-token context length\" — an explicit integer — so the prose makes a false negative about its own sources and understates the firmness of the figure.",
+        "blockedBy": [
+          "rubric:provenance",
+          "rubric:consistency",
+          "rubric:editorial"
+        ]
+      },
+      {
+        "id": "eleutherai-gpt-neo-repository-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Source record eleutherai-gpt-neo-repository was accepted unanimously 3-of-3 on all three rubrics, and was dropped anyway because every record that would have cited it was rejected. A source add must be paired with a claim wiring it into some record's sourceIds — check-bundle-pairing.mjs enforces that pairing, and validate.test.ts refuses a source the dataset cites from nowhere — so applying it alone would have added an orphan. The research behind it stands; only the record it was to support does not.",
+        "blockedBy": [
+          "check-bundle-pairing",
+          "no surviving citing record"
+        ]
+      },
+      {
+        "id": "eleutherai-gpt-neo-2-7b-model-card-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Source record eleutherai-gpt-neo-2-7b-model-card was accepted unanimously 3-of-3 on all three rubrics, and was dropped anyway because every record that would have cited it was rejected. A source add must be paired with a claim wiring it into some record's sourceIds — check-bundle-pairing.mjs enforces that pairing, and validate.test.ts refuses a source the dataset cites from nowhere — so applying it alone would have added an orphan. The research behind it stands; only the record it was to support does not.",
+        "blockedBy": [
+          "check-bundle-pairing",
+          "no surviving citing record"
+        ]
+      },
+      {
+        "id": "ai2-molmo-announcement-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Source record ai2-molmo-announcement was accepted unanimously 3-of-3 on all three rubrics, and was dropped anyway because every record that would have cited it was rejected. A source add must be paired with a claim wiring it into some record's sourceIds — check-bundle-pairing.mjs enforces that pairing, and validate.test.ts refuses a source the dataset cites from nowhere — so applying it alone would have added an orphan. The research behind it stands; only the record it was to support does not.",
+        "blockedBy": [
+          "check-bundle-pairing",
+          "no surviving citing record"
+        ]
+      },
+      {
+        "id": "ai2-molmo-7b-d-model-card-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Source record ai2-molmo-7b-d-model-card was accepted unanimously 3-of-3 on all three rubrics, and was dropped anyway because every record that would have cited it was rejected. A source add must be paired with a claim wiring it into some record's sourceIds — check-bundle-pairing.mjs enforces that pairing, and validate.test.ts refuses a source the dataset cites from nowhere — so applying it alone would have added an orphan. The research behind it stands; only the record it was to support does not.",
+        "blockedBy": [
+          "check-bundle-pairing",
+          "no surviving citing record"
+        ]
+      },
+      {
+        "id": "tii-falcon-3-announcement-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Source record tii-falcon-3-announcement was accepted unanimously 3-of-3 on all three rubrics, and was dropped anyway because every record that would have cited it was rejected. A source add must be paired with a claim wiring it into some record's sourceIds — check-bundle-pairing.mjs enforces that pairing, and validate.test.ts refuses a source the dataset cites from nowhere — so applying it alone would have added an orphan. The research behind it stands; only the record it was to support does not.",
+        "blockedBy": [
+          "check-bundle-pairing",
+          "no surviving citing record"
+        ]
+      },
+      {
+        "id": "tii-falcon-3-10b-instruct-model-card-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Source record tii-falcon-3-10b-instruct-model-card was accepted unanimously 3-of-3 on all three rubrics, and was dropped anyway because every record that would have cited it was rejected. A source add must be paired with a claim wiring it into some record's sourceIds — check-bundle-pairing.mjs enforces that pairing, and validate.test.ts refuses a source the dataset cites from nowhere — so applying it alone would have added an orphan. The research behind it stands; only the record it was to support does not.",
+        "blockedBy": [
+          "check-bundle-pairing",
+          "no surviving citing record"
+        ]
+      },
+      {
+        "id": "tii-falcon-3-7b-base-model-card-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Source record tii-falcon-3-7b-base-model-card was accepted unanimously 3-of-3 on all three rubrics, and was dropped anyway because every record that would have cited it was rejected. A source add must be paired with a claim wiring it into some record's sourceIds — check-bundle-pairing.mjs enforces that pairing, and validate.test.ts refuses a source the dataset cites from nowhere — so applying it alone would have added an orphan. The research behind it stands; only the record it was to support does not.",
+        "blockedBy": [
+          "check-bundle-pairing",
+          "no surviving citing record"
+        ]
+      },
+      {
+        "id": "nvidia-nemotron-nano-2-announcement-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Source record nvidia-nemotron-nano-2-announcement was accepted unanimously 3-of-3 on all three rubrics, and was dropped anyway because every record that would have cited it was rejected. A source add must be paired with a claim wiring it into some record's sourceIds — check-bundle-pairing.mjs enforces that pairing, and validate.test.ts refuses a source the dataset cites from nowhere — so applying it alone would have added an orphan. The research behind it stands; only the record it was to support does not.",
+        "blockedBy": [
+          "check-bundle-pairing",
+          "no surviving citing record"
+        ]
+      },
+      {
+        "id": "nvidia-nemotron-nano-9b-v2-model-card-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Source record nvidia-nemotron-nano-9b-v2-model-card was accepted unanimously 3-of-3 on all three rubrics, and was dropped anyway because every record that would have cited it was rejected. A source add must be paired with a claim wiring it into some record's sourceIds — check-bundle-pairing.mjs enforces that pairing, and validate.test.ts refuses a source the dataset cites from nowhere — so applying it alone would have added an orphan. The research behind it stands; only the record it was to support does not.",
+        "blockedBy": [
+          "check-bundle-pairing",
+          "no surviving citing record"
+        ]
+      },
+      {
+        "id": "nvidia-nemotron-nano-12b-v2-base-model-card-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Source record nvidia-nemotron-nano-12b-v2-base-model-card was accepted unanimously 3-of-3 on all three rubrics, and was dropped anyway because every record that would have cited it was rejected. A source add must be paired with a claim wiring it into some record's sourceIds — check-bundle-pairing.mjs enforces that pairing, and validate.test.ts refuses a source the dataset cites from nowhere — so applying it alone would have added an orphan. The research behind it stands; only the record it was to support does not.",
+        "blockedBy": [
+          "check-bundle-pairing",
+          "no surviving citing record"
+        ]
+      },
+      {
+        "id": "ibm-granite-4-0-announcement-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Source record ibm-granite-4-0-announcement was accepted unanimously 3-of-3 on all three rubrics, and was dropped anyway because every record that would have cited it was rejected. A source add must be paired with a claim wiring it into some record's sourceIds — check-bundle-pairing.mjs enforces that pairing, and validate.test.ts refuses a source the dataset cites from nowhere — so applying it alone would have added an orphan. The research behind it stands; only the record it was to support does not.",
+        "blockedBy": [
+          "check-bundle-pairing",
+          "no surviving citing record"
+        ]
+      },
+      {
+        "id": "ibm-granite-4-0-h-small-model-card-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Source record ibm-granite-4-0-h-small-model-card was accepted unanimously 3-of-3 on all three rubrics, and was dropped anyway because every record that would have cited it was rejected. A source add must be paired with a claim wiring it into some record's sourceIds — check-bundle-pairing.mjs enforces that pairing, and validate.test.ts refuses a source the dataset cites from nowhere — so applying it alone would have added an orphan. The research behind it stands; only the record it was to support does not.",
+        "blockedBy": [
+          "check-bundle-pairing",
+          "no surviving citing record"
+        ]
+      },
+      {
+        "id": "ibm-granite-4-0-h-tiny-model-card-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Source record ibm-granite-4-0-h-tiny-model-card was accepted unanimously 3-of-3 on all three rubrics, and was dropped anyway because every record that would have cited it was rejected. A source add must be paired with a claim wiring it into some record's sourceIds — check-bundle-pairing.mjs enforces that pairing, and validate.test.ts refuses a source the dataset cites from nowhere — so applying it alone would have added an orphan. The research behind it stands; only the record it was to support does not.",
+        "blockedBy": [
+          "check-bundle-pairing",
+          "no surviving citing record"
+        ]
+      },
+      {
+        "id": "cohere-command-r-model-card-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Source record cohere-command-r-model-card was accepted unanimously 3-of-3 on all three rubrics, and was dropped anyway because every record that would have cited it was rejected. A source add must be paired with a claim wiring it into some record's sourceIds — check-bundle-pairing.mjs enforces that pairing, and validate.test.ts refuses a source the dataset cites from nowhere — so applying it alone would have added an orphan. The research behind it stands; only the record it was to support does not.",
+        "blockedBy": [
+          "check-bundle-pairing",
+          "no surviving citing record"
+        ]
+      },
+      {
+        "id": "cohere-command-r-08-2024-weights-card-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Source record cohere-command-r-08-2024-weights-card was accepted unanimously 3-of-3 on all three rubrics, and was dropped anyway because every record that would have cited it was rejected. A source add must be paired with a claim wiring it into some record's sourceIds — check-bundle-pairing.mjs enforces that pairing, and validate.test.ts refuses a source the dataset cites from nowhere — so applying it alone would have added an orphan. The research behind it stands; only the record it was to support does not.",
+        "blockedBy": [
+          "check-bundle-pairing",
+          "no surviving citing record"
+        ]
+      }
+    ],
+    "caveats": [
+      "A withheld tranche is a real outcome of the policy, not a failure of the sources. Every page came from an origin this repository already approves and every quote was verified verbatim against stored bytes. The run reports six creators it could not record rather than six it stretched a citation to reach.",
+      "The blocker is a required field with no sourceable value, and better scouting does not reach it. releaseSchema and familySchema both require status; the schema offers preview, current, legacy, deprecated and research and no unknown member; and a Hugging Face model card states no lifecycle term at all. Where a creator does publish a status — Cohere lists command-r-08-2024 as Live — the mapping to current was accepted without argument. So this is not a claim that status is unsourceable in general; it is that a creator who publishes only model cards has no route to a release record, which is most of the long tail.",
+      "This entry does not claim the panel was wrong, and that was checked rather than assumed. The provenance rubric carries a section written specifically to stop a dissent on a mapped vocabulary field from blocking long-tail claims, on the ground that status and contextWindow are recorded by mapping a creator’s own wording and no source speaks the dataset’s terms — so a panel that treated mapping as inference would have been misapplying its own rubric, and under a unanimous bar that error would silently block every long-tail creator. The rejections were therefore read against that section before this entry was written. They conform: the panel accepted the mapping wherever a status was actually stated, taking Cohere’s quoted \"Live\" to current and Ai2’s quoted \"preview\" to preview in as many words, and rejected status only where no attached quote states any lifecycle state at all — which is the mi4-release-large-3 row the rubric lists as a rejection that stands unchanged. Two of the three rejections that did not come from provenance found defects the scout had missed outright, which is further evidence the panel was reading rather than rubber-stamping.",
+      "The run deliberately did not re-scout to press a different phrase into status. Where the rubric names a remedy it is to attach a quote the page already carries, not to map from nothing, and several rejections here are exactly that repairable kind — but repairing them would not have saved the records, because the unrepairable status gap sits on the same claims. Re-running a rejecting reviewer to obtain a different verdict is forbidden outright and was not done.",
+      "The six bundles, all 90 verdicts with their rationales, and the 31 stored page bodies are reproducible artefacts of this run, but they live under a git-ignored directory and go with the machine. This entry is the durable record; once that directory is gone, every citation here can only be rechecked by re-fetching a live page that may have changed.",
+      "Nothing here says the dataset is current. Six creators were checked for one additional family each. A creator not named in this entry was not looked at, and a family not proposed is not thereby known to be absent."
+    ],
+    "followUps": [
+      "The tranche this run set out to publish is blocked on a schema-and-rubric interaction rather than on evidence: status is required on every release and every family, the provenance rubric requires a quote that forces one enum member, and a model card states no lifecycle term. Three routes are open and this run took none of them, because all three are outside what a refresh agent may decide: make status optional, or give it an unknown member, so a release can be recorded without asserting a lifecycle nobody stated; write down that a creator publishing weights with no stated lifecycle is recorded as current, which is an editorial convention a human should set rather than a reviewer infer; or add these families through a change that takes the ordinary path, where a human reviews the reading on the way in.",
+      "accessType: open-weight was rejected on five releases because it rested on a licence name, a download link, or the word \"open\" in a licence title, none of which states that weights are downloadable. Several of the cards do carry such a statement in prose — the GPT-Neo README says the weights can be freely downloaded a sentence before the link that was quoted instead — so this particular gap is a scouting defect and not a structural one, and is worth re-attempting on its own once the status question is settled.",
+      "The research behind the 15 unanimously accepted source records is sound and was dropped only because the records citing it fell. If the status question is answered, these six creators do not need re-fetching from scratch, but only if the stored bodies are captured before the machine goes.",
+      "Two claims failed on defects worth fixing regardless of the status question: the Cohere Command R 08-2024 release asserted a 4k maximum output with no quote attached, and the NVIDIA Nemotron Nano 12B v2 Base release named a licence its evidence never quoted. Both are attach-the-quote-or-drop-the-field problems in the scout, not disagreements with the panel."
+    ],
+    "references": [
+      {
+        "kind": "issue",
+        "label": "abdeslam-menacere/ModelTree#689 — the issue this run was opened against: 29 of 40 creators are a single leaf. Its acceptance criterion asked the exactly-one-family count down to at most 24; this run left it at 30.",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/689",
+        "state": "open"
+      },
+      {
+        "kind": "issue",
+        "label": "abdeslam-menacere/ModelTree#682 — three committed release dates are the Hugging Face upload timestamp rather than a creator-stated release date. This run treated that metadata as unusable for a date throughout, which is why GPT-J and GPT-NeoX were withheld rather than dated.",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/682",
+        "state": "open"
+      }
+    ],
+    "recordedAt": "2026-08-31"
   }
 ]
