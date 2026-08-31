@@ -9,8 +9,8 @@
   "scripts": {
     "dev": "astro dev",
     "build": "npm run validate && astro build",
-    "check": "astro check",
-    "test": "vitest run --reporter=default --reporter=json --outputFile=.vitest/report.json && node scripts/verify-test-coverage.mjs .vitest/report.json",
+    "check": "node scripts/run-check.mjs",
+    "test": "node scripts/run-tests.mjs",
     "test:e2e": "playwright test",
     "validate": "npm run test && npm run check",
     "preview": "astro preview",
