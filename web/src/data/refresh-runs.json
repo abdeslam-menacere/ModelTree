@@ -2221,5 +2221,276 @@
       { "kind": "issue", "label": "Issue #211 — run summary, stopped at preflight", "url": "https://github.com/abdeslam-menacere/ModelTree/issues/211", "state": "closed" }
     ],
     "recordedAt": "2026-08-26"
+  },
+  {
+    "id": "2026-08-30-605b1a",
+    "title": "Long-tail breadth tranche 2026-08-30 — Aleph Alpha, AI Singapore, Nous Research, Reka AI, Liquid AI, Xiaomi",
+    "ranOn": "2026-08-30",
+    "outcome": "no-change",
+    "summary": "Researched six long-tail creators to take the catalogue from 34 organizations to 40 and published none of them. Every fact was fetched and hashed from origins this repository already approves — huggingface.co, github.com, arxiv.org and opensource.org — never read from a search result, and gate-source-approval passed on all six bundles, so origin discipline was not the blocker. The panel was the blocker, and beneath it a structural one. Under the unanimous 3-of-3 long-tail bar the provenance rubric rejected 46 of 54 claims, most of them because the record asserted fields no attached quote stated: lifecycle status, modality lists, downloadable weights, and above all a release date. No approved-origin page states a release date for any of these six models. The model cards carry no date-bearing line at all; the Hub API states createdAt, which is repository creation and not a stated launch; arXiv states when a paper was submitted, which is a fact about the paper and not the model; and the two GitHub repository READMEs that do carry dated release news date other models — SEA-Guard and a March 2026 embedding family for AI Singapore, and MiMo-7B-RL-0530 rather than MiMo-7B-RL for Xiaomi. releaseSchema requires releaseDate, and the schema is explicit that a field no approved source states means the record is withheld rather than guessed, so no release could be written for any creator. The eight claims the panel did accept were three sources, three publishers and two conflict records; applying them would have left sources cited by nothing, which validate.test.ts forbids, and a creator with no release renders in neither branch of the tree. They were dropped rather than applied. The dataset is unchanged and this entry is the only edit.",
+    "scope": "Six creators with no reviewed profile in tools/updater/profiles — Aleph Alpha, AI Singapore, Nous Research, Reka AI, Liquid AI and the Xiaomi LLM-Core team — under the long-tail unanimous 3-of-3 policy, restricted to the 42 origins already approved at the merge-base. No profile catalogue was edited and no origin was added: widening the trust boundary is deliberately a human act.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Re-measured the trunk baseline from the committed data rather than quoting it: 34 organizations, 55 families, 83 releases, 202 sources, 42 publishers. Enumerated the approved origin set from gate-source-approval itself, by running it over a zero-claim probe bundle, which reports anchors.approvedOrigins whether it passes or fails: 42 origins at merge-base c9e01df."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "Fetched and hashed 48 unique pages across model cards, Hub API records, config.json files, arXiv abstracts, OSI licence pages and GitHub organization and repository pages. Every quote in every bundle was machine-checked to be a literal substring of the exact bytes whose sha256 the evidence records; the generator refuses to emit a bundle otherwise and caught six bad quotes on its first pass, one of which had only ever looked verified because it sat behind a function the prototype never called."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Three reviewers, one vote each, launched in parallel and given the claim, its evidence, the dataset slice and one rubric — never the chair reasoning, another reviewer output, or a running tally. 162 verdicts over 54 claims. The editorial reviewer first returned a single 138-character rationale repeated 54 times and was sent back for claim-specific rationales with its votes explicitly untouched; the rewrite changed no vote. Provenance accepted 8, consistency 54, editorial 54."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-evidence exit 1 on all six bundles, deriving the 3-of-3 threshold itself from the reviewed-profile set on disk rather than from any policy field in the bundles. gate-source-approval exit 0 on all six. gate-dataset exit 0 on the unchanged dataset. gate-scope reports this log entry out of the ADR 0003 qualifying class, which is expected rather than a problem to work around."
+      },
+      {
+        "stage": "publish",
+        "status": "not-applicable",
+        "note": "No claim reached the dataset, so there was nothing to publish. The dock agent opened no pull request and recorded no gate verdict on its own work; this run ends at the review gate and hands off to an independent reviewer."
+      },
+      {
+        "stage": "deploy",
+        "status": "not-applicable",
+        "note": "Nothing was merged, so nothing deployed."
+      }
+    ],
+    "found": {
+      "scouts": 6,
+      "pagesFetched": 48,
+      "claimsProposed": 54,
+      "bundles": [
+        {
+          "creator": "Aleph Alpha",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "AI Singapore",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "Nous Research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "Reka AI",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "Liquid AI",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "Xiaomi LLM-Core Team",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "add",
+          "count": 52,
+          "effect": "Six creators as organization, family, release and publisher records, with 28 supporting source records. None reached the dataset."
+        },
+        {
+          "kind": "conflict",
+          "count": 2,
+          "effect": "Two disagreements between primary sources, recorded rather than smoothed: the LFM2-1.2B context window and the Hermes-4-14B parameter total. Both were accepted unanimously and both describe releases that were not published."
+        }
+      ],
+      "notCovered": [
+        "No creator-owned domain was consulted for any of the six, because none is an approved origin. What those newsrooms say about release dates, lifecycle status and licensing is therefore unknown to this run rather than absent from the world.",
+        "The /compare page-weight guards in web/src/lib/comparison.test.ts were never exercised against new data, because no release was added. Whether six more creators would breach the per-release or total budget remains untested and is still an open question for whoever owns that guard.",
+        "Hermes-3-Llama-3.1-8B was withheld before review rather than judged by the panel, so no verdict exists on it.",
+        "Only one review round was run. The rubric remedy for an unquoted field is to attach the quote, and for the fields other than releaseDate that remedy was not attempted, because releaseDate alone is sufficient to withhold every release record."
+      ]
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 162,
+      "acceptedByPanel": 8,
+      "rejectedByPanel": 46,
+      "dissents": [],
+      "gates": [
+        {
+          "gate": "gate-evidence",
+          "scope": "All six claim bundles, annotated with the panel verdicts.",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": true,
+          "detail": "Refused 46 claims that did not reach the unanimous long-tail bar. The gate derived the 3-of-3 threshold from the reviewed-profile set on disk rather than from the policy field in the bundles, which is the behaviour ADR 0002 requires, and it reached the same answer as the panel independently."
+        },
+        {
+          "gate": "gate-source-approval",
+          "scope": "All six claim bundles against the 42 origins approved at merge-base c9e01dffbf0d9bc92d0b6ee39f286e22120d7246.",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Every citation in every bundle sits on an already-approved origin, and no proposed source rests on a creator-owned domain. This is the one gate that passed cleanly on all six, and it is worth recording that the run did not fail on origins: it failed on what the quotes state."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "The committed dataset, unchanged by this run.",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "The dataset is unchanged and remains internally coherent: 202 sources, 42 publishers, 34 organizations, 55 families, 83 releases. No orphaned source, no dangling reference, no release predating its family."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "The branch diff from its merge-base to its tip.",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": true,
+          "detail": "Reports web/src/data/refresh-runs.json as outOfClass, which is correct and expected rather than a problem to work around: the ADR 0003 qualifying class is the dataset documents raw.ts composes, and the refresh log is deliberately not one of them, so any run that logs itself leaves the class by construction. The gate was not modified, the file was not added to ALLOWED_PATHS, and the log entry was not dropped to stay in class. The consequence is that this change is outside ADR 0003 and merges the ordinary way, with a human — which is what this run wanted anyway, since it published no data."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "web/ — the full vitest suite and Astro/TypeScript diagnostics.",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Run from web/ after this entry was written, so it covers the entry itself against refresh-log-schema.ts as well as the unchanged dataset."
+        },
+        {
+          "gate": "node .github/scripts/ci-preflight.mjs",
+          "scope": "The pull-request checks this branch diff actually triggers, measured from the merge-base.",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Run from the repository root. It does not cover the networked link-health sweep or the second Python interpreter, which it prints on every run and which remain unrun here."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 0,
+      "documents": [],
+      "records": []
+    },
+    "withheld": [
+      {
+        "id": "aleph-alpha",
+        "category": "rejected-by-panel",
+        "detail": "Pharia-1-LLM-7B-control. The parameter count and the 8,192-token sequence length are quoted from Aleph Alpha own card, but no attached quote states a release date, a lifecycle status, a modality set or that the weights are downloadable, and the OSI licence index heading does not by itself establish that the Open Aleph License is absent from the register. The organization record additionally inferred a German identity from a Heidelberg location and did not establish the relationship between the names \"Aleph Alpha GmbH\", \"Aleph Alpha Research\" and \"IPAI Aleph Alpha Research GmbH\", all three of which appear across the sources.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "ai-singapore",
+        "category": "rejected-by-panel",
+        "detail": "Llama-SEA-LION-v3-8B-IT. The card describes AI Singapore in its own words as a national programme supported by the National Research Foundation and hosted by the National University of Singapore, which is what typed the organization research-lab, but the release record rested on an unquoted date, status, modality set and weights statement, and the 128k-to-131072 reconciliation was not supported by an attached quote.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "nous-research",
+        "category": "rejected-by-panel",
+        "detail": "Hermes-4-14B. Licence and parameter assertions were not carried by the attached quotes, the website was not quoted, and the release date, status, modalities and weights were unstated. The config source and the publisher record were accepted; the records that would have made them mean something were not.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "reka-ai",
+        "category": "rejected-by-panel",
+        "detail": "Reka Flash 3. The card states that the model was trained from scratch, which is why no derivation was recorded despite the configuration declaring a Llama architecture class, but the publisher attribution, the website and the release date, status, modality and weights fields were all unquoted.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "liquid-ai",
+        "category": "rejected-by-panel",
+        "detail": "LFM2-1.2B. The organization identity and the LFM Open License name were not carried by the attached quotes, and the release date, modalities and status were unstated. The GitHub organization is Liquid4All rather than a name matching the model prefix, which the record noted but did not resolve from a quote.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "xiaomi",
+        "category": "rejected-by-panel",
+        "detail": "MiMo-7B-RL. The author attribution, the governance relationship between the LLM-Core team and Xiaomi, and the web endpoints were unquoted, as were the release date, status, modalities and weights. The GitHub organization XiaomiMiMo publishes neither a website nor a location, which is why the record proposed the GitHub profile itself as the organization website rather than asserting xiaomi.com.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "nous-research-hermes-3-llama-3-1-8b",
+        "category": "verification-held",
+        "detail": "Withheld before review and never put to the panel. This model was the tranche original Nous candidate and a prior session had flagged it as possibly uncitable; the flag was checked on all three of its legs and held. The card carries exactly one licence statement, the bare slug \"license: llama3\", while the same card declares its base model to be meta-llama/Meta-Llama-3.1-8B and the Hub tags declare base_model:meta-llama/Llama-3.1-8B. The slug names the Llama 3 licence and the base names Llama 3.1, and https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B/raw/main/LICENSE returns HTTP 404, so nothing on an approved origin resolves the disagreement. An open-weight release requires a licence object, and guessing which licence the slug meant is exactly what this dataset refuses. Hermes-4-14B was carried instead, where the slug apache-2.0 and the base Qwen/Qwen3-14B agree.",
+        "blockedBy": [
+          "licenseSchema"
+        ]
+      },
+      {
+        "id": "accepted-sources-and-publishers",
+        "category": "dropped-after-acceptance",
+        "detail": "Three source records — the Nous, Reka and Liquid configuration files and the Aleph Alpha GitHub organization page — and three publishers, Nous Research, Reka AI and Liquid AI, together with the AI Singapore publisher, were accepted unanimously by all three rubrics. None was applied. With no accepted release or organization to cite them, the sources would have been orphaned, which validate.test.ts forbids outright, and a publisher publishing nothing is a record that renders nowhere. This is the same shape of outcome recorded for Mistral AI and Cohere in the 2026-08-27 run.",
+        "blockedBy": [
+          "aleph-alpha",
+          "nous-research",
+          "reka-ai",
+          "liquid-ai"
+        ]
+      },
+      {
+        "id": "liquid-ai-lfm2-1-2b-context-window",
+        "category": "conflict-recorded",
+        "detail": "The LFM2-1.2B card states a context length of 32,768 tokens while the repository config.json sets max_position_embeddings to 128000. The conflict was recorded with the creator own stated figure taken as the reading, and was accepted unanimously. It describes a release that was not published.",
+        "blockedBy": [
+          "liquid-ai"
+        ]
+      },
+      {
+        "id": "nous-research-hermes-4-14b-parameter-total",
+        "category": "conflict-recorded",
+        "detail": "The same Hub object reports safetensors.parameters.BF16 as 14768307200 and safetensors.total as 424960 for a model shipping six shards over 29.5 GB. The BF16 figure was taken as the reading. For the other five creators the two figures agree exactly, which is what identifies the total as the anomaly. Accepted unanimously; describes a release that was not published.",
+        "blockedBy": [
+          "nous-research"
+        ]
+      }
+    ],
+    "caveats": [
+      "A withheld tranche is a real outcome of the policy rather than a failure of the sources. Everything above rests on pages fetched from origins this repository already approves, and the run reports six creators it could not source rather than six it stretched a citation to reach.",
+      "The blocker is structural and no amount of better scouting reaches it. Every one of the 42 approved origins is either a generic host — github.com, huggingface.co, arxiv.org, opensource.org, storage.googleapis.com — or the own domain of a creator already in the catalogue. A creator that is not yet in the catalogue therefore has no approved domain of its own, so the announcement page that would state its release date is precisely the page the trust boundary excludes. Approving a new origin is a human act by design, so a refresh agent cannot close this gap from inside a run.",
+      "The issue framed part of this tranche as closing a non-transformer gap. That framing is factually wrong and was not carried into any claim. The LFM2-1.2B card describes the architecture in its own words as a hybrid model with multiplicative gates and short convolutions, ten double-gated short-range convolution blocks and six grouped query attention blocks, and the config lists full_attn_idxs [2,5,8,10,12,14] with 32 attention heads and 8 key-value heads. LFM2 contains attention. Writing the issue framing into the dataset would have published a false claim beside a citation that contradicts it.",
+      "Nous Research was typed company rather than community. The community clause needs a source showing that contributors outside the entity own appointment chain decide its releases, and nothing consulted states that; the ordered procedure then falls through to the company fallback. This is a classification the panel judged rather than a fact any source states.",
+      "The panel is three model instances reading the same pages, so 2-of-3 or 3-of-3 buys independence of reasoning and not independence of training. A source that is itself wrong could carry all three. The provenance rubric was also the only one of the three that rejected anything here, which is worth noticing rather than smoothing: consistency and editorial each accepted all 54, so the unanimous bar was carried entirely by one rubric.",
+      "The editorial verdicts were rewritten once. The first pass returned a single sentence repeated across all 54 claims, which fails the requirement that a rationale state what decided it; the reviewer was asked for claim-specific rationales with its votes explicitly untouched, and it changed none. The rewritten rationales are the ones recorded, and a reader should know they were produced on a second pass.",
+      "This entry was written by the run rather than transcribed after it, which is why gate-scope reports the branch out of the ADR 0003 class. The entry records gate results for npm run validate and ci-preflight that were observed after the entry itself was written, so those two lines describe the tree as committed rather than the tree as it stood when the earlier gates ran."
+    ],
+    "followUps": [
+      "A new creator cannot currently be added from the approved origin set alone, because releaseDate is required and only a creator own announcement states one. Whoever picks this up has to choose deliberately between approving each new creator origins as a reviewed human step before its refresh runs, and changing what the schema requires of a release whose date no approved source states. This run took neither decision, because both are outside what a refresh agent may do.",
+      "The six bundles, their 48 hashed pages and all 162 verdicts are reproducible artefacts of this run but live under a git-ignored directory, so they disappear with the machine. If the origin question above is answered, the research does not need repeating from scratch, but only if it is captured before that happens.",
+      "Three of the six creators — Nous Research, Reka AI and Liquid AI — reached a unanimously accepted publisher and configuration source. They are the closest to publishable and would be the cheapest to revisit first once a date-bearing origin is available for them."
+    ],
+    "references": [
+      {
+        "kind": "issue",
+        "label": "abdeslam-menacere/ModelTree#605 — the issue this run was opened against, carrying its full summary and the panel result",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/605",
+        "state": "open"
+      }
+    ],
+    "recordedAt": "2026-08-30"
   }
 ]
