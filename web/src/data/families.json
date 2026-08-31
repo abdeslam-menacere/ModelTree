@@ -135,7 +135,7 @@
       "anthropic-model-deprecations",
       "anthropic-sonnet-4-5-announcement"
     ],
-    "verifiedAt": "2026-08-31"
+    "verifiedAt": "2026-08-15"
   },
   {
     "id": "google-gemini-3",
@@ -1156,5 +1156,63 @@
       "ai-singapore-llama-sea-lion-v3-8b-model-card"
     ],
     "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "01-ai-yi",
+    "slug": "yi",
+    "organizationId": "01-ai",
+    "name": "Yi",
+    "description": "01.AI’s original Yi series, opened on 2023-11-02 with bilingual English/Chinese base models at 6B and 34B, extended three days later with 200K-context base models and on 2023-11-23 with chat models, and later with 9B and vision-language members. It is the series the Yi-1.5 generation was continuously pre-trained from.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2023-11-02",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "01-ai-yi-repository",
+      "01-ai-yi-34b-chat-model-card"
+    ],
+    "verifiedAt": "2026-08-31"
+  },
+  {
+    "id": "qwen3-5",
+    "slug": "qwen3-5",
+    "organizationId": "alibaba-cloud",
+    "name": "Qwen3.5",
+    "description": "Alibaba Cloud’s Qwen3.5 generation, announced on 2026-02-16 with a 397B-A17B mixture-of-experts flagship and extended over the following fortnight with 122B-A10B, 35B-A3B and 27B variants and then a set of smaller ones, all published as downloadable weights on Hugging Face Hub and ModelScope. A Qwen generation is the family. Qwen3.5-Plus, which the flagship’s card describes as the hosted version corresponding to these weights, is a separate artefact and is not recorded here.",
+    "categories": [
+      "multimodal-generalist",
+      "coding",
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2026-02-16",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "qwen3-8-repository",
+      "qwen3-5-397b-a17b-model-card"
+    ],
+    "verifiedAt": "2026-08-31"
+  },
+  {
+    "id": "qwen3-6",
+    "slug": "qwen3-6",
+    "organizationId": "alibaba-cloud",
+    "name": "Qwen3.6",
+    "description": "Alibaba Cloud’s Qwen3.6 generation, whose first open-weight variant reached Hugging Face Hub and ModelScope on 2026-04-16 and was followed by a dense 27B variant on 2026-04-22. Its card presents the generation as a successor to Qwen3.5 focused on agentic coding and on retaining reasoning context between turns.",
+    "categories": [
+      "multimodal-generalist",
+      "coding",
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2026-04-16",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "qwen3-8-repository",
+      "qwen3-6-35b-a3b-model-card"
+    ],
+    "verifiedAt": "2026-08-31"
   }
 ]

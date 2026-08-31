@@ -221,8 +221,18 @@ trunk has already settled. From your worktree:
 
 ```bash
 git merge-tree --write-tree refs/remotes/origin/main HEAD
-git rev-parse refs/remotes/origin/main^{tree}
+git rev-parse 'refs/remotes/origin/main^{tree}'
 ```
+
+The quotes on the second line are load-bearing, and single quotes specifically:
+they are inert in bash and in PowerShell alike, so one written form is correct
+in both. Unquoted, a shell can rewrite the rev-spec before git sees it, and a
+rewritten rev-spec can still name a real object — so that failure reaches you as
+a well-formed OID rather than as an error. The general property, worth carrying
+past this one line: **an argument that literally contains `^`, `{`, `}`, `$`,
+`@`, `<`, `>`, or a backtick is shell-dependent and must be single-quoted**; a
+placeholder you substitute before running is not yet an argument. Sweeping for
+known-bad commands finds instances, and only the property finds the class.
 
 Capture the **exit code** of the first command. It is not decoration, it is the
 whole of the discrimination, and reading stdout without it is the one way this
