@@ -119,7 +119,8 @@ source supports an entry.
 
 `model-fit-statements.json` holds ModelTree's own editorial reading of the
 records: when a release is a good fit, where it is a trade-off, and when to avoid
-it. It is the only place in the dataset where ModelTree speaks in its own voice,
+it. It is one of the two places where ModelTree speaks in its own voice — the
+other is the editorial summary in `variant-positioning.json`, described below —
 so it carries the strictest rules in the repository.
 
 A statement is filed as exactly one of `good-fit-when`, `trade-off`, or
@@ -179,6 +180,63 @@ supported, so an absence is not read as a silent negative. A gap carries no
 source, because it asserts no fact about the model, and it may not name a
 dimension that a published statement on the same release already derives guidance
 from — a dimension cannot be both answered and unanswerable.
+
+### Sibling variant positioning
+
+`variant-positioning.json` records what a creator says one of its own variant
+names — the tier names readers see, `Opus`, `Flash`, `Nano` — is for. A record is
+keyed on a `familyId`, never on a model name, because a family in this dataset is
+already generation-scoped: `google-gemini-2-5` "Pro" and `google-gemini-3` "Pro"
+are two independent records, and neither inherits the other's meaning. Membership
+is derived rather than asserted — a record names a variant name, and its members
+are every release in that family whose `variant` matches — so a record cannot
+name a release outside its own family.
+
+Each variant entry has two structurally separate halves, and the separation is
+the point:
+
+- `official` holds **only** verbatim quotes and their source metadata. There is
+  no ModelTree-authored string in it. Each source carries `url`, `title`,
+  `publisher`, the `quote` itself, and `lastCheckedDate`; the entry carries
+  `effectiveAsOf`.
+- `editorial.summary` is ModelTree's reading of that claim, with its own
+  `verifiedAt`. It is the only free text ModelTree writes here.
+
+Both are rendered with visible text labels rather than by colour, italics, or
+position, so the two voices stay distinguishable in reading order and to a screen
+reader.
+
+What the shape makes unsayable is as important as what it records. No field can
+reference another organization, family, or release, so a cross-creator analogy
+("this vendor's mid tier is like that vendor's fast tier") is not expressible —
+and the view builder additionally throws at build time if ModelTree's prose names
+another creator or another creator's family. There is no price field and no fact
+reference of any kind, so tier meaning can never be derived from cost. Both
+`note` and `editorial.summary` run through the repository's universal-claim
+filter plus a positioning-specific vocabulary filter covering recommendations,
+prescriptive advice, price wording, letter grades, and ordered-ladder framing.
+
+Coverage is derived, never declared. A family with no record is `absent`, a
+family whose every variant is recorded is `complete`, and anything between is
+`partial` — with the uncovered variants named explicitly. There is no settable
+completeness flag, so a record cannot claim coverage it does not have, and an
+undocumented tier ladder stays visibly unknown instead of being guessed at.
+
+Two deliberate departures from the rest of the dataset, both shared with
+`glossary.json`:
+
+- The document is **not** part of `raw.ts`, so it is outside the auto-merge
+  qualifying class in ADR 0003. These are ModelTree editorial claims and should
+  not merge without review.
+- Sources are recorded inline rather than as ids into `sources.json`, because a
+  per-source verbatim quote is what makes the creator's voice visible. The cost
+  is that `source-link-health` does not sweep these URLs.
+
+Code, field, and file names say `variant` and `positioning` rather than `tier`,
+because `gate-dataset.mjs` classes `tier` as ranking vocabulary; the rendered
+prose still says "tier", which is the reader's word. `variant-positioning.test.ts`
+parses that word list out of the gate script and asserts no key in the committed
+document matches it.
 
 ### Sources and publishers
 
