@@ -1,0 +1,49 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`human-readable report > renders the calm, factual sections with dates and thresholds 1`] = `
+"# ModelTree data-health report
+
+- Policy version: \`1.0.0\`
+- Reference date: 2026-08-30
+- Thresholds (days): volatile 90, evidence 180, release-metadata 365, structural 545
+
+Ordinary age is reported here, never failed. 6 dated records: 3 healthy, 1 stale, 2 conflicted.
+
+## Stale featured records
+
+| id | kind | category | verified | age (days) | threshold |
+| --- | --- | --- | --- | ---: | ---: |
+| \`feat\` | release | release-metadata | 2024-01-01 | 972 | 365 |
+
+## Stale long-tail records
+
+None. No long-tail record is past its freshness threshold.
+
+## Missing optional coverage
+
+Aspects a release could carry but no source has been recorded for yet.
+
+| release | featured | missing |
+| --- | --- | --- |
+| \`feat\` | yes | deployment, pricing, benchmark-result, usage-evidence |
+| \`fresh\` | no | deployment, pricing, benchmark-result |
+
+## Source-type mix
+
+A coverage indicator, not a score. Counts of primary sources by type.
+
+| type | count |
+| --- | ---: |
+| official-docs | 1 |
+
+## Unresolved conflicts
+
+Recorded disagreements kept side by side. Nothing here picks a winner.
+
+| id | kind | conflicts with |
+| --- | --- | --- |
+| \`obs-a\` | usage-observation | \`obs-b\` |
+| \`obs-b\` | usage-observation | \`obs-a\` |
+
+"
+`;

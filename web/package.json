@@ -12,6 +12,7 @@
     "check": "astro check",
     "test": "vitest run --reporter=default --reporter=json --outputFile=.vitest/report.json && node scripts/verify-test-coverage.mjs .vitest/report.json",
     "test:e2e": "playwright test",
+    "data-health": "node scripts/data-health.mjs",
     "validate": "npm run test && npm run check",
     "preview": "astro preview",
     "astro": "astro"
