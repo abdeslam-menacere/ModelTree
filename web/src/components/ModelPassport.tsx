@@ -13,6 +13,7 @@
  * test asserts about the view model is what a reader sees.
  */
 import { AlertTriangle, ExternalLink, Info, ScrollText } from 'lucide-react';
+import ModelDna from './ModelDna';
 import { formatDate } from '../lib/format';
 import { organizationLabel } from '../lib/organization-name';
 import { variantPositioningCoverageLine } from '../lib/variant-positioning';
@@ -278,6 +279,11 @@ export default function ModelPassport({ view }: Props) {
             </p>
           ) : null}
         </div>
+
+        {/* The compact reading of the same identity the grid below states at
+            length. It sits above that grid because it is the scan, not the
+            record: a reader who wants the detail keeps going. */}
+        <ModelDna dna={view.dna} />
 
         <div className="passport-grid">
           <FactList facts={view.identityFacts} className="passport-facts" />

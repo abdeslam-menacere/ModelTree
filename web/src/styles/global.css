@@ -7234,3 +7234,134 @@ nav a {
     padding-inline-start: var(--cp-space-2);
   }
 }
+
+/* --- Model DNA identity strip (issue #37) --------------------------------
+ *
+ * Nine identity dimensions, one labelled value each, in an order fixed by
+ * `lib/model-dna.ts` rather than by anything here. Nothing in this block encodes
+ * a rank, a score, or a creator: there is no per-dimension hue, no swatch and no
+ * glyph, because the dataset records no scale for one to stand for and
+ * `docs/product/INTERACTION-CONTRACT.md` rules out colour that implies a
+ * category the data does not carry.
+ *
+ * Segments are drawn with borders rather than fills. Under
+ * `forced-colors: active` a background is dropped and a border is kept, so the
+ * segment boundaries survive a high-contrast mode intact and this block needs no
+ * forced-colours override of its own. The one segment that differs -- a
+ * dimension with nothing recorded -- differs by border style, not by colour
+ * alone, so it is still distinguishable where every colour has been replaced.
+ *
+ * The strip wraps rather than scrolls, and no segment claims an intrinsic width,
+ * so at 320px it folds into as many rows as it needs and a long creator name
+ * breaks inside its own segment instead of pushing the page wider.
+ */
+
+.model-dna {
+  margin: var(--cp-space-5) 0 0;
+}
+
+.model-dna > h3 {
+  margin: 0 0 var(--cp-space-1);
+  font-size: var(--cp-size-lg);
+}
+
+.model-dna-note {
+  margin: 0 0 var(--cp-space-3);
+  max-width: 70ch;
+  color: var(--cp-text-muted);
+  font-size: var(--cp-size-xs);
+  line-height: 1.5;
+}
+
+.model-dna-strip {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  gap: var(--cp-space-2);
+  list-style: none;
+}
+
+.model-dna-segment {
+  display: grid;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: var(--cp-radius-md);
+  padding: var(--cp-space-2) var(--cp-space-3);
+  gap: var(--cp-space-1);
+}
+
+.model-dna-label {
+  color: var(--cp-text-muted);
+  font-size: var(--cp-size-2xs);
+  font-weight: 650;
+  letter-spacing: var(--cp-tracking-caps);
+}
+
+.model-dna-value {
+  color: var(--cp-text);
+  font-size: 14px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* A dimension the record does not carry. It keeps its place in the order and
+ * prints the words "Not recorded" as its value, so the dashed edge is a second
+ * reading of something already written out, never the only one. */
+.model-dna-absent {
+  border-style: dashed;
+}
+
+.model-dna-absent .model-dna-value {
+  color: var(--cp-text-soft);
+}
+
+.model-dna-key {
+  margin: var(--cp-space-3) 0 0;
+  max-width: 70ch;
+}
+
+.model-dna-key > summary {
+  padding-block: var(--cp-space-1);
+  min-block-size: 24px;
+  color: var(--cp-link);
+  font-size: var(--cp-size-xs);
+  cursor: pointer;
+}
+
+.model-dna-key dl {
+  display: grid;
+  margin: var(--cp-space-2) 0 0;
+  gap: var(--cp-space-3);
+}
+
+.model-dna-key dt {
+  color: var(--cp-text);
+  font-size: var(--cp-size-xs);
+  font-weight: 650;
+  letter-spacing: var(--cp-tracking-caps);
+}
+
+.model-dna-key dd {
+  display: grid;
+  margin: var(--cp-space-1) 0 0;
+  gap: var(--cp-space-1);
+  font-size: var(--cp-size-xs);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.model-dna-key-value {
+  color: var(--cp-text);
+}
+
+.model-dna-key-definition,
+.model-dna-key-absence {
+  color: var(--cp-text-muted);
+}
+
+.model-dna-key-field {
+  color: var(--cp-text-soft);
+}
