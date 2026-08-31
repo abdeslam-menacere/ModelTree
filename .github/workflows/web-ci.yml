@@ -190,6 +190,8 @@ jobs:
           #       src/data/catalog-inclusion-policy.test.ts,
           #       src/data/featured-policy.test.ts and
           #       src/data/organization-type-policy.test.ts
+          #   docs/product/FRESHNESS-POLICY.md
+          #       src/data/freshness-policy.test.ts
           #
           # Named files rather than whole directories wherever the directory
           # also holds files no web/ test reads. .github/skills/ is the case
@@ -212,7 +214,7 @@ jobs:
           # A here-string rather than a pipe: `grep -q` exits on its first match,
           # which can leave the left-hand side of a pipe killed by SIGPIPE and
           # the whole pipeline non-zero under `set -o pipefail`.
-          if grep -Eq '^(web/|\.github/workflows/|\.github/scripts/ci-preflight\.mjs$|\.github/skills/modeltree-gates/scripts/gate-(dataset|evidence|scope)\.mjs$|\.github/skills/modeltree-review/SKILL\.md$|\.github/ISSUE_TEMPLATE/|\.github/CODEOWNERS$|\.github/pull_request_template\.md$|CONTRIBUTING\.md$|docs/contributing/minimal-dataset-example\.json$|docs/product/INFORMATION-ARCHITECTURE\.md$|tools/updater/profiles/[^/]+\.[jJ][sS][oO][nN]$)' <<< "$changed"; then
+          if grep -Eq '^(web/|\.github/workflows/|\.github/scripts/ci-preflight\.mjs$|\.github/skills/modeltree-gates/scripts/gate-(dataset|evidence|scope)\.mjs$|\.github/skills/modeltree-review/SKILL\.md$|\.github/ISSUE_TEMPLATE/|\.github/CODEOWNERS$|\.github/pull_request_template\.md$|CONTRIBUTING\.md$|docs/contributing/minimal-dataset-example\.json$|docs/product/INFORMATION-ARCHITECTURE\.md$|docs/product/FRESHNESS-POLICY\.md$|tools/updater/profiles/[^/]+\.[jJ][sS][oO][nN]$)' <<< "$changed"; then
             echo "Files the web suite reads changed; running the full web build."
             echo "run=true" >> "$GITHUB_OUTPUT"
           else

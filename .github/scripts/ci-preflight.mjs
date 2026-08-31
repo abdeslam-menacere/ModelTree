@@ -107,6 +107,7 @@ const CHECKS = [
         + '|\\.github/CODEOWNERS$|\\.github/pull_request_template\\.md$|CONTRIBUTING\\.md$'
         + '|docs/contributing/minimal-dataset-example\\.json$'
         + '|docs/product/INFORMATION-ARCHITECTURE\\.md$'
+        + '|docs/product/FRESHNESS-POLICY\\.md$'
         + '|tools/updater/profiles/[^/]+\\.[jJ][sS][oO][nN]$)',
     },
     // Three commands rather than one `npm run build`, matching the workflow's
