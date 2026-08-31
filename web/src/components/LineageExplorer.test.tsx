@@ -4,7 +4,15 @@ import { describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import { organizationLabel } from '../lib/organization-name';
 import { FLAT_FAMILY_ID, lineageFixtureDataset } from '../../tests/fixtures/lineage-dataset';
-import { buildLineageEcosystems, type LineageEcosystem } from '../lib/lineage-view';
+import {
+  positioningFixtureDataset,
+  positioningFixtureRecords,
+} from '../../tests/fixtures/variant-positioning-dataset';
+import {
+  buildCreatorEcosystems,
+  buildLineageEcosystems,
+  type LineageEcosystem,
+} from '../lib/lineage-view';
 import { parseComparisonSelection } from '../lib/comparison';
 import LineageExplorer from './LineageExplorer';
 
@@ -227,5 +235,95 @@ describe('the drawer can start a comparison', () => {
       expect(selection.slugs).toHaveLength(1);
       expect(selection.rejections).toEqual([]);
     }
+  });
+});
+
+/**
+ * Tier lines beside sibling nodes, in all three coverage states.
+ *
+ * Driven by a synthetic catalog rather than by the shipped one on purpose. All
+ * three states happen to exist in shipped data today, but "absent" is one
+ * documentation page away from disappearing, and a test that quietly stopped
+ * covering a branch would look exactly like a passing one.
+ */
+describe('sibling tier lines beside the nodes they explain', () => {
+  const fixtureLabels = labelsFor(positioningFixtureDataset.releases);
+  const positioned = renderExplorer(
+    buildCreatorEcosystems(positioningFixtureDataset, positioningFixtureRecords),
+    fixtureLabels,
+  );
+
+  const familyBlock = (familyName: string) => {
+    const start = positioned.indexOf(`>${familyName}<`);
+    expect(start, `expected ${familyName} to render`).toBeGreaterThan(-1);
+    const end = positioned.indexOf('</article>', start);
+    return positioned.slice(start, end === -1 ? undefined : end);
+  };
+
+  it('states the creator, the tier name and the quote as text beside the node', () => {
+    const block = familyBlock('Tier One');
+
+    expect(block).toContain('<span class="node-positioning-variant">Wide tier</span>');
+    expect(block).toContain('Tier Foundry states:');
+    // A `<q>` rather than a styled span: the quotation is in the element, so a
+    // reader is told these are someone else\u2019s words without relying on a glyph.
+    expect(block).toMatch(/<q>[^<]+<\/q>/);
+  });
+
+  it('summarises a family\u2019s coverage in words rather than by a count alone', () => {
+    expect(positioned).toContain('data-coverage="complete"');
+    expect(positioned).toContain('data-coverage="partial"');
+    expect(positioned).toContain('data-coverage="absent"');
+    expect(familyBlock('Tier One')).toContain('Creator positioning is recorded for all 2 variant names in Tier One.');
+  });
+
+  it('marks an unexplained name in a partly covered family instead of leaving a gap', () => {
+    const block = familyBlock('Tier Two');
+
+    expect(block).toContain('<span class="node-positioning-variant">Dark tier</span>');
+    expect(block).toContain('no creator statement of what this name is for is recorded');
+    expect(block).toContain('data-recorded="false"');
+  });
+
+  it('says nothing per node in a family where nothing at all is recorded', () => {
+    const block = familyBlock('Tier Three');
+
+    // The family line above has already said it once. Repeating it under each of
+    // the two nodes would add words and no information.
+    expect(block).toContain('No creator statement of what these 2 variant names mean is recorded for Tier Three.');
+    expect(block).not.toContain('node-positioning');
+  });
+
+  it('keeps the two readings of a reused name apart', () => {
+    // "Wide" is positioned in Tier One and again in Tier Four, a later
+    // generation from the same creator, with a different sentence. Keying on the
+    // family is what stops the first reading leaking into the second.
+    expect(familyBlock('Tier One')).toContain('Built for broad context work');
+    expect(familyBlock('Tier One')).not.toContain('Built for multi-step agent runs');
+    expect(familyBlock('Tier Four')).toContain('Built for multi-step agent runs');
+    expect(familyBlock('Tier Four')).not.toContain('Built for broad context work');
+  });
+
+  it('leaves the button\u2019s accessible name short, with the line beside it', () => {
+    // The tier line is a sibling of the button, not content inside it: a button
+    // that announced a paragraph on every focus would be worse than no line.
+    const buttons = [...positioned.matchAll(/<button[^>]*>([\s\S]*?)<\/button>/g)].map((m) => m[1]);
+    expect(buttons.length).toBeGreaterThan(0);
+    for (const inner of buttons) {
+      expect(inner).not.toContain('node-positioning');
+    }
+  });
+
+  it('renders the shipped catalog\u2019s own partial family without inventing a label', () => {
+    // Anthropic documents Opus, Sonnet and Fable on one page and does not
+    // position Mythos, so the shipped data really does exercise the partial
+    // branch end to end.
+    const claude = catalogEcosystems
+      .flatMap(({ families }) => families)
+      .find(({ family }) => family.id === 'anthropic-claude-5');
+
+    expect(claude, 'expected anthropic-claude-5 in the featured lineage').toBeTruthy();
+    expect(claude!.positioning.coverage).toBe('partial');
+    expect(catalogMarkup).toContain('Anthropic states:');
   });
 });

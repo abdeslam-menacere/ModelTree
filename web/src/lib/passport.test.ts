@@ -13,6 +13,12 @@ import {
   passportFixtures,
 } from '../../tests/fixtures/passport-dataset';
 import {
+  absentPositioning,
+  completePositioning,
+  partialPositioning,
+} from '../../tests/fixtures/passport-positioning';
+import type { VariantPositioning } from '../data/variant-positioning-schema';
+import {
   PASSPORT_SECTION_ORDER,
   PassportError,
   RELATIONSHIP_KINDS,
@@ -150,6 +156,87 @@ describe('AC2 — lineage relationships are distinct and complete', () => {
     expect(view.presentRelationships).toEqual([]);
     expect(sectionOf(view, 'lineage').present).toBe(false);
     expect(view.notRecorded.map((note) => note.id)).toContain('lineage');
+  });
+});
+
+describe('sibling tier positioning on the passport view', () => {
+  const positionedView = (releaseId: string, records: VariantPositioning) =>
+    buildModelPassport(passportFixtures, releaseId, BASE, FIXTURE_TODAY, records);
+
+  it('measures coverage as complete only when every name in use is positioned', () => {
+    const view = positionedView(COMPLETE_RELEASE_ID, completePositioning);
+
+    expect(view.positioning.coverage).toBe('complete');
+    expect(view.positioning.unpositioned).toEqual([]);
+    expect(view.positioning.positioned.map((entry) => entry.variant)).toEqual(['base', 'mini']);
+  });
+
+  it('measures coverage as partial, and names what is missing, when one is not', () => {
+    const view = positionedView(COMPLETE_RELEASE_ID, partialPositioning);
+
+    expect(view.positioning.coverage).toBe('partial');
+    expect(view.positioning.unpositioned.map((entry) => entry.variant)).toEqual(['mini']);
+  });
+
+  it('measures coverage as absent when nothing is recorded, keeping the names in use', () => {
+    const view = positionedView(COMPLETE_RELEASE_ID, absentPositioning);
+
+    expect(view.positioning.coverage).toBe('absent');
+    expect(view.positioning.positioned).toEqual([]);
+    expect(view.positioning.unpositioned.map((entry) => entry.variant)).toEqual(['base', 'mini']);
+  });
+
+  it('keeps the creator\'s words and ModelTree\'s reading in separate fields', () => {
+    const view = positionedView(COMPLETE_RELEASE_ID, completePositioning);
+    const [entry] = view.positioning.positioned;
+
+    // The structural half of the "official is not editorial" rule: there is no
+    // ModelTree-authored string anywhere under `official`, so the two cannot be
+    // rendered from one value with a flag.
+    expect(Object.keys(entry.official).sort()).toEqual(['effectiveAsOf', 'sources']);
+    expect(entry.official.sources[0].quote).not.toBe(entry.editorial.summary);
+    expect(entry.editorial.verifiedAt).toBeTruthy();
+  });
+
+  // Sibling variants are family membership, not a recorded relationship, so the
+  // section has to survive a release that has one and not the other.
+  it('shows the lineage section for a release with positioning but no relationship', () => {
+    const records: VariantPositioning = [{
+      ...partialPositioning[0],
+      familyId: 'sparse-family',
+      variants: [partialPositioning[0].variants[0]],
+    }];
+    const view = buildModelPassport(passportFixtures, SPARSE_RELEASE_ID, BASE, FIXTURE_TODAY, records);
+
+    expect(view.presentRelationships).toEqual([]);
+    expect(sectionOf(view, 'lineage').present).toBe(true);
+  });
+
+  it('routes every member release through the same helper the catalog uses', () => {
+    const view = positionedView(COMPLETE_RELEASE_ID, completePositioning);
+    const members = view.positioning.positioned.flatMap((entry) => entry.releases);
+
+    expect(members.length).toBeGreaterThan(0);
+    for (const member of members) {
+      expect(view.positioningMemberHrefs[member.id]).toBe(modelRoute(BASE, member.slug));
+    }
+  });
+
+  it('points at the methodology section that refuses a universal ranking', () => {
+    const view = positionedView(COMPLETE_RELEASE_ID, completePositioning);
+    expect(view.positioningMethodologyHref).toBe(`${BASE}methodology/#guidance`);
+  });
+
+  it('records nothing for the shipped families that have no documented ladder', () => {
+    // Not a placeholder assertion: `meta-llama-4` ships sibling variants and no
+    // ladder ModelTree could verify, and it must stay visibly unknown rather
+    // than be filled in from the names.
+    const llama = dataset.releases.find(({ familyId }) => familyId === 'meta-llama-4');
+    expect(llama, 'expected the shipped catalog to still carry meta-llama-4').toBeTruthy();
+
+    const view = realView(llama!.id);
+    expect(view.positioning.coverage).toBe('absent');
+    expect(view.positioning.unpositioned.length).toBeGreaterThan(1);
   });
 });
 

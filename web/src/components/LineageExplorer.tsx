@@ -23,6 +23,10 @@ import {
   type LineageNode,
 } from '../lib/lineage-view';
 import {
+  variantPositioningCoverageLine,
+  type FamilyVariantPositioningView,
+} from '../lib/variant-positioning';
+import {
   createLineageSelectionUrl,
   readOptionalSelectedModel,
   readOptionalSelectedProvider,
@@ -237,12 +241,17 @@ export default function LineageExplorer({
                       </p>
                     )}
 
+                    <p className="lineage-note lineage-positioning-note" data-coverage={view.positioning.coverage}>
+                      {variantPositioningCoverageLine(view.positioning)}
+                    </p>
+
                     <LineageBranch
                       nodes={view.roots}
                       parentId={undefined}
                       label={`${view.family.name} releases`}
                       highlight={highlight}
                       releaseLabels={releaseLabels}
+                      positioning={view.positioning}
                       onSelect={setSelectedSlug}
                     />
                   </article>
@@ -358,10 +367,55 @@ interface BranchProps {
   label?: string;
   highlight: LineageHighlight;
   releaseLabels: Record<string, string>;
+  positioning: FamilyVariantPositioningView;
   onSelect: (slug: string) => void;
 }
 
-function LineageBranch({ nodes, parentId, label, highlight, releaseLabels, onSelect }: BranchProps) {
+/**
+ * The one concise line beside a release explaining what its variant name is for.
+ *
+ * A sibling of the button rather than content inside it, matching `node-aside`:
+ * a button's accessible name is read whole every time it is focused, and folding
+ * a quote into it would make every node announce a paragraph. It is plain text in
+ * reading order, so the tier is never carried by where a node sits or how big it
+ * is.
+ *
+ * In a family where nothing is recorded, this renders nothing at all: the
+ * family-level line above has already said so once, and repeating it under every
+ * node would be noise rather than information. A family where *some* names are
+ * recorded is the opposite case — there the absence is specific to this release,
+ * and stating it is what stops a reader inferring that the gap means something.
+ */
+function NodePositioning({
+  releaseId,
+  positioning,
+}: {
+  releaseId: string;
+  positioning: FamilyVariantPositioningView;
+}) {
+  const line = positioning.lineByReleaseId.get(releaseId);
+  if (!line) return null;
+
+  if (!line.recorded) {
+    if (positioning.coverage === 'absent') return null;
+    return (
+      <p className="node-positioning" data-recorded="false">
+        <span className="node-positioning-variant">{line.variant} tier</span>
+        {' — no creator statement of what this name is for is recorded.'}
+      </p>
+    );
+  }
+
+  return (
+    <p className="node-positioning" data-recorded="true">
+      <span className="node-positioning-variant">{line.variant} tier</span>
+      {` — ${line.publisher} states: `}
+      <q>{line.quote}</q>
+    </p>
+  );
+}
+
+function LineageBranch({ nodes, parentId, label, highlight, releaseLabels, positioning, onSelect }: BranchProps) {
   if (nodes.length === 0) return null;
 
   return (
@@ -400,6 +454,8 @@ function LineageBranch({ nodes, parentId, label, highlight, releaseLabels, onSel
               )}
             </button>
 
+            <NodePositioning releaseId={node.release.id} positioning={positioning} />
+
             {alsoFollows && (
               <p className="node-aside">Also follows {alsoFollows}, shown without a connector.</p>
             )}
@@ -409,6 +465,7 @@ function LineageBranch({ nodes, parentId, label, highlight, releaseLabels, onSel
               parentId={node.release.id}
               highlight={highlight}
               releaseLabels={releaseLabels}
+              positioning={positioning}
               onSelect={onSelect}
             />
           </li>
