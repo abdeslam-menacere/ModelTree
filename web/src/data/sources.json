@@ -1908,5 +1908,32 @@
     "publisherId": "ai-singapore",
     "lastCheckedDate": "2026-08-30",
     "notes": "AI Singapore's own Hugging Face card for the recorded model, which records \"Developed by: Products Pillar, AI Singapore\" and \"Funded by: National Research Foundation, Singapore\" and identifies the base as Llama 3.1 8B. The base continued-pretraining model is recorded here rather than the separate instruction-tuned variant, whose card states a later \"Current Version\" checkpoint that would not match the Dec 2024 family date."
+  },
+  {
+    "id": "01-ai-yi-34b-chat-model-card",
+    "url": "https://huggingface.co/01-ai/Yi-34B-Chat",
+    "title": "01-ai/Yi-34B-Chat model card",
+    "type": "model-card",
+    "publisherId": "01-ai",
+    "lastCheckedDate": "2026-08-31",
+    "notes": "01.AI’s own card for the chat-tuned 34B member of the original Yi series. Its front matter declares \"license\":\"apache-2.0\" and the card body links the licence to https://github.com/01-ai/Yi/blob/main/LICENSE. That declaration is in tension with the repository README’s news entry for the same day the chat models were published, \"2023-11-23: The Yi Series Models Community License Agreement is updated to v2.1\"; both are quoted on the release rather than reconciled, and the recorded licence follows the card, which is the statement scoped to this artefact and is the publisher’s current one. As with Yi-1.5-34B-Chat, no parameter count and no context window are recorded: the card states neither in prose, so either figure would have to come from the model’s name or from the Hub’s measured tensor total."
+  },
+  {
+    "id": "qwen3-5-397b-a17b-model-card",
+    "url": "https://huggingface.co/Qwen/Qwen3.5-397B-A17B",
+    "title": "Qwen/Qwen3.5-397B-A17B model card",
+    "type": "model-card",
+    "publisherId": "alibaba-cloud",
+    "lastCheckedDate": "2026-08-31",
+    "notes": "Alibaba Cloud’s own card for the Qwen3.5 flagship. States \"Number of Parameters: 397B in total and 17B activated\" and \"Context Length: 262,144 natively and extensible up to 1,010,000 tokens.\"; the native figure is what this dataset records, per tools/updater/profiles/alibaba-cloud.json. Weights availability comes from \"This repository contains model weights and configuration files for the post-trained model in the Hugging Face Transformers format.\" The card’s front matter declares the licence as “clicense”: apache-2.0 with a license_link to the LICENSE file in this same repository. Modality is recorded from the card’s own \"Type: Causal Language Model with Vision Encoder\" and its image-text-to-text pipeline tag; the card also carries a \"Video Input\" quickstart example, which is a competing signal from the same publisher and is recorded here rather than folded into the modality list. The card separately distinguishes the published weights from Qwen3.5-Plus, the hosted service, which is a different artefact and is not recorded as a release."
+  },
+  {
+    "id": "qwen3-6-35b-a3b-model-card",
+    "url": "https://huggingface.co/Qwen/Qwen3.6-35B-A3B",
+    "title": "Qwen/Qwen3.6-35B-A3B model card",
+    "type": "model-card",
+    "publisherId": "alibaba-cloud",
+    "lastCheckedDate": "2026-08-31",
+    "notes": "Alibaba Cloud’s own card for the first open-weight Qwen3.6 variant. States \"Number of Parameters: 35B in total and 3B activated\" and \"Context Length: 262,144 natively and extensible up to 1,010,000 tokens.\"; the native figure is recorded. It places the generation relative to its predecessor: \"Following the February release of the Qwen3.5 series, we’re pleased to share the first open-weight variant of Qwen3.6.\" Front matter declares apache-2.0 with a license_link into this repository. As with the Qwen3.5 card, modality is taken from \"Type: Causal Language Model with Vision Encoder\" and the image-text-to-text pipeline tag, and the card’s \"Video Input\" quickstart is noted as a competing signal rather than folded in."
   }
 ]
