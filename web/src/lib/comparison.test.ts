@@ -746,63 +746,55 @@ describe('comparison payload', () => {
   it('keeps the shipped payload within its budget', () => {
     const size = measureComparisonPayload(payload);
 
-    // Budgeted per release as well as in total, because the total moves whenever
-    // a release is added while the per-release figure only moves when a record
-    // gets fatter. Measured at merge-base fc418bb6: 68,731 bytes over 49
-    // releases, 1,403 per release. The thresholds sit just above that, so the
-    // next change to either is a decision somebody makes rather than a drift
-    // nobody sees.
+    // Two guards, and only one of them is really a guard. Read this before you
+    // change either number, because the honest answer to "what bounds page
+    // weight" is not the same for the two.
     //
-    // The per-release figure is the scale-invariant guard and the one to trust.
-    // The total necessarily grows with the catalogue, so it is expected to be
-    // the first to trip: read the message on it before changing the number.
+    // The per-release ceiling below (the `1_600` assertion) is the instrument.
+    // It is scale-invariant: it does not move when the catalogue grows, only
+    // when the average record gets fatter, which is the drift that actually
+    // costs a reader. It does real work and it is the one to trust. Do not
+    // weaken it to make any total look nicer — that trade was refused on
+    // abdeslam-menacere/ModelTree#584 and stays refused.
     //
-    // abdeslam-menacere/ModelTree#518 added six sourced creators, growing the
-    // catalogue to 63 releases and 89,543 bytes (1,421 per release). The
-    // per-release guard held well under 1,600, so this is the "catalogue simply
-    // grew" case the message below names: the total budget was raised from
-    // 81,920 to 102,400 as a deliberate page-weight decision, not a per-record
-    // regression.
+    // The absolute total below (the second assertion) is not scale-invariant.
+    // It can only ever fail because the catalogue grew, which is the thing this
+    // project exists to do, so raising it every time it binds measures nothing
+    // but how recently someone last raised it. abdeslam-menacere/ModelTree#602
+    // is the decision to stop treating that raise as routine. The total is kept
+    // — 143,360 bytes shipped to /compare is a real cost on a slow connection,
+    // and a page-weight ceiling is a real acceptance criterion here — but it is
+    // now a ratchet with a stated stopping rule rather than a number that moves
+    // on sight.
     //
-    // abdeslam-menacere/ModelTree#545 added six more sourced creators and
-    // widened the catalogue past text-only models, growing it to 74 releases and
-    // 106,676 bytes (1,442 per release). Measured against merge-base 7f625ab9,
-    // which carried 68 releases and 97,499 bytes at 1,434 per release: the
-    // per-release figure moved 0.6% and kept 158 bytes of headroom under 1,600,
-    // so this is the "catalogue simply grew" case again, and the total budget was
-    // raised from 102,400 to 122,880 as a deliberate page-weight decision.
+    // The stopping rule. The total may be raised only when BOTH hold:
+    //   1. the catalogue simply grew — more releases or more cited sources — and
+    //   2. the per-release figure held under its own ceiling.
+    // If the per-release figure moved too, the payload got fatter: trim it, do
+    // not raise the total. And a raise is legitimate only when trimming has been
+    // tried first and cannot close the gap without dropping a cited source or
+    // reducing a record to a stub. It never is: provenance outranks page weight
+    // in this repository (criterion 5 of the issue), so a cited source is never
+    // dropped and a record is never trimmed to fit a byte target.
     //
-    // abdeslam-menacere/ModelTree#584 added NAVER as one creator, one family and
-    // one release, growing the catalogue to 83 releases and 124,410 bytes (1,499
-    // per release). Measured against merge-base 7ca5802, which carried 82
-    // releases and 121,916 bytes at 1,487 per release: the per-release figure
-    // moved 0.8% and kept 101 bytes of headroom under 1,600, so this is the
-    // "catalogue simply grew" case a third time and the per-release guard below
-    // is untouched.
+    // What to count when you apply that rule: cited sources, not records and not
+    // note prose. buildComparisonPayload ships exactly five identity fields per
+    // cited source (id, url, title, publisherId, lastCheckedDate) and ships only
+    // the ~168 of 202 sources that something in the payload cites; it drops
+    // `notes`, `type` and `publishedDate` entirely. So the two axes pull apart:
+    // a new cited source costs bytes, while longer, more verbatim note prose
+    // costs nothing. Provenance breadth is what moves this total; provenance
+    // quality is free. Trimming a note therefore buys no bytes and spends the
+    // one audience notes have — the reviewer reading the versioned JSON — so do
+    // not reach for it.
     //
-    // Those figures are measured at the tip of the #584 branch and not at its
-    // first commit, because the branch moved its own number afterwards: the
-    // review correction that added the licence as a fourth cited source, with
-    // the agreement's proper name and its url on the release, took the total
-    // from 123,999 to 124,410. A page-weight figure recorded before the last
-    // data commit on the same branch understates it, so re-measure at the tip.
-    //
-    // Trimming was tried first, because that is what the smaller total asks for
-    // before it is raised, and it could not close the gap. 7ca5802 left 964 bytes
-    // of headroom under 122,880 while this creator costs 2,494 across the release
-    // record, the four source records the payload cites, and the licence name and
-    // url. Trimming the record's `intendedUse` and shortening the source ids
-    // recovered 204 of those bytes and left it 1,530 over 122,880; untrimmed it
-    // would have been 1,734 over. The rest could only have come from dropping a
-    // cited source or reducing the record to a stub, which trades away the
-    // provenance this dataset exists to carry for page weight. So the total was
-    // raised from 122,880 to 143,360, the same 20,480-byte step the two raises
-    // above took.
-    //
-    // Where not to look for those savings: buildComparisonPayload ships id, url,
-    // title, publisherId and lastCheckedDate for each cited source and drops
-    // `notes`, so the verbatim quotes this dataset argues from cost nothing here.
-    // Trimming a note buys no bytes and spends provenance.
+    // Why there are no historical byte figures in this comment any more: they
+    // were a measurement of a dataset that keeps changing, so every breadth
+    // tranche left one of them stale and no test could see it go wrong. They
+    // justified past raises; git history holds that. The only figures that
+    // belong here are ones a reader can re-derive by running the test, which is
+    // why the failure message below prints the measured value rather than
+    // repeating it in prose.
     expect(
       size.bytesPerRelease,
       'a record got fatter — trim the payload rather than raising this',

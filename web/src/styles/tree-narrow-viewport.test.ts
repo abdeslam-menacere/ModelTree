@@ -312,7 +312,22 @@ describe('the lineage surfaces stay inside the reduced-motion killswitch', () =>
 
   it('animates the mobile drawer, so there is something to neutralise', () => {
     expect(css).toMatch(/@keyframes tree-drawer-rise/);
-    expect(css).toMatch(/animation:\s*tree-drawer-rise\s+\d+ms/);
+
+    // Issue #31 moved motion durations onto named tokens, so the literal no
+    // longer sits in this rule. Relaxing the pattern to accept any `var(...)`
+    // would make this control vacuous -- a token resolving to `0s` would pass
+    // it while neutralising the very motion the killswitch exists to neutralise.
+    // So the reference is resolved and the resolved value checked, which is
+    // strictly stronger than the literal it replaced: it is the number the
+    // browser computes. The 50ms floor is the same one
+    // `e2e/lineage-reduced-motion.e2e.ts` uses for "perceptible".
+    const declared = css.match(/animation:\s*tree-drawer-rise\s+var\((--[\w-]+)\)/);
+    expect(declared, 'the drawer no longer declares a token-driven rise').not.toBeNull();
+
+    const token = declared![1];
+    const duration = css.match(new RegExp(`${token}:\\s*(\\d+)ms`))?.[1];
+    expect(duration, `${token} is not declared as a millisecond value`).toBeDefined();
+    expect(Number(duration)).toBeGreaterThan(50);
   });
 
   it('declares no motion the universal !important override cannot reach', () => {
