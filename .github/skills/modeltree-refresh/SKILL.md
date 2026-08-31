@@ -41,6 +41,19 @@ long-tail profile. `refresh ModelTree data for meta` narrows it to one.
   is, stop and say so — two refreshes racing on the same files is how you get a
   conflict nobody is awake to resolve.
 
+**How to invoke what follows.** Commands here are written by name — what to run,
+not the form your shell resolves. Sequence steps with `;`, never `&&`: Windows
+PowerShell 5.1 rejects `&&` as a *parse* error, which discards the whole block
+rather than the one line and blames a token instead of naming a tool, while `;`
+separates statements in PowerShell, bash and zsh alike. And `npm` may not be the
+form that runs: on Windows npm installs a `.cmd` shim and a PowerShell one side
+by side, and which of them your shell resolves — and whether it is allowed to
+run — are facts about your machine, not about this document. Where no `.cmd`
+shim exists the bare name is the only form, so `npm.cmd --version` failing there
+is expected and means nothing on its own. Run both, use whichever printed a
+version, and read a refusal as installed-and-blocked rather than missing — a
+fact about the execution policy, not a licence to change one.
+
 ### 1. Scout — `modeltree-scout`
 
 One bundle per creator. Fetch real pages, hash them, quote them verbatim. Search
@@ -55,14 +68,17 @@ verdict carries a rationale, and every rationale is published.
 
 ### 3. Gates — `modeltree-gates`
 
-Deterministic, and they run **after** review so no majority can outvote them:
+Deterministic, and they run **after** review so no majority can outvote them.
+From the repository root, except the one step marked as running from `web/`:
 
 ```bash
 node .github/skills/modeltree-gates/scripts/gate-evidence.mjs --claims <bundle> --json
 node .github/skills/modeltree-gates/scripts/gate-source-approval.mjs --claims <bundle> --json
 # apply accepted claims to web/src/data
 node .github/skills/modeltree-gates/scripts/gate-dataset.mjs --json
-cd web && npm run validate
+# the site's own gate, from web/:
+npm run validate
+# back at the repository root:
 node .github/skills/modeltree-gates/scripts/gate-scope.mjs --json
 # write the run's own ledger entry, then check it against the diff it describes
 node .github/skills/modeltree-gates/scripts/gate-ledger.mjs --json

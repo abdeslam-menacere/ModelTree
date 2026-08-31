@@ -145,6 +145,7 @@ Apply in this order, so references always resolve at the moment they are needed:
 5. `usageObservations`, `usageSyntheses`, `modelFitStatements`,
    `modelFitEvidenceGaps`
 
-Then run `gate-dataset.mjs` and `cd web && npm run validate`. If either fails,
+Then run `gate-dataset.mjs`, and run `npm run validate` from `web/` — as
+`npm.cmd` if the bare name is a shim your shell refuses. If either fails,
 drop the offending claim, record why, and revalidate the remainder. Never edit a
 claim to make it pass — that is the run overruling its own gates.

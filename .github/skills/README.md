@@ -89,6 +89,27 @@ by breaking real data in exactly the way that rule exists to catch, and the live
 dataset is asserted to pass. A gate change without a test change is a gate change
 nobody verified.
 
+## Writing a command into a skill
+
+A skill is loaded by a skill invocation, which does not guarantee its reader ever
+opened [`../copilot-instructions.md`](../copilot-instructions.md). So a skill that
+prescribes a command states how to invoke it **locally**, carrying the note
+verbatim rather than pointing at the instructions file — a pointer is the very
+dependency that let this go wrong, and the duplication is the fix, not an
+oversight (abdeslam-menacere/ModelTree#614). Two rules, both fixed in the
+instructions file by abdeslam-menacere/ModelTree#604 and inherited by no skill
+because none of them reads it: sequence steps with `;`, never `&&`, which Windows
+PowerShell 5.1 rejects as a parse error that discards the whole block rather than
+the one line; and never assume the bare `npm` is the form that runs, because on
+Windows npm installs a `.cmd` shim and a PowerShell one side by side, and which
+one resolves — and whether it may run — is a fact about the reader's machine.
+Name the probe, never its result: a predicted result is one the reader does not
+re-test, so a wrong prediction and a false negative confirm each other. Name the
+working directory separately instead of folding a `cd` into the command, and
+never hard-code `.cmd` into a document — no such shim exists on the Linux runner
+these skills also run on. `.github/scripts/ci-preflight.mjs` resolves npm the
+same way in code, for the same reason.
+
 ## Related
 
 - [`../../docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md`](../../docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md) — the authorising decision

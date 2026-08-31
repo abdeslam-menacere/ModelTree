@@ -25,17 +25,28 @@ one thing that must never happen here is a broken checker reading as a green one
 
 ## Running them
 
+**How to invoke what follows.** Commands here are written by name — what to run,
+not the form your shell resolves. Sequence steps with `;`, never `&&`: Windows
+PowerShell 5.1 rejects `&&` as a *parse* error, which discards the whole block
+rather than the one line and blames a token instead of naming a tool, while `;`
+separates statements in PowerShell, bash and zsh alike. And `npm` may not be the
+form that runs: on Windows npm installs a `.cmd` shim and a PowerShell one side
+by side, and which of them your shell resolves — and whether it is allowed to
+run — are facts about your machine, not about this document. Where no `.cmd`
+shim exists the bare name is the only form, so `npm.cmd --version` failing there
+is expected and means nothing on its own. Run both, use whichever printed a
+version, and read a refusal as installed-and-blocked rather than missing — a
+fact about the execution policy, not a licence to change one.
+
 From the repository root:
 
 ```bash
 # 1. Are the claims admissible? Run this before touching web/src/data.
-node .github/skills/modeltree-gates/scripts/gate-evidence.mjs \
-  --claims .modeltree-refresh/runs/<run-id>/claims.json --json
+node .github/skills/modeltree-gates/scripts/gate-evidence.mjs --claims .modeltree-refresh/runs/<run-id>/claims.json --json
 
 # 2. Does every claim rest on a source somebody already approved? Also before
 #    touching web/src/data - it reads the committed dataset as its anchor.
-node .github/skills/modeltree-gates/scripts/gate-source-approval.mjs \
-  --claims .modeltree-refresh/runs/<run-id>/claims.json --json
+node .github/skills/modeltree-gates/scripts/gate-source-approval.mjs --claims .modeltree-refresh/runs/<run-id>/claims.json --json
 
 # 3. Is the dataset coherent? Run this after applying accepted claims.
 node .github/skills/modeltree-gates/scripts/gate-dataset.mjs --json
@@ -58,10 +69,10 @@ only place a later reader can see which origins the run was allowed to trust —
 and, in `anchor.selectedBy`, that the run did not pick that anchor for itself.
 
 Then the final hard gate, which is not in this skill because it belongs to the
-site and always has:
+site and always has. From `web/`:
 
 ```bash
-cd web && npm run validate
+npm run validate
 ```
 
 That runs vitest plus `astro check`, which parses the dataset through the Zod
