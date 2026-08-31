@@ -13,6 +13,8 @@
     "test": "node scripts/run-tests.mjs",
     "test:e2e": "playwright test",
     "data-health": "node scripts/data-health.mjs",
+    "assets:report": "node scripts/asset-report.mjs",
+    "lab": "node scripts/lab-metrics.mjs",
     "validate": "npm run test && npm run check",
     "preview": "astro preview",
     "astro": "astro"
