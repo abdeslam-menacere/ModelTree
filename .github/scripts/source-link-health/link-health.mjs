@@ -76,6 +76,14 @@
 //      writing every URL in `sources.json` is unique, so the real data exercises
 //      that path zero times and a green suite is not evidence it works. See the
 //      test file, which counts requests issued rather than results returned.
+//
+//   9. `normalised` says a redirect is a property of the host, and nothing more.
+//      It is established by asking the host about a path that does not exist and
+//      watching it receive the identical rewrite -- which proves the rewrite is
+//      blind, because the host cannot know a segment this tool invented. It does
+//      NOT establish that the recorded URL is the publisher's canonical one, and
+//      it deliberately covers only a trailing slash: see the section on host
+//      normalisation below for why a scheme or host rewrite stays actionable.
 
 /** The resource answered. No redirect, or only temporary ones. */
 export const OK = 'ok';
@@ -89,6 +97,12 @@ export const TRANSIENT = 'transient';
 export const BROKEN = 'broken';
 /** A reviewed exclusion suppressed the check. */
 export const EXCLUDED = 'excluded';
+/**
+ * The resource answered 2xx through a permanent redirect that this host applies
+ * to every path, including one that does not exist. The redirect is a property
+ * of the host, not evidence about the recorded URL.
+ */
+export const NORMALISED = 'normalised';
 
 /**
  * The states worth a maintainer's attention.
@@ -98,6 +112,12 @@ export const EXCLUDED = 'excluded';
  * checker's conversation with a server, not of the source. Promoting either to
  * actionable is how a link checker becomes noise, and the issue's non-goals rule
  * it out in as many words.
+ *
+ * `normalised` is absent for the same reason and by the same test, applied to a
+ * redirect rather than to a status: a rewrite that a fabricated path receives
+ * just as readily says nothing about the URL that received it. The difference is
+ * that this one is *measured* per host rather than assumed -- see
+ * `explainHostNormalisation`.
  */
 export const ACTIONABLE_STATES = new Set([BROKEN, REDIRECTED]);
 
@@ -127,6 +147,18 @@ const METHOD_ESCALATION_STATUSES = new Set([400, 403, 405, 406, 501]);
 
 /** 3xx codes that mean "this URL has moved for good", so the recorded URL is stale. */
 const PERMANENT_REDIRECTS = new Set([301, 308]);
+
+/**
+ * The path segment substituted into a fabricated control URL.
+ *
+ * Fixed rather than random, for two reasons. It is reproducible, so a control
+ * result can be cached across the targets sharing a host and a later reader can
+ * re-run the exact request by hand. And it names the tool, so a webmaster
+ * meeting it in a log knows what asked and why. A host that has somehow created
+ * this path answers 2xx instead of redirecting, which fails the control and
+ * leaves the finding actionable -- the safe direction.
+ */
+const CONTROL_SEGMENT = 'modeltree-link-health-control-does-not-exist';
 
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
@@ -417,13 +449,19 @@ export function applyExclusions(targets, entries, today) {
 function withDefaults(options = {}) {
   const provided = Object.fromEntries(Object.entries(options).filter(([, value]) => value !== undefined));
 
-  return {
+  const merged = {
     ...DEFAULTS,
     fetchImpl: globalThis.fetch,
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     now: () => Date.now(),
     ...provided,
   };
+
+  // Shared across a whole run when `checkAll` builds it, and created here for a
+  // standalone `checkTarget` so the function still works on its own.
+  if (!(merged.normalisationCache instanceof Map)) merged.normalisationCache = new Map();
+
+  return merged;
 }
 
 /**
@@ -557,6 +595,195 @@ async function walkRedirects(target, opts) {
   return { outcome: 'too-many-redirects', status: null, hops, sawPermanent, finalUrl: current, method: 'HEAD' };
 }
 
+/* -------------------------------------------------------------------------- */
+/* Host normalisation                                                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Why this exists.
+ *
+ * Some hosts rewrite every request path before routing it. `nousresearch.com`
+ * strips a trailing slash from anything: `/releases/` 308s to `/releases` and so
+ * does `/a-path-nobody-ever-created/`, which then 404s. A 308 from a host like
+ * that carries no information about whether the URL that received it is valid --
+ * it is emitted just as readily for a path that does not exist.
+ *
+ * Reported as `redirected`, such a hop is a finding no workflow can resolve. The
+ * dataset holds what the publisher's own `rel="canonical"` declares, so there is
+ * nothing to correct; the alternative remedy, a reviewed exclusion, asserts that
+ * a *human* looked at the URL, which no automated run can truthfully write. The
+ * finding would therefore re-report for ever. Measuring the host's behaviour
+ * removes it without weakening either guard, and the measurement validates
+ * itself: the host cannot know a segment this tool invented, so a rewrite that
+ * survives on the fabricated path is demonstrably blind.
+ *
+ * ## The deliberately narrow boundary
+ *
+ * Only a trailing slash, on the same scheme and the same host, is ever explained
+ * away. A `http` -> `https` upgrade or an apex -> `www` rewrite is just as
+ * host-wide and just as mechanical, and both stay `redirected` on purpose:
+ * editing the record to the upgraded URL genuinely resolves those, and there is
+ * no conflicting authority about which form the publisher wants. The trailing
+ * slash is the case where the publisher's edge and the publisher's markup
+ * disagree with each other, and a link checker is not the thing that should
+ * adjudicate that.
+ *
+ * A redirect that changes the path at all is never explained away either, so
+ * this can not hide a page that genuinely moved.
+ */
+
+/**
+ * Describe a redirect that changes nothing but a trailing slash.
+ *
+ * Returns `'added'`, `'removed'`, or null. Null covers every difference that is
+ * not a trailing slash -- a different scheme, host, path, or query -- and is what
+ * keeps the boundary above narrow, so it is a refusal rather than an error.
+ */
+export function slashNormalisation(fromUrl, toUrl) {
+  let from;
+  let to;
+  try {
+    from = new URL(fromUrl);
+    to = new URL(toUrl);
+  } catch {
+    return null;
+  }
+
+  if (from.protocol !== to.protocol || from.host !== to.host || from.search !== to.search) return null;
+
+  const trailing = (path) => path.length > 1 && path.endsWith('/');
+  const strip = (path) => (trailing(path) ? path.slice(0, -1) : path);
+
+  if (strip(from.pathname) !== strip(to.pathname)) return null;
+  if (trailing(from.pathname) === trailing(to.pathname)) return null;
+
+  return trailing(to.pathname) ? 'added' : 'removed';
+}
+
+/**
+ * A sibling of this URL that cannot exist, in the same directory and with the
+ * same trailing-slash shape.
+ *
+ * Same directory and same shape because the claim being tested is "this host
+ * rewrites paths without looking at them", and a control that differed in depth
+ * or in shape would be answered by a different rule. Returns null for anything
+ * unparseable.
+ */
+export function fabricateControlUrl(rawUrl) {
+  let url;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+
+  const path = url.pathname;
+  const trailing = path.length > 1 && path.endsWith('/');
+  const segments = (trailing ? path.slice(0, -1) : path).split('/');
+  segments[segments.length - 1] = CONTROL_SEGMENT;
+  url.pathname = `${segments.join('/')}${trailing ? '/' : ''}`;
+
+  return url.toString();
+}
+
+/**
+ * Ask the host about the fabricated path, once, and report only what it said.
+ *
+ * One attempt and no retry budget: a control that cannot be obtained leaves the
+ * redirect actionable, which is the conservative reading and costs at most one
+ * more week of reporting a finding that was already being reported.
+ */
+async function observeControl(controlUrl, opts) {
+  let response;
+
+  try {
+    response = await request(controlUrl, 'HEAD', opts);
+    if (METHOD_ESCALATION_STATUSES.has(response.status)) {
+      await discardBody(response);
+      response = await request(controlUrl, 'GET', opts);
+    }
+  } catch (error) {
+    return { url: controlUrl, status: null, location: null, error: describeError(error) };
+  }
+
+  await discardBody(response);
+  const location = response.headers?.get?.('location');
+
+  return {
+    url: controlUrl,
+    status: response.status,
+    location: typeof location === 'string' && location.trim().length > 0 ? location : null,
+    error: null,
+  };
+}
+
+/**
+ * The control probe, memoised per fabricated URL.
+ *
+ * Every URL on a host that shares a directory and a trailing-slash shape
+ * fabricates the same control, so a host with many redirected URLs is asked
+ * once. A control that produced no status is not cached: one blip must not
+ * decide the classification of every other redirect on that host for the rest of
+ * the run.
+ */
+async function probeControl(controlUrl, opts) {
+  const cached = opts.normalisationCache.get(controlUrl);
+  if (cached !== undefined) return cached;
+
+  if (opts.hostDelayMs > 0) await opts.sleep(opts.hostDelayMs);
+  const control = await observeControl(controlUrl, opts);
+  if (control.status !== null) opts.normalisationCache.set(controlUrl, control);
+
+  return control;
+}
+
+/**
+ * Establish whether every permanent hop in a chain is host-wide normalisation.
+ *
+ * All of them, or none: a chain with one explained hop and one unexplained one
+ * still contains a redirect that says something about this URL, and reporting it
+ * is the point. Returns the evidence so the report can show its working, or null
+ * if the chain is not explained.
+ */
+async function explainHostNormalisation(hops, opts) {
+  const permanent = hops.filter((hop) => PERMANENT_REDIRECTS.has(hop.status));
+  if (permanent.length === 0) return null;
+
+  const evidence = [];
+
+  for (const hop of permanent) {
+    const direction = slashNormalisation(hop.from, hop.to);
+    if (direction === null) return null;
+
+    const controlUrl = fabricateControlUrl(hop.from);
+    if (controlUrl === null) return null;
+
+    const control = await probeControl(controlUrl, opts);
+    if (control.status !== hop.status || control.location === null) return null;
+
+    let controlTo;
+    try {
+      controlTo = new URL(control.location, control.url).toString();
+    } catch {
+      return null;
+    }
+
+    if (slashNormalisation(control.url, controlTo) !== direction) return null;
+
+    evidence.push({
+      from: hop.from,
+      to: hop.to,
+      status: hop.status,
+      direction,
+      controlUrl,
+      controlStatus: control.status,
+      controlTo,
+    });
+  }
+
+  return { hops: evidence };
+}
+
 /** Turn a raw observation into one of the five states. */
 export function classifyObservation(observation) {
   switch (observation.outcome) {
@@ -588,6 +815,11 @@ export function classifyObservation(observation) {
  *
  * A network error, a timeout, and a 5xx are all retried and all settle as
  * `transient`, which is the state that says "no verdict" rather than "fine".
+ *
+ * A settled `redirected` gets one more question asked about it, and only then:
+ * whether this host hands the same rewrite to a path that does not exist. The
+ * probe costs at most one request per host per directory shape and never runs on
+ * a result that was not going to be reported, so the common case pays nothing.
  */
 export async function checkTarget(target, options = {}) {
   const opts = withDefaults(options);
@@ -613,6 +845,15 @@ export async function checkTarget(target, options = {}) {
     await opts.sleep(Math.min(Math.max(exponential, suggested), opts.maxBackoffMs));
   }
 
+  // Only a chain that reached a 2xx is a candidate. `too-many-redirects` has no
+  // endpoint to have normalised, and a chain landing on a 404 is `broken` for a
+  // reason the redirect had nothing to do with.
+  let normalisation = null;
+  if (state === REDIRECTED && observation?.outcome === 'status' && classifyStatus(observation.status) === OK) {
+    normalisation = await explainHostNormalisation(observation.hops, opts);
+    if (normalisation !== null) state = NORMALISED;
+  }
+
   return {
     ...target,
     state,
@@ -622,6 +863,7 @@ export async function checkTarget(target, options = {}) {
     hops: observation?.hops ?? [],
     method: observation?.method ?? 'HEAD',
     error: observation?.error ?? null,
+    normalisation,
     attempts,
   };
 }
@@ -674,7 +916,15 @@ export async function checkAll(targets, options = {}) {
 /* -------------------------------------------------------------------------- */
 
 export function summarise(results, extra = {}) {
-  const counts = { [OK]: 0, [REDIRECTED]: 0, [BLOCKED]: 0, [TRANSIENT]: 0, [BROKEN]: 0, [EXCLUDED]: 0 };
+  const counts = {
+    [OK]: 0,
+    [REDIRECTED]: 0,
+    [BLOCKED]: 0,
+    [TRANSIENT]: 0,
+    [BROKEN]: 0,
+    [EXCLUDED]: 0,
+    [NORMALISED]: 0,
+  };
   for (const result of results) counts[result.state] = (counts[result.state] ?? 0) + 1;
 
   const actionable = results.filter(
@@ -712,6 +962,13 @@ function detail(result) {
     return `permanently redirected to ${last === undefined ? result.finalUrl : last.to}`;
   }
 
+  if (result.state === NORMALISED) {
+    const first = result.normalisation?.hops?.[0];
+    const rule =
+      first?.direction === 'added' ? 'adds a trailing slash to' : 'strips a trailing slash from';
+    return `resolves; this host ${rule} every path`;
+  }
+
   if (result.state === TRANSIENT) {
     if (result.error !== null && result.error !== undefined) return `request failed: ${result.error.message}`;
     if (result.status !== null) return `HTTP ${result.status}`;
@@ -733,6 +990,16 @@ function section(heading, results, note) {
     if (result.expiredExclusion !== undefined) {
       lines.push(
         `  - Its exclusion expired on ${result.expiredExclusion.expiresOn} and needs re-reviewing: ${result.expiredExclusion.reason}`,
+      );
+    }
+    // The measurement, printed rather than summarised, because "not a finding"
+    // is only worth reading if the reader can check the reasoning that made it
+    // one -- and re-run the control request by hand from this line alone.
+    for (const hop of result.normalisation?.hops ?? []) {
+      lines.push(
+        `  - \`${hop.from}\` → HTTP ${hop.status} → \`${hop.to}\`, and the fabricated control ` +
+          `\`${hop.controlUrl}\` → HTTP ${hop.controlStatus} → \`${hop.controlTo}\`. The host cannot know ` +
+          'that control path, so the rewrite is blind and says nothing about the recorded URL.',
       );
     }
   }
@@ -767,7 +1034,8 @@ export function renderReport(
     `Checked ${summary.checkedUrls} unique URL(s) from ${scope}. ` +
       `${summary.actionableUrls} need attention. ` +
       `${byState(BLOCKED).length} were refused by the site and ${byState(TRANSIENT).length} gave no answer; ` +
-      'neither is evidence that a source has rotted.',
+      'neither is evidence that a source has rotted. ' +
+      `${byState(NORMALISED).length} were redirected by host-wide path normalisation, which is not evidence either.`,
     '',
   );
 
@@ -819,6 +1087,14 @@ export function renderReport(
     ),
   );
 
+  lines.push(
+    ...section(
+      'Host path normalisation — not actionable',
+      byState(NORMALISED),
+      'These resolve through a permanent redirect that the host applies to every path, including a fabricated one that cannot exist. The redirect is a property of the host rather than of the recorded URL, so there is nothing in the dataset that would remove it. The control request is shown under each entry.',
+    ),
+  );
+
   if (excluded.length > 0) {
     lines.push(`### Excluded by review (${excluded.length})`, '');
     for (const result of excluded) {
@@ -847,7 +1123,12 @@ export function renderReport(
   }
 
   if (summary.actionableUrls === 0) {
-    lines.push('No source URL is definitively broken or permanently moved.', '');
+    lines.push(
+      byState(NORMALISED).length === 0
+        ? 'No source URL is definitively broken or permanently moved.'
+        : 'No source URL is definitively broken or permanently moved. The permanent redirects seen were host-wide path normalisation, each measured against a fabricated control path on the same host.',
+      '',
+    );
   }
 
   return lines.join('\n');

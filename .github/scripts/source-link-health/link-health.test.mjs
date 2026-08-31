@@ -39,6 +39,7 @@ import {
   BROKEN,
   DEFAULTS,
   EXCLUDED,
+  NORMALISED,
   OK,
   REDIRECTED,
   TRANSIENT,
@@ -49,9 +50,11 @@ import {
   classifyObservation,
   classifyStatus,
   extractTargets,
+  fabricateControlUrl,
   parseExclusions,
   renderReport,
   selectChanged,
+  slashNormalisation,
   summarise,
 } from './link-health.mjs';
 
@@ -414,6 +417,239 @@ test('blocked and transient are deliberately not actionable', () => {
   assert.equal(ACTIONABLE_STATES.has(TRANSIENT), false);
   assert.equal(ACTIONABLE_STATES.has(BROKEN), true);
   assert.equal(ACTIONABLE_STATES.has(REDIRECTED), true);
+});
+
+/* -------------------------------------------------------------------------- */
+/* Host path normalisation                                                    */
+/* -------------------------------------------------------------------------- */
+
+// The case this exists for, reproduced from the one measured on
+// `nousresearch.com`: the host strips a trailing slash from *every* path before
+// routing it, so `/releases/` 308s to `/releases` and so does a path that was
+// never created. The redirect is a property of the host, and reporting it as a
+// stale URL produces a finding nothing in the dataset can resolve.
+const CONTROL_PATH = 'modeltree-link-health-control-does-not-exist';
+
+/** A host that strips trailing slashes blindly, then answers the stripped path. */
+function slashStrippingHost(existing) {
+  return (url) => {
+    const parsed = new URL(url);
+    if (parsed.pathname.length > 1 && parsed.pathname.endsWith('/')) {
+      return reply(308, { location: parsed.pathname.slice(0, -1) });
+    }
+    return reply(existing.has(parsed.pathname) ? 200 : 404);
+  };
+}
+
+test('fabricateControlUrl replaces the last segment and keeps the shape', () => {
+  assert.equal(
+    fabricateControlUrl('https://example.test/releases/'),
+    `https://example.test/${CONTROL_PATH}/`,
+  );
+  assert.equal(
+    fabricateControlUrl('https://example.test/blog/a-post'),
+    `https://example.test/blog/${CONTROL_PATH}`,
+  );
+  // A query is part of what a rewrite rule may key on, so the control keeps it.
+  assert.equal(
+    fabricateControlUrl('https://example.test/a/?v=2'),
+    `https://example.test/${CONTROL_PATH}/?v=2`,
+  );
+  assert.equal(fabricateControlUrl('not a url'), null);
+});
+
+test('slashNormalisation names a trailing-slash rewrite and refuses everything else', () => {
+  assert.equal(slashNormalisation('https://a.test/p/', 'https://a.test/p'), 'removed');
+  assert.equal(slashNormalisation('https://a.test/p', 'https://a.test/p/'), 'added');
+
+  // The narrow boundary, asserted rather than described. Each of these is just
+  // as host-wide, and each stays a finding because editing the record resolves
+  // it.
+  assert.equal(slashNormalisation('http://a.test/p', 'https://a.test/p'), null, 'a scheme upgrade is not this');
+  assert.equal(slashNormalisation('https://a.test/p', 'https://www.a.test/p'), null, 'a host rewrite is not this');
+  assert.equal(slashNormalisation('https://a.test/p/', 'https://a.test/q'), null, 'a moved page is not this');
+  assert.equal(slashNormalisation('https://a.test/p/?v=1', 'https://a.test/p'), null, 'a dropped query is not this');
+  assert.equal(slashNormalisation('https://a.test/p', 'https://a.test/p'), null, 'nothing changed at all');
+});
+
+test('a redirect a fabricated path receives too is not a finding about the URL', async () => {
+  const { options } = offline(slashStrippingHost(new Set(['/releases'])));
+
+  const result = await checkTarget(target('https://example.test/releases/'), options);
+
+  assert.equal(result.state, NORMALISED);
+  assert.notEqual(result.state, REDIRECTED);
+  assert.equal(ACTIONABLE_STATES.has(result.state), false);
+  assert.equal(result.normalisation.hops[0].direction, 'removed');
+  assert.equal(result.normalisation.hops[0].controlUrl, `https://example.test/${CONTROL_PATH}/`);
+  assert.equal(result.normalisation.hops[0].controlTo, `https://example.test/${CONTROL_PATH}`);
+});
+
+test('a control that is answered rather than rewritten leaves the finding actionable', async () => {
+  // The discriminating case. Without it the test above would pass on a checker
+  // that demoted every trailing-slash redirect without ever asking the host
+  // anything, which is the mechanism this whole change is built to avoid.
+  const { options, calls } = offline((url) => {
+    const path = new URL(url).pathname;
+    if (path === '/releases/') return reply(308, { location: '/releases' });
+    if (path === '/releases') return reply(200);
+    // The control is answered outright rather than rewritten, so this host does
+    // not strip slashes blindly and its 308 does mean something about the URL.
+    return reply(404);
+  });
+
+  const result = await checkTarget(target('https://example.test/releases/'), options);
+
+  assert.equal(result.state, REDIRECTED);
+  assert.equal(result.normalisation, null);
+  assert.ok(
+    calls.some((call) => call.url === `https://example.test/${CONTROL_PATH}/`),
+    'the control must actually have been requested',
+  );
+});
+
+test('a control redirected by a different rule does not explain the finding', async () => {
+  // Same shape of rewrite, different status. A host that 301s the fabricated
+  // path and 308s the recorded one is not applying one blind rule to both.
+  const { options } = offline((url) => {
+    const parsed = new URL(url);
+    if (parsed.pathname === `/${CONTROL_PATH}/`) return reply(301, { location: `/${CONTROL_PATH}` });
+    if (parsed.pathname === '/releases/') return reply(308, { location: '/releases' });
+    return reply(parsed.pathname === '/releases' ? 200 : 404);
+  });
+
+  assert.equal((await checkTarget(target('https://example.test/releases/'), options)).state, REDIRECTED);
+});
+
+test('a control sent somewhere else entirely does not explain the finding', async () => {
+  // A host that funnels unknown paths to a fixed destination is not normalising;
+  // it is routing. The recorded URL's redirect still means what it says.
+  const { options } = offline((url) => {
+    const parsed = new URL(url);
+    if (parsed.pathname === `/${CONTROL_PATH}/`) return reply(308, { location: '/not-found' });
+    if (parsed.pathname === '/releases/') return reply(308, { location: '/releases' });
+    return reply(parsed.pathname === '/not-found' ? 404 : 200);
+  });
+
+  assert.equal((await checkTarget(target('https://example.test/releases/'), options)).state, REDIRECTED);
+});
+
+test('a scheme upgrade and a www rewrite stay actionable even though every path gets them', async () => {
+  // Deliberate, not an oversight: a record can be edited to the upgraded URL and
+  // the finding goes away for good, which is exactly what an actionable finding
+  // is supposed to mean.
+  const upgrade = offline((url) =>
+    url.startsWith('http://') ? reply(301, { location: url.replace('http://', 'https://') }) : reply(200),
+  );
+  assert.equal((await checkTarget(target('http://example.test/p'), upgrade.options)).state, REDIRECTED);
+
+  const www = offline((url) =>
+    url.startsWith('https://example.test/')
+      ? reply(308, { location: url.replace('https://example.test/', 'https://www.example.test/') })
+      : reply(200),
+  );
+  assert.equal((await checkTarget(target('https://example.test/p'), www.options)).state, REDIRECTED);
+});
+
+test('normalisation never rescues a chain that lands on a 404', async () => {
+  // `/gone/` is stripped to `/gone`, which does not exist. The host's blindness
+  // is real and irrelevant: the resource is still gone.
+  const { options } = offline(slashStrippingHost(new Set()));
+
+  const result = await checkTarget(target('https://example.test/gone/'), options);
+
+  assert.equal(result.state, BROKEN);
+  assert.equal(result.normalisation, null);
+});
+
+test('a chain with one unexplained permanent hop stays actionable', async () => {
+  // `/old/` -> `/old` is host normalisation; `/old` -> `/new` is a real move.
+  // Explaining the first must not launder the second.
+  const { options } = offline((url) => {
+    const parsed = new URL(url);
+    if (parsed.pathname.length > 1 && parsed.pathname.endsWith('/')) {
+      return reply(308, { location: parsed.pathname.slice(0, -1) });
+    }
+    if (parsed.pathname === '/old') return reply(301, { location: '/new' });
+    return reply(200);
+  });
+
+  assert.equal((await checkTarget(target('https://example.test/old/'), options)).state, REDIRECTED);
+});
+
+test('no control request is issued for a URL that was never going to be reported', async () => {
+  // The cost control. A sweep of healthy URLs must not double its request count.
+  const { options, calls } = offline(() => reply(200));
+
+  await checkTarget(target('https://example.test/fine'), options);
+
+  assert.deepEqual(calls.map((call) => call.url), ['https://example.test/fine']);
+});
+
+test('the control is asked once for the many URLs that fabricate the same one', async () => {
+  const { options, calls } = offline(slashStrippingHost(new Set(['/a', '/b', '/c'])));
+
+  const results = await checkAll(
+    [target('https://example.test/a/'), target('https://example.test/b/'), target('https://example.test/c/')],
+    options,
+  );
+
+  assert.deepEqual(results.map((result) => result.state), [NORMALISED, NORMALISED, NORMALISED]);
+  assert.equal(
+    calls.filter((call) => call.url === `https://example.test/${CONTROL_PATH}/`).length,
+    1,
+    'three redirected URLs sharing a control must ask the host once',
+  );
+});
+
+test('a control that cannot be reached leaves the finding actionable', async () => {
+  // Conservative on purpose: an unobtainable control is not evidence of
+  // anything, and the finding was already being reported.
+  const { options } = offline((url) => {
+    if (url === `https://example.test/${CONTROL_PATH}/`) throw new TypeError('fetch failed');
+    return new URL(url).pathname === '/releases/' ? reply(308, { location: '/releases' }) : reply(200);
+  });
+
+  assert.equal((await checkTarget(target('https://example.test/releases/'), options)).state, REDIRECTED);
+});
+
+test('a failed control is not cached, so it cannot decide the whole host', async () => {
+  let controlCalls = 0;
+  const { options } = offline((url) => {
+    if (url === `https://example.test/${CONTROL_PATH}/`) {
+      controlCalls += 1;
+      if (controlCalls === 1) throw new TypeError('fetch failed');
+      return reply(308, { location: `/${CONTROL_PATH}` });
+    }
+    const path = new URL(url).pathname;
+    if (path.length > 1 && path.endsWith('/')) return reply(308, { location: path.slice(0, -1) });
+    return reply(200);
+  });
+
+  const results = await checkAll([target('https://example.test/a/'), target('https://example.test/b/')], options);
+
+  assert.deepEqual(results.map((result) => result.state), [REDIRECTED, NORMALISED]);
+  assert.equal(controlCalls, 2, 'the second URL must re-ask rather than inherit the failure');
+});
+
+test('normalised URLs are counted, reported, and kept out of the finding set', async () => {
+  const { options } = offline(slashStrippingHost(new Set(['/releases'])));
+  const results = await checkAll([target('https://example.test/releases/', ['nous-releases'])], options);
+
+  const summary = summarise(results);
+  assert.equal(summary.actionableUrls, 0);
+  assert.equal(summary.counts[NORMALISED], 1);
+  assert.deepEqual(summary.affectedRecordIds, []);
+
+  const report = renderReport(results);
+  assert.match(report, /### Host path normalisation — not actionable \(1\)/);
+  assert.match(report, /this host strips a trailing slash from every path/);
+  assert.ok(report.includes('`nous-releases`'), 'the report still names the affected record');
+  assert.ok(
+    report.includes(`https://example.test/${CONTROL_PATH}/`),
+    'the report must show the control request a reader can re-run',
+  );
+  assert.doesNotMatch(report, /### Permanently moved/);
 });
 
 /* -------------------------------------------------------------------------- */

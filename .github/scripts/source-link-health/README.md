@@ -25,6 +25,7 @@ that a report about its evidence is worth reading.
 | `broken` | 404 or 410 — the resource is gone and the citation no longer supports anything | **yes** |
 | `blocked` | The server refused this client: 401, 403, 405, 429, or another non-404 4xx | no |
 | `transient` | No verdict: a network error, a timeout, a 408, or a 5xx, after the full retry budget | no |
+| `normalised` | 2xx through a permanent redirect that a fabricated path receives identically — the rewrite is the host's, not the URL's | no |
 | `excluded` | A reviewed exclusion covers this URL and has not expired | no |
 
 `blocked` and `transient` are excluded from the actionable set on purpose. Both
@@ -45,6 +46,63 @@ recorded URL is still the right one to record, so a chain of those resolving to 
 2xx is plain `ok`. Following redirects by hand rather than with
 `redirect: 'follow'` is what makes that distinction possible at all — `follow`
 collapses both into an identical 200.
+
+## Host path normalisation, and the finding nothing could resolve
+
+Some hosts rewrite every request path before routing it. `nousresearch.com`
+strips a trailing slash from anything, so `/releases/` 308s to `/releases` — and
+so does a path nobody ever created, which then 404s. **A 308 from a host like
+that carries no information about whether the URL that received it is valid**, as
+it is emitted just as readily for a path that does not exist.
+
+Reported as `redirected`, that hop is a finding no workflow here can resolve. The
+dataset holds what the publisher's own `rel="canonical"` and `og:url` declare, so
+there is nothing to correct; the other remedy, a reviewed exclusion, asserts that
+a *human* looked at the URL, which no automated run can truthfully write. The
+finding would re-report on every sweep, for ever.
+
+So the checker measures the host instead of guessing about it. When a chain would
+otherwise be `redirected`, it asks the same host for a **fabricated sibling
+path** — the same directory, the same trailing-slash shape, and a last segment of
+`modeltree-link-health-control-does-not-exist`. If the control receives the
+identical rewrite, the rewrite is demonstrably blind, because the host cannot
+know a segment this tool invented. The result becomes `normalised`, which is not
+actionable, and the report prints both requests so a reader can re-run them.
+
+Anything less than a match leaves the finding exactly where it was. A control
+that is answered rather than rewritten, one rewritten with a different status,
+one sent somewhere else entirely, and one that could not be reached at all all
+leave the URL `redirected`.
+
+**The boundary is deliberately narrow: only a trailing slash, on the same scheme
+and the same host.** A `http` → `https` upgrade and an apex → `www` rewrite are
+just as host-wide and just as mechanical, and both stay actionable on purpose,
+because editing the record to the upgraded URL genuinely removes the finding and
+no authority disagrees about which form the publisher wants. The trailing slash
+is the one case where the publisher's edge and the publisher's own markup
+contradict each other, and a link checker is not the thing that should adjudicate
+that. A redirect that changes the path at all is never explained away, so this
+cannot launder a page that genuinely moved — including one whose chain contains a
+normalisation hop and a real move.
+
+The cost is one extra request per host per directory shape, memoised for the run,
+and only ever on a result that was going to be reported. A control that produced
+no status is not cached, so one blip cannot decide the classification of every
+other redirect on that host.
+
+What this does **not** establish is that the recorded URL is the publisher's
+canonical one. It establishes that the redirect it received says nothing either
+way.
+
+## What it deliberately still cannot do
+
+`exclusions.json` remains the only home for "a human looked at this URL and
+decided the checker is wrong", it remains empty, and the test asserting that it
+is empty is untouched. Nothing above widens what an automated run may assert:
+`normalised` is a measurement the run took, not a judgement it recorded on a
+human's behalf. Findings that are neither mechanically explainable nor
+resolvable by a dataset edit still require a person, and still have no automated
+route — which is the correct outcome and not a gap.
 
 ## How it avoids provoking the failures it tolerates
 
@@ -132,6 +190,9 @@ A clean sweep means **"nothing was proven rotten"**. It does not mean
   served yesterday.
 - **It cannot say a URL is the *right* source for the record citing it.** That is
   an editorial judgement and is out of scope.
+- **`normalised` says a redirect belongs to the host, and nothing more.** It is
+  measured, not assumed — but it does not establish that the recorded URL is the
+  publisher's canonical one, and it covers only a trailing slash.
 
 ## What it does not have
 
@@ -161,7 +222,7 @@ actionable set.
 
 That is verified rather than asserted: with `fetch`, `net.connect`,
 `tls.connect`, `dns.lookup`, `http.request` and `https.request` all replaced by
-throwing stubs at process level — inherited by the CLI the suite spawns — all 74
+throwing stubs at process level — inherited by the CLI the suite spawns — all 88
 tests still pass. A control confirms the same stubs make a real request fail, so
 the pass is evidence and not a blocker that quietly failed to install.
 
@@ -173,6 +234,7 @@ What is proven against which data, stated rather than left to be inferred:
 | One named record id survives extraction into a report | the committed `sources.json` | A positive control: without it the two tests above would pass on an empty list |
 | **De-duplication — one request per repeated URL** | **synthetic fixture** | Every URL in `sources.json` is unique, so real data exercises this **zero** times. The fixture repeats one URL across two records and the test counts the requests *issued* |
 | `ok`, `redirected`, `blocked`, `transient`, `broken` | **synthetic fixtures** | A 429, a 301 or a 404 cannot be conjured from a live host on demand, and asking one would make the suite non-deterministic |
+| **Host normalisation, and every way the control can fail to explain a redirect** | **synthetic fixtures** | The point is the *discrimination*: a host that strips slashes blindly and one that does not must be told apart, and only a fixture can supply both on demand. The control-answered case is the test that would fail a checker which demoted every trailing-slash redirect without asking |
 | Retry, backoff, `Retry-After`, method escalation | **synthetic fixtures** | Same reason, plus a real backoff would make the suite slow |
 | Exclusion parsing, reason floor, expiry | **synthetic fixtures** | `exclusions.json` is empty, so real data exercises the valid-entry path zero times |
 | The committed `exclusions.json` parses | the committed file | It must not be able to rot into something the checker rejects at run time |
