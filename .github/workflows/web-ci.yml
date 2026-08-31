@@ -214,13 +214,36 @@ jobs:
           # A here-string rather than a pipe: `grep -q` exits on its first match,
           # which can leave the left-hand side of a pipe killed by SIGPIPE and
           # the whole pipeline non-zero under `set -o pipefail`.
-          if grep -Eq '^(web/|\.github/workflows/|\.github/scripts/ci-preflight\.mjs$|\.github/skills/modeltree-gates/scripts/gate-(dataset|evidence|scope)\.mjs$|\.github/skills/modeltree-review/SKILL\.md$|\.github/ISSUE_TEMPLATE/|\.github/CODEOWNERS$|\.github/pull_request_template\.md$|CONTRIBUTING\.md$|docs/contributing/minimal-dataset-example\.json$|docs/product/INFORMATION-ARCHITECTURE\.md$|docs/product/FRESHNESS-POLICY\.md$|tools/updater/profiles/[^/]+\.[jJ][sS][oO][nN]$)' <<< "$changed"; then
-            echo "Files the web suite reads changed; running the full web build."
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Nothing the web suite reads changed; nothing to build."
-            echo "run=false" >> "$GITHUB_OUTPUT"
-          fi
+          #
+          # `grep` exits 0 on a match, 1 on no match and 2 on an error, so
+          # truth-testing it with `if` collapses the last two: a matcher that
+          # never ran reads exactly like one that ran and matched nothing. Every
+          # step below is gated on this output, so that reads as run=false, the
+          # whole suite is skipped, and the check reports green over work
+          # nothing verified -- from the failure of the checker itself. The diff
+          # guard above already refuses that trade and builds instead; this is
+          # the same decision applied to the other way this step can fail to
+          # produce an answer. The three statuses are therefore separated, and
+          # anything that is not a clean match-or-no-match builds (#609).
+          set +e
+          grep -Eq '^(web/|\.github/workflows/|\.github/scripts/ci-preflight\.mjs$|\.github/skills/modeltree-gates/scripts/gate-(dataset|evidence|scope)\.mjs$|\.github/skills/modeltree-review/SKILL\.md$|\.github/ISSUE_TEMPLATE/|\.github/CODEOWNERS$|\.github/pull_request_template\.md$|CONTRIBUTING\.md$|docs/contributing/minimal-dataset-example\.json$|docs/product/INFORMATION-ARCHITECTURE\.md$|docs/product/FRESHNESS-POLICY\.md$|tools/updater/profiles/[^/]+\.[jJ][sS][oO][nN]$)' <<< "$changed"
+          status=$?
+          set -e
+
+          case "$status" in
+            0)
+              echo "Files the web suite reads changed; running the full web build."
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              ;;
+            1)
+              echo "Nothing the web suite reads changed; nothing to build."
+              echo "run=false" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Could not match the changed-file list (grep exited $status); running the full web build."
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
 
       - name: Set up Node.js
         if: steps.scope.outputs.run == 'true'

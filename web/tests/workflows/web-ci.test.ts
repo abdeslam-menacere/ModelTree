@@ -1,6 +1,9 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 
 type YamlValue = string | number | boolean | null | YamlValue[] | YamlMapping;
@@ -483,6 +486,176 @@ describe('web-ci.yml scope detection', () => {
 
   it('builds on a manual dispatch, which has no base to diff against', () => {
     expect(caseArm(script, '*')).toContain('run=true');
+  });
+});
+
+// #609. `grep` exits 0 on a match, 1 on no match and 2 on an error, and this
+// step used to truth-test it with `if`, which collapses 1 and 2 into one branch.
+// A matcher that could not run therefore reported "nothing matched": every
+// verification step below is gated on `steps.scope.outputs.run == 'true'`, so
+// they all skipped, and `web-ci` -- a required check on main -- reported green
+// over a commit nothing had built or tested. The diff guard a few lines above
+// already refuses that trade and builds instead; this is the same decision
+// applied to the other way the step can fail to produce an answer.
+//
+// These assertions run the committed script through a real bash rather than
+// reading its text, because the defect lives in what the shell *does* with an
+// exit code and no substring check can see that. The status is driven
+// independently of the changed-file list on purpose: 0 and 1 come from the real
+// `grep` against the real committed ERE, so the wiring is exercised end to end,
+// and the error statuses are injected, because the committed ERE is well-formed
+// and a here-string cannot fail to be read. That is exactly why the issue rates
+// this Medium rather than High -- it is a robustness fix, and the harness has to
+// be able to express a state the current inputs cannot reach or it could not
+// test one.
+describe('web-ci.yml scope detection tells a broken matcher from a clean miss', () => {
+  const scopeStep = steps(webCiJob, 'jobs.web-ci').find((step) => step.id === 'scope');
+  const scopeScript = String(mapping(scopeStep ?? null, 'the step with id "scope"').run);
+
+  const temporaryDirectories: string[] = [];
+
+  afterAll(() => {
+    for (const directory of temporaryDirectories) {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  interface ScopeOutcome {
+    status: number | null;
+    stdout: string;
+    stderr: string;
+    githubOutput: string | null;
+  }
+
+  /**
+   * Run the committed scope script the way the runner would, for a pull request
+   * whose changed-file list is `changed`.
+   *
+   * `grepExit` replaces `grep` with a stub returning that status. Left undefined,
+   * the real `grep` runs against the real committed ERE.
+   */
+  function runScopeStep(changed: string, grepExit?: number): ScopeOutcome {
+    const directory = mkdtempSync(join(tmpdir(), 'web-ci-scope-'));
+    temporaryDirectories.push(directory);
+
+    // `git` is stubbed rather than run: what is under test is what the step
+    // decides from a changed-file list, not how it obtains one. The list arrives
+    // in the environment so no path or filename is interpolated into the script.
+    const gitStub = `
+git() {
+  printf '%s' "$CHANGED_FILES"
+}
+`;
+
+    // Real grep writes a diagnostic and exits non-zero when it cannot run, so
+    // the stub reproduces both channels and the script is judged on the same
+    // evidence the runner would give it.
+    const grepStub =
+      grepExit === undefined
+        ? ''
+        : `
+grep() {
+  printf 'grep: stubbed failure\\n' >&2
+  return ${grepExit}
+}
+`;
+
+    writeFileSync(join(directory, 'step.sh'), `${gitStub}${grepStub}\n${scopeScript}\n`, 'utf8');
+
+    const run = spawnSync('bash', ['--noprofile', '--norc', '-e', '-o', 'pipefail', 'step.sh'], {
+      // `cwd` here and the relative `GITHUB_OUTPUT` below are load-bearing on
+      // Windows: an absolute path such as `C:\Users\...` inside a bash
+      // double-quoted string has its backslashes eaten as escapes. Same
+      // arrangement, and same reason, as source-link-health.test.ts.
+      cwd: directory,
+      env: {
+        ...process.env,
+        GITHUB_EVENT_NAME: 'pull_request',
+        PR_BASE_SHA: 'a1b2c3d',
+        PR_HEAD_SHA: 'e4f5a6b',
+        PUSH_BEFORE_SHA: 'c7d8e9f',
+        GITHUB_SHA: 'e4f5a6b',
+        GITHUB_OUTPUT: './github-output',
+        CHANGED_FILES: changed,
+      },
+      encoding: 'utf8',
+    });
+
+    if (run.error !== undefined) {
+      // Never a skip. A test that did not run is not a test that passed, and the
+      // shell semantics this block exists to pin are exactly what CI would stop
+      // checking. `bash` is present on `ubuntu-latest`, where these run in CI,
+      // and ships with Git for Windows.
+      throw new Error(`could not run bash, which these tests require: ${run.error.message}`);
+    }
+
+    return {
+      status: run.status,
+      stdout: run.stdout ?? '',
+      stderr: run.stderr ?? '',
+      githubOutput: existsSync(join(directory, 'github-output'))
+        ? readFileSync(join(directory, 'github-output'), 'utf8')
+        : null,
+    };
+  }
+
+  it('extracts the step under test, so a mis-read cannot pass as a green run', () => {
+    // Guards every assertion below: an empty or wrong script would otherwise run
+    // clean and prove nothing at all.
+    expect(scopeStep, 'jobs.web-ci must have a step with id `scope`').toBeDefined();
+    expect(scopeScript).toContain('grep -Eq');
+    expect(scopeScript).toContain('GITHUB_OUTPUT');
+  });
+
+  // The premise the injected statuses rest on, measured rather than assumed: a
+  // malformed ERE really does make `grep -E` exit 2, and that really is distinct
+  // from the 1 it returns for a clean miss. Without this pair the stub would be
+  // asserting against a status nothing produces, and the well-formed miss is the
+  // half that would catch a `grep` reporting 2 for everything.
+  it('is guarding a real distinction: a malformed ERE exits 2, a clean miss exits 1', () => {
+    const bash = (command: string) =>
+      spawnSync('bash', ['--noprofile', '--norc', '-c', command], { encoding: 'utf8' });
+
+    const malformed = bash("grep -Eq '[' <<< 'web/src/index.astro'");
+    const cleanMiss = bash("grep -Eq '^web/' <<< 'docs/product/BACKLOG.md'");
+
+    if (malformed.error !== undefined || cleanMiss.error !== undefined) {
+      throw new Error('could not run bash, which these tests require');
+    }
+
+    expect(malformed.status).toBe(2);
+    expect(cleanMiss.status).toBe(1);
+  });
+
+  it('builds when the matcher finds a path the web suite reads', () => {
+    const outcome = runScopeStep('web/src/pages/index.astro\n');
+
+    expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+    expect(outcome.githubOutput ?? '').toContain('run=true');
+    expect(outcome.githubOutput ?? '').not.toContain('run=false');
+  });
+
+  it('skips when the matcher runs and nothing the web suite reads changed', () => {
+    const outcome = runScopeStep('docs/product/BACKLOG.md\n');
+
+    expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+    expect(outcome.githubOutput ?? '').toContain('run=false');
+  });
+
+  // The regression this block exists for. Reverting the fix leaves the two cases
+  // above green and turns these red, which is the whole reason the status is
+  // driven separately from the changed-file list: a test that only exercised
+  // match and no-match cannot detect this coming back.
+  //
+  // 2 is grep's own "an error occurred"; 127 is the shell's "command not found",
+  // which is how a `grep` missing from the runner image would present. Neither
+  // is a statement about the changed-file list, so neither may decide to skip.
+  it.each([[2], [127]])('builds rather than skips when the matcher exits %i', (grepExit) => {
+    const outcome = runScopeStep('docs/product/BACKLOG.md\n', grepExit);
+
+    expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+    expect(outcome.githubOutput ?? '').toContain('run=true');
+    expect(outcome.githubOutput ?? '').not.toContain('run=false');
   });
 });
 
