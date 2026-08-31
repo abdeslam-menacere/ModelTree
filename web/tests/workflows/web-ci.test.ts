@@ -298,8 +298,8 @@ describe('web-ci.yml scope detection', () => {
   // pins which end of the range each is bound to, which nothing else covers.
   // Swapping these two lines diffs head...base, and because base is an
   // ancestor of head that range is empty rather than an error -- so the
-  // fail-safe above never fires, run=false, no build happens, and web-ci (the
-  // only required check on main) reports green for an unverified commit.
+  // fail-safe above never fires, run=false, no build happens, and web-ci (a
+  // required check on main) reports green for an unverified commit.
   it('scopes a pull request to its base...head range, in that order', () => {
     expect(caseArm(script, 'pull_request')).toContain('base="$PR_BASE_SHA"');
     expect(caseArm(script, 'pull_request')).toContain('head="$PR_HEAD_SHA"');
