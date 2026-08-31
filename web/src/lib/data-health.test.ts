@@ -295,6 +295,25 @@ describe('integrity violations vs ordinary age', () => {
     expect(violations[0].message).toContain('future');
   });
 
+  it('tolerates a verifiedAt one day ahead of the reference date (timezone grace)', () => {
+    // REFERENCE is the UTC day; a maintainer one timezone ahead who records
+    // "today" locally can read as one day ahead. That is not a defect.
+    const oneDayAhead = collectIntegrityViolations(
+      { ...emptyDataset(), releases: [release('tomorrow', '2026-08-31')] },
+      REFERENCE,
+    );
+    expect(oneDayAhead).toHaveLength(0);
+  });
+
+  it('flags a verifiedAt two days ahead, past the one-day grace', () => {
+    const twoDaysAhead = collectIntegrityViolations(
+      { ...emptyDataset(), releases: [release('day-after', '2026-09-01')] },
+      REFERENCE,
+    );
+    expect(twoDaysAhead).toHaveLength(1);
+    expect(twoDaysAhead[0]).toMatchObject({ kind: 'release', id: 'day-after' });
+  });
+
   it('never treats ordinary age as an integrity violation', () => {
     // A dataset made entirely of ancient-but-well-formed records: many stale
     // findings, zero integrity violations. This is the guarantee that ordinary

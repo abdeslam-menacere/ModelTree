@@ -76,8 +76,14 @@ Distinct from staleness. A hard-integrity violation is a self-contradiction in a
 record, and it fails the required web suite:
 
 - **No `verifiedAt` in the future** relative to the run date — a record cannot be
-  verified in a future that has not happened. Deterministic: real data only ages
-  further into the past, so this can newly-pass over time and never newly-fail.
+  verified in a future that has not happened. The comparison is explicit,
+  UTC, and date-only, with a **one-day grace**: the run's reference date is the
+  UTC calendar day, so a maintainer in a timezone ahead of UTC who records
+  "today" locally can legitimately read as one day ahead. A `verifiedAt` up to one
+  day after the reference date is therefore tolerated; two or more days ahead is a
+  violation, since no timezone is that far from UTC. Deterministic: real data only
+  ages further into the past, so this can newly-pass over time and never
+  newly-fail.
 
 The relational coherence rules (dangling, self-referential, or non-reciprocal
 conflict ids; `effectiveFrom` after `verifiedAt`; dated events after verification;

@@ -360,11 +360,25 @@ function collectSourceTypeMix(dataset: Dataset): SourceTypeCount[] {
 }
 
 /**
+ * How many days a `verifiedAt` may sit ahead of the reference date before it is
+ * treated as a future-dating defect. The reference date is the UTC day
+ * (`new Date().toISOString().slice(0, 10)`), so a maintainer in a timezone ahead
+ * of UTC who records "today" locally can legitimately be one calendar day ahead
+ * of it. One day of grace absorbs that offset, so a genuine timezone artifact
+ * never reddens the required suite; anything two or more days ahead is still a
+ * defect, since no timezone is that far from UTC.
+ */
+export const FUTURE_VERIFIED_GRACE_DAYS = 1;
+
+/**
  * A **hard integrity** violation is a self-contradiction in the record, never
- * ordinary age. The only rule here — a `verifiedAt` after the reference date —
- * asserts a record was verified in a future that has not happened. Real data only
- * ages further into the past, so this can newly-pass over time and never
- * newly-fail, the same time model the model passport already uses.
+ * ordinary age. The only rule here — a `verifiedAt` more than
+ * {@link FUTURE_VERIFIED_GRACE_DAYS} day ahead of the reference date — asserts a
+ * record was verified in a future that has not happened. The comparison is an
+ * explicit UTC date-only one (via {@link daysSince}), and the one-day grace keeps
+ * a timezone offset from being mistaken for a defect. Real data only ages further
+ * into the past, so this can newly-pass over time and never newly-fail, the same
+ * time model the model passport already uses.
  *
  * The relational coherence rules (dangling/self/non-reciprocal conflict ids,
  * `effectiveFrom > verifiedAt`, dates after verification, source
@@ -377,13 +391,16 @@ export function collectIntegrityViolations(
 ): IntegrityViolation[] {
   const violations: IntegrityViolation[] = [];
   for (const record of enumerateRecords(dataset)) {
-    if (record.verifiedAt > referenceDate) {
+    // Negative when verifiedAt is ahead of the reference date; a violation only
+    // once it is ahead by more than the grace, so `reference + 1 day` is tolerated.
+    if (daysSince(record.verifiedAt, referenceDate) < -FUTURE_VERIFIED_GRACE_DAYS) {
       violations.push({
         kind: record.kind,
         id: record.id,
         verifiedAt: record.verifiedAt,
         message:
-          `verified ${record.verifiedAt}, which is after the reference date ${referenceDate}: `
+          `verified ${record.verifiedAt}, which is more than ${FUTURE_VERIFIED_GRACE_DAYS} `
+          + `day after the reference date ${referenceDate}: `
           + 'a record cannot be verified in the future',
       });
     }
