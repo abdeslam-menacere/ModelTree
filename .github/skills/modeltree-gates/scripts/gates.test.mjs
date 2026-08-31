@@ -2075,6 +2075,59 @@ describe('gate-evidence', () => {
     }
   });
 
+  // The other limb of that same guard (#638). The fixture above carries no
+  // `creator` at all, so `typeof creator !== 'string'` refuses it and the
+  // `|| creator.length === 0` clause beside it is never evaluated -- the suite
+  // could not tell that clause from its own absence. An empty string passes the
+  // type check, so the length check is what refuses it here. The two fixtures
+  // are distinct inputs on purpose, not two spellings of one, and the assertion
+  // on `bundle.creator` below is what keeps them distinct if this fixture is
+  // ever edited.
+  //
+  // Not a hypothetical value. A bundle is JSON assembled by a refresh run, and
+  // `"creator": ""` is what a truncated interpolation or an unset variable
+  // serialises to -- a value that arrives precisely when something upstream has
+  // already gone wrong.
+  //
+  // Built inline rather than through `gateBundle` for the same reason as above:
+  // the empty string must reach the gate exactly as written, without depending
+  // on the helper's rule for when it supplies a default creator.
+  //
+  // Discriminating, because exit 2 alone establishes nothing here either. This
+  // was measured rather than reasoned: with `|| creator.length === 0` deleted,
+  // this fixture still exits 2, printing `gate-evidence: creator "" is a
+  // long-tail creator, but the bundle declares policy "pilot"` -- the reviewed
+  // set does not hold "", so the derivation check below the guard refuses the
+  // same bundle at the same code under a different message. A bare `code === 2`
+  // assertion on this exact fixture was run against that deletion and stayed
+  // green. So the assertion that goes red is the one below pinning the guard's
+  // own sentence, stopping before the ";" tail, and the negative one beside it
+  // refuses the mismatch text that is what actually prints in the clause's
+  // absence.
+  test('a bundle whose creator is the empty string cannot be classified and exits 2', () => {
+    const bundle = { runId: 'r1', creator: '', policy: 'pilot', claims: [claim()] };
+    assert.equal(bundle.creator, '', 'the fixture must carry an empty-string creator, not an absent one');
+    const dir = mkdtempSync(join(tmpdir(), 'modeltree-claims-'));
+    try {
+      const path = join(dir, 'claims.json');
+      writeFileSync(path, JSON.stringify(bundle, null, 2));
+      const result = run(GATE_EVIDENCE, ['--claims', path, '--today', TODAY, '--json']);
+      assert.equal(result.code, 2, `an empty-string creator must exit 2: ${result.stdout}`);
+      assert.match(
+        result.stdout,
+        /gate-evidence: bundle names no creator to classify/,
+        `the refusal must be the no-creator guard itself, not merely exit 2:\n${result.stdout}`,
+      );
+      assert.ok(
+        !result.stdout.includes('but the bundle declares'),
+        'a bundle whose creator is the empty string must be refused as unclassifiable, never as a '
+        + `derivation mismatch against "":\n${result.stdout}`,
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   // Fails closed when the reviewed-profile set itself cannot be read. Pointed at
   // a repository with no profiles directory, the gate exits 2 rather than
   // classifying every creator against nothing.
