@@ -379,6 +379,10 @@ describe('web-ci.yml scope detection', () => {
         + 'organization-type-policy.test.ts',
     ],
     [
+      'docs/product/FRESHNESS-POLICY.md',
+      'src/data/freshness-policy.test.ts',
+    ],
+    [
       'tools/updater/profiles/anthropic.json',
       'src/data/featured-creator-profile.test.ts, through the gate-evidence.mjs it imports',
     ],

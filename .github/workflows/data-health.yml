@@ -1,0 +1,98 @@
+name: Data health
+
+# Generates the data-health / staleness report over the versioned dataset and
+# uploads it as a build artifact. It reads only repository content, makes no
+# network request, holds no write scope, and uses no secrets.
+#
+# Staleness is reported here, never enforced. The report classifies every dated
+# record as healthy, stale or conflicted with the date and the threshold that
+# produced each verdict, and lists releases missing optional coverage. Ordinary
+# age never fails this job. The one build-failing rule -- a `verifiedAt` in the
+# future -- rides the required `web-ci` check as a vitest test over the real
+# dataset, not this workflow, so this report can never be the thing that blocks a
+# merge.
+#
+# ## This is advisory. Do not make `data-health` a required check.
+#
+# It is a scheduled report, not a gate. The hard-integrity rule that may fail CI
+# already lives in the web suite and runs on every pull request. Requiring this
+# workflow would add nothing and would couple merges to a scheduled artifact.
+# `.github/workflows/README.md` records this alongside the checks that are safe to
+# require.
+#
+# ## Nothing here writes to the dataset
+#
+# No job holds `contents: write`. The generator's inputs are the versioned JSON
+# already in the repository; it never fetches at runtime and never edits a
+# `verifiedAt`. Staleness is surfaced for a human to act on, never auto-corrected
+# or hidden.
+
+on:
+  schedule:
+    # Weekly, off the hour and on a different minute from source-link-health so
+    # the two sweeps do not contend. Staleness is a slow signal; a weekly read
+    # keeps the report current without spending a run a day to learn the same
+    # thing.
+    - cron: '19 7 * * 1'
+  workflow_dispatch:
+
+# Nothing by default, so a job that forgets to declare a scope gets none. The
+# single job below widens this to read-only for itself and no further.
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # A superseded manual run is cancelled; a scheduled run is left alone so a
+  # cadence read always completes.
+  cancel-in-progress: ${{ github.event_name != 'schedule' }}
+
+jobs:
+  data-health:
+    name: data-health
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      # Read the dataset to compute the report. Nothing else: this job cannot
+      # write repository content and publishes its output only as an artifact.
+      contents: read
+    defaults:
+      run:
+        shell: bash
+        working-directory: web
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          # This job never pushes, so the checkout keeps no credentials.
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          # Matches web-ci and pages.yml: the report is computed by the same
+          # toolchain that builds the site.
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Writes reports/data-health.json and reports/data-health.md, appends the
+      # human-readable report to the run summary via $GITHUB_STEP_SUMMARY, and
+      # exits non-zero only on a hard-integrity violation -- never on ordinary
+      # age.
+      - name: Generate the data-health report
+        run: npm run data-health
+
+      # `path` is relative to the workspace root, not the job's working-directory
+      # default, which applies only to `run` steps. Uploaded even on a red run so
+      # a hard-integrity failure ships the report that explains it.
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-health-report
+          path: web/reports/
+          if-no-files-found: error
+          retention-days: 30

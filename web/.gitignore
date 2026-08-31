@@ -2,6 +2,10 @@
 dist/
 # generated types
 .astro/
+# generated data-health artifacts (issue #28): machine- and human-readable
+# staleness reports, produced by `npm run data-health` and uploaded by the
+# scheduled workflow. Pure dataset-derived output, never committed.
+reports/
 # vitest json report consumed by scripts/verify-test-coverage.mjs
 .vitest/
 # playwright output: traces, failure screenshots and the HTML report. Nothing

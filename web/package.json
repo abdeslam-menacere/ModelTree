@@ -12,6 +12,7 @@
     "check": "node scripts/run-check.mjs",
     "test": "node scripts/run-tests.mjs",
     "test:e2e": "playwright test",
+    "data-health": "node scripts/data-health.mjs",
     "validate": "npm run test && npm run check",
     "preview": "astro preview",
     "astro": "astro"

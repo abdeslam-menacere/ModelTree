@@ -29,6 +29,12 @@ const base = import.meta.env.BASE_URL;
 // The build date, so a figure verified long ago is marked stale in the output
 // rather than depending on when the page is read.
 const buildDate = new Date().toISOString().slice(0, 10);
+// The freshness section of the methodology page, so the calm verification note
+// below links to how verification and staleness are decided rather than asserting
+// it in isolation. `base` ends in a slash under the configured BASE_PATH, but
+// normalise defensively so a trailing-slash-free base cannot produce `//`.
+const methodologyBase = base.endsWith('/') ? base : `${base}/`;
+const methodologyFreshnessHref = `${methodologyBase}methodology/#freshness`;
 
 const view = buildModelPassport(dataset, release.id, base, buildDate);
 const usageEvidence = buildUsageEvidence(dataset, release.id, buildDate);
@@ -122,7 +128,9 @@ const structuredData = [
       </p>
       <p class="verification-note">
         Every fact above is recorded with the primary source it came from and the date it was last
-        checked. This record was last verified on {view.verifiedAt}.
+        checked. This record was last verified on
+        <time datetime={release.verifiedAt}>{view.verifiedAt}</time>.
+        <a href={methodologyFreshnessHref}>How we verify and keep facts fresh</a>.
       </p>
     </section>
   </main>
