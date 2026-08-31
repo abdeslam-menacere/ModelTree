@@ -221,7 +221,15 @@ What the shape makes unsayable is as important as what it records. No field can
 reference another organization, family, or release, so a cross-creator analogy
 ("this vendor's mid tier is like that vendor's fast tier") is not expressible —
 and the view builder additionally throws at build time if ModelTree's prose names
-another creator or another creator's family. There is no price field and no fact
+another creator or another creator's family. That check is **best-effort, not a
+guarantee**: it matches each other creator by the forms the dataset registers for
+it — its `name`, its `shortName`, and any colloquial short forms recorded in its
+`aliases` — and by each other creator's family `name`, on word boundaries so a
+name inside a longer word is left alone. A short form a creator is commonly
+called but that is registered under none of those fields is therefore *not*
+caught; the guard closes the natural sentences, not every conceivable one, and
+adding a creator's colloquial form to its `aliases` is how a newly noticed
+bypass is closed in data rather than in code. There is no price field and no fact
 reference of any kind, so tier meaning can never be derived from cost. Both
 `note` and `editorial.summary` run through the repository's universal-claim
 filter plus a positioning-specific vocabulary filter covering recommendations,

@@ -53,12 +53,13 @@ const source = {
   lastCheckedDate: VERIFIED_AT,
 };
 
-function organization(id: string, name: string, shortName: string): Organization {
+function organization(id: string, name: string, shortName: string, aliases?: string[]): Organization {
   return {
     id,
     slug: id,
     name,
     shortName,
+    ...(aliases ? { aliases } : {}),
     type: 'research-lab',
     website: `https://fixture.invalid/${id}/`,
     releasePage: `https://fixture.invalid/${id}/releases/`,
@@ -135,9 +136,28 @@ export const RIVAL_ORGANIZATION_NAME = 'Rival Laboratories';
  */
 export const RIVAL_FAMILY_NAME = 'Ensemble Nine';
 
+/**
+ * A second foreign creator whose registered `name` and `shortName` are the same
+ * two-word form, and whose colloquial short form is a *single word* of that name
+ * registered as neither field. This mirrors the real "Google DeepMind" record,
+ * whose everyday short form "Google" is registered nowhere: injecting the short
+ * form alone once slipped the guard, because matching only `name` and `shortName`
+ * looks for the whole two-word phrase. The alias is what the widened guard has to
+ * catch, and the full name is the positive control that the guard caught all
+ * along.
+ */
+export const SHORTENED_ORGANIZATION_NAME = 'Vega Constellation';
+export const SHORTENED_ORGANIZATION_ALIAS = 'Vega';
+
 const organizations: Organization[] = [
   organization('fixture-tiers', 'Tier Foundry', 'Tier'),
   organization('fixture-rival', RIVAL_ORGANIZATION_NAME, 'Rival'),
+  organization(
+    'fixture-shortened',
+    SHORTENED_ORGANIZATION_NAME,
+    SHORTENED_ORGANIZATION_NAME,
+    [SHORTENED_ORGANIZATION_ALIAS],
+  ),
 ];
 
 const families: ModelFamily[] = [

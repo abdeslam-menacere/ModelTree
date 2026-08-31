@@ -224,6 +224,18 @@ export const organizationSchema = z.object({
   name: z.string().min(1),
   // The label: displayed, sorted on, and filed under. See the note above.
   shortName: z.string().min(1),
+  // Colloquial short forms of this creator that are registered as neither `name`
+  // nor `shortName` -- "Google" for "Google DeepMind", say. This is not a display
+  // or sort field and no surface renders it; it exists so a guard that must reason
+  // about every way a creator is *referred to* can match the forms readers use in
+  // prose, not only the two recorded forms. Its one consumer today is the
+  // cross-creator guard in `lib/variant-positioning.ts`, which rejects a
+  // positioning record whose ModelTree-authored prose names a *different* creator.
+  // The list is not exhaustive by construction -- no field can enumerate every
+  // colloquial form -- so a guard reading it stays best-effort; see the note on
+  // reach in `web/README.md`. Omit it, or leave it empty, when a creator has no
+  // short form beyond its two recorded names.
+  aliases: z.array(z.string().min(1)).optional(),
   // Editorial functional classification, not a sourced claim. Choose the first
   // match: `community` when independent contributors outside any one entity's
   // employment or appointment chain can initiate and decide its model releases,

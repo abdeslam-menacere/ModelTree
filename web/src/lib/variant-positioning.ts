@@ -156,6 +156,17 @@ function assertStaysWithinCreator(
     if (organization.shortName !== organization.name) {
       foreignTerms.push({ term: organization.shortName, kind: 'creator' });
     }
+    // Colloquial forms registered as neither `name` nor `shortName`: "Google"
+    // for "Google DeepMind". Matching only the two recorded forms let a short
+    // form the creator is routinely called slip through -- the gap this guard
+    // was widened to close. The list is not exhaustive (no field can enumerate
+    // every way a creator is named), so this stays best-effort, which is what
+    // `web/README.md` states rather than claiming completeness.
+    for (const alias of organization.aliases ?? []) {
+      if (alias !== organization.name && alias !== organization.shortName) {
+        foreignTerms.push({ term: alias, kind: 'creator' });
+      }
+    }
   }
 
   for (const candidate of dataset.families) {
