@@ -10,8 +10,8 @@ import { defineConfig, devices } from '@playwright/test';
 // is `validate && astro build`, so anything inside `validate` runs inside every
 // dock's and every CI job's build; a Chromium download does not belong there.
 // `.github/workflows/web-e2e.yml` installs the browser and runs this suite as a
-// separate status instead, which leaves `web-ci` -- the required check -- and
-// the test that pins its step list untouched.
+// separate status instead, which leaves `web-ci` -- a required check whose job
+// runs `npm run build` -- and the test that pins its step list untouched.
 
 const PORT = 4321;
 const ORIGIN = `http://127.0.0.1:${PORT}`;

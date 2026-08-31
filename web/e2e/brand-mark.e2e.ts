@@ -10,10 +10,10 @@ import { test, expect, type Page } from '@playwright/test';
  * are paired with this: a real engine, the asset as the server actually sends it,
  * measured at the sizes browsers actually use.
  *
- * This spec is part of `web-e2e`, which is a required status check on `main`, so
- * a flaky assertion here blocks every merge in the repository and not only the
- * one that introduced it. The band below is therefore set from measurement with
- * a stated margin rather than guessed. See `inkBand`.
+ * This spec runs under `web-e2e`, and whenever `web-e2e` is a required status
+ * check on `main` a flaky assertion here blocks every merge in the repository
+ * and not only the one that introduced it. The band below is therefore set from
+ * measurement with a stated margin rather than guessed. See `inkBand`.
  */
 
 /**

@@ -22,7 +22,7 @@ const SEED_SOURCE_ID = 'meta-llama-4-scout-model-card';
  * verification dates. The pin that used to sit here held meta-llama-4-scout at
  * 2026-08-15: re-verifying that release means bumping it and the three
  * fit-llama-4-scout-* statements resting on it, and doing so turned 13 tests in
- * this file red in web-ci, the only required check (#321). The real clock lifts
+ * this file red in web-ci, a required check (#321). The real clock lifts
  * the ceiling without moving a single assertion — the rule itself is still
  * asserted below, in both directions, against evidence that is pinned.
  */

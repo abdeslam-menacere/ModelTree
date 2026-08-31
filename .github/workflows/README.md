@@ -34,10 +34,10 @@ satisfied, because GitHub waits for a check that no longer reports.
 | `pytest (Python 3.13)` | `updater-tests.yml` | No — see below |
 | `instruction-references` | `instruction-references.yml` | No — see below |
 | `adr-numbers` | `adr-numbers.yml` | No — see below |
-| `skills-ci` | `skills-ci.yml` | **Yes** — but not required today, see below |
-| `source-link-health-tests` | `source-link-health.yml` | **Yes** — but not required today, see below |
+| `skills-ci` | `skills-ci.yml` | **Yes** — see below |
+| `source-link-health-tests` | `source-link-health.yml` | **Yes** — see below |
 | `source-link-health` | `source-link-health.yml` | **No, and never** — see below |
-| `web-e2e` | `web-e2e.yml` | **Yes** — but not required today, see below |
+| `web-e2e` | `web-e2e.yml` | **Yes** — see below |
 
 ### Why `web-ci` is safe to require
 
@@ -130,7 +130,7 @@ scope — two pull requests each adding the next ADR would collide by constructi
 under a contiguity rule, and a check that fires on correct work gets worked
 around rather than fixed.
 
-### `skills-ci` is now safe to require, and is not yet required
+### `skills-ci` is safe to require
 
 It was trigger-path-filtered until #294, which is why older text lists it with
 the three above as the same trap. That reason has stopped being true.
@@ -146,23 +146,23 @@ deadlock a pull request.
 The job id and its `name:` are both the literal string `skills-ci`, and the job
 has no `strategy.matrix`, so the reported name never varies per leg or per run.
 
-**It is not required today.** Adding it to `required_status_checks.contexts` is a
-branch-protection change, and branch protection is an owner action. No issue in
-this repository files that action — the *action*, specifically. The problem
-family it belongs to is discussed on #80, #163 and #169, and being discussed
-there is not the same as being filed. #294 made the workflow requirable and
-deliberately stopped there; it is the prerequisite, not the outcome.
+Whether it is a required status check is a property of branch protection — a
+repository setting this file cannot read and does not assert here, so that the
+statement cannot rot the next time protection changes. Making a check required
+is a branch-protection change and an owner action; #294 made this workflow
+requirable and deliberately stopped there, the prerequisite rather than the
+outcome. The problem family it belongs to is discussed on #80, #163 and #169.
 
 It is **not** covered by #169, despite being the same family of problem: #169
 places `skills-ci` expressly outside its own scope, as a related decision to be
 settled alongside it rather than inside it. What #169 *does* cover is stated
 once below, under **What issue #169 covers**.
 
-Until it is required, the consequence is worth stating plainly rather than
-leaving implied: because `skills-ci` is **not** required and `web-ci` is the only
-required context, a red `gate-dataset` run makes a bad data change *visible* on
-the pull request but does **not** stop it merging. Running is not blocking, and
-being requirable is not being required.
+The distinction worth stating plainly rather than leaving implied: a check
+*running* is not the same as a check *blocking*, and a check being *requirable*
+is not the same as its being *required*. Which of the reported checks branch
+protection actually requires is not knowable from this file; read the live
+settings when that answer matters.
 
 ### What issue #169 covers
 
@@ -219,9 +219,10 @@ checker's own suite, which stubs `fetch` and touches no network. It behaves like
 `skills-ci` — no `on.pull_request.paths` filter, starts on every pull request,
 decides inside the job whether anything it covers changed, and says so in its job
 summary when it skips. It always reports, so requiring it could not deadlock a
-pull request. It is **not required today** for the same reason `skills-ci` is
-not: adding a context to branch protection is an owner action, and this change
-does not take it.
+pull request. It is genuinely not required: when the live settings were read on
+2026-08-30, `required_status_checks.contexts` was `["web-ci", "skills-ci",
+"web-e2e"]`, which does not include it. That it is requirable but unrequired is a
+branch-protection decision an owner takes, and this change does not take it.
 
 Both job ids and both `name:` values are the literal strings above, and neither
 job has a `strategy.matrix`, so the reported names never vary per leg or per run.
@@ -241,19 +242,14 @@ pointed at a private host, all of which it can decide by reading the string.
 Whether a well-formed URL still resolves is not knowable without asking, and no
 gate asks.
 
-### `web-e2e` runs in CI and cannot block a merge
+### `web-e2e` runs in CI as a separate workflow
 
 `web-e2e` reports on every pull request that touches `web/`, and it goes red when
-the browser assertions fail. **It is not a required status check**, so a red
-`web-e2e` does not stop a merge — only `web-ci` does that today.
-
-That is deliberate rather than an oversight. Making a check required is a change
-to branch protection, which is repository settings and a human decision, not
-something a workflow file can grant itself; recording it here is what keeps the
-gap visible instead of leaving someone to infer from a green tick that a gate was
-passed. The job id and its `name:` are both the literal string `web-e2e` and the
-job carries no `strategy.matrix`, so the name is stable enough to require
-whenever that decision is taken.
+the browser assertions fail. Whether that red stops a merge is a property of
+branch protection — a repository setting this file cannot read and does not
+assert here, precisely so the statement cannot rot the next time protection
+changes. The job id and its `name:` are both the literal string `web-e2e` and the
+job carries no `strategy.matrix`, so the name is stable and requirable.
 
 It follows `web-ci`'s pattern in the way that matters for requirability: no
 `on.pull_request.paths` filter, an in-job scope gate instead, so it reports

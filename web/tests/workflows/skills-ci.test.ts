@@ -292,10 +292,14 @@ describe('skills-ci.yml holds no more privilege than it needs', () => {
   // Documented so that whoever configures branch protection reads the current
   // state before adding it, or leaving it off, on purpose. The reason it was
   // previously unrequirable — the trigger path filter — is gone, so the entry
-  // that said so must not survive this change.
-  it('is documented as safe to require, and as not yet required', () => {
+  // that said so must not survive this change. The docs must not hardcode
+  // whether it is required: that is a branch-protection fact this file cannot
+  // read, and asserting it here is how the sentence this replaces went stale.
+  it('is documented as safe to require, and defers requiredness to branch protection', () => {
     expect(workflowDocs).toContain('`skills-ci`');
-    expect(workflowDocs).toContain('### `skills-ci` is now safe to require, and is not yet required');
+    expect(workflowDocs).toContain('### `skills-ci` is safe to require');
+    expect(workflowDocs).not.toContain('is not yet required');
+    expect(workflowDocs).not.toContain('**It is not required today.**');
     expect(workflowDocs).not.toContain('### Nor is `skills-ci`');
     expect(workflowDocs).toContain('| `skills-ci` | `skills-ci.yml` | **Yes**');
   });

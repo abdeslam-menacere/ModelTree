@@ -9,7 +9,7 @@ name: Web E2E
 #
 # Why this is a separate workflow rather than steps in web-ci.yml:
 #
-#   * `web-ci` is the required check, and `web/tests/workflows/web-ci.test.ts`
+#   * `web-ci` is a required check, and `web/tests/workflows/web-ci.test.ts`
 #     expands web/package.json and asserts that job's steps decompose to exactly
 #     `npm run build`. Adding an e2e step there fails that test by design.
 #   * `npm run build` is `npm run validate && astro build`, so putting Playwright
@@ -17,9 +17,9 @@ name: Web E2E
 #     and every agent's build. That cost belongs to this job alone.
 #
 # The consequence is stated rather than hidden: `web-e2e` is a **new, separate**
-# status. It reports on every pull request and goes red when the suite fails,
-# but it cannot block a merge until it is added to branch protection -- which is
-# a repository setting, not something this file can do.
+# status. It reports on every pull request and goes red when the suite fails.
+# Whether that red blocks a merge is a property of branch protection -- a
+# repository setting this file cannot read and does not assert here.
 #
 # Like web-ci.yml, this is deliberately NOT filtered by `on.pull_request.paths`.
 # A trigger path filter is all-or-nothing: a pull request touching no web/ file
