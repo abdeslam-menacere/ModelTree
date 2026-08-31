@@ -74,16 +74,16 @@ that is answered rather than rewritten, one rewritten with a different status,
 one sent somewhere else entirely, and one that could not be reached at all all
 leave the URL `redirected`.
 
-**The boundary is deliberately narrow: only a trailing slash, on the same scheme
-and the same host.** A `http` → `https` upgrade and an apex → `www` rewrite are
-just as host-wide and just as mechanical, and both stay actionable on purpose,
-because editing the record to the upgraded URL genuinely removes the finding and
-no authority disagrees about which form the publisher wants. The trailing slash
-is the one case where the publisher's edge and the publisher's own markup
-contradict each other, and a link checker is not the thing that should adjudicate
-that. A redirect that changes the path at all is never explained away, so this
-cannot launder a page that genuinely moved — including one whose chain contains a
-normalisation hop and a real move.
+**The boundary is deliberately narrow: only a trailing slash, on the same scheme,
+the same host, and with an identical query string.** A `http` → `https` upgrade
+and an apex → `www` rewrite are just as host-wide and just as mechanical, and
+both stay actionable on purpose, because editing the record to the upgraded URL
+genuinely removes the finding and no authority disagrees about which form the
+publisher wants. The trailing slash is the one case where the publisher's edge
+and the publisher's own markup contradict each other, and a link checker is not
+the thing that should adjudicate that. A redirect that changes the path at all is
+never explained away, so this cannot launder a page that genuinely moved —
+including one whose chain contains a normalisation hop and a real move.
 
 The cost is one extra request per host per directory shape, memoised for the run,
 and only ever on a result that was going to be reported. A control that produced
@@ -222,7 +222,7 @@ actionable set.
 
 That is verified rather than asserted: with `fetch`, `net.connect`,
 `tls.connect`, `dns.lookup`, `http.request` and `https.request` all replaced by
-throwing stubs at process level — inherited by the CLI the suite spawns — all 88
+throwing stubs at process level — inherited by the CLI the suite spawns — all 90
 tests still pass. A control confirms the same stubs make a real request fail, so
 the pass is evidence and not a blocker that quietly failed to install.
 

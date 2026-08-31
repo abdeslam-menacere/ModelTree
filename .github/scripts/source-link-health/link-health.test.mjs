@@ -632,6 +632,102 @@ test('a failed control is not cached, so it cannot decide the whole host', async
   assert.equal(controlCalls, 2, 'the second URL must re-ask rather than inherit the failure');
 });
 
+// The two tests below defend the *shape* of the memoisation key, which is what
+// binds a measurement to the thing it measured. The control probe's whole safety
+// argument is "we only suppress what we measured", and a key coarser than the
+// fabricated control URL silently reattributes one directory's -- or one host's
+// -- measurement to a URL nobody asked about. It fails in the unsafe direction,
+// suppressing a real finding, so no other test in this file notices.
+//
+// Both assert on the resulting classification rather than on how the key is
+// built, so a refactor of the cache is free to change its internals as long as
+// the answers stay right.
+
+test('a control cached for one directory never explains a redirect in another', async () => {
+  // One host, two directories that behave differently.
+  //
+  //   /blind/  is rewritten without being looked at: everything under it loses a
+  //            trailing slash, including a segment this tool invented. Its
+  //            redirect says nothing about the URL that received it.
+  //   /moved/  is routed, not rewritten. The single redirect it serves is a
+  //            deliberate per-page one, so it is a real statement about that URL
+  //            and the recorded URL is the thing to edit.
+  //
+  // Both hops are 308s in the same direction, so everything downstream of the
+  // control agrees -- the only thing standing between `/moved/page/` and being
+  // silenced is that it is measured on its own control rather than `/blind/`'s.
+  const { options, calls } = offline((url) => {
+    const path = new URL(url).pathname;
+
+    if (path.startsWith('/blind/') && path.endsWith('/')) return reply(308, { location: path.slice(0, -1) });
+    if (path === '/blind/page') return reply(200);
+
+    if (path === '/moved/page/') return reply(308, { location: '/moved/page' });
+    if (path === '/moved/page') return reply(200);
+
+    return reply(404);
+  });
+
+  const results = await checkAll(
+    [target('https://example.test/blind/page/'), target('https://example.test/moved/page/')],
+    options,
+  );
+
+  assert.deepEqual(
+    results.map((result) => result.state),
+    [NORMALISED, REDIRECTED],
+    'a real move must stay actionable however the neighbouring directory behaves',
+  );
+  assert.equal(results[1].normalisation, null, 'nothing was measured about /moved/, so nothing explains it');
+  assert.equal(ACTIONABLE_STATES.has(results[1].state), true);
+
+  // Diagnostic rather than a second contract: this is what "measured on its own"
+  // looks like at the wire, and it names the failure when the assertion above
+  // goes red.
+  assert.ok(
+    calls.some((call) => call.url === `https://example.test/moved/${CONTROL_PATH}/`),
+    'the second directory must be asked about itself, not answered from the first',
+  );
+});
+
+test('a control cached for one host never explains a redirect on another', async () => {
+  // The same recorded path on two hosts, so both fabricate the same control
+  // *path* and only the host tells the two measurements apart.
+  const { options, calls } = offline(
+    (url) => {
+      const parsed = new URL(url);
+      const path = parsed.pathname;
+
+      if (parsed.host === 'blind.test') {
+        if (path.length > 1 && path.endsWith('/')) return reply(308, { location: path.slice(0, -1) });
+        return reply(path === '/releases' ? 200 : 404);
+      }
+
+      if (path === '/releases/') return reply(308, { location: '/releases' });
+      return reply(path === '/releases' ? 200 : 404);
+    },
+    // One worker, so the blind host is measured first and the ordering this test
+    // depends on is a property of the fixture rather than of the scheduler.
+    { concurrency: 1 },
+  );
+
+  const results = await checkAll(
+    [target('https://blind.test/releases/'), target('https://routed.test/releases/')],
+    options,
+  );
+
+  assert.deepEqual(
+    results.map((result) => result.state),
+    [NORMALISED, REDIRECTED],
+    'one host being blind says nothing about another host',
+  );
+  assert.equal(results[1].normalisation, null);
+  assert.ok(
+    calls.some((call) => call.url === `https://routed.test/${CONTROL_PATH}/`),
+    'the second host must be asked about itself, not answered from the first',
+  );
+});
+
 test('normalised URLs are counted, reported, and kept out of the finding set', async () => {
   const { options } = offline(slashStrippingHost(new Set(['/releases'])));
   const results = await checkAll([target('https://example.test/releases/', ['nous-releases'])], options);
