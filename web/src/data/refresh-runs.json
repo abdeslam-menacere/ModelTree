@@ -153,7 +153,7 @@
           "exitCode": 0,
           "outcome": "pass",
           "required": true,
-          "detail": "2361 tests executed across 104 files with all reporting results; astro check reported 0 errors and 0 warnings. This is the gate that pinned five records last run, and it passed them this run because the guidance beneath them had been re-verified first."
+          "detail": "2361 tests executed across 104 files with all reporting results; astro check reported 0 errors and 0 warnings. This is the gate that pinned five records last run, and it passed them this run because the guidance beneath them had been re-verified first. It also failed intermittently on this runner for a reason that is not this change, recorded here rather than re-run until green: two to four tests in LineageModelDrawer.interaction.test.tsx and ModelTreeExplorer.interaction.test.tsx hit the 5000 ms vitest timeout, with different test names failing on each attempt. Both files pass 17 of 17 in isolation with this change applied, and pristine origin/main fails the same way with more failures than this branch, so the cause is worker contention on the machine and not the data. Constraining vitest to two workers produced the clean run recorded here. No timeout was raised, no test was skipped, and no gate was called passed on a run that had not finished."
         },
         {
           "gate": "gate-scope.mjs",
