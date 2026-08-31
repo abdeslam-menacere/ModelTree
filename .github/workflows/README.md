@@ -260,6 +260,22 @@ in `web/tests/workflows/source-link-health.test.ts` now execute that step's
 script under the runner's exact shell invocation rather than reading it, because
 no assertion over the file's text had seen or could have seen this.
 
+Which of the two issue jobs acts is decided by the checker's **exit code**,
+carried across as the `clean` output, and never by the URL count. This matters
+because the checker exits 1 for two different reasons — an actionable URL, or a
+source record whose URL cannot be turned into a request at all — and only the
+first is counted into `actionableUrls`. So "did it find anything?" and "is
+`actionable` zero?" are different questions, and the second is not a safe
+stand-in for the first. Gating the close on the count meant a sweep whose only
+finding was a malformed record reported `actionable=0`, skipped the maintenance
+issue, and ran `resolve-issue` — closing the standing alert and posting an
+all-clear over a finding the checker had just raised. Fixing the abort above is
+what made that path reachable at all, so the two were fixed together. `clean` is
+true only on exit 0, the two job guards are exact complements, and `actionable`
+stays a URL count because the pull-request step is keyed on it and malformed
+records are whole-dataset rather than pull-request-scoped — summing them in would
+redden a pull request for a record it did not introduce.
+
 This complements, rather than duplicates, the `urls` rules in the table below:
 `gate-dataset` refuses a URL that is malformed, non-https, credential-bearing or
 pointed at a private host, all of which it can decide by reading the string.
