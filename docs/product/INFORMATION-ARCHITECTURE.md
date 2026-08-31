@@ -130,6 +130,10 @@ leaving a visible hint of recent releases below.
 - `BrandMark`: repository-controlled mark and text fallback
 - `HeroIntro`: literal product statement and coverage summary
 - `ModelPassport`: source-backed model detail sections
+- `ModelDna`: the identity strip on a passport — one labelled value per fixed
+  identity dimension, in an order that does not vary between models, with an
+  unrecorded dimension keeping its place and saying so. Rendered statically like
+  its parent: it carries no score, no ranking, and no client JavaScript.
 - `SourceList`: primary sources and verification metadata
 - `ReleasePulse`: recent verified release events
 
