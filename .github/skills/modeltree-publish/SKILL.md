@@ -15,13 +15,25 @@ before changing anything here.
 
 ## Preconditions — all six, no exceptions
 
+**How to invoke what follows.** Commands here are written by name — what to run,
+not the form your shell resolves. Sequence steps with `;`, never `&&`: Windows
+PowerShell 5.1 rejects `&&` as a *parse* error, which discards the whole block
+rather than the one line and blames a token instead of naming a tool, while `;`
+separates statements in PowerShell, bash and zsh alike. And `npm` may not be the
+form that runs: on Windows the bare name is a PowerShell shim the default
+execution policy refuses while `npm.cmd` runs, and where no `.cmd` shim exists
+the bare name is the only form, so `npm.cmd --version` failing there is expected
+and means nothing on its own. Run both, use whichever printed a version, and
+read a refusal as installed-and-blocked rather than missing — a fact about the
+execution policy, not a licence to change one.
+
 Refuse to publish unless every one holds:
 
 1. `gate-evidence.mjs` exited 0 on the bundle.
 2. `gate-source-approval.mjs` exited 0 on the bundle, run **before** any claim
    was applied.
 3. Accepted claims are applied and `gate-dataset.mjs` exited 0.
-4. `cd web && npm run validate` passed.
+4. `npm run validate`, run from `web/`, passed.
 5. `gate-scope.mjs` exited 0 **and its `--json` report shows `changed` above
    zero** — every changed path is a dataset document, and there was a change to
    judge.
@@ -227,10 +239,12 @@ gh run list --workflow=pages.yml --branch main --limit 1 --json status,conclusio
 
 **If the deploy failed, revert.** A red `main` does not break the site, it
 freezes it on the previous build — stale content, healthy appearance, no signal
-anywhere. Because `main` is protected, a revert is itself a pull request:
+anywhere. Because `main` is protected, a revert is itself a pull request. Run
+these in order, stopping at the first failure:
 
 ```bash
-git switch main && git pull
+git switch main
+git pull
 git switch -c data/revert-refresh-2026-08-25
 git revert --no-edit <merge-sha>
 git push -u origin data/revert-refresh-2026-08-25
