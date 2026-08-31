@@ -847,68 +847,86 @@ describe('comparison payload', () => {
     // "every picker row got fatter" — exactly the drift the sibling budget's
     // comment exists to prevent, and the reason a bare raise was refused.
     //
-    // Measured at merge-base 7f625ab9: 7,628 bytes over 68 releases, 112 per
-    // release. At this tranche's tip: 8,362 over 74, 113 per release, a 0.7%
-    // move. The guard sits just above that, so the next change to either is a
-    // decision somebody makes rather than a drift nobody sees; the total was
-    // raised from 8,192 to 9,216 as a deliberate page-weight decision.
+    // The `128` assertion below is the instrument, on the same terms as the
+    // payload's `1_600`: scale-invariant, it moves only when a row gets fatter,
+    // and it is never weakened to make a total look nicer. The rule below does
+    // not touch it and no raise of the total may buy headroom from it.
     //
-    // abdeslam-menacere/ModelTree#563 added six more sourced creators and merged
-    // the MiniMax-M1 records that landed on main in parallel, growing the
-    // catalogue to 82 releases and 9,259 bytes (113 per release). Measured
-    // against merge-base 0842ff1d, which carried 76 releases and 8,586 bytes at
-    // 113 per release: the per-release figure did not move (-0.05%) and kept 15
-    // bytes of headroom under 128, so this is the "catalogue simply grew" case
-    // the message below names, and the total was raised from 9,216 to 10,240 as
-    // a deliberate page-weight decision. An earlier draft of this note anchored
-    // on f785a1d1 and its 74 releases, which was this branch's merge-base until
-    // the MiniMax-M1 records landed on main and moved it; the anchor has to be
-    // the merge-base a later reader recomputes, so it is restated against that.
+    // ---- The stopping rule for the total (abdeslam-menacere/ModelTree#659) ----
     //
-    // abdeslam-menacere/ModelTree#651 added a second and third Qwen generation
-    // and the original Yi series, growing the catalogue to 92 releases and
-    // 10,449 bytes (114 per release). Measured against merge-base 8e8c319e,
-    // which carried 89 releases and 10,115 bytes: 113.65 bytes per release
-    // became 113.58, so the per-release figure did not move (-0.06%) and the
-    // scale-invariant guard keeps 14 bytes of headroom under 128. The total was
-    // raised from 10,240 to 11,264. Read the next paragraph before treating
-    // that as the precedent for a fifth raise.
+    // A raise is legitimate only when all three hold:
+    //   1. the catalogue simply grew — more releases — and
+    //   2. the per-release figure held under its own 128-byte ceiling, and
+    //   3. a trim has been tried and cannot close the gap without dropping a
+    //      cited source or reducing a record to a stub.
+    // If 2 fails, the rows got fatter rather than more numerous: trim, do not
+    // raise. Conditions 1 and 2 are the payload's, unchanged. Condition 3 is the
+    // payload's too — and the difference between the two rules is entirely that
+    // the payload discharges 3 in advance and this guard cannot.
     //
-    // What #651 got wrong, recorded here because the comment is what the next
-    // dock reads. #602/#622 gave the *payload* total a stopping rule and
-    // exempted these two picker guards as "well inside their limits"; by
-    // 8e8c319e the picker measured 10,115 of 10,240, so that premise had
-    // expired and #651 followed a protocol written for a guard it no longer
-    // described. The payload's rule discharges "try trimming first" with "it
-    // never is", because the payload ships five identity fields per cited
-    // source and trimming drops provenance. A picker row cites nothing, so
-    // that discharge has no analogue here and the burden stays live. #651 did
-    // not try trimming before raising.
+    // Why it cannot, in terms of what a picker row carries. #622 discharges "try
+    // trimming first" for the payload with "it never is", because the payload
+    // spends its bytes on five identity fields per cited source: every trim of it
+    // drops provenance, and provenance outranks page weight here. A picker row
+    // carries `slug`, `displayName`, `organizationName`, `familyName`, and cites
+    // nothing. Trimming it drops no provenance, stubs no record, and costs
+    // nothing that #584's refusal or criterion 4 of #659 protects. The clause
+    // that makes payload raises automatically legitimate is simply absent on this
+    // side, so the burden stays live and has to be discharged by measurement,
+    // per raise. That is why #602 could exempt these two guards as "well inside
+    // their limits" without settling the question, and why the premise expired
+    // rather than the rule transferring.
     //
-    // Measured afterwards, at 92 rows: JSON key names are 4,876 of the 10,449
-    // bytes (46.7%) -- organizationName 1,748, displayName 1,288, familyName
-    // 1,196, slug 644 -- against 5,020 bytes of values and 553 structural.
-    // One-character keys would save 3,404 (7,045 total, 77/row, a third under
-    // even the old 10,240); tuple rows about 4,800; interning the 40 distinct
-    // organization names and 64 family names only 381, since the repetition is
-    // in the keys and not the values. Each keeps all four values on every row,
-    // so none drops a cited source or stubs a record. Trimming here is
-    // available and cheap, and that is the finding, not the raise.
+    // Measured, condition 3 has never yet held here, which is what collapses the
+    // three conditions into a flat instruction: do not raise this total, trim the
+    // row. At merge-base 356989e9, 92 rows and 10,449 bytes — JSON key names are
+    // 4,876 of them (46.7%): organizationName 1,748, displayName 1,288,
+    // familyName 1,196, slug 644, against 5,020 bytes of values and 553
+    // structural, the three summing to the total exactly. One-character keys buy
+    // back 3,404, landing at 7,045 (77/row, 31% under even the pre-#651 10,240);
+    // tuple rows buy back 4,876, landing at 5,573 (61/row). Both keep all four
+    // values on every row. Interning the 40 distinct organization names and 64
+    // family names buys only 379, because the repetition is in the keys and not
+    // the values — recorded so the next reader does not spend the effort finding
+    // that out again. The cheaper structural trim is therefore worth ~30 rows of
+    // growth at 113.58 bytes/row, against the 815 bytes (~7 rows) of headroom
+    // this total has left: the remedy outruns the problem by an order of
+    // magnitude, and no plausible tranche escapes it.
     //
-    // The fact that decides how much any of this is worth: nothing ships this
-    // index. `buildComparisonPickerIndex` is referenced only by this file and
-    // by organization-name.test.ts -- /compare ships buildComparisonPayload
-    // (compare.astro), and no .astro, script or client bundle imports the
-    // picker. So raising this costs zero delivered bytes and trimming it saves
-    // zero; both sides are moving a proxy for a page weight that is not yet
-    // real. The guard is still worth keeping as a design constraint on what
-    // /compare would ship if the picker is adopted, but a raise here is not a
-    // page-weight decision in the sense the payload's budget means it.
+    // Which makes the rule non-blocking, and that is the point of stating it this
+    // way. A guard that names its own remedy is not an obstacle to the change
+    // that trips it, so performing the trim is in scope for whatever change trips
+    // this. What is not in scope is altering what a row *carries*: dropping
+    // organizationName/familyName and resolving them client-side from ids changes
+    // the picker's contract with its consumer, and belongs to its own issue with
+    // its own review — #659 puts that option on the record and explicitly
+    // declines to be its remedy. Shortening keys or moving to tuple rows keeps
+    // every value on every row and is mechanical.
     //
-    // abdeslam-menacere/ModelTree#659 is open for the missing stopping rule.
-    // Until it lands, treat this raise as provisional and prefer trimming: the
-    // overage #651 hit was 209 bytes, which the smallest of the three options
-    // above already clears.
+    // Worth weighing before spending effort on either side: nothing ships this
+    // index. `buildComparisonPickerIndex` is imported only by this file and by
+    // organization-name.test.ts — /compare ships buildComparisonPayload
+    // (compare.astro), and no .astro, script or client bundle imports the picker.
+    // So a raise costs zero delivered bytes and a trim saves zero; both move a
+    // proxy for a page weight that is not yet real. The guard is still worth
+    // keeping as a design constraint on what /compare would ship if the picker is
+    // adopted — but what adoption would inherit is the row shape, not the
+    // catalogue size, and the catalogue growing is the thing this project exists
+    // to do. That is a second and independent reason the remedy here is the trim
+    // and not the raise.
+    //
+    // #651 raised this from 10,240 to 11,264, correctly reading the protocol this
+    // comment used to document; the protocol was what was wrong, not that dock.
+    // The raise stands — #659 declines to revert raises already landed — and it
+    // is verified rather than assumed: with the dataset at 10,449 bytes,
+    // restoring 10_240 fails this assertion by 209 bytes, which was run before
+    // this note was written. Earlier tranche-by-tranche figures have been dropped
+    // from this comment for the reason the payload's comment gives for dropping
+    // its own: they measure a dataset that keeps changing, so every tranche left
+    // one of them stale and no test could see it go wrong. git history holds
+    // them. The one measurement kept above is anchored to a merge-base a reader
+    // can recompute, the rule leans on its ratio rather than its absolutes, and
+    // the failure message below prints the live value rather than repeating it.
     expect(
       bytesPerRelease,
       'a picker row got fatter — trim the row rather than raising this',
@@ -916,11 +934,14 @@ describe('comparison payload', () => {
     expect(
       bytes,
       `the picker index ships ${bytes} bytes for ${index.length} releases `
-      + `(${bytesPerRelease}/release, budget 11,264). Measured 10,115 over 89 releases `
-      + 'at the #651 merge-base 8e8c319e. A picker row cites no source, so trimming one '
-      + 'drops no provenance and stubs no record: try trimming before raising, and see '
-      + 'the note above for what a trim is worth here (keys are 47% of these bytes). '
-      + 'Raising is the answer only when a trim has been tried and cannot close the gap.',
+      + `(${bytesPerRelease}/release, budget 11,264). Do not raise this number. `
+      + 'A picker row cites no source, so trimming one drops no provenance and '
+      + 'stubs no record, and the trim is measured to outrun the growth: key names '
+      + 'are 47% of these bytes, and one-character keys buy back about 30 rows '
+      + 'against the ~7 rows of headroom this budget had. Trimming the row shape is '
+      + 'in scope for whatever change trips this guard; changing what a row carries '
+      + 'is not. A raise needs a measurement showing a trim cannot close the gap — '
+      + 'see the stopping rule above.',
     ).toBeLessThanOrEqual(11_264);
     for (const row of index) {
       expect(row.displayName).toBeTruthy();
