@@ -1,0 +1,41 @@
+{
+  "catalog": {
+    "id": "origins-aleph-alpha",
+    "kind": "approved-origins",
+    "creator_id": "aleph-alpha",
+    "creator_name": "Aleph Alpha",
+    "applies_to": "Aleph Alpha as the creator of the Pharia model families it trains and announces."
+  },
+  "notes": [
+    "Human origin approval only. It records where Aleph Alpha publishes primary release information; it adds no creator, family, release, product or deployment to the dataset, and it does not make Aleph Alpha a pilot creator.",
+    "huggingface.co is an already-trusted generic host reached at https://huggingface.co/Aleph-Alpha for the Pharia model cards; it is not re-approved here."
+  ],
+  "source_catalog": [
+    {
+      "id": "aleph-alpha-blog",
+      "owner": "Aleph Alpha",
+      "url": "https://aleph-alpha.com/en/blog",
+      "kind": "official-announcement",
+      "allowed_paths": ["/en/blog"],
+      "allowed_content_types": ["announcement", "research-post"],
+      "trust": "primary",
+      "trust_notes": "Aleph Alpha's official English blog; authoritative for its model release announcements and the release dates they carry. Bounded to /en/blog, the section checked.",
+      "verified_at": "2026-08-30",
+      "verification": "Fetched 2026-08-30: the Pharia-1-LLM announcement at /en/blog/introducing-pharia-1-llm-transparent-and-compliant/ returned HTTP 200 with the visible top-of-page date 26/08/2024 and the heading 'Introducing Pharia-1-LLM: transparent and compliant', on the Aleph-Alpha-owned aleph-alpha.com host. It announces the Pharia-1-LLM-7B-control and -aligned model family under the Open Aleph License."
+    }
+  ],
+  "deferred_origins": [
+    {
+      "origin": "https://huggingface.co/Aleph-Alpha",
+      "decision": "already-trusted generic host, not re-approved here",
+      "reason": "Reached 2026-08-30 for the Pharia-1-LLM-7B-control model card (HTTP 200). huggingface.co is already a trusted origin through existing dataset sources, so it is noted rather than re-approved; the release date this batch relied on comes from the aleph-alpha.com blog above, not from the card."
+    }
+  ],
+  "ambiguities": [
+    {
+      "topic": "Open Aleph License is not an OSI-approved licence",
+      "note": "Pharia-1-LLM-7B-control is published under the Open Aleph License, which the blog states 'explicitly allows for non-commercial research and educational use'.",
+      "guidance": "Record the weights as downloadable and open-weight but osiApproved false, and cite the OSI licence index for the non-approval. Do not read the 'Open' in the licence name as OSI approval."
+    }
+  ]
+}

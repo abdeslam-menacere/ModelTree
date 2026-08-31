@@ -258,8 +258,10 @@ const CREATORS_THE_SITE_LEADS_WITH = [
  */
 const CREATORS_THE_SITE_DOES_NOT_LEAD_WITH = [
   '01-ai',
+  'ai-singapore',
   'ai2',
   'ai21-labs',
+  'aleph-alpha',
   'alibaba-cloud',
   'amazon',
   'apple',
@@ -272,11 +274,14 @@ const CREATORS_THE_SITE_DOES_NOT_LEAD_WITH = [
   'hugging-face',
   'ibm',
   'lg-ai-research',
+  'liquid-ai',
   'minimax',
   'mistral-ai',
   'moonshot-ai',
   'naver',
+  'nous-research',
   'nvidia',
+  'reka-ai',
   'sakana-ai',
   'sarvam-ai',
   'snowflake',
@@ -285,6 +290,7 @@ const CREATORS_THE_SITE_DOES_NOT_LEAD_WITH = [
   'tii',
   'upstage',
   'xai',
+  'xiaomi',
   'zhipu-ai',
 ];
 
@@ -330,8 +336,10 @@ describe("featured membership follows the site's editorial lead list", () => {
     expect(tree.others.map(({ organization }) => organization.name))
       .toEqual([
         '01.AI',
+        'AI Singapore',
         'Allen Institute for AI',
         'AI21 Labs',
+        'Aleph Alpha GmbH',
         'Alibaba Cloud',
         'Amazon',
         'Apple Inc.',
@@ -344,11 +352,14 @@ describe("featured membership follows the site's editorial lead list", () => {
         'Hugging Face',
         'IBM',
         'LG AI Research',
+        'Liquid AI, Inc.',
         'MiniMax',
         'Mistral AI',
         'Moonshot AI',
         'NAVER Corp.',
+        'Nous Research',
         'NVIDIA',
+        'Reka AI, Inc.',
         'Sakana AI',
         'Sarvam AI',
         'Snowflake',
@@ -357,6 +368,7 @@ describe("featured membership follows the site's editorial lead list", () => {
         'Technology Innovation Institute',
         'Upstage',
         'SpaceXAI',
+        'Xiaomi Corporation',
         'Zhipu AI',
       ]);
     // The branch this change exists to populate must not be empty, and the two

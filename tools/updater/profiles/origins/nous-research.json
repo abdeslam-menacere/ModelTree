@@ -1,0 +1,46 @@
+{
+  "catalog": {
+    "id": "origins-nous-research",
+    "kind": "approved-origins",
+    "creator_id": "nous-research",
+    "creator_name": "Nous Research",
+    "applies_to": "Nous Research as the creator of the Hermes model families it trains and announces."
+  },
+  "notes": [
+    "Human origin approval only. It records where Nous Research publishes primary release information; it adds no creator, family, release, product or deployment to the dataset, and it does not make Nous Research a pilot creator.",
+    "huggingface.co is an already-trusted generic host reached at https://huggingface.co/NousResearch for the Hermes model cards; it is not re-approved here."
+  ],
+  "source_catalog": [
+    {
+      "id": "nous-releases",
+      "owner": "Nous Research",
+      "url": "https://nousresearch.com/releases",
+      "kind": "official-announcement",
+      "allowed_paths": ["/releases"],
+      "allowed_content_types": ["announcement", "release-index"],
+      "trust": "primary",
+      "trust_notes": "Nous Research's official releases index; authoritative for its model release names and the dates it lists against them. Bounded to /releases, the section checked.",
+      "verified_at": "2026-08-30",
+      "verification": "Fetched 2026-08-30 (raw HTML): /releases returned HTTP 200 titled 'Releases - NOUS RESEARCH', carrying a server-rendered table whose MODEL row for 'Hermes-4-14B' lists the date 08/26/25, on the Nous-owned nousresearch.com host. The site metadata and footer both describe Nous Research as 'The AI accelerator company'."
+    }
+  ],
+  "deferred_origins": [
+    {
+      "origin": "https://huggingface.co/NousResearch",
+      "decision": "already-trusted generic host, not re-approved here",
+      "reason": "Reached 2026-08-30 for the Hermes-4-14B model card (HTTP 200). huggingface.co is already a trusted origin through existing dataset sources, so it is noted rather than re-approved."
+    }
+  ],
+  "ambiguities": [
+    {
+      "topic": "The releases table MODEL row is the release, not the arXiv paper row",
+      "note": "The /releases table carries separate rows for a model and its paper; Hermes 4 has both a MODEL row (dated 08/26/25) and a paper reference to arXiv 2508.18255.",
+      "guidance": "Take the dated MODEL row as the release date. An arXiv submission date is a fact about the paper, not the model release, and must not be substituted."
+    },
+    {
+      "topic": "Hermes-4-14B over Hermes-3-8B for a coherent licence",
+      "note": "Hermes-3-8B's card carries only the bare slug 'license: llama3' while declaring base_model meta-llama/Meta-Llama-3.1-8B, and its /raw/main/LICENSE returns HTTP 404; the slug and base disagree with nothing resolving it. Hermes-4-14B's card slug 'apache-2.0' and base Qwen/Qwen3-14B agree.",
+      "guidance": "Prefer a release whose licence slug and stated base model agree. Do not record a licence a source contradicts."
+    }
+  ]
+}

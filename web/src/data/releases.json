@@ -3888,5 +3888,279 @@
       "osi-license-index"
     ],
     "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "aleph-alpha-pharia-1-llm-7b-control",
+    "slug": "pharia-1-llm-7b-control",
+    "canonicalName": "Pharia-1-LLM-7B-control",
+    "displayName": "Pharia-1-LLM-7B-control",
+    "organizationId": "aleph-alpha",
+    "familyId": "aleph-alpha-pharia-1",
+    "version": "1",
+    "variant": "control",
+    "releaseDate": "2024-08-26",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Open Aleph License",
+      "url": "https://github.com/Aleph-Alpha/.github/blob/main/oal.pdf",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 7
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "A 7B foundation model announced by Aleph Alpha as publicly available under the Open Aleph License, engineered for concise, length-controlled responses and culturally and linguistically optimized for German, French and Spanish. The licence permits non-commercial research and educational use only, so the model is recorded as open-weight with osiApproved false. The version is recorded as 1 because the family name carries no other and the model's name states none.",
+    "intendedUse": "Length-controlled text generation for domain-specific applications, which the announcement highlights particularly in the automotive and engineering industries. Aleph Alpha states the weights are publicly available under the Open Aleph License for non-commercial research and educational use.",
+    "sourceIds": [
+      "aleph-alpha-pharia-1-llm-announcement",
+      "aleph-alpha-pharia-1-llm-7b-control-model-card",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "reka-flash-3-1",
+    "slug": "reka-flash-3-1",
+    "canonicalName": "Reka Flash 3.1",
+    "displayName": "Reka Flash 3.1",
+    "organizationId": "reka-ai",
+    "familyId": "reka-flash",
+    "version": "3.1",
+    "variant": "Flash",
+    "releaseDate": "2025-07-10",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 21
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "A 21-billion-parameter open-source reasoning model that Reka describes as an update to Reka Flash 3, post-trained with supervised finetuning followed by large-scale reinforcement learning with verifiable rewards. Reka reports it improves by 10 points on LiveCodeBench v5 over Reka Flash 3 and is competitive with models such as Qwen3-32B on coding tasks.",
+    "intendedUse": "Coding and reasoning tasks, and use as a base model to be finetuned on agentic tasks, per Reka's own statement. Reka open-sources the weights on Hugging Face and also serves the model via its API.",
+    "sourceIds": [
+      "reka-flash-3-1-announcement",
+      "reka-flash-3-1-model-card",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "nous-hermes-4-14b",
+    "slug": "hermes-4-14b",
+    "canonicalName": "Hermes-4-14B",
+    "displayName": "Hermes 4 14B",
+    "organizationId": "nous-research",
+    "familyId": "nous-hermes-4",
+    "version": "4",
+    "variant": "14B",
+    "releaseDate": "2025-08-26",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 14
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "A 14B hybrid-mode reasoning model based on Qwen 3 14B, described on its card as \"a frontier, hybrid-mode reasoning model based on Qwen 3 14B by Nous Research that is aligned to you\". Its licence slug (apache-2.0) and its declared base (Qwen/Qwen3-14B, itself Apache-2.0) agree, so the Apache-2.0 record rests on two mutually-consistent statements. Nous lists it as \"Small and dense Hermes variant for local inference\" on its releases page.",
+    "intendedUse": "Steerable general reasoning and assistant tasks with an optional explicit thinking mode, aimed at local inference per Nous Research's own release listing.",
+    "sourceIds": [
+      "nous-research-releases",
+      "nous-hermes-4-14b-model-card",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "liquid-lfm2-1-2b",
+    "slug": "lfm2-1-2b",
+    "canonicalName": "LFM2-1.2B",
+    "displayName": "LFM2-1.2B",
+    "organizationId": "liquid-ai",
+    "familyId": "liquid-lfm2",
+    "version": "2",
+    "variant": "1.2B",
+    "releaseDate": "2025-07-10",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "LFM Open License v1.0",
+      "url": "https://huggingface.co/LiquidAI/LFM2-1.2B/blob/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 1.2
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "A 1.2-billion-parameter on-device foundation model, the largest of three dense LFM2 checkpoints Liquid released. Its own blog states LFM2 is built on a hybrid architecture of \"16 blocks: 10 double-gated short-range convolution blocks and 6 blocks of grouped query attention\", so despite the Liquid branding it is a hybrid attention model rather than a pure non-transformer, and it is recorded as language-reasoning without any non-transformer claim.",
+    "intendedUse": "Fast on-device and edge text generation on CPU, GPU and NPU hardware, per Liquid's own positioning of LFM2 for local and edge use cases.",
+    "sourceIds": [
+      "liquid-lfm2-announcement",
+      "liquid-lfm2-1-2b-model-card",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "xiaomi-mimo-7b-rl-0530",
+    "slug": "mimo-7b-rl-0530",
+    "canonicalName": "MiMo-7B-RL-0530",
+    "displayName": "MiMo-7B-RL-0530",
+    "organizationId": "xiaomi",
+    "familyId": "xiaomi-mimo-7b",
+    "version": "1",
+    "variant": "7B-RL-0530",
+    "releaseDate": "2025-05-30",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "MIT License",
+      "spdxId": "MIT",
+      "url": "https://huggingface.co/XiaomiMiMo/MiMo-7B-RL-0530/blob/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 7
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "A 7B reinforcement-learning reasoning checkpoint from Xiaomi's MiMo-7B series. It is the specific snapshot the repository's only dated update line names: \"[2025.05.30] We scaled the SFT dataset from approximately 500K to 6M instances and continuously expanding the RL training window size from 32K to 48K, the performance of MiMo-7B-RL-0530 ... can be continuously improved\". The earlier MiMo-7B-RL checkpoint carries no dated line, so this 0530 snapshot is recorded rather than it.",
+    "intendedUse": "Mathematical and code reasoning, where Xiaomi reports the 0530 checkpoint reaches 80.1 on AIME 2024 and 60.9 on LiveCodeBench v5.",
+    "sourceIds": [
+      "xiaomi-mimo-repository",
+      "xiaomi-mimo-7b-rl-0530-model-card",
+      "osi-license-mit"
+    ],
+    "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "ai-singapore-llama-sea-lion-v3-8b",
+    "slug": "llama-sea-lion-v3-8b",
+    "canonicalName": "Llama-SEA-LION-v3-8B",
+    "displayName": "Llama-SEA-LION-v3-8B",
+    "organizationId": "ai-singapore",
+    "familyId": "ai-singapore-sea-lion-v3",
+    "version": "3",
+    "variant": "8B",
+    "releaseDate": "2024-12",
+    "datePrecision": "month",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Llama 3.1 Community License Agreement",
+      "url": "https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 8
+    },
+    "contextWindow": 128000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "AI Singapore's 8B SEA-LION v3 model, a continued pre-training of Llama 3.1 8B for Southeast-Asian languages. Its family documentation records \"Llama-SEA-LION-v3-8B, based on Llama 3.1 8B, now provides a larger context length of 128K\", which the recorded context window rests on. The release is dated at month precision because the only date any source states for SEA-LION v3 is \"released in Dec 2024\"; no day is recorded rather than inventing one.",
+    "intendedUse": "Natural-language reasoning and instruction following in Southeast-Asian languages, per AI Singapore's statement that SEA-LION v3 offers \"enhanced natural language reasoning (NLR) abilities and superior instruction-following in SEA languages\".",
+    "sourceIds": [
+      "ai-singapore-sea-lion-v3-docs",
+      "ai-singapore-llama-sea-lion-v3-8b-model-card",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-08-30"
   }
 ]

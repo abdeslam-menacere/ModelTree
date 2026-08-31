@@ -509,5 +509,95 @@
       "naver-hyperclova-x-seed-license"
     ],
     "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "aleph-alpha",
+    "slug": "aleph-alpha",
+    "name": "Aleph Alpha GmbH",
+    "shortName": "Aleph Alpha",
+    "type": "company",
+    "website": "https://aleph-alpha.com",
+    "releasePage": "https://huggingface.co/Aleph-Alpha",
+    "description": "The German AI company behind the Pharia model line. Its own blog announces \"our new foundation model family that includes Pharia-1-LLM-7B-control and Pharia-1-LLM-7B-control-aligned\", and the recorded release rests on that page. No paid model offering is stated on any page read for this record, so the organization type rests on the centrally-operated-creator fallback rather than an asserted sale.",
+    "sourceIds": [
+      "aleph-alpha-pharia-1-llm-announcement",
+      "aleph-alpha-pharia-1-llm-7b-control-model-card"
+    ],
+    "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "reka-ai",
+    "slug": "reka-ai",
+    "name": "Reka AI, Inc.",
+    "shortName": "Reka",
+    "type": "company",
+    "website": "https://www.reka.ai",
+    "releasePage": "https://huggingface.co/RekaAI",
+    "description": "The AI company that builds the Reka Flash models. Its own news post states \"we are excited to open source a few of our building blocks\", naming Reka Flash 3.1, which is what the recorded release rests on. No paid model offering is asserted here from the pages read, so the organization type rests on the centrally-operated-creator fallback.",
+    "sourceIds": [
+      "reka-flash-3-1-announcement",
+      "reka-flash-3-1-model-card"
+    ],
+    "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "nous-research",
+    "slug": "nous-research",
+    "name": "Nous Research",
+    "shortName": "Nous Research",
+    "type": "company",
+    "website": "https://nousresearch.com",
+    "releasePage": "https://huggingface.co/NousResearch",
+    "description": "The maker of the Hermes model line, which its own site's structured metadata and footer both describe as \"The AI accelerator company\". Its releases page dates each release, and the recorded Hermes-4-14B release rests on that page. The company type is recorded rather than community: nothing read here states that contributors outside the entity's own appointment chain decide its releases, so the independent-contributor clause is not claimed, and the self-description as a company settles it.",
+    "sourceIds": [
+      "nous-research-releases",
+      "nous-hermes-4-14b-model-card"
+    ],
+    "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "liquid-ai",
+    "slug": "liquid-ai",
+    "name": "Liquid AI, Inc.",
+    "shortName": "Liquid AI",
+    "type": "company",
+    "website": "https://www.liquid.ai",
+    "releasePage": "https://huggingface.co/LiquidAI",
+    "description": "The AI company behind the Liquid Foundation Models (LFM). Its own blog states \"Today, we release LFM2\", which is what the recorded release rests on. No paid model offering is asserted here from the pages read, so the organization type rests on the centrally-operated-creator fallback.",
+    "sourceIds": [
+      "liquid-lfm2-announcement",
+      "liquid-lfm2-1-2b-model-card"
+    ],
+    "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "xiaomi",
+    "slug": "xiaomi",
+    "name": "Xiaomi Corporation",
+    "shortName": "Xiaomi",
+    "type": "company",
+    "website": "https://www.mi.com",
+    "releasePage": "https://huggingface.co/XiaomiMiMo",
+    "description": "The consumer-electronics and technology company whose MiMo reasoning models are published by its LLM-Core team under the XiaomiMiMo account. The MiMo repository states \"we present MiMo-7B, a series of models trained from scratch and born for reasoning tasks\", which the recorded release rests on. The organization type rests on the centrally-operated-creator fallback: no page read here states that Xiaomi sells model products or access under its own name.",
+    "sourceIds": [
+      "xiaomi-mimo-repository",
+      "xiaomi-mimo-7b-rl-0530-model-card"
+    ],
+    "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "ai-singapore",
+    "slug": "ai-singapore",
+    "name": "AI Singapore",
+    "shortName": "AI Singapore",
+    "type": "research-lab",
+    "website": "https://aisingapore.org",
+    "releasePage": "https://huggingface.co/aisingapore",
+    "description": "Singapore's national AI programme, which develops the SEA-LION family of Southeast-Asian language models. Its SEA-LION v3 model card records \"Developed by: Products Pillar, AI Singapore\" and \"Funded by: National Research Foundation, Singapore\". As a national research-funded programme whose institution controls its releases and which exists primarily for research, it is recorded as a research-lab rather than a company.",
+    "sourceIds": [
+      "ai-singapore-sea-lion-v3-docs",
+      "ai-singapore-llama-sea-lion-v3-8b-model-card"
+    ],
+    "verifiedAt": "2026-08-30"
   }
 ]

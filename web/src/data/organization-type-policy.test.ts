@@ -141,6 +141,12 @@ describe('organization type policy', () => {
       'sakana-ai': 'company',
       'sarvam-ai': 'company',
       naver: 'company',
+      'aleph-alpha': 'company',
+      'reka-ai': 'company',
+      'nous-research': 'company',
+      'liquid-ai': 'company',
+      xiaomi: 'company',
+      'ai-singapore': 'research-lab',
     });
   });
 
@@ -412,6 +418,57 @@ describe('organization type policy', () => {
         facts: {},
         type: 'company',
         clause: 'company-fallback',
+      },
+      // Aleph Alpha's own Pharia blog announces the weight-available model family
+      // but states no paid model product or access under its own name on any page
+      // read for this record, so the fallback clause types it rather than an
+      // inferred sale.
+      'aleph-alpha': {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
+      },
+      // Reka's own news post open-sources Reka Flash 3.1; while it mentions an API,
+      // no page read for this record states that access is paid, so the paid clause
+      // is not claimed from the existence of an API alone and the fallback types it.
+      'reka-ai': {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
+      },
+      // Nous Research's own site metadata and footer both call it "The AI
+      // accelerator company". Nothing read here states that contributors outside
+      // its own appointment chain decide its releases, so the community clause is
+      // not met, and no paid offering is stated, so the fallback clause types it.
+      'nous-research': {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
+      },
+      // Liquid AI's own blog releases the LFM2 weights; no page read for this
+      // record states a paid model product or access under its own name, so the
+      // fallback clause types it.
+      'liquid-ai': {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
+      },
+      // Xiaomi's MiMo repository publishes the weights under MIT; no page read for
+      // this record states that Xiaomi sells model products or access under its own
+      // name, so no fact is asserted and the fallback clause types it.
+      xiaomi: {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
+      },
+      // AI Singapore's SEA-LION v3 card records "Funded by: National Research
+      // Foundation, Singapore": a national research-funded programme whose
+      // institution controls its releases and which exists primarily for research,
+      // matching the research-lab clause as TII and AI2 do.
+      'ai-singapore': {
+        facts: { institutionControlsReleases: true, primarilyResearch: true },
+        type: 'research-lab',
+        clause: 'research-lab',
       },
     };
 
