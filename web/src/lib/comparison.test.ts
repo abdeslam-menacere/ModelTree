@@ -21,6 +21,7 @@ import {
   resolveComparisonSelection,
   serializeComparisonSelection,
   type ComparisonCell,
+  type ComparisonDataset,
   type ComparisonView,
 } from './comparison';
 import {
@@ -725,7 +726,11 @@ describe('comparison payload', () => {
 
   it('drops the fields the comparison never reads', () => {
     const trimmed = measureComparisonPayload(payload);
-    const whole = JSON.stringify({
+    // Same unit on both sides. `trimmed.totalBytes` is UTF-8 (#621), so
+    // measuring the untrimmed baseline with `.length` would compare bytes
+    // against UTF-16 code units — a mismatch the correction itself would
+    // introduce, and one that flatters the trim by 604 bytes at present.
+    const whole = new TextEncoder().encode(JSON.stringify({
       releases: dataset.releases,
       sources: dataset.sources,
       publishers: dataset.publishers,
@@ -736,11 +741,50 @@ describe('comparison payload', () => {
       pricing: dataset.pricing,
       benchmarks: dataset.benchmarks,
       benchmarkResults: dataset.benchmarkResults,
-    }).length;
+    })).length;
 
     expect(trimmed.totalBytes).toBeLessThan(whole);
     expect(payload.releases[0]).not.toHaveProperty('summary');
     expect(payload.releases[0]).not.toHaveProperty('predecessorIds');
+  });
+
+  it('counts UTF-8 bytes rather than UTF-16 code units', () => {
+    // Criterion 3 of #621. The guard is pinned against a fixture whose byte
+    // length is hand-derivable, rather than against the live dataset, because
+    // the live dataset is 99.97% ASCII: it agrees with the wrong measurement to
+    // within 36 bytes and so cannot witness the defect at all. What each
+    // character costs, and why the two counts diverge:
+    //
+    //   é       U+00E9   1 code unit    2 bytes   +1   (twice: name, shortName)
+    //   한국어  U+D55C…  1 unit each    3 each    +2 each
+    //   😀      U+1F600  2 (surrogate)  4         +2
+    //
+    // Hand-derived: 1 + 1 + (3 × 2) + 2 = 10 bytes more than code units.
+    const fixture: ComparisonDataset = {
+      sources: [],
+      publishers: [],
+      organizations: [{ id: 'org-cafe', name: 'Café Intelligence', shortName: 'Café' }],
+      families: [{ id: 'fam-hangul', name: '한국어 😀' }],
+      releases: [],
+      servingPlatforms: [],
+      deployments: [],
+      pricing: [],
+      benchmarks: [],
+      benchmarkResults: [],
+    };
+
+    const codeUnits = JSON.stringify(fixture).length;
+    const measured = measureComparisonPayload(fixture).totalBytes;
+
+    expect(codeUnits).toBe(265);
+    expect(measured).toBe(275);
+    // Asserted as a difference as well as an absolute. The absolute pins the
+    // exact byte length; the difference is the part a reader can re-derive from
+    // the table above without running anything, and it is what a revert to
+    // `JSON.stringify(...).length` drives to zero. Anyone "simplifying" this
+    // measurement back fails here rather than quietly under-reporting.
+    expect(measured - codeUnits).toBe(10);
+    expect(measured).toBeGreaterThan(codeUnits);
   });
 
   it('keeps the shipped payload within its budget', () => {
@@ -749,6 +793,15 @@ describe('comparison payload', () => {
     // Two guards, and only one of them is really a guard. Read this before you
     // change either number, because the honest answer to "what bounds page
     // weight" is not the same for the two.
+    //
+    // Both figures are UTF-8 bytes. Until #621 they were UTF-16 code units
+    // reported under a byte name, which understates any non-ASCII character by
+    // one to two bytes and so read progressively lower as the catalogue
+    // internationalized. Correcting the unit moved the measured total up 36
+    // bytes against an unchanged ceiling — 137,655 to 137,691 of 143,360 — and
+    // left the per-release figure at 1,497 of 1,600. Neither threshold moved,
+    // which was the condition for making the correction at all: it was free
+    // while the catalogue was still 99.97% ASCII, and it stops being free.
     //
     // The per-release ceiling below (the `1_600` assertion) is the instrument.
     // It is scale-invariant: it does not move when the catalogue grows, only
@@ -801,9 +854,11 @@ describe('comparison payload', () => {
     ).toBeLessThanOrEqual(1_600);
     expect(
       size.totalBytes,
-      `/compare ships ${size.totalBytes} bytes for ${payload.releases.length} releases `
-      + `(${size.bytesPerRelease}/release, budget 143,360). Measured 124,410 over 83 releases at 1,499 `
-      + 'each when #584 last raised this, against 121,916 over 82 at its 7ca5802 merge-base. If the '
+      `/compare ships ${size.totalBytes} UTF-8 bytes for ${payload.releases.length} releases `
+      + `(${size.bytesPerRelease}/release, budget 143,360). The #584-era anchors — 124,410 over 83 `
+      + 'releases at 1,499 each, against 121,916 over 82 at its 7ca5802 merge-base — are UTF-16 '
+      + 'code-unit counts taken before #621 corrected the unit, so they read low by about 0.03% and '
+      + 'are not strictly comparable with the figure above. If the '
       + 'catalogue simply grew and the per-release figure held, raising this is a deliberate '
       + 'page-weight decision; if the per-release figure moved too, trim instead.',
     ).toBeLessThanOrEqual(143_360);
@@ -836,7 +891,13 @@ describe('comparison payload', () => {
 
   it('needs only the picker index before a reader has chosen anything', () => {
     const index = buildComparisonPickerIndex(dataset);
-    const bytes = JSON.stringify(index).length;
+    // UTF-8 bytes, matching the payload guard after #621. Measured at the time
+    // of that correction the two counts were identical here — delta exactly 0 —
+    // because every field a picker row carries is ASCII today. That is a
+    // measurement of the current dataset and not a property of the row: a
+    // creator whose `shortName` carries non-ASCII would separate them, which is
+    // precisely why this counts bytes rather than assuming the two agree.
+    const bytes = new TextEncoder().encode(JSON.stringify(index)).length;
     const bytesPerRelease = index.length === 0 ? 0 : Math.round(bytes / index.length);
 
     expect(index).toHaveLength(dataset.releases.length);
