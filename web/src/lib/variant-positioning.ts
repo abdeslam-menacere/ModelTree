@@ -67,10 +67,34 @@ export interface UnpositionedVariantView {
  * trying to decode and it stays useful even when nothing else is recorded. The
  * unrecorded shape carries nothing else at all — there is no partial guess to
  * fall back on.
+ *
+ * `sources` is a list rather than a single publisher-and-quote pair because
+ * `variantOfficialPositioningSchema.sources` is `min(1)` and unbounded, and a
+ * creator explaining one variant name across a model card, a docs page and a
+ * launch post is the ordinary case rather than an exotic one. This projection
+ * used to take the first source and drop the rest, which meant a page could be
+ * recorded, verified and gated and then never reach a reader, with nothing
+ * anywhere saying so. A rendered evidence trail that is shorter than the
+ * recorded one is the failure this shape exists to make impossible: the count on
+ * the page is now the count in the record, whatever that count is.
  */
 export type VariantPositioningLine =
-  | { recorded: true; variant: string; publisher: string; quote: string }
+  | { recorded: true; variant: string; sources: readonly VariantPositioningLineSource[] }
   | { recorded: false; variant: string };
+
+/**
+ * One creator statement behind a rendered line: who said it, and what they said.
+ *
+ * Narrower than {@link VariantPositioningSource} on purpose. The line is a label
+ * beside a node, not a citation block — it carries no URL and no date, because it
+ * renders neither, and a projection that carried fields it does not render would
+ * invite a later reader to assume they are shown somewhere. The full source,
+ * with its link and its check date, is on the Passport.
+ */
+export interface VariantPositioningLineSource {
+  publisher: string;
+  quote: string;
+}
 
 export interface FamilyVariantPositioningView {
   family: ModelFamily;
@@ -309,14 +333,10 @@ export function buildFamilyVariantPositioning(
 
     if (entry) {
       positioned.push({ variant, releases: members, official: entry.official, editorial: entry.editorial });
-      const [source] = entry.official.sources;
+      // Every cited page, not the first: see `VariantPositioningLine`.
+      const sources = entry.official.sources.map(({ publisher, quote }) => ({ publisher, quote }));
       for (const member of members) {
-        lineByReleaseId.set(member.id, {
-          recorded: true,
-          variant,
-          publisher: source.publisher,
-          quote: source.quote,
-        });
+        lineByReleaseId.set(member.id, { recorded: true, variant, sources });
       }
       continue;
     }

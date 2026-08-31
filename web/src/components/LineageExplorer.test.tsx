@@ -7,6 +7,8 @@ import { FLAT_FAMILY_ID, lineageFixtureDataset } from '../../tests/fixtures/line
 import {
   positioningFixtureDataset,
   positioningFixtureRecords,
+  positioningFixtureRecordsWithTwoSources,
+  SECOND_FIXTURE_SOURCE,
 } from '../../tests/fixtures/variant-positioning-dataset';
 import {
   buildCreatorEcosystems,
@@ -268,6 +270,49 @@ describe('sibling tier lines beside the nodes they explain', () => {
     // A `<q>` rather than a styled span: the quotation is in the element, so a
     // reader is told these are someone else\u2019s words without relying on a glyph.
     expect(block).toMatch(/<q>[^<]+<\/q>/);
+  });
+
+  /**
+   * A record may cite several pages for one name, and used to render only the
+   * first of them beside the node. Nothing warned: the line looked exactly like
+   * a well-sourced one, and was quietly thinner than the record behind it.
+   */
+  describe('a tier name cited to more than one page', () => {
+    const multiSource = renderExplorer(
+      buildCreatorEcosystems(positioningFixtureDataset, positioningFixtureRecordsWithTwoSources),
+      fixtureLabels,
+    );
+    const wideNode = (() => {
+      const start = multiSource.indexOf('>Tier One<');
+      const end = multiSource.indexOf('</article>', start);
+      return multiSource.slice(start, end === -1 ? undefined : end);
+    })();
+
+    /** The `<p>` beside one node, matched without crossing into the next node's. */
+    const lineFor = (tierName: string) => {
+      const line = [...wideNode.matchAll(/<p class="node-positioning"[^>]*>[\s\S]*?<\/p>/g)]
+        .map((match) => match[0])
+        .find((candidate) => candidate.includes(`${tierName} tier`)) ?? '';
+      expect(line, `expected the ${tierName} tier line to render`).not.toBe('');
+      return line;
+    };
+
+    it('quotes every page beside the node rather than the first one', () => {
+      expect(wideNode).toContain('Built for broad context work');
+      expect(wideNode).toContain(SECOND_FIXTURE_SOURCE.quote);
+    });
+
+    it('marks each quotation as a quotation in its own right', () => {
+      // Two `<q>` elements under the one Wide line, so the second page is
+      // attributed rather than run on as if the creator said it all at once.
+      const wideLine = lineFor('Wide');
+      expect(occurrences(wideLine, /<q>/g)).toBe(2);
+      expect(occurrences(wideLine, /states:/g)).toBe(2);
+    });
+
+    it('leaves a single-source name in the same family showing one quotation', () => {
+      expect(occurrences(lineFor('Quick'), /<q>/g)).toBe(1);
+    });
   });
 
   it('summarises a family\u2019s coverage in words rather than by a count alone', () => {

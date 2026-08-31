@@ -1,7 +1,10 @@
 import { precisionOf } from '../../src/data/partial-date';
 import type { Dataset, ModelFamily, ModelRelease, Organization } from '../../src/data/schema';
 import { validateDataset } from '../../src/data/validate';
-import type { VariantPositioning } from '../../src/data/variant-positioning-schema';
+import {
+  type VariantPositioning,
+  validateVariantPositioning,
+} from '../../src/data/variant-positioning-schema';
 
 /**
  * Test-only scaffolding for variant positioning, deliberately outside `src/` so
@@ -28,6 +31,8 @@ import type { VariantPositioning } from '../../src/data/variant-positioning-sche
  * - multi-release variant: one variant name carried by several releases
  * - rival creator: a second creator, so the cross-creator guard has something to
  *   catch
+ * - multi-source variant: one variant name cited to more than one page, which
+ *   the schema has always permitted and no committed record uses yet
  */
 
 const SOURCE_ID = 'fixture-positioning-announcement';
@@ -226,3 +231,54 @@ export const positioningFixtureRecords: VariantPositioning = [
     verifiedAt: '2026-08-01',
   },
 ];
+
+/** The variant that {@link positioningFixtureRecordsWithTwoSources} cites twice. */
+export const TWO_SOURCE_VARIANT = 'Wide';
+
+/**
+ * The second page behind {@link TWO_SOURCE_VARIANT} in the complete family.
+ *
+ * Deliberately carries the *same* publisher as the first. A creator explaining
+ * one variant name across a model card and a docs page is the ordinary case, not
+ * an exotic one, and it is the case where a renderer that told sources apart by
+ * where they sit rather than by their own text would look right and read wrong.
+ * What distinguishes these two on the page is the title, the URL, the check date
+ * and the quote — all of them text.
+ */
+export const SECOND_FIXTURE_SOURCE = {
+  url: 'https://fixture.invalid/positioning/model-card',
+  title: 'Synthetic positioning model card',
+  publisher: 'Tier Foundry',
+  type: 'model-card' as const,
+  quote: 'Also described as the long-context member of this line',
+  lastCheckedDate: '2026-08-02',
+};
+
+/**
+ * `positioningFixtureRecords` with one variant cited to two pages instead of one.
+ *
+ * `variantOfficialPositioningSchema.sources` is `min(1)` and unbounded, so this
+ * shape has always been legal and no committed record uses it — which is exactly
+ * why it needs a fixture. Run through the validator rather than merely typed, so
+ * that "the schema permits this" is proven here rather than assumed by the tests
+ * that read it.
+ */
+export const positioningFixtureRecordsWithTwoSources: VariantPositioning =
+  validateVariantPositioning(positioningFixtureRecords.map((record) => (
+    record.familyId === COMPLETE_FAMILY_ID
+      ? {
+        ...record,
+        variants: record.variants.map((variantEntry) => (
+          variantEntry.variant === TWO_SOURCE_VARIANT
+            ? {
+              ...variantEntry,
+              official: {
+                ...variantEntry.official,
+                sources: [...variantEntry.official.sources, SECOND_FIXTURE_SOURCE],
+              },
+            }
+            : variantEntry
+        )),
+      }
+      : record
+  )));

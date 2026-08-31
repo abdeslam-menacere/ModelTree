@@ -14,8 +14,11 @@ import {
   REPEATED_NAME_FAMILY_ID,
   RIVAL_FAMILY_NAME,
   RIVAL_ORGANIZATION_NAME,
+  SECOND_FIXTURE_SOURCE,
+  TWO_SOURCE_VARIANT,
   positioningFixtureDataset,
   positioningFixtureRecords,
+  positioningFixtureRecordsWithTwoSources,
 } from '../../tests/fixtures/variant-positioning-dataset';
 
 /**
@@ -67,14 +70,55 @@ describe('a family whose variants are all positioned', () => {
     expect(line).toEqual({
       recorded: true,
       variant: 'Wide',
-      publisher: 'Tier Foundry',
-      quote: 'Built for broad context work',
+      sources: [{ publisher: 'Tier Foundry', quote: 'Built for broad context work' }],
     });
   });
 
   it('says so in words', () => {
     expect(variantPositioningCoverageLine(buildFixture(COMPLETE_FAMILY_ID)))
       .toBe('Creator positioning is recorded for all 2 variant names in Tier One.');
+  });
+});
+
+/**
+ * A variant cited to more than one page.
+ *
+ * `sources` is `min(1)` and unbounded, so this has always been a legal record;
+ * the line built for it used to carry the first source and drop the rest, which
+ * meant a page could be cited, pass every gate, and never reach a reader. The
+ * failure was silent in the one place this repository can least afford silence,
+ * because the evidence trail went shorter than the evidence.
+ */
+describe('a variant whose positioning rests on several pages', () => {
+  const view = buildFixture(COMPLETE_FAMILY_ID, positioningFixtureRecordsWithTwoSources);
+
+  it('carries every cited page on the line, not just the first', () => {
+    const line = view.lineByReleaseId.get('fixture-tiers-one-wide');
+
+    expect(line).toEqual({
+      recorded: true,
+      variant: TWO_SOURCE_VARIANT,
+      sources: [
+        { publisher: 'Tier Foundry', quote: 'Built for broad context work' },
+        { publisher: SECOND_FIXTURE_SOURCE.publisher, quote: SECOND_FIXTURE_SOURCE.quote },
+      ],
+    });
+  });
+
+  it('keeps the full record reachable, so nothing rests on the line alone', () => {
+    const wide = view.positioned.find(({ variant }) => variant === TWO_SOURCE_VARIANT);
+
+    expect(wide?.official.sources.map(({ url }) => url)).toEqual([
+      'https://fixture.invalid/positioning/docs',
+      SECOND_FIXTURE_SOURCE.url,
+    ]);
+  });
+
+  it('leaves a single-source variant in the same family carrying exactly one', () => {
+    // The count is read from the record rather than assumed, so a renderer
+    // cannot start showing a second page where the data has only one.
+    expect(view.lineByReleaseId.get('fixture-tiers-one-quick'))
+      .toMatchObject({ recorded: true, sources: [{ quote: 'Built for short turnarounds' }] });
   });
 });
 

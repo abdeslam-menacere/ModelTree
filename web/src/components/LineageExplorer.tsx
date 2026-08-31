@@ -385,6 +385,16 @@ interface BranchProps {
  * node would be noise rather than information. A family where *some* names are
  * recorded is the opposite case — there the absence is specific to this release,
  * and stating it is what stops a reader inferring that the gap means something.
+ *
+ * Where a record cites several pages, every one of them is quoted here, each
+ * introduced by the publisher that wrote it. Showing the first and dropping the
+ * rest was the older behaviour and the quieter bug: the line looked exactly like
+ * a well-sourced one while resting on less than the record held. The design note
+ * this trades against is real — the schema caps a quote at 200 characters
+ * precisely so one line can sit beside a node at 320px — so the cap is doing the
+ * work here too, per quote rather than per line, and `.node-positioning` wraps
+ * rather than truncating. A name cited to three pages is three short lines,
+ * which is longer than one and is what the record actually says.
  */
 function NodePositioning({
   releaseId,
@@ -407,10 +417,14 @@ function NodePositioning({
   }
 
   return (
-    <p className="node-positioning" data-recorded="true">
+    <p className="node-positioning" data-recorded="true" data-source-count={line.sources.length}>
       <span className="node-positioning-variant">{line.variant} tier</span>
-      {` — ${line.publisher} states: `}
-      <q>{line.quote}</q>
+      {line.sources.map((source, index) => (
+        <span className="node-positioning-source" key={`${source.publisher}-${index}`}>
+          {`${index === 0 ? ' — ' : '; '}${source.publisher} states: `}
+          <q>{source.quote}</q>
+        </span>
+      ))}
     </p>
   );
 }

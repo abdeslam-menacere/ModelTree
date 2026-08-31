@@ -306,3 +306,66 @@ describe('related terms are navigable', () => {
     expect(related?.textContent).toBe('Mixture of experts');
   });
 });
+
+/**
+ * The glossary's sibling of issue #650, checked rather than assumed.
+ *
+ * `glossary.json` shares the inline-source convention with
+ * `variant-positioning.json`: `sources` is `min(1)` and unbounded, and four
+ * committed entries already cite two pages. Both readers of the positioning
+ * document took `sources[0]` and dropped the rest; this pins the finding that
+ * the glossary renderer never did, so the divergence between "the schema
+ * permits many" and "the page shows one" cannot open up here later either.
+ */
+describe('an entry citing several pages shows all of them', () => {
+  const TWO_SOURCE_ENTRY = 'two-source-entry';
+
+  const secondSource = {
+    url: 'https://example.com/model-card',
+    title: 'Model card',
+    publisher: 'Example',
+    type: 'model-card' as const,
+    quote: 'Quoted verbatim from the second page.',
+    lastCheckedDate: '2026-08-29',
+  };
+
+  function renderTwoSource() {
+    return render(
+      <Glossary
+        entries={[entry({
+          id: TWO_SOURCE_ENTRY,
+          term: 'Two source entry',
+          sources: [
+            {
+              url: 'https://example.com/docs',
+              title: 'Docs',
+              publisher: 'Example',
+              type: 'official-docs',
+              quote: 'Quoted verbatim.',
+              lastCheckedDate: '2026-08-28',
+            },
+            secondSource,
+          ],
+        })]}
+      />,
+    );
+  }
+
+  it('renders one list item per cited page, not just the first', () => {
+    renderTwoSource();
+    const items = document.querySelectorAll(`#${TWO_SOURCE_ENTRY} .glossary-sources li`);
+
+    expect(items).toHaveLength(2);
+  });
+
+  it('carries the quote, link and check date belonging to each page', () => {
+    renderTwoSource();
+    const block = document.querySelector(`#${TWO_SOURCE_ENTRY} .glossary-sources`);
+
+    expect(block?.textContent).toContain('Quoted verbatim.');
+    expect(block?.textContent).toContain(secondSource.quote);
+    expect(block?.textContent).toContain(secondSource.title);
+    expect(block?.textContent).toContain(secondSource.lastCheckedDate);
+    expect(block?.querySelector(`a[href="${secondSource.url}"]`)).not.toBeNull();
+  });
+});

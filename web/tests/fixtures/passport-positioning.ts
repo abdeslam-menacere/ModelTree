@@ -91,3 +91,39 @@ export const partialPositioning: VariantPositioning = [
 
 /** No record at all, which is the state most families in the catalog are in. */
 export const absentPositioning: VariantPositioning = [];
+
+/** The second page cited by {@link multiSourcePositioning} for the `base` name. */
+export const SECOND_BASE_SOURCE = {
+  url: 'https://example-lab.test/cards/base',
+  title: 'Base model card',
+  publisher: 'Example Lab',
+  type: 'model-card' as const,
+  quote: 'The base build is the one we document for long-running document work',
+  lastCheckedDate: '2026-08-21',
+};
+
+/**
+ * `base` cited to two pages, which the schema has always permitted.
+ *
+ * `sources` is `min(1)` and unbounded because a creator routinely explains one
+ * name across a model card, a docs page and a launch post. Both pages here carry
+ * the same publisher, because that is the ordinary multi-source case: what tells
+ * them apart on the page has to be their titles, URLs, check dates and quotes,
+ * all of which are text, rather than the order they happen to sit in.
+ */
+export const multiSourcePositioning: VariantPositioning = [
+  {
+    ...completePositioning[0],
+    variants: completePositioning[0].variants.map((entry) => (
+      entry.variant === 'base'
+        ? {
+          ...entry,
+          official: {
+            ...entry.official,
+            sources: [...entry.official.sources, SECOND_BASE_SOURCE],
+          },
+        }
+        : entry
+    )),
+  },
+];

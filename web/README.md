@@ -199,7 +199,16 @@ the point:
 - `official` holds **only** verbatim quotes and their source metadata. There is
   no ModelTree-authored string in it. Each source carries `url`, `title`,
   `publisher`, the `quote` itself, and `lastCheckedDate`; the entry carries
-  `effectiveAsOf`.
+  `effectiveAsOf`. `sources` is `min(1)` and deliberately unbounded, because a
+  creator often explains one name across a model card, a docs page and a launch
+  post — and **every** cited page is rendered, both in the Passport and on the
+  line beside the node in the lineage explorer. Showing the first and dropping
+  the rest was issue #650: silent, gate-clean, and the one failure this document
+  cannot afford, since it makes the evidence trail on the page read shorter than
+  the evidence in the record. Where a name rests on more than one page the
+  Passport says so in words above the quotes, and each page keeps its own title,
+  link and check date, so two pages from the same publisher stay distinguishable
+  by their own text rather than by which one is printed first.
 - `editorial.summary` is ModelTree's reading of that claim, with its own
   `verifiedAt`. It is ModelTree-authored prose, as is the record-level `note`,
   and both are held to the wording rules described below.
