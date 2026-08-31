@@ -332,21 +332,33 @@ export const releaseSchema = z.object({
   // a number, and copying it is the faithful act. Route 2 is a recording step
   // under the `provenance` rubric above; route 1 is not a step at all.
   //
-  // 3. AN ABBREVIATION RECORDED IN THE BINARY SENSE, which is the case that
-  //    stops the two routes above from being the whole story.
+  // 3. AN ABBREVIATION READ IN THE BINARY SENSE, used only where the source
+  //    itself fixes the binary size, which is the case that stops the two
+  //    routes above from being the whole story.
   //    `upstage-solar-pro-preview-instruct` stores `4096` against a card that
   //    states "a maximum context length of 4K" and no integer anywhere. Route 2
-  //    read literally would give `4000`; the recorded value is `4 × 1024`.
-  //    What is *not* recorded is why. That release carries no rationale field,
-  //    and its source note quotes the "4K" without saying which sense the
-  //    abbreviation carries, so nothing in the repository shows the binary
-  //    reading being chosen or on what grounds. This route is therefore an
-  //    observed reading of committed data, not a determination the record can
-  //    be shown to have made, and it is described here for the same reason the
-  //    other two are: so that a reader meeting `4096` knows it is accounted
-  //    for. Which sense a bare "K" should carry in a *new* record is an open
-  //    question this comment does not answer and must not be settled by
-  //    defaulting to either reading.
+  //    read literally would give `4000`; the recorded value is `4 × 1024`. The
+  //    reading is not a free choice: the same card's comparison table names
+  //    `Phi-3-medium-4K-instruct`, and Solar Pro Preview is a depth-upscaled
+  //    Phi-3-medium, so its "4K" is the Phi-3 "-4K" build's known 4096-token
+  //    buffer rather than a loose "about four thousand". Its source note records
+  //    that basis, so the binary reading is shown on the record and not merely
+  //    observed here.
+  //
+  //    THE DECISION a bare "K"/"M" abbreviation is read by, when a *new* record
+  //    is written, follows from those three routes rather than sitting open:
+  //    read it decimally — "K" is 1000, "M" is 1,000,000 — which is route 2 and
+  //    what every bare-abbreviation record in this dataset except `upstage`
+  //    does. Depart from that only when the source's own context establishes a
+  //    binary buffer, as `upstage`'s Phi-3-`4K` lineage does, and when it does,
+  //    the record's note must state that basis so the departure is legible. The
+  //    binary reading is rejected as the *default* for a bare abbreviation
+  //    because adopting it there would silently expand a card's bare "128k" to
+  //    `131072` across many records — replacing a figure taken from a creator
+  //    with a computed one no source states, the very harm the rule below
+  //    guards. The decimal default never invents beyond a stated abbreviation's
+  //    plainest reading; the binary exception is taken only on stated evidence,
+  //    never to make a column tidy.
   //
   // So near-neighbour values sit beside each other in this column — `1047576`,
   // `1048576` and `1000000`; `128000`, `131072` and `4096` — and that is several

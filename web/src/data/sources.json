@@ -1393,8 +1393,8 @@
     "title": "upstage/solar-pro-preview-instruct model card",
     "type": "model-card",
     "publisherId": "upstage",
-    "lastCheckedDate": "2026-08-30",
-    "notes": "States \"Solar Pro Preview is an advanced large language model (LLM) with 22 billion parameters\", \"a maximum context length of 4K\", front-matter \"license: mit\", and a comparison table whose own column records \"*Release Date* | 2024.09.08\". States \"Solar Pro Preview is a pre-release version of the official Solar Pro\", which is why the release is recorded with preview status. Links to https://www.upstage.ai, which is the website the organization record carries."
+    "lastCheckedDate": "2026-08-31",
+    "notes": "States \"Solar Pro Preview is an advanced large language model (LLM) with 22 billion parameters\", \"a maximum context length of 4K\", front-matter \"license: mit\", and a comparison table whose own column records \"*Release Date* | 2024.09.08\". The card states no exact context integer anywhere; contextWindow records 4096, the binary reading of \"4K\" (4 x 1024) rather than the decimal 4000 a bare abbreviation would otherwise take. That reading is fixed by the card itself: its comparison table names \"Phi-3-medium-4K-instruct\", and the summary states Solar Pro Preview is depth-upscaled from a Phi-3-medium, so its \"4K\" is the Phi-3 \"-4K\" build's known 4096-token buffer. States \"Solar Pro Preview is a pre-release version of the official Solar Pro\", which is why the release is recorded with preview status. Links to https://www.upstage.ai, which is the website the organization record carries."
   },
   {
     "id": "ibm-granite-product-page",
