@@ -363,7 +363,7 @@ function gateReferences(docs, ids) {
 //   that a record which cannot be mapped is withheld rather than guessed, and in
 //   as many words that "a tree branch rendering rows of blanks is not a fact
 //   this dataset states". The `unknown` member added under
-//   `docs/adr/0007-lifecycle-status-carries-an-explicit-unknown-member.md` does
+//   `docs/adr/0008-lifecycle-status-carries-an-explicit-unknown-member.md` does
 //   not change this: it records that a source states no lifecycle state, which
 //   says nothing about whether a release exists, so it neither distinguishes an
 //   announced-but-unreleased family from a data error nor otherwise reopens this

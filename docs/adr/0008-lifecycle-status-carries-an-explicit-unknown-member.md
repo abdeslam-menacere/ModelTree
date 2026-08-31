@@ -1,4 +1,4 @@
-# ADR 0007: Lifecycle Status Carries an Explicit unknown Member
+# ADR 0008: Lifecycle Status Carries an Explicit unknown Member
 
 - Status: Accepted
 - Date: 2026-08-31

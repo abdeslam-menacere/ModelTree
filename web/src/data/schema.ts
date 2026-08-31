@@ -82,7 +82,7 @@ export const datePrecision = z.enum(DATE_PRECISIONS);
  * absent are `.optional()` instead, and `partialDate` above is the same
  * principle applied to how much of a date a source actually gave. The decision
  * and every consumer it touches are recorded in
- * `docs/adr/0007-lifecycle-status-carries-an-explicit-unknown-member.md`.
+ * `docs/adr/0008-lifecycle-status-carries-an-explicit-unknown-member.md`.
  */
 export const lifecycleStatus = z.enum(['preview', 'current', 'legacy', 'deprecated', 'research', 'unknown']);
 export const modality = z.enum(['text', 'image', 'audio', 'video']);

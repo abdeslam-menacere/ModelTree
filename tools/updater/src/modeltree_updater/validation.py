@@ -57,7 +57,7 @@ LIFECYCLE_STATUS = (
     # vocabulary member, not a nullable escape hatch, exactly like `unknown` in
     # the `modelSelection` enum. Kept in lockstep so a record the web schema
     # accepts is never rejected here in the permissive direction. See
-    # docs/adr/0007-lifecycle-status-carries-an-explicit-unknown-member.md.
+    # docs/adr/0008-lifecycle-status-carries-an-explicit-unknown-member.md.
     "unknown",
 )
 MODEL_CATEGORY = (

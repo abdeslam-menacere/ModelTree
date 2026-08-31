@@ -6,7 +6,7 @@ import { lifecycleStatusGlossary } from '../lib/methodology';
 
 /**
  * The decision recorded in
- * `docs/adr/0007-lifecycle-status-carries-an-explicit-unknown-member.md`: add an
+ * `docs/adr/0008-lifecycle-status-carries-an-explicit-unknown-member.md`: add an
  * explicit `unknown` member to `lifecycleStatus`, so a record can honestly say
  * "the source states no lifecycle state" instead of being forced to assert one.
  *
@@ -44,7 +44,7 @@ const UNKNOWN_STATUSED_FAMILIES = [
 ] as const;
 
 describe('lifecycleStatus carries an explicit unknown member', () => {
-  it('adds unknown without dropping any pre-existing member (ADR 0007)', () => {
+  it('adds unknown without dropping any pre-existing member (ADR 0008)', () => {
     // The four members every existing record already maps to must survive, or
     // this is a breaking change to shipped data rather than an addition.
     expect(lifecycleStatus.options).toEqual([
@@ -71,7 +71,7 @@ describe('lifecycleStatus carries an explicit unknown member', () => {
 
   it('accepts a family whose source states no lifecycle term', () => {
     // The shape of every family in UNKNOWN_STATUSED_FAMILIES: fully sourced
-    // except for a lifecycle nobody stated. Before ADR 0007 this record could
+    // except for a lifecycle nobody stated. Before ADR 0008 this record could
     // not be written at all; the required status field had no honest value.
     const family: ModelFamily = {
       id: 'falcon-3',
@@ -92,7 +92,7 @@ describe('lifecycleStatus carries an explicit unknown member', () => {
 
     // And the previously-forced guess is exactly what the schema now need not
     // accept from a source that states nothing: 'legacy' and 'current' both
-    // parse structurally, but the point of ADR 0007 is that neither has to be
+    // parse structurally, but the point of ADR 0008 is that neither has to be
     // asserted — 'unknown' is available as the faithful value.
     for (const member of UNKNOWN_STATUSED_FAMILIES) {
       expect(member.length).toBeGreaterThan(0);
@@ -146,7 +146,7 @@ describe('lifecycleStatus carries an explicit unknown member', () => {
     // and parameters — except a single over-claimed maximumOutput, which is an
     // optional field and is simply dropped. So the pair below is a complete,
     // schema-valid family + release built only from what the archive's own bytes
-    // support, unblocked by ADR 0007 at the family level.
+    // support, unblocked by ADR 0008 at the family level.
     const family: ModelFamily = {
       id: 'command-r',
       slug: 'command-r',
@@ -195,7 +195,7 @@ describe('lifecycleStatus carries an explicit unknown member', () => {
     const parsedRelease = releaseSchema.parse(release);
 
     // The release points at the family, so the family is not empty: the
-    // empty-family rule (unaffected by ADR 0007) is satisfied by an actual
+    // empty-family rule (unaffected by ADR 0008) is satisfied by an actual
     // release, not by the status value.
     expect(parsedRelease.familyId).toBe(parsedFamily.id);
     expect(parsedFamily.status).toBe('unknown');
