@@ -9,6 +9,8 @@ import { buildHomepageSearchIndex } from '../lib/homepage-search';
 import { buildLineageEcosystems } from '../lib/lineage-view';
 import { organizationLabel } from '../lib/organization-name';
 import { buildCoverageStats, buildReleasePulse, latestChangeLabel } from '../lib/release-pulse';
+import { absoluteUrl } from '../lib/seo';
+import { buildDatasetJsonLd, buildWebsiteJsonLd } from '../lib/structured-data';
 
 const hierarchy = buildHomepageHierarchy(dataset);
 const homeSearchIndex = buildHomepageSearchIndex(dataset, import.meta.env.BASE_URL);
@@ -36,14 +38,29 @@ const pulseNow = new Date().toISOString().slice(0, 10);
 const pulse = buildReleasePulse(dataset, { base, now: pulseNow });
 const coverage = buildCoverageStats(dataset);
 const latestChange = latestChangeLabel(pulse, dataset);
+
+const homeDescription =
+	'Explore who created AI models, how families fit together, when releases arrived, and which primary sources support each fact.';
+const homeUrl = absoluteUrl(Astro.site?.origin ?? '', base);
+const structuredData = [
+	buildWebsiteJsonLd({ url: homeUrl, description: homeDescription }),
+	buildDatasetJsonLd({
+		url: homeUrl,
+		name: 'ModelTree',
+		description:
+			'A source-backed record of AI model creators, families, releases, and the primary sources behind each fact.',
+	}),
+];
 ---
 
 <BaseLayout
 	title="ModelTree | AI Model Lineage"
-	description="Explore who created AI models, how families fit together, when releases arrived, and which primary sources support each fact."
+	description={homeDescription}
 	passportHref={passportHref}
 	verifiedAt={formatDate(latestVerification)}
 	currentPage="explore"
+	socialImageAlt="ModelTree — the source-backed family tree of AI model creators, families, and releases."
+	structuredData={structuredData}
 >
 	<main id="main-content">
 		<section class="hero-intro" aria-labelledby="page-title">
