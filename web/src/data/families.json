@@ -1214,5 +1214,42 @@
       "qwen3-6-35b-a3b-model-card"
     ],
     "verifiedAt": "2026-08-31"
+  },
+  {
+    "id": "eleutherai-gpt-neo",
+    "slug": "gpt-neo",
+    "organizationId": "eleutherai",
+    "name": "GPT-Neo",
+    "description": "EleutherAI’s GPT-Neo class of autoregressive language models, trained on the Pile as an open replication of the GPT-3 architecture. The repository’s dated release note announces \"two pretrained GPT-Neo models\" under the heading \"Update 21/03/2021\", which is what the first release date records, and the two checkpoints it links are the 1.3B and the 2.7B. The status is recorded as unknown: no source consulted states a lifecycle for the GPT-Neo weights. The README does say the GPT-Neo training *code* is no longer maintained, which is a statement about the code and not about the published models, so it is deliberately not read as a family status.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2021-03-21",
+    "datePrecision": "day",
+    "status": "unknown",
+    "sourceIds": [
+      "eleutherai-gpt-neo-repository",
+      "eleutherai-gpt-neo-2-7b-model-card"
+    ],
+    "verifiedAt": "2026-08-31"
+  },
+  {
+    "id": "ibm-granite-4-0",
+    "slug": "granite-4-0",
+    "organizationId": "ibm",
+    "name": "Granite 4.0",
+    "description": "IBM’s Granite 4.0 generation of enterprise language models, which IBM describes as a collection comprising \"multiple model sizes and architecture styles\" — the hybrid Mamba/transformer H-Small, H-Tiny and H-Micro, plus a conventional-attention Micro. The first release date is 2 October 2025, the date the Granite 4.0 model cards state for themselves under \"Release Date\"; IBM’s launch post carries the same date only as a publication dateline, which is not what this record rests on. The status is recorded as unknown: IBM states no lifecycle for the generation, and a newer Granite 4.2 is separately recorded in this dataset, so \"current\" would be an inference rather than a sourced fact.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2025-10-02",
+    "datePrecision": "day",
+    "status": "unknown",
+    "sourceIds": [
+      "ibm-granite-4-0-announcement",
+      "ibm-granite-4-0-h-tiny-model-card",
+      "ibm-granite-4-0-h-small-model-card"
+    ],
+    "verifiedAt": "2026-08-31"
   }
 ]
