@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
+import { stripAnsi } from './ansi.mjs';
 import { formatPositionalRefusal, planCheck } from './run-check.mjs';
 
 const webRoot = fileURLToPath(new URL('..', import.meta.url));
@@ -35,6 +36,15 @@ const scripts = (
 /** A real source file, so the refusal cannot be read as "no such path". */
 const SWALLOWED_PATH = 'src/lib/format.ts';
 
+/**
+ * Spawn the wrapper and capture what it said, with escape sequences removed.
+ *
+ * astro colours its output too (`\u001B[1mResult (194 files): \u001B[22m`), and
+ * a runner colours where a coding agent's shell does not -- see `ansi.mjs`. The
+ * `not.toContain` assertions below are the reason this matters most: a phrase
+ * broken up by escape codes would make them pass for the wrong reason, which is
+ * a false green rather than a red.
+ */
 async function runScript(args: string[]) {
   const env = Object.fromEntries(
     Object.entries(process.env).filter(([key]) => !key.startsWith('VITEST')),
@@ -55,7 +65,9 @@ async function runScript(args: string[]) {
         stderr += chunk;
       });
       child.on('error', fail);
-      child.on('close', (code) => settle({ code, stdout, stderr }));
+      child.on('close', (code) =>
+        settle({ code, stdout: stripAnsi(stdout), stderr: stripAnsi(stderr) }),
+      );
     },
   );
 }

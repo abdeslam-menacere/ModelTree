@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { parseCLI } from 'vitest/node';
 
+import { AGENT_ENV_KEYS, hasAnsi, stripAnsi } from './ansi.mjs';
 import {
   COVERAGE_VERIFIER,
   FULL_RUN_ARGS,
@@ -52,7 +53,20 @@ const SCOPED_TARGET = 'src/lib/format.test.ts';
 /** A path shaped like a test file that no file on disk matches. */
 const UNMATCHABLE_TARGET = 'src/lib/there-is-no-such-file.test.ts';
 
-async function runScript(args: string[]) {
+/**
+ * Spawn the wrapper and capture what it said.
+ *
+ * `stdout` and `stderr` come back with escape sequences removed, because vitest
+ * colourises on a CI runner and not under a coding agent (see `ansi.mjs`), and
+ * an assertion about a phrase must not depend on which of those is running it.
+ * The raw text is returned alongside for the cases that are about the colouring
+ * itself.
+ *
+ * @param args arguments to forward to the wrapper
+ * @param options `colour: true` clears the agent variables that make vitest
+ *   suppress colour, reproducing what CI emits regardless of who runs the test
+ */
+async function runScript(args: string[], options: { colour?: boolean } = {}) {
   // The parent is itself a vitest worker, and its VITEST_* variables describe
   // that run. Handing them to a child that starts its own Vitest would let the
   // harness leak into what is under test.
@@ -60,24 +74,44 @@ async function runScript(args: string[]) {
     Object.entries(process.env).filter(([key]) => !key.startsWith('VITEST')),
   );
 
-  return await new Promise<{ code: number | null; stdout: string; stderr: string }>(
-    (settle, fail) => {
-      const child = spawn(process.execPath, [scriptPath, ...args], { cwd: webRoot, env });
-      let stdout = '';
-      let stderr = '';
+  if (options.colour) {
+    for (const key of AGENT_ENV_KEYS) {
+      delete env[key];
+    }
+    delete env.NO_COLOR;
+    env.FORCE_COLOR = '1';
+  }
 
-      child.stdout.setEncoding('utf8');
-      child.stderr.setEncoding('utf8');
-      child.stdout.on('data', (chunk) => {
-        stdout += chunk;
-      });
-      child.stderr.on('data', (chunk) => {
-        stderr += chunk;
-      });
-      child.on('error', fail);
-      child.on('close', (code) => settle({ code, stdout, stderr }));
-    },
-  );
+  return await new Promise<{
+    code: number | null;
+    stdout: string;
+    stderr: string;
+    rawStdout: string;
+    rawStderr: string;
+  }>((settle, fail) => {
+    const child = spawn(process.execPath, [scriptPath, ...args], { cwd: webRoot, env });
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk;
+    });
+    child.on('error', fail);
+    child.on('close', (code) =>
+      settle({
+        code,
+        stdout: stripAnsi(stdout),
+        stderr: stripAnsi(stderr),
+        rawStdout: stdout,
+        rawStderr: stderr,
+      }),
+    );
+  });
 }
 
 describe('the npm scripts this file is about', () => {
@@ -346,6 +380,42 @@ describe('the script run as a process', () => {
       expect(doubled.stdout).not.toContain('Test Files');
       expect(doubled.stderr).toContain('refusing to run');
       expect(doubled.code).not.toBe(0);
+    },
+    180_000,
+  );
+
+  // The regression case for the CI-only failure. `web-ci` went red on this
+  // file's `Test Files  1 passed (1)` assertion while every local check was
+  // green, because vitest suppresses colour under a coding agent and colours
+  // its output on a runner -- so the codes landed *between* `Test Files ` and
+  // `1 passed` there and nowhere here.
+  //
+  // Clearing the agent variables reproduces the runner's condition on any
+  // machine, which is what makes this a test rather than a hope. The first
+  // assertion is the instrument check: if the output is not actually coloured,
+  // the rest of this case would be testing plain text and proving nothing, so
+  // it fails loudly instead.
+  it(
+    'reports the same counts whether or not the child colourises its output',
+    async () => {
+      const coloured = await runScript([SCOPED_TARGET], { colour: true });
+
+      expect(
+        hasAnsi(coloured.rawStdout),
+        `expected a coloured child, got plain text:\n${coloured.rawStdout}`,
+      ).toBe(true);
+
+      // The exact failure CI reported: present once normalised, absent before.
+      expect(coloured.rawStdout).not.toContain('Test Files  1 passed (1)');
+      expect(coloured.stdout).toContain('Test Files  1 passed (1)');
+
+      // The count that the scoping claim rests on survives colouring too, and
+      // is still strictly smaller than the suite.
+      const counts = coloured.stdout.match(/Matched (\d+) of (\d+) discovered test file\(s\)/u);
+      expect(counts, `no scope notice in:\n${coloured.stdout}`).not.toBeNull();
+      expect(Number(counts?.[1])).toBe(1);
+      expect(Number(counts?.[2])).toBeGreaterThan(1);
+      expect(coloured.code).toBe(0);
     },
     180_000,
   );
