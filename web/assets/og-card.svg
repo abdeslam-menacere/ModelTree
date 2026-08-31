@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="Georgia, 'Times New Roman', serif">
+  <!--
+    The single ModelTree social card, served site-wide as og-card.png. It is a
+    branded backdrop by design: the per-page text a human reads on a social
+    preview is the og:title and og:description, and the specific model or provider
+    name is carried by og:image:alt. So this image states the product identity and
+    nothing that would be a per-page or sourced claim -- no model names, no scores.
+
+    This SVG is the source; web/public/og-card.png is rendered from it once by
+    web/scripts/render-og-card.mjs. Edit here, then re-render.
+  -->
+  <rect width="1200" height="630" fill="#0e1417" />
+  <rect x="1" y="1" width="1198" height="628" fill="none" stroke="#2a373d" stroke-width="2" />
+
+  <!-- The lineage mark from BrandMark.astro, scaled up. -->
+  <g transform="translate(96, 150) scale(4.2)">
+    <path d="M13 50V17l19 20 19-20v33M32 37V18" fill="none" stroke="#3fd0e6" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+    <circle cx="13" cy="17" r="5.5" fill="#e4edf1" />
+    <circle cx="32" cy="15" r="5.5" fill="#e4edf1" />
+    <circle cx="51" cy="17" r="5.5" fill="#e4edf1" />
+  </g>
+
+  <text x="384" y="286" fill="#e4edf1" font-size="128" font-weight="700" letter-spacing="-2">ModelTree</text>
+  <text x="388" y="356" fill="#b6c5cb" font-size="40" font-family="Archivo, 'Segoe UI', Helvetica, Arial, sans-serif">AI model lineage, source by source</text>
+
+  <line x1="96" y1="470" x2="1104" y2="470" stroke="#2a373d" stroke-width="2" />
+  <text x="96" y="536" fill="#b6c5cb" font-size="32" font-family="Archivo, 'Segoe UI', Helvetica, Arial, sans-serif">Creators, families, releases, and the primary sources behind each fact.</text>
+</svg>

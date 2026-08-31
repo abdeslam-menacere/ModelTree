@@ -11,6 +11,8 @@ import { buildModelFitGuidance } from '../../lib/model-fit';
 import { buildModelPassport, type PassportSectionId } from '../../lib/passport';
 import { organizationLabel } from '../../lib/organization-name';
 import { modelStaticPaths } from '../../lib/routes';
+import { absoluteUrl } from '../../lib/seo';
+import { buildBreadcrumbJsonLd } from '../../lib/structured-data';
 import { buildUsageEvidence } from '../../lib/usage-evidence';
 
 export const getStaticPaths = modelStaticPaths;
@@ -50,6 +52,15 @@ const sources = release.sourceIds
 
 const homeHref = `${base}#explorer`;
 const catalogHref = `${base}models/`;
+
+const origin = Astro.site?.origin ?? '';
+const structuredData = [
+  buildBreadcrumbJsonLd([
+    { name: 'ModelTree', url: absoluteUrl(origin, base) },
+    { name: 'Models', url: absoluteUrl(origin, `${base}models/`) },
+    { name: view.displayName, url: absoluteUrl(origin, view.canonicalRoute) },
+  ]),
+];
 ---
 
 <BaseLayout
@@ -58,6 +69,8 @@ const catalogHref = `${base}models/`;
   passportHref={view.canonicalRoute}
   verifiedAt={view.verifiedAt}
   currentPage="passport"
+  socialImageAlt={`${view.displayName} — Model Passport on ModelTree`}
+  structuredData={structuredData}
 >
   <main id="main-content" class="passport-page">
     <div class="passport-breadcrumbs">

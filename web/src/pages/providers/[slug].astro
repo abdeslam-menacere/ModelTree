@@ -10,6 +10,8 @@ import { buildCreatorEcosystems } from '../../lib/lineage-view';
 import { buildProviderProfile } from '../../lib/provider-profile';
 import { organizationFullNameIfDistinct, organizationLabel } from '../../lib/organization-name';
 import { providerStaticPaths } from '../../lib/routes';
+import { absoluteUrl } from '../../lib/seo';
+import { buildBreadcrumbJsonLd, buildOrganizationJsonLd } from '../../lib/structured-data';
 
 export const getStaticPaths = providerStaticPaths;
 
@@ -56,6 +58,16 @@ const label = organizationLabel(organization);
 // This is the creator's own page, so a recorded name the rest of the site no
 // longer leads with is stated here rather than disappearing from the site.
 const fullName = organizationFullNameIfDistinct(organization);
+
+const origin = Astro.site?.origin ?? '';
+const structuredData = [
+  buildOrganizationJsonLd(organization),
+  buildBreadcrumbJsonLd([
+    { name: 'ModelTree', url: absoluteUrl(origin, base) },
+    { name: 'Directory', url: absoluteUrl(origin, `${base}providers/`) },
+    { name: label, url: absoluteUrl(origin, `${base}providers/${organization.slug}/`) },
+  ]),
+];
 ---
 
 <BaseLayout
@@ -64,6 +76,8 @@ const fullName = organizationFullNameIfDistinct(organization);
   passportHref={passportHref}
   verifiedAt={formatDate(profile.latestVerifiedAt)}
   currentPage="directory"
+  socialImageAlt={`${label} — model creator profile on ModelTree`}
+  structuredData={structuredData}
 >
   <main id="main-content" class="provider-page">
     <a class="back-link" href={directoryHref}>

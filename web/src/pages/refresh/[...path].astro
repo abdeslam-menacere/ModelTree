@@ -49,6 +49,13 @@ const filtered = !sameFilter(view.filter, ALL_RUNS);
 const pages = Array.from({ length: view.totalPages }, (_, index) => index + 1);
 const titlePrefix = filtered ? `${filterLabel(view.filter)} — ` : '';
 const pageSuffix = view.page > 1 ? ` (page ${view.page})` : '';
+
+// The default view -- all runs, first page -- is the one canonical, indexable
+// refresh page. Every filtered or paginated view is a variant of it: noindexed so
+// crawlers do not index every filter combination, and pointed at the default view
+// as its canonical.
+const isCanonicalRefresh = !filtered && view.page === 1;
+const refreshCanonicalPath = `${base}refresh/`;
 ---
 
 <BaseLayout
@@ -57,6 +64,9 @@ const pageSuffix = view.page > 1 ? ` (page ${view.page})` : '';
 	passportHref={passportHref}
 	verifiedAt={formatDate(latestVerification)}
 	currentPage="refresh"
+	socialImageAlt="The ModelTree data refresh log — what each run found, reviewed, and recorded."
+	robots={isCanonicalRefresh ? undefined : 'noindex,follow'}
+	canonicalPath={isCanonicalRefresh ? undefined : refreshCanonicalPath}
 >
 	<main id="main-content" class="log-page">
 		<header class="log-intro">

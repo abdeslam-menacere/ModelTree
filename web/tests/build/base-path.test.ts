@@ -1,9 +1,8 @@
-import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, posix, relative, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
+import { buildSiteExclusively } from './exclusive-build';
 
 // Issue #6 deploys this site to a GitHub *project* page, which is served from
 // `/<repository>/` rather than from the domain root. Every other test in this
@@ -23,8 +22,6 @@ import { afterAll, describe, expect, it } from 'vitest';
 const BASE_PATH = '/base-path-probe/';
 const SITE_URL = 'https://example.invalid';
 
-const webRoot = fileURLToPath(new URL('../..', import.meta.url));
-const astroBin = fileURLToPath(new URL('../../node_modules/astro/bin/astro.mjs', import.meta.url));
 const outDir = mkdtempSync(join(tmpdir(), 'modeltree-base-path-'));
 
 afterAll(() => {
@@ -44,12 +41,7 @@ afterAll(() => {
  */
 const { BASE_URL: _inheritedFromVitest, ...inheritedEnv } = process.env;
 
-execFileSync(process.execPath, [astroBin, 'build', '--outDir', outDir], {
-  cwd: webRoot,
-  env: { ...inheritedEnv, BASE_PATH, SITE_URL },
-  stdio: 'pipe',
-  timeout: 300_000,
-});
+buildSiteExclusively(outDir, { ...inheritedEnv, BASE_PATH, SITE_URL });
 
 function htmlFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
