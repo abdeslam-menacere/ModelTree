@@ -406,3 +406,124 @@ describe('the committed records against the reviewed catalog', () => {
     }
   });
 });
+
+/**
+ * The same guard, against the shipped `organizations.json` rather than a fixture.
+ *
+ * #648 landed the alias branch and proved it on a synthetic creator; the
+ * registered forms it reads stayed empty on every real creator, so the bypass it
+ * was filed about -- the bare word "Google" attributed to somebody else -- was
+ * still open on the data a reader actually gets. #687 is the data half, and a
+ * fixture cannot pin it: the fixture's alias is whatever the fixture says it is,
+ * and it stays green no matter what `organizations.json` holds. These assertions
+ * read the committed dataset, so deleting `aliases` from `google-deepmind` turns
+ * them red, which is the only property that makes them worth having.
+ *
+ * The mention is attributed to a *committed* record belonging to another
+ * creator, not to an invented one, so what is being checked is the catalog this
+ * repository ships rather than an arrangement assembled to pass.
+ */
+describe('the short forms registered on the shipped catalog', () => {
+  const GOOGLE_DEEPMIND_ID = 'google-deepmind';
+
+  function creatorOf(record: VariantPositioning[number]) {
+    return dataset.families.find((family) => family.id === record.familyId)?.organizationId;
+  }
+
+  const googleDeepMind = dataset.organizations.find(({ id }) => id === GOOGLE_DEEPMIND_ID);
+  const foreignRecord = variantPositioning.find((record) => {
+    const creator = creatorOf(record);
+    return creator !== undefined && creator !== GOOGLE_DEEPMIND_ID;
+  });
+  const ownRecord = variantPositioning.find((record) => creatorOf(record) === GOOGLE_DEEPMIND_ID);
+
+  /**
+   * One committed record with one prose field replaced. Everything else is left
+   * as shipped, so the variants stay ones the catalog uses and the record fails
+   * for the reason under test or not at all.
+   */
+  function rewritten(
+    record: VariantPositioning[number] | undefined,
+    prose: { note: string } | { summary: string },
+  ): VariantPositioning {
+    if (!record) throw new Error('precondition failed: the committed document holds no such record');
+    if ('note' in prose) return [{ ...record, note: prose.note }];
+
+    const [entry] = record.variants;
+    return [{
+      ...record,
+      variants: [{ ...entry, editorial: { ...entry.editorial, summary: prose.summary } }],
+    }];
+  }
+
+  /**
+   * Positive controls. Without these the assertions below could pass by finding
+   * nothing: no aliases to match, or no other creator's record to attribute a
+   * mention to, and a throw that never had a chance to happen reads identically
+   * to one that was correctly avoided.
+   */
+  it('registers the colloquial forms of the creator whose two recorded names are identical', () => {
+    expect(googleDeepMind?.name).toBe(googleDeepMind?.shortName);
+    expect(googleDeepMind?.aliases).toEqual(expect.arrayContaining(['Google', 'DeepMind']));
+  });
+
+  it('holds a committed record from another creator to attribute a mention to', () => {
+    expect(foreignRecord).toBeDefined();
+    expect(creatorOf(foreignRecord!)).not.toBe(GOOGLE_DEEPMIND_ID);
+  });
+
+  it('refuses "Google" alone in another creator\'s editorial summary', () => {
+    const records = rewritten(foreignRecord, {
+      summary: 'This name is scoped much as Google scopes its own comparable name.',
+    });
+
+    expect(() => buildVariantPositioningIndex(dataset, records))
+      .toThrow(/names creator "Google"/);
+  });
+
+  it('refuses "Google" alone in another creator\'s record-level note', () => {
+    const records = rewritten(foreignRecord, {
+      note: 'These names are read much as Google reads its own.',
+    });
+
+    expect(() => buildVariantPositioningIndex(dataset, records))
+      .toThrow(/names creator "Google"/);
+  });
+
+  it('refuses "DeepMind" alone, the other form registered for that creator', () => {
+    const records = rewritten(foreignRecord, {
+      summary: 'This name is scoped much as DeepMind scopes its own comparable name.',
+    });
+
+    expect(() => buildVariantPositioningIndex(dataset, records))
+      .toThrow(/names creator "DeepMind"/);
+  });
+
+  /**
+   * The sentence that fails above, with only the creator's short form swapped
+   * for a word naming nobody. It isolates the alias as the cause: if this threw
+   * too, the three assertions above would be evidence of some other filter and
+   * not of the registered forms doing any work.
+   */
+  it('leaves the same sentence alone when it names nobody', () => {
+    const records = rewritten(foreignRecord, {
+      summary: 'This name is scoped much as the catalog scopes its own comparable name.',
+    });
+
+    expect(() => buildVariantPositioningIndex(dataset, records)).not.toThrow();
+  });
+
+  /**
+   * The over-broadness direction. Registering a short form must not make a
+   * creator unable to talk about itself, which is the failure that would make
+   * this data change worse than the gap it closes.
+   */
+  it('still lets Google DeepMind name itself by a registered short form', () => {
+    expect(ownRecord).toBeDefined();
+    const records = rewritten(ownRecord, {
+      note: 'These names are the ones Google uses across this family.',
+    });
+
+    expect(() => buildVariantPositioningIndex(dataset, records)).not.toThrow();
+  });
+});

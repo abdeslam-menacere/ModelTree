@@ -33,6 +33,10 @@
     "slug": "google-deepmind",
     "name": "Google DeepMind",
     "shortName": "Google DeepMind",
+    "aliases": [
+      "Google",
+      "DeepMind"
+    ],
     "type": "research-lab",
     "website": "https://deepmind.google/",
     "releasePage": "https://ai.google.dev/gemini-api/docs/models",
