@@ -81,7 +81,7 @@ run that quietly did less than it claims is worse than one that failed loudly.
 |---|---|
 | `id` | Unique within the bundle. Kebab-case, descriptive enough to read in a pull request body. |
 | `kind` | `add`, `change`, `remove`, `unchanged`, or `conflict`. Only the first three touch the dataset. |
-| `collection` | One of the nine dataset documents. Anything else is refused — a claim cannot reach a schema or a component. |
+| `collection` | One of the collections `gate-evidence.mjs` names in `VALID_COLLECTIONS` — a strict subset of the dataset, not all of it. Anything else is refused, including a dataset document this gate does not list, so a claim can reach neither a schema nor a component nor an unclaimable collection. |
 | `targetId` | The entity id being added or changed. |
 | `field` | Required for `change`. The single field the claim moves. |
 | `currentValue` | What the dataset says now, or `null` for an addition. Recorded so the diff is legible without re-deriving it. |

@@ -118,9 +118,12 @@ files its summary and closes it immediately.
 
 ## Non-negotiable
 
-- **Only dataset documents may change.** The nine JSON files that
-  `web/src/data/raw.ts` composes, and nothing else. One file outside that list
-  disqualifies the whole change — `gate-scope.mjs` enforces it mechanically.
+- **Only dataset documents may change.** The fifteen JSON files that
+  `web/src/data/raw.ts` composes, plus the run's own ledger
+  `web/src/data/refresh-runs.json`, and nothing else. One file outside that list
+  disqualifies the whole change — `gate-scope.mjs` enforces it mechanically, and
+  every path it admits is a document `gate-dataset.mjs` validates or the ledger
+  `gate-ledger.mjs` covers instead.
   A refresh needing a schema, component, or workflow change stops and files an
   issue.
 - **No bypass, ever.** No `--force`, no skipped gate, no lowered threshold, no
