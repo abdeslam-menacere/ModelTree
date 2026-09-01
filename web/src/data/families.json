@@ -1251,22 +1251,5 @@
       "ibm-granite-4-0-h-small-model-card"
     ],
     "verifiedAt": "2026-08-31"
-  },
-  {
-    "id": "lg-ai-research-exaone-4-0",
-    "slug": "exaone-4-0",
-    "organizationId": "lg-ai-research",
-    "name": "EXAONE 4.0",
-    "description": "LG AI Research’s EXAONE 4.0 series, which the creator describes as integrating a Non-reasoning mode and a Reasoning mode, and which consists of a 32B model and a 1.2B model. No source consulted states a lifecycle status for the family, so it is recorded as unknown.",
-    "categories": [
-      "language-reasoning"
-    ],
-    "firstReleaseDate": "2025-07-15",
-    "datePrecision": "day",
-    "status": "unknown",
-    "sourceIds": [
-      "lgai-exaone-4-0-repository"
-    ],
-    "verifiedAt": "2026-09-01"
   }
 ]

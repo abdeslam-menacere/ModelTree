@@ -1987,23 +1987,5 @@
     "publisherId": "ibm",
     "lastCheckedDate": "2026-08-31",
     "notes": "IBM’s card for Granite-4.0-H-Tiny, a different document from the H-Small card and the one the family’s first release date is taken from: it states \"- **Release Date**: October 2nd, 2025\" in its own right, so the family date does not rest on the release it is paired with. Also states \"Granite-4.0-H-Tiny is a 7B parameter long-context instruct model finetuned from *Granite-4.0-H-Tiny-Base*\". As on the H-Small card, the only context figure sits in an HTML table whose columns are not mapped in text, so none is recorded. Card text read 2026-08-31 from https://huggingface.co/ibm-granite/granite-4.0-h-tiny/raw/main/README.md, the same document this page renders."
-  },
-  {
-    "id": "lgai-exaone-4-0-repository",
-    "url": "https://github.com/LG-AI-EXAONE/EXAONE-4.0/raw/main/README.md",
-    "title": "EXAONE 4.0 repository README (LG AI Research)",
-    "type": "repository",
-    "publisherId": "lg-ai-research",
-    "lastCheckedDate": "2026-09-01",
-    "notes": "LG AI Research’s own EXAONE 4.0 repository README. Carries the dated first-person release line under \"## News\", the introduction, the two model sizes, and the licence name. The dated line is a statement by the creator that it released the family, not a page publication timestamp."
-  },
-  {
-    "id": "lgai-exaone-4-0-32b-model-card",
-    "url": "https://huggingface.co/LGAI-EXAONE/EXAONE-4.0-32B/raw/main/README.md",
-    "title": "EXAONE-4.0-32B model card (LG AI Research)",
-    "type": "model-card",
-    "publisherId": "lg-ai-research",
-    "lastCheckedDate": "2026-09-01",
-    "notes": "LG AI Research’s model card for EXAONE-4.0-32B. Its front matter states the licence and the pipeline tag from which the release modalities are read."
   }
 ]
