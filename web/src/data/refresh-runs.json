@@ -1,5 +1,487 @@
 [
   {
+    "id": "2026-09-01-b41087",
+    "title": "Long-tail sweep: all 40 creators re-verified",
+    "ranOn": "2026-09-01",
+    "outcome": "published",
+    "summary": "An agent-run, source-backed refresh under ADR 0003, and the breadth run the previous entry asked for. Run 2026-08-31-ae0342 traded breadth for depth, scouted six pilot creators and recorded the untouched long tail as the largest gap in its own entry; this run scouted every one of the 40 creators in organizations.json against 233 pages fetched and hashed during the run, 7 at the 2-of-3 pilot threshold and 33 at the unanimous 3-of-3 long-tail threshold. 202 claims were proposed and three rubrics voted blind on every one, casting 606 verdicts. 199 met their threshold, 197 were applied, and 5 were withheld with their rationales published. Not one claim was carried over a dissent, which is the cleanest panel result the ledger records and is a fact about this run being almost entirely re-verification rather than a sign the rubrics went easy: all four rejections landed on the four claims that were doing something harder than confirming a date. 179 field edits landed across three documents — 89 source lastCheckedDate values and 90 record verifiedAt values — and no record was added or removed. The one genuinely new release found this run, Gemini 2.5 Flash-Lite, was refused by the panel and is not in the dataset. No human reviewed any claim, verdict or edit.",
+    "scope": "All 40 creators in organizations.json. Seven carry a reviewed profile in tools/updater/profiles and were judged at 2-of-3 — alibaba-cloud, amazon, anthropic, google-deepmind, meta, microsoft, openai — and the other 33 were judged at the unanimous 3-of-3 long-tail bar. Predominantly re-verification: asking whether recorded facts still hold, and advancing the dates that say when they were last checked. Discovery was attempted only where a creator index page made it cheap, which surfaced exactly one unrecorded release. The model-fit guidance layer was deliberately left alone: all seven statements were re-verified on 2026-08-31, so the five records they pin needed nothing this run.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Tree clean, gh authenticated, and no open pull request from a previous refresh when the run started. Run id 2026-09-01-b41087, with the run directory under .modeltree-refresh/ confirmed git-ignored before anything was written to it. Both npm and drydock were probed in both shim forms before either was relied on or ruled out: the bare names resolve to PowerShell shims this machine’s execution policy refuses, while npm.cmd reports 11.9.0 and drydock.cmd reports 0.1.0. Both are installed and blocked in bare form rather than absent, and the execution policy was not changed to work around it — that would be a machine-wide security change made to satisfy a probe. Dependencies were installed with npm ci after npm run validate failed on a missing vitest; package-lock.json is unmodified."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "240 URLs were attempted and 233 returned 200 and were hashed; the 7 failures are recorded under notCovered rather than retried until they looked like successes. Every quote was cut as a byte-exact slice of a page body saved during this run and asserted as a substring of those bytes by the builder, which throws rather than emit an unverifiable pair — so no claim here rests on recollection or on a search snippet. Discovery findings were genuinely mixed and both directions are recorded: OpenAI’s and Anthropic’s model catalogues list nothing the dataset does not already carry, which is a real negative result rather than an unchecked one, while Google’s listed Gemini 2.5 Flash-Lite, which the dataset lacks."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Three rubrics — provenance, consistency, editorial — voted independently on all 202 claims across 9 reviewer invocations, each in its own context and each given only its own rubric text, the claim, the evidence and the relevant dataset slice. No reviewer saw another rubric’s verdicts, the running tally, the threshold, or the scout’s reasoning. 606 verdicts were cast, every one with a rationale, and all are published on the pull request. Four rejections were returned and every one was left to stand: no claim was edited and re-reviewed to chase a verdict, no reviewer was re-run, and the coordinating agent cast no vote and overruled none — including the one rejection whose stated premise is demonstrably wrong, which is recorded in the caveats and filed as a follow-up instead."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-evidence and gate-source-approval ran across all 40 gated bundles before anything was applied, since gate-source-approval anchors on the committed dataset and running it afterwards would be asking the run’s own writes whether the run’s own sources are trustworthy. gate-dataset, npm run validate, gate-scope, gate-ledger and ci-preflight.mjs ran afterwards. origin/main moved during the review stage, so the branch was re-anchored from d9c5c403 onto 329a719f and both pre-apply gates were re-run against the new anchor rather than carried over. No gate was skipped, forced, or re-run to obtain a different answer, no threshold was lowered, and nothing was pushed to main."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "Opened as pull request #752 carrying the full evidence trail — every claim, every quote with the SHA-256 of the bytes it was cut from, and all 606 rationales. The trail is roughly 260 KB against GitHub’s 65 536-character body limit, so the body carries the summary, the gate results, the source-approval block and all five withheld claims in full, and the per-claim detail follows as five comments on the same pull request rather than being summarised away. Merged by GitHub via --auto --squash once web-ci went green; the agent did not merge and did not use --admin. The data and this entry are two commits on the branch and one commit on main, so a bad run is still one revert."
+      },
+      {
+        "stage": "deploy",
+        "status": "not-run",
+        "note": "Not yet run when this entry was written, and recorded that way rather than predicted. The entry necessarily ships in the commit whose merge triggers pages.yml, so it cannot report the outcome of its own deploy without guessing. The run waits for the deploy after the merge, checks it against the merge SHA, and reverts by pull request if it failed; the result is reported in the run’s summary issue, which is where a reader should look to close this line."
+      }
+    ],
+    "found": {
+      "scouts": 40,
+      "pagesFetched": 233,
+      "claimsProposed": 202,
+      "bundles": [
+        {
+          "creator": "01-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "ai-singapore",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "ai2",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "ai21-labs",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "aleph-alpha",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "alibaba-cloud",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "amazon",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "anthropic",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "apple",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "baidu",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "bytedance-seed",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "cohere",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "databricks",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "deepseek",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "eleutherai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "google-deepmind",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "hugging-face",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "ibm",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "lg-ai-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "liquid-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "meta",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "microsoft",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "minimax",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "mistral-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "moonshot-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "naver",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "nous-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "nvidia",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "reka-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "sakana-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "sarvam-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "snowflake",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "stability-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "tencent",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "tii",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "upstage",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "xai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "xiaomi",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "zhipu-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "change",
+          "count": 107,
+          "effect": "A source page re-read this run, moving its lastCheckedDate to 2026-09-01. All 107 were accepted and applied, moving 89 distinct source records — 18 of the claims re-assert a shared licence page that several creators cite (osi-approved-licenses, osi-license-mit), and a shared source moves once no matter how many bundles confirm it."
+        },
+        {
+          "kind": "unchanged",
+          "count": 92,
+          "effect": "A recorded fact re-read from its primary source and found to still hold. 90 met their threshold and applied, advancing 50 release verifiedAt dates and 40 family verifiedAt dates to 2026-09-01. Two were refused by the panel and withheld, so those two records keep their previous dates."
+        },
+        {
+          "kind": "add",
+          "count": 3,
+          "effect": "One new release, Gemini 2.5 Flash-Lite, with the two source records it would have cited. None reached the dataset: the release was refused 1-of-2 by the panel, and the two sources — accepted on their own merits — fell with it, because a source no record cites is dead provenance that validateDataset refuses to load. Nothing was added or removed this run."
+        }
+      ],
+      "notCovered": [
+        "ai.meta.com returned HTTP 400 to every request from this runner, across six URLs and both fetch paths tried. That is a status rather than a network failure, so it is a fact about how that host answers this client and not evidence the pages are gone. Four recorded sources live there — meta-llama-4-announcement, meta-muse-spark-announcement, meta-muse-spark-1-1-announcement and meta-muse-image-video-announcement — and none carries a verification date from this run. Meta itself was still covered, at 6 claims, through huggingface.co and github.com, which the dataset already trusts.",
+        "abc.xyz returned HTTP 403. The one source on it, alphabet-about, was last checked 2026-08-15 and is now the oldest unverified source in the dataset. It is a corporate about-page backing a publisher record rather than a model fact, so nothing about a model rests on it, but it will keep aging until either the host answers this client or a human re-reads it.",
+        "This run is re-verification first. It asks whether recorded facts still hold; it does not systematically ask what each creator has shipped that the dataset has never heard of. Discovery was attempted only where a creator index page made it cheap. So a green result here says the dataset is not stale; it says very little about whether it is complete.",
+        "The known breadth gaps are unchanged and were not worked this run: OpenAI’s realtime, transcribe and tts models, the roughly twenty Cohere Command models against the one recorded, Microsoft’s MAI-Code-1.1-Flash, MAI-Image-2.5, MAI-Voice-2 and MAI-Transcribe-1.5, and Amazon’s Nova Act, Nova Forge and Nova Multimodal Embeddings. Each is breadth work with its own sourcing burden.",
+        "A retirement-date conflict was found and deliberately not resolved. The Gemini API deprecations page says no shutdown date is announced for the 2.5 family, while the Cloud platform page gives a retirement date of 20 October 2026 for the same models. No dataset field holds either figure, so there was nothing to claim and nothing to withhold; it is reported here so the conflict is on the record rather than discovered again next run."
+      ]
+    },
+    "evaluated": {
+      "reviewers": 9,
+      "verdictsCast": 606,
+      "acceptedByPanel": 199,
+      "rejectedByPanel": 3,
+      "dissents": [],
+      "gates": [
+        {
+          "gate": "gate-evidence.mjs",
+          "scope": "40 claim bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "197 claims admissible with complete three-rubric panels across all 40 gated bundles. Every bundle declared its policy and the gate independently re-derived the threshold from tools/updater/profiles, so no bundle’s declared policy went unchecked — which matters more than usual this run, since 33 of the 40 bundles claimed the stricter bar."
+        },
+        {
+          "gate": "gate-source-approval.mjs",
+          "scope": "40 claim bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Zero proposed sources across all 40 bundles: every cited source already existed in the dataset at anchor 329a719f, on one of the 46 approved origins derived there from 225 dataset sources and 18 catalogues across 19 profile files. The run therefore approved no source of its own. The two sources it did propose had already been withdrawn by the pairing cascade before this gate saw the gated bundles. Run before any edit was applied, and re-run after the re-anchor."
+        },
+        {
+          "gate": "gate-dataset.mjs",
+          "scope": "web/src/data",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Zero failures across the documents raw.ts composes, after the 179 edits were applied."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "web/",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Tests green and astro check reported 0 errors and 0 warnings across 246 files. It failed on first invocation because this worktree had no node_modules — a missing vitest, not a data fault — and passed after npm ci. That first failure is recorded rather than quietly overwritten, because \"the checker could not run\" and \"the data is good\" are different findings and only one of them is a pass."
+        },
+        {
+          "gate": "gate-scope.mjs",
+          "scope": "branch vs merge-base",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "changed: 3, empty: false, outOfClass: []. Anchored on 329a719f, the merge base the gate computed rather than one supplied to it — requestedBase was null. The three are sources.json, releases.json and families.json; this ledger is the fourth path in the qualifying class and is covered by gate-ledger instead."
+        },
+        {
+          "gate": "gate-ledger.mjs",
+          "scope": "this entry vs the diff it describes",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "transcription: false — this entry was written by the run it describes and ships in the same pull request as the data, so its record counts were reconciled against the actual diff rather than taken on trust. That is the gap issue #419 recorded on three consecutive runs."
+        },
+        {
+          "gate": "ci-preflight.mjs",
+          "scope": "selected from the branch diff",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": false,
+          "detail": "Selected and ran the three check groups this diff triggers — web-ci, skills-ci and source-link-health-tests — locally from the repository root before the branch was pushed. It reports its own blind spots on every run, including the networked link-health sweep and the second Python interpreter."
+        },
+        {
+          "gate": "web-ci",
+          "scope": "the pull request",
+          "outcome": "pass",
+          "required": true,
+          "detail": "GitHub performed the merge via --auto on this check going green; the agent did not merge."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 179,
+      "documents": [
+        {
+          "document": "sources.json",
+          "recordsBefore": 225,
+          "recordsAfter": 225,
+          "note": "89 lastCheckedDate values moved to 2026-09-01, one per source page successfully re-read this run. No source was added or removed: gate-source-approval recorded zero proposed sources across all 40 bundles, so every date moved on a record that already existed. 107 accepted claims produced these 89 edits, because 18 of them re-assert one of two shared licence pages that several creators cite independently."
+        },
+        {
+          "document": "releases.json",
+          "recordsBefore": 96,
+          "recordsAfter": 96,
+          "note": "50 verifiedAt dates moved to 2026-09-01, each backed by a release-level fact re-read from its primary source and found unchanged. Two releases that were scouted did not move because the panel refused their claims — hugging-face-smollm3-3b and ibm-granite-4-0-h-small, both listed under withheld. No release was added; the one new release found this run was refused."
+        },
+        {
+          "document": "families.json",
+          "recordsBefore": 67,
+          "recordsAfter": 67,
+          "note": "40 verifiedAt dates moved to 2026-09-01 — one family per creator, each re-read and found unchanged. No family was added or removed and no family status value changed."
+        }
+      ],
+      "records": []
+    },
+    "withheld": [
+      {
+        "id": "releases/google-gemini-2-5-flash-lite (proposed, not added)",
+        "category": "rejected-by-panel",
+        "detail": "The only genuinely new release this run found, and it was refused 1-of-2 under the pilot bar. Provenance: the record sets accessType to proprietary-hosted, but none of the five cited quotes says anything about how the model is released or whether weights are downloadable, so that field had no quoted fact behind it. Editorial: the record puts the marketing name in canonicalName and the API model id in apiAliases, which it read as inverting the creator profile’s naming rule. Consistency accepted it. The release is not in the dataset and is left for a future run to propose properly rather than being trimmed until it passed. Note the caveat about the editorial rationale: its premise about existing Gemini records does not hold, and it was still not overruled.",
+        "blockedBy": [
+          "provenance rubric",
+          "editorial rubric"
+        ]
+      },
+      {
+        "id": "sources/google-gemini-2-5-flash-lite-docs (proposed, not added)",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted unanimously on its own merits and still withdrawn, because the only record that would have cited it was refused. validateDataset treats a source no record references as dead provenance and refuses to load the dataset, so a source-add and the record citing it stand or fall together. Withdrawn by the run rather than by a reviewer.",
+        "blockedBy": [
+          "pairing with the withheld release record"
+        ]
+      },
+      {
+        "id": "sources/google-gemini-2-5-flash-lite-platform-docs (proposed, not added)",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted unanimously and withdrawn for the same reason as its sibling: the release that would have cited it was refused, and an uncited source is dead provenance.",
+        "blockedBy": [
+          "pairing with the withheld release record"
+        ]
+      },
+      {
+        "id": "releases/hugging-face-smollm3-3b.verifiedAt",
+        "category": "rejected-by-panel",
+        "detail": "Reached 2 of the 3 accepts a long-tail creator requires. Provenance objected that the quote is a YaRN rope-scaling config comment showing the arithmetic 2 x 65536 = 131072, which does not by itself state the context window; the card does say so in prose nearby, but that sentence was not the quote. A stricter bar than the pilot creators face, applied as written. The record keeps its previous verifiedAt.",
+        "blockedBy": [
+          "provenance rubric"
+        ]
+      },
+      {
+        "id": "releases/ibm-granite-4-0-h-small.verifiedAt",
+        "category": "rejected-by-panel",
+        "detail": "Reached 2 of 3. Editorial objected not to the claim but to the record it would have re-verified: the existing summary opens \"The largest Granite 4.0 model\", which ranks models within a family, and this project forbids ranking prose. That is a pre-existing defect in committed data rather than anything this run proposed, and the rubric was right to refuse to bless it. Fixing the prose is a separate change and is filed as a follow-up; the record keeps its previous verifiedAt until then.",
+        "blockedBy": [
+          "editorial rubric"
+        ]
+      }
+    ],
+    "caveats": [
+      "No human reviewed any claim, verdict or edit in this run before it merged and deployed. That is what ADR 0003 authorises and what it costs.",
+      "The three rubrics are three instances of the same model family reading the same page, so they share a failure mode: a source that is itself wrong can carry all three. The panel defends against unevidenced inference, not against a primary source that is confidently mistaken.",
+      "This run is broad and shallow by design. It asks whether recorded facts still hold, not whether each creator has shipped something the dataset has never heard of. Only one genuinely new release surfaced, and it was withheld — so a green run here is weak evidence about completeness and strong evidence only about staleness.",
+      "pagesFetched counts the 233 pages that returned 200. Seven further URLs were attempted and failed and are excluded from that figure rather than counted as reads.",
+      "The editorial rubric's objection to the Gemini 2.5 Flash-Lite record asserted that the record inverts a naming convention 'every other Gemini entry' follows. That premise is factually wrong — google-gemini-2-5-flash already carries the marketing name in canonicalName. The claim was still withheld, because the chair does not vote and does not overrule a rubric; the error is recorded here and filed as a follow-up rather than corrected into a pass.",
+      "reviewers and verdictsCast are derived rather than quoted: 3 rubrics x 3 batches = 9 reviewer invocations, and 202 claims x 3 rubrics = 606 verdicts, which reconciles with the nine per-rubric verdict files.",
+      "The deploy had not run when this entry was written, and the entry says so rather than predicting it. A reader checking whether the site actually rebuilt should read the run’s summary issue, not this stage note.",
+      "Zero claims carried over a dissent is a cleaner number than it looks. 197 of the 202 claims were re-verification of facts already in the dataset, where the three rubrics have little room to disagree; all four rejections landed on the five claims that were doing something harder. Read it as \"this run attempted little that was contentious\", not as \"the panel found nothing to argue about\"."
+    ],
+    "followUps": [
+      "The editorial rubric refused the Gemini 2.5 Flash-Lite record on the ground that it inverts a naming convention every other Gemini entry follows. The premise is wrong: google-gemini-2-5-flash already carries the marketing name in canonicalName and the API id in apiAliases, exactly as the refused record did. The verdict was left standing because a chair that overrules a rubric it disagrees with is not running a panel, but the underlying question is real and unresolved — either the profile naming rule or the committed Gemini records are wrong, and until one is fixed this release will keep being refused for a reason that does not hold.",
+      "ibm-granite-4-0-h-small’s summary opens with \"The largest Granite 4.0 model\", a size ranking inside committed data that the editorial rubric refused to re-verify. It will keep failing review every run until the prose is fixed, and it is worth checking whether other records carry similar superlatives, since nothing scans for them.",
+      "ai.meta.com answers this runner with HTTP 400 on every URL and every fetch path tried, which is a different failure from the unreachable ai.google.dev of the previous run and may be client fingerprinting rather than a block. Four recorded sources are behind it. If it does not clear on its own, those sources need either a working fetch approach or an alternative approved origin, or they will keep aging out.",
+      "The review panel was run as 9 invocations over 3 batches rather than one per creator, which is what made 202 claims affordable. It is worth deciding deliberately whether batching weakens the independence guarantee: a reviewer judging 76 claims in one context can see patterns across them that a per-creator reviewer cannot, which cuts both ways — more consistency, but also more room for one framing to carry a whole batch.",
+      "This run advanced 89 source dates and 90 record dates without a single new fact reaching the dataset. That is a healthy outcome for a re-verification run, but two consecutive runs like it would mean the dataset is being kept fresh rather than kept complete. The next run should lead with discovery, and the ledger should probably distinguish the two modes explicitly rather than leaving a reader to infer it from claimsByKind."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "PR #752 — chore(data): re-verify 197 facts across all 40 creators (run 2026-09-01-b41087)",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/752",
+        "state": "open at the time this entry was written; merged by --auto once web-ci passed"
+      },
+      {
+        "kind": "issue",
+        "label": "Issue #419 — why no auto-merged run could write its own ledger entry",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/419",
+        "state": "open"
+      }
+    ],
+    "recordedAt": "2026-09-01"
+  },
+  {
     "id": "2026-08-31-ae0342",
     "title": "Data refresh 2026-08-31",
     "ranOn": "2026-08-31",
