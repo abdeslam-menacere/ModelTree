@@ -473,9 +473,18 @@ rule `gate-dataset` enforces, the dataset was mutated to violate **that rule
 alone**, both checks were run, and the column records which refused. Every
 mutation was reverted and the dataset verified byte-identical afterwards.
 
-All 42 rules were refused by `gate-dataset`, so no rule in it is dead. 26 are
+All 43 rules were refused by `gate-dataset`, so no rule in it is dead. 27 are
 also refused by `npm run validate`. **16 are enforced by `gate-dataset` alone**,
 shown in bold.
+
+Two limits on how to read it. It samples one row per rule *and field*, not one
+per edge, so a rule holding over more documents than it has rows is normal —
+abdeslam-menacere/ModelTree#495 extended `references`, `evidence`, `urls` and
+`dates` across six further documents without adding a rule to either column, and
+moved the counts only by the one refusal it genuinely added. And it predates the
+`non-empty` rules that abdeslam-menacere/ModelTree#548 introduced, which have no
+row here; closing that gap is a separate measurement, not this table's to
+assume.
 
 | Gate | Rule exercised | `gate-dataset` | `npm run validate` |
 |---|---|---|---|
@@ -518,7 +527,8 @@ shown in bold.
 | `evidence` | sourced record carries at least one sourceId | refuses | refuses |
 |  | sourced record carries a usable verifiedAt | refuses | refuses |
 |  | model-fit statement carries at least one sourceId | refuses | refuses |
-| `no-composite-score` | `RANKING_WORDS`: a bare `score` field | refuses | **passes** |
+| `no-composite-score` | `RANKING_WORDS`: a bare `score` field, outside `benchmarkResults` | refuses | **passes** |
+|  | a `score` in `benchmarkResults` with no `benchmarkId` and `unit` to bind it | refuses | refuses |
 |  | `RANKING_WORDS`: a camelCase segment (`overallRating`) | refuses | **passes** |
 |  | `RANKING_WORDS`: nested inside another object | refuses | **passes** |
 
@@ -532,7 +542,13 @@ product brief treats as non-negotiable:
   `"overallRanking": "first"` to a release leaves `npm run validate` completely
   green — 372 tests passing, `astro check` reporting 0 errors — while
   `gate-dataset` reports two `no-composite-score` failures. This is the ADR 0003
-  guardrail against a universal ranking, and `web-ci` does not enforce it.
+  guardrail against a universal ranking, and `web-ci` does not enforce it. The
+  one place the two agree is the row above: an unbound `score` in
+  `benchmarkResults` is refused by both, because there the binding fields are
+  *declared* by `benchmarkResultSchema` and so Zod misses them — measured, by
+  deleting `benchmarkId` from a committed record and running `npm run validate`,
+  which reported `benchmarkResults.0.benchmarkId: Invalid input: expected
+  string, received undefined` and exited 1.
 - **Source URL trustworthiness.** `z.url()` accepts any parseable URL, so
   `http://`, `https://user:pass@example.com/`, `https://localhost/`,
   `https://127.0.0.1/`, and any host ending `.internal` or `.local` all pass

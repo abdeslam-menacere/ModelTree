@@ -6,7 +6,7 @@
 // The rule, in one sentence: **a run may rest a claim only on trust it
 // inherited, never on trust it granted itself.**
 //
-// Why this cannot be left to the other checks. `sources.json` is one of the nine
+// Why this cannot be left to the other checks. `sources.json` is one of the
 // documents a refresh may patch, and both `npm run validate` and
 // `gate-dataset.mjs` check citations *referentially* - that a cited id resolves
 // to a record in the dataset. A run that adds a source record and cites it in

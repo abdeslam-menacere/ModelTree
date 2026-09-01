@@ -58,11 +58,21 @@ the run commits it first.
 
 ## What it is allowed to change
 
-Only the nine JSON documents that `web/src/data/raw.ts` composes.
-`gate-scope.mjs` enforces that against the actual diff, and one file outside the
+Only the fifteen JSON documents that `web/src/data/raw.ts` composes, plus
+`web/src/data/refresh-runs.json` — the run's own ledger, which
+[ADR 0006](../../docs/adr/0006-a-refresh-run-records-itself-in-its-own-pull-request.md) added to
+the class and `gate-ledger.mjs` covers on its own terms. `gate-scope.mjs`
+enforces that against the actual diff, and one file outside the
 list disqualifies the entire change. A refresh that needs a schema change, a
 component change, or a workflow change stops and files an issue instead — which
 is the correct outcome, not a failure.
+
+Those two lists are pinned to each other rather than maintained in parallel:
+every path `gate-scope.mjs` will let through is a document `gate-dataset.mjs`
+loads and validates, and the ledger is the single enumerated exception. A path
+added to one side alone turns the gates' own suite red, which is the hole
+abdeslam-menacere/ModelTree#495 closed after a document had sat inside the
+auto-mergeable class with no coherence check reading it.
 
 ## Why it can merge without a human
 

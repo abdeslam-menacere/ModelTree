@@ -226,6 +226,44 @@ before it was published, non-https or credential-bearing URLs, a fact with no
 `sourceIds` or no `verifiedAt`, and any field whose name reads as a ranking or
 composite score.
 
+Which documents it reads is the ADR 0003 qualifying class itself, minus the one
+document that class holds which is not part of the dataset. `gate-scope.mjs`
+owns that class in `ALLOWED_PATHS`; every path in it is a document this gate
+loads, except `web/src/data/refresh-runs.json`, which
+`web/src/data/raw.ts` does not compose, `web/src/data/schema.ts` does not
+declare, and `gate-ledger.mjs` covers on its own terms instead. That relation is
+an assertion in the gates' own suite rather than a convention, and it fails in
+every direction: a path added to either list alone, or dropped from either list
+alone, turns it red. It was a hole before
+abdeslam-menacere/ModelTree#495 — six documents sat inside the auto-mergeable
+class with no coherence gate reading them, so a refresh could put a dangling
+reference or an unsourced fact on `main` unattended, and the ranking rule, the
+evidence rule and the reference rule all simply never saw the file.
+
+The ranking rule carries one bounded admission, and it is narrower than an
+exemption rather than a hole in the same shape. In `benchmarkResults` only, a
+**top-level** `score` is admitted **iff** the record it sits on also carries a
+string `benchmarkId` and a string `unit` — a number bound to one named
+benchmark, in a stated unit, which is the evidence
+`docs/product/PRODUCT-BRIEF.md` asks for by name. Everything a plain exemption
+would have admitted is still refused, out loud and with its own message: a
+`score` with either half of the binding missing, a `score` nested anywhere below
+the record, an `overallScore` or `compositeScore` or `rank` or `tier` beside it,
+and a `score` in any other collection however many binding fields are spelled
+next to it. The binding is checked rather than asserted, because the same change
+made `benchmarkId` a reference this gate resolves against `benchmarks.json`: a
+score bound to a benchmark that does not exist fails twice.
+
+`gates.py` has no ranking rule at all, so this adds no divergence to reconcile.
+ADR 0003 records that absence deliberately and by name — abdeslam-menacere/ModelTree#67
+is held on the proposal side by review and by ADR 0001's guardrail rather than by
+a deterministic check — and it classes a stricter publishing path as a finding to
+raise against `tools/updater/`, never as a reason to stop, while forbidding the
+reverse. A narrower admission on the stricter side leaves that ordering intact.
+The ADR's own wording is the test the admission is written against: what it
+refuses is "a composite or universal score", and a number bound to one named
+benchmark in a stated unit is neither.
+
 Which collections those floors cover is not written in the gate. It reads them
 out of `datasetSchema` at run time and reports them as `requiredCollections`,
 which is this rule applying the paragraph above to itself: the gate and the
