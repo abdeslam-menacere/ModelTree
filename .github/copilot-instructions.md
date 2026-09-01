@@ -249,6 +249,58 @@ could have named it by SHA changes the tree that is printed. A non-zero exit
 means the printed tree is not a comparable artefact at all: do not compare it,
 and conclude nothing from it.
 
+**Read that exit code from an unpiped invocation, and read it on the statement
+immediately after.** The OID is on the command's first line, so the natural way
+to get at it in PowerShell — which is where this repository's docks run — is to
+pipe into `Select-Object -First 1`, and that pipeline destroys the value the
+paragraph above calls the whole of the discrimination. `-First N` stops the
+pipeline as soon as it has N objects, which terminates the native process
+upstream, and PowerShell reports that termination as `$LASTEXITCODE = -1`. It
+does so **even when the command prints exactly one line and you asked for
+exactly one line**, so there is no output small enough to be safe, and nothing
+about the command you can inspect to tell. Measured here, against a branch whose
+merge into trunk is clean and whose true exit code is therefore 0:
+
+| invocation | `$LASTEXITCODE` | |
+|---|---|---|
+| `git merge-tree --write-tree refs/remotes/origin/main HEAD`, captured to a variable | 0 | the truth |
+| the same, piped into `Select-Object -First 1` | -1 | corrupted |
+| `git rev-parse HEAD`, piped into `Select-Object -First 1` | -1 | corrupted: one line printed, one line asked for |
+| `node --version` and `npm.cmd --version`, piped the same way | -1 | so this is the shell's doing, not git's |
+| `git rev-parse --verify nosuchref_zzz` | 128 | control: a genuine failure keeps its own value |
+
+Because -1 is non-zero, a corrupted read sends a clean merge down the non-zero
+branch below and reports landed work as unlanded. That is the safe direction,
+which is exactly why it survives: it manufactures a redundant gate cycle rather
+than a visibly wrong claim. It is not hypothetical — it was hit while verifying
+that abdeslam-menacere/ModelTree#731 had landed, in a report that printed two
+identical tree OIDs with a verdict of NO between them.
+
+Unlike the quoting note above, no single written form serves both shells here:
+the command is shared, the variable carrying its status is not. Capture, then
+read on the next statement, and only then slice.
+
+```bash
+out=$(git merge-tree --write-tree refs/remotes/origin/main HEAD); code=$?
+```
+
+```powershell
+$out = git merge-tree --write-tree refs/remotes/origin/main HEAD; $code = $LASTEXITCODE
+```
+
+Slice the variable, never the command: in PowerShell the first line is
+`@($out)[0]` and not `$out[0]`, because a capture of one line is a String while
+a capture of several is an array, so the naive index returns the first
+*character* of a clean merge's OID and the correct OID only in the conflicted
+case you were going to discard. That is inverted precisely against where you
+need it. The general property, worth carrying past this one probe: **a native
+command's exit status must be read from an unpiped invocation, on the statement
+immediately after it**, because any stage between the command and the read can
+change what you read. That is not `merge-tree`'s defect, nor git's. These
+documents also read `.github/scripts/ci-preflight.mjs` by exit code, where 2 is
+never a pass, and `npm run validate` the same way; piped for readability, either
+reports -1 — which is none of their codes, and a pass under none of them.
+
 So there are three readings, not two. Exit zero with the printed OID equal to
 trunk's tree: merging your branch into trunk would change trunk in no way, so
 your work is already there. Exit zero with a different OID: it is not. Non-zero:
