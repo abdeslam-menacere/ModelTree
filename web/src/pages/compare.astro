@@ -5,6 +5,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { buildCatalogIndex } from '../lib/catalog';
 import {
   buildComparisonPayload,
+  compactComparisonPayload,
   MAX_COMPARISON_MODELS,
   MIN_COMPARISON_MODELS,
 } from '../lib/comparison';
@@ -21,7 +22,7 @@ if (!firstModel) throw new Error('Comparison requires at least one release');
 // with the page instead, trimmed to the fields the table reads and budgeted by
 // `measureComparisonPayload` so their weight stays visible. Fetching them at
 // runtime is not an option this project allows.
-const payload = buildComparisonPayload(dataset);
+const payload = compactComparisonPayload(buildComparisonPayload(dataset));
 
 const today = new Date().toISOString().slice(0, 10);
 ---

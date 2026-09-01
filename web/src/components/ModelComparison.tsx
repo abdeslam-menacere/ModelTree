@@ -3,11 +3,13 @@ import {
   buildComparisonCandidates,
   buildModelComparison,
   compareRoute,
+  expandComparisonPayload,
   MAX_COMPARISON_MODELS,
   MIN_COMPARISON_MODELS,
   readComparisonSlugs,
   serializeComparisonSelection,
   VALUE_STATE_LABELS,
+  type CompactComparisonPayload,
   type ComparisonCandidate,
   type ComparisonCell,
   type ComparisonDataset,
@@ -17,7 +19,7 @@ import {
 } from '../lib/comparison';
 
 interface Props {
-  dataset: ComparisonDataset;
+  dataset: CompactComparisonPayload;
   /** Build-time selection. Always empty on a static build; the URL wins once hydrated. */
   initialSlugs: string[];
   base: string;
@@ -147,7 +149,8 @@ function Group({ group, modelNames }: { group: ComparisonGroup; modelNames: stri
   );
 }
 
-export default function ModelComparison({ dataset, initialSlugs, base, today }: Props) {
+export default function ModelComparison({ dataset: compactDataset, initialSlugs, base, today }: Props) {
+  const dataset = useMemo(() => expandComparisonPayload(compactDataset), [compactDataset]);
   const [slugs, setSlugs] = useState<string[]>(initialSlugs);
   const [enhanced, setEnhanced] = useState(false);
   const [query, setQuery] = useState('');

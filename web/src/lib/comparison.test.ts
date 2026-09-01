@@ -13,8 +13,10 @@ import {
   buildComparisonPayload,
   buildComparisonPickerIndex,
   buildModelComparison,
+  compactComparisonPayload,
   compareRoute,
   compareUrl,
+  expandComparisonPayload,
   measureComparisonPayload,
   parseComparisonSelection,
   removeFromComparison,
@@ -773,16 +775,18 @@ describe('comparison payload', () => {
       benchmarkResults: [],
     };
 
-    const codeUnits = JSON.stringify(fixture).length;
+    const compact = compactComparisonPayload(fixture);
+    const codeUnits = JSON.stringify(compact).length;
     const measured = measureComparisonPayload(fixture).totalBytes;
 
-    expect(codeUnits).toBe(265);
-    expect(measured).toBe(275);
+    expect(codeUnits).toBe(153);
+    expect(measured).toBe(163);
     // Asserted as a difference as well as an absolute. The absolute pins the
-    // exact byte length; the difference is the part a reader can re-derive from
-    // the table above without running anything, and it is what a revert to
-    // `JSON.stringify(...).length` drives to zero. Anyone "simplifying" this
-    // measurement back fails here rather than quietly under-reporting.
+    // exact byte length of the compact fixture; the difference is the part a
+    // reader can re-derive from the table above without running anything, and
+    // it is what a revert to `JSON.stringify(...).length` drives to zero.
+    // Anyone "simplifying" this measurement back fails here rather than
+    // quietly under-reporting.
     expect(measured - codeUnits).toBe(10);
     expect(measured).toBeGreaterThan(codeUnits);
   });
@@ -794,14 +798,18 @@ describe('comparison payload', () => {
     // change either number, because the honest answer to "what bounds page
     // weight" is not the same for the two.
     //
-    // Both figures are UTF-8 bytes. Until #621 they were UTF-16 code units
-    // reported under a byte name, which understates any non-ASCII character by
-    // one to two bytes and so read progressively lower as the catalogue
-    // internationalized. Correcting the unit moved the measured total up 36
-    // bytes against an unchanged ceiling — 137,655 to 137,691 of 143,360 — and
-    // left the per-release figure at 1,497 of 1,600. Neither threshold moved,
-    // which was the condition for making the correction at all: it was free
-    // while the catalogue was still 99.97% ASCII, and it stops being free.
+    // Both figures are UTF-8 bytes, measured on the compact wire format that
+    // /compare actually ships (see compactComparisonPayload). The compact form
+    // shortens JSON key names to single characters — purely structural overhead,
+    // no cited source or value dropped — cutting ~25.8 kB at 92 releases
+    // (#726). Before compaction the same 92 releases measured 137,691 bytes at
+    // 1,497/release; after, 111,893 at 1,216/release. The ceiling did not move.
+    //
+    // Historical note: until #621 the figures were UTF-16 code units reported
+    // under a byte name. Correcting the unit moved the measured total up 36
+    // bytes — 137,655 to 137,691 of 143,360 (verbose-key era) — and left the
+    // per-release figure at 1,497 of 1,600. Those figures are not comparable
+    // with the compact-era ones above.
     //
     // The per-release ceiling below (the `1_600` assertion) is the instrument.
     // It is scale-invariant: it does not move when the catalogue grows, only
@@ -856,9 +864,10 @@ describe('comparison payload', () => {
       size.totalBytes,
       `/compare ships ${size.totalBytes} UTF-8 bytes for ${payload.releases.length} releases `
       + `(${size.bytesPerRelease}/release, budget 143,360). The #584-era anchors — 124,410 over 83 `
-      + 'releases at 1,499 each, against 121,916 over 82 at its 7ca5802 merge-base — are UTF-16 '
-      + 'code-unit counts taken before #621 corrected the unit, so they read low by about 0.03% and '
-      + 'are not strictly comparable with the figure above. If the '
+      + 'releases at 1,499 each, against 121,916 over 82 at its 7ca5802 merge-base — are '
+      + 'verbose-key UTF-16 code-unit counts taken before #621 corrected the unit and #726 '
+      + 'compacted the keys, so they differ in both unit and key format and are not comparable '
+      + 'with the figure above. If the '
       + 'catalogue simply grew and the per-release figure held, raising this is a deliberate '
       + 'page-weight decision; if the per-release figure moved too, trim instead.',
     ).toBeLessThanOrEqual(143_360);
@@ -886,6 +895,34 @@ describe('comparison payload', () => {
       const slugs = [seedSlugs[index]!, seedSlugs[index + 1]!];
       expect(JSON.stringify(buildModelComparison(payload, slugs, seedBase, today)))
         .toBe(JSON.stringify(buildModelComparison(dataset, slugs, seedBase, today)));
+    }
+  });
+
+  it('round-trips the real dataset through compact and expand without loss', () => {
+    // expandComparisonPayload must invert compactComparisonPayload exactly.
+    // This test proves losslessness — data survives the round trip unchanged —
+    // and catches collisions in the key maps (e.g. two long keys mapped to the
+    // same short key). It does NOT catch a missing key-map entry: rekey uses
+    // map[key] ?? key, so an unmapped key passes through under its long name
+    // and round-trips perfectly. That gap is covered by "compacts every key".
+    const roundTripped = expandComparisonPayload(compactComparisonPayload(payload));
+    expect(roundTripped).toEqual(payload);
+  });
+
+  it('compacts every key — no long key survives in the wire format', () => {
+    // The rekey function passes unmapped keys through under their long name.
+    // That makes a missing key-map entry a silent pass-through, not a failure,
+    // so this test is the sole guard against omitted entries. It verifies that
+    // every key in the compact form is a single character. The section list is
+    // derived from the compact output itself so that an added section cannot
+    // silently escape coverage.
+    const compact = compactComparisonPayload(payload);
+    for (const [sectionKey, records] of Object.entries(compact)) {
+      for (const record of records as Record<string, unknown>[]) {
+        for (const key of Object.keys(record)) {
+          expect(key, `unmapped key "${key}" in section ${sectionKey}`).toHaveLength(1);
+        }
+      }
     }
   });
 
