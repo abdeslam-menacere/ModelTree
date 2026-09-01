@@ -484,10 +484,13 @@
     ],
     "firstReleaseDate": "2026-04-22",
     "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
     "status": "preview",
     "sourceIds": [
       "deepseek-v4-pro-model-card",
-      "deepseek-v4-flash-model-card"
+      "deepseek-v4-flash-model-card",
+      "hugging-face-deepseek-v4-pro-hub-record",
+      "hugging-face-deepseek-v4-flash-hub-record"
     ],
     "verifiedAt": "2026-08-28"
   },
@@ -503,6 +506,7 @@
     ],
     "firstReleaseDate": "2025-12-01",
     "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
     "status": "legacy",
     "sourceIds": [
       "deepseek-v3-2-model-card",
@@ -713,11 +717,13 @@
     ],
     "firstReleaseDate": "2025-07-11",
     "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
     "status": "current",
     "sourceIds": [
-      "moonshot-ai-kimi-k2-model-card"
+      "moonshot-ai-kimi-k2-model-card",
+      "hugging-face-kimi-k2-instruct-hub-record"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-08-31"
   },
   {
     "id": "eleutherai-pythia",
@@ -823,13 +829,14 @@
     ],
     "firstReleaseDate": "2025-06-28",
     "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
     "status": "current",
     "sourceIds": [
       "baidu-ernie-repository",
       "baidu-ernie-4-5-300b-model-card",
       "hugging-face-ernie-4-5-300b-hub-record"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-08-31"
   },
   {
     "id": "tencent-hunyuan-video",
@@ -932,6 +939,7 @@
     ],
     "firstReleaseDate": "2024-04-12",
     "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
     "status": "research",
     "sourceIds": [
       "apple-openelm-3b-instruct-model-card",
@@ -1024,10 +1032,12 @@
     ],
     "firstReleaseDate": "2025-05-20",
     "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
     "status": "current",
     "sourceIds": [
       "sarvam-ai-sarvam-m-model-card",
-      "sarvam-ai-sarvam-m-blog"
+      "sarvam-ai-sarvam-m-blog",
+      "hugging-face-sarvam-m-hub-record"
     ],
     "verifiedAt": "2026-08-29"
   },

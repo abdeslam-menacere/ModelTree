@@ -949,7 +949,7 @@
     "type": "repository",
     "publisherId": "hugging-face",
     "lastCheckedDate": "2026-08-28",
-    "notes": "The Hub’s machine-readable record, carrying the createdAt of 2026-04-22 used as this release’s date. Only that Hub-measured timestamp is cited from here; the card prose at the human-readable URL is DeepSeek’s and is recorded separately as deepseek-v4-pro-model-card."
+    "notes": "The Hub’s machine-readable record, carrying the createdAt of 2026-04-22 used as this release’s date. Only that Hub-measured timestamp is cited from here; the card prose at the human-readable URL is DeepSeek’s and is recorded separately as deepseek-v4-pro-model-card. The release recording this date carries dateBasis \"platform-repository-created\" (issue #682, ADR 0009): on a 2026-08-31 re-read every occurrence of that date on the rendered card page fell inside this createdAt, a lastModified, or an \"Updated\" timestamp widget, and the creator's own README contained it zero times. The marker is named for repository creation because that is what createdAt records."
   },
   {
     "id": "hugging-face-deepseek-v4-flash-hub-record",
@@ -958,7 +958,7 @@
     "type": "repository",
     "publisherId": "hugging-face",
     "lastCheckedDate": "2026-08-28",
-    "notes": "The Hub’s machine-readable record, carrying the createdAt of 2026-04-22 used as this release’s date."
+    "notes": "The Hub’s machine-readable record, carrying the createdAt of 2026-04-22 used as this release’s date. The release recording this date carries dateBasis \"platform-repository-created\" (issue #682, ADR 0009): on a 2026-08-31 re-read every occurrence of that date on the rendered card page fell inside this createdAt, a lastModified, or an \"Updated\" timestamp widget, and the creator's own README contained it zero times. The marker is named for repository creation because that is what createdAt records."
   },
   {
     "id": "hugging-face-deepseek-v3-2-hub-record",
@@ -967,7 +967,7 @@
     "type": "repository",
     "publisherId": "hugging-face",
     "lastCheckedDate": "2026-08-28",
-    "notes": "The Hub’s machine-readable record, carrying the createdAt of 2025-12-01 used as this release’s date."
+    "notes": "The Hub’s machine-readable record, carrying the createdAt of 2025-12-01 used as this release’s date. The release recording this date carries dateBasis \"platform-repository-created\" (issue #682, ADR 0009): on a 2026-08-31 re-read every occurrence of that date on the rendered card page fell inside this createdAt, a lastModified, or an \"Updated\" timestamp widget, and the creator's own README contained it zero times. The marker is named for repository creation because that is what createdAt records."
   },
   {
     "id": "openai-gpt-daybreak-blue-docs",
@@ -1321,7 +1321,7 @@
     "type": "model-card",
     "publisherId": "moonshot-ai",
     "lastCheckedDate": "2026-08-31",
-    "notes": "States a Model Summary table with \"Context Length | 128K\" (beside \"Vocabulary Size | 160K\" and \"Total Parameters | 1T\"); the card states no exact context integer anywhere. contextWindow records 131072, the binary reading of \"128K\" (128 x 1024), not the decimal 128000 a bare abbreviation takes by default (see releaseSchema.contextWindow). Nothing on this card fixes a binary buffer — no exact integer, and no lineage to a fixed-buffer build as upstage's \"4K\" has — so the binary precision is not established by the cited source. It is flagged for review as an unresolved binary reading (issue #557): this bare \"128K\" is read the opposite way to the bare \"128k\" that meta-llama-3-1-405b records as 128000. The value is left as committed, to be answered by its own source and issue rather than edited here. Re-read 2026-08-31: \"Context Length | 128K\" was present in the Model Summary table; a fabricated \"131072\" appeared nowhere on the page, as a control."
+    "notes": "States a Model Summary table with \"Context Length | 128K\" (beside \"Vocabulary Size | 160K\" and \"Total Parameters | 1T\"); the card states no exact context integer anywhere. contextWindow records 131072, the binary reading of \"128K\" (128 x 1024), not the decimal 128000 a bare abbreviation takes by default (see releaseSchema.contextWindow). Nothing on this card fixes a binary buffer — no exact integer, and no lineage to a fixed-buffer build as upstage's \"4K\" has — so the binary precision is not established by the cited source. It is flagged for review as an unresolved binary reading (issue #557): this bare \"128K\" is read the opposite way to the bare \"128k\" that meta-llama-3-1-405b records as 128000. The value is left as committed, to be answered by its own source and issue rather than edited here. Re-read 2026-08-31: \"Context Length | 128K\" was present in the Model Summary table; a fabricated \"131072\" appeared nowhere on the page, as a control. This card states no release date, and that absence is the finding behind this release's dateBasis (issue #682, ADR 0009): on a 2026-08-31 re-read of this URL the string \"2025-07-11\" occurred four times and every occurrence was inside the Hub's own \"createdAt\":\"2025-07-11T00:55:12.000Z\" metadata, none in Moonshot AI's prose. The creator's own \"0. Changelog\" heading instead lists 2025.7.15, 2025.7.18 and 2025.8.11 — all card and tokenizer revisions rather than a release event, and the earliest of them four days after the committed date."
   },
   {
     "id": "zhipu-ai-glm-4-5-announcement",
@@ -1329,7 +1329,8 @@
     "title": "GLM-4.5: Reasoning, Coding, and Agentic Abilities",
     "type": "official-announcement",
     "publisherId": "zhipu-ai",
-    "lastCheckedDate": "2026-08-28"
+    "lastCheckedDate": "2026-08-31",
+    "notes": "Zhipu AI's own announcement of the GLM-4.5 series, cited for the family and for the Air release's month-precision date. Issue #682 listed zhipu-ai-glm-4-5-air as a third case of a Hub createdAt committed as a release date; on a 2026-08-31 re-read it is not one, and no dateBasis is recorded for it. The Hub createdAt for zai-org/GLM-4.5-Air is 2025-07-20T03:25:55.000Z, and the committed value is \"2025-07\" at month precision — which that timestamp matches only because a month matches all 31 of its days. The same month is independently corroborated by this creator-published announcement, which carries its own publication date of 2025-07-28, eight days after the Hub upload. So the committed month rests on a creator-dated announcement rather than on the platform timestamp, and the equality that flagged it is an artefact of coarse precision. Recorded here rather than acted on, because equality with a createdAt is evidence and not proof (ADR 0009). A day-precision upgrade to 2025-07-28 was considered and declined: this URL serves a 598-byte client-rendered shell containing no date, and the 2025-07-28 string is reachable only from the content-hashed script bundle it loads, /blog/assets/glm-4.5-B_FTzVR2.js, as date:`2025-07-28` beside the post title. That bundle answered identically to two fetches on 2026-08-31, but its filename is a build hash and will not survive the site's next deploy, so citing it would trade a sound month for a day that cannot be re-verified at the cited URL."
   },
   {
     "id": "eleutherai-organization-profile",
@@ -1458,13 +1459,22 @@
     "notes": "Baidu's own repository for the generation, cited for the family's scope. States \"We introduce ERNIE 4.5, a new family of large-scale multimodal models comprising 10 distinct variants\", that the variants include vision-language models as well as text models, that the \"largest model having 424B total parameters\", and that \"All models are publicly accessible under Apache 2.0\". The multimodal-generalist category on the family comes from this sentence about the family as a whole; the single release recorded here is the text model, and it carries text-only modalities accordingly."
   },
   {
+    "id": "hugging-face-kimi-k2-instruct-hub-record",
+    "url": "https://huggingface.co/api/models/moonshotai/Kimi-K2-Instruct",
+    "title": "Hugging Face Hub record for moonshotai/Kimi-K2-Instruct",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-08-31",
+    "notes": "The Hub's machine-readable record, cited so that this release's date names the artefact it actually rests on rather than resting on it silently (issue #682, ADR 0009). It carries \"createdAt\":\"2025-07-11T00:55:12.000Z\", the timestamp committed as releaseDate. That is Hugging Face's record of when the repository was created, not a Moonshot AI statement of a release date, so the release and its family both record dateBasis \"platform-repository-created\". The field is createdAt and it is named for creation rather than publication because that is all it attests: here it matches the repository's own oldest commit, an \"initial commit\" preceding the weights, and a repository may in any case be created private and made public later. Read as a raw string and never through a local-time date cast: 00:55:12Z falls in the 00:00-05:00Z window where such a cast rolls the day back in a Western timezone and would report 2025-07-10, hiding the very match under audit. Only this timestamp is cited from here; Moonshot AI's card prose at the human-readable URL is recorded separately as moonshot-ai-kimi-k2-model-card, and no Moonshot-published page read on 2026-08-31 stated a release date — the Kimi-K2 GitHub README carried no date-like string at all, and moonshotai.github.io/Kimi-K2/ served a client-rendered shell with none, on an origin that is not approved regardless."
+  },
+  {
     "id": "hugging-face-ernie-4-5-300b-hub-record",
     "url": "https://huggingface.co/api/models/baidu/ERNIE-4.5-300B-A47B-PT",
     "title": "Hugging Face Hub record for baidu/ERNIE-4.5-300B-A47B-PT",
     "type": "repository",
     "publisherId": "hugging-face",
-    "lastCheckedDate": "2026-08-29",
-    "notes": "The Hub's machine-readable record, carrying the createdAt of 2025-06-28 used as this release's date, and cardData license \"apache-2.0\". Only that Hub-measured timestamp is cited from here; the card prose at the human-readable URL is Baidu's and is recorded separately as baidu-ernie-4-5-300b-model-card. No Baidu-published page read on 2026-08-29 stated a date for this release — https://yiyan.baidu.com/blog/posts/ernie4.5 redirected to an undated product page — so the date rests on the Hub's measurement of when Baidu first published the repository, which is a weaker claim than a creator-stated release date and is recorded as such."
+    "lastCheckedDate": "2026-08-31",
+    "notes": "The Hub's machine-readable record, carrying \"createdAt\":\"2025-06-28T05:38:53.000Z\" — the timestamp committed as this release's date — and cardData license \"apache-2.0\". That is Hugging Face's record of when the repository was created, not a Baidu statement of a release date, so the release and its family both record dateBasis \"platform-repository-created\" (issue #682, ADR 0009) rather than leaving the weaker basis stated only in this prose. The field is named for creation rather than publication because that is all it attests: here it precedes the repository's own oldest commit by one second, an \"initial commit\" preceding the weights. Read as a raw string, never through a local-time date cast, which would roll 05:38:53Z back a day in a timezone at UTC-6 or further west. Only that timestamp is cited from here; the card prose at the human-readable URL is Baidu's and is recorded separately as baidu-ernie-4-5-300b-model-card. No Baidu-published page has stated a date for this release: on 2026-08-29 https://yiyan.baidu.com/blog/posts/ernie4.5 redirected to an undated product page, and on a 2026-08-31 re-read the card itself contained no occurrence of \"2025-06-28\" while the rendered model page contained four, every one of them inside this same createdAt field."
   },
   {
     "id": "tencent-hunyuan-video-model-card",
@@ -1620,7 +1630,7 @@
     "type": "repository",
     "publisherId": "hugging-face",
     "lastCheckedDate": "2026-08-29",
-    "notes": "The Hub's machine-readable record, carrying the createdAt of 2024-04-12T21:52:23.000Z used as this release's date, and cardData license \"apple-amlr\". No Apple page read on 2026-08-29 stated a release date for these weights, so the date rests on the Hub's measurement of when Apple first published the repository, which is a weaker claim than a creator-stated release date and is recorded as such. The record also reports safetensors.total of 3036647424, which is consistent with the card's \"3B\" but is a platform measurement rather than an Apple statement; the recorded parameter figure comes from the card's prose, not from this count. The license field here agrees with the card's \"license\" key and not with its \"license_name\" key, which does not settle the disagreement recorded on the card because the Hub simply mirrors the first key."
+    "notes": "The Hub's machine-readable record, carrying the createdAt of 2024-04-12T21:52:23.000Z used as this release's date, and cardData license \"apple-amlr\". No Apple page read on 2026-08-29 stated a release date for these weights, so the date rests on the Hub's measurement of when Apple first published the repository, which is a weaker claim than a creator-stated release date and is recorded as such. The record also reports safetensors.total of 3036647424, which is consistent with the card's \"3B\" but is a platform measurement rather than an Apple statement; the recorded parameter figure comes from the card's prose, not from this count. The license field here agrees with the card's \"license\" key and not with its \"license_name\" key, which does not settle the disagreement recorded on the card because the Hub simply mirrors the first key. That conclusion is now recorded structurally as well rather than only here: the release and its family both carry dateBasis \"platform-repository-created\" (issue #682, ADR 0009). The marker is named for repository creation because that is what createdAt records — a repository may be created private and made public later, so the field cannot attest when anything first became visible, and \"first published\" above is a stronger reading of it than the field supports."
   },
   {
     "id": "hugging-face-smollm3-model-card",
@@ -1766,7 +1776,7 @@
     "type": "repository",
     "publisherId": "hugging-face",
     "lastCheckedDate": "2026-08-29",
-    "notes": "The Hub's machine-readable record, carrying the createdAt of 2025-05-20T06:39:05.000Z used as this release's date, and cardData license \"apache-2.0\". No Sarvam AI page read on 2026-08-29 stated a release date, so the date rests on the Hub's measurement of when Sarvam AI first published the repository, which is a weaker claim than a creator-stated release date and is recorded as such. Sarvam AI's own announcement post is dated 2025-05-23, three days later, so the weights were measurable before the company announced them; both are recorded rather than one being presented as the release. The record also reports safetensors.total of 23572403200, which is a measurement of this model's own weights rather than the base model's. At 23.57 billion it rounds to the 24B that Sarvam AI's announcement post labels this model with in its comparison tables, and the two together are what the recorded parameter figure rests on; the quotes are set out on sarvam-ai-sarvam-m-blog."
+    "notes": "The Hub's machine-readable record, carrying the createdAt of 2025-05-20T06:39:05.000Z used as this release's date, and cardData license \"apache-2.0\". No Sarvam AI page read on 2026-08-29 stated a release date, so the date rests on the Hub's measurement of when Sarvam AI first published the repository, which is a weaker claim than a creator-stated release date and is recorded as such. Sarvam AI's own announcement post is dated 2025-05-23, three days later, so the weights were measurable before the company announced them; both are recorded rather than one being presented as the release. The record also reports safetensors.total of 23572403200, which is a measurement of this model's own weights rather than the base model's. At 23.57 billion it rounds to the 24B that Sarvam AI's announcement post labels this model with in its comparison tables, and the two together are what the recorded parameter figure rests on; the quotes are set out on sarvam-ai-sarvam-m-blog. That conclusion is now recorded structurally as well rather than only here: the release and its family both carry dateBasis \"platform-repository-created\" (issue #682, ADR 0009). The three-day gap to the announcement is what makes this the clearest case in the dataset — a creator-dated page exists and gives a different day, so the committed date is demonstrably not the creator's. The marker is named for repository creation because that is what createdAt records — a repository may be created private and made public later, so the field cannot attest when anything first became visible, and \"first published\" above is a stronger reading of it than the field supports."
   },
   {
     "id": "naver-hyperclova-x-seed-announcement",

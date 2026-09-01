@@ -36,6 +36,48 @@ export const partialDate = z.string().regex(/^\d{4}(-\d{2}(-\d{2})?)?$/).refine(
 export const datePrecision = z.enum(DATE_PRECISIONS);
 
 /**
+ * How a committed date came to be known, recorded **only** where it is known not
+ * to be a creator statement (ADR 0009).
+ *
+ * `platform-repository-created` means: the value is a hosting platform's own
+ * record of when a repository was created — a Hugging Face Hub `createdAt`, say
+ * — no creator statement of a release date was found, and the date is kept
+ * because it bounds when the model existed, not because a creator stated it.
+ *
+ * The member is named for repository *creation* and not for publication, which
+ * is narrower than it may look and deliberately so. `createdAt` is the moment
+ * the repository row was made. Where that has been checked against a
+ * repository's own history — the Kimi K2 Instruct and ERNIE 4.5 300B Hub
+ * records, and only those — it lands on an "initial commit" that predates the
+ * weights: exactly on it for Kimi K2 Instruct, one second ahead of it for
+ * ERNIE. Every other record carrying this member asserts no such check, so read
+ * the marker as naming the artefact the date rests on and not as a claim that
+ * its relationship to the repository's history has been established.
+ * A repository may also be created private and made public later, so the field
+ * cannot attest that anything was visible at that instant. Naming the member
+ * `platform-first-published` would assert a publication event the platform never
+ * recorded — the same kind of overstatement, one step smaller, that this field
+ * exists to stop.
+ *
+ * -- READ THIS BEFORE ADDING A MEMBER OR MAKING THE FIELD REQUIRED --
+ *
+ * **Absence asserts nothing.** A record without `dateBasis` is not thereby
+ * claiming its date is creator-stated; it is claiming nothing at all, because no
+ * basis has been established either way. There is deliberately no
+ * `creator-stated` member: adding one makes the absent case look like a third
+ * state that somebody forgot to fill in, and the way that gets "fixed" is a
+ * sweep that writes `creator-stated` across every unmarked record on the
+ * strength of nothing. That would convert an unverified field into a positive
+ * claim across the whole dataset, which is the silent platform-fact-as-creator-
+ * claim conversion of #682 rebuilt one level up. ADR 0009's Guardrails forbid
+ * any text — here, in `web/README.md`, or in a gate message — that reads absence
+ * as verification.
+ *
+ * The one-member enum is therefore the point rather than an unfinished sketch.
+ */
+export const dateBasis = z.enum(['platform-repository-created']);
+
+/**
  * `lifecycleStatus`, `modelCategory`, `accessType` and `modality` are a
  * **controlled vocabulary**: a fixed set of dataset terms onto which a source's
  * own wording is mapped. No source speaks them. A creator writes "Live",
@@ -286,6 +328,9 @@ export const organizationSchema = z.object({
  *
  * `validateDataset` requires the value's shape and the declared precision to
  * agree, which is what stops a `month` record from carrying an invented day.
+ *
+ * `dateBasis` is optional and, where present, says this date is not a creator
+ * statement. See its declaration above; absence asserts nothing.
  */
 export const familySchema = z.object({
   id: entityId,
@@ -296,6 +341,7 @@ export const familySchema = z.object({
   categories: z.array(modelCategory).min(1),
   firstReleaseDate: partialDate,
   datePrecision,
+  dateBasis: dateBasis.optional(),
   status: lifecycleStatus,
   sourceIds: z.array(entityId).min(1),
   verifiedAt: isoDate,
@@ -312,6 +358,7 @@ export const releaseSchema = z.object({
   variant: z.string().min(1),
   releaseDate: partialDate,
   datePrecision,
+  dateBasis: dateBasis.optional(),
   status: lifecycleStatus,
   // Editorial lead selection, not a ranking and not a sourced claim. Apply in
   // order: flag `featured` only on a release whose creator is one of the five

@@ -102,6 +102,24 @@ siblings, effective ranges that end before they start, prices with no rate,
 benchmark results whose unit contradicts their benchmark or that duplicate an
 existing setup, and featured releases without a primary source.
 
+<!-- date-basis-policy:start -->
+A release or family may record an optional `dateBasis`. Its single value,
+`platform-repository-created`, means the committed date is a hosting platform's
+own record of when a repository was created — a Hugging Face Hub `createdAt`,
+say — that no creator statement of a release date was found, and that the date is
+kept because it bounds when the model existed rather than because a creator stated
+it. The member is named for creation and not publication because that is all the
+field attests: `createdAt` matches the repository's own oldest commit, and a
+repository may be created private and made public later, so it cannot show when
+anything first became visible. **The absence of `dateBasis` asserts nothing.** It
+does not mean the date is creator-stated; it means no basis has been established
+either way, which is why there is no `creator-stated` value to reach for. Equality
+between a committed date and a cited repository's `createdAt` is evidence and not
+proof — a creator may genuinely release on the day they upload — so a record is
+marked only when the date appears in its cited sources solely as platform
+metadata. ADR 0009 records the decision.
+<!-- date-basis-policy:end -->
+
 Usage evidence carries its own rules. An observation is rejected when it cites
 no source, states no caveat, measures a window that closes after its own
 verification date or begins before the release existed, labels itself
@@ -367,6 +385,109 @@ reading and the disagreement is written down here rather than resolved silently.
   <!-- claim: {"kind":"records","entity":"releases","id":"google-gemini-3-7-flash","field":"releaseDate","value":"2026-08-13"} -->
   <!-- claim: {"kind":"records","entity":"releases","id":"google-gemini-3-7-flash","field":"datePrecision","value":"day"} -->
   <!-- claim: {"kind":"lists","entity":"releases","id":"google-gemini-3-7-flash","field":"sourceIds","value":"google-gemini-3-7-flash-platform-docs"} -->
+- **Kimi K2 Instruct date is the Hub's, not Moonshot AI's.** No Moonshot-published
+  page states a release date for this model. The committed 2025-07-11 is the
+  Hugging Face Hub `createdAt` of `moonshotai/Kimi-K2-Instruct`; on the cited card
+  page that string occurs only inside `"createdAt":"2025-07-11T00:55:12.000Z"`,
+  never in Moonshot AI's prose, whose own changelog instead lists 2025.7.15,
+  2025.7.18 and 2025.8.11 — card revisions, the earliest four days later. The date
+  is kept because it bounds when the model existed, and it declares `dateBasis`
+  `platform-repository-created` so it is not read as a creator claim (ADR 0009).
+  <!-- claim: {"kind":"records","entity":"releases","id":"moonshot-ai-kimi-k2-instruct","field":"releaseDate","value":"2025-07-11"} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"moonshot-ai-kimi-k2-instruct","field":"dateBasis","value":"platform-repository-created"} -->
+  <!-- claim: {"kind":"lists","entity":"releases","id":"moonshot-ai-kimi-k2-instruct","field":"sourceIds","value":"hugging-face-kimi-k2-instruct-hub-record"} -->
+  <!-- claim: {"kind":"records","entity":"families","id":"moonshot-ai-kimi-k2","field":"dateBasis","value":"platform-repository-created"} -->
+- **ERNIE 4.5 300B A47B date is the Hub's, not Baidu's.** Same shape, and the
+  record already cited the Hub API endpoint it rests on. The committed 2025-06-28
+  is the `createdAt` of `baidu/ERNIE-4.5-300B-A47B-PT`; the card carries no
+  occurrence of it, and no Baidu-published page read for this record states a
+  release date. It declares `dateBasis` `platform-repository-created` rather than
+  leaving that basis stated only in a source note.
+  <!-- claim: {"kind":"records","entity":"releases","id":"baidu-ernie-4-5-300b-a47b","field":"releaseDate","value":"2025-06-28"} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"baidu-ernie-4-5-300b-a47b","field":"dateBasis","value":"platform-repository-created"} -->
+  <!-- claim: {"kind":"records","entity":"families","id":"baidu-ernie-4-5","field":"dateBasis","value":"platform-repository-created"} -->
+- **OpenELM 3B Instruct date is the Hub's, not Apple's.** Its own committed source
+  notes already said so — Apple's research page "states no release date for the
+  weights, which is why this release's date rests on the Hub record instead" —
+  leaving the conclusion in prose while the record stayed unmarked. The committed
+  2024-04-12 is the `createdAt` of `apple/OpenELM-3B-Instruct`, and no Apple page
+  read for this record states a release date. It now declares `dateBasis`
+  `platform-repository-created`.
+  <!-- claim: {"kind":"records","entity":"releases","id":"apple-openelm-3b-instruct","field":"releaseDate","value":"2024-04-12"} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"apple-openelm-3b-instruct","field":"dateBasis","value":"platform-repository-created"} -->
+  <!-- claim: {"kind":"records","entity":"families","id":"apple-openelm","field":"dateBasis","value":"platform-repository-created"} -->
+- **Sarvam-M's date is the Hub's, and the creator's own page gives a different
+  day.** The committed 2025-05-20 is the `createdAt` of `sarvamai/sarvam-m`, while
+  Sarvam AI's announcement — already cited on this record — is dated 2025-05-23,
+  three days later, and states no release date for the weights. Both are kept and
+  neither is presented as the other: the release keeps the date that bounds when
+  the weights existed and declares `dateBasis` `platform-repository-created`. This
+  is the clearest instance of #682 in the dataset, because a creator-dated page
+  exists and disagrees.
+  <!-- claim: {"kind":"records","entity":"releases","id":"sarvam-ai-sarvam-m-v1","field":"releaseDate","value":"2025-05-20"} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"sarvam-ai-sarvam-m-v1","field":"dateBasis","value":"platform-repository-created"} -->
+  <!-- claim: {"kind":"records","entity":"families","id":"sarvam-ai-sarvam-m","field":"dateBasis","value":"platform-repository-created"} -->
+- **All three DeepSeek dates are repository-creation timestamps, and the records
+  already said so in their own summaries.** `deepseek-v4-pro` and
+  `deepseek-v4-flash` each state in their committed `summary` that "the release
+  date is the day the repository was published on the creator's verified Hugging
+  Face organization, because no dated announcement on the creator's own domain
+  could be reached", and all three cite a Hub repository record and no dated
+  creator announcement. A 2026-08-31 re-read confirmed it: on every card page each
+  occurrence of the committed date sits inside `createdAt`, `lastModified`, or an
+  "Updated" timestamp, and the creator README contains it zero times. The basis
+  was therefore established in prose and is now recorded in the field. The
+  `deepseek-v4` family cited only the two model cards, so both Hub records were
+  added to it — a marked record cites the platform record its date rests on.
+  <!-- claim: {"kind":"records","entity":"releases","id":"deepseek-v4-pro","field":"dateBasis","value":"platform-repository-created"} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"deepseek-v4-flash","field":"dateBasis","value":"platform-repository-created"} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"deepseek-v3-2","field":"dateBasis","value":"platform-repository-created"} -->
+  <!-- claim: {"kind":"records","entity":"families","id":"deepseek-v4","field":"dateBasis","value":"platform-repository-created"} -->
+  <!-- claim: {"kind":"records","entity":"families","id":"deepseek-v3-2","field":"dateBasis","value":"platform-repository-created"} -->
+- **GLM-4.5-Air is not a third case of that pattern.** Its Hub `createdAt` is
+  2025-07-20 and the committed value is `2025-07` at month precision, which that
+  timestamp matches only because a month matches all 31 of its days. Zhipu AI's own
+  announcement is dated 2025-07-28 and falls in the same month, so the recorded
+  month rests on a creator-dated announcement rather than on the platform
+  timestamp, and no `dateBasis` is recorded. A day-precision upgrade to 2025-07-28
+  was declined: the cited URL serves a client-rendered shell containing no date,
+  and the string is reachable only from a build-hashed script bundle that the
+  site's next deploy will rename.
+  <!-- claim: {"kind":"records","entity":"releases","id":"zhipu-ai-glm-4-5-air","field":"releaseDate","value":"2025-07"} -->
+  <!-- claim: {"kind":"records","entity":"releases","id":"zhipu-ai-glm-4-5-air","field":"datePrecision","value":"month"} -->
+  <!-- claim: {"kind":"omits","entity":"releases","id":"zhipu-ai-glm-4-5-air","field":"dateBasis"} -->
+  <!-- claim: {"kind":"omits","entity":"families","id":"zhipu-ai-glm-4-5","field":"dateBasis"} -->
+- **The full `releaseDate == createdAt` sweep, named rather than counted.** Every
+  release whose committed date equals its cited Hub repository's `createdAt`, as
+  measured on 2026-08-31 against `/api/models` by raw string prefix. Naming them
+  is the point: an earlier count of "17 releases" hid records whose own source
+  notes and summaries had already concluded the date rests on the Hub, and they
+  stayed invisible until someone re-read them. Equality alone authorises no edit
+  (ADR 0009 item 5), so this is a register of what was checked, not a list of
+  defects.
+  - *Creator source states the same date — genuine same-day release, no defect (4):*
+    `nvidia-nemotron-4-340b-base`, `stability-ai-stable-diffusion-3-5-large`,
+    `liquid-lfm2-1-2b`, `alibaba-qwen3-5-397b-a17b`. These are why equality is
+    evidence and not proof.
+  - *Coarse precision, so the match proves nothing (3):* `zhipu-ai-glm-4-5-air`,
+    `sakana-ai-evollm-jp-v1-7b`, `ai-singapore-llama-sea-lion-v3-8b`. A month
+    matches all of its days.
+  - *Established as platform-based and marked (7):* `moonshot-ai-kimi-k2-instruct`,
+    `baidu-ernie-4-5-300b-a47b`, `apple-openelm-3b-instruct`,
+    `sarvam-ai-sarvam-m-v1`, `deepseek-v4-pro`, `deepseek-v4-flash`,
+    `deepseek-v3-2`.
+  - *Checked and deliberately left unmarked (3),* each for a stated reason rather
+    than for want of looking. `hugging-face-smollm3-3b`: its creator is Hugging
+    Face, and the creator's own announcement carries `datePublished`
+    `2025-07-08T00:00:00.593Z`, so the date is corroborated by a creator-published
+    artefact and does not rest on platform metadata alone — a different case that
+    needs its own adjudication, not this marker.
+    `bytedance-seed-oss-36b-instruct` cites no Hub API record at all, and
+    `xiaomi-mimo-7b-rl-0530` cites the creator's GitHub repository rather than the
+    Hub record whose `createdAt` its date matches; marking either would mean
+    adding a source it does not currently cite, which is new research rather than
+    recording an established basis. All three creator READMEs contain the
+    committed date zero times, which is a finding and not a licence to edit.
 - **Llama 4 Maverick parameter count.** The model card's own table gives 400B
   total, while the Hugging Face repository metadata on the same page reports
   402B. The model card figure is recorded, because it is the count Meta states in
