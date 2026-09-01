@@ -4514,7 +4514,7 @@
     "releaseDate": "2024-09-11",
     "datePrecision": "day",
     "dateBasis": "platform-repository-created",
-    "status": "current",
+    "status": "research",
     "featured": false,
     "categories": [
       "audio-speech"
@@ -4537,7 +4537,7 @@
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
-    "summary": "Kyutai's PyTorch build of Moshi, which its card describes as \"a speech-text foundation model and full-duplex spoken dialogue framework\" and as \"the first real-time full-duplex spoken large language model, with a theoretical latency of 160ms, 200ms in practice\"; the card names this build the \"Pytorch version quantized in bf16 precision\". No parameter count and no context window are recorded, because the card states neither and the Hub's own safetensors measurement is corroborating platform metadata rather than a Kyutai statement. The recorded licence name follows the repository's own licence metadata, \"cc-by-4.0\"; the card's prose gives the shorter form \"CC-BY\".",
+    "summary": "Kyutai's PyTorch build of Moshi, which its card describes as \"a speech-text foundation model and full-duplex spoken dialogue framework\" and as \"the first real-time full-duplex spoken large language model, with a theoretical latency of 160ms, 200ms in practice\"; the card names this build the \"Pytorch version quantized in bf16 precision\". No parameter count and no context window are recorded, because the card states neither and the Hub's own safetensors measurement is corroborating platform metadata rather than a Kyutai statement. The recorded licence name follows the repository's own licence metadata, \"cc-by-4.0\"; the card's prose gives the shorter form \"CC-BY\". The lifecycle is recorded as research because the card’s out-of-scope-use section states \"This model is for research only and we do not recommend it for providing advices or to perform any professionnal duty\", which states the artefact is not offered as a supported product rather than leaving its lifecycle unstated.",
     "intendedUse": "Real-time spoken dialogue, per Kyutai's description of Moshi as \"a speech-text foundation model and full-duplex spoken dialogue framework\".",
     "sourceIds": [
       "kyutai-moshiko-pytorch-bf16-model-card",
@@ -4559,7 +4559,7 @@
     "releaseDate": "2024-05-11",
     "datePrecision": "day",
     "dateBasis": "platform-repository-created",
-    "status": "current",
+    "status": "unknown",
     "featured": false,
     "categories": [
       "language-reasoning"
@@ -4583,7 +4583,7 @@
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
-    "summary": "Lelapa AI's small language model for African languages, described on its card as a \"Small Language Model (SLM) for five African languages built using the architecture design of LLaMA-7B\" and trained \"from scratch using 1.9 billion tokens of data for five African languages\"; the card lists \"isiZulu, Yoruba, Swahili, isiXhosa, Hausa, English and French\". The recorded parameter count is the card's \"Total Parameters | 0.422B\". No context window is recorded: the only sequence length the card gives, \"Max Seq Length | 2048\", sits in its training hyperparameter table and states a training setting, not a served context. The parameter count is taken from that same table because a total parameter count is a property of the model that a training configuration does not change, which a training sequence length is not.",
+    "summary": "Lelapa AI's small language model for African languages, described on its card as a \"Small Language Model (SLM) for five African languages built using the architecture design of LLaMA-7B\" and trained \"from scratch using 1.9 billion tokens of data for five African languages\"; the card lists \"isiZulu, Yoruba, Swahili, isiXhosa, Hausa, English and French\". The recorded parameter count is the card's \"Total Parameters | 0.422B\". No context window is recorded: the only sequence length the card gives, \"Max Seq Length | 2048\", sits in its training hyperparameter table and states a training setting, not a served context. The parameter count is taken from that same table because a total parameter count is a property of the model that a training configuration does not change, which a training sequence length is not. The lifecycle is recorded as unknown because no source read states one for this checkpoint. The card’s \"this model is intended to be a foundational tool to aid research in African languages\" names who the model is meant to help and places no restriction on its use, so it is not read as a research-artefact lifecycle term.",
     "intendedUse": "Text generation in the five African languages the card names, per its statement that InkubaLM is a \"Small Language Model (SLM) for five African languages\". The card records the licence as \"CC BY-NC 4.0\", which is a non-commercial licence.",
     "sourceIds": [
       "lelapa-ai-inkubalm-0-4b-model-card",
@@ -4647,7 +4647,7 @@
     "variant": "1B",
     "releaseDate": "2026-05-19",
     "datePrecision": "day",
-    "status": "current",
+    "status": "unknown",
     "featured": false,
     "categories": [
       "language-reasoning"
@@ -4673,7 +4673,7 @@
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
-    "summary": "OpenBMB's first MiniCPM5 checkpoint, described on its card as \"a dense 1B Transformer built for on-device, local deployment, and resource-constrained scenarios\" with a \"built-in `<think>` chat template\" so that \"the same checkpoint serves as both a fast assistant and a deliberate reasoner\". The recorded parameter count is the card's \"Number of Parameters: 1,080,632,832\" expressed in billions, and the recorded context window is the card's \"Context Length: 131,072\" exactly. The card's comparative and leaderboard claims are deliberately not recorded: this dataset states no ranking and carries no composite score.",
+    "summary": "OpenBMB's first MiniCPM5 checkpoint, described on its card as \"a dense 1B Transformer built for on-device, local deployment, and resource-constrained scenarios\" with a \"built-in `<think>` chat template\" so that \"the same checkpoint serves as both a fast assistant and a deliberate reasoner\". The recorded parameter count is the card's \"Number of Parameters: 1,080,632,832\" expressed in billions, and the recorded context window is the card's \"Context Length: 131,072\" exactly. The card's comparative and leaderboard claims are deliberately not recorded: this dataset states no ranking and carries no composite score. The lifecycle is recorded as unknown because no source read states one for this checkpoint. The card’s \"We are releasing MiniCPM5-1B, the first model in the MiniCPM5 series\" announces a release and places the checkpoint in a series without stating whether the creator still offers it.",
     "intendedUse": "Local assistants, coding agents and tool-use workflows on constrained hardware, per the card's statement that the model is \"designed for local assistants, coding agents, tool-use workflows, and reasoning scenarios where a compact model is preferred\".",
     "sourceIds": [
       "openbmb-minicpm5-1b-model-card",

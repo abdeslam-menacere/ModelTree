@@ -1291,7 +1291,7 @@
     "firstReleaseDate": "2024-09-11",
     "datePrecision": "day",
     "dateBasis": "platform-repository-created",
-    "status": "current",
+    "status": "research",
     "sourceIds": [
       "kyutai-moshiko-pytorch-bf16-model-card",
       "hugging-face-kyutai-moshiko-pytorch-bf16-hub-record"
@@ -1310,7 +1310,7 @@
     "firstReleaseDate": "2024-05-11",
     "datePrecision": "day",
     "dateBasis": "platform-repository-created",
-    "status": "current",
+    "status": "unknown",
     "sourceIds": [
       "lelapa-ai-inkubalm-0-4b-model-card",
       "hugging-face-lelapa-inkubalm-0-4b-hub-record"
@@ -1329,7 +1329,7 @@
     "firstReleaseDate": "2023-11-08",
     "datePrecision": "day",
     "dateBasis": "platform-repository-created",
-    "status": "current",
+    "status": "unknown",
     "sourceIds": [
       "maritaca-ai-sabia-7b-model-card",
       "hugging-face-maritaca-ai-sabia-7b-hub-record",
@@ -1348,7 +1348,7 @@
     ],
     "firstReleaseDate": "2026-05-19",
     "datePrecision": "day",
-    "status": "current",
+    "status": "unknown",
     "sourceIds": [
       "openbmb-minicpm-repository",
       "openbmb-minicpm5-1b-model-card"
