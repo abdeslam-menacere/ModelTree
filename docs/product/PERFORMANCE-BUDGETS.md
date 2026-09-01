@@ -273,6 +273,59 @@ without a raise. The fonts ceiling is held tightest (+12%) so a new weight or
 subset is caught quickly. Each baseline is recorded in `asset-budgets.json` as
 `measuredRaw` so the headroom is auditable.
 
+## Measure the merge, not the merge-base
+
+The budgets above are enforced on the branch. So are the two **data** byte
+budgets that decide how many releases fit on `/compare` — the payload guards and
+the comparison-picker index guards, both in `web/src/lib/comparison.test.ts`
+(see [ADR 0010](../adr/0010-compact-wire-format-for-compare-payload.md) for why
+the payload has a ceiling at all). Read the numbers there; they are deliberately
+not restated here, because a restated ceiling is a second copy to keep in sync
+and it drifts.
+
+Enforcing on the branch is right, and it is also incomplete. A dock branches at
+commit X, measures a budget there, and trunk then moves. The figure silently
+stops being a claim about what will ship and becomes a claim about history.
+Nothing on the branch can notice: `gate-dataset`, `gate-scope` and
+`npm run validate` all read the branch, never the merge.
+
+Both directions cost something, and they do not cost the same thing.
+
+- **Trunk freed headroom.** The branch under-uses the budget and cuts scope it
+  did not need to cut. #740 was asked for six creators and delivered three,
+  dropping `cohere`, `stability-ai` and `nvidia` at `picker index: 11,219 of
+  11,264 — 45 bytes spare`. That measurement was honest and correct, and it was
+  taken two commits behind #748, which had trimmed the picker row shape. On the
+  actual merge the figure is `7,556 of 11,264` — about 3,708 bytes spare. Half
+  the issue's scope was dropped to satisfy a ceiling that no longer existed.
+- **Trunk consumed headroom**, because another tranche landed while this one was
+  in flight. The branch measures at its stale base, sees room, and adds records
+  that do not fit. Every gate on the branch passes; the ceiling breaks *after*
+  the squash-merge, on `main`, where the post-merge run is the first test of the
+  combination. That is a red trunk produced by two individually-green branches.
+
+So before any byte-driven scope decision — cutting releases, cutting creators,
+trimming a row shape — run from `web/`:
+
+```
+npm run budget:merged
+```
+
+It derives its own anchor (`git merge-base HEAD refs/remotes/origin/main`,
+computed by the tool, never supplied), measures the merge of trunk and `HEAD`
+with the repo's own exported instruments, and prints the branch-only and merged
+figures side by side with the difference stated. Exit 0 means the merged result
+is within every ceiling — including when it has *more* room than the branch-only
+figure suggested, because "you have more headroom than you thought" is advice and
+not a failure. Exit 1 means the merge would breach a ceiling. Exit 2 means it
+could not run, and **exit 2 is never a pass**.
+
+Cut scope against the merged number. Never against the branch-only one.
+
+The command reports; it does not gate, and it raises nothing. When the merged
+figure says a tranche does not fit, the response is the one this repository has
+always taken: cut releases, or trim the row shape — never raise a ceiling.
+
 ## What is reported, not gated: lab metrics
 
 Measured by `npm run lab` (`web/scripts/lab-metrics.mjs`), which drives the
@@ -346,6 +399,15 @@ produce the same number on every machine.
 From `web/`:
 
 - `npm run test` — runs the merge-blocking budget test (among the full suite).
+- `npm run budget:compare` — prints the `/compare` payload and picker index
+  sizes and headroom for the working tree, against the ceilings read out of
+  `src/lib/comparison.test.ts`.
+- `npm run budget:merged` — the same figures for the **merge** of
+  `refs/remotes/origin/main` and `HEAD`, next to the branch-only figures, with
+  the difference stated. Run this before cutting scope for bytes.
+- `npm run budget:proof` — exercises `budget:merged` over three throwaway
+  repositories (trunk consumed headroom, trunk freed headroom, trunk unmoved)
+  and asserts it returns exit 1 for the first and exit 0 for the other two.
 - `npm run assets:report` — builds and prints the full per-route raw/gzip/brotli
   breakdown (report only).
 - `npm run lab` — prints the mobile lab metrics above (report only; requires a
