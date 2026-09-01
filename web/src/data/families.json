@@ -762,6 +762,23 @@
     "verifiedAt": "2026-08-29"
   },
   {
+    "id": "lg-ai-research-exaone-4-0",
+    "slug": "exaone-4-0",
+    "organizationId": "lg-ai-research",
+    "name": "EXAONE 4.0",
+    "description": "LG AI Research’s EXAONE 4.0 series, which integrates a non-reasoning mode and a reasoning mode in one model and extends the series' language coverage to Spanish alongside English and Korean. The series consists of two sizes: a mid-size 32B model and a small-size 1.2B model.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2025-07-15",
+    "datePrecision": "day",
+    "status": "unknown",
+    "sourceIds": [
+      "lgai-exaone-4-0-repository"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
     "id": "snowflake-arctic",
     "slug": "arctic",
     "organizationId": "snowflake",

@@ -3107,6 +3107,50 @@
     "verifiedAt": "2026-08-30"
   },
   {
+    "id": "lg-ai-research-exaone-4-0-32b",
+    "slug": "exaone-4-0-32b",
+    "canonicalName": "EXAONE-4.0-32B",
+    "displayName": "EXAONE 4.0 32B",
+    "organizationId": "lg-ai-research",
+    "familyId": "lg-ai-research-exaone-4-0",
+    "version": "4.0",
+    "variant": "32B",
+    "releaseDate": "2025-07-15",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "EXAONE AI Model License Agreement 1.2 - NC",
+      "url": "https://huggingface.co/LGAI-EXAONE/EXAONE-4.0-32B/blob/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "contextWindow": 131072,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "The 32B member of LG AI Research’s EXAONE 4.0 series, a model integrating a non-reasoning mode and a reasoning mode, supporting English, Korean and Spanish, with a 131,072-token context length. No total parameter count is recorded: the model card's only figure explicitly excludes embeddings, and the page's unqualified figures appear only inside multi-column comparison tables.",
+    "intendedUse": "Text generation in English, Korean and Spanish, in reasoning or non-reasoning mode, including agentic tool use. Released under the EXAONE AI Model License Agreement 1.2 - NC; the card points commercial use to a separately licensed FriendliAI endpoint.",
+    "sourceIds": [
+      "lgai-exaone-4-0-32b-model-card",
+      "lgai-exaone-4-0-repository",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
     "id": "snowflake-arctic-instruct",
     "slug": "snowflake-arctic-instruct",
     "canonicalName": "snowflake-arctic-instruct",
