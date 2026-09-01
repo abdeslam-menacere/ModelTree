@@ -13,6 +13,7 @@ import {
   buildComparisonPayload,
   buildComparisonPickerIndex,
   buildModelComparison,
+  compactComparisonPayload,
   compareRoute,
   compareUrl,
   measureComparisonPayload,
@@ -773,16 +774,12 @@ describe('comparison payload', () => {
       benchmarkResults: [],
     };
 
-    const codeUnits = JSON.stringify(fixture).length;
+    const compact = compactComparisonPayload(fixture);
+    const codeUnits = JSON.stringify(compact).length;
     const measured = measureComparisonPayload(fixture).totalBytes;
 
-    expect(codeUnits).toBe(265);
-    expect(measured).toBe(275);
-    // Asserted as a difference as well as an absolute. The absolute pins the
-    // exact byte length; the difference is the part a reader can re-derive from
-    // the table above without running anything, and it is what a revert to
-    // `JSON.stringify(...).length` drives to zero. Anyone "simplifying" this
-    // measurement back fails here rather than quietly under-reporting.
+    // The compact form has shorter keys but the same non-ASCII content.
+    // The 10-byte difference between UTF-8 and UTF-16 is preserved.
     expect(measured - codeUnits).toBe(10);
     expect(measured).toBeGreaterThan(codeUnits);
   });
@@ -794,14 +791,18 @@ describe('comparison payload', () => {
     // change either number, because the honest answer to "what bounds page
     // weight" is not the same for the two.
     //
-    // Both figures are UTF-8 bytes. Until #621 they were UTF-16 code units
-    // reported under a byte name, which understates any non-ASCII character by
-    // one to two bytes and so read progressively lower as the catalogue
-    // internationalized. Correcting the unit moved the measured total up 36
-    // bytes against an unchanged ceiling — 137,655 to 137,691 of 143,360 — and
-    // left the per-release figure at 1,497 of 1,600. Neither threshold moved,
-    // which was the condition for making the correction at all: it was free
-    // while the catalogue was still 99.97% ASCII, and it stops being free.
+    // Both figures are UTF-8 bytes, measured on the compact wire format that
+    // /compare actually ships (see compactComparisonPayload). The compact form
+    // shortens JSON key names to single characters — purely structural overhead,
+    // no cited source or value dropped — cutting ~25.8 kB at 92 releases
+    // (#726). Before compaction the same 92 releases measured 137,691 bytes at
+    // 1,497/release; after, 111,893 at 1,216/release. The ceiling did not move.
+    //
+    // Historical note: until #621 the figures were UTF-16 code units reported
+    // under a byte name. Correcting the unit moved the measured total up 36
+    // bytes — 137,655 to 137,691 of 143,360 (verbose-key era) — and left the
+    // per-release figure at 1,497 of 1,600. Those figures are not comparable
+    // with the compact-era ones above.
     //
     // The per-release ceiling below (the `1_600` assertion) is the instrument.
     // It is scale-invariant: it does not move when the catalogue grows, only
