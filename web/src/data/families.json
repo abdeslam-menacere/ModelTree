@@ -1296,5 +1296,23 @@
       "tii-falcon-180b-model-card"
     ],
     "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "ai2-molmo",
+    "slug": "molmo",
+    "organizationId": "ai2",
+    "name": "Molmo",
+    "description": "Ai2's family of open vision-language models, trained on the PixMo image-text data and distinct from the text-only OLMo family. Released with Apache-2.0 weights.",
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "firstReleaseDate": "2024-09-25",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "ai2-molmo-announcement",
+      "ai2-molmo-7b-d-model-card"
+    ],
+    "verifiedAt": "2026-09-01"
   }
 ]

@@ -2034,5 +2034,24 @@
     "publisherId": "tii",
     "lastCheckedDate": "2026-09-01",
     "notes": "The model's own card. States \"Falcon-180B is a 180B parameters causal decoder-only model built by TII and trained on 3,500B tokens of RefinedWeb\" and \"It is made available under the Falcon-180B TII License\". Cited for the model architecture, parameter count and downloadable weights. States no exact context-length integer, so contextWindow is withheld."
+  },
+  {
+    "id": "ai2-molmo-announcement",
+    "url": "https://allenai.org/blog/molmo",
+    "title": "Molmo | Ai2",
+    "type": "official-announcement",
+    "publisherId": "ai2",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Ai2's own announcement of the Molmo family. States \"The most critical ingredient to the success of the Molmo family of models is PixMo, Molmo's training data\" and describes Molmo as a family of open vision-language models, distinct from the text-only OLMo family. The page is datelined \"September 25, 2024\" under the Ai2 byline; that stated date is the release date recorded at day precision. Cited as the family's primary announcement and for its date.",
+    "publishedDate": "2024-09-25"
+  },
+  {
+    "id": "ai2-molmo-7b-d-model-card",
+    "url": "https://huggingface.co/allenai/Molmo-7B-D-0924",
+    "title": "Molmo-7B-D-0924 model card",
+    "type": "model-card",
+    "publisherId": "ai2",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "The model's own card. States \"Molmo is a family of open vision-language models developed by the Allen Institute for AI\" and \"This checkpoint is a preview of the Molmo release\", and its front-matter declares \"license: apache-2.0\" and \"pipeline_tag: image-text-to-text\". Cited for the Apache-2.0 licence name, the preview lifecycle, and the image+text-to-text modalities. The release date is not taken from the \"0924\" in the checkpoint id (a name is not a source); it is taken from the dated Ai2 announcement. States no exact context-length integer, so contextWindow is withheld."
   }
 ]
