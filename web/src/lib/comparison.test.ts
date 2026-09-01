@@ -762,7 +762,7 @@ describe('comparison payload', () => {
     // project exists to do, so raising it every time it binds measures nothing
     // but how recently someone last raised it. abdeslam-menacere/ModelTree#602
     // is the decision to stop treating that raise as routine. The total is kept
-    // — 147,456 bytes shipped to /compare is a real cost on a slow connection,
+    // — 143,360 bytes shipped to /compare is a real cost on a slow connection,
     // and a page-weight ceiling is a real acceptance criterion here — but it is
     // now a ratchet with a stated stopping rule rather than a number that moves
     // on sight.
@@ -802,10 +802,11 @@ describe('comparison payload', () => {
     expect(
       size.totalBytes,
       `/compare ships ${size.totalBytes} bytes for ${payload.releases.length} releases `
-      + `(${size.bytesPerRelease}/release, budget 147,456). If the `
+      + `(${size.bytesPerRelease}/release, budget 143,360). Measured 124,410 over 83 releases at 1,499 `
+      + 'each when #584 last raised this, against 121,916 over 82 at its 7ca5802 merge-base. If the '
       + 'catalogue simply grew and the per-release figure held, raising this is a deliberate '
       + 'page-weight decision; if the per-release figure moved too, trim instead.',
-    ).toBeLessThanOrEqual(147_456);
+    ).toBeLessThanOrEqual(143_360);
   });
 
   it('ships only the sources something in the payload cites', () => {
