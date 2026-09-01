@@ -980,16 +980,28 @@ describe('comparison payload', () => {
     // row. At merge-base 356989e9, 92 rows and 10,449 bytes — JSON key names are
     // 4,876 of them (46.7%): organizationName 1,748, displayName 1,288,
     // familyName 1,196, slug 644, against 5,020 bytes of values and 553
-    // structural, the three summing to the total exactly. One-character keys buy
-    // back 3,404, landing at 7,045 (77/row, 31% under even the pre-#651 10,240);
-    // tuple rows buy back 4,876, landing at 5,573 (61/row). Both keep all four
-    // values on every row. Interning the 40 distinct organization names and 64
-    // family names buys only 379, because the repetition is in the keys and not
-    // the values — recorded so the next reader does not spend the effort finding
-    // that out again. The cheaper structural trim is therefore worth ~30 rows of
-    // growth at 113.58 bytes/row, against the 815 bytes (~7 rows) of headroom
-    // this total has left: the remedy outruns the problem by an order of
-    // magnitude, and no plausible tranche escapes it.
+    // structural, the three summing to the total exactly. Interning the 40
+    // distinct organization names and 64 family names buys only 379, because the
+    // repetition is in the keys and not the values — recorded so the next reader
+    // does not spend the effort finding that out again.
+    //
+    // #745 then spent the key-name trim the paragraph above had been holding in
+    // reserve, because the headroom it was reserved against had run out: at
+    // trunk d9c5c40, 96 rows measured 10,912 bytes, 352 B under this total —
+    // three more releases in the entire dataset, which made this guard the
+    // binding limit on all catalogue growth. One-character keys landed it at
+    // 7,360 (77/row), buying back 3,552 B = 50 rows of headroom at 76.7 B/row.
+    // All four values stayed on every row; only the labels shrank. The row shape
+    // itself is pinned by the test below, so a silent revert to long keys is
+    // caught as a shape change rather than waiting to resurface here as a total.
+    //
+    // Condition 3 therefore still does not hold, and the flat instruction stands
+    // unchanged: a further trim exists and is measured. Tuple rows
+    // [slug, name, org, family] measure 5,824 B (61/row) on this same dataset —
+    // 1,536 B and about 39 more rows beyond where #745 stopped. #745 declined it
+    // on the stated ground that positional rows fail silently when a consumer
+    // mis-indexes, not on bytes; that trade is available to whoever needs it and
+    // is the trim a raise would have to defeat first.
     //
     // Which makes the rule non-blocking, and that is the point of stating it this
     // way. A guard that names its own remedy is not an obstacle to the change
@@ -1034,17 +1046,38 @@ describe('comparison payload', () => {
       `the picker index ships ${bytes} bytes for ${index.length} releases `
       + `(${bytesPerRelease}/release, budget 11,264). Do not raise this number. `
       + 'A picker row cites no source, so trimming one drops no provenance and '
-      + 'stubs no record, and the trim is measured to outrun the growth: key names '
-      + 'are 47% of these bytes, and one-character keys buy back about 30 rows '
-      + 'against the ~7 rows of headroom this budget had. Trimming the row shape is '
-      + 'in scope for whatever change trips this guard; changing what a row carries '
-      + 'is not. A raise needs a measurement showing a trim cannot close the gap — '
-      + 'see the stopping rule above.',
+      + 'stubs no record. #745 already spent the key-name trim — one-character '
+      + 'keys took 96 rows from 10,912 bytes to 7,360 — so the trim still on the '
+      + 'table is tuple rows, measured at 5,824 on that same dataset: a further '
+      + '1,536 bytes, about 39 more rows, and still every value on every row. '
+      + 'Trimming the row shape is in scope for whatever change trips this guard; '
+      + 'changing what a row carries is not. A raise needs a measurement showing '
+      + 'a trim cannot close the gap — see the stopping rule above.',
     ).toBeLessThanOrEqual(11_264);
     for (const row of index) {
-      expect(row.displayName).toBeTruthy();
-      expect(row.organizationName).toBeTruthy();
-      expect(row.familyName).toBeTruthy();
+      expect(row.d).toBeTruthy();
+      expect(row.o).toBeTruthy();
+      expect(row.f).toBeTruthy();
+    }
+  });
+
+  it('pins the picker row to its one-character keys', () => {
+    // The budget above measures bytes, so it can only notice a revert to long
+    // key names once the catalogue has grown back into the ceiling — by which
+    // point it reads as "the dataset got too big" and invites the raise this
+    // whole block refuses. #745's saving lives entirely in the row shape, so the
+    // shape is what has to be pinned, and pinned as an exact set rather than as
+    // "every key is short": that way dropping organizationName or familyName to
+    // resolve them client-side fails here too, which is the line #659 and #745
+    // both draw between trimming the shape and changing what a row carries.
+    const index = buildComparisonPickerIndex(dataset);
+    expect(index.length).toBeGreaterThan(0);
+
+    for (const row of index) {
+      expect(
+        Object.keys(row).sort(),
+        'the picker row shape changed — see the picker budget above before widening this',
+      ).toEqual(['d', 'f', 'o', 's']);
     }
   });
 });

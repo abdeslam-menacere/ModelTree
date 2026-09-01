@@ -1646,12 +1646,27 @@ export function expandComparisonPayload(cp: CompactComparisonPayload): Compariso
   };
 }
 
-/** The picker rows, which are all a reader needs before choosing anything. */
+/** The picker rows, which are all a reader needs before choosing anything.
+ *
+ *  One-character keys, on the same terms as {@link CompactComparisonPayload}:
+ *  a key name repeats on every row while its value does not, so the four long
+ *  names cost 5,088 of the 10,912 bytes this index measured at 96 releases —
+ *  46.6%, and the whole of the difference between three and fifty releases of
+ *  headroom under the budget in comparison.test.ts. Every value the long-keyed
+ *  row carried is still on the row; only the labels shrank, which is the trim
+ *  that guard names as in scope while changing what a row carries is not.
+ *
+ *  The names live here rather than in the keys, so read this block before
+ *  consuming a row (abdeslam-menacere/ModelTree#745). */
 export interface ComparisonPickerRow {
-  slug: string;
-  displayName: string;
-  organizationName: string;
-  familyName: string;
+  /** `slug` — the release slug, which is the picker's identity for a row. */
+  s: string;
+  /** `displayName` — the release's own name. */
+  d: string;
+  /** `organizationName` — the creator label, via {@link organizationLabel}. */
+  o: string;
+  /** `familyName` — the model family's name. */
+  f: string;
 }
 
 export function buildComparisonPickerIndex(
@@ -1663,10 +1678,10 @@ export function buildComparisonPickerIndex(
   return dataset.releases.map((release) => {
     const organization = organizationById.get(release.organizationId);
     return {
-      slug: release.slug,
-      displayName: release.displayName,
-      organizationName: organization ? organizationLabel(organization) : release.organizationId,
-      familyName: familyById.get(release.familyId)?.name ?? release.familyId,
+      s: release.slug,
+      d: release.displayName,
+      o: organization ? organizationLabel(organization) : release.organizationId,
+      f: familyById.get(release.familyId)?.name ?? release.familyId,
     };
   });
 }
