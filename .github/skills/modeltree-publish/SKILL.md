@@ -232,11 +232,80 @@ system working. Report it in the summary issue and leave the pull request for a
 human — do not try to fix the data and re-push unattended, because a failing
 gate you then edit around is a bypass by another name.
 
-Once merged, `pages.yml` runs on `main`. Wait for it:
+Once merged, `pages.yml` runs on `main`. Verify **your** deploy, not the newest
+one — `cancel-in-progress: true` means a later push can cancel yours, and
+`--limit 1` returns whichever run is newest, which may belong to a different
+commit entirely.
+
+### Obtain the merge commit SHA
+
+The merge commit is what `pages.yml` runs against. Capture the **full 40-character
+SHA** — an abbreviated SHA silently returns an empty result from `gh run list
+--commit`, exit 0, indistinguishable from "no run exists". That is not a
+documentation nicety; it was measured on this repository:
+
+```
+--commit 8e8c319     -> []  exit 0   (7 chars, silent miss)
+--commit 8e8c319e    -> []  exit 0   (8 chars, silent miss)
+--commit <full 40>   -> 4 runs       (correct)
+```
+
+A fabricated 40-zero SHA also returns `[]` exit 0, so an empty result is
+**triple-ambiguous**: no run exists yet, the SHA was abbreviated, or the SHA does
+not exist. The instruction below handles that explicitly.
 
 ```bash
-gh run list --workflow=pages.yml --branch main --limit 1 --json status,conclusion,databaseId
+MERGE_SHA="$(gh pr view <number> --json mergeCommit --jq '.mergeCommit.oid')"
+printf 'Merge SHA: %s (length %d)\n' "$MERGE_SHA" "${#MERGE_SHA}"
 ```
+
+Verify the printed length is exactly 40 before proceeding. If it is not, the PR
+has not merged yet or the query failed — do not continue with a truncated SHA.
+
+### Poll for the deploy run
+
+```bash
+gh run list --workflow=pages.yml --commit "$MERGE_SHA" \
+  --json headSha,status,conclusion,databaseId
+```
+
+Interpret the result:
+
+| Result | Meaning | Action |
+|---|---|---|
+| Empty `[]` | **No run exists for this commit yet** — not "no deploy ran". The run may not have been created (creation lags the merge by a few seconds). | Wait and retry, up to **5 minutes** (10 polls at 30 s). After 5 minutes with no run appearing, report the outcome as **undetermined** — never as success and never as failure. |
+| `status: "in_progress"` | The deploy is still running. | Keep polling at 30 s intervals, up to **10 minutes** total. |
+| `status: "completed"`, `conclusion: "success"` | The deploy succeeded. | **Before recording it**, confirm that the returned `headSha` equals `$MERGE_SHA`. If it does not, the result belongs to a different commit — treat it as undetermined and report the mismatch. |
+| `status: "completed"`, `conclusion: "cancelled"` | Your deploy was cancelled by a later push (`cancel-in-progress: true` makes this a normal outcome, not an anomaly). | Report `cancelled` as its own outcome in the summary issue. A cancelled deploy is not a failure to revert, and not a success to record — the later push's deploy is the one that matters for the site. |
+| `status: "completed"`, `conclusion: "failure"` | The deploy failed. | **Revert** (see below). |
+
+### Validate the returned run
+
+The returned `headSha` **must** equal `$MERGE_SHA`. This is the field that
+distinguishes "I verified my deploy" from "I verified a deploy". Record both the
+`databaseId` and `headSha` of the verified run in the summary issue, so a later
+reader can confirm which deploy was checked.
+
+### Negative control
+
+To confirm the command itself is working — that an empty result means "no run"
+rather than "the command is broken" — run it against a commit **known to have a
+Pages run**:
+
+```bash
+# Pick any recent merge commit that deployed successfully:
+CONTROL_SHA="$(gh run list --workflow=pages.yml --branch main --limit 1 \
+  --json headSha --jq '.[0].headSha')"
+gh run list --workflow=pages.yml --commit "$CONTROL_SHA" \
+  --json headSha,status,conclusion,databaseId
+```
+
+This must return at least one run. If it returns `[]`, the command itself is
+malfunctioning — do not trust any result from it and report the deploy status as
+**undetermined**. This control works because `$CONTROL_SHA` is a full 40-char SHA
+obtained from a run that already exists; `[]` from it cannot mean "no run" and
+cannot mean "abbreviated SHA" — it can only mean the instrument is broken. That
+is the discrimination the control exists to provide.
 
 **If the deploy failed, revert.** A red `main` does not break the site, it
 freezes it on the previous build — stale content, healthy appearance, no signal
