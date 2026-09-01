@@ -2030,7 +2030,7 @@
     "url": "https://huggingface.co/allenai/Molmo-7B-D-0924",
     "title": "Molmo-7B-D-0924 model card",
     "type": "model-card",
-    "publisherId": "hugging-face",
+    "publisherId": "ai2",
     "lastCheckedDate": "2026-09-01",
     "notes": "The model's own card. States \"Molmo is a family of open vision-language models developed by the Allen Institute for AI\" and \"This checkpoint is a preview of the Molmo release\", and its front-matter declares \"license: apache-2.0\" and \"pipeline_tag: image-text-to-text\". The checkpoint's own version identifier is \"Molmo-7B-D-0924\", the \"0924\" naming the 24 September 2024 build, which is what the day-precision release date rests on. Cited for the Apache-2.0 licence name, the preview lifecycle, the image+text-to-text modalities, and the dated checkpoint. States no exact context-length integer, so contextWindow is withheld."
   },
@@ -2049,7 +2049,7 @@
     "url": "https://huggingface.co/tiiuae/falcon-180B",
     "title": "Falcon-180B model card",
     "type": "model-card",
-    "publisherId": "hugging-face",
+    "publisherId": "tii",
     "lastCheckedDate": "2026-09-01",
     "notes": "The model's own card. States \"Falcon-180B is a 180B parameters causal decoder-only model built by TII and trained on 3,500B tokens of RefinedWeb\" and \"It is made available under the Falcon-180B TII License\". Cited for the model architecture, parameter count and downloadable weights. States no exact context-length integer, so contextWindow is withheld."
   },
