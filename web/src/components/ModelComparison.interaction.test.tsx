@@ -13,7 +13,7 @@ import {
   COMPARISON_TODAY,
   comparisonFixtures,
 } from '../../tests/fixtures/comparison-dataset';
-import { MAX_COMPARISON_MODELS } from '../lib/comparison';
+import { compactComparisonPayload, MAX_COMPARISON_MODELS } from '../lib/comparison';
 import ModelComparison from './ModelComparison';
 
 const ROUTE = '/ModelTree/compare/';
@@ -21,7 +21,7 @@ const ROUTE = '/ModelTree/compare/';
 function renderComparison() {
   return render(
     <ModelComparison
-      dataset={comparisonFixtures}
+      dataset={compactComparisonPayload(comparisonFixtures)}
       initialSlugs={[]}
       base={COMPARISON_BASE}
       today={COMPARISON_TODAY}

@@ -13,16 +13,18 @@ import { dataset } from '../data/dataset';
 import {
   buildComparisonPayload,
   buildModelComparison,
+  compactComparisonPayload,
   MAX_COMPARISON_MODELS,
   NO_RANKING_NOTE,
   VALUE_STATE_LABELS,
+  type CompactComparisonPayload,
   type ComparisonDataset,
 } from '../lib/comparison';
 import ModelComparison from './ModelComparison';
 
 const renderWith = (data: ComparisonDataset, slugs: string[], today = COMPARISON_TODAY) =>
   renderToStaticMarkup(
-    <ModelComparison dataset={data} initialSlugs={slugs} base={COMPARISON_BASE} today={today} />,
+    <ModelComparison dataset={compactComparisonPayload(data)} initialSlugs={slugs} base={COMPARISON_BASE} today={today} />,
   );
 
 /** Counts real matches, so a zero elsewhere reads as absence and not a dead probe. */
