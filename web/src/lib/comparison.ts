@@ -1483,9 +1483,21 @@ export function buildComparisonPayload(dataset: ComparisonDataset): ComparisonDa
   };
 }
 
-/** Bytes the payload would add to the page, for the budget check. */
+/**
+ * Bytes the payload would add to the page, for the budget check.
+ *
+ * UTF-8 bytes — what the page actually transfers — and not `String.length`,
+ * which counts UTF-16 code units and understates every non-ASCII character by
+ * one to two bytes (#621). The two agree only for pure ASCII, so a code-unit
+ * count reads progressively lower as the catalogue internationalizes: exactly
+ * the direction this project is growing, which is what made the wrong unit
+ * worth correcting while the correction was still free. Matches the form used
+ * by the sibling guards in `catalog.ts`, `homepage-search.ts` and `updates.ts`;
+ * `TextEncoder` rather than `Buffer.byteLength` because this module is not
+ * Node-only.
+ */
 export function measureComparisonPayload(payload: ComparisonDataset) {
-  const totalBytes = JSON.stringify(payload).length;
+  const totalBytes = new TextEncoder().encode(JSON.stringify(payload)).length;
   return {
     totalBytes,
     releaseCount: payload.releases.length,
