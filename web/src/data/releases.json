@@ -4501,5 +4501,140 @@
       "osi-approved-licenses"
     ],
     "verifiedAt": "2026-08-31"
+  },
+  {
+    "id": "ai2-molmo-7b-d",
+    "slug": "molmo-7b-d",
+    "canonicalName": "Molmo-7B-D-0924",
+    "displayName": "Molmo 7B-D",
+    "organizationId": "ai2",
+    "familyId": "ai2-molmo",
+    "version": "0924",
+    "variant": "7B-D",
+    "releaseDate": "2024-09-24",
+    "datePrecision": "day",
+    "status": "preview",
+    "featured": false,
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://huggingface.co/allenai/Molmo-7B-D-0924",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Ai2's open vision-language model based on Qwen2-7B with an OpenAI CLIP vision backbone, trained on the PixMo image-text data. Released as a preview checkpoint under Apache-2.0.",
+    "intendedUse": "Open multimodal research: describing images and answering questions about them. The model card marks this checkpoint a preview of the Molmo release.",
+    "sourceIds": [
+      "ai2-molmo-announcement",
+      "ai2-molmo-7b-d-model-card",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "tii-falcon-180b",
+    "slug": "falcon-180b",
+    "canonicalName": "Falcon-180B",
+    "displayName": "Falcon 180B",
+    "organizationId": "tii",
+    "familyId": "tii-falcon-180b",
+    "version": "1",
+    "variant": "Base",
+    "releaseDate": "2023-09-06",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Falcon 180B TII License",
+      "url": "https://huggingface.co/tiiuae/falcon-180B",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 180
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "TII's 180-billion-parameter causal decoder-only model, trained on 3.5 trillion tokens of RefinedWeb and released as downloadable weights under the Falcon 180B TII License.",
+    "intendedUse": "A raw pretrained foundation model for research and commercial use, recommended for further finetuning. Context length not stated as an exact integer on the cited primary sources, so it is withheld.",
+    "sourceIds": [
+      "tii-falcon-180b-announcement",
+      "tii-falcon-180b-model-card",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "databricks-dolly-v2-12b",
+    "slug": "dolly-v2-12b",
+    "canonicalName": "dolly-v2-12b",
+    "displayName": "Dolly 2.0 (12B)",
+    "organizationId": "databricks",
+    "familyId": "databricks-dolly",
+    "version": "2.0",
+    "variant": "12B",
+    "releaseDate": "2023-04-12",
+    "datePrecision": "day",
+    "status": "legacy",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://github.com/databrickslabs/dolly/blob/master/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 12
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Databricks' 12-billion-parameter instruction-following model, built on EleutherAI's Pythia and fine-tuned on the human-generated databricks-dolly-15k dataset. Open-sourced with weights, code and data suitable for commercial use.",
+    "intendedUse": "Open instruction following: brainstorming, content generation, extraction and summarization. Databricks describes it as a technical and research artifact not expected to be state-of-the-art.",
+    "sourceIds": [
+      "databricks-dolly-2-announcement",
+      "databricks-dolly-repository-license",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-09-01"
   }
 ]

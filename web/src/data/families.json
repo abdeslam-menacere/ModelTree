@@ -1278,5 +1278,59 @@
       "ibm-granite-4-0-h-small-model-card"
     ],
     "verifiedAt": "2026-08-31"
+  },
+  {
+    "id": "ai2-molmo",
+    "slug": "molmo",
+    "organizationId": "ai2",
+    "name": "Molmo",
+    "description": "Ai2's family of open vision-language models, trained on the PixMo image-text data and distinct from the text-only OLMo family. Released with Apache-2.0 weights.",
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "firstReleaseDate": "2024-09-24",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "ai2-molmo-announcement",
+      "ai2-molmo-7b-d-model-card"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "tii-falcon-180b",
+    "slug": "falcon-180b",
+    "organizationId": "tii",
+    "name": "Falcon 180B",
+    "description": "TII's 180-billion-parameter causal decoder-only language model, trained on 3.5 trillion tokens of RefinedWeb and released under the Falcon 180B TII License. A distinct earlier family from the hybrid-architecture Falcon-H1.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2023-09-06",
+    "datePrecision": "day",
+    "status": "legacy",
+    "sourceIds": [
+      "tii-falcon-180b-announcement",
+      "tii-falcon-180b-model-card"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "databricks-dolly",
+    "slug": "dolly",
+    "organizationId": "databricks",
+    "name": "Dolly",
+    "description": "Databricks' family of open, instruction-following language models fine-tuned on the human-generated databricks-dolly-15k dataset. Dolly 2.0 is built on EleutherAI's Pythia and released under Apache-2.0, distinct from the later mixture-of-experts DBRX family.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2023-04-12",
+    "datePrecision": "day",
+    "status": "legacy",
+    "sourceIds": [
+      "databricks-dolly-2-announcement",
+      "databricks-dolly-repository-license"
+    ],
+    "verifiedAt": "2026-09-01"
   }
 ]

@@ -2015,5 +2015,61 @@
     "publisherId": "ibm",
     "lastCheckedDate": "2026-08-31",
     "notes": "IBM’s card for Granite-4.0-H-Tiny, a different document from the H-Small card and the one the family’s first release date is taken from: it states \"- **Release Date**: October 2nd, 2025\" in its own right, so the family date does not rest on the release it is paired with. Also states \"Granite-4.0-H-Tiny is a 7B parameter long-context instruct model finetuned from *Granite-4.0-H-Tiny-Base*\". As on the H-Small card, the only context figure sits in an HTML table whose columns are not mapped in text, so none is recorded. Card text read 2026-08-31 from https://huggingface.co/ibm-granite/granite-4.0-h-tiny/raw/main/README.md, the same document this page renders."
+  },
+  {
+    "id": "ai2-molmo-announcement",
+    "url": "https://allenai.org/blog/molmo",
+    "title": "Molmo | Ai2",
+    "type": "official-announcement",
+    "publisherId": "ai2",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Ai2's own announcement of the Molmo family. States \"The most critical ingredient to the success of the Molmo family of models is PixMo, Molmo's training data\" and describes Molmo as a family of open vision-language models, distinct from the text-only OLMo family. Cited as the family's primary announcement."
+  },
+  {
+    "id": "ai2-molmo-7b-d-model-card",
+    "url": "https://huggingface.co/allenai/Molmo-7B-D-0924",
+    "title": "Molmo-7B-D-0924 model card",
+    "type": "model-card",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "The model's own card. States \"Molmo is a family of open vision-language models developed by the Allen Institute for AI\" and \"This checkpoint is a preview of the Molmo release\", and its front-matter declares \"license: apache-2.0\" and \"pipeline_tag: image-text-to-text\". The checkpoint's own version identifier is \"Molmo-7B-D-0924\", the \"0924\" naming the 24 September 2024 build, which is what the day-precision release date rests on. Cited for the Apache-2.0 licence name, the preview lifecycle, the image+text-to-text modalities, and the dated checkpoint. States no exact context-length integer, so contextWindow is withheld."
+  },
+  {
+    "id": "tii-falcon-180b-announcement",
+    "url": "https://www.atrc.gov.ae/news/technology-innovation-institute-introduces-worlds-most-powerful-open-llm-falcon-180b",
+    "title": "Technology Innovation Institute Introduces World's Most Powerful Open LLM Falcon-180B",
+    "type": "official-announcement",
+    "publisherId": "tii",
+    "publishedDate": "2023-09-06",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "TII/ATRC's own announcement, datelined \"Abu Dhabi-UAE: 06 September, 2023\". States \"the launch of Falcon 180B, an advanced iteration of its flagship large language model (LLM)\", that it is \"trained on 3.5 trillion tokens\" with \"180 billion parameters\", \"Open Access for Researchers and Commercial Users\", and that \"The licensing framework for the model is established on 'Falcon 180B TII License', which is based upon Apache 2.0\". Cited for the release date, parameter count, access, and licence name."
+  },
+  {
+    "id": "tii-falcon-180b-model-card",
+    "url": "https://huggingface.co/tiiuae/falcon-180B",
+    "title": "Falcon-180B model card",
+    "type": "model-card",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "The model's own card. States \"Falcon-180B is a 180B parameters causal decoder-only model built by TII and trained on 3,500B tokens of RefinedWeb\" and \"It is made available under the Falcon-180B TII License\". Cited for the model architecture, parameter count and downloadable weights. States no exact context-length integer, so contextWindow is withheld."
+  },
+  {
+    "id": "databricks-dolly-2-announcement",
+    "url": "https://www.databricks.com/blog/2023/04/12/dolly-first-open-commercially-viable-instruction-tuned-llm",
+    "title": "Free Dolly: Introducing the World's First Truly Open Instruction-Tuned LLM",
+    "type": "official-announcement",
+    "publisherId": "databricks",
+    "publishedDate": "2023-04-12",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Databricks' own announcement. States \"Today, we're releasing Dolly 2.0 ... the first open source, instruction-following LLM, fine-tuned on a human-generated instruction dataset licensed for research and commercial use\", that \"Dolly 2.0 is a 12B parameter language model based on the EleutherAI pythia model family\", and that Databricks is \"open-sourcing the entirety of Dolly 2.0, including the training code, the dataset, and the model weights, all suitable for commercial use\". Cited for the release date, parameter count, lineage, and open-weight access."
+  },
+  {
+    "id": "databricks-dolly-repository-license",
+    "url": "https://github.com/databrickslabs/dolly/blob/master/LICENSE",
+    "title": "databrickslabs/dolly LICENSE",
+    "type": "repository",
+    "publisherId": "databricks",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "The Dolly source repository's LICENSE file, which reads \"Apache License Version 2.0, January 2004\". Cited for the Apache-2.0 licence name governing the released model and code."
   }
 ]
