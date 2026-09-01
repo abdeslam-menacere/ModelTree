@@ -66,6 +66,80 @@
 // and `base-path.test.ts`. Those files keep their own numbers: a per-test
 // budget still overrides this one, which is the point of having both.
 //
+// -- Is this file actually doing anything? --
+//
+// Runs A-D were driven by a harness that spawned vitest directly and set each
+// budget on the CLI: `--testTimeout=120000` for run C, a pool option for run D.
+// Runs A and B sat at 5000 ms because when they ran this file did not yet exist
+// and vitest fell back to its shipped default. That table is therefore evidence
+// about *values* and none at all about *this file*: an inert config that vitest
+// never reads produces the same four rows. The first review of this change made
+// exactly that objection, and it was right to.
+//
+// So the file is checked directly, through the command the repository actually
+// runs. `npm run test` calls `scripts/run-tests.mjs`, whose FULL_RUN_ARGS are
+// frozen at `run --reporter=default --reporter=json
+// --outputFile=.vitest/report.json` -- no `--config`, no timeout flag. This file
+// is the only surface in that process that can set a timeout, so any change in
+// behaviour is attributable to it and to nothing else.
+//
+//   control  this file said                   result of `npm run test`
+//   -------  -------------------------------  ------------------------------
+//   R1       testTimeout 1, hookTimeout 30 s  RED, exit 1. 975 x "Test timed
+//                                             out in 1ms", 0 hook timeouts.
+//                                             110 of 114 files fail.
+//   R2       testTimeout 30 s, hookTimeout 1  RED, exit 1. 40 x "Hook timed
+//                                             out in 1ms", 0 test timeouts.
+//                                             24 of 114 files fail.
+//   G1       30 s / 30 s, exactly as shipped  GREEN, exit 0. 114/114 files,
+//                                             2540/2540 tests, no timeouts.
+//
+// The controls are crossed deliberately: each key moves its own signature and
+// only its own, and the absurd value comes back verbatim in the failure text. A
+// file that cannot make this suite fail when it says 1 ms is a file nothing is
+// reading, so the red runs are what let the green one mean anything.
+//
+// (Four files survive R1. Three of them -- `asset-budgets`, `base-path`,
+// `ci-preflight` -- carry their own budgets, which override this one. The
+// fourth, `pages-deploy.test.ts`, contains no `await` at all, so its 13 tests
+// are synchronous and no timeout can fire on them.)
+//
+// -- The shipped value, run repeatedly --
+//
+// One green run does not establish stability for a change whose whole purpose is
+// stability, and this failure is intermittent by definition. So the shipped
+// configuration was run four more times under the same eight-hog load that
+// produced run B's 14 failures:
+//
+//   run  wall     files    tests      timeouts  worst default-governed test
+//   ---  -------  -------  ---------  --------  ---------------------------
+//   L1   312.1 s  114/114  2540/2540  none      8441 ms (28.1% of budget)
+//   L2   272.7 s  114/114  2540/2540  none      9156 ms (30.5%)
+//   L3   273.5 s  114/114  2540/2540  none      8526 ms (28.4%)
+//   L4   347.6 s  114/114  2540/2540  none      7508 ms (25.0%)
+//
+// N = 4, all green, none discarded and none re-rolled. Wall clock stays in run
+// B's range (292 s), so the value is not buying green by making the suite
+// slower: it is the same work, no longer being killed part way through.
+//
+// The load-bearing observation is not that these passed. It is that 15 to 18
+// default-governed tests per run exceeded 5000 ms -- 18 distinct tests in all,
+// every one a test the inherited default would have killed. By number of
+// over-5 s observations across the four runs:
+//
+//   32  src/components/LineageModelDrawer.interaction.test.tsx   peak 7608 ms
+//   19  scripts/verify-test-coverage.test.ts                     peak 9156 ms
+//   16  src/components/ModelTreeExplorer.interaction.test.tsx    peak 8162 ms
+//
+// The first is the exact test issues #517 and #744 orbit, reported timing out at
+// 5000 ms and once seen at 5224 ms; eight of its tests ran over 5 s in all four
+// runs here. That is the failure this value prevents, observed rather than
+// inferred from run C's single sample.
+//
+// The worst test observed at the shipped value used 30.5% of it. The worst
+// across every measurement here is still run C's 11753 ms, or 39% of 30 s. The
+// margin is real, and it is not enormous.
+//
 // -- Why the worker pool is not capped here --
 //
 // Issue #720 proposed a pool cap as the more honest lever, reasoning that a
@@ -97,7 +171,8 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    // Per test. Justified above against runs A and C.
+    // Per test. Sized above against runs A and C, shown to be live by control
+    // R1, and exercised at this exact value in G1 and L1-L4.
     testTimeout: 30_000,
     // Per hook, and the same number for the same reason: the `beforeEach` in
     // these suites renders the same jsdom trees the bodies do, so a budget that
@@ -105,7 +180,9 @@ export default defineConfig({
     // any run above -- this is the other half of one decision rather than a fix
     // for a failure, and leaving it at its own unchosen 10 s default would
     // reproduce this issue one layer down the first time a hook does what run C
-    // measured a body doing.
+    // measured a body doing. Control R2 shows the key is live rather than
+    // decorative: set to 1 ms it fails 24 files with 40 hook timeouts, so this
+    // is an unexercised value but not an unread one.
     hookTimeout: 30_000,
   },
 });
