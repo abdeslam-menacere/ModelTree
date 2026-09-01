@@ -1278,5 +1278,81 @@
       "ibm-granite-4-0-h-small-model-card"
     ],
     "verifiedAt": "2026-08-31"
+  },
+  {
+    "id": "kyutai-moshi",
+    "slug": "moshi",
+    "organizationId": "kyutai",
+    "name": "Moshi",
+    "description": "Kyutai's speech-text foundation model and full-duplex spoken dialogue framework, described on its own model card as \"a speech-text foundation model and full-duplex spoken dialogue framework\" and as \"the first real-time full-duplex spoken large language model, with a theoretical latency of 160ms, 200ms in practice\".",
+    "categories": [
+      "audio-speech"
+    ],
+    "firstReleaseDate": "2024-09-11",
+    "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
+    "status": "research",
+    "sourceIds": [
+      "kyutai-moshiko-pytorch-bf16-model-card",
+      "hugging-face-kyutai-moshiko-pytorch-bf16-hub-record"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "lelapa-ai-inkubalm",
+    "slug": "inkubalm",
+    "organizationId": "lelapa-ai",
+    "name": "InkubaLM",
+    "description": "Lelapa AI's small language model family for African languages. Its card describes InkubaLM as a \"Small Language Model (SLM) for five African languages\" and records that it \"has been trained from scratch using 1.9 billion tokens of data for five African languages\".",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2024-05-11",
+    "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
+    "status": "unknown",
+    "sourceIds": [
+      "lelapa-ai-inkubalm-0-4b-model-card",
+      "hugging-face-lelapa-inkubalm-0-4b-hub-record"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "maritaca-ai-sabia",
+    "slug": "sabia",
+    "organizationId": "maritaca-ai",
+    "name": "Sabiá",
+    "description": "Maritaca AI's Portuguese-language model family. Maritaca AI's own site states \"Sabiá models are specialized in Portuguese and Brazilian contexts\", and the Sabiá-7B card records \"Sabiá-7B is Portuguese language model developed by Maritaca AI\". The open-weight Sabiá-7B checkpoint is the member recorded here.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2023-11-08",
+    "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
+    "status": "unknown",
+    "sourceIds": [
+      "maritaca-ai-sabia-7b-model-card",
+      "hugging-face-maritaca-ai-sabia-7b-hub-record",
+      "maritaca-ai-about"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "openbmb-minicpm5",
+    "slug": "minicpm5",
+    "organizationId": "openbmb",
+    "name": "MiniCPM5",
+    "description": "OpenBMB's fifth MiniCPM generation of on-device language models. Its MiniCPM repository announces \"[2026.05.19] MiniCPM5-1B is released\", and the MiniCPM5-1B card records that the model \"is the first checkpoint in the MiniCPM5 series\".",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2026-05-19",
+    "datePrecision": "day",
+    "status": "unknown",
+    "sourceIds": [
+      "openbmb-minicpm-repository",
+      "openbmb-minicpm5-1b-model-card"
+    ],
+    "verifiedAt": "2026-09-01"
   }
 ]
