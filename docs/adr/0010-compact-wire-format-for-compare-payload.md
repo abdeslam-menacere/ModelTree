@@ -51,9 +51,13 @@ Introduce a compact wire format for the `/compare` payload:
 4. `measureComparisonPayload` measures the compact form, because that is what
    the page actually transfers.
 
-The key maps are explicit constants in `comparison.ts`, one per section, so a
-forgotten field is a test failure (the expanded dataset would be missing a field
-the comparison builder reads).
+The key maps are explicit constants in `comparison.ts`, one per section. A
+forgotten entry passes the unmapped key through under its long name (the
+`rekey` function uses `map[key] ?? key`), which round-trips cleanly and would
+be invisible without a dedicated guard. A test ("compacts every key — no long
+key survives in the wire format") asserts that every key in the compact output
+is a single character, so a missing entry surfaces as a test failure rather
+than a silent pass-through.
 
 ## Consequences
 
@@ -74,9 +78,10 @@ the comparison builder reads).
 ### Costs
 
 - **Maintenance: the key maps must stay in sync with the types.** Adding a field
-  to `ComparisonRelease` requires adding it to `RELEASE_KEY_TO_SHORT`. A
-  forgotten entry causes a test failure, so the cost is a compile-time reminder,
-  not a silent bug.
+  to `ComparisonRelease` requires adding it to `RELEASE_KEY_TO_SHORT`. The
+  `rekey` function passes an unmapped key through under its long name, so a
+  missing entry is silent at runtime; a test ("compacts every key") catches it
+  by asserting every compact-form key is a single character.
 - **Debugging shipped HTML is slightly harder.** The serialized JSON uses
   single-character keys. `expandComparisonPayload` is available in dev tools
   for inspection, and the key maps are documented inline.
@@ -115,10 +120,14 @@ the comparison builder reads).
 - **Key maps are the single source of truth.** The compact and expand functions
   derive their reverse maps mechanically (via `invert`), so a one-sided change
   is not possible.
-- **The round-trip is tested.** The existing test "builds the same comparison
-  from the payload as from the whole dataset" exercises the full path through
-  compact → expand → build comparison view, so a mapping error would surface
-  as a test failure.
+- **The round-trip is tested.** A dedicated assertion
+  `expandComparisonPayload(compactComparisonPayload(payload)).toEqual(payload)`
+  runs over the real dataset so that a field present in the live data but absent
+  from a key map surfaces as a structural mismatch rather than passing silently.
+- **Key-map completeness is tested.** A second assertion verifies that every key
+  in the compact output is a single character. Because `rekey` passes unmapped
+  keys through under their long name, a missing map entry would produce a
+  multi-character key and fail this test. Without it, the pass-through is silent.
 - **This does not widen the ADR 0003 qualifying class.** A code change to the
   serialization boundary is outside that class and takes the ordinary reviewed
   path.

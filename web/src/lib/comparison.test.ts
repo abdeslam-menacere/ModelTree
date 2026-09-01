@@ -16,6 +16,7 @@ import {
   compactComparisonPayload,
   compareRoute,
   compareUrl,
+  expandComparisonPayload,
   measureComparisonPayload,
   parseComparisonSelection,
   removeFromComparison,
@@ -778,8 +779,14 @@ describe('comparison payload', () => {
     const codeUnits = JSON.stringify(compact).length;
     const measured = measureComparisonPayload(fixture).totalBytes;
 
-    // The compact form has shorter keys but the same non-ASCII content.
-    // The 10-byte difference between UTF-8 and UTF-16 is preserved.
+    expect(codeUnits).toBe(153);
+    expect(measured).toBe(163);
+    // Asserted as a difference as well as an absolute. The absolute pins the
+    // exact byte length of the compact fixture; the difference is the part a
+    // reader can re-derive from the table above without running anything, and
+    // it is what a revert to `JSON.stringify(...).length` drives to zero.
+    // Anyone "simplifying" this measurement back fails here rather than
+    // quietly under-reporting.
     expect(measured - codeUnits).toBe(10);
     expect(measured).toBeGreaterThan(codeUnits);
   });
@@ -857,9 +864,10 @@ describe('comparison payload', () => {
       size.totalBytes,
       `/compare ships ${size.totalBytes} UTF-8 bytes for ${payload.releases.length} releases `
       + `(${size.bytesPerRelease}/release, budget 143,360). The #584-era anchors — 124,410 over 83 `
-      + 'releases at 1,499 each, against 121,916 over 82 at its 7ca5802 merge-base — are UTF-16 '
-      + 'code-unit counts taken before #621 corrected the unit, so they read low by about 0.03% and '
-      + 'are not strictly comparable with the figure above. If the '
+      + 'releases at 1,499 each, against 121,916 over 82 at its 7ca5802 merge-base — are '
+      + 'verbose-key UTF-16 code-unit counts taken before #621 corrected the unit and #726 '
+      + 'compacted the keys, so they differ in both unit and key format and are not comparable '
+      + 'with the figure above. If the '
       + 'catalogue simply grew and the per-release figure held, raising this is a deliberate '
       + 'page-weight decision; if the per-release figure moved too, trim instead.',
     ).toBeLessThanOrEqual(143_360);
@@ -887,6 +895,43 @@ describe('comparison payload', () => {
       const slugs = [seedSlugs[index]!, seedSlugs[index + 1]!];
       expect(JSON.stringify(buildModelComparison(payload, slugs, seedBase, today)))
         .toBe(JSON.stringify(buildModelComparison(dataset, slugs, seedBase, today)));
+    }
+  });
+
+  it('round-trips the real dataset through compact and expand without loss', () => {
+    // expandComparisonPayload must invert compactComparisonPayload exactly.
+    // Tested over the live dataset so that a key-map entry omitted from any
+    // section — including sections added after this test was written — surfaces
+    // here rather than silently passing through under its long name.
+    const roundTripped = expandComparisonPayload(compactComparisonPayload(payload));
+    expect(roundTripped).toEqual(payload);
+  });
+
+  it('compacts every key — no long key survives in the wire format', () => {
+    // The rekey function passes unmapped keys through under their long name.
+    // That makes a missing key-map entry a silent pass-through, not a failure,
+    // which is the opposite of what the guardrail claims. This test closes the
+    // gap: it verifies that every key in the compact form is a single character,
+    // so a forgotten map entry shows up as a multi-character key in the output.
+    const compact = compactComparisonPayload(payload);
+    const sections: [string, Record<string, unknown>[]][] = [
+      ['R (releases)', compact.R],
+      ['S (sources)', compact.S],
+      ['P (publishers)', compact.P],
+      ['O (organizations)', compact.O],
+      ['F (families)', compact.F],
+      ['T (servingPlatforms)', compact.T],
+      ['D (deployments)', compact.D],
+      ['X (pricing)', compact.X],
+      ['B (benchmarks)', compact.B],
+      ['E (benchmarkResults)', compact.E],
+    ];
+    for (const [label, records] of sections) {
+      for (const record of records) {
+        for (const key of Object.keys(record)) {
+          expect(key, `unmapped key "${key}" in ${label}`).toHaveLength(1);
+        }
+      }
     }
   });
 

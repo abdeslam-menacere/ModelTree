@@ -1511,7 +1511,7 @@ export function measureComparisonPayload(payload: ComparisonDataset) {
 // ---------------------------------------------------------------------------
 // Compact wire format. The /compare page ships the entire catalogue as JSON,
 // so key names repeat once per record. Shortening them to single characters
-// trims ~23 kB without dropping a single cited source or value — purely
+// trims ~25.8 kB without dropping a single cited source or value — purely
 // structural overhead. compactComparisonPayload produces the short-key form
 // that Astro serializes; expandComparisonPayload restores it on hydration.
 // ---------------------------------------------------------------------------
