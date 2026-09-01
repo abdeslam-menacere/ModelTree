@@ -140,6 +140,33 @@
 // across every measurement here is still run C's 11753 ms, or 39% of 30 s. The
 // margin is real, and it is not enormous.
 //
+// -- Corroboration from CI, on hardware none of the above used --
+//
+// Every measurement above was taken on one 8-core Windows workstation under
+// synthetic load, which is a stand-in for a shared machine rather than a
+// measurement of CI. That gap has since been closed from the other side:
+// `ModelTreeExplorer.interaction.test.tsx` failed Web CI on `main` at 5073 ms
+// against the inherited default -- a 1.5% overshoot -- and then passed on a
+// re-run of the identical SHA.
+//
+// Two things follow, and it is worth keeping them apart.
+//
+// It confirms the shape of the problem. A failure that reverses on a re-run of
+// the same commit is not a defect in the test, because nothing about the test
+// changed between the two runs; and this is the second file to do it, after the
+// `LineageModelDrawer` of #517. So the inherited 5000 ms is tight against a
+// *class* of interaction tests rather than against one slow outlier, which is
+// what this file's existence turns on. The same file shows 16 over-5 s
+// observations in the loaded runs above, peaking at 8162 ms, so the two
+// platforms agree about which tests sit near the line.
+//
+// It does not size the budget, and must not be read as doing so. A 5073 ms
+// observation justifies "more than 5000 ms" and nothing beyond it; sizing from
+// it would produce about 6 s, and would be the precise error this file refuses
+// elsewhere -- fitting a number to the failures that happen to have been seen.
+// The 30 s above comes from the uncensored distribution in run C and the four
+// loaded runs, and it would stand unchanged had this CI failure never occurred.
+//
 // -- Why the worker pool is not capped here --
 //
 // Issue #720 proposed a pool cap as the more honest lever, reasoning that a
