@@ -900,9 +900,11 @@ describe('comparison payload', () => {
 
   it('round-trips the real dataset through compact and expand without loss', () => {
     // expandComparisonPayload must invert compactComparisonPayload exactly.
-    // Tested over the live dataset so that a key-map entry omitted from any
-    // section — including sections added after this test was written — surfaces
-    // here rather than silently passing through under its long name.
+    // This test proves losslessness — data survives the round trip unchanged —
+    // and catches collisions in the key maps (e.g. two long keys mapped to the
+    // same short key). It does NOT catch a missing key-map entry: rekey uses
+    // map[key] ?? key, so an unmapped key passes through under its long name
+    // and round-trips perfectly. That gap is covered by "compacts every key".
     const roundTripped = expandComparisonPayload(compactComparisonPayload(payload));
     expect(roundTripped).toEqual(payload);
   });
@@ -910,26 +912,15 @@ describe('comparison payload', () => {
   it('compacts every key — no long key survives in the wire format', () => {
     // The rekey function passes unmapped keys through under their long name.
     // That makes a missing key-map entry a silent pass-through, not a failure,
-    // which is the opposite of what the guardrail claims. This test closes the
-    // gap: it verifies that every key in the compact form is a single character,
-    // so a forgotten map entry shows up as a multi-character key in the output.
+    // so this test is the sole guard against omitted entries. It verifies that
+    // every key in the compact form is a single character. The section list is
+    // derived from the compact output itself so that an added section cannot
+    // silently escape coverage.
     const compact = compactComparisonPayload(payload);
-    const sections: [string, Record<string, unknown>[]][] = [
-      ['R (releases)', compact.R],
-      ['S (sources)', compact.S],
-      ['P (publishers)', compact.P],
-      ['O (organizations)', compact.O],
-      ['F (families)', compact.F],
-      ['T (servingPlatforms)', compact.T],
-      ['D (deployments)', compact.D],
-      ['X (pricing)', compact.X],
-      ['B (benchmarks)', compact.B],
-      ['E (benchmarkResults)', compact.E],
-    ];
-    for (const [label, records] of sections) {
-      for (const record of records) {
+    for (const [sectionKey, records] of Object.entries(compact)) {
+      for (const record of records as Record<string, unknown>[]) {
         for (const key of Object.keys(record)) {
-          expect(key, `unmapped key "${key}" in ${label}`).toHaveLength(1);
+          expect(key, `unmapped key "${key}" in section ${sectionKey}`).toHaveLength(1);
         }
       }
     }

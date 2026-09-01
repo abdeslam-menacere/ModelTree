@@ -122,12 +122,17 @@ than a silent pass-through.
   is not possible.
 - **The round-trip is tested.** A dedicated assertion
   `expandComparisonPayload(compactComparisonPayload(payload)).toEqual(payload)`
-  runs over the real dataset so that a field present in the live data but absent
-  from a key map surfaces as a structural mismatch rather than passing silently.
-- **Key-map completeness is tested.** A second assertion verifies that every key
-  in the compact output is a single character. Because `rekey` passes unmapped
-  keys through under their long name, a missing map entry would produce a
-  multi-character key and fail this test. Without it, the pass-through is silent.
+  runs over the real dataset and proves losslessness: data survives the round
+  trip unchanged. It catches key-map collisions (two long keys mapped to the
+  same short key) but does **not** catch a missing entry, because `rekey` passes
+  unmapped keys through under their long name and they round-trip perfectly.
+- **Key-map completeness is tested separately.** A second assertion verifies
+  that every key in the compact output is a single character, which is the sole
+  guard against omitted entries. The section list is derived from the compact
+  output itself so that an added section cannot silently escape coverage.
+  Because `rekey` passes unmapped keys through under their long name, a missing
+  map entry would produce a multi-character key and fail this test. Without it,
+  the pass-through is silent.
 - **This does not widen the ADR 0003 qualifying class.** A code change to the
   serialization boundary is outside that class and takes the ordinary reviewed
   path.
