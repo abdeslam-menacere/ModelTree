@@ -1649,12 +1649,21 @@ export function expandComparisonPayload(cp: CompactComparisonPayload): Compariso
 /** The picker rows, which are all a reader needs before choosing anything.
  *
  *  One-character keys, on the same terms as {@link CompactComparisonPayload}:
- *  a key name repeats on every row while its value does not, so the four long
- *  names cost 5,088 of the 10,912 bytes this index measured at 96 releases —
- *  46.6%, and the whole of the difference between three and fifty releases of
- *  headroom under the budget in comparison.test.ts. Every value the long-keyed
- *  row carried is still on the row; only the labels shrank, which is the trim
- *  that guard names as in scope while changing what a row carries is not.
+ *  a key name repeats on every row while its value does not, so at 96 releases
+ *  the four long names cost 5,088 of this index's 10,912 bytes — 46.6%, and the
+ *  guard's own "47%".
+ *
+ *  Shortening the names is not the same as removing them, and the two numbers
+ *  are easy to run together: a row still pays `"s":`, `"d":`, `"o":` and `"f":`,
+ *  which is 1,536 bytes of that 5,088. So this change recovered the other
+ *  3,552 — landing at 7,360 bytes, and buying the difference between three and
+ *  fifty releases of headroom under the budget in comparison.test.ts. The full
+ *  5,088 is what tuple rows would recover, and they are not what this is; that
+ *  option and the reason it was declined are recorded beside the budget.
+ *
+ *  Every value the long-keyed row carried is still on the row; only the labels
+ *  shrank, which is the trim that guard names as in scope while changing what a
+ *  row carries is not.
  *
  *  The names live here rather than in the keys, so read this block before
  *  consuming a row (abdeslam-menacere/ModelTree#745). */
