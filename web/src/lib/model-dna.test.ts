@@ -10,7 +10,13 @@
  * - the order is the constant's order, checked against every release in the
  *   shipped dataset, not just a fixture;
  * - an unrecorded dimension keeps its place and says so, checked on a release
- *   that genuinely has no licence record.
+ *   that genuinely has no licence record, and on one whose gap falls in the
+ *   middle of the constant rather than at its end.
+ *
+ * The visible label text is the one deliberate exception to "checked against
+ * something outside this module". Pinning it against a literal is the whole
+ * point: those strings are published copy, and a test that derived the expected
+ * words from the map would move with any rewording and report nothing.
  */
 import { describe, expect, it } from 'vitest';
 
@@ -108,6 +114,33 @@ describe('every segment maps to a validated schema field', () => {
     }
     expect(Object.keys(MODALITY_LABELS).sort()).toEqual([...modality.options].sort());
   });
+
+  it('prints these exact words, so a rewording cannot ship unreviewed', () => {
+    // Complementary to the assertion above rather than a stronger version of
+    // it. That one pins the *key set* against the schema and requires each
+    // value to be non-empty, and catches a modality added with no label; this
+    // one pins the words, and catches a label whose text was changed. Neither
+    // subsumes the other, so both stay.
+    //
+    // The words are worth pinning because they are published. `buildModelDna`
+    // renders this map into the Input and Output segments, so an edit here is a
+    // copy change on every model page whose release declares that modality.
+    // The failure mode is specific: this project publishes no composite score
+    // and no universal ranking, `gate-dataset.mjs` refuses ranking-flavoured
+    // field names in the *dataset*, and nothing covered a presentation constant
+    // compiled into the bundle. A value reading "Video (frontier-grade
+    // generation)" is an evaluative claim about capability, and until this
+    // assertion existed it reached the page with the suite green.
+    //
+    // So failing on a wording change is the point of the test, not a cost of
+    // it: the failure is the prompt to review the new words.
+    expect(MODALITY_LABELS).toEqual({
+      text: 'Text',
+      image: 'Image',
+      audio: 'Audio',
+      video: 'Video',
+    });
+  });
 });
 
 describe('ordering is fixed by the constant', () => {
@@ -136,6 +169,73 @@ describe('ordering is fixed by the constant', () => {
       expect(view.segments.map((entry) => entry.id)).toEqual(expected);
       expect(view.segments).toHaveLength(MODEL_DNA_DIMENSIONS.length);
     }
+  });
+});
+
+describe('a gap that is not the last dimension still holds its place', () => {
+  // Why this fixture exists, given the suite above already checks ordering on
+  // three fixtures and on every shipped release: `weights` is simultaneously
+  // the *last* dimension in MODEL_DNA_DIMENSIONS and the *only* optional one,
+  // so on every one of those records "the constant's order" and "recorded
+  // first, unrecorded last" name the same sequence. Ordering the segments by
+  // recordedness is therefore a no-op on all of them, and would pass the whole
+  // ordering suite unnoticed. A gap in the middle separates the two orderings,
+  // and nothing else here does.
+  const GAP_ID = 'tier';
+  const gapIndex = MODEL_DNA_DIMENSIONS.findIndex((dimension) => dimension.id === GAP_ID);
+
+  /**
+   * The complete fixture, with its `variant` reading empty — what
+   * `buildModelDna` treats as nothing recorded.
+   *
+   * Built here rather than added to `passport-dataset.ts` because
+   * `releaseSchema` gives `variant` a `.min(1)`, so no publishable record can
+   * carry this gap and the records in that file are parsed as real ones
+   * elsewhere. That is not a reason to skip the case: the property under test
+   * belongs to the builder rather than to the dataset. `buildModelDna` decides
+   * position from the constant and recordedness from the reading, separately,
+   * for all nine dimensions — and a builder that only holds position for the
+   * one dimension today's data can leave empty is not the builder this module's
+   * second and third rules describe.
+   */
+  function gapView() {
+    const { release, organization, family } = fixtureRelease(COMPLETE_RELEASE_ID);
+    return buildModelDna({ ...release, variant: '' }, organization, family, BASE);
+  }
+
+  it('puts its gap somewhere other than the last dimension', () => {
+    // The control. Were `tier` ever moved to the end of the constant or dropped
+    // from it, this fixture would quietly become another one where the two
+    // orderings agree, and every assertion below would keep passing while
+    // proving nothing. Then this test fails and says why.
+    expect(gapIndex).toBeGreaterThanOrEqual(0);
+    expect(gapIndex).toBeLessThan(MODEL_DNA_DIMENSIONS.length - 1);
+  });
+
+  it('records every dimension that follows the gap', () => {
+    // The other half of the control: reordering can only be detected if there
+    // is something recorded behind the gap for it to move past.
+    const after = gapView().segments.slice(gapIndex + 1);
+
+    expect(after.length).toBeGreaterThan(0);
+    for (const entry of after) expect(entry.recorded).toBe(true);
+  });
+
+  it('leaves the unrecorded dimension in its constant position', () => {
+    const view = gapView();
+
+    expect(view.segments.map((entry) => entry.id)).toEqual(
+      MODEL_DNA_DIMENSIONS.map((dimension) => dimension.id),
+    );
+    expect(view.segments[gapIndex].id).toBe(GAP_ID);
+    expect(view.segments).toHaveLength(MODEL_DNA_DIMENSIONS.length);
+  });
+
+  it('says the dimension is not recorded rather than moving or dropping it', () => {
+    const entry = gapView().segments[gapIndex];
+
+    expect(entry.recorded).toBe(false);
+    expect(entry.value).toBe(MODEL_DNA_NOT_RECORDED);
   });
 });
 
