@@ -20,6 +20,9 @@ Run commands from `web/`:
 | `npm run test -- <path>` | Run only the test files matching `<path>`; refuses if none do |
 | `npm run check` | Run Astro and TypeScript diagnostics |
 | `npm run validate` | Run tests and diagnostics |
+| `npm run budget:compare` | Print `/compare` payload and picker index headroom for the working tree |
+| `npm run budget:merged` | Print the same headroom for the **merge** with `origin/main`, next to the branch-only figures — [run this before cutting scope for bytes](../docs/product/PERFORMANCE-BUDGETS.md#measure-the-merge-not-the-merge-base) |
+| `npm run budget:proof` | Prove `budget:merged` returns exit 1 when only the merge breaches a ceiling, and exit 0 when it does not |
 | `npm run build` | Validate and generate the static site in `dist/` |
 | `npm run dev` | Start the local Astro development server |
 

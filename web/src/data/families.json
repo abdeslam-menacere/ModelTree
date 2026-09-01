@@ -16,7 +16,7 @@
     "sourceIds": [
       "openai-gpt-4-1-announcement"
     ],
-    "verifiedAt": "2026-08-14"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "openai-gpt-5-6",
@@ -155,7 +155,7 @@
       "google-gemini-deprecations",
       "google-gemini-3-guide"
     ],
-    "verifiedAt": "2026-08-26"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "google-gemini-2-5",
@@ -193,7 +193,7 @@
       "meta-llama-4-announcement",
       "meta-llama-collection"
     ],
-    "verifiedAt": "2026-08-27"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "meta-llama-3",
@@ -351,7 +351,7 @@
       "anthropic-opus-4-7-announcement",
       "anthropic-model-deprecations"
     ],
-    "verifiedAt": "2026-08-27"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "anthropic-claude-4-8",
@@ -392,7 +392,7 @@
       "xai-grok-4-6-announcement",
       "xai-models-docs"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "mistral-large-3",
@@ -412,7 +412,7 @@
       "mistral-3-announcement",
       "mistral-large-3-model-card"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "mistral-ministral-3",
@@ -492,7 +492,7 @@
       "hugging-face-deepseek-v4-pro-hub-record",
       "hugging-face-deepseek-v4-flash-hub-record"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "deepseek-v3-2",
@@ -532,7 +532,7 @@
       "qwen3-8-repository",
       "qwen-hugging-face-organization"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "microsoft-mai",
@@ -553,7 +553,7 @@
       "microsoft-two-in-house-models",
       "microsoft-ai-models-page"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "microsoft-fara",
@@ -590,7 +590,7 @@
       "amazon-nova-2-bedrock-announcement",
       "amazon-nova-overview"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "cohere-command-a",
@@ -610,7 +610,7 @@
       "cohere-command-a-plus-model-card",
       "cohere-command-a-plus-announcement"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "ai2-olmo-2",
@@ -628,7 +628,7 @@
       "ai2-olmo-2-announcement",
       "ai2-olmo-2-model-card"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "tii-falcon-h1",
@@ -646,7 +646,7 @@
       "tii-falcon-h1-announcement",
       "tii-falcon-h1-model-card"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "nvidia-nemotron-4-340b",
@@ -665,7 +665,7 @@
       "nvidia-nemotron-4-340b-research",
       "nvidia-nemotron-4-340b-model-card"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "ai21-labs-jamba",
@@ -683,7 +683,7 @@
       "ai21-labs-jamba-announcement",
       "ai21-labs-jamba-paper"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "zhipu-ai-glm-4-5",
@@ -703,7 +703,7 @@
       "zhipu-ai-glm-4-5-paper",
       "zhipu-ai-glm-4-5-announcement"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "moonshot-ai-kimi-k2",
@@ -723,7 +723,7 @@
       "moonshot-ai-kimi-k2-model-card",
       "hugging-face-kimi-k2-instruct-hub-record"
     ],
-    "verifiedAt": "2026-08-31"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "eleutherai-pythia",
@@ -741,7 +741,7 @@
       "eleutherai-pythia-repository",
       "eleutherai-pythia-12b-model-card"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "lg-ai-research-exaone-3-5",
@@ -759,7 +759,7 @@
       "lg-ai-research-exaone-3-5-model-card",
       "lg-ai-research-exaone-3-5-repository"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "lg-ai-research-exaone-4-0",
@@ -795,7 +795,7 @@
       "snowflake-arctic-instruct-model-card",
       "snowflake-arctic-repository"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "upstage-solar-pro",
@@ -812,7 +812,7 @@
     "sourceIds": [
       "upstage-solar-pro-preview-model-card"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "ibm-granite-4-2",
@@ -832,7 +832,7 @@
       "ibm-granite-4-2-repository",
       "ibm-granite-4-2-30b-model-card"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "baidu-ernie-4-5",
@@ -853,7 +853,7 @@
       "baidu-ernie-4-5-300b-model-card",
       "hugging-face-ernie-4-5-300b-hub-record"
     ],
-    "verifiedAt": "2026-08-31"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "tencent-hunyuan-video",
@@ -871,7 +871,7 @@
       "tencent-hunyuan-video-model-card",
       "tencent-hunyuan-community-license"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "bytedance-seed-oss",
@@ -888,7 +888,7 @@
     "sourceIds": [
       "bytedance-seed-oss-36b-instruct-model-card"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "stability-ai-stable-diffusion-3-5",
@@ -906,7 +906,7 @@
       "stability-ai-sd-3-5-announcement",
       "stability-ai-sd-3-5-large-model-card"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "databricks-dbrx",
@@ -924,7 +924,7 @@
       "databricks-dbrx-announcement",
       "databricks-open-model-license"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "minimax-m1",
@@ -943,7 +943,7 @@
       "minimax-m1-announcement",
       "minimax-m1-80k-model-card"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "apple-openelm",
@@ -964,7 +964,7 @@
       "apple-openelm-license",
       "hugging-face-openelm-3b-instruct-hub-record"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "hugging-face-smollm3",
@@ -982,7 +982,7 @@
       "hugging-face-smollm3-model-card",
       "hugging-face-smollm3-blog"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "01-ai-yi-1-5",
@@ -1000,7 +1000,7 @@
       "01-ai-yi-repository",
       "01-ai-yi-1-5-34b-chat-model-card"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "minimax-text-01",
@@ -1036,7 +1036,7 @@
       "sakana-ai-evollm-jp-model-card",
       "sakana-ai-evolutionary-model-merge-blog"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "sarvam-ai-sarvam-m",
@@ -1056,7 +1056,7 @@
       "sarvam-ai-sarvam-m-blog",
       "hugging-face-sarvam-m-hub-record"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "naver-hyperclova-x-seed",
@@ -1074,7 +1074,7 @@
       "naver-hyperclova-x-seed-announcement",
       "naver-hyperclova-x-seed-1-5b-model-card"
     ],
-    "verifiedAt": "2026-08-30"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "aleph-alpha-pharia-1",
@@ -1092,7 +1092,7 @@
       "aleph-alpha-pharia-1-llm-announcement",
       "aleph-alpha-pharia-1-llm-7b-control-model-card"
     ],
-    "verifiedAt": "2026-08-30"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "reka-flash",
@@ -1110,7 +1110,7 @@
       "reka-flash-3-1-announcement",
       "reka-flash-3-1-model-card"
     ],
-    "verifiedAt": "2026-08-30"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "nous-hermes-4",
@@ -1128,7 +1128,7 @@
       "nous-research-releases",
       "nous-hermes-4-14b-model-card"
     ],
-    "verifiedAt": "2026-08-30"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "liquid-lfm2",
@@ -1146,7 +1146,7 @@
       "liquid-lfm2-announcement",
       "liquid-lfm2-1-2b-model-card"
     ],
-    "verifiedAt": "2026-08-30"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "xiaomi-mimo-7b",
@@ -1164,7 +1164,7 @@
       "xiaomi-mimo-repository",
       "xiaomi-mimo-7b-rl-0530-model-card"
     ],
-    "verifiedAt": "2026-08-30"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "ai-singapore-sea-lion-v3",
@@ -1182,7 +1182,7 @@
       "ai-singapore-sea-lion-v3-docs",
       "ai-singapore-llama-sea-lion-v3-8b-model-card"
     ],
-    "verifiedAt": "2026-08-30"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "01-ai-yi",
@@ -1280,6 +1280,82 @@
     "verifiedAt": "2026-08-31"
   },
   {
+    "id": "kyutai-moshi",
+    "slug": "moshi",
+    "organizationId": "kyutai",
+    "name": "Moshi",
+    "description": "Kyutai's speech-text foundation model and full-duplex spoken dialogue framework, described on its own model card as \"a speech-text foundation model and full-duplex spoken dialogue framework\" and as \"the first real-time full-duplex spoken large language model, with a theoretical latency of 160ms, 200ms in practice\".",
+    "categories": [
+      "audio-speech"
+    ],
+    "firstReleaseDate": "2024-09-11",
+    "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
+    "status": "research",
+    "sourceIds": [
+      "kyutai-moshiko-pytorch-bf16-model-card",
+      "hugging-face-kyutai-moshiko-pytorch-bf16-hub-record"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "lelapa-ai-inkubalm",
+    "slug": "inkubalm",
+    "organizationId": "lelapa-ai",
+    "name": "InkubaLM",
+    "description": "Lelapa AI's small language model family for African languages. Its card describes InkubaLM as a \"Small Language Model (SLM) for five African languages\" and records that it \"has been trained from scratch using 1.9 billion tokens of data for five African languages\".",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2024-05-11",
+    "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
+    "status": "unknown",
+    "sourceIds": [
+      "lelapa-ai-inkubalm-0-4b-model-card",
+      "hugging-face-lelapa-inkubalm-0-4b-hub-record"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "maritaca-ai-sabia",
+    "slug": "sabia",
+    "organizationId": "maritaca-ai",
+    "name": "Sabiá",
+    "description": "Maritaca AI's Portuguese-language model family. Maritaca AI's own site states \"Sabiá models are specialized in Portuguese and Brazilian contexts\", and the Sabiá-7B card records \"Sabiá-7B is Portuguese language model developed by Maritaca AI\". The open-weight Sabiá-7B checkpoint is the member recorded here.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2023-11-08",
+    "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
+    "status": "unknown",
+    "sourceIds": [
+      "maritaca-ai-sabia-7b-model-card",
+      "hugging-face-maritaca-ai-sabia-7b-hub-record",
+      "maritaca-ai-about"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "openbmb-minicpm5",
+    "slug": "minicpm5",
+    "organizationId": "openbmb",
+    "name": "MiniCPM5",
+    "description": "OpenBMB's fifth MiniCPM generation of on-device language models. Its MiniCPM repository announces \"[2026.05.19] MiniCPM5-1B is released\", and the MiniCPM5-1B card records that the model \"is the first checkpoint in the MiniCPM5 series\".",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2026-05-19",
+    "datePrecision": "day",
+    "status": "unknown",
+    "sourceIds": [
+      "openbmb-minicpm-repository",
+      "openbmb-minicpm5-1b-model-card"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
     "id": "tii-falcon-180b",
     "slug": "falcon-180b",
     "organizationId": "tii",
@@ -1326,7 +1402,7 @@
     ],
     "firstReleaseDate": "2024-12-02",
     "datePrecision": "day",
-    "status": "current",
+    "status": "unknown",
     "sourceIds": [
       "cohere-rerank-docs",
       "cohere-rerank-v3-5-changelog"
@@ -1366,6 +1442,24 @@
     "sourceIds": [
       "nvidia-cosmos-announcement",
       "nvidia-cosmos-diffusion-7b-model-card"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "databricks-dolly",
+    "slug": "dolly",
+    "organizationId": "databricks",
+    "name": "Dolly",
+    "description": "Databricks' family of instruction-following large language models, fine-tuned on the human-generated databricks-dolly-15k instruction corpus and released with open weights for commercial use, distinct from Databricks' data-analytics products.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2023-04-12",
+    "datePrecision": "day",
+    "status": "unknown",
+    "sourceIds": [
+      "databricks-dolly-repository",
+      "databricks-dolly-v2-announcement"
     ],
     "verifiedAt": "2026-09-01"
   }

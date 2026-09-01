@@ -245,5 +245,25 @@
     "id": "ai-singapore",
     "name": "AI Singapore",
     "organizationId": "ai-singapore"
+  },
+  {
+    "id": "kyutai",
+    "name": "Kyutai",
+    "organizationId": "kyutai"
+  },
+  {
+    "id": "lelapa-ai",
+    "name": "Lelapa AI",
+    "organizationId": "lelapa-ai"
+  },
+  {
+    "id": "maritaca-ai",
+    "name": "Maritaca AI",
+    "organizationId": "maritaca-ai"
+  },
+  {
+    "id": "openbmb",
+    "name": "OpenBMB",
+    "organizationId": "openbmb"
   }
 ]

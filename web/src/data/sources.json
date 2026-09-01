@@ -6,7 +6,7 @@
     "type": "official-announcement",
     "publisherId": "openai",
     "publishedDate": "2025-04-14",
-    "lastCheckedDate": "2026-08-14"
+    "lastCheckedDate": "2026-09-01"
   },
   {
     "id": "openai-gpt-4-1-docs",
@@ -14,7 +14,7 @@
     "title": "GPT-4.1 model documentation",
     "type": "official-docs",
     "publisherId": "openai",
-    "lastCheckedDate": "2026-08-14"
+    "lastCheckedDate": "2026-09-01"
   },
   {
     "id": "openai-gpt-4-1-mini-docs",
@@ -22,7 +22,7 @@
     "title": "GPT-4.1 mini model documentation",
     "type": "official-docs",
     "publisherId": "openai",
-    "lastCheckedDate": "2026-08-14"
+    "lastCheckedDate": "2026-09-01"
   },
   {
     "id": "openai-gpt-4-1-nano-docs",
@@ -165,7 +165,7 @@
     "type": "official-announcement",
     "publisherId": "anthropic",
     "publishedDate": "2026-07-24",
-    "lastCheckedDate": "2026-08-26"
+    "lastCheckedDate": "2026-09-01"
   },
   {
     "id": "anthropic-sonnet-4-5-announcement",
@@ -209,7 +209,7 @@
     "title": "Gemini 3.1 Pro Preview",
     "type": "official-docs",
     "publisherId": "google",
-    "lastCheckedDate": "2026-08-15"
+    "lastCheckedDate": "2026-09-01"
   },
   {
     "id": "google-gemini-3-guide",
@@ -233,7 +233,7 @@
     "title": "Gemini 3.1 Flash-Lite",
     "type": "official-docs",
     "publisherId": "google",
-    "lastCheckedDate": "2026-08-15"
+    "lastCheckedDate": "2026-09-01"
   },
   {
     "id": "google-gemini-3-1-flash-lite-platform-docs",
@@ -241,7 +241,7 @@
     "title": "Gemini 3.1 Flash-Lite on Gemini Enterprise Agent Platform",
     "type": "official-docs",
     "publisherId": "google-cloud",
-    "lastCheckedDate": "2026-08-15",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Google Cloud platform documentation; used for token limits, modalities, launch stage, and the model description it publishes."
   },
   {
@@ -311,7 +311,7 @@
     "title": "meta-llama/Llama-4-Maverick-17B-128E-Instruct",
     "type": "model-card",
     "publisherId": "meta",
-    "lastCheckedDate": "2026-08-15"
+    "lastCheckedDate": "2026-09-01"
   },
   {
     "id": "meta-llama-4-license",
@@ -328,7 +328,7 @@
     "title": "meta-llama/Llama-3.1-405B-Instruct",
     "type": "model-card",
     "publisherId": "meta",
-    "lastCheckedDate": "2026-08-15"
+    "lastCheckedDate": "2026-09-01"
   },
   {
     "id": "meta-llama-3-1-license",
@@ -336,7 +336,7 @@
     "title": "Llama 3.1 Community License Agreement",
     "type": "repository",
     "publisherId": "meta",
-    "lastCheckedDate": "2026-08-15",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Carries the same 700 million monthly active user restriction as later Llama licences."
   },
   {
@@ -434,7 +434,7 @@
     "title": "Claude Sonnet 5",
     "type": "official-docs",
     "publisherId": "anthropic",
-    "lastCheckedDate": "2026-08-26"
+    "lastCheckedDate": "2026-09-01"
   },
   {
     "id": "anthropic-sonnet-5-announcement",
@@ -443,7 +443,7 @@
     "type": "official-announcement",
     "publisherId": "anthropic",
     "publishedDate": "2026-06-30",
-    "lastCheckedDate": "2026-08-26"
+    "lastCheckedDate": "2026-09-01"
   },
   {
     "id": "google-gemini-3-5-flash-docs",
@@ -763,7 +763,7 @@
     "type": "official-announcement",
     "publisherId": "xai",
     "publishedDate": "2026-08-12",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Carries a machine-readable datePublished of 2026-08-12, which is the only day-level date the creator states for this release. The page also carries the footer \"© 2026 SpaceXAI LLC\". Its benchmark and ranking prose is deliberately not recorded."
   },
   {
@@ -792,7 +792,7 @@
     "title": "Grok 4.6 model documentation",
     "type": "official-docs",
     "publisherId": "xai",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "States the modalities, the 500,000-token context window, and the model name grok-4.6. Publishes no parameter count."
   },
   {
@@ -819,7 +819,7 @@
     "title": "Release Notes",
     "type": "official-docs",
     "publisherId": "xai",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Groups launches under month headings with no day-level dates, so it establishes chronology but cannot supply a release date. The name \"xAI\" appears here on the same site whose page titles and footer say \"SpaceXAI\"."
   },
   {
@@ -829,7 +829,7 @@
     "type": "official-announcement",
     "publisherId": "mistral-ai",
     "publishedDate": "2025-12-02",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Announces Mistral Large 3 and the Ministral 3 sizes together, states \"41B active and 675B total parameters\" for Large 3, and states that all models in the announcement are released under the Apache 2.0 licence. Its leaderboard placements are deliberately not recorded."
   },
   {
@@ -838,7 +838,7 @@
     "title": "mistralai/Mistral-Large-3-675B-Instruct-2512",
     "type": "model-card",
     "publisherId": "mistral-ai",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "States a 256k context window and Apache-2.0 licensing. Its own parameter figures disagree: the heading says 675B total with 41B active, while the architecture list says 673B with 39B active plus a 2.5B vision encoder. The announcement figure is recorded and the disagreement is left visible rather than reconciled."
   },
   {
@@ -930,7 +930,7 @@
     "title": "deepseek-ai/DeepSeek-V4-Flash",
     "type": "model-card",
     "publisherId": "deepseek",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "States 284B total and 13B activated parameters, a 1M context window, and MIT licensing."
   },
   {
@@ -939,7 +939,7 @@
     "title": "deepseek-ai/DeepSeek-V3.2",
     "type": "model-card",
     "publisherId": "deepseek",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "States MIT licensing and describes DeepSeek Sparse Attention. It states no parameter count and no context window, so neither is recorded for this release."
   },
   {
@@ -991,7 +991,7 @@
     "title": "Qwen on Hugging Face",
     "type": "repository",
     "publisherId": "alibaba-cloud",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "The Qwen team’s own organization profile, which states \"This is the organization of Qwen, which refers to the large language model family built by Alibaba Cloud.\" and gives https://qwen.ai/ as the organization website. This is the creator statement the Alibaba Cloud organization record rests on."
   },
   {
@@ -1000,7 +1000,7 @@
     "title": "QwenLM/Qwen3.8",
     "type": "repository",
     "publisherId": "alibaba-cloud",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "The official repository for the Qwen3.8 generation. Its dated News list records \"2026-08-12: Qwen3.8-2.4T-A95B is now available on Hugging Face Hub and ModelScope\" and \"2026-08-14: Qwen3.8-27B is now available on Hugging Face Hub and ModelScope\". Its repository description credits \"Qwen team, Alibaba Group\" where the Hugging Face organization credits Alibaba Cloud; that disagreement is recorded on the organization rather than reconciled here."
   },
   {
@@ -1038,7 +1038,7 @@
     "type": "official-announcement",
     "publisherId": "microsoft",
     "publishedDate": "2026-08-12",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "States \"MAI-Thinking-1 is a 35B-active, ~1T-total parameters, sparse Mixture of Experts model\", that \"It supports long context with a 256k token window\" and that \"MAI-Thinking-1 is available in public preview on Microsoft Foundry.\" The total parameter count is written as an approximation and is deliberately not recorded; only the stated 35B active figure is."
   },
   {
@@ -1047,7 +1047,7 @@
     "title": "Models | Microsoft AI",
     "type": "official-docs",
     "publisherId": "microsoft",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Microsoft AI’s own catalogue of the MAI line, listing MAI-Thinking-1, MAI-Code-1.1-Flash, MAI-Image-2.5, MAI-Voice-2, MAI-Transcribe-1.5 and MAI-Cyber-1-Flash as foundational models. Its separation of image, voice and transcription into individually named models is what makes the text-only modality reading of MAI-Thinking-1 sound. The other models are not recorded as releases because this page states no release date for them."
   },
   {
@@ -1057,7 +1057,7 @@
     "type": "official-announcement",
     "publisherId": "microsoft",
     "publishedDate": "2025-08-28",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Microsoft AI’s first MAI announcement, releasing MAI-Voice-1 and opening public testing of MAI-1-preview, used here for the MAI family’s first release date. It places models inside the Copilot product — MAI-Voice-1 \"is available in Copilot Daily and Podcasts\" — and states that \"orchestrating a range of specialized models serving different user intents and use cases will unlock immense value\", without stating which model serves any given Copilot request."
   },
   {
@@ -1104,7 +1104,7 @@
     "title": "Amazon Nova",
     "type": "official-docs",
     "publisherId": "aws",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "States \"Amazon Nova is a portfolio of AI offerings—including Nova models, fast and cost-effective foundation models for text and multimodal needs\" and that these \"are built on AI technologies originally developed for Amazon’s internal applications, such as Alexa+, Amazon Ads, Amazon Catalog System Services, AWS Marketplace, and Amazon Stores\". This is the authorship statement the Amazon creator record rests on."
   },
   {
@@ -1123,7 +1123,7 @@
     "type": "official-announcement",
     "publisherId": "aws",
     "publishedDate": "2025-12-02",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "States \"Today AWS announces Amazon Nova 2, our next generation of general models\" and names Nova 2 Lite and Nova 2 Pro (Preview) as available in Amazon Bedrock with \"a one-million-token context window\". Used for the Nova 2 family’s first release date. Nova 2 Lite and Nova 2 Pro are not recorded as releases because no source consulted states their input and output modalities, which every release record requires."
   },
   {
@@ -1133,7 +1133,7 @@
     "type": "official-announcement",
     "publisherId": "aws",
     "publishedDate": "2025-12-02",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "States \"Today, Amazon announces the availability of Amazon Nova 2 Sonic, our speech-to-speech model for natural, real-time conversational AI\", that the model \"adds cross-modal interaction, allowing users to seamlessly switch between voice and text in the same session\" and \"a one-million token context window\", and that it \"is available in Amazon Bedrock in the following AWS Regions: US East (N. Virginia), US West (Oregon), and Asia Pacific (Tokyo)\"."
   },
   {
@@ -1169,7 +1169,7 @@
     "title": "Cohere's Command A+ Model",
     "type": "model-card",
     "publisherId": "cohere",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "States \"Release Date: May 20, 2026\", \"Name of the model provider: Cohere Inc.\", \"Input modalities: Text, image\", \"Output modalities: Text\", \"Model Size: 218B total, 25B active\" and \"Command A+ is a sparse mixture-of-experts model.\". It lists both deployment routes — a \"Cohere Deployment\" and an \"Open Source Deployment: Command A+ is available under an Apache 2.0 License\" — which together are the recorded access type. It states the licence name only; OSI approval is not claimed here and rests on a separate source."
   },
   {
@@ -1178,7 +1178,7 @@
     "title": "Introducing Command A+",
     "type": "official-announcement",
     "publisherId": "cohere",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Cohere's launch post, corroborating the model card from Cohere's other approved origin: \"218B total; 25B active\", \"128K input context; 64K max generation\", and a caption comparing Command A+ \"with other models in the Command A family\". Its blog publication timestamp is deliberately not used as a release date; the release date is the model card's own stated field."
   },
   {
@@ -1187,7 +1187,7 @@
     "title": "How Does Cohere's Pricing Work?",
     "type": "official-docs",
     "publisherId": "cohere",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "States \"Our models can be accessed directly through our API, allowing for the creation of scalable production workloads\", describes the count of billed tokens, and separates \"Trial Usage and Production Usage\", noting that \"trial API key usage is free, but limited\". This is the basis for reading Cohere as offering model access for payment under its own name, which is a fact input to the organization type's editorial procedure rather than a sourced claim in itself."
   },
   {
@@ -1196,7 +1196,7 @@
     "title": "Apache License, Version 2.0",
     "type": "official-docs",
     "publisherId": "open-source-initiative",
-    "lastCheckedDate": "2026-08-28",
+    "lastCheckedDate": "2026-09-01",
     "notes": "The Open Source Initiative's own page for this licence, carrying its \"Open Source Initiative Approved License\" mark; OSI's licence index at https://opensource.org/licenses lists \"Apache License, Version 2.0\" among those that have completed the process \"To be approved by the Open Source Initiative\". Cited for approval status only, per tools/updater/profiles/origins/open-source-initiative.json. The licence name on the release comes from Cohere's own model card, not from here, and this page is the authority for the status rather than the licence identifier being evidence of it."
   },
   {
@@ -1205,7 +1205,7 @@
     "title": "The MIT License",
     "type": "official-docs",
     "publisherId": "open-source-initiative",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "The Open Source Initiative's own page for the MIT License. Fetched 2026-08-29: HTTP 200, <title>The MIT License – Open Source Initiative</title>, and the licence is linked from OSI's index at https://opensource.org/licenses as /license/mit. Cited for OSI approval status only, per tools/updater/profiles/origins/open-source-initiative.json. The licence name on each release comes from that creator's own model card or repository; this page is the authority for whether OSI approved the licence so named, which no model card states."
   },
   {
@@ -1223,7 +1223,7 @@
     "title": "OLMo 2: The best fully open language model to date",
     "type": "official-announcement",
     "publisherId": "ai2",
-    "lastCheckedDate": "2026-08-28"
+    "lastCheckedDate": "2026-09-01"
   },
   {
     "id": "ai2-olmo-2-model-card",
@@ -1231,7 +1231,7 @@
     "title": "OLMo-2-1124-7B model card",
     "type": "model-card",
     "publisherId": "ai2",
-    "lastCheckedDate": "2026-08-31",
+    "lastCheckedDate": "2026-09-01",
     "notes": "States a model-details table headed \"Size | Training Tokens | Layers | Hidden Size | Attention Heads | Context Length\" whose OLMo 2-7B row ends \"... | 32 | 4096 | 32 | 4096\", the final column being Context Length = 4096. The card states the context length as an exact integer, so contextWindow records that 4096 verbatim — route 1 (see releaseSchema.contextWindow), no abbreviation to read. Re-read 2026-08-31: the table was present with \"Context Length\" as its final column reading 4096; a fabricated \"8192\" appeared nowhere on the page, as a control. Cited for the context length and as the model's own card."
   },
   {
@@ -1241,7 +1241,7 @@
     "type": "official-announcement",
     "publisherId": "tii",
     "publishedDate": "2025-05-21",
-    "lastCheckedDate": "2026-08-31",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Announces Falcon-H1 (\"outperforming Meta's LLaMA and Alibaba's Qwen\", a \"30 to 70 billion parameters\" size class, and a \"34B, 7B, 3B, 1.5B, 1.5B-deep, and 500M\" family) alongside Falcon Arabic, and states no context length for any of them. Re-read 2026-08-31: \"Falcon-H1\" and that size list were present as positive controls, while no context-length figure and no fabricated \"context length of 8K\" needle appeared, as a control. Cited with the model card, whose note records that the committed contextWindow (262144) is unverified from these primary sources (issue #557)."
   },
   {
@@ -1250,7 +1250,7 @@
     "title": "Falcon-H1-34B-Instruct model card",
     "type": "model-card",
     "publisherId": "tii",
-    "lastCheckedDate": "2026-08-31",
+    "lastCheckedDate": "2026-09-01",
     "notes": "The card gives Model Details (\"Model type: Causal decoder-only\", \"Architecture: Hybrid Transformers + Mamba architecture\", \"License: Falcon-LLM License\"), Training details that defer to an external blogpost and a technical report (arXiv:2507.22448), Usage snippets, an Evaluation benchmark table, and a citation — and states no context length anywhere on the card. The cited announcement (tii-falcon-h1-announcement) states none either. So the committed contextWindow value (262144) is not verified by either cited primary source; it is left as committed and flagged for review (issue #557), because a stored context value with no primary source is a separate and larger gap than a reading convention, to be answered by its own source and issue rather than edited or removed here. Re-read 2026-08-31: \"Hybrid Transformers + Mamba architecture\" was present as a positive control, while no context-length figure appeared anywhere — a fabricated \"context length of 8K\" needle was absent, as a control."
   },
   {
@@ -1259,7 +1259,7 @@
     "title": "NVIDIA Releases Open Synthetic Data Generation Pipeline with Nemotron-4 340B",
     "type": "official-announcement",
     "publisherId": "nvidia",
-    "lastCheckedDate": "2026-08-28"
+    "lastCheckedDate": "2026-09-01"
   },
   {
     "id": "nvidia-nemotron-4-340b-research",
@@ -1268,7 +1268,7 @@
     "type": "official-docs",
     "publisherId": "nvidia",
     "publishedDate": "2024-06-14",
-    "lastCheckedDate": "2026-08-28"
+    "lastCheckedDate": "2026-09-01"
   },
   {
     "id": "nvidia-nemotron-4-340b-model-card",
@@ -1276,7 +1276,7 @@
     "title": "Nemotron-4-340B-Base model card",
     "type": "model-card",
     "publisherId": "nvidia",
-    "lastCheckedDate": "2026-08-31",
+    "lastCheckedDate": "2026-09-01",
     "notes": "States \"This model has 340 billion parameters, and supports a context length of 4,096 tokens\" and, under Model Architecture, that it is \"trained with a global batch-size of 2304, a sequence length of 4096 tokens\". The card states the context length as an exact integer, so contextWindow records 4096 verbatim — route 1 (see releaseSchema.contextWindow), no abbreviation to read. Re-read 2026-08-31: both \"a context length of 4,096 tokens\" and \"a sequence length of 4096 tokens\" were present; a fabricated \"262144\" appeared nowhere on the page, as a control. Cited for the context length and as the model's own card."
   },
   {
@@ -1285,7 +1285,7 @@
     "title": "Announcing Jamba: AI21’s Groundbreaking SSM-Transformer Model",
     "type": "official-announcement",
     "publisherId": "ai21-labs",
-    "lastCheckedDate": "2026-08-31",
+    "lastCheckedDate": "2026-09-01",
     "notes": "States \"Offering a 256K context window\" and, under Key Features, \"Democratizes access to a massive 256K context window\"; it states no exact context integer. contextWindow records 262144, the binary reading of \"256K\" (256 x 1024), not the decimal 256000 a bare abbreviation takes by default (see releaseSchema.contextWindow). Neither this announcement nor the cited Jamba paper fixes a binary buffer — both state only \"256K\" — so the binary precision is not established by the cited sources. It is flagged for review as an unresolved binary reading (issue #557), the same shape as Kimi K2's \"128K\" stored as 131072. The value is left as committed, to be answered by its own source and issue rather than edited here. Re-read 2026-08-31: both \"256K context window\" strings were present; a fabricated \"262144\" appeared nowhere on the page, as a control. Also cited for the model's Apache-2.0 open-weights release."
   },
   {
@@ -1295,7 +1295,7 @@
     "type": "official-docs",
     "publisherId": "ai21-labs",
     "publishedDate": "2024-03-28",
-    "lastCheckedDate": "2026-08-31",
+    "lastCheckedDate": "2026-09-01",
     "notes": "The abstract states \"Remarkably, the model presents strong results for up to 256K tokens context length\" — a bare \"256K\", with no exact integer. As with the announcement (see its note and releaseSchema.contextWindow), contextWindow records 262144, the binary reading of that \"256K\", flagged as an unresolved binary reading (issue #557) because no cited source fixes the binary buffer. Re-read 2026-08-31: the \"up to 256K tokens context length\" string was present in the abstract; a fabricated \"262144\" appeared nowhere, as a control."
   },
   {
@@ -1304,7 +1304,7 @@
     "title": "GLM-4.5-Air model card",
     "type": "model-card",
     "publisherId": "zhipu-ai",
-    "lastCheckedDate": "2026-08-30"
+    "lastCheckedDate": "2026-09-01"
   },
   {
     "id": "zhipu-ai-glm-4-5-paper",
@@ -1312,7 +1312,7 @@
     "title": "GLM-4.5: Agentic, Reasoning, and Coding (ARC) Foundation Models",
     "type": "official-docs",
     "publisherId": "zhipu-ai",
-    "lastCheckedDate": "2026-08-28"
+    "lastCheckedDate": "2026-09-01"
   },
   {
     "id": "moonshot-ai-kimi-k2-model-card",
@@ -1320,7 +1320,7 @@
     "title": "Kimi-K2-Instruct model card",
     "type": "model-card",
     "publisherId": "moonshot-ai",
-    "lastCheckedDate": "2026-08-31",
+    "lastCheckedDate": "2026-09-01",
     "notes": "States a Model Summary table with \"Context Length | 128K\" (beside \"Vocabulary Size | 160K\" and \"Total Parameters | 1T\"); the card states no exact context integer anywhere. contextWindow records 131072, the binary reading of \"128K\" (128 x 1024), not the decimal 128000 a bare abbreviation takes by default (see releaseSchema.contextWindow). Nothing on this card fixes a binary buffer — no exact integer, and no lineage to a fixed-buffer build as upstage's \"4K\" has — so the binary precision is not established by the cited source. It is flagged for review as an unresolved binary reading (issue #557): this bare \"128K\" is read the opposite way to the bare \"128k\" that meta-llama-3-1-405b records as 128000. The value is left as committed, to be answered by its own source and issue rather than edited here. Re-read 2026-08-31: \"Context Length | 128K\" was present in the Model Summary table; a fabricated \"131072\" appeared nowhere on the page, as a control. This card states no release date, and that absence is the finding behind this release's dateBasis (issue #682, ADR 0009): on a 2026-08-31 re-read of this URL the string \"2025-07-11\" occurred four times and every occurrence was inside the Hub's own \"createdAt\":\"2025-07-11T00:55:12.000Z\" metadata, none in Moonshot AI's prose. The creator's own \"0. Changelog\" heading instead lists 2025.7.15, 2025.7.18 and 2025.8.11 — all card and tokenizer revisions rather than a release event, and the earliest of them four days after the committed date."
   },
   {
@@ -1356,7 +1356,7 @@
     "title": "EleutherAI/pythia repository",
     "type": "repository",
     "publisherId": "eleutherai",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "The Pythia project’s own repository. Its dated changelog states \"[April 3, 2023] We have released a new version of all Pythia models, fixing various inconsistencies in the original suite\", and the model card confirms that retrained suite with \"This is the current release.\" Together they date the recorded release; the arXiv paper is deliberately not used for the date, because a paper submission date is not a model release date."
   },
   {
@@ -1365,7 +1365,7 @@
     "title": "LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct model card",
     "type": "model-card",
     "publisherId": "lg-ai-research",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "States EXAONE 3.5 is \"developed and released by LG AI Research\", that it is \"instruction-tuned bilingual (English and Korean)\", \"Number of Parameters (without embeddings): 6.98B\", \"Context Length: 32,768 tokens\", and \"The model is licensed under EXAONE AI Model License Agreement 1.1 - NC\". The 7.8B total is the size the same card names for this member of the series."
   },
   {
@@ -1374,7 +1374,7 @@
     "title": "LG-AI-EXAONE/EXAONE-3.5 repository",
     "type": "repository",
     "publisherId": "lg-ai-research",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "LG AI Research’s own EXAONE 3.5 repository. Its dated news list states \"2024.12.09: We release the EXAONE 3.5 language model series including 2.4B, 7.8B, and 32B instruction-tuned models\", which is the release date recorded here. The technical report on arXiv is not used for the date, because its submission date dates the paper rather than the model."
   },
   {
@@ -1401,7 +1401,7 @@
     "title": "Snowflake/snowflake-arctic-instruct model card",
     "type": "model-card",
     "publisherId": "snowflake",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "States \"**Model Release Date** April, 24th 2024.\", \"**License** Apache-2.0\", \"**Input** Models input text only.\", \"**Output** Models generate text and code only.\", and that Arctic \"combines a 10B dense transformer model with a residual 128x3.66B MoE MLP resulting in 480B total and 17B active parameters chosen using a top-2 gating\". It states no context window, which is why the release records none. Snowflake’s own repository dates the release differently; see snowflake-arctic-repository, where the disagreement is recorded rather than resolved."
   },
   {
@@ -1410,7 +1410,7 @@
     "title": "Snowflake-Labs/snowflake-arctic repository",
     "type": "repository",
     "publisherId": "snowflake",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Snowflake’s own Arctic repository, cited for the creator attribution \"pre-trained from scratch by the Snowflake AI Research Team\". It also states \"We released Arctic in April of 2023\", which contradicts the model card’s \"**Model Release Date** April, 24th 2024.\" The two Snowflake-published pages disagree and this record leaves that explicit. The release takes the model card’s date, because that page states a full day and is the artefact’s own card; the repository sentence is left standing rather than reconciled, since no source resolves which is the error."
   },
   {
@@ -1419,7 +1419,7 @@
     "title": "upstage/solar-pro-preview-instruct model card",
     "type": "model-card",
     "publisherId": "upstage",
-    "lastCheckedDate": "2026-08-31",
+    "lastCheckedDate": "2026-09-01",
     "notes": "States \"Solar Pro Preview is an advanced large language model (LLM) with 22 billion parameters\", \"a maximum context length of 4K\", front-matter \"license: mit\", and a comparison table whose own column records \"*Release Date* | 2024.09.08\". The card states no exact context integer anywhere; contextWindow records 4096, the binary reading of \"4K\" (4 x 1024) rather than the decimal 4000 a bare abbreviation would otherwise take. That reading is fixed by the card itself: its comparison table names \"Phi-3-medium-4K-instruct\", and the summary states Solar Pro Preview is depth-upscaled from a Phi-3-medium, so its \"4K\" is the Phi-3 \"-4K\" build's known 4096-token buffer. States \"Solar Pro Preview is a pre-release version of the official Solar Pro\", which is why the release is recorded with preview status. Links to https://www.upstage.ai, which is the website the organization record carries."
   },
   {
@@ -1428,7 +1428,7 @@
     "title": "IBM Granite",
     "type": "official-docs",
     "publisherId": "ibm",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "IBM's own Granite product page, cited for the website the organization record carries. It states that IBM \"provides its standard contractual intellectual property indemnification for IBM-developed models, similar to those it provides for IBM hardware and software products\" and that, \"contrary to some other providers of large language models\", \"IBM does not require its customers to indemnify IBM for a customer's use of IBM-developed models\". Those sentences establish indemnification and a contrast with other providers; neither states that IBM sells model products or access, and no other IBM-published page read for this record states one either, so no such fact is asserted and the organization type rests on the fallback clause rather than on an inference drawn from this page. No fuller recorded form of IBM's own name appears here; ibm.com/legal, ibm.com/us-en/privacy and the Granite model card, repository and technical blog were also read on 2026-08-29 and none gave one, so the organization record keeps \"IBM\" rather than an unsourced expansion."
   },
   {
@@ -1455,7 +1455,7 @@
     "title": "ibm-granite/granite-4.2-language-models repository",
     "type": "repository",
     "publisherId": "ibm",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "IBM's own repository for the generation. States \"Granite is a family of open-source large language models developed by IBM, designed for enterprise and research use\", \"The Granite 4.2 generation introduces native reasoning (thinking) capabilities\", \"The Granite 4.2 familiy features dense decoder-only architectures in three sizes — 3B, 8B, and 30B\" (IBM's own spelling), and \"All models are publicly released under the Apache 2.0 license, allowing free use for both research and commercial purposes\". It also lists agentic tool calling and code editing among the model's post-trained capabilities, which is why the family carries the coding category alongside language-reasoning."
   },
   {
@@ -1464,7 +1464,7 @@
     "title": "baidu/ERNIE-4.5-300B-A47B-PT model card",
     "type": "model-card",
     "publisherId": "baidu",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Baidu's own card for the release. Its Model Overview prose states \"ERNIE-4.5-300B-A47B is a text MoE Post-trained model\", and the configuration table directly beneath that sentence records \"Modality Text\", \"Training Stage Pretraining\", \"Params(Total / Activated) 300B / 47B\", \"Layers 54\" and \"Context Length 131072\". The first two disagree on training stage: the prose calls the model Post-trained while the table's own Training Stage row reads Pretraining, and the card reconciles them nowhere, so no training stage is recorded for this release and neither wording is treated as settled. The repository suffix does not settle it either, because the card's header note defines that suffix as a weights format rather than a training stage - \"-PT\" models, it says, \"use Transformer-style PyTorch weights\", as against \"-Paddle\" models that use PaddlePaddle weights - so the -PT in this repository name denotes PyTorch weights and is not evidence of post-training. The ERNIE 4.5 Highlights section separately describes \"Modality-Specific Post-Training\", stating that \"we fine-tuned variants of the pre-trained model for specific modalities\" and that \"Each model employed a combination of *Supervised Fine-tuning (SFT)*, *Direct Preference Optimization (DPO)* or a modified reinforcement learning method named *Unified Preference Optimization (UPO)* for post-training\". That section is not scoped away from this model: it opens by covering \"the ERNIE 4.5 models, particularly the MoE-based A47B and A3B series\", which names this one. What it does not do is make any claim about this repository's Training Stage row, drawing a modality split between LLMs and VLMs instead, so it can at most leave the prose reading contested and cannot settle it, and a contested attribute is not recorded as settled. The passage is quoted here at full strength for that reason rather than set aside. Its License section states \"The ERNIE 4.5 models are provided under the Apache License 2.0. This license permits commercial use, subject to its terms and conditions. Copyright (c) 2025 Baidu, Inc. All Rights Reserved.\" That copyright line is the only fuller recorded form of Baidu's own name found on a Baidu-published page, and it is what the organization record carries. The card gives no release date."
   },
   {
@@ -1473,7 +1473,7 @@
     "title": "PaddlePaddle/ERNIE repository",
     "type": "repository",
     "publisherId": "baidu",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Baidu's own repository for the generation, cited for the family's scope. States \"We introduce ERNIE 4.5, a new family of large-scale multimodal models comprising 10 distinct variants\", that the variants include vision-language models as well as text models, that the \"largest model having 424B total parameters\", and that \"All models are publicly accessible under Apache 2.0\". The multimodal-generalist category on the family comes from this sentence about the family as a whole; the single release recorded here is the text model, and it carries text-only modalities accordingly."
   },
   {
@@ -1500,7 +1500,7 @@
     "title": "tencent/HunyuanVideo model card",
     "type": "model-card",
     "publisherId": "tencent",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Tencent's own card for the release. Its News list carries, dated \"Dec 3, 2024\", the entry \"We release the inference code and model weights of HunyuanVideo\", which is the recorded release date. States \"HunyuanVideo, a novel open-source video foundation model that exhibits performance in video generation that is comparable to, if not superior to, leading closed-source models\" and that the model has \"over 13 billion parameters, making it the largest among all open-source models\". No exact parameter count is stated, so the release records none. Front-matter carries license_name \"tencent-hunyuan-community\" and links the licence file recorded separately as tencent-hunyuan-community-license."
   },
   {
@@ -1509,7 +1509,7 @@
     "title": "Tencent Hunyuan Community License Agreement",
     "type": "official-docs",
     "publisherId": "tencent",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Tencent's own licence file shipped with the weights. Its heading is \"TENCENT HUNYUAN COMMUNITY LICENSE AGREEMENT\", which is the licence name the release records, and its second line is \"Tencent HunyuanVideo Release Date: December 3, 2024\", which agrees with the model card's News entry. It states \"THIS LICENSE AGREEMENT DOES NOT APPLY IN THE EUROPEAN UNION, UNITED KINGDOM AND SOUTH KOREA AND IS EXPRESSLY LIMITED TO THE TERRITORY\", which is why the licence is recorded as not OSI-approved. It also defines \"'Tencent,' 'We' or 'Us' shall mean THL A29 Limited\" — the entity that grants the licence, not a fuller recorded form of the creator's name, so the organization record keeps \"Tencent\"."
   },
   {
@@ -1527,7 +1527,7 @@
     "title": "ByteDance-Seed/Seed-OSS-36B-Instruct model card",
     "type": "model-card",
     "publisherId": "bytedance-seed",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "ByteDance Seed's own card for the release. Its News list states \"[2025/08/20] We release Seed-OSS-36B-Base (both with and without synthetic data versions) and Seed-OSS-36B-Instruct\", which is the recorded release date; the Hub's machine-readable record for the same repository reports a createdAt of 2025-08-20, agreeing with it. States \"Seed-OSS is a series of open-source large language models developed by ByteDance's Seed Team\" and, in the same Introduction paragraph, \"Although trained with only 12T tokens\", which is the recorded training-token figure. Its Model Summary table records \"**Parameters** 36B\", \"**Number of Layers** 64\", \"**Vocabulary Size** 155K\" and \"**Context Length** 512K\". Front-matter carries \"license: apache-2.0\"."
   },
   {
@@ -1537,7 +1537,7 @@
     "type": "official-announcement",
     "publisherId": "stability-ai",
     "publishedDate": "2024-10-22",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Stability AI's own announcement of the generation. States \"Stable Diffusion 3.5 Large: At 8.1 billion parameters, with superior quality and prompt adherence, this base model is the most powerful in the Stable Diffusion family\" and that it is \"ideal for professional use cases at 1 megapixel resolution\". The page's own metadata carries \"<meta itemprop=\"datePublished\" content=\"2024-10-22T11:43:00+0000\"/>\", which is the recorded release date; the Hub's record for the weights reports the same day independently."
   },
   {
@@ -1546,7 +1546,7 @@
     "title": "stabilityai/stable-diffusion-3.5-large model card",
     "type": "model-card",
     "publisherId": "stability-ai",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Stability AI's own card for the release. States \"Stable Diffusion 3.5 Large is a Multimodal Diffusion Transformer (MMDiT) text-to-image model\", \"**Developed by:** Stability AI\", and \"**Model type:** MMDiT text-to-image generative model\" — the text-in, image-out modalities the release records. A \"Please note:\" line under the Model heading states the model is \"released under the Stability Community License\" — the card's own short form; the licence page cited separately gives the agreement's full name. The card's License section separately states the licence is free for research, non-commercial use and commercial use by organizations or individuals with less than $1M in total annual revenue, and directs anyone above that threshold to Stability AI for an Enterprise License. That paid tier is the fact the organization type policy is applied to."
   },
   {
@@ -1555,7 +1555,7 @@
     "title": "Stability AI Community License Agreement",
     "type": "official-docs",
     "publisherId": "stability-ai",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Stability AI's own licence text, stamped \"Last Updated: July 5, 2024\", cited for the licence name the release records and for the fuller recorded form of the creator's name: its attribution clause names \"Stability AI Ltd.\", which is what the organization record carries. The licence restricts free commercial use by the licensee's annual revenue and requires a separate agreement above the threshold, which is why the release records the licence as not OSI-approved."
   },
   {
@@ -1565,7 +1565,7 @@
     "type": "official-announcement",
     "publisherId": "databricks",
     "publishedDate": "2024-03-27",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Databricks' own announcement. States that DBRX \"is a transformer-based decoder-only large language model (LLM) that was trained using next-token prediction\" using \"a fine-grained mixture-of-experts (MoE) architecture with 132B total parameters of which 36B parameters are active on any input\", that \"DBRX has 16 experts and chooses 4\", that it \"was pre-trained on 12T tokens of text and code data\" with \"a maximum context length of 32k tokens\", and that it uses \"rotary position encodings (RoPE), gated linear units (GLU), and grouped query attention (GQA)\". States \"The weights of the base model (DBRX Base) and the finetuned model (DBRX Instruct) are available on Hugging Face under an open license\" and \"Starting today, DBRX is available for Databricks customers to use via APIs\" — both halves of the recorded access type, and the paid customer access the organization type policy is applied to. The page's own metadata carries article:published_time \"Wed, 03/27/2024 - 18:34\", which is the recorded release date."
   },
   {
@@ -1574,7 +1574,7 @@
     "title": "Databricks Open Model License",
     "type": "official-docs",
     "publisherId": "databricks",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Databricks' own licence for DBRX, cited for the licence name the release records and for the fuller recorded form of the creator's name: it defines \"'Databricks' or 'we' means Databricks, Inc.\" It carries \"Version Release Date: March 27, 2024\", which agrees with the announcement's publication date, and it imposes use restrictions and an acceptable use policy, which is why the release records the licence as not OSI-approved. Read on 2026-08-29; the DBRX weight repositories at huggingface.co/databricks/dbrx-instruct and /dbrx-base returned HTTP 401 on the same read and are gated, so no model card is cited for this release."
   },
   {
@@ -1584,7 +1584,7 @@
     "type": "official-announcement",
     "publisherId": "minimax",
     "publishedDate": "2025-06-16",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "MiniMax’s own launch announcement. Fetched 2026-08-29: HTTP 200. States \"A significant advantage of M1 is its support for an industry-leading 1 million token context window\", and that MiniMax is \"providing APIs on our official website at the industry’s lowest prices\" at \"$0.4/million tokens for input and $2.2/million tokens for output\" for 0-200k input lengths; that paid access under its own name is what types the creator as a company. The rendered page states no date anywhere in its prose. The recorded release date is read instead from this page’s own schema.org metadata, which carries \"datePublished\":\"2025-06-16T00:00:00.000Z\" with MiniMax named as both author and publisher. That is the day MiniMax published the launch announcement; no MiniMax-published page read for this record states a separate weights-availability date, and none is invented to supply one."
   },
   {
@@ -1593,7 +1593,7 @@
     "title": "MiniMax-M1-80k model card",
     "type": "model-card",
     "publisherId": "minimax",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "MiniMax’s own card for the 80k variant. Fetched 2026-08-29: HTTP 200. States \"We introduce MiniMax-M1, the world’s first open-weight, large-scale hybrid-attention reasoning model\" and \"the M1 model natively supports a context length of 1 million tokens\", which is the stated context length recorded as 1000000. It also states \"We train two versions of MiniMax-M1 models with 40K and 80K thinking budgets respectively\", which is why two sibling releases are recorded rather than one. The card’s \"456 billion parameters with 45.9 billion parameters activated per token\" is stated of MiniMax-Text-01, the earlier model M1 \"is developed based on\", not of M1 itself — the only property the card calls \"consistent with\" Text-01 is the context length. No parameter count is therefore recorded on either M1 release, because no source read here states one for M1."
   },
   {
@@ -1620,7 +1620,7 @@
     "title": "OpenELM-3B-Instruct model card",
     "type": "model-card",
     "publisherId": "apple",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Apple's card for the model. \"We introduce **OpenELM**, a family of **Open** **E**fficient **L**anguage **M**odels.\" and \"We release both pretrained and instruction tuned models with 270M, 450M, 1.1B and 3B parameters.\" are the basis for the family record and for the 3B parameter figure on this release. The card's own front matter states two different licence identifiers and they do not agree: \"license: apple-amlr\" on one line and \"license_name: apple-sample-code-license\" on another, with \"license_link: LICENSE\" pointing at a file whose text is the Apple Machine Learning Research Model terms rather than a sample code licence. Both keys are quoted here because neither can be dismissed from the card alone. The linked file settles what to record without either key having to be picked: it names itself, and that self-stated title is the licence name on the release, quoted under apple-openelm-license. The disagreement between these two front-matter keys is left visible rather than resolved, because the card does not resolve it. No context length is stated anywhere on this card, so no contextWindow is recorded for this release."
   },
   {
@@ -1638,7 +1638,7 @@
     "title": "OpenELM on Apple Machine Learning Research",
     "type": "official-announcement",
     "publisherId": "apple",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Apple's own research page for OpenELM. \"we release OpenELM, a state-of-the-art open language model.\" and \"This paper has been accepted at the Efficient Systems for Foundation Models workshop at ICML 2024.\" and \"We also release code to convert models to MLX library for inference and fine-tuning on Apple devices.\" The page carries no publication date in its markup that could be read on the check date, and it states no release date for the weights, which is why this release's date rests on the Hub record instead."
   },
   {
@@ -1656,7 +1656,7 @@
     "title": "SmolLM3-3B model card",
     "type": "model-card",
     "publisherId": "hugging-face",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "The card for the one model in this dataset that Hugging Face created rather than hosted. \"SmolLM3 is a 3B parameter language model designed to push the boundaries of small models. It supports dual mode reasoning, 6 languages and long context. SmolLM3 is a fully open model that offers strong performance at the 3B–4B scale.\" Front matter states \"license: apache-2.0\". On context, the card states one figure for the shipped configuration and larger ones the operator has to enable, and these are not rival claims. Its long-context section reads: \"The current `config.json` is set for context length up to 65,536 tokens. To handle longer inputs (128k or 256k), we utilize YaRN you can change the `max_position_embeddings` and rope_scaling` to:\" — the run-on and the unpaired backtick after rope_scaling are the card's own — followed by a config block carrying \"\"original_max_position_embeddings\": 65536,\" and a \"yarn\" rope_scaling type with a factor of 2.0, which the block's inline comment applies to 65,536 to reach the 128k figure. The feature bullet states that same relationship rather than contradicting it: \"Trained on 64k context and supports up to **128k tokens** using YARN extrapolation\"; reading its \"64k\" as the 65,536 the config names is an inference from the usual binary sense of k rather than something the card spells out. The recorded contextWindow is 65536 because that is the only figure the card presents as the setting the model ships with, while 128k and 256k are reachable only once the operator edits max_position_embeddings and rope_scaling, which makes them properties of a changed configuration. That the same sentence offers 256k on the same footing as 128k is what settles it: were 128k a competing account of the shipped window, 256k would be one too, and nothing would recommend recording 256k. The long-context benchmark rows also report a \"Ruler 128k\" score for SmolLM3-3B, and the card does not state whether YaRN was applied to obtain it; an evaluation result is not a statement of the shipped configuration either way. On languages, the card names six as native: \"- **Multilingual**: 6 natively supported (English, French, Spanish, German, Italian, and Portuguese)\". Its front matter \"language:\" list has eight entries — en, fr, es, it, pt, zh, ar, ru — and the three of those that are not among the six are accounted for by the card itself rather than contradicting it: \"The model has also been trained on Arabic (standard), Chinese and Russian data, but has seen fewer tokens in these languages compared to the 6 above. We report the performance on these langages for information.\" (the misspelling of \"languages\" is the card's own), and the benchmark tables carry a section headed \"| Other supported languages |\" covering exactly Arabic, Chinese and Russian. So the front matter is those six native languages plus these three secondary ones, less one: it carries no \"- de\" entry, while the prose counts German among the six and the \"| Main supported languages |\" table reports a \"| German| MLMM Hellaswag |\" row. That single omission is the whole of the discrepancy — a gap in the front matter, not a disagreement about what the model supports. No language fact is recorded for this release, and not because of that gap: the release schema has no field for natural-language coverage, so there is nowhere to record one."
   },
   {
@@ -1666,7 +1666,7 @@
     "type": "official-announcement",
     "publisherId": "hugging-face",
     "publishedDate": "2025-07-08",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Hugging Face's own announcement post, on its corporate blog path rather than a user namespace, which is what makes it the company speaking rather than a community member: contrast https://huggingface.co/blog/ibm-granite/granite-4-2, where the namespace segment names the posting organization. \"excited to contribute a new competitive fully open 3B model\" is the first person claim of authorship this record rests on, and the page states \"Published July 8, 2025\", which is the release date recorded here and which the Hub's createdAt independently agrees with. The post repeats the card's \"6 languages\" framing without enumerating them, so it neither widens nor closes the one narrow gap in the card's front matter that is set out under hugging-face-smollm3-model-card. Note on entity boundaries: the model repository sits in the HuggingFaceTB namespace, whose Hub organization record gives fullname \"Hugging Face Smol Models Research\", a team name rather than the company name. The creator recorded for this release is the company, on the strength of this corporate-blog post; the team namespace is noted rather than recorded as a separate organization."
   },
   {
@@ -1684,7 +1684,7 @@
     "title": "01-ai/Yi repository README",
     "type": "repository",
     "publisherId": "01-ai",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "01.AI's own repository. Attribution: \"- 🤖 The Yi series models are the next generation of open-source large language models trained from scratch by [01.AI](https://01.ai/).\" The release date comes from the README's news list, which is written as HTML inside the markdown; quoted verbatim with its tags rather than reflowed into markdown, because rewriting it would change the characters: \"  <summary>🎯 <b>2024-05-13</b>: The <a href=\"https://github.com/01-ai/Yi-1.5\">Yi-1.5 series models </a> are open-sourced, further improving coding, math, reasoning, and instruction-following abilities.</summary>\". Licence: \"The code and weights of the Yi-1.5 series models are distributed under the [Apache 2.0 license](https://github.com/01-ai/Yi/blob/main/LICENSE).\" The same README also carries an older news entry showing the series has not always been under that licence: \"  <summary>🔔 <b>2023-11-23</b>: The Yi Series Models Community License Agreement is updated to <a href=\"https://github.com/01-ai/Yi/blob/main/MODEL_LICENSE_AGREEMENT.txt\">v2.1</a>.</summary>\". Both are quoted because the second could otherwise look withheld; the recorded licence is Apache 2.0 on the strength of the first, which is the later statement and is scoped to the Yi-1.5 series specifically. No prose anywhere in this README states a parameter count for Yi-1.5-34B-Chat, which is why no parameters are recorded for it."
   },
   {
@@ -1693,7 +1693,7 @@
     "title": "Yi-1.5-34B-Chat model card",
     "type": "model-card",
     "publisherId": "01-ai",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "01.AI's card for the model. \"Yi-1.5 is an upgraded version of Yi. It is continuously pre-trained on Yi with a high-quality corpus of 500B tokens and fine-tuned on 3M diverse fine-tuning samples.\" Front matter states \"license: apache-2.0\", agreeing with the repository README. Two figures are deliberately not taken from this card. The card states no parameter count in prose; the only bases for a 34B figure would be the model's own name and the Hub's measured tensor total, so no parameters are recorded. On context length the card carries a family-level table whose Yi-1.5 row offers three lengths rather than one, so assigning any single value to this variant would be an inference from the variant's name rather than a reading of the source, and no contextWindow is recorded."
   },
   {
@@ -1738,7 +1738,7 @@
     "title": "EvoLLM-JP-v1-7B model card",
     "type": "model-card",
     "publisherId": "sakana-ai",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Sakana AI's card for the model, and the least ambiguous attribution in this tranche: \"**Developed by:** [Sakana AI](https://sakana.ai/)\". Description: \"**EvoLLM-JP-v1-7B** is an experimental general-purpose Japanese LLM.\" and \"This model was created using the Evolutionary Model Merge method.\" The recorded research status comes from \"This model is provided for research and development purposes only and should be considered as an experimental prototype.\" The card also states \"**License:** [MICROSOFT RESEARCH LICENSE TERMS](./LICENSE) (due to the inclusion of the WizardMath model)\", while its front matter declares only \"license: other\"; both are recorded because the front-matter value is a Hub category rather than a competing claim about which terms apply. The card names three merged models as inputs. None of them is a recorded entity in this dataset, so derivedFromIds is left empty rather than pointing at records that do not exist. No context length is stated on the card and none is recorded."
   },
   {
@@ -1747,7 +1747,7 @@
     "title": "Evolving New Foundation Models: Unleashing the Power of Automating Model Development",
     "type": "official-announcement",
     "publisherId": "sakana-ai",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Sakana AI's announcement post, which the page dates with \"<time datetime=\"2024-03-21T00:00:00+09:00\">March 21, 2024</time>\". \"The core research focus of Sakana AI is in applying nature-inspired ideas\" is the basis for how the organization is described. The post lists what it released: \"we applied this method to evolve 3 powerful foundation models for Japan\" naming the language model as EvoLLM-JP, and, in a sentence whose links are quoted with their markup rather than flattened to their link text: \"We are excited to release 2 state-of-the-art Japanese foundation models, EvoLLM-JP and EvoVLM-JP, on <a href=\"https://huggingface.co/SakanaAI\">Hugging Face</a> and <a href=\"https://github.com/SakanaAI\">GitHub</a> (with EvoSDXL-JP coming up)\". The recorded parameter figure rests on an identification that is stated here rather than assumed silently: the post says \"our evolved Japanese Math LLM, a 7B parameter model\", and the same post's list is what identifies that language model as EvoLLM-JP; the model repository is itself named EvoLLM-JP-v1-7B. Reading \"7B\" as 7 billion is an expansion of an abbreviation, not a figure any page states in full, and the Hub reports a measured tensor total of 7241732096, so 7 is the creator's rounded label rather than an exact count. On dates, this page contradicts itself: it is dated March 21, 2024 yet its body says \"Back in March 2024, Sakana AI released “Evolutionary Model Merge,”\", which speaks of its own publication month in the past tense and shows the text has been revised since publication. Because the page's own date, its retrospective sentence, and the Hub's repository timestamp of 2024-03-06 do not agree on a day, the release is recorded at month precision as 2024-03, which every one of the three supports."
   },
   {
@@ -1774,7 +1774,7 @@
     "title": "sarvam-m model card",
     "type": "model-card",
     "publisherId": "sarvam-ai",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Sarvam AI's card for the model. \"`sarvam-m` is a multilingual, hybrid-reasoning, text-only language model built on Mistral-Small.\" and a key-feature bullet reading \"**Advanced Indic Skills**: Specifically post-trained on Indian languages alongside English, embodying a character that authentically reflects and emphasizes Indian cultural values.\" Front matter states \"license: apache-2.0\" and \"base_model_relation: finetune\", and gives the base model as a YAML list rather than a single-line mapping, so it is quoted here as the two lines it actually occupies: \"base_model:\" then \"- mistralai/Mistral-Small-3.1-24B-Base-2503\". The base model is not a recorded release in this dataset, so derivedFromIds is left empty rather than pointing at a record that does not exist; the derivation is stated in the release summary instead. No parameter count and no context length are stated on this card: the only \"24B\" anywhere on it is inside the base model identifier quoted above, which names the base rather than this model. No context window is recorded for this release. The parameter figure that is recorded comes from Sarvam AI's announcement post and the Hub's measurement of this model's weights instead, set out on sarvam-ai-sarvam-m-blog."
   },
   {
@@ -1784,7 +1784,7 @@
     "type": "official-announcement",
     "publisherId": "sarvam-ai",
     "publishedDate": "2025-05-23",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Sarvam AI's announcement on its own domain, which the page dates 2025-05-23 in its markup. \"The resultant model, which we call Sarvam-M (M stands for Mistral)\" is the first person claim of authorship this record rests on, and it is also where the recorded variant letter comes from. The post situates the company: \"Sovereign AI Ecosystem in India\" is its own framing of what it is building towards, and it is the basis for how the organization is described; no page read for this record states where the company is headquartered, so no headquarters is recorded. On size, the post applies 24B both to the base model and to Sarvam-M itself, and both are quoted here rather than only the first. Of the base: \"We apply our SFT and RLVR steps on Mistral Small which is a 24B Apache 2.0 licensed model.\" Of Sarvam-M: the figure sits in the column headers of both of the post's comparison tables, in rows where every entry is a model name followed by that model's own size. The table captioned \"Benchmark Comparison Results\" heads its columns \"Benchmark\", \"Sarvam-M (24B)\", \"Mistral Small (24B)\", \"Gemma 3 (27B)\", \"Llama 4 Scout (17B/109B)\", \"Llama 3.3 (70B)\", and the later uncaptioned per-language table heads its columns \"Language\", \"Sarvam M (24B)\", \"Mistral 3 Small (24B)\", \"Gemma 3 (27B)\", \"Llama 4 Scout (17B/109B)\", \"Llama 3.3 (70B)\". The hyphen in the model's name differs between the two headers and each is quoted as it appears. Because the sibling entries in those rows carry the sizes of the models they name, the reading that 24B there describes the base rather than Sarvam-M is not available. Nothing has to be assumed about whether post-training preserves a parameter count either, because the Hub measured this model's own weights and not the base model's: safetensors.total is 23572403200, which is 23.57 billion and rounds to the 24 the creator labels it with. The recorded totalBillions is 24, which is that label rather than an exact count, and the measured total is recorded on hugging-face-sarvam-m-hub-record. The post does not state a release date for the weights, and it is dated three days after the Hub first measured the repository, so the recorded release date comes from the Hub and that gap is recorded on hugging-face-sarvam-m-hub-record."
   },
   {
@@ -1803,7 +1803,7 @@
     "type": "official-announcement",
     "publisherId": "naver",
     "publishedDate": "2025-04-23",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "NAVER Corp.’s own English newsroom, which dates the page \"2025.04.23\" and opens its body with \"April 23, 2025\". It is what the recorded release date rests on, because it states the day in NAVER’s own voice: \"NAVER’s generative AI “HyperCLOVA X” will make history on April 24 as the first major domestic generative AI model to be released as a free, open-source tool available for commercial use.\" What was released is named here too: \"NAVER Cloud (CEO Kim Yuwon) announced the completion of three lightweight HyperCLOVA X SEED models—3B, 1.5B, and 0.5B—which will be made available as open-source.\" That sentence is also why the creator question is settled explicitly rather than by default. The same page calls the line \"NAVER’s generative AI\", and the model card for the recorded release says the model \"is a model developed by NAVER\", so NAVER is recorded as the creator; NAVER Cloud appears in these sentences as the arm that announced the completion, and it is described on the organization record rather than created as a second creator. The relation is not an open question: the licence agreement states it directly, and the organization record records it there with the quote. The open-weight access type and license.weightsDownloadable rest on \"Businesses and research institutions, both local and international, can download these models and adopt them for their commercial or academic needs.\" The current lifecycle status rests on \"Unlike previous major models, which were limited to research use, the newly released HyperCLOVA X SEED models can now be used for commercial purposes free of charge.\" The page also describes the 3B sibling as \"a vision-language model capable of processing not only text but also images and videos\"; that model is not recorded as a release here, so no multimodal category is claimed for the family."
   },
   {
@@ -1812,7 +1812,7 @@
     "title": "HyperCLOVAX-SEED-Text-Instruct-1.5B model card",
     "type": "model-card",
     "publisherId": "naver",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "NAVER’s own card for the model, and the attribution this record rests on: \"HyperCLOVAX-SEED-Text-Instruct-1.5B is a model developed by NAVER that can understand and generate text.\" Basic Information gives \"Number of Parameters: 1.5B\", \"Input/Output Format: Text / Text (both input and output are in text format)\", \"Context Length: 16k\" and \"Knowledge Cutoff Date: The model was trained on data prior to August 2024.\" The Overview states the same length as \"it supports a context length of up to 16k tokens\". No contextWindow is recorded, and that is a recorded gap rather than an oversight: every statement of the length here is the bare abbreviation, and the repository’s config.json returns HTTP 401 because the repository is access-gated, so no exact integer could be read from any source available for this record. The note beside releaseSchema.contextWindow says which sense a bare \"K\" carries in a new record is an open question that must not be settled by defaulting to either reading, so neither 16000 nor 16384 is recorded. The card body carries no licence section; the Hub page header for this repository displays \"License: hyperclovax-seed\", which is the Hub’s slug for it rather than the licence’s name. The LICENSE this card links is served without credentials at the repository’s resolve path and was read, so the licence name, its URL and the terms behind osiApproved all rest on that document instead of on this header, and are cited to it. One thing on this page is deliberately not treated as evidence for anything: the Huggingface Usage Example contains a Python system_prompt string literal that names a model and a maker in Korean. That is the contents of a code sample rather than the card speaking, and every name and attribution recorded from this page comes from the Overview prose instead."
   },
   {
@@ -1830,7 +1830,7 @@
     "title": "HyperCLOVA X SEED Model License Agreement",
     "type": "official-docs",
     "publisherId": "naver",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "The model’s licence agreement, and a NAVER document rather than a Hugging Face one: it titles itself “HyperCLOVA X SEED Model License Agreement” on its first line, which is the licence name this dataset records. Reading it needs no credentials, and the endpoint matters — the url recorded here is the repository’s blob page for the file, which is what a reader should open: this repository is gated (the Hub record reports gated “auto”), and /raw/main/LICENSE does return HTTP 401, but /resolve/main/LICENSE serves the agreement itself as text/plain to an unauthenticated request — 12,560 bytes, sha256:38ecac78adef21eceff609f917f3cf904b3381ee9a6c83f824b89f4f9d28bbb4, with no gate interstitial. Anyone re-checking this record should use that path rather than concluding from a 401 on /raw/ that the document is unreadable. It settles three things no other source read here states. First, the relation between the two NAVER entities: “NAVER Corp., as the holder of the intellectual property of the Model, and its affiliate, NAVER Cloud Corp., as the exclusive business operator of HyperCLOVA X, enter into this Agreement with you.” Section 9.2 adds “NAVER Corp. owns the Model”. Second, it corroborates the recorded release date from a second NAVER document, independently of the newsroom’s forward-looking “will make history on April 24” phrasing: its third line reads “Model Release Date: April 24, 2025”. That line is a statement about the model rather than about this document, so it is recorded as corroboration for releaseDate and is deliberately not used as this source’s publishedDate, which no part of the document states. Third, it is why osiApproved is false and no SPDX id is recorded: these are bespoke NAVER terms, not a standard licence. They carry conditions an OSI-approved licence would not, including a Section 4 requirement that a licensee above ten million monthly active users “must request a license from NAVER”, and Section 3.1 redistribution conditions requiring the attribution notice, a “Powered by HyperCLOVA X” display, and that derived model names begin with “HyperCLOVA X”. weightsDownloadable stays true on the separate evidence of the announcement and the Section 2.2 grant to “access, download, install, copy, use, reproduce, distribute, create derivative works of, and make modifications to the Model”."
   },
   {
@@ -1840,7 +1840,7 @@
     "type": "official-announcement",
     "publisherId": "aleph-alpha",
     "publishedDate": "2024-08-26",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Aleph Alpha's own blog, dated \"26/08/2024\" at the top, which the recorded release date rests on. It announces \"our new foundation model family that includes Pharia-1-LLM-7B-control and Pharia-1-LLM-7B-control-aligned, now publicly available under the Open Aleph License, which explicitly allows for non-commercial research and educational use.\" The open-weight access type and osiApproved false rest on that sentence and on the page calling these \"weight-available foundation models\". The German/French/Spanish optimization and the 7B-8B parameter positioning are stated in the same paragraph."
   },
   {
@@ -1849,7 +1849,7 @@
     "title": "Pharia-1-LLM-7B-control model card",
     "type": "model-card",
     "publisherId": "aleph-alpha",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Aleph Alpha's own Hugging Face card for the recorded model, linked from the announcement as the accompanying model card. It carries the Open Aleph License and the 7B parameter count the record stores."
   },
   {
@@ -1859,7 +1859,7 @@
     "type": "official-announcement",
     "publisherId": "reka-ai",
     "publishedDate": "2025-07-10",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Reka's own news post, which carries the visible article date \"Jul 10, 2025\" that the recorded release date rests on. The page's front-matter published field reads \"Aug 18, 2026\", a later site-rebuild timestamp that is deliberately not used as the release date. The post states \"Today, we are excited to open source a few of our building blocks\", listing Reka Flash 3.1, and describes it as \"a 21 billion parameter model\" that \"is particularly strong on coding and as a base model to be finetuned on agentic tasks\"."
   },
   {
@@ -1868,7 +1868,7 @@
     "title": "Reka Flash 3.1 model card",
     "type": "model-card",
     "publisherId": "reka-ai",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Reka's own Hugging Face card for the recorded model. It states \"Reka Flash 3.1 is an update to our Reka Flash 3\" and \"is particularly strong on coding and as a base model to be finetuned on agentic tasks\", and carries the Apache-2.0 licence the record stores."
   },
   {
@@ -1877,7 +1877,7 @@
     "title": "Releases - Nous Research",
     "type": "official-announcement",
     "publisherId": "nous-research",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Nous Research's own releases page, whose table lists each release with a RELEASE DATE column. The recorded release date rests on the MODEL row for Hermes-4-14B: \"Hermes-4-14B | MODEL | Small and dense Hermes variant for local inference. | 08/26/25\". This is the model row, kept distinct from the separate Hermes 4 technical report; the arXiv paper's own date is not used for the release. The same page's structured metadata and footer describe Nous Research as \"The AI accelerator company\", which the company organization type rests on."
   },
   {
@@ -1886,7 +1886,7 @@
     "title": "Hermes 4 14B model card",
     "type": "model-card",
     "publisherId": "nous-research",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Nous Research's own Hugging Face card for the recorded model. It states \"Hermes 4 14B is a frontier, hybrid-mode reasoning model based on Qwen 3 14B by Nous Research that is aligned to you.\" The declared base is Qwen 3 14B and the licence slug is apache-2.0; the two agree because Qwen3-14B is itself Apache-2.0, which is why this model is recorded rather than Hermes-3-8B, whose licence slug and declared base disagree."
   },
   {
@@ -1896,7 +1896,7 @@
     "type": "official-announcement",
     "publisherId": "liquid-ai",
     "publishedDate": "2025-07-10",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Liquid AI's own blog, whose article:published_time and datePublished metadata both read \"2025-07-10\", which the recorded release date rests on. It states \"Today, we release LFM2\" and \"We're releasing the weights of three dense checkpoints with 0.35B, 0.7B, and 1.2B parameters.\" The architecture the record relies on is stated here verbatim: \"LFM2 is a hybrid Liquid model with multiplicative gates and short convolutions. It consists of 16 blocks: 10 double-gated short-range convolution blocks and 6 blocks of grouped query attention.\" That is why the model is recorded as a hybrid attention model and not as a non-transformer."
   },
   {
@@ -1905,7 +1905,7 @@
     "title": "LFM2-1.2B model card",
     "type": "model-card",
     "publisherId": "liquid-ai",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Liquid AI's own Hugging Face card for the recorded model. It carries the LFM Open License v1.0 the record stores and the 1.2B parameter count, and its config lists grouped-query attention heads, consistent with the hybrid-attention architecture the blog states."
   },
   {
@@ -1914,7 +1914,7 @@
     "title": "XiaomiMiMo/MiMo repository README",
     "type": "repository",
     "publisherId": "xiaomi",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Xiaomi's own MiMo repository README. Its Updates section carries exactly one dated line, which the recorded release date and the choice of snapshot both rest on: \"[2025.05.30] We scaled the SFT dataset from approximately 500K to 6M instances and continuously expanding the RL training window size from 32K to 48K, the performance of MiMo-7B-RL-0530 on AIME24 can be continuously improved and eventually surpass that of DeepSeek R1 (79.8).\" The README also states \"we present MiMo-7B, a series of models trained from scratch and born for reasoning tasks.\" The earlier MiMo-7B-RL checkpoint has no dated line, so the 0530 snapshot is recorded rather than it."
   },
   {
@@ -1923,7 +1923,7 @@
     "title": "MiMo-7B-RL-0530 model card",
     "type": "model-card",
     "publisherId": "xiaomi",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "Xiaomi's own Hugging Face card for the recorded checkpoint. It carries the MIT licence the record stores and identifies the model as the 0530 RL checkpoint of the MiMo-7B series."
   },
   {
@@ -1932,7 +1932,7 @@
     "title": "SEA-LION v3 model documentation",
     "type": "repository",
     "publisherId": "ai-singapore",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "AI Singapore's own SEA-LION repository documentation for the v3 collection. The recorded month-precision release date rests on \"SEA-LION version 3, released in Dec 2024\", and the recorded 128K context window rests on \"Llama-SEA-LION-v3-8B, based on Llama 3.1 8B, now provides a larger context length of 128K\". No day is stated for the release, so the record is kept at month precision rather than inventing one."
   },
   {
@@ -1941,7 +1941,7 @@
     "title": "Llama-SEA-LION-v3-8B model card",
     "type": "model-card",
     "publisherId": "ai-singapore",
-    "lastCheckedDate": "2026-08-30",
+    "lastCheckedDate": "2026-09-01",
     "notes": "AI Singapore's own Hugging Face card for the recorded model, which records \"Developed by: Products Pillar, AI Singapore\" and \"Funded by: National Research Foundation, Singapore\" and identifies the base as Llama 3.1 8B. The base continued-pretraining model is recorded here rather than the separate instruction-tuned variant, whose card states a later \"Current Version\" checkpoint that would not match the Dec 2024 family date."
   },
   {
@@ -2017,6 +2017,132 @@
     "notes": "IBM’s card for Granite-4.0-H-Tiny, a different document from the H-Small card and the one the family’s first release date is taken from: it states \"- **Release Date**: October 2nd, 2025\" in its own right, so the family date does not rest on the release it is paired with. Also states \"Granite-4.0-H-Tiny is a 7B parameter long-context instruct model finetuned from *Granite-4.0-H-Tiny-Base*\". As on the H-Small card, the only context figure sits in an HTML table whose columns are not mapped in text, so none is recorded. Card text read 2026-08-31 from https://huggingface.co/ibm-granite/granite-4.0-h-tiny/raw/main/README.md, the same document this page renders."
   },
   {
+    "id": "kyutai-site-home",
+    "url": "https://kyutai.org/",
+    "title": "kyutai: open-science AI lab",
+    "type": "official-docs",
+    "publisherId": "kyutai",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Kyutai's own site, fetched 2026-09-01: <title>kyutai: open-science AI lab</title>, meta description \"Our mission is to build and democratize artificial general intelligence through open science\", body text \"AI RESEARCH LAB BASED IN PARIS\" and \"Moshi is the first speech-native dialogue system\". The recorded research-lab type and the Paris location rest on those statements. The page also names a spin-off, \"Gradium\", without stating an ownership or control relationship, so none is recorded. The nav paths read on the same fetch were /team/, /papers/, /blog/, /tts/, /stt/, /unmute/, /moshivis/ and /casa/; https://kyutai.org/about returned 404 on the same date and is deliberately not cited."
+  },
+  {
+    "id": "kyutai-moshiko-pytorch-bf16-model-card",
+    "url": "https://huggingface.co/kyutai/moshiko-pytorch-bf16",
+    "title": "moshiko-pytorch-bf16 model card",
+    "type": "model-card",
+    "publisherId": "kyutai",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Kyutai's own card for the recorded build, in Kyutai's own Hugging Face namespace, so the publisher is Kyutai and not the host. Fetched 2026-09-01. States \"Moshi is a speech-text foundation model and full-duplex spoken dialogue framework\", \"Developed by: Kyutai\", \"Model type: Multimodal speech-text foundation model\", \"License: CC-BY\", \"Pytorch version quantized in bf16 precision\", and \"Moshi is the first real-time full-duplex spoken large language model, with a theoretical latency of 160ms, 200ms in practice\". It states no parameter count and no context window, which is why both fields are withheld on the release. Kyutai's blog carries a post titled \"Moshi open-source release: run Moshi locally!\" whose URL path contains 2024-09-18, but the page as fetched states no date in its text, so the URL slug is not read as a stated release date and the release is dated from the Hub repository record instead. Its out-of-scope-use section states \"This model is for research only and we do not recommend it for providing advices or to perform any professionnal duty\", which is the sole basis for the recorded research lifecycle; no page read states any other lifecycle or availability term."
+  },
+  {
+    "id": "hugging-face-kyutai-moshiko-pytorch-bf16-hub-record",
+    "url": "https://huggingface.co/api/models/kyutai/moshiko-pytorch-bf16",
+    "title": "Hugging Face Hub record for kyutai/moshiko-pytorch-bf16",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "The Hub's own API record, in Hugging Face's own namespace, so the publisher is the host and not the creator. Fetched 2026-09-01: \"createdAt\":\"2024-09-11T15:37:18.000Z\", \"cardData\":{\"license\":\"cc-by-4.0\"}, \"safetensors\":{\"total\":7687729152}. Cited for the repository creation date the release records under dateBasis platform-repository-created, and for the licence identifier the card gives only as \"CC-BY\". The safetensors total is platform measurement, not a creator statement of a parameter count, so it is deliberately not carried into the release record."
+  },
+  {
+    "id": "lelapa-ai-about",
+    "url": "https://lelapa.ai/about",
+    "title": "Lelapa AI — Our Mission",
+    "type": "official-docs",
+    "publisherId": "lelapa-ai",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Lelapa AI's own About page, fetched 2026-09-01. States \"Lelapa AI is focused on building advanced language AI under real-world conditions: limited compute, fragmented data, and diverse linguistic contexts\", \"we're building the models and tools to make that a reality, starting with Africa\", and \"Africa's resource constraints have shaped a form of innovation grounded in efficiency, resilience, and adaptability\". The recorded African focus rests on those statements. The page states no country of incorporation, so the organization record states none; https://lelapa.ai/about-us returned 404 on the same date and is deliberately not cited."
+  },
+  {
+    "id": "lelapa-ai-pricing",
+    "url": "https://lelapa.ai/pricing",
+    "title": "Lelapa AI — Pricing",
+    "type": "official-docs",
+    "publisherId": "lelapa-ai",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Lelapa AI's own pricing page, fetched 2026-09-01: heading \"Pricing\", body \"Simple, transparent pricing that scales with your needs. Speech-to-text with codeswitching support for multilingual contact centres\", and an offer naming an \"SMME Pass\" and a \"tailored Enterprise solution\". Cited only for the organization type clause, which turns on whether the creator offers model products or access for payment under its own name."
+  },
+  {
+    "id": "lelapa-ai-inkubalm-0-4b-model-card",
+    "url": "https://huggingface.co/lelapa/InkubaLM-0.4B",
+    "title": "InkubaLM-0.4B model card",
+    "type": "model-card",
+    "publisherId": "lelapa-ai",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Lelapa AI's own card for the recorded model, in Lelapa AI's own Hugging Face namespace, so the publisher is Lelapa AI and not the host. Fetched 2026-09-01. States \"Developed by: Lelapa AI - Fundamental Research Team\", \"Model type: Small Language Model (SLM) for five African languages built using the architecture design of LLaMA-7B\", \"Language(s) (NLP): isiZulu, Yoruba, Swahili, isiXhosa, Hausa, English and French\", \"License: CC BY-NC 4.0\", and \"InkubaLM has been trained from scratch using 1.9 billion tokens of data for five African languages\". Its training hyperparameter table gives \"Total Parameters | 0.422B\" and \"Max Seq Length | 2048\"; the parameter count is recorded and the sequence length is withheld, because a total parameter count is a property of the model while a training sequence length states a training setting rather than the served context window."
+  },
+  {
+    "id": "hugging-face-lelapa-inkubalm-0-4b-hub-record",
+    "url": "https://huggingface.co/api/models/lelapa/InkubaLM-0.4B",
+    "title": "Hugging Face Hub record for lelapa/InkubaLM-0.4B",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "The Hub's own API record, in Hugging Face's own namespace, so the publisher is the host and not the creator. Fetched 2026-09-01: \"createdAt\":\"2024-05-11T16:06:09.000Z\", \"cardData\":{\"license\":\"cc-by-nc-4.0\"}, with pytorch_model.bin among the repository files. Cited for the repository creation date the release records under dateBasis platform-repository-created, and for the downloadable-weights fact."
+  },
+  {
+    "id": "maritaca-ai-about",
+    "url": "https://www.maritaca.ai/about",
+    "title": "Maritaca AI — Sobre",
+    "type": "official-docs",
+    "publisherId": "maritaca-ai",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Maritaca AI's own About page, fetched 2026-09-01. States \"A Maritaca AI é uma empresa brasileira dedicada ao desenvolvimento de inteligências artificiais especializadas em domínios e idiomas\" — the creator's own statement that it is a Brazilian company, which the organization record rests on. The English site at https://www.maritaca.ai/en, fetched on the same date, states \"Sabiá models are specialized in Portuguese and Brazilian contexts\", which the family description rests on."
+  },
+  {
+    "id": "maritaca-ai-plans",
+    "url": "https://www.maritaca.ai/planos",
+    "title": "Maritaca AI — Planos",
+    "type": "official-docs",
+    "publisherId": "maritaca-ai",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Maritaca AI's own plans page, fetched 2026-09-01: \"Preços por 1 milhão de tokens\" for its API, alongside \"Inferência 100% em território nacional (versões br-sp), para soberania e residência de dados\". Cited only for the organization type clause, which turns on whether the creator offers model products or access for payment under its own name."
+  },
+  {
+    "id": "maritaca-ai-sabia-7b-model-card",
+    "url": "https://huggingface.co/maritaca-ai/sabia-7b",
+    "title": "Sabiá-7B model card",
+    "type": "model-card",
+    "publisherId": "maritaca-ai",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Maritaca AI's own card for the recorded model, in Maritaca AI's own Hugging Face namespace, so the publisher is Maritaca AI and not the host. Fetched 2026-09-01. States \"Sabiá-7B is Portuguese language model developed by Maritaca AI\", \"Model Architecture: Sabiá-7B is an auto-regressive language model that uses the same architecture of LLaMA-1-7B\", \"Maximum sequence length: 2048 tokens\", and \"License: The licensing is the same as LLaMA-1's, restricting the model's use to research purposes only\". The context window rests on the stated maximum sequence length. The card states no parameter count, names no licence document, and gives no licence URL or SPDX identifier, so the parameter count is withheld and the licence is recorded under the card's own wording rather than a name no source states."
+  },
+  {
+    "id": "hugging-face-maritaca-ai-sabia-7b-hub-record",
+    "url": "https://huggingface.co/api/models/maritaca-ai/sabia-7b",
+    "title": "Hugging Face Hub record for maritaca-ai/sabia-7b",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "The Hub's own API record, in Hugging Face's own namespace, so the publisher is the host and not the creator. Fetched 2026-09-01: \"createdAt\":\"2023-11-08T22:13:36.000Z\", \"pipeline_tag\":\"text-generation\", with safetensors present in the repository and no license tag of any kind. Cited for the repository creation date the release records under dateBasis platform-repository-created, and for the downloadable-weights fact. The absence of a licence tag here is why the licence is recorded from the card's prose alone. The safetensors total is platform measurement, not a creator statement of a parameter count, so it is deliberately not carried into the release record."
+  },
+  {
+    "id": "openbmb-minicpm-repository",
+    "url": "https://github.com/OpenBMB/MiniCPM",
+    "title": "OpenBMB/MiniCPM repository",
+    "type": "repository",
+    "publisherId": "openbmb",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "OpenBMB's own MiniCPM repository, in OpenBMB's own GitHub organization, so the publisher is OpenBMB and not the host. Fetched 2026-09-01. Its changelog states \"[2026.05.19] MiniCPM5-1B is released: a compact 1B-class dense model for on-device and resource-constrained use\", which the day-precision release date rests on, and \"We are releasing MiniCPM5-1B, the first model in the MiniCPM5 series\". No page read here states OpenBMB's legal form or its relationship to ModelBest, so the organization record states neither; the repository links a \"MiniCPM Wiki (in Chinese)\" on a modelbest.feishu.cn host without stating what that relationship is. The repository's leaderboard and \"SOTA\" claims are deliberately not recorded, because this dataset states no ranking."
+  },
+  {
+    "id": "openbmb-minicpm5-1b-model-card",
+    "url": "https://huggingface.co/openbmb/MiniCPM5-1B",
+    "title": "MiniCPM5-1B model card",
+    "type": "model-card",
+    "publisherId": "openbmb",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "OpenBMB's own card for the recorded model, in OpenBMB's own Hugging Face namespace, so the publisher is OpenBMB and not the host. Fetched 2026-09-01. States \"We are releasing MiniCPM5-1B, the first model in the MiniCPM5 series. It is a dense 1B Transformer built for on-device, local deployment, and resource-constrained scenarios\", and a Model Information list giving \"Number of Parameters: 1,080,632,832\" and \"Context Length: 131,072\", which the recorded parameter count and context window rest on exactly. Also states \"MiniCPM5-1B is the first checkpoint in the MiniCPM5 series. It is designed for local assistants, coding agents, tool-use workflows, and reasoning scenarios where a compact model is preferred\". Its comparative and leaderboard claims are deliberately not recorded."
+  },
+  {
+    "id": "hugging-face-openbmb-minicpm5-1b-hub-record",
+    "url": "https://huggingface.co/api/models/openbmb/MiniCPM5-1B",
+    "title": "Hugging Face Hub record for openbmb/MiniCPM5-1B",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "The Hub's own API record, in Hugging Face's own namespace, so the publisher is the host and not the creator. Fetched 2026-09-01: tags include \"license:apache-2.0\", with \"gated\":false and safetensors present in the repository. Cited for the licence identifier and for the downloadable-weights fact. The release date is not taken from here, because OpenBMB states one itself in its own repository."
+  },
+  {
     "id": "tii-falcon-180b-announcement",
     "url": "https://www.tii.ae/news/technology-innovation-institute-introduces-worlds-most-powerful-open-llm-falcon-180b",
     "title": "Technology Innovation Institute Introduces World's Most Powerful Open LLM Falcon-180B",
@@ -2061,7 +2187,7 @@
     "type": "official-docs",
     "publisherId": "cohere",
     "lastCheckedDate": "2026-09-01",
-    "notes": "Cohere's own Rerank documentation. States \"Rerank models sort text inputs by semantic relevance to a specified query. They are often used to sort search results returned from an existing search solution\" — the distinct reranking function, separate from the generative Command family. The model table lists rerank-v3.5 with the note \"This model has a context length of 4096 tokens\" (the recorded contextWindow), and the only endpoint shown is POST https://api.cohere.com/v2/rerank requiring a bearer token, which is the API-only, proprietary-hosted access recorded. rerank-v3.5 appears in this live documentation's active model table with a working Rerank endpoint (alongside the newer rerank-v4.0-pro and rerank-v4.0-fast), so Cohere still offers it as a served model — the basis for status current, the same availability shape ADR 0008 accepted for Cohere's quoted \"Live\". Cited for the family's reranking function, the API-only access, the 4096-token context length, and the current lifecycle status."
+    "notes": "Cohere's own Rerank documentation. States \"Rerank models sort text inputs by semantic relevance to a specified query. They are often used to sort search results returned from an existing search solution\" — the distinct reranking function, separate from the generative Command family. The model table lists rerank-v3.5 with the note \"This model has a context length of 4096 tokens\" (the recorded contextWindow), and the only endpoint shown is POST https://api.cohere.com/v2/rerank requiring a bearer token, which is the API-only, proprietary-hosted access recorded. On lifecycle: Cohere's model overview (https://docs.cohere.com/docs/models) publishes a Status column for the Command table (values \"Live\" and \"Deprecated Sept 15, 2025\") and for Parse, but the Rerank table has no Status column and this Rerank page states no lifecycle term, so no source states whether rerank-v3.5 is current — the basis for status unknown under ADR 0008. Cited for the family's reranking function, the API-only access, the 4096-token context length, and the unknown lifecycle status."
   },
   {
     "id": "cohere-rerank-v3-5-changelog",
@@ -2110,5 +2236,24 @@
     "publisherId": "nvidia",
     "lastCheckedDate": "2026-09-01",
     "notes": "NVIDIA's own model card (creator namespace nvidia/ on Hugging Face; the card is not gated). The card carries the NVIDIA Open Model License Agreement, headed \"NVIDIA Open Model License Agreement\" with \"Version Release Date: January 6, 2025\" — the release date recorded at day precision — and its grant clause permits commercial use (\"sell, offer for sale, distribute\"), with clause 2.4 stating \"NVIDIA owns the Model\". The model generates physics-aware video from a text prompt (Text2World). Cited for the release date, the licence name, and the open-weight, NVIDIA-owned status. States no exact parameter integer in prose (only \"7B\" in the model name), so parameters are withheld."
+  },
+  {
+    "id": "databricks-dolly-repository",
+    "url": "https://github.com/databrickslabs/dolly",
+    "title": "databrickslabs/dolly repository",
+    "type": "repository",
+    "publisherId": "databricks",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Databricks' own public source repository for Dolly (HTTP 200). States \"dolly-v2-12b is a 12 billion parameter causal language model created by Databricks that is derived from EleutherAI's Pythia-12b\" — the parameter count, creator attribution and Pythia lineage (recorded as derivedFromIds eleutherai-pythia-12b). The repository's LICENSE file (https://github.com/databrickslabs/dolly/blob/master/LICENSE, HTTP 200) is the Apache License 2.0, the recorded weights licence. Note the repo README's phrase \"released under a permissive license (CC-BY-SA)\" refers to the databricks-dolly-15k instruction corpus, not the model weights; it is not used here. Cited for the parameter count, creator, Pythia lineage and the Apache-2.0 licence."
+  },
+  {
+    "id": "databricks-dolly-v2-announcement",
+    "url": "https://www.databricks.com/blog/2023/04/12/dolly-first-open-commercially-viable-instruction-tuned-llm",
+    "title": "Free Dolly: Introducing the World's First Truly Open Instruction-Tuned LLM",
+    "type": "official-announcement",
+    "publisherId": "databricks",
+    "publishedDate": "2023-04-12",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Databricks' own announcement of Dolly 2.0, dated April 12, 2023 (the recorded release date). States \"Today, we're releasing Dolly 2.0, the first open source, instruction-following LLM\" and \"We are open-sourcing the entirety of Dolly 2.0, including the training code, the dataset, and the model weights, all suitable for commercial use\" — the open-weight, commercial-use access recorded. Also states \"Dolly 2.0 is a 12B parameter language model based on the EleutherAI pythia model family\". The dataset's CC-BY-SA-3.0 licence named here governs databricks-dolly-15k, not the weights. Cited for the release date and the open-weight commercial-use access."
   }
 ]

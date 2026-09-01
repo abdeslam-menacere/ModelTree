@@ -33,6 +33,10 @@
     "slug": "google-deepmind",
     "name": "Google DeepMind",
     "shortName": "Google DeepMind",
+    "aliases": [
+      "Google",
+      "DeepMind"
+    ],
     "type": "research-lab",
     "website": "https://deepmind.google/",
     "releasePage": "https://ai.google.dev/gemini-api/docs/models",
@@ -599,5 +603,67 @@
       "ai-singapore-llama-sea-lion-v3-8b-model-card"
     ],
     "verifiedAt": "2026-08-30"
+  },
+  {
+    "id": "kyutai",
+    "slug": "kyutai",
+    "name": "Kyutai",
+    "shortName": "Kyutai",
+    "type": "research-lab",
+    "website": "https://kyutai.org",
+    "releasePage": "https://huggingface.co/kyutai",
+    "description": "A Paris-based AI research lab that publishes speech-native models. Its own site is titled \"kyutai: open-science AI lab\", describes itself as an \"AI RESEARCH LAB BASED IN PARIS\", and states \"Our mission is to build and democratize artificial general intelligence through open science\". One standalone institution controls its releases and exists primarily for research, which is the clause it is typed under; no page read states that Kyutai sells model access for payment under its own name, so the paid clause is not reached. Its site names a spin-off, Gradium, and no ownership or control relationship is recorded for it because no page read states one.",
+    "sourceIds": [
+      "kyutai-site-home",
+      "kyutai-moshiko-pytorch-bf16-model-card"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "lelapa-ai",
+    "slug": "lelapa-ai",
+    "name": "Lelapa AI",
+    "shortName": "Lelapa AI",
+    "type": "company",
+    "website": "https://lelapa.ai",
+    "releasePage": "https://huggingface.co/lelapa",
+    "description": "A language-AI company building for African languages. Its own About page states \"Lelapa AI is focused on building advanced language AI under real-world conditions: limited compute, fragmented data, and diverse linguistic contexts\" and that it is \"building the models and tools to make that a reality, starting with Africa\". Its pricing page offers \"Speech-to-text with codeswitching support for multilingual contact centres\" under \"Simple, transparent pricing\", so it offers model access for payment under its own name, which is the clause it is typed under. Its InkubaLM card records \"Developed by: Lelapa AI - Fundamental Research Team\". No page read states a country of incorporation, so none is recorded.",
+    "sourceIds": [
+      "lelapa-ai-about",
+      "lelapa-ai-pricing",
+      "lelapa-ai-inkubalm-0-4b-model-card"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "maritaca-ai",
+    "slug": "maritaca-ai",
+    "name": "Maritaca AI",
+    "shortName": "Maritaca AI",
+    "type": "company",
+    "website": "https://www.maritaca.ai",
+    "releasePage": "https://huggingface.co/maritaca-ai",
+    "description": "A Brazilian company that develops the Sabiá family of Portuguese-language models. Its own About page states \"A Maritaca AI é uma empresa brasileira dedicada ao desenvolvimento de inteligências artificiais especializadas em domínios e idiomas\", and its English site states \"Sabiá models are specialized in Portuguese and Brazilian contexts\". Its plans page prices API access \"por 1 milhão de tokens\", so it offers model access for payment under its own name, which is the clause it is typed under.",
+    "sourceIds": [
+      "maritaca-ai-about",
+      "maritaca-ai-plans",
+      "maritaca-ai-sabia-7b-model-card"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "openbmb",
+    "slug": "openbmb",
+    "name": "OpenBMB",
+    "shortName": "OpenBMB",
+    "type": "company",
+    "website": "https://www.openbmb.cn",
+    "releasePage": "https://huggingface.co/openbmb",
+    "description": "The publisher of the MiniCPM series of on-device language models, releasing from its own GitHub organization and its own Hugging Face namespace. Its MiniCPM repository announces \"[2026.05.19] MiniCPM5-1B is released\" and its MiniCPM5-1B card describes \"a dense 1B Transformer built for on-device, local deployment, and resource-constrained scenarios\". No page read states OpenBMB's legal form, its governance, or its relationship to ModelBest, so none of those is recorded here and the record falls to the fallback clause for a centrally operated creator that runs the model work. That gap is written down rather than smoothed over.",
+    "sourceIds": [
+      "openbmb-minicpm-repository",
+      "openbmb-minicpm5-1b-model-card"
+    ],
+    "verifiedAt": "2026-09-01"
   }
 ]

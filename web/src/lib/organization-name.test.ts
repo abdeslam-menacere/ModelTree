@@ -155,8 +155,9 @@ describe('the rule is applied at every surface that names a creator', () => {
   /**
    * The comparison picker was the last surface still reading `name`, and it is
    * the reason these assertions run against built surfaces rather than the
-   * helper alone: it derives its own `organizationName` field, so a sweep for
-   * the literal `organization.name` never saw it.
+   * helper alone: it derives its own creator-label field — `organizationName`,
+   * shortened to `o` by #745 — so a sweep for the literal `organization.name`
+   * never saw it.
    */
   it('names the creator on a comparison picker entry by the label', () => {
     const organizationById = new Map(everyOrganization().map((item) => [item.id, item]));
@@ -166,7 +167,17 @@ describe('the rule is applied at every surface that names a creator', () => {
     expect(candidates.length).toBeGreaterThan(0);
     expect(rows.length).toBeGreaterThan(0);
 
-    for (const entry of [...candidates, ...rows]) {
+    // The two surfaces no longer share a field name, so they are normalised to
+    // the pair this test is actually about rather than iterated as a union.
+    const entries = [
+      ...candidates.map((candidate) => ({
+        slug: candidate.slug,
+        organizationName: candidate.organizationName,
+      })),
+      ...rows.map((row) => ({ slug: row.s, organizationName: row.o })),
+    ];
+
+    for (const entry of entries) {
       const organization = organizationById.get(releaseBySlug.get(entry.slug)!.organizationId)!;
       expect(entry.organizationName).toBe(organizationLabel(organization));
     }
