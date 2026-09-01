@@ -4449,5 +4449,94 @@
       "osi-approved-licenses"
     ],
     "verifiedAt": "2026-08-31"
+  },
+  {
+    "id": "lg-ai-research-exaone-4-0-32b",
+    "slug": "exaone-4-0-32b",
+    "canonicalName": "EXAONE-4.0-32B",
+    "displayName": "EXAONE 4.0 32B",
+    "organizationId": "lg-ai-research",
+    "familyId": "lg-ai-research-exaone-4-0",
+    "version": "4.0",
+    "variant": "32B",
+    "releaseDate": "2025-07-15",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "EXAONE AI Model License Agreement 1.2 - NC",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "contextWindow": 131072,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "The 32B size of LG AI Research’s EXAONE 4.0, named inside the same dated line that states the family’s release: \"2025.07.15 : We release EXAONE 4.0, a hybrid reasoning model with enhanced usability including 32B and 1.2B.\" The repository describes the series as consisting of \"a mid-size **32B** model optimized for high performance\" alongside a 1.2B model. Weights are downloadable — the repository instructs \"Download the EXAONE 4.0 model weights in GGUF format.\" — under the licence LG names as \"EXAONE AI Model License Agreement 1.2 - NC\", which OSI’s published licence index does not list, so osiApproved is false on a reading of that register. The context window is the exact figure the model card states, \"Context Length: 131,072 tokens\". No parameter count is recorded: the only figure the model card gives is \"Number of Parameters (without embeddings): 30.95B\", which the card itself marks as excluding embeddings and so is not a total, and the repository’s unqualified figures appear only as a \"Model Size\" row inside multi-column comparison tables, which would have to be mapped to a column before it could be read. LG states no lifecycle for this model, so the status is unknown.",
+    "intendedUse": "Good fit when a downloadable text model with a 131,072-token context is wanted and the licence terms can be read first. Trade-off: LG names the licence \"EXAONE AI Model License Agreement 1.2 - NC\" and this record does not summarise its terms, so permitted uses must be checked against the licence itself. Avoid when a model with an OSI-approved licence is required.",
+    "sourceIds": [
+      "lgai-exaone-4-0-repository",
+      "lgai-exaone-4-0-32b-model-card",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "tencent-hunyuanimage-3-0-standard",
+    "slug": "hunyuanimage-3-0-standard",
+    "canonicalName": "HunyuanImage-3.0",
+    "displayName": "HunyuanImage 3.0",
+    "organizationId": "tencent",
+    "familyId": "tencent-hunyuanimage-3-0",
+    "version": "3.0",
+    "variant": "Base",
+    "releaseDate": "2025-09-28",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "image"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "image"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "tencent-hunyuan-community",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "apiAliases": [],
+    "parameters": {
+      "totalBillions": 80,
+      "activeBillions": 13
+    },
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "Tencent’s HunyuanImage-3.0, which its repository titles \"A Powerful Native Multimodal Model for Image Generation\" and whose dated news entry states that on \"September 28, 2025\" its \"Inference code and model weights publicly available.\" Modalities are read from the model card’s own front matter, \"pipeline_tag: text-to-image\". The parameter counts are the ones both sources state outright — \"a total of 80 billion parameters, with 13 billion activated per token\". The licence is the name the card states as license_name, \"tencent-hunyuan-community\"; OSI’s published licence index does not list it, so osiApproved is false on a reading of that register rather than on absence of evidence. Tencent applies no suffix to this checkpoint’s name, listing it as \"HunyuanImage-3.0\" in the repository’s model table alongside \"HunyuanImage-3.0-Instruct\" and \"HunyuanImage-3.0-Instruct-Distil\", and calls it the Base model in that table’s own notes — \"Multi‑GPU inference is recommended for the Base model.\" — which is the variant label recorded here. No context window is recorded, because no consulted source states one. Tencent states no lifecycle for the model, so the status is unknown.",
+    "intendedUse": "Good fit when a text-to-image model with downloadable weights is wanted. Trade-off: Tencent names the licence \"tencent-hunyuan-community\" and this record does not summarise its terms, so permitted uses must be checked against the licence itself. Avoid when an OSI-approved licence is required.",
+    "sourceIds": [
+      "tencent-hunyuanimage-3-0-repository",
+      "tencent-hunyuanimage-3-0-model-card",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-09-01"
   }
 ]
