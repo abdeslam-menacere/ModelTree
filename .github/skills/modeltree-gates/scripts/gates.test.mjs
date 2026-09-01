@@ -151,6 +151,32 @@ const DATASET_DOCUMENTS = [
 ];
 
 /**
+ * The collections that may not be empty, written out here as the expected
+ * answer rather than derived.
+ *
+ * `gate-dataset.mjs` derives its floors from `web/src/data/schema.ts` at run
+ * time, and that asymmetry is deliberate. The gate must not restate the set,
+ * because a gate and a schema disagreeing about which collections are
+ * load-bearing *was* abdeslam-menacere/ModelTree#548, and a second hand-kept
+ * list would only have moved the disagreement rather than closed it. A test has
+ * the opposite duty: an expectation computed the way the code computes it agrees
+ * with the code by construction and proves nothing, so these four are literals,
+ * in the same spirit as the literal `[]` the wholesale-empty test expects.
+ * `the gate derives its floors from the schema` below pins the gate's derived
+ * set against them, so a `.min(1)` added to or dropped from the schema arrives
+ * here as a named failure instead of as silent agreement.
+ *
+ * Keyed name -> file because both are needed: the gate reports a failure by
+ * collection name, and a mutation empties a file.
+ */
+const LOAD_BEARING = {
+  sources: 'sources.json',
+  organizations: 'organizations.json',
+  families: 'families.json',
+  releases: 'releases.json',
+};
+
+/**
  * `entry` as a refresh dated `day` would leave it: the fields a refresh rewrites
  * move to that day, and nothing else does. Three fields move, not two --
  * `verifiedAt` and `lastCheckedDate` at the top level, and the *nested*
@@ -463,59 +489,321 @@ describe('gate-dataset', () => {
     assertFailed(result, 'non-empty', 'found 0');
   });
 
-  // The floor is the all-empty case only: a tree with a single record anywhere
-  // is accepted, so this is a pure widening of refusal that leaves every
-  // non-empty tree exactly as it was. `usage-syntheses.json` is legitimately
-  // empty in the live data, which is why the rule cannot be "every document is
-  // non-empty", and `sources.json` is the document chosen to hold the single
-  // surviving record -- any one of them would do and the choice is arbitrary,
-  // but it has to be named, because the emptying below is defined as
-  // "everything except it".
+  // The floor used to be the all-empty case *only*, and that was the bug
+  // (#548). `usage-syntheses.json` is legitimately empty in the live data, so
+  // the rule could not be "every document is non-empty" -- but the conclusion
+  // drawn from that, "no document has a floor of its own", let the whole tree go
+  // to zero behind three intact support documents. The collections that may be
+  // empty are now the ones the schema declares `.default([])`, and this is that
+  // direction: all four emptied at once, not one at a time.
   //
-  // The documents emptied here are derived from `DATASET_DOCUMENTS` rather than
-  // hand-written, because a copy local to this test body is invisible to the
-  // drift check above -- that check computes `onlyInGate` and `onlyInTest`
-  // against the module-level constant only. A tenth document would therefore
-  // reach both the gate and the constant while this body went on emptying nine
-  // of ten, leaving the tenth populated and the tree trivially non-empty, and
-  // this test would keep its name and its green tick while testing less than it
-  // describes. Deriving closes the second half of the coupling: the drift check
-  // makes gate -> constant audible, and this makes constant -> test body
-  // automatic.
+  // This replaces `a dataset emptied to a single record still passes`, whose
+  // setup -- everything empty except one surviving source -- is now a dataset
+  // the gate must refuse rather than accept, since organizations, families and
+  // releases are floored. That test's purpose survives here; only its mutation
+  // had to move, because the premise it was named for ("the floor is not a
+  // per-document rule") is the half of the old rule this issue corrects.
   //
-  // Deriving alone was not enough (#423). The assertion below is that nothing
-  // fires, and nothing firing is also what a *narrowed setup* produces, so the
-  // derivation could be sliced or re-filtered and the suite would stay green --
-  // measured: `.slice(0, 2)` on `emptied` left the whole suite passing. So the
-  // completeness of the emptying is now asserted directly, in the setup, which
-  // is what makes this degrade loudly where it used to degrade quietly.
-  test('a dataset emptied to a single record still passes, so the floor is not a per-document rule', () => {
-    const result = gateMutatedDataset(({ read, write }) => {
-      const sources = read('sources.json');
-      const keptSource = sources[0];
-      const emptied = DATASET_DOCUMENTS.filter((file) => file !== 'sources.json');
-      // What this setup claims about itself, checked rather than assumed. The
-      // gate's silence cannot carry it: a body that empties two documents
-      // produces exactly the silence a body that empties eight produces, so
-      // without this line a narrowed derivation is indistinguishable from a
-      // complete one. Set equality rather than a count, because all three edits
-      // that narrow this -- slicing, short-circuiting, and re-filtering on a
-      // different document -- have to be caught, and only the first two change
-      // the length.
-      assert.deepEqual(
-        [...emptied, 'sources.json'].sort(),
-        [...DATASET_DOCUMENTS].sort(),
-        'the floor test must empty every dataset document except sources.json, '
-          + 'which holds the single surviving record',
-      );
-      for (const file of emptied) {
-        write(file, []);
-      }
-      write('sources.json', [keptSource]);
+  // `publishers.json` is `.default([])` too and is still excluded: 217 sources
+  // carry a `publisherId`, so emptying it fails `references` and would prove
+  // something about that gate rather than this one. Whether publishers should be
+  // floored is a question for the schema, and it is not answered here.
+  test('the collections the schema leaves optional may all be empty at once', () => {
+    const optional = DATASET_DOCUMENTS.filter(
+      (file) => !Object.values(LOAD_BEARING).includes(file) && file !== 'publishers.json',
+    );
+    // What the setup claims about itself, checked rather than assumed. The
+    // gate's silence cannot carry it: a derivation that quietly emptied one
+    // document produces exactly the silence a complete one produces, which is
+    // #423 -- so the set is asserted before it is used, and by equality rather
+    // than by count, since re-filtering on a different document need not change
+    // the length.
+    assert.deepEqual(
+      [...optional].sort(),
+      [
+        'model-fit-evidence-gaps.json', 'model-fit-statements.json',
+        'usage-observations.json', 'usage-syntheses.json',
+      ],
+      'the optional set must be every gate document that is neither load-bearing nor publishers.json',
+    );
+    const result = gateMutatedDataset(({ write }) => {
+      for (const file of optional) write(file, []);
     });
+    assert.equal(result.code, 0, result.stdout);
+  });
+
+  // The gate reads its floors out of `web/src/data/schema.ts` rather than
+  // restating them, so what it derived is reported and pinned here.
+  //
+  // This is the only assertion in the file that notices `.min(1)` being added to
+  // or removed from a collection in the schema. Removing one is the quiet
+  // direction: Zod would stop refusing an empty collection, the gate would
+  // follow it silently -- correctly, by SKILL.md's "the schema is the last word"
+  // -- and every other test below would keep passing while covering less.
+  test('the gate derives its floors from the schema, and they are the collections named here', () => {
+    const report = JSON.parse(run(GATE_DATASET, ['--data', DATA, '--json']).stdout);
+    assert.deepEqual(
+      [...report.requiredCollections].sort(),
+      Object.keys(LOAD_BEARING).sort(),
+      'datasetSchema has changed which collections it floors at .min(1). That is a decision about '
+        + 'the data model rather than drift to paper over: move LOAD_BEARING and the tests around '
+        + 'it deliberately, and say in the pull request which collection changed and why.',
+    );
+  });
+
+  // #548 itself, in one mutation. Emptying a collection while the records that
+  // point into it stand also dangles every one of those references, and that
+  // side effect is what made this gap look covered -- each single-document case
+  // below does fail, just under `references` rather than for being empty. Wipe
+  // the referrers too and the dataset left behind is perfectly coherent and
+  // almost entirely gone: measured on trunk before this rule, 472 records became
+  // 305 and the gate still printed "all gates passed".
+  //
+  // The survivors are the three documents the original report left intact, so
+  // this is that report's mutation, restricted to the documents the gate loads.
+  test('a tree wiped together with everything that points at it is refused, not called coherent', () => {
+    const survivors = ['sources.json', 'publishers.json', 'organizations.json'];
+    const wiped = DATASET_DOCUMENTS.filter((file) => !survivors.includes(file));
+    assert.deepEqual(
+      [...wiped, ...survivors].sort(),
+      [...DATASET_DOCUMENTS].sort(),
+      'the wipe must cover every gate document except the three support documents kept intact',
+    );
+    const result = gateMutatedDataset(({ write }) => {
+      for (const file of wiped) write(file, []);
+    });
+    // No `alsoFails`: the point of the case is that nothing else can see it.
+    assertFailed(result, 'non-empty', 'families holds no records');
     const report = JSON.parse(result.stdout);
-    const nonEmptyFailures = report.failures.filter((f) => f.gate === 'non-empty');
-    assert.deepEqual(nonEmptyFailures, [], 'a single surviving record must not trip the non-empty floor');
+    assert.deepEqual(
+      report.failures.map((failure) => failure.where).sort(),
+      ['families', 'releases'],
+      'the wipe must be refused for the two floored collections it emptied, by name',
+    );
+  });
+
+  // Each floor proved to fire on its own, and to name its own collection rather
+  // than reporting the dataset. `references` is declared everywhere because
+  // emptying one collection while its referrers stand dangles every reference
+  // into it -- the side effect described above, present here and deliberately
+  // absent from the test before this one. `releases` additionally strands all 64
+  // families, which is #441's rule doing its job.
+  const alsoBrokenBy = {
+    sources: ['references'],
+    organizations: ['references'],
+    families: ['references'],
+    releases: ['references', 'family-has-release'],
+  };
+  for (const [collection, file] of Object.entries(LOAD_BEARING)) {
+    test(`an empty ${file} is refused, and the refusal names ${collection}`, () => {
+      const result = gateMutatedDataset(({ write }) => write(file, []));
+      assertFailed(result, 'non-empty', `${collection} holds no records`, {
+        alsoFails: alsoBrokenBy[collection],
+      });
+      const report = JSON.parse(result.stdout);
+      assert.deepEqual(
+        report.failures.filter((failure) => failure.gate === 'non-empty').map((failure) => failure.where),
+        [collection],
+        `emptying ${file} must trip the floor for ${collection} and for no other collection`,
+      );
+    });
+  }
+
+  // Deriving the floors creates a state that did not exist before: the gate
+  // being unable to work out its own rule. That must never be a pass, and this
+  // file's header already fixes the code for it -- exit 2, the runner could not
+  // run. Each case is a different way of failing to read the schema, because a
+  // parser that silently matched nothing would return no floors, and no floors
+  // is indistinguishable from a dataset that satisfies them all.
+  //
+  // The positive control at the end is what makes those refusals attributable. A
+  // planted copy that could not run at all, or a harness that never reached the
+  // gate, would produce the same six exit-2s and read as proof; the control
+  // supplies a schema the parser *can* read and gets exit 1 out of the same
+  // empty documents, so the difference is the schema and nothing else.
+  describe('a schema it cannot derive floors from is exit 2, never a pass', () => {
+    const object = (body) => `export const datasetSchema = z.object({\n${body}});\n`;
+    const withSchema = (schema) => fallbackRepo(GATE_DATASET, ({ dir }) => {
+      const data = join(dir, 'web', 'src', 'data');
+      for (const file of DATASET_DOCUMENTS) writeFileSync(join(data, file), '[]');
+      if (schema !== null) writeFileSync(join(data, 'schema.ts'), schema);
+      return ['--data', data];
+    });
+
+    const refusals = [
+      ['no schema file at all', null, /cannot read .*schema\.ts/],
+      ['a schema declaring no datasetSchema', 'export const other = 1;\n', /declares no "export const datasetSchema"/],
+      ['a datasetSchema naming no collections', object(''), /names no collections/],
+      ['a datasetSchema flooring nothing', object('  sources: z.array(sourceSchema).default([]),\n'), /floors no collection at \.min\(1\)/],
+      [
+        'an entry in a shape the parser cannot read',
+        object('  sources: z.array(sourceSchema).min(1),\n  ...spread,\n'),
+        /cannot read as a collection/,
+      ],
+      [
+        'a floor over a document the gate never loads',
+        object('  pricing: z.array(pricingRecordSchema).min(1),\n'),
+        /floors pricing, which this gate does not load/,
+      ],
+      // The two below are modifier-level, not entry-level: both entries match
+      // the scan and are counted, so the completeness check over the block is
+      // satisfied and cannot see them. Read as "no floor here" they are silent
+      // and permissive, which is the shape that took the gate back to #548.
+      [
+        'a floor whose argument this gate would have to execute TypeScript to know',
+        object('  sources: z.array(sourceSchema).min(MIN_SOURCES),\n'),
+        /qualifies sources in a way this gate cannot read: \.min\(MIN_SOURCES\)/,
+      ],
+      [
+        'a floor spelt in a form this gate does not know, carrying no .min( at all',
+        object('  sources: z.array(sourceSchema).nonempty(),\n'),
+        /qualifies sources in a way this gate cannot read: \.nonempty\(\)/,
+      ],
+    ];
+
+    for (const [label, schema, expected] of refusals) {
+      test(label, () => {
+        const result = withSchema(schema);
+        assert.equal(result.code, 2, `expected exit 2, got ${result.code}:\n${result.stdout}`);
+        assert.match(result.stdout, expected);
+      });
+    }
+
+    test('a schema it can read reaches exit 1 on the same documents, so the refusals are the schema', () => {
+      const result = withSchema(object('  sources: z.array(sourceSchema).min(1),\n'));
+      assert.equal(result.code, 1, `expected exit 1, got ${result.code}:\n${result.stdout}`);
+      assert.match(result.stdout, /\[non-empty\] sources: sources holds no records/);
+    });
+  });
+
+  // A schema edit that means nothing to Zod must mean nothing to this gate. The
+  // gate exists to follow the schema, so a distinction the schema does not draw
+  // is not one the gate may draw either -- and the direction that bites is the
+  // permissive one. Respacing `.min(1)` to `.min( 1 )` used to drop that
+  // collection's floor in silence and take the gate straight back to what #548
+  // was filed about: `"passed": true` over the wipe. The entry still matched, so
+  // the completeness check over the block was satisfied; only the *modifier*
+  // went unread, and losing some floors returned the rest while losing all of
+  // them threw. The loud half was already covered, which is why the quiet half
+  // survived.
+  //
+  // Whitespace is the case worth pinning because it needs no human intent: a
+  // formatter can introduce it. Each pair below differs in the schema's spelling
+  // and in nothing else -- same documents, written the same way -- so identical
+  // verdicts across the pair is the whole claim.
+  describe('a schema respelt without changing what it means changes no verdict', () => {
+    const SURVIVORS = ['sources.json', 'publishers.json', 'organizations.json'];
+    const SCHEMA = readFileSync(join(DATA, 'schema.ts'), 'utf8');
+
+    const verbatim = (source) => source;
+    /** `.min(1)` -> `.min( 1 )`: a no-op for Zod, and for a human reader. */
+    const respaced = (source) => source.replace(/\.min\(1\)/g, '.min( 1 )');
+    /**
+     * The same respacing over two floors rather than all four, and the case that
+     * carries this block. Respelling *every* floor loses every floor, and losing
+     * every floor was already refused out loud -- so a whole-schema respacing
+     * exercises the guard that existed, not the gap that did not. Losing *some*
+     * of them returned the rest, satisfied every check in the file, and printed
+     * `"passed": true` over the #548 wipe. Two floors and not four is the whole
+     * difference between reproducing that and missing it.
+     */
+    const respacedPartly = (source) =>
+      source.replace(/\b(families|releases): (z\.array\(\w+Schema\))\.min\(1\)/g, '$1: $2.min( 1 )');
+    /** A JSDoc note on a field: ordinary TypeScript, and invisible to Zod. */
+    const annotated = (source) =>
+      source.replace(/(\n(\s*))(families: z\.array\()/, '$1/** the trees themselves. */$1$3');
+
+    /**
+     * The real data and the real schema, the schema rewritten by `respell` and
+     * the #548 wipe applied when asked for. Planted rather than gated in place
+     * because the schema has to be edited and the gate reads it from its own
+     * repository root, never from `--data` -- which is the property that stops
+     * `--data` lowering the rule it is judged against.
+     */
+    const respelt = (respell, { wipe }) => fallbackRepo(GATE_DATASET, ({ dir }) => {
+      const data = join(dir, 'web', 'src', 'data');
+      cpSync(DATA, data, { recursive: true });
+      writeFileSync(join(data, 'schema.ts'), respell(SCHEMA));
+      if (wipe) {
+        for (const file of DATASET_DOCUMENTS.filter((name) => !SURVIVORS.includes(name))) {
+          writeFileSync(join(data, file), '[]');
+        }
+      }
+      return ['--data', data, '--json'];
+    });
+
+    const floorsOf = (result) => JSON.parse(result.stdout).requiredCollections.slice().sort();
+    const refusedFor = (result) => JSON.parse(result.stdout).failures.map((failure) => failure.where).sort();
+
+    // Without this the block below could assert nothing at all: a respelling
+    // that quietly stopped applying would leave every case running the
+    // committed schema, and every one of them would pass for that reason.
+    test('the respellings this block relies on do change the schema', () => {
+      assert.notEqual(respaced(SCHEMA), SCHEMA, 'the .min( 1 ) respacing must actually apply');
+      assert.notEqual(respacedPartly(SCHEMA), SCHEMA, 'the two-floor respacing must actually apply');
+      assert.notEqual(
+        respacedPartly(SCHEMA),
+        respaced(SCHEMA),
+        'the two-floor respacing must leave the other floors spelt as committed: respelling all of '
+          + 'them loses all of them, which is the loud case that was never the bug',
+      );
+      assert.notEqual(annotated(SCHEMA), SCHEMA, 'the block comment must actually be inserted');
+      assert.equal(verbatim(SCHEMA), SCHEMA, 'the control must leave the schema exactly as committed');
+    });
+
+    // The reproduction of the regression itself. Same documents as the case
+    // above, same rule, and a schema differing from the committed one by two
+    // space characters that Zod cannot see -- which used to be the difference
+    // between refusing the wipe and reporting `"passed": true` over it.
+    test('respacing only some floors still refuses the wipe, the case that reported "passed": true', () => {
+      const result = respelt(respacedPartly, { wipe: true });
+      assert.equal(result.code, 1, `expected exit 1, got ${result.code}:\n${result.stdout}`);
+      assert.deepEqual(
+        floorsOf(result),
+        Object.keys(LOAD_BEARING).sort(),
+        'a floor written .min( 1 ) is still a floor; dropping it kept the other two and passed',
+      );
+      assert.deepEqual(refusedFor(result), ['families', 'releases']);
+    });
+
+    test('respacing every floor loses none of them', () => {
+      const result = respelt(respaced, { wipe: false });
+      assert.equal(result.code, 0, `expected the live dataset to pass, got ${result.code}:\n${result.stdout}`);
+      assert.deepEqual(
+        floorsOf(result),
+        Object.keys(LOAD_BEARING).sort(),
+        'a respaced .min(1) is still a floor: dropping one silently is how #548 came back',
+      );
+    });
+
+    test('the wipe is refused identically whichever way the floors are spelt', () => {
+      const plain = respelt(verbatim, { wipe: true });
+      const spaced = respelt(respaced, { wipe: true });
+      for (const [label, result] of [['.min(1)', plain], ['.min( 1 )', spaced]]) {
+        assert.equal(result.code, 1, `${label}: expected exit 1, got ${result.code}:\n${result.stdout}`);
+      }
+      assert.deepEqual(refusedFor(plain), ['families', 'releases']);
+      assert.deepEqual(
+        refusedFor(spaced),
+        refusedFor(plain),
+        'the same documents judged against the same rule spelt two ways must reach the same verdict',
+      );
+    });
+
+    // A `/* */` note on a field is ordinary TypeScript and must not be what
+    // stops this gate running -- an unreadable schema is exit 2, so a routine
+    // annotation would take the refresh path's own gate offline. Both
+    // directions, because a comment that swallowed the entries after it would
+    // pass the first half by flooring nothing.
+    test('a block comment on a field neither hides its floor nor stops the gate', () => {
+      const live = respelt(annotated, { wipe: false });
+      assert.equal(live.code, 0, `expected exit 0, got ${live.code}:\n${live.stdout}`);
+      assert.deepEqual(floorsOf(live), Object.keys(LOAD_BEARING).sort());
+
+      const wiped = respelt(annotated, { wipe: true });
+      assert.equal(wiped.code, 1, `expected exit 1, got ${wiped.code}:\n${wiped.stdout}`);
+      assert.deepEqual(refusedFor(wiped), ['families', 'releases']);
+    });
   });
 
   // -------------------------------------------------------------------------
@@ -1220,7 +1508,16 @@ describe('gate-dataset', () => {
         // is untouched. The alternative, silencing the rule when `releases` is
         // empty, would have put a blind spot exactly where the dataset is most
         // broken.
-        alsoFails: ['references', 'family-has-release'],
+        //
+        // `non-empty` joined them with #548, and it is the fail-closed half of
+        // that rule rather than a third piece of fallout. `loadDocuments`
+        // degrades an unparseable document to `[]`, which is the one input a
+        // collection floor must not read as "a collection that happens to be
+        // empty"; it does not, so an unreadable `releases.json` is now refused
+        // both for being unreadable and for leaving a load-bearing collection at
+        // zero. Two reports of one fault, and the second is the one that would
+        // still fire if `well-formed` ever stopped looking.
+        alsoFails: ['references', 'family-has-release', 'non-empty'],
       });
     } finally {
       rmSync(dir, { recursive: true, force: true });

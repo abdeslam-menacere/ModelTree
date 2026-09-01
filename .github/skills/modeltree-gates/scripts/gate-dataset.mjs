@@ -102,6 +102,27 @@ function repoRoot() {
 }
 
 /**
+ * The dataset directory this repository ships. It is both the default for
+ * `--data` and the fixed home of the schema whose floors `requiredCollections`
+ * reads, so the two are one expression rather than two literals.
+ *
+ * That is not tidiness. `web/tests/workflows/skills-ci.test.ts` scrapes this
+ * file for every path built on `repoRoot()` and asserts they resolve to exactly
+ * one directory, because `skills-ci` decides whether to run at all from a path
+ * pattern that has to cover everything this gate reads. A second literal path
+ * here would be a second thing that pattern must be kept in step with by hand,
+ * and the failure mode of missing one is a gate that is skipped rather than a
+ * gate that fails.
+ *
+ * That scrape is textual, so prose describing it counts too: spelling the call
+ * out above in full put a second, segment-less match in this comment and turned
+ * the assertion red. Name the helper, never the call.
+ */
+function repositoryDataDir() {
+  return join(repoRoot(), 'web', 'src', 'data');
+}
+
+/**
  * Whether `value` is a well-formed `YYYY-MM-DD` calendar date.
  *
  * Built with `setUTCFullYear` rather than `Date.UTC`, and that is the whole
@@ -789,7 +810,7 @@ function gateNoRanking(docs) {
 }
 
 // ---------------------------------------------------------------------------
-// Gate: the dataset is not wholesale empty.
+// Gate: the dataset is not wholesale empty, and no load-bearing collection is.
 //
 // Every other gate here is satisfied by an empty set: it has no dangling
 // references, no duplicate ids, no out-of-range dates. That makes a broken
@@ -798,12 +819,187 @@ function gateNoRanking(docs) {
 // agent-gated refresh auto-merge, so this gate is the floor that stops a green
 // run from taking the live data to zero (see #185).
 //
-// This is a floor, not a fixed count: it refuses only the all-empty case. A
-// non-empty tree is accepted exactly as before, so `usage-syntheses.json` being
-// legitimately empty today does not trip it. That is why the rule is "some
-// document has a record", not "every document does".
+// Two rules, because the whole-dataset floor turned out not to be the whole
+// rule (abdeslam-menacere/ModelTree#548). It refuses only the all-empty case, so
+// three intact support documents satisfied it on their own while
+// `families.json` and `releases.json` -- the entire tree -- went to zero and
+// this script still printed "all gates passed": measured 472 records before,
+// 305 after, exit 0 both times. Emptying one collection by itself is caught by
+// `references` as a side effect, which is what made this look covered; emptying
+// it together with everything that points at it leaves a dataset that is
+// perfectly coherent and almost entirely gone, and that is the case no rule
+// here could see.
+//
+// The second rule is a floor per collection, and the set it applies to is
+// deliberately NOT stated here. `web/src/data/schema.ts` already answers "which
+// collections must hold a record" with `.min(1)`, and SKILL.md makes that
+// answer binding: "The schema is the last word. If these scripts and Zod ever
+// disagree, Zod wins and the script is wrong." The disagreement *was* the bug,
+// so a hand-kept list in this file would close this instance by opening a second
+// place for the same disagreement to reappear -- on top of the JS/Python
+// duplication ADR 0003 already books as an accepted cost. The floors are
+// therefore read back out of the schema, and a collection becomes load-bearing
+// by gaining `.min(1)` there, in one place, with Zod and this gate moving
+// together.
+//
+// What that leaves permitted is deliberate and has to stay permitted: the
+// collections the schema declares `.default([])` may be empty, which is why
+// `usage-syntheses.json` holding no records on `main` today is not a defect and
+// does not trip this gate. A blanket "every document is non-empty" rule would
+// have refused the live dataset on the day it landed, and a gate that goes
+// paranoid is as broken as one that goes blind.
+//
+// Both rules fail closed. A document that is missing, unreadable or not a JSON
+// array is degraded to `[]` by `loadDocuments` above -- already reported as
+// `well-formed`, and now caught here too rather than read as a collection that
+// merely happens to be empty. And a schema this gate cannot read, cannot parse,
+// or that floors a collection `DOCUMENTS` does not load is exit 2, never a pass:
+// a gate that cannot determine its own rule has not run.
 // ---------------------------------------------------------------------------
-function gateNonEmpty(docs) {
+
+/**
+ * One `name: z.array(schema)<modifiers>,` entry of a `z.object({ ... })`, as a
+ * fresh regex per call so no `lastIndex` is shared between the scan and the
+ * completeness check below.
+ */
+const schemaEntryPattern = () => /(\w+)\s*:\s*z\.array\([^)]*\)([^,]*),/g;
+
+/**
+ * The two modifiers this gate can read on a collection, and the floor it takes
+ * from the first of them.
+ *
+ * Spacing is tolerated because Zod tolerates it: `.min( 1 )` floors a
+ * collection at one record exactly as `.min(1)` does, so a gate that refused
+ * the respaced form would be stricter than the schema it is supposed to follow
+ * and would stop running over a formatter's output. Spacing is the only
+ * latitude given. An argument that is not a literal cannot be evaluated without
+ * executing TypeScript, and this gate deliberately executes none, so
+ * `.min(SOME_CONSTANT)` is refused rather than read as no floor at all.
+ */
+const MIN_MODIFIER = /\.min\(\s*(\d+)\s*\)/;
+const UNDERSTOOD_MODIFIERS = /\.min\(\s*\d+\s*\)|\.default\(\s*\[\s*\]\s*\)/g;
+
+/**
+ * The collections `datasetSchema` floors at one or more records.
+ *
+ * Read out of the schema's source text rather than by importing it. This script
+ * imports only `node:` builtins, deliberately and for the reason its header
+ * gives; importing `schema.ts` would need a TypeScript loader *and* a resolvable
+ * `zod`, so the gate would stop running wherever `web/node_modules` is absent --
+ * which includes a fresh clone, and the refresh path that runs this before
+ * `web/src/data` is touched at all.
+ *
+ * The schema is taken from this repository, never from `--data`. `--data`
+ * supplies the documents to be judged; letting it supply the rule as well would
+ * turn it into a flag that lowers a threshold, which is the one thing this gate
+ * set does not offer.
+ *
+ * Every way of failing to read the schema throws rather than returning fewer
+ * floors. A parser that silently matches nothing returns an empty set, an empty
+ * set floors nothing, and nothing being floored is indistinguishable from a
+ * dataset that passes -- so a shape this cannot express is refused out loud.
+ * `documentsFrom` and `allowedPathsFrom` in the self-tests refuse the same way
+ * for the same reason.
+ *
+ * That sentence was false when it was first written here, and the way it was
+ * false is worth keeping: it was true of whole *entries* and never checked an
+ * entry's *modifiers*. An entry matched, so the completeness check below was
+ * satisfied, while `.min( 1 )` -- a no-op respacing for Zod and for a reader --
+ * went unrecognised and that collection quietly stopped being floored. Losing
+ * every floor threw; losing some returned the rest and passed. Partial loss is
+ * the dangerous shape precisely because the total case is already loud, so
+ * nobody is watching the quiet one. Read `.min(1)` and `.default([])` in any
+ * spacing, since Zod reads those identically, and refuse anything else out
+ * loud rather than deciding it is not a floor.
+ */
+function requiredCollections() {
+  const path = join(repositoryDataDir(), 'schema.ts');
+  let source;
+  try {
+    source = readFileSync(path, 'utf8');
+  } catch (error) {
+    throw new Error(`cannot read ${path}, so the collection floors cannot be derived: ${error.message}`);
+  }
+
+  const declared = source.indexOf('export const datasetSchema');
+  if (declared === -1) throw new Error(`${path} declares no "export const datasetSchema"`);
+  const object = source.indexOf('z.object(', declared);
+  const open = object === -1 ? -1 : source.indexOf('{', object);
+  if (open === -1) throw new Error(`datasetSchema in ${path} is not a z.object({ ... }) this gate can read`);
+  let depth = 0;
+  let close = -1;
+  for (let i = open; i < source.length; i += 1) {
+    if (source[i] === '{') depth += 1;
+    else if (source[i] === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        close = i;
+        break;
+      }
+    }
+  }
+  if (close === -1) throw new Error(`datasetSchema in ${path} has no closing brace`);
+
+  // Comments go first: a note sitting between two entries is not an entry, and
+  // the completeness check below would otherwise read it as one more thing it
+  // could not parse. Both spellings, in one pass with the openers alternated so
+  // whichever opens first wins -- stripping one kind and then the other lets a
+  // `//` inside a block comment, or a `/*` inside a line comment, eat a real
+  // entry. A `/* */` note on a field is ordinary TypeScript and must not be
+  // what stops this gate running.
+  const body = source.slice(open + 1, close).replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '');
+  const floors = [];
+  let entries = 0;
+  for (const [, name, modifiers] of body.matchAll(schemaEntryPattern())) {
+    entries += 1;
+    const min = MIN_MODIFIER.exec(modifiers);
+    if (min && Number(min[1]) > 0) floors.push(name);
+
+    // The same "nothing unaccounted for" discipline as the entry scan below,
+    // one level down. Matching an entry says the gate found a collection; it
+    // says nothing about whether it understood what was done to it. Every
+    // modifier has to be one this gate can read, because the alternative is
+    // reading `.nonempty()`, `.min(MIN_FAMILIES)` or a form nobody has written
+    // yet as "no floor here" -- which is not a reading, it is a guess, and it
+    // guesses in the permissive direction.
+    const unread = modifiers.replace(UNDERSTOOD_MODIFIERS, '').trim();
+    if (unread.length > 0) {
+      throw new Error(
+        `datasetSchema in ${path} qualifies ${name} in a way this gate cannot read: ${unread.slice(0, 40)}`
+          + ' -- it cannot tell a floor it has misread from a collection with no floor',
+      );
+    }
+  }
+  if (entries === 0) throw new Error(`datasetSchema in ${path} names no collections`);
+
+  // Nothing in the block goes unaccounted for. Without this, an entry written in
+  // a shape the pattern cannot match is simply not seen, and a `.min(1)` that is
+  // not seen is a floor this gate would quietly stop enforcing -- the same
+  // silence that let #548 stand.
+  const residue = body.replace(schemaEntryPattern(), '').replace(/[\s,]/g, '');
+  if (residue.length > 0) {
+    throw new Error(
+      `datasetSchema in ${path} holds something this gate cannot read as a collection: ${residue.slice(0, 80)}`,
+    );
+  }
+  if (floors.length === 0) {
+    throw new Error(`datasetSchema in ${path} floors no collection at .min(1), which this gate cannot tell from a schema it has misread`);
+  }
+
+  // A floor over a document this gate never opens cannot be enforced, and
+  // skipping it silently is the permissive divergence ADR 0003 stops the
+  // automation for. Adding `.min(1)` to a collection therefore has to be
+  // accompanied by adding it to `DOCUMENTS`, or this refuses to run.
+  const unread = floors.filter((name) => !Object.hasOwn(DOCUMENTS, name));
+  if (unread.length > 0) {
+    throw new Error(
+      `datasetSchema floors ${unread.join(', ')}, which this gate does not load, so that floor cannot be enforced here`,
+    );
+  }
+  return floors;
+}
+
+function gateNonEmpty(docs, required) {
   const total = Object.values(docs).reduce((sum, entries) => sum + entries.length, 0);
   if (total === 0) {
     fail(
@@ -811,6 +1007,16 @@ function gateNonEmpty(docs) {
       'expected at least one record across the nine documents, found 0 (a wholesale-empty dataset)',
       'dataset',
     );
+  }
+  for (const collection of required) {
+    if (docs[collection].length === 0) {
+      fail(
+        'non-empty',
+        `${collection} holds no records, but web/src/data/schema.ts floors it at .min(1) -- `
+          + 'an empty load-bearing collection is a wipe, not a sparse collection',
+        collection,
+      );
+    }
   }
 }
 
@@ -823,7 +1029,7 @@ function main() {
     return 0;
   }
 
-  const dataDir = args.data ? resolve(args.data) : join(repoRoot(), 'web', 'src', 'data');
+  const dataDir = args.data ? resolve(args.data) : repositoryDataDir();
   if (!existsSync(dataDir)) {
     process.stderr.write(`gate-dataset: no data directory at ${dataDir}\n`);
     return 2;
@@ -836,7 +1042,19 @@ function main() {
   }
 
   const docs = loadDocuments(dataDir);
-  gateNonEmpty(docs);
+  // Before any verdict: the rule this gate is about to apply is itself derived,
+  // so a schema it cannot read is exit 2 rather than a run that gates less than
+  // it reports. `loadDocuments` has already recorded its `well-formed` failures
+  // by here, and they are discarded along with everything else -- exit 2 is not
+  // a verdict about the data at all.
+  let required;
+  try {
+    required = requiredCollections();
+  } catch (error) {
+    process.stderr.write(`gate-dataset: ${error.message}\n`);
+    return 2;
+  }
+  gateNonEmpty(docs, required);
   const ids = gateIdentity(docs);
   gateReferences(docs, ids);
   gateFamilyHasRelease(docs);
@@ -852,7 +1070,11 @@ function main() {
     // gates that do resolve one report it as `repo`; this one names what it
     // actually opened, which is the fact a reader needs here. The four spellings
     // were reconciled to those two in #381 rather than to one.
-    process.stdout.write(`${JSON.stringify({ dataDir, today, counts, passed: failures.length === 0, failures }, null, 2)}\n`);
+    // `requiredCollections` is reported, not just applied: it is derived from
+    // `web/src/data/schema.ts` at run time, so a reader of this report -- and
+    // the self-test that pins the derived set -- can see which floors were
+    // actually in force rather than inferring them from a passing run.
+    process.stdout.write(`${JSON.stringify({ dataDir, today, counts, requiredCollections: required, passed: failures.length === 0, failures }, null, 2)}\n`);
   } else if (failures.length === 0) {
     const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
     process.stdout.write(`gate-dataset: all gates passed over ${total} records in ${dataDir}\n`);
