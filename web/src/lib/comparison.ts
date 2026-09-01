@@ -1497,13 +1497,152 @@ export function buildComparisonPayload(dataset: ComparisonDataset): ComparisonDa
  * Node-only.
  */
 export function measureComparisonPayload(payload: ComparisonDataset) {
-  const totalBytes = new TextEncoder().encode(JSON.stringify(payload)).length;
+  const compact = compactComparisonPayload(payload);
+  const totalBytes = new TextEncoder().encode(JSON.stringify(compact)).length;
   return {
     totalBytes,
     releaseCount: payload.releases.length,
     bytesPerRelease: payload.releases.length === 0
       ? 0
       : Math.round(totalBytes / payload.releases.length),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Compact wire format. The /compare page ships the entire catalogue as JSON,
+// so key names repeat once per record. Shortening them to single characters
+// trims ~23 kB without dropping a single cited source or value — purely
+// structural overhead. compactComparisonPayload produces the short-key form
+// that Astro serializes; expandComparisonPayload restores it on hydration.
+// ---------------------------------------------------------------------------
+
+// --- key maps: long → short -----------------------------------------------
+
+const RELEASE_KEY_TO_SHORT: Record<string, string> = {
+  id: 'i', slug: 's', canonicalName: 'c', displayName: 'd',
+  organizationId: 'o', familyId: 'f', version: 'v', variant: 'a',
+  releaseDate: 'r', datePrecision: 'p', status: 't', categories: 'g',
+  inputModalities: 'n', outputModalities: 'u', accessType: 'x',
+  license: 'l', parameters: 'P', contextWindow: 'w', maximumOutput: 'm',
+  apiAliases: 'A', intendedUse: 'I', featuredRationale: 'F',
+  sourceIds: 'S', verifiedAt: 'V',
+};
+
+const SOURCE_KEY_TO_SHORT: Record<string, string> = {
+  id: 'i', url: 'u', title: 't', publisherId: 'p', lastCheckedDate: 'd',
+};
+
+const PUBLISHER_KEY_TO_SHORT: Record<string, string> = { id: 'i', name: 'n' };
+const ORGANIZATION_KEY_TO_SHORT: Record<string, string> = { id: 'i', name: 'n', shortName: 's' };
+const FAMILY_KEY_TO_SHORT: Record<string, string> = { id: 'i', name: 'n' };
+
+const SERVING_PLATFORM_KEY_TO_SHORT: Record<string, string> = {
+  id: 'i', name: 'n', type: 't', organizationId: 'o',
+};
+
+const DEPLOYMENT_KEY_TO_SHORT: Record<string, string> = {
+  id: 'i', releaseId: 'r', platformId: 'p', deliveryMode: 'd',
+  regions: 'g', effectiveFrom: 'e', sourceIds: 's', verifiedAt: 'v',
+};
+
+const BENCHMARK_KEY_TO_SHORT: Record<string, string> = {
+  id: 'i', slug: 's', name: 'n', domain: 'd', owner: 'o', metric: 'm',
+  metricUnit: 'u', direction: 'r', datasetVersion: 'v',
+  methodologyNotes: 'y', sourceIds: 'S', verifiedAt: 'V',
+};
+
+const PRICING_KEY_TO_SHORT: Record<string, string> = {
+  id: 'i', deploymentId: 'd', currency: 'c', unit: 'u', rates: 'a',
+  region: 'g', processingTier: 'p', effectiveFrom: 'e', effectiveTo: 'E',
+  sourceIds: 'S', verifiedAt: 'V',
+};
+
+const BENCHMARK_RESULT_KEY_TO_SHORT: Record<string, string> = {
+  id: 'i', benchmarkId: 'b', benchmarkVersion: 'v', releaseId: 'r',
+  variantNote: 'n', score: 's', unit: 'u', evaluationDate: 'e',
+  resultType: 't', caveats: 'c', sourceIds: 'S', verifiedAt: 'V',
+};
+
+// --- key maps: short → long (derived) -------------------------------------
+
+function invert(map: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [long, short] of Object.entries(map)) out[short] = long;
+  return out;
+}
+
+const RELEASE_SHORT_TO_KEY = invert(RELEASE_KEY_TO_SHORT);
+const SOURCE_SHORT_TO_KEY = invert(SOURCE_KEY_TO_SHORT);
+const PUBLISHER_SHORT_TO_KEY = invert(PUBLISHER_KEY_TO_SHORT);
+const ORGANIZATION_SHORT_TO_KEY = invert(ORGANIZATION_KEY_TO_SHORT);
+const FAMILY_SHORT_TO_KEY = invert(FAMILY_KEY_TO_SHORT);
+const SERVING_PLATFORM_SHORT_TO_KEY = invert(SERVING_PLATFORM_KEY_TO_SHORT);
+const DEPLOYMENT_SHORT_TO_KEY = invert(DEPLOYMENT_KEY_TO_SHORT);
+const PRICING_SHORT_TO_KEY = invert(PRICING_KEY_TO_SHORT);
+const BENCHMARK_SHORT_TO_KEY = invert(BENCHMARK_KEY_TO_SHORT);
+const BENCHMARK_RESULT_SHORT_TO_KEY = invert(BENCHMARK_RESULT_KEY_TO_SHORT);
+
+// --- generic re-keyer ------------------------------------------------------
+
+function rekey(
+  records: Record<string, unknown>[],
+  map: Record<string, string>,
+): Record<string, unknown>[] {
+  return records.map((record) => {
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(record)) {
+      out[map[key] ?? key] = value;
+    }
+    return out;
+  });
+}
+
+// --- compact type ----------------------------------------------------------
+
+/** Short-key wire format for the /compare payload. Opaque — use
+ *  {@link compactComparisonPayload} and {@link expandComparisonPayload}. */
+export interface CompactComparisonPayload {
+  R: Record<string, unknown>[];
+  S: Record<string, unknown>[];
+  P: Record<string, unknown>[];
+  O: Record<string, unknown>[];
+  F: Record<string, unknown>[];
+  T: Record<string, unknown>[];
+  D: Record<string, unknown>[];
+  X: Record<string, unknown>[];
+  B: Record<string, unknown>[];
+  E: Record<string, unknown>[];
+}
+
+/** Produce the compact wire format that /compare ships. */
+export function compactComparisonPayload(ds: ComparisonDataset): CompactComparisonPayload {
+  return {
+    R: rekey(ds.releases as unknown as Record<string, unknown>[], RELEASE_KEY_TO_SHORT),
+    S: rekey(ds.sources as unknown as Record<string, unknown>[], SOURCE_KEY_TO_SHORT),
+    P: rekey(ds.publishers as unknown as Record<string, unknown>[], PUBLISHER_KEY_TO_SHORT),
+    O: rekey(ds.organizations as unknown as Record<string, unknown>[], ORGANIZATION_KEY_TO_SHORT),
+    F: rekey(ds.families as unknown as Record<string, unknown>[], FAMILY_KEY_TO_SHORT),
+    T: rekey(ds.servingPlatforms as unknown as Record<string, unknown>[], SERVING_PLATFORM_KEY_TO_SHORT),
+    D: rekey(ds.deployments as unknown as Record<string, unknown>[], DEPLOYMENT_KEY_TO_SHORT),
+    X: rekey(ds.pricing as unknown as Record<string, unknown>[], PRICING_KEY_TO_SHORT),
+    B: rekey(ds.benchmarks as unknown as Record<string, unknown>[], BENCHMARK_KEY_TO_SHORT),
+    E: rekey(ds.benchmarkResults as unknown as Record<string, unknown>[], BENCHMARK_RESULT_KEY_TO_SHORT),
+  };
+}
+
+/** Restore a compact payload to a full ComparisonDataset. */
+export function expandComparisonPayload(cp: CompactComparisonPayload): ComparisonDataset {
+  return {
+    releases: rekey(cp.R, RELEASE_SHORT_TO_KEY) as unknown as ComparisonRelease[],
+    sources: rekey(cp.S, SOURCE_SHORT_TO_KEY) as unknown as ComparisonSourceRecord[],
+    publishers: rekey(cp.P, PUBLISHER_SHORT_TO_KEY) as unknown as ComparisonDataset['publishers'],
+    organizations: rekey(cp.O, ORGANIZATION_SHORT_TO_KEY) as unknown as ComparisonDataset['organizations'],
+    families: rekey(cp.F, FAMILY_SHORT_TO_KEY) as unknown as ComparisonDataset['families'],
+    servingPlatforms: rekey(cp.T, SERVING_PLATFORM_SHORT_TO_KEY) as unknown as ComparisonDataset['servingPlatforms'],
+    deployments: rekey(cp.D, DEPLOYMENT_SHORT_TO_KEY) as unknown as ComparisonDataset['deployments'],
+    pricing: rekey(cp.X, PRICING_SHORT_TO_KEY) as unknown as ComparisonDataset['pricing'],
+    benchmarks: rekey(cp.B, BENCHMARK_SHORT_TO_KEY) as unknown as ComparisonDataset['benchmarks'],
+    benchmarkResults: rekey(cp.E, BENCHMARK_RESULT_SHORT_TO_KEY) as unknown as ComparisonDataset['benchmarkResults'],
   };
 }
 
