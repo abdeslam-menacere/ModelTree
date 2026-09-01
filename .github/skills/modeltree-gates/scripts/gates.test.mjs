@@ -645,6 +645,20 @@ describe('gate-dataset', () => {
         object('  pricing: z.array(pricingRecordSchema).min(1),\n'),
         /floors pricing, which this gate does not load/,
       ],
+      // The two below are modifier-level, not entry-level: both entries match
+      // the scan and are counted, so the completeness check over the block is
+      // satisfied and cannot see them. Read as "no floor here" they are silent
+      // and permissive, which is the shape that took the gate back to #548.
+      [
+        'a floor whose argument this gate would have to execute TypeScript to know',
+        object('  sources: z.array(sourceSchema).min(MIN_SOURCES),\n'),
+        /qualifies sources in a way this gate cannot read: \.min\(MIN_SOURCES\)/,
+      ],
+      [
+        'a floor spelt in a form this gate does not know, carrying no .min( at all',
+        object('  sources: z.array(sourceSchema).nonempty(),\n'),
+        /qualifies sources in a way this gate cannot read: \.nonempty\(\)/,
+      ],
     ];
 
     for (const [label, schema, expected] of refusals) {
@@ -659,6 +673,136 @@ describe('gate-dataset', () => {
       const result = withSchema(object('  sources: z.array(sourceSchema).min(1),\n'));
       assert.equal(result.code, 1, `expected exit 1, got ${result.code}:\n${result.stdout}`);
       assert.match(result.stdout, /\[non-empty\] sources: sources holds no records/);
+    });
+  });
+
+  // A schema edit that means nothing to Zod must mean nothing to this gate. The
+  // gate exists to follow the schema, so a distinction the schema does not draw
+  // is not one the gate may draw either -- and the direction that bites is the
+  // permissive one. Respacing `.min(1)` to `.min( 1 )` used to drop that
+  // collection's floor in silence and take the gate straight back to what #548
+  // was filed about: `"passed": true` over the wipe. The entry still matched, so
+  // the completeness check over the block was satisfied; only the *modifier*
+  // went unread, and losing some floors returned the rest while losing all of
+  // them threw. The loud half was already covered, which is why the quiet half
+  // survived.
+  //
+  // Whitespace is the case worth pinning because it needs no human intent: a
+  // formatter can introduce it. Each pair below differs in the schema's spelling
+  // and in nothing else -- same documents, written the same way -- so identical
+  // verdicts across the pair is the whole claim.
+  describe('a schema respelt without changing what it means changes no verdict', () => {
+    const SURVIVORS = ['sources.json', 'publishers.json', 'organizations.json'];
+    const SCHEMA = readFileSync(join(DATA, 'schema.ts'), 'utf8');
+
+    const verbatim = (source) => source;
+    /** `.min(1)` -> `.min( 1 )`: a no-op for Zod, and for a human reader. */
+    const respaced = (source) => source.replace(/\.min\(1\)/g, '.min( 1 )');
+    /**
+     * The same respacing over two floors rather than all four, and the case that
+     * carries this block. Respelling *every* floor loses every floor, and losing
+     * every floor was already refused out loud -- so a whole-schema respacing
+     * exercises the guard that existed, not the gap that did not. Losing *some*
+     * of them returned the rest, satisfied every check in the file, and printed
+     * `"passed": true` over the #548 wipe. Two floors and not four is the whole
+     * difference between reproducing that and missing it.
+     */
+    const respacedPartly = (source) =>
+      source.replace(/\b(families|releases): (z\.array\(\w+Schema\))\.min\(1\)/g, '$1: $2.min( 1 )');
+    /** A JSDoc note on a field: ordinary TypeScript, and invisible to Zod. */
+    const annotated = (source) =>
+      source.replace(/(\n(\s*))(families: z\.array\()/, '$1/** the trees themselves. */$1$3');
+
+    /**
+     * The real data and the real schema, the schema rewritten by `respell` and
+     * the #548 wipe applied when asked for. Planted rather than gated in place
+     * because the schema has to be edited and the gate reads it from its own
+     * repository root, never from `--data` -- which is the property that stops
+     * `--data` lowering the rule it is judged against.
+     */
+    const respelt = (respell, { wipe }) => fallbackRepo(GATE_DATASET, ({ dir }) => {
+      const data = join(dir, 'web', 'src', 'data');
+      cpSync(DATA, data, { recursive: true });
+      writeFileSync(join(data, 'schema.ts'), respell(SCHEMA));
+      if (wipe) {
+        for (const file of DATASET_DOCUMENTS.filter((name) => !SURVIVORS.includes(name))) {
+          writeFileSync(join(data, file), '[]');
+        }
+      }
+      return ['--data', data, '--json'];
+    });
+
+    const floorsOf = (result) => JSON.parse(result.stdout).requiredCollections.slice().sort();
+    const refusedFor = (result) => JSON.parse(result.stdout).failures.map((failure) => failure.where).sort();
+
+    // Without this the block below could assert nothing at all: a respelling
+    // that quietly stopped applying would leave every case running the
+    // committed schema, and every one of them would pass for that reason.
+    test('the respellings this block relies on do change the schema', () => {
+      assert.notEqual(respaced(SCHEMA), SCHEMA, 'the .min( 1 ) respacing must actually apply');
+      assert.notEqual(respacedPartly(SCHEMA), SCHEMA, 'the two-floor respacing must actually apply');
+      assert.notEqual(
+        respacedPartly(SCHEMA),
+        respaced(SCHEMA),
+        'the two-floor respacing must leave the other floors spelt as committed: respelling all of '
+          + 'them loses all of them, which is the loud case that was never the bug',
+      );
+      assert.notEqual(annotated(SCHEMA), SCHEMA, 'the block comment must actually be inserted');
+      assert.equal(verbatim(SCHEMA), SCHEMA, 'the control must leave the schema exactly as committed');
+    });
+
+    // The reproduction of the regression itself. Same documents as the case
+    // above, same rule, and a schema differing from the committed one by two
+    // space characters that Zod cannot see -- which used to be the difference
+    // between refusing the wipe and reporting `"passed": true` over it.
+    test('respacing only some floors still refuses the wipe, the case that reported "passed": true', () => {
+      const result = respelt(respacedPartly, { wipe: true });
+      assert.equal(result.code, 1, `expected exit 1, got ${result.code}:\n${result.stdout}`);
+      assert.deepEqual(
+        floorsOf(result),
+        Object.keys(LOAD_BEARING).sort(),
+        'a floor written .min( 1 ) is still a floor; dropping it kept the other two and passed',
+      );
+      assert.deepEqual(refusedFor(result), ['families', 'releases']);
+    });
+
+    test('respacing every floor loses none of them', () => {
+      const result = respelt(respaced, { wipe: false });
+      assert.equal(result.code, 0, `expected the live dataset to pass, got ${result.code}:\n${result.stdout}`);
+      assert.deepEqual(
+        floorsOf(result),
+        Object.keys(LOAD_BEARING).sort(),
+        'a respaced .min(1) is still a floor: dropping one silently is how #548 came back',
+      );
+    });
+
+    test('the wipe is refused identically whichever way the floors are spelt', () => {
+      const plain = respelt(verbatim, { wipe: true });
+      const spaced = respelt(respaced, { wipe: true });
+      for (const [label, result] of [['.min(1)', plain], ['.min( 1 )', spaced]]) {
+        assert.equal(result.code, 1, `${label}: expected exit 1, got ${result.code}:\n${result.stdout}`);
+      }
+      assert.deepEqual(refusedFor(plain), ['families', 'releases']);
+      assert.deepEqual(
+        refusedFor(spaced),
+        refusedFor(plain),
+        'the same documents judged against the same rule spelt two ways must reach the same verdict',
+      );
+    });
+
+    // A `/* */` note on a field is ordinary TypeScript and must not be what
+    // stops this gate running -- an unreadable schema is exit 2, so a routine
+    // annotation would take the refresh path's own gate offline. Both
+    // directions, because a comment that swallowed the entries after it would
+    // pass the first half by flooring nothing.
+    test('a block comment on a field neither hides its floor nor stops the gate', () => {
+      const live = respelt(annotated, { wipe: false });
+      assert.equal(live.code, 0, `expected exit 0, got ${live.code}:\n${live.stdout}`);
+      assert.deepEqual(floorsOf(live), Object.keys(LOAD_BEARING).sort());
+
+      const wiped = respelt(annotated, { wipe: true });
+      assert.equal(wiped.code, 1, `expected exit 1, got ${wiped.code}:\n${wiped.stdout}`);
+      assert.deepEqual(refusedFor(wiped), ['families', 'releases']);
     });
   });
 
