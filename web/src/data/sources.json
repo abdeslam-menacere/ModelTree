@@ -1970,5 +1970,50 @@
     "publisherId": "alibaba-cloud",
     "lastCheckedDate": "2026-08-31",
     "notes": "Alibaba Cloud’s own card for the first open-weight Qwen3.6 variant. States \"Number of Parameters: 35B in total and 3B activated\" and \"Context Length: 262,144 natively and extensible up to 1,010,000 tokens.\"; the native figure is recorded. It places the generation relative to its predecessor: \"Following the February release of the Qwen3.5 series, we’re pleased to share the first open-weight variant of Qwen3.6.\" Front matter declares apache-2.0 with a license_link into this repository. As with the Qwen3.5 card, modality is taken from \"Type: Causal Language Model with Vision Encoder\" and the image-text-to-text pipeline tag, and the card’s \"Video Input\" quickstart is noted as a competing signal rather than folded in."
+  },
+  {
+    "id": "eleutherai-gpt-neo-repository",
+    "url": "https://github.com/EleutherAI/gpt-neo",
+    "title": "EleutherAI/gpt-neo repository",
+    "type": "repository",
+    "publisherId": "eleutherai",
+    "lastCheckedDate": "2026-08-31",
+    "notes": "EleutherAI’s own GPT-Neo repository. Its README carries a dated release note, \"**Update 21/03/2021:**\" followed by \"We're proud to release two pretrained GPT-Neo models trained on The Pile\", and then lists the two checkpoints as \"1.3B:\" and \"2.7B:\" download links; that note is what the family’s first release date rests on. Read 2026-08-31 at https://github.com/EleutherAI/gpt-neo/raw/master/README.md — the raw form of the same file, on the same origin, which github.com serves by redirecting to its raw host. The raw form is used because the rendered repository page puts the date and the sentence in separate paragraph elements, so on that page no quote contains both. The README also states \"**As of August, 2021 code is no longer maintained. It is preserved here in archival form\", which is about the training code and not about the published weights, so it is deliberately not used for the family’s status."
+  },
+  {
+    "id": "eleutherai-gpt-neo-2-7b-model-card",
+    "url": "https://huggingface.co/EleutherAI/gpt-neo-2.7B",
+    "title": "EleutherAI/gpt-neo-2.7B model card",
+    "type": "model-card",
+    "publisherId": "eleutherai",
+    "lastCheckedDate": "2026-08-31",
+    "notes": "EleutherAI’s card for GPT-Neo 2.7B. States \"GPT-Neo 2.7B is a transformer model designed using EleutherAI's replication of the GPT-3 architecture. GPT-Neo refers to the class of models, while 2.7B represents the number of parameters of this particular pre-trained model.\" and \"GPT-Neo 2.7B was trained on the Pile, a large scale curated dataset created by EleutherAI for the purpose of training this model.\" It states no context length and no licence in prose — only a `license: mit` line in the card’s YAML front matter. No context window is recorded, because none is stated. The licence is recorded from that front-matter declaration; that its only basis is the card’s machine-readable metadata rather than a prose sentence is disclosed here rather than smoothed over. Card text read 2026-08-31 from the repository’s raw README at https://huggingface.co/EleutherAI/gpt-neo-2.7B/raw/main/README.md, which is the same document this page renders."
+  },
+  {
+    "id": "ibm-granite-4-0-announcement",
+    "url": "https://www.ibm.com/new/announcements/ibm-granite-4-0-hyper-efficient-high-performance-hybrid-models",
+    "title": "IBM Granite 4.0: hyper-efficient, high performance hybrid models for enterprise",
+    "type": "official-announcement",
+    "publisherId": "ibm",
+    "lastCheckedDate": "2026-08-31",
+    "notes": "IBM’s own Granite 4.0 launch post, bylined Kate Soule and Dave Bergmann. States \"The Granite 4.0 collection comprises multiple model sizes and architecture styles to provide optimal production across a wide array of hardware constraints, including:\" followed by Granite-4.0-H-Small, H-Tiny and H-Micro, and describes H-Small as \"a hybrid mixture of experts (MoE) model with 32B total parameters (9B active)\". Its \"Published 02 October 2025\" line is a publication dateline and is not used for a date; the recorded dates come from the \"Release Date\" line the Granite 4.0 cards state."
+  },
+  {
+    "id": "ibm-granite-4-0-h-small-model-card",
+    "url": "https://huggingface.co/ibm-granite/granite-4.0-h-small",
+    "title": "granite-4.0-h-small model card",
+    "type": "model-card",
+    "publisherId": "ibm",
+    "lastCheckedDate": "2026-08-31",
+    "notes": "IBM’s card for Granite-4.0-H-Small. States \"- **Release Date**: October 2nd, 2025\", \"- **License:** [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0)\", and \"Granite-4.0-H-Small is a 32B parameter long-context instruct model finetuned from *Granite-4.0-H-Small-Base*\". It states a context length only inside an HTML comparison table, as a \"Sequence length\" row whose four columns all read \"128K\" without the column-to-model mapping being legible from the text, so no context window is recorded rather than one guessed from a column position. Card text read 2026-08-31 from https://huggingface.co/ibm-granite/granite-4.0-h-small/raw/main/README.md, the same document this page renders."
+  },
+  {
+    "id": "ibm-granite-4-0-h-tiny-model-card",
+    "url": "https://huggingface.co/ibm-granite/granite-4.0-h-tiny",
+    "title": "granite-4.0-h-tiny model card",
+    "type": "model-card",
+    "publisherId": "ibm",
+    "lastCheckedDate": "2026-08-31",
+    "notes": "IBM’s card for Granite-4.0-H-Tiny, a different document from the H-Small card and the one the family’s first release date is taken from: it states \"- **Release Date**: October 2nd, 2025\" in its own right, so the family date does not rest on the release it is paired with. Also states \"Granite-4.0-H-Tiny is a 7B parameter long-context instruct model finetuned from *Granite-4.0-H-Tiny-Base*\". As on the H-Small card, the only context figure sits in an HTML table whose columns are not mapped in text, so none is recorded. Card text read 2026-08-31 from https://huggingface.co/ibm-granite/granite-4.0-h-tiny/raw/main/README.md, the same document this page renders."
   }
 ]

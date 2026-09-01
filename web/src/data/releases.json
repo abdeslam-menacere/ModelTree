@@ -4361,5 +4361,145 @@
       "osi-approved-licenses"
     ],
     "verifiedAt": "2026-08-31"
+  },
+  {
+    "id": "eleutherai-gpt-neo-2-7b",
+    "slug": "gpt-neo-2-7b",
+    "canonicalName": "GPT-Neo 2.7B",
+    "displayName": "GPT-Neo 2.7B",
+    "organizationId": "eleutherai",
+    "familyId": "eleutherai-gpt-neo",
+    "version": "2.7B",
+    "variant": "Base",
+    "releaseDate": "2021-03-21",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "MIT",
+      "spdxId": "MIT",
+      "url": "https://opensource.org/license/mit",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 2.7
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The larger of the two GPT-Neo checkpoints EleutherAI released on 21 March 2021. The repository’s release note states that \"the weights and configs can be freely downloaded\" and links the 2.7B checkpoint directly, which is what the open-weight access type and the downloadable-weights flag rest on. The card states the parameter count in prose rather than leaving it to the model name. The licence is the card’s own machine-readable declaration, \"license: mit\", in its YAML front matter; no prose sentence on the card names a licence, and that the front matter is the only statement is recorded here rather than smoothed over. No context window is recorded because the card states none, and the status is unknown because no source states a lifecycle.",
+    "intendedUse": "Open research and text generation. The card states the model \"is best at what it was pretrained for however, which is generating texts from a prompt\".",
+    "sourceIds": [
+      "eleutherai-gpt-neo-2-7b-model-card",
+      "eleutherai-gpt-neo-repository",
+      "osi-license-mit"
+    ],
+    "verifiedAt": "2026-08-31"
+  },
+  {
+    "id": "ibm-granite-4-0-h-small",
+    "slug": "granite-4-0-h-small",
+    "canonicalName": "Granite-4.0-H-Small",
+    "displayName": "Granite 4.0 H Small",
+    "organizationId": "ibm",
+    "familyId": "ibm-granite-4-0",
+    "version": "4.0-H-Small",
+    "variant": "Instruct",
+    "releaseDate": "2025-10-02",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 32,
+      "activeBillions": 9
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The largest Granite 4.0 model, which IBM describes as \"a 32B parameter long-context instruct model finetuned from *Granite-4.0-H-Small-Base*\" and, in the launch post, as \"a hybrid mixture of experts (MoE) model with 32B total parameters (9B active)\" — which is where the active count comes from. The open-weight access type rests on IBM stating that it \"open sourced\" these offerings \"under a standard Apache 2.0 license\" and listing Hugging Face among the channels the models are available through, alongside the launch post’s own \"Download the models\" link to huggingface.co/ibm-granite; it does not rest on the licence name alone. No context window is recorded: the card states one only inside an HTML table whose column-to-model mapping is not legible in text. The status is unknown because IBM states no lifecycle for the model.",
+    "intendedUse": "Enterprise instruction-following and agentic workflows, including tool calling and retrieval-augmented generation, with weights IBM states it open sourced under Apache 2.0.",
+    "sourceIds": [
+      "ibm-granite-4-0-h-small-model-card",
+      "ibm-granite-4-0-announcement",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-31"
+  },
+  {
+    "id": "ibm-granite-4-0-h-tiny",
+    "slug": "granite-4-0-h-tiny",
+    "canonicalName": "Granite-4.0-H-Tiny",
+    "displayName": "Granite 4.0 H Tiny",
+    "organizationId": "ibm",
+    "familyId": "ibm-granite-4-0",
+    "version": "4.0-H-Tiny",
+    "variant": "Instruct",
+    "releaseDate": "2025-10-02",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 7,
+      "activeBillions": 1
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The 7B hybrid mixture-of-experts member of Granite 4.0, which IBM describes as \"a 7B parameter long-context instruct model finetuned from *Granite-4.0-H-Tiny-Base*\" and, in the launch post, as \"a hybrid MoE with 7B total parameters (1B active)\". As with H-Small, the open-weight access type rests on IBM’s statement that it \"open sourced\" the Granite 4.0 offerings under Apache 2.0 and on the post’s \"Download the models\" link to huggingface.co/ibm-granite, and no context window is recorded because the only figure sits in an HTML table with no legible column mapping. The status is unknown because IBM states no lifecycle for the model.",
+    "intendedUse": "Enterprise instruction-following and agentic workflows at a smaller footprint, with weights IBM states it open sourced under Apache 2.0.",
+    "sourceIds": [
+      "ibm-granite-4-0-h-tiny-model-card",
+      "ibm-granite-4-0-announcement",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-08-31"
   }
 ]
