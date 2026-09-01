@@ -860,6 +860,21 @@ function gateNoRanking(docs) {
 const schemaEntryPattern = () => /(\w+)\s*:\s*z\.array\([^)]*\)([^,]*),/g;
 
 /**
+ * The two modifiers this gate can read on a collection, and the floor it takes
+ * from the first of them.
+ *
+ * Spacing is tolerated because Zod tolerates it: `.min( 1 )` floors a
+ * collection at one record exactly as `.min(1)` does, so a gate that refused
+ * the respaced form would be stricter than the schema it is supposed to follow
+ * and would stop running over a formatter's output. Spacing is the only
+ * latitude given. An argument that is not a literal cannot be evaluated without
+ * executing TypeScript, and this gate deliberately executes none, so
+ * `.min(SOME_CONSTANT)` is refused rather than read as no floor at all.
+ */
+const MIN_MODIFIER = /\.min\(\s*(\d+)\s*\)/;
+const UNDERSTOOD_MODIFIERS = /\.min\(\s*\d+\s*\)|\.default\(\s*\[\s*\]\s*\)/g;
+
+/**
  * The collections `datasetSchema` floors at one or more records.
  *
  * Read out of the schema's source text rather than by importing it. This script
@@ -880,6 +895,17 @@ const schemaEntryPattern = () => /(\w+)\s*:\s*z\.array\([^)]*\)([^,]*),/g;
  * dataset that passes -- so a shape this cannot express is refused out loud.
  * `documentsFrom` and `allowedPathsFrom` in the self-tests refuse the same way
  * for the same reason.
+ *
+ * That sentence was false when it was first written here, and the way it was
+ * false is worth keeping: it was true of whole *entries* and never checked an
+ * entry's *modifiers*. An entry matched, so the completeness check below was
+ * satisfied, while `.min( 1 )` -- a no-op respacing for Zod and for a reader --
+ * went unrecognised and that collection quietly stopped being floored. Losing
+ * every floor threw; losing some returned the rest and passed. Partial loss is
+ * the dangerous shape precisely because the total case is already loud, so
+ * nobody is watching the quiet one. Read `.min(1)` and `.default([])` in any
+ * spacing, since Zod reads those identically, and refuse anything else out
+ * loud rather than deciding it is not a floor.
  */
 function requiredCollections() {
   const path = join(repositoryDataDir(), 'schema.ts');
@@ -909,16 +935,35 @@ function requiredCollections() {
   }
   if (close === -1) throw new Error(`datasetSchema in ${path} has no closing brace`);
 
-  // Line comments go first: a `//` note sitting between two entries is not an
-  // entry, and the completeness check below would otherwise read it as one more
-  // thing it could not parse.
-  const body = source.slice(open + 1, close).replace(/\/\/[^\n]*/g, '');
+  // Comments go first: a note sitting between two entries is not an entry, and
+  // the completeness check below would otherwise read it as one more thing it
+  // could not parse. Both spellings, in one pass with the openers alternated so
+  // whichever opens first wins -- stripping one kind and then the other lets a
+  // `//` inside a block comment, or a `/*` inside a line comment, eat a real
+  // entry. A `/* */` note on a field is ordinary TypeScript and must not be
+  // what stops this gate running.
+  const body = source.slice(open + 1, close).replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '');
   const floors = [];
   let entries = 0;
   for (const [, name, modifiers] of body.matchAll(schemaEntryPattern())) {
     entries += 1;
-    const min = /\.min\((\d+)\)/.exec(modifiers);
+    const min = MIN_MODIFIER.exec(modifiers);
     if (min && Number(min[1]) > 0) floors.push(name);
+
+    // The same "nothing unaccounted for" discipline as the entry scan below,
+    // one level down. Matching an entry says the gate found a collection; it
+    // says nothing about whether it understood what was done to it. Every
+    // modifier has to be one this gate can read, because the alternative is
+    // reading `.nonempty()`, `.min(MIN_FAMILIES)` or a form nobody has written
+    // yet as "no floor here" -- which is not a reading, it is a guess, and it
+    // guesses in the permissive direction.
+    const unread = modifiers.replace(UNDERSTOOD_MODIFIERS, '').trim();
+    if (unread.length > 0) {
+      throw new Error(
+        `datasetSchema in ${path} qualifies ${name} in a way this gate cannot read: ${unread.slice(0, 40)}`
+          + ' -- it cannot tell a floor it has misread from a collection with no floor',
+      );
+    }
   }
   if (entries === 0) throw new Error(`datasetSchema in ${path} names no collections`);
 

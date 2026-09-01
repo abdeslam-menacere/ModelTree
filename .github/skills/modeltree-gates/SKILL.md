@@ -238,6 +238,17 @@ why `usage-syntheses.json` holding no records is not a defect. A schema the gate
 cannot read, cannot parse, or that floors a collection it does not load is exit
 2 rather than a pass.
 
+"Cannot read" is judged per qualifier and not only per field. The gate
+understands `.min(<digits>)` and `.default([])` written with any spacing, because
+Zod makes nothing of the spacing either, and refuses any other qualifier — a
+`.nonempty()`, or a `.min()` whose argument is a named constant it would have to
+execute TypeScript to evaluate — by name and out loud. Reading an unrecognised
+qualifier as "no floor here" would instead drop that one collection's floor and
+keep the others, and the gate would then pass a dataset Zod refuses:
+abdeslam-menacere/ModelTree#548 again, reached through a reformatting rather than
+through a hand-kept list. Losing *every* floor already threw, which is precisely
+why losing *some* went unnoticed.
+
 `gates.py` cannot express this rule and is not expected to. It gates claim and
 source candidates within a single creator's run and never loads the composed
 dataset, so it has no collection to measure; the floor is a property of the
