@@ -2182,6 +2182,7 @@
     "variant": "Pro",
     "releaseDate": "2026-04-22",
     "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
     "status": "preview",
     "featured": false,
     "categories": [
@@ -2234,6 +2235,7 @@
     "variant": "Flash",
     "releaseDate": "2026-04-22",
     "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
     "status": "preview",
     "featured": false,
     "categories": [
@@ -2286,6 +2288,7 @@
     "variant": "Standard",
     "releaseDate": "2025-12-01",
     "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
     "status": "legacy",
     "featured": false,
     "categories": [
@@ -2974,7 +2977,7 @@
     "variant": "Instruct",
     "releaseDate": "2025-07-11",
     "datePrecision": "day",
-    "dateBasis": "platform-first-published",
+    "dateBasis": "platform-repository-created",
     "status": "current",
     "featured": false,
     "categories": [
@@ -3253,7 +3256,7 @@
     "variant": "300B-A47B",
     "releaseDate": "2025-06-28",
     "datePrecision": "day",
-    "dateBasis": "platform-first-published",
+    "dateBasis": "platform-repository-created",
     "status": "current",
     "featured": false,
     "categories": [
@@ -3576,6 +3579,7 @@
     "variant": "3B Instruct",
     "releaseDate": "2024-04-12",
     "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
     "status": "research",
     "featured": false,
     "categories": [
@@ -3809,6 +3813,7 @@
     "variant": "M",
     "releaseDate": "2025-05-20",
     "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
     "status": "current",
     "featured": false,
     "categories": [

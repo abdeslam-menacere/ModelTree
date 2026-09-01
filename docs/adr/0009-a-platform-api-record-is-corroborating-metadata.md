@@ -85,10 +85,16 @@ Concretely:
    copied into a field whose name asserts otherwise.
 3. **Where a committed date is nonetheless platform-observed, the record says so
    in the data.** `releaseSchema` and `familySchema` carry an optional `dateBasis`.
-   The value `platform-first-published` means: this date is a hosting platform's
-   measurement of when the artefact appeared, no creator statement of a release
+   The value `platform-repository-created` means: this date is a hosting platform's
+   record of when a repository was created, no creator statement of a release
    date was found, and the value is retained because it bounds when the model
-   existed — not because a creator stated it.
+   existed — not because a creator stated it. The member is named for creation
+   rather than publication because creation is all `createdAt` attests: on the
+   records marked under this ADR it coincides with the repository's own oldest
+   commit, an "initial commit" that predates the weights, and a repository may be
+   created private and made public later. A member named `platform-first-published`
+   would assert a visibility event the platform never recorded — this ADR's own
+   defect, one step smaller.
 4. **The absence of `dateBasis` asserts nothing.** It does not mean "creator
    stated". It means no basis has been established either way. This is stated in
    the schema, in `web/README.md`, and here, because a field that silently means
@@ -112,12 +118,12 @@ Concretely:
   #682 findable.
 - **Make `dateBasis` required, with a `creator-stated` member.** Rejected. It
   reads well and cannot be filled in honestly: it would require asserting a basis
-  for all 92 committed releases when three have been checked. The remaining 89
-  would receive `creator-stated` because that is the default a writer reaches for,
-  converting an unverified field into a positive claim across the whole dataset —
-  the same silent conversion, at scale. An optional marker that is present only
-  where the basis is established says less and is true.
-- **Drop the three dates and record the absence structurally.** Rejected as
+  for all 92 committed releases when seven have an established one. The remaining
+  85 would receive `creator-stated` because that is the default a writer reaches
+  for, converting an unverified field into a positive claim across the whole
+  dataset — the same silent conversion, at scale. An optional marker that is
+  present only where the basis is established says less and is true.
+- **Drop the marked dates and record the absence structurally.** Rejected as
   disproportionate rather than wrong in principle. `releaseDate` is required by
   `releaseSchema`; `gate-dataset.mjs` and `web/src/data/validate.ts` both refuse a
   family with no release; and `releaseDate` is read by the catalogue index, the
@@ -126,10 +132,12 @@ Concretely:
   321 references across 45 files, and it discards a true and useful fact — the
   model demonstrably existed by that date — to avoid mislabelling it, when
   labelling it correctly is available.
-- **Fix the three records and leave the rule unwritten.** Rejected because the
-  three were not a mistake anyone made carelessly; they are what the gates
-  currently permit. Without a written rule the next run re-derives the same value
-  from the same endpoint and passes.
+- **Fix the affected records and leave the rule unwritten.** Rejected because they
+  were not a mistake anyone made carelessly; they are what the gates currently
+  permit. Without a written rule the next run re-derives the same value from the
+  same endpoint and passes. The sweep bears this out: the defect was not confined
+  to the records the issue named, and two more were found only by re-reading
+  source notes that had already concluded it.
 
 ## Consequences
 
@@ -159,9 +167,15 @@ Concretely:
   are creator-stated". It can only answer "which are known not to be". That is a
   smaller claim than a reader may want, and it is the one that is true.
 - Records committed before this decision are unmarked and stay unmarked until
-  something checks them. #682 reports 17 releases whose `releaseDate` equals a
-  cited Hub repository's `createdAt`; three are resolved there and the rest are
-  reported, not silently edited, per item 5.
+  something checks them. #682 sweeps 92 releases and finds 17 whose `releaseDate`
+  equals a cited Hub repository's `createdAt`; seven are marked there and the rest
+  are named individually in `web/README.md` — four as genuine same-day releases,
+  three as coarse-precision matches that prove nothing, and three as checked and
+  deliberately left unmarked for a stated reason, per item 5. They are named
+  rather than counted because a bare count is how five of the seven marked
+  records stayed invisible: each already stated in a committed source note or
+  summary that its date rested on the Hub, and a summary saying "17 releases"
+  made that impossible to notice.
 
 ## Alternatives Considered
 
@@ -177,7 +191,7 @@ would make a legitimate same-day release permanently unrecordable, which is item
 
 - No `releaseDate` or `firstReleaseDate` may cite a platform API record as its
   only support. A record whose date rests on `createdAt` carries
-  `dateBasis: "platform-first-published"` or it does not land.
+  `dateBasis: "platform-repository-created"` or it does not land.
 - No code comment, schema doc, README bullet, or gate message may state or imply
   that a missing `dateBasis` means a date is creator-stated. Text asserting that
   is a regression against this ADR, on the same terms as ADR 0005's guardrail

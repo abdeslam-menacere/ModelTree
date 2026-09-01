@@ -39,11 +39,20 @@ export const datePrecision = z.enum(DATE_PRECISIONS);
  * How a committed date came to be known, recorded **only** where it is known not
  * to be a creator statement (ADR 0009).
  *
- * `platform-first-published` means: the value is a hosting platform's own
- * measurement of when an artefact appeared there — a Hugging Face Hub
- * `createdAt`, say — no creator statement of a release date was found, and the
- * date is kept because it bounds when the model existed, not because a creator
- * stated it.
+ * `platform-repository-created` means: the value is a hosting platform's own
+ * record of when a repository was created — a Hugging Face Hub `createdAt`, say
+ * — no creator statement of a release date was found, and the date is kept
+ * because it bounds when the model existed, not because a creator stated it.
+ *
+ * The member is named for repository *creation* and not for publication, which
+ * is narrower than it may look and deliberately so. `createdAt` is the moment
+ * the repository row was made: on both records marked here it equals the
+ * repository's own oldest commit, an "initial commit" that predates the weights.
+ * A repository may also be created private and made public later, so the field
+ * cannot attest that anything was visible at that instant. Naming the member
+ * `platform-first-published` would assert a publication event the platform never
+ * recorded — the same kind of overstatement, one step smaller, that this field
+ * exists to stop.
  *
  * -- READ THIS BEFORE ADDING A MEMBER OR MAKING THE FIELD REQUIRED --
  *
@@ -61,7 +70,7 @@ export const datePrecision = z.enum(DATE_PRECISIONS);
  *
  * The one-member enum is therefore the point rather than an unfinished sketch.
  */
-export const dateBasis = z.enum(['platform-first-published']);
+export const dateBasis = z.enum(['platform-repository-created']);
 
 /**
  * `lifecycleStatus`, `modelCategory`, `accessType` and `modality` are a

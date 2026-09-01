@@ -78,8 +78,17 @@ const DELIBERATELY_UNANCHORED: ReadonlyArray<{ title: string; because: string }>
     title: 'DeepSeek dates come from repository publication, not from an announcement.',
     because:
       'It describes where the recorded dates came from and how strong that evidence ' +
-      'is, which is a provenance judgement about sources. It states no field value, ' +
-      'and the strength of a date is not a thing the dataset records.',
+      'is, which is a provenance judgement about sources. It states no field value. ' +
+      'Since #682 the dataset does record that basis, in `dateBasis`, but on a ' +
+      'separate anchored bullet -- this one is the narrative and stays unanchored.',
+  },
+  {
+    title: 'The full `releaseDate == createdAt` sweep, named rather than counted.',
+    because:
+      'It is a register of which records were checked and what each check concluded, ' +
+      'not a set of field assertions. Ten of the seventeen it names are deliberately ' +
+      'unmarked, so anchoring it would assert values the dataset does not hold; the ' +
+      'seven it does mark are anchored on their own bullets instead.',
   },
 ];
 
