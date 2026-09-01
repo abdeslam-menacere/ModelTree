@@ -1378,6 +1378,24 @@
     "notes": "LG AI Research’s own EXAONE 3.5 repository. Its dated news list states \"2024.12.09: We release the EXAONE 3.5 language model series including 2.4B, 7.8B, and 32B instruction-tuned models\", which is the release date recorded here. The technical report on arXiv is not used for the date, because its submission date dates the paper rather than the model."
   },
   {
+    "id": "lgai-exaone-4-0-32b-model-card",
+    "url": "https://huggingface.co/LGAI-EXAONE/EXAONE-4.0-32B/raw/main/README.md",
+    "title": "LGAI-EXAONE/EXAONE-4.0-32B model card",
+    "type": "model-card",
+    "publisherId": "lg-ai-research",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "LG AI Research’s own model card for EXAONE-4.0-32B. It states \"Context Length: 131,072 tokens\" as an exact integer, which is the figure recorded verbatim rather than read off an abbreviation, and \"The model is licensed under [EXAONE AI Model License Agreement 1.2 - NC](./LICENSE)\". Its only parameter figure is \"Number of Parameters (without embeddings): 30.95B\", which the card itself marks as excluding embeddings and so is not a total; the page's unqualified size figures sit in multi-column comparison tables covering six models. No total parameter count is therefore recorded for this release. The card states no lifecycle term, so status is unknown. It states no release date at all: the recorded date comes from the dated News line of LG AI Research's own EXAONE 4.0 repository README, and not from any Hugging Face repository-creation timestamp. Fetched 2026-09-01: HTTP 200."
+  },
+  {
+    "id": "lgai-exaone-4-0-repository",
+    "url": "https://github.com/LG-AI-EXAONE/EXAONE-4.0/raw/main/README.md",
+    "title": "LG-AI-EXAONE/EXAONE-4.0 repository README",
+    "type": "repository",
+    "publisherId": "lg-ai-research",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "LG AI Research’s own EXAONE 4.0 repository README. Its dated News list states \"2025.07.15 : We release EXAONE 4.0, a hybrid reasoning model with enhanced usability including 32B and 1.2B\", which is the release date recorded here: a first-person creator statement of its own release, not a hosting platform's upload timestamp. The README states no lifecycle term for the family or for any member, so status is recorded as unknown rather than guessed. Its unqualified size figures appear only as a \"Model Size\" row inside multi-column comparison tables, which would have to be mapped to a column before being read, so no total parameter count is taken from here. It states \"We provide EXAONE 4.0 in various quantized formats including GPTQ, AWQ, and GGUF\" and instructs the reader to \"Download the EXAONE 4.0 model weights in GGUF format\", which is what evidences downloadable weights. Fetched 2026-09-01: HTTP 200, served from raw.githubusercontent.com after GitHub's own redirect for this raw path."
+  },
+  {
     "id": "snowflake-arctic-instruct-model-card",
     "url": "https://huggingface.co/Snowflake/snowflake-arctic-instruct",
     "title": "Snowflake/snowflake-arctic-instruct model card",
