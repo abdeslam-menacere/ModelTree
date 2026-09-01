@@ -295,6 +295,34 @@ export const organizationSchema = z.object({
   // colloquial form -- so a guard reading it stays best-effort; see the note on
   // reach in `web/README.md`. Omit it, or leave it empty, when a creator has no
   // short form beyond its two recorded names.
+  //
+  // **This field carries no `sourceIds` and no `verifiedAt`, and that is a
+  // decision rather than an omission** (abdeslam-menacere/ModelTree#687). Every
+  // other fact here is a published claim a reader can encounter and is entitled
+  // to trace, so it is sourced and dated. An alias is not published: it renders
+  // on no surface, and its only reader is the build-time guard named above. It
+  // is machine input to a check, so the per-fact citation rule does not reach
+  // it, and inventing a citation for "this creator is commonly called X" would
+  // dress a usage judgement as a sourced fact.
+  //
+  // The exemption is bounded, and the bound is checked in
+  // `organization-aliases.test.ts` rather than left to this comment. An alias
+  // must differ from `name` and `shortName` -- the guard skips forms equal to
+  // either, so a duplicate is dead data -- and must be attested in its own
+  // record's already-sourced `description`, `website`, or `releasePage`. So an
+  // alias is a restatement of a form this record already uses, under the
+  // `sourceIds` and `verifiedAt` that record already carries, never a new claim
+  // entering the dataset unsourced. Adding one is therefore not a
+  // re-verification and is not a reason to move `verifiedAt`.
+  //
+  // What that check cannot do is judge whether a form is *contested*, and this
+  // is stated because the limit is easy to miss: attestation is a floor, not a
+  // licence. `alibaba-cloud` is the standing example -- bare "Alibaba" is
+  // attested in quoted sources, and is deliberately not registered, because
+  // this dataset records an unresolved conflict over whether the creator is
+  // Alibaba Cloud or Alibaba Group and that bare form is exactly the ambiguity.
+  // Registering it would resolve by implication a conflict the record keeps
+  // open. A contested short form stays out, and the reason is written down.
   aliases: z.array(z.string().min(1)).optional(),
   // Editorial functional classification, not a sourced claim. Choose the first
   // match: `community` when independent contributors outside any one entity's
