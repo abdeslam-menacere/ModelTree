@@ -2036,13 +2036,13 @@
   },
   {
     "id": "tii-falcon-180b-announcement",
-    "url": "https://atrc.gov.ae/news/technology-innovation-institute-introduces-worlds-most-powerful-open-llm-falcon-180b",
+    "url": "https://www.tii.ae/news/technology-innovation-institute-introduces-worlds-most-powerful-open-llm-falcon-180b",
     "title": "Technology Innovation Institute Introduces World's Most Powerful Open LLM Falcon-180B",
     "type": "official-announcement",
     "publisherId": "tii",
     "publishedDate": "2023-09-06",
     "lastCheckedDate": "2026-09-01",
-    "notes": "TII/ATRC's own announcement, datelined \"Abu Dhabi-UAE: 06 September, 2023\". States \"the launch of Falcon 180B, an advanced iteration of its flagship large language model (LLM)\", that it is \"trained on 3.5 trillion tokens\" with \"180 billion parameters\", \"Open Access for Researchers and Commercial Users\", and that \"The licensing framework for the model is established on 'Falcon 180B TII License', which is based upon Apache 2.0\". Cited for the release date, parameter count, access, and licence name."
+    "notes": "TII's own announcement on its own domain, datelined \"Abu Dhabi-UAE: 06 September, 2023\". States \"the launch of Falcon 180B, an advanced iteration of its flagship large language model (LLM)\", that it is \"trained on 3.5 trillion tokens\" with \"180 billion parameters\", \"Open Access for Researchers and Commercial Users\", and that \"The licensing framework for the model is established on 'Falcon 180B TII License', which is based upon Apache 2.0\". Cited for the release date, parameter count, access, and licence name. Sourced from tii.ae rather than the parent ATRC newsroom so the record's publisher (TII) matches the domain that voices it."
   },
   {
     "id": "tii-falcon-180b-model-card",
