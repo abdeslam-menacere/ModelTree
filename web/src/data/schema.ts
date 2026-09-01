@@ -46,8 +46,13 @@ export const datePrecision = z.enum(DATE_PRECISIONS);
  *
  * The member is named for repository *creation* and not for publication, which
  * is narrower than it may look and deliberately so. `createdAt` is the moment
- * the repository row was made: on both records marked here it equals the
- * repository's own oldest commit, an "initial commit" that predates the weights.
+ * the repository row was made. Where that has been checked against a
+ * repository's own history — the Kimi K2 Instruct and ERNIE 4.5 300B Hub
+ * records, and only those — it lands on an "initial commit" that predates the
+ * weights: exactly on it for Kimi K2 Instruct, one second ahead of it for
+ * ERNIE. Every other record carrying this member asserts no such check, so read
+ * the marker as naming the artefact the date rests on and not as a claim that
+ * its relationship to the repository's history has been established.
  * A repository may also be created private and made public later, so the field
  * cannot attest that anything was visible at that instant. Naming the member
  * `platform-first-published` would assert a publication event the platform never
