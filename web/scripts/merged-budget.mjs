@@ -361,10 +361,11 @@ export function render(anchor, verdict, dirty) {
   const short = (sha) => sha.slice(0, 10);
 
   lines.push(
-    `anchor      ${short(anchor.anchor)}  (git merge-base HEAD ${PUBLISHED_REF}, derived here)`,
-    `HEAD        ${short(anchor.head)}`,
-    `${PUBLISHED_REF.padEnd(11)} ${short(anchor.published)}  `
-    + `${anchor.trunkCommitsSinceAnchor} commit(s) ahead of the anchor`,
+    `anchor       ${short(anchor.anchor)}  (git merge-base HEAD ${PUBLISHED_REF}, derived here)`,
+    `HEAD         ${short(anchor.head)}`,
+    `origin/main  ${short(anchor.published)}  `
+    + `${anchor.trunkCommitsSinceAnchor} commit(s) ahead of the anchor (${PUBLISHED_REF})`,
+    `merged tree  ${short(anchor.mergedTree)}`,
     '',
   );
 

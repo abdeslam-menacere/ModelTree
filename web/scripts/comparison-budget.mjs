@@ -133,9 +133,12 @@ function upperBoundsFor(source, subject) {
  * close, so it is the one thing it may not do.
  *
  * @param {string} source the contents of `src/lib/comparison.test.ts`
+ * @returns {Record<string, number>} every ceiling in {@link CEILING_SUBJECTS}
  */
 export function readCeilings(source) {
+  /** @type {Record<string, number>} */
   const ceilings = {};
+  /** @type {string[]} */
   const problems = [];
 
   for (const { id, subject } of CEILING_SUBJECTS) {
@@ -164,6 +167,29 @@ export function readCeilings(source) {
   }
 
   return ceilings;
+}
+
+/**
+ * Bytes the picker index would ship, and the per-row figure.
+ *
+ * `comparison.ts` exports no measurer for this — `comparison.test.ts` counts
+ * `new TextEncoder().encode(JSON.stringify(index)).length` inline and rounds the
+ * per-row figure — so the expression is mirrored here rather than invented, and
+ * the mirror is pinned by a test that computes the ceiling's own expression over
+ * the live dataset and asserts this agrees. If the test's method changes, that
+ * assertion fails rather than this drifting away in silence.
+ *
+ * The payload has an exported measurer, `measureComparisonPayload`, so that one
+ * is called and never reimplemented.
+ *
+ * @param {readonly unknown[]} index the rows from `buildComparisonPickerIndex`
+ */
+export function measurePickerIndex(index) {
+  const bytes = new TextEncoder().encode(JSON.stringify(index)).length;
+  return {
+    bytes,
+    bytesPerRelease: index.length === 0 ? 0 : Math.round(bytes / index.length),
+  };
 }
 
 /**
@@ -196,16 +222,13 @@ export async function measureTree(webRoot) {
     const payload = measureComparisonPayload(buildComparisonPayload(dataset));
 
     const index = buildComparisonPickerIndex(dataset);
-    // Mirrors `comparison.test.ts` exactly: UTF-8 bytes of the JSON the index
-    // would ship, and a rounded per-row figure. Pinned by a test.
-    const pickerBytes = new TextEncoder().encode(JSON.stringify(index)).length;
-    const pickerBytesPerRelease = index.length === 0 ? 0 : Math.round(pickerBytes / index.length);
+    const picker = measurePickerIndex(index);
 
     const values = {
       'payload.totalBytes': payload.totalBytes,
       'payload.bytesPerRelease': payload.bytesPerRelease,
-      'picker.totalBytes': pickerBytes,
-      'picker.bytesPerRelease': pickerBytesPerRelease,
+      'picker.totalBytes': picker.bytes,
+      'picker.bytesPerRelease': picker.bytesPerRelease,
     };
 
     return {
