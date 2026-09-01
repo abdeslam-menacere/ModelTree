@@ -1,4 +1,4 @@
-# ADR 0009: Compact Wire Format for /compare Payload
+# ADR 0010: Compact Wire Format for /compare Payload
 
 - Status: Accepted
 - Date: 2026-08-31
