@@ -15,6 +15,7 @@
     "data-health": "node scripts/data-health.mjs",
     "budget:compare": "node scripts/comparison-budget.mjs",
     "budget:merged": "node scripts/merged-budget.mjs",
+    "budget:proof": "node scripts/merged-budget-scenario.mjs",
     "assets:report": "node scripts/asset-report.mjs",
     "lab": "node scripts/lab-metrics.mjs",
     "validate": "npm run test && npm run check",
