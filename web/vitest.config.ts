@@ -167,6 +167,24 @@
 // The 30 s above comes from the uncensored distribution in run C and the four
 // loaded runs, and it would stand unchanged had this CI failure never occurred.
 //
+// -- And once without any synthetic load at all --
+//
+// The runs above lean on eight spinning hogs, which is a stand-in for a busy
+// shared machine rather than a measurement of one. So the plainest single
+// observation here is one that used no load model whatever: during an ordinary
+// `node .github/scripts/ci-preflight.mjs` on this branch, with nothing
+// artificial running, `LineageModelDrawer.interaction.test.tsx`'s "opens a
+// labelled modal dialog and moves focus into it when a release is selected"
+// took 5023 ms and passed. The same test had taken 4675 ms in the equivalent
+// run shortly before.
+//
+// Under the inherited default that run is red, by 23 ms, on a gate nobody was
+// stress-testing. It is the same overshoot the CI failure above shows -- both
+// about 1.5% past 5000 ms, on two different tests and two different machines --
+// and it is the clearest statement of what was wrong: not that these tests are
+// slow, but that the budget they were handed was never chosen, and sits close
+// enough to their ordinary duration that ordinary variance crosses it.
+//
 // -- Why the worker pool is not capped here --
 //
 // Issue #720 proposed a pool cap as the more honest lever, reasoning that a
