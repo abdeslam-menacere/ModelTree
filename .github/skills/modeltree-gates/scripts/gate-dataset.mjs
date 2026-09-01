@@ -20,15 +20,41 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// The dataset documents, exactly as `web/src/data/raw.ts` composes them. This
-// list is also the qualifying class in ADR 0003: a refresh may touch these and
-// nothing else.
+// The dataset documents, exactly as `web/src/data/raw.ts` composes them. Keyed
+// collection name -> file, and the collection names are the ones
+// `datasetSchema` in `web/src/data/schema.ts` declares, because the floors this
+// gate derives from that schema are matched against these keys.
+//
+// This list is NOT the ADR 0003 qualifying class, and the two must not be
+// conflated. `gate-scope.mjs` owns the class in `ALLOWED_PATHS`; it is this list
+// plus `web/src/data/refresh-runs.json`, which ADR 0006 admitted so that a
+// refresh can record itself. The relationship is pinned by a test in
+// `gates.test.mjs` that fails in both directions, so a document admitted to
+// auto-merge without also being validated here -- and the reverse -- is a red
+// suite rather than a silent hole. A comment here previously asserted the two
+// were the same list while `ALLOWED_PATHS` held sixteen paths and this held
+// nine, which is abdeslam-menacere/ModelTree#495: six documents could reach
+// `main` unattended with no coherence check applied to them at all.
+//
+// The ledger is deliberately absent, on four independent grounds and not by
+// oversight: `raw.ts` does not compose it, so it is not the dataset; `datasetSchema`
+// does not declare it, so no floor can demand it; `gate-ledger.mjs` already
+// covers it in both directions against the diff; and its entries carry no
+// `sourceIds` and no `verifiedAt`, because they are facts about runs rather than
+// about models, so the evidence rule below could only be satisfied by exempting
+// it -- a hole of exactly the shape this list closes.
 const DOCUMENTS = {
   sources: 'sources.json',
   publishers: 'publishers.json',
   organizations: 'organizations.json',
   families: 'families.json',
   releases: 'releases.json',
+  products: 'products.json',
+  servingPlatforms: 'serving-platforms.json',
+  deployments: 'deployments.json',
+  benchmarks: 'benchmarks.json',
+  benchmarkResults: 'benchmark-results.json',
+  releaseEvents: 'release-events.json',
   usageObservations: 'usage-observations.json',
   usageSyntheses: 'usage-syntheses.json',
   modelFitStatements: 'model-fit-statements.json',
@@ -324,6 +350,46 @@ function gateReferences(docs, ids) {
       checkList('releases', release, field, 'releases');
     }
   }
+  // The five entity kinds the product brief keeps separate -- creator, family,
+  // release, product, serving platform -- meet here, and these are the edges
+  // that hold them apart rather than collapsing them. A product points at the
+  // releases placed inside it and never *is* one; a deployment is the join
+  // between a release and a platform and owns neither.
+  for (const product of docs.products) {
+    check('products', product, 'organizationId', product.organizationId, 'organizations');
+    checkList('products', product, 'releaseIds', 'releases');
+    checkList('products', product, 'sourceIds', 'sources');
+  }
+  for (const platform of docs.servingPlatforms) {
+    check('servingPlatforms', platform, 'organizationId', platform.organizationId, 'organizations');
+    checkList('servingPlatforms', platform, 'sourceIds', 'sources');
+  }
+  for (const deployment of docs.deployments) {
+    check('deployments', deployment, 'releaseId', deployment.releaseId, 'releases');
+    check('deployments', deployment, 'platformId', deployment.platformId, 'servingPlatforms');
+    checkList('deployments', deployment, 'sourceIds', 'sources');
+  }
+  for (const benchmark of docs.benchmarks) {
+    // `owner` is deliberately not an edge. The schema declares it `z.string()`
+    // -- "TIGER-Lab", "Hugging Face" -- because a benchmark's maintainer is
+    // usually not a model creator this dataset tracks. Checking it against
+    // `organizations` would refuse every benchmark whose owner is outside the
+    // tree, so the omission is a reading of the schema rather than a miss.
+    checkList('benchmarks', benchmark, 'sourceIds', 'sources');
+  }
+  for (const result of docs.benchmarkResults) {
+    // `benchmarkId` carries a second duty beyond resolving: it is half of what
+    // makes this collection's `score` admissible to `no-composite-score` below.
+    // A score bound to a benchmark that does not exist is not bound to anything,
+    // so that rule would be resting on an assumption if this edge were absent.
+    check('benchmarkResults', result, 'benchmarkId', result.benchmarkId, 'benchmarks');
+    check('benchmarkResults', result, 'releaseId', result.releaseId, 'releases');
+    checkList('benchmarkResults', result, 'sourceIds', 'sources');
+  }
+  for (const event of docs.releaseEvents) {
+    check('releaseEvents', event, 'releaseId', event.releaseId, 'releases');
+    checkList('releaseEvents', event, 'sourceIds', 'sources');
+  }
   for (const observation of docs.usageObservations) {
     check('usageObservations', observation, 'releaseId', observation.releaseId, 'releases');
     checkList('usageObservations', observation, 'sourceIds', 'sources');
@@ -562,7 +628,15 @@ const EXACT_DATE_FIELDS = ['verifiedAt', 'lastCheckedDate', 'publishedDate', 'ef
 // rule below is what replaces the constraint that move gives up — it is not
 // enough to be partial, the record must also declare the same precision it
 // carries, which the exact-date rule could not express at all.
-const PARTIAL_DATE_FIELDS = ['windowStart', 'windowEnd', 'evaluationDate', 'releaseDate', 'firstReleaseDate'];
+//
+// `date` joined them with abdeslam-menacere/ModelTree#495, and it closes a gap
+// rather than widening the list for symmetry. It is a release event's own date,
+// and it was named in `PRECISION_COMPANIONS` below but in neither list here --
+// so a malformed one was checked by nothing at all: the companion rule skips a
+// value it cannot parse, by design, on the grounds that "a malformed value is
+// already reported above", which was true of every field named there except
+// this one.
+const PARTIAL_DATE_FIELDS = ['windowStart', 'windowEnd', 'evaluationDate', 'releaseDate', 'firstReleaseDate', 'date'];
 
 const PRECISION_SEGMENTS = { year: 1, month: 2, day: 3 };
 
@@ -753,14 +827,33 @@ function gateUrls(docs) {
   for (const release of docs.releases) {
     if (release.license?.url) inspect('releases', release.id, 'license.url', release.license.url);
   }
+  // A serving platform's website is the same kind of claim an organization's is
+  // -- where this thing can be reached -- so it is held to the same standard. A
+  // platform reachable only at an internal host is not a place a reader can go.
+  for (const platform of docs.servingPlatforms) {
+    inspect('servingPlatforms', platform.id, 'website', platform.website);
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Gate: evidence. Every fact carries a primary source and a verification date.
 // Not redundant with Zod: the schema requires the fields to be present, this
 // requires them to be non-empty and to point somewhere real.
+//
+// Every collection this gate loads is listed, and that is now the whole of
+// `DOCUMENTS` minus the four that state no sourced fact of their own:
+// `sources` is the evidence rather than a claim on it, `publishers` carry their
+// provenance nested under `control.sourceIds`, and the two `modelFit*` gap
+// collections record an absence. Six collections joined with
+// abdeslam-menacere/ModelTree#495 -- products, serving platforms, deployments,
+// benchmarks, benchmark results and release events -- each of which asserts a
+// fact about the world that a reader is entitled to trace.
 // ---------------------------------------------------------------------------
-const SOURCED_COLLECTIONS = ['organizations', 'families', 'releases', 'usageObservations', 'usageSyntheses', 'modelFitStatements'];
+const SOURCED_COLLECTIONS = [
+  'organizations', 'families', 'releases', 'products', 'servingPlatforms',
+  'deployments', 'benchmarks', 'benchmarkResults', 'releaseEvents',
+  'usageObservations', 'usageSyntheses', 'modelFitStatements',
+];
 
 function gateEvidence(docs) {
   for (const collection of SOURCED_COLLECTIONS) {
@@ -778,7 +871,63 @@ function gateEvidence(docs) {
 
 // ---------------------------------------------------------------------------
 // Gate: no composite score. ADR 0003 guardrail, enforced as vocabulary.
+//
+// The guardrail ADR 0003 states is against "a composite or universal score", and
+// the vocabulary check is a *proxy* for it: cheap, mechanical, and deliberately
+// over-broad, because a field named `score` is nearly always the thing the
+// product refuses to publish. `benchmarkResults` is the one place in the dataset
+// where it is not, and abdeslam-menacere/ModelTree#495 is where that surfaced --
+// the collection had never been loaded by this gate, so the proxy had never been
+// applied to it.
+//
+// What is admitted is narrower than an exemption, and the difference is the
+// whole of the argument. An exemption would be "`score` is allowed in
+// `benchmarkResults`", which admits a bare `"score": 91` -- a number attached to
+// a release with nothing saying what was measured or in what unit, which is
+// precisely a universal score wearing this collection's name. What is admitted
+// instead is a score that is *bound*: the top-level key `score`, on a record
+// that carries a string `benchmarkId` and a string `unit`, so the number means
+// "this much, of this quantity, on this named benchmark". That is a measurement
+// against one yardstick, which is what `docs/product/PRODUCT-BRIEF.md` asks for
+// when it wants benchmark evidence "without a composite score", and it is the
+// shape `benchmarkResultSchema` in `web/src/data/schema.ts` already requires.
+//
+// Everything a plain exemption would have admitted is still refused, and each
+// of those is pinned by its own test rather than left to be read off this
+// comment: `overallScore` and `compositeScore` (the key is not exactly `score`,
+// and `overall`/`composite` are ranking words in their own right), `rank`,
+// `tier`, `rating`, a `score` nested anywhere below the top level of a record, a
+// `score` on a `benchmarkResults` record missing either half of its binding, and
+// `score` in any of the other fourteen collections. The binding is *checked*
+// rather than assumed: `gateReferences` above resolves `benchmarkId` against
+// `benchmarks`, so a score bound to a benchmark that does not exist fails there.
+//
+// `gates.py` in `tools/updater` has no ranking rule at all, so this narrows
+// nothing on the Python side and opens no new divergence: ADR 0003 records the
+// vocabulary check as strictness this implementation carries alone, and it still
+// carries it. A gap in reach, not the permissive divergence the ADR stops the
+// automation for.
 // ---------------------------------------------------------------------------
+
+/**
+ * Whether this key is the one score the dataset is allowed to state: a
+ * measurement bound to a named benchmark and a unit, on the record that carries
+ * it.
+ *
+ * `path` empty means the key sits at the top level of the record, so `value` is
+ * that record and the binding is read from the same object the key lives on. A
+ * nested `score` is therefore never admitted, whatever the record around it
+ * carries -- the binding has to be the number's own, not something inherited
+ * from an ancestor.
+ */
+function isBoundBenchmarkScore(collection, path, key, value) {
+  return collection === 'benchmarkResults'
+    && path === ''
+    && key === 'score'
+    && typeof value.benchmarkId === 'string'
+    && typeof value.unit === 'string';
+}
+
 function gateNoRanking(docs) {
   const segments = (key) => key
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
@@ -794,11 +943,27 @@ function gateNoRanking(docs) {
     for (const [key, child] of Object.entries(value)) {
       const here = path ? `${path}.${key}` : key;
       if (segments(key).some((part) => RANKING_WORDS.includes(part))) {
-        fail(
-          'no-composite-score',
-          `field "${here}" reads as a ranking or composite score, which this product does not publish (see #67)`,
-          `${collection}:${id}`,
-        );
+        if (isBoundBenchmarkScore(collection, path, key, value)) {
+          // Admitted, and only here. Fall through to `walk` so anything nested
+          // *under* the score is still read.
+        } else if (collection === 'benchmarkResults' && path === '' && key === 'score') {
+          // Named separately from the general refusal because the fault is a
+          // different one and the fix is a different one: the field belongs in
+          // this collection, and what is missing is the binding that makes it a
+          // measurement rather than a verdict.
+          fail(
+            'no-composite-score',
+            'field "score" carries no benchmarkId and unit to bind it, so it reads as a composite '
+              + 'score rather than a measurement against one named benchmark',
+            `${collection}:${id}`,
+          );
+        } else {
+          fail(
+            'no-composite-score',
+            `field "${here}" reads as a ranking or composite score, which this product does not publish (see #67)`,
+            `${collection}:${id}`,
+          );
+        }
       }
       walk(child, here, collection, id);
     }
@@ -814,7 +979,7 @@ function gateNoRanking(docs) {
 //
 // Every other gate here is satisfied by an empty set: it has no dangling
 // references, no duplicate ids, no out-of-range dates. That makes a broken
-// generator that writes nine structurally valid but empty documents invisible
+// generator that writes structurally valid but empty documents invisible
 // to coherence checking, while it silently wipes the dataset. ADR 0003 lets an
 // agent-gated refresh auto-merge, so this gate is the floor that stops a green
 // run from taking the live data to zero (see #185).
@@ -1004,7 +1169,7 @@ function gateNonEmpty(docs, required) {
   if (total === 0) {
     fail(
       'non-empty',
-      'expected at least one record across the nine documents, found 0 (a wholesale-empty dataset)',
+      `expected at least one record across the ${Object.keys(DOCUMENTS).length} documents, found 0 (a wholesale-empty dataset)`,
       'dataset',
     );
   }

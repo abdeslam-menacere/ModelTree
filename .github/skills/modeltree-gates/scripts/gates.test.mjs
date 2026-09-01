@@ -127,11 +127,18 @@ function gateDatasetCopy(edit, clockArgs) {
 /**
  * Every document `gate-dataset.mjs` loads, exactly as its own `DOCUMENTS` map
  * names them. This *is* a second hand-written copy of a list that file owns, and
- * saying so is the point: `gate-dataset.mjs:23` states its own coupling to
+ * saying so is the point: `gate-dataset.mjs` states its own coupling to
  * `web/src/data/raw.ts` rather than denying it, and this comment used to claim
  * the opposite about itself. What the constant buys is de-duplication between
  * the two tests below that need the whole set; that does not stop it being a
  * copy.
+ *
+ * Six documents joined it with abdeslam-menacere/ModelTree#495, which is also
+ * why the drift check below matters more than it reads: those six sat in
+ * `gate-scope.mjs`'s `ALLOWED_PATHS` -- cleared to auto-merge unattended -- while
+ * this gate loaded none of them. `the qualifying class is exactly what
+ * gate-dataset validates` further down is the assertion that now holds those two
+ * lists to each other; this one holds the test file to the gate.
  *
  * The copy drifts in two directions and only one of them used to be audible. If
  * the gate gains a document this list does not name, `a wholesale-empty dataset
@@ -146,7 +153,9 @@ function gateDatasetCopy(edit, clockArgs) {
  */
 const DATASET_DOCUMENTS = [
   'sources.json', 'publishers.json', 'organizations.json', 'families.json',
-  'releases.json', 'usage-observations.json', 'usage-syntheses.json',
+  'releases.json', 'products.json', 'serving-platforms.json',
+  'deployments.json', 'benchmarks.json', 'benchmark-results.json',
+  'release-events.json', 'usage-observations.json', 'usage-syntheses.json',
   'model-fit-statements.json', 'model-fit-evidence-gaps.json',
 ];
 
@@ -473,7 +482,7 @@ describe('gate-dataset', () => {
     assert.equal(result.code, 0, result.stdout);
   });
 
-  // A refresh that writes nine structurally valid but empty arrays wipes the
+  // A refresh that writes structurally valid but empty arrays wipes the
   // dataset while every coherence gate stays green -- an empty set has no
   // dangling references, no duplicate ids, nothing to fail. ADR 0003 lets an
   // agent-gated refresh auto-merge, so this all-empty case must be refused
@@ -508,6 +517,13 @@ describe('gate-dataset', () => {
   // carry a `publisherId`, so emptying it fails `references` and would prove
   // something about that gate rather than this one. Whether publishers should be
   // floored is a question for the schema, and it is not answered here.
+  //
+  // The six documents abdeslam-menacere/ModelTree#495 added are all genuinely
+  // emptiable together, and that is a property of the set rather than of each
+  // one: `deployments` points at `servingPlatforms` and `benchmarkResults` at
+  // `benchmarks`, but both targets are in this set too, so no reference is left
+  // dangling by emptying all of them at once. Emptying one of a pair alone would
+  // fail `references`, which is the case the per-document tests below cover.
   test('the collections the schema leaves optional may all be empty at once', () => {
     const optional = DATASET_DOCUMENTS.filter(
       (file) => !Object.values(LOAD_BEARING).includes(file) && file !== 'publishers.json',
@@ -521,7 +537,9 @@ describe('gate-dataset', () => {
     assert.deepEqual(
       [...optional].sort(),
       [
+        'benchmark-results.json', 'benchmarks.json', 'deployments.json',
         'model-fit-evidence-gaps.json', 'model-fit-statements.json',
+        'products.json', 'release-events.json', 'serving-platforms.json',
         'usage-observations.json', 'usage-syntheses.json',
       ],
       'the optional set must be every gate document that is neither load-bearing nor publishers.json',
@@ -972,14 +990,78 @@ describe('gate-dataset', () => {
   // dataset with no families trivially has no empty ones -- the exact vacuous
   // pass this block exists to rule out. It needs full history: CI checks out
   // with `fetch-depth: 0`.
+  //
+  // Both commits predate six of the documents `DATASET_DOCUMENTS` now names,
+  // which arrived with abdeslam-menacere/ModelTree#495 rather than with the
+  // documents themselves -- the files existed, and the gate simply never loaded
+  // them. "The commit predates this file" and "history is unreadable here" look
+  // identical to `git show`, and only the first is a historical fact, so they
+  // are told apart by asking the tree what it holds rather than by catching a
+  // failure: `git ls-tree` names the documents that existed, an unreadable tree
+  // still throws, and a document the tree lists but `git show` cannot produce
+  // throws too. The set that was absent is written as a literal for the same
+  // reason the family and release counts are -- it is a fact about two immutable
+  // commits, so a mis-read history changes it and turns this red rather than
+  // quietly reconstructing a different dataset. The load-bearing four are
+  // asserted present on top of that, because those are the documents whose
+  // absence would make the whole check vacuous.
   // -------------------------------------------------------------------------
   const REFRESH_417 = '547691aafd75a7a79eb2904470ef737d0ec62ce5';
   const BEFORE_417 = '9016420124778a8f7e07167d5e57fa774f75c1b5';
 
+  const ABSENT_AT_417 = [
+    'products.json', 'serving-platforms.json', 'deployments.json',
+    'benchmarks.json', 'benchmark-results.json', 'release-events.json',
+  ];
+
+  /** The dataset documents `sha`'s tree actually holds, read from the tree. */
+  function datasetDocumentsAt(sha) {
+    let listing;
+    try {
+      listing = execFileSync('git', ['ls-tree', '-r', '--name-only', sha, '--', 'web/src/data/'], {
+        cwd: REPO, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    } catch (error) {
+      throw new Error(
+        `cannot list web/src/data/ at ${sha}: ${error.message}. `
+          + 'This test reads real committed history and needs a full clone (fetch-depth: 0); '
+          + 'it fails rather than skips, because a silent skip would read as a pass.',
+      );
+    }
+    const present = new Set(listing.split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith('web/src/data/'))
+      .map((line) => line.slice('web/src/data/'.length))
+      .filter((file) => DATASET_DOCUMENTS.includes(file)));
+    if (present.size === 0) {
+      throw new Error(`${sha} lists no dataset documents under web/src/data/, which cannot be true of either commit`);
+    }
+    return present;
+  }
+
   function gateDatasetAtCommit(sha) {
     const dir = mkdtempSync(join(tmpdir(), 'modeltree-history-'));
     try {
+      const present = datasetDocumentsAt(sha);
+
+      assert.deepEqual(
+        DATASET_DOCUMENTS.filter((file) => !present.has(file)).sort(),
+        [...ABSENT_AT_417].sort(),
+        `the documents missing from ${sha} are a historical fact; a different set means history was mis-read`,
+      );
+      for (const file of Object.values(LOAD_BEARING)) {
+        assert.ok(present.has(file), `${file} must exist at ${sha}, or this check is vacuous`);
+      }
+
       for (const file of DATASET_DOCUMENTS) {
+        if (!present.has(file)) {
+          // The document did not exist yet. An empty array is what the dataset
+          // held at this commit, and it keeps the gate's input well-formed so
+          // this block still measures `family-has-release` and not the gate's
+          // reaction to a file that was never there.
+          writeFileSync(join(dir, file), '[]\n');
+          continue;
+        }
         let text;
         try {
           text = execFileSync('git', ['show', `${sha}:web/src/data/${file}`], {
@@ -1010,6 +1092,31 @@ describe('gate-dataset', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   }
+
+  test('the tree reader is commit-specific, so the absent-document literal is not vacuous', () => {
+    // At HEAD every document exists, so the absent set is empty -- which is not
+    // `ABSENT_AT_417`. That is the whole point: if `datasetDocumentsAt` returned
+    // the same thing whatever commit it was handed, the assertion above would
+    // pass for a reconstructed dataset that never matched either commit.
+    const here = datasetDocumentsAt('HEAD');
+    assert.deepEqual(
+      DATASET_DOCUMENTS.filter((file) => !here.has(file)),
+      [],
+      'every dataset document exists at HEAD',
+    );
+    assert.ok(ABSENT_AT_417.length > 0, 'the two historical commits really do predate some documents');
+    for (const file of ABSENT_AT_417) {
+      assert.ok(here.has(file), `${file} must exist at HEAD, or it is not merely absent from history`);
+      assert.ok(DATASET_DOCUMENTS.includes(file), `${file} must be a document the gate loads today`);
+    }
+  });
+
+  test('a commit the reader cannot resolve throws rather than reconstructing an empty dataset', () => {
+    assert.throws(
+      () => datasetDocumentsAt('0000000000000000000000000000000000000000'),
+      /cannot list web\/src\/data\/ at 0{40}/,
+    );
+  });
 
   test('the seven empty families PR #417 shipped are refused, from that commit\'s own data', () => {
     const { code, report, emptyFamilies } = gateDatasetAtCommit(REFRESH_417);
@@ -1476,6 +1583,249 @@ describe('gate-dataset', () => {
     assertFailed(result, 'no-composite-score', 'ranking or composite score');
   });
 
+  // -------------------------------------------------------------------------
+  // abdeslam-menacere/ModelTree#495: the six documents this gate did not read.
+  //
+  // Each of these mutations exits 0 against the gate as it stood at this
+  // branch's merge-base -- not because the data was fine, but because the file
+  // was never opened. They are written against the rules the documents are now
+  // held to, one fault at a time, so a rule quietly losing its new collection
+  // shows up as a specific green test rather than as a smaller run.
+  // -------------------------------------------------------------------------
+
+  /**
+   * One dangling id per newly-validated edge. `list` says whether the field
+   * holds an array, since a bad member and a bad scalar reach the rule by
+   * different paths in `gateReferences`.
+   */
+  const NEW_REFERENCE_EDGES = [
+    { file: 'products.json', field: 'organizationId', target: 'organization' },
+    { file: 'products.json', field: 'releaseIds', target: 'release', list: true },
+    { file: 'products.json', field: 'sourceIds', target: 'source', list: true },
+    { file: 'serving-platforms.json', field: 'organizationId', target: 'organization' },
+    { file: 'serving-platforms.json', field: 'sourceIds', target: 'source', list: true },
+    { file: 'deployments.json', field: 'releaseId', target: 'release' },
+    { file: 'deployments.json', field: 'platformId', target: 'servingPlatform' },
+    { file: 'deployments.json', field: 'sourceIds', target: 'source', list: true },
+    { file: 'benchmarks.json', field: 'sourceIds', target: 'source', list: true },
+    { file: 'benchmark-results.json', field: 'benchmarkId', target: 'benchmark' },
+    { file: 'benchmark-results.json', field: 'releaseId', target: 'release' },
+    { file: 'benchmark-results.json', field: 'sourceIds', target: 'source', list: true },
+    { file: 'release-events.json', field: 'releaseId', target: 'release' },
+    { file: 'release-events.json', field: 'sourceIds', target: 'source', list: true },
+  ];
+
+  for (const { file, field, target, list } of NEW_REFERENCE_EDGES) {
+    test(`a dangling ${field} in ${file} is caught`, () => {
+      const result = gateMutatedDataset(({ read, write }) => {
+        const entries = read(file);
+        entries[0][field] = list ? ['no-such-thing'] : 'no-such-thing';
+        write(file, entries);
+      });
+      assertFailed(result, 'references', `does not resolve to a ${target}`);
+    });
+  }
+
+  // The evidence rule over the collections that joined `SOURCED_COLLECTIONS`.
+  // Both halves, because they fail for different reasons and a collection can
+  // lose one without losing the other.
+  const NEWLY_SOURCED = [
+    'products.json', 'serving-platforms.json', 'deployments.json',
+    'benchmarks.json', 'benchmark-results.json', 'release-events.json',
+  ];
+
+  for (const file of NEWLY_SOURCED) {
+    test(`a fact in ${file} with no primary source is caught`, () => {
+      const result = gateMutatedDataset(({ read, write }) => {
+        const entries = read(file);
+        entries[0].sourceIds = [];
+        write(file, entries);
+      });
+      assertFailed(result, 'evidence', 'no primary source');
+    });
+
+    test(`a fact in ${file} with no usable verifiedAt is caught`, () => {
+      const result = gateMutatedDataset(({ read, write }) => {
+        const entries = read(file);
+        entries[0].verifiedAt = 'sometime in April';
+        write(file, entries);
+      });
+      // `verifiedAt` is an exact-date field as well as the evidence rule's
+      // freshness stamp, so one unparseable value is genuinely two faults. Both
+      // are declared rather than the assertion being loosened, because losing
+      // either rule over this collection should still turn this test red.
+      assertFailed(result, 'evidence', 'no usable verifiedAt', { alsoFails: ['dates'] });
+    });
+  }
+
+  test('a serving platform reachable only over http is caught', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const platforms = read('serving-platforms.json');
+      platforms[0].website = 'http://ai.azure.com/';
+      write('serving-platforms.json', platforms);
+    });
+    assertFailed(result, 'urls', 'is not https');
+  });
+
+  test('a serving platform reachable only on an internal host is caught', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const platforms = read('serving-platforms.json');
+      platforms[0].website = 'https://console.internal/';
+      write('serving-platforms.json', platforms);
+    });
+    assertFailed(result, 'urls', 'cannot stand behind a public fact');
+  });
+
+  // `date` was named in PRECISION_COMPANIONS but in neither date-field list, and
+  // the companion rule skips a value it cannot parse. So a malformed release
+  // event date was checked by nothing at all, even once the document was loaded.
+  test('a malformed release event date is caught', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const events = read('release-events.json');
+      events[0].date = '2026-13-45';
+      write('release-events.json', events);
+    });
+    assertFailed(result, 'dates', 'is not a real date');
+  });
+
+  test('a release event dated in the future is caught', () => {
+    const result = gateDatasetAt('2026-01-01', ({ read, write }) => {
+      const events = read('release-events.json');
+      events[0].date = '2026-06-01';
+      write('release-events.json', events);
+    });
+    // Every other date in the live dataset is judged against the same stated
+    // day, and the dataset holds records later than it, so the declaration is
+    // the clock's doing rather than this mutation's.
+    assertFailed(result, 'dates', 'is in the future');
+  });
+
+  test('a release event whose declared precision contradicts its date is caught', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const events = read('release-events.json');
+      events[0].date = '2026-08';
+      events[0].datePrecision = 'day';
+      write('release-events.json', events);
+    });
+    assertFailed(result, 'dates', 'does not state the precision');
+  });
+
+  // -------------------------------------------------------------------------
+  // The bound score. `no-composite-score` refuses the vocabulary outright, and
+  // `benchmarkResults` is the single place the dataset states a number the
+  // product does want published. What is admitted is a score *bound* to a named
+  // benchmark and a unit -- never the word `score` on its own -- so every case
+  // a plain exemption would have let through is enumerated here and watched
+  // failing. If any of these ever goes green the rule has become an exemption.
+  // -------------------------------------------------------------------------
+
+  test('the live benchmark results really do carry a top-level score', () => {
+    // Without this the whole block below could be vacuous: a dataset with no
+    // `score` anywhere would satisfy every refusal here and prove nothing about
+    // the admission, which is the half that carries risk.
+    const results = JSON.parse(readFileSync(join(DATA, 'benchmark-results.json'), 'utf8'));
+    const bound = results.filter((entry) => Object.hasOwn(entry, 'score')
+      && typeof entry.benchmarkId === 'string' && typeof entry.unit === 'string');
+    assert.ok(
+      bound.length > 0,
+      'no committed benchmark result carries a bound score, so the admission below is untested by the live run',
+    );
+  });
+
+  test('a benchmark result score with no benchmarkId to bind it is refused', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const results = read('benchmark-results.json');
+      delete results[0].benchmarkId;
+      write('benchmark-results.json', results);
+    });
+    assertFailed(result, 'no-composite-score', 'carries no benchmarkId and unit to bind it');
+  });
+
+  test('a benchmark result score with no unit to bind it is refused', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const results = read('benchmark-results.json');
+      delete results[0].unit;
+      write('benchmark-results.json', results);
+    });
+    assertFailed(result, 'no-composite-score', 'carries no benchmarkId and unit to bind it');
+  });
+
+  test('a benchmarkId that is not a string binds nothing, so the score is refused', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const results = read('benchmark-results.json');
+      results[0].benchmarkId = 42;
+      write('benchmark-results.json', results);
+    });
+    // `references` is the same fault seen from the other side: a non-string id
+    // resolves to no benchmark either. Both firing is the binding being checked
+    // rather than assumed, which is why the admission can rest on it.
+    assertFailed(result, 'no-composite-score', 'carries no benchmarkId and unit to bind it', {
+      alsoFails: ['references'],
+    });
+  });
+
+  test('an overallScore on a benchmark result is refused, bound or not', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const results = read('benchmark-results.json');
+      results[0].overallScore = 91;
+      write('benchmark-results.json', results);
+    });
+    assertFailed(result, 'no-composite-score', 'reads as a ranking or composite score');
+  });
+
+  for (const field of ['rank', 'tier', 'rating', 'compositeScore', 'leaderboard', 'percentile']) {
+    test(`a ${field} on a benchmark result is refused`, () => {
+      const result = gateMutatedDataset(({ read, write }) => {
+        const results = read('benchmark-results.json');
+        results[0][field] = 1;
+        write('benchmark-results.json', results);
+      });
+      assertFailed(result, 'no-composite-score', 'reads as a ranking or composite score');
+    });
+  }
+
+  test('a score nested inside a benchmark result is refused, whatever the record binds', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const results = read('benchmark-results.json');
+      results[0].summary = { score: 91 };
+      write('benchmark-results.json', results);
+    });
+    assertFailed(result, 'no-composite-score', 'field "summary.score" reads as a ranking');
+  });
+
+  test('a score inside an array on a benchmark result is refused', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const results = read('benchmark-results.json');
+      results[0].runs = [{ score: 91 }];
+      write('benchmark-results.json', results);
+    });
+    assertFailed(result, 'no-composite-score', 'field "runs[0].score" reads as a ranking');
+  });
+
+  test('a bound-looking score in another collection is still refused', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      // Carrying both halves of the binding, so this fails for being in the
+      // wrong collection rather than for being unbound: the admission is keyed
+      // on benchmarkResults and not on the presence of two field names.
+      releases[0].score = 74.3;
+      releases[0].benchmarkId = 'mmlu-pro';
+      releases[0].unit = 'percent';
+      write('releases.json', releases);
+    });
+    assertFailed(result, 'no-composite-score', 'field "score" reads as a ranking or composite score');
+  });
+
+  test('a benchmark definition carrying a score is refused, though it names benchmarks', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const benchmarks = read('benchmarks.json');
+      benchmarks[0].score = 91;
+      benchmarks[0].unit = 'percent';
+      write('benchmarks.json', benchmarks);
+    });
+    assertFailed(result, 'no-composite-score', 'reads as a ranking or composite score');
+  });
+
   test('a source checked before it was published is caught', () => {
     const result = gateMutatedDataset(({ read, write }) => {
       const sources = read('sources.json');
@@ -1683,7 +2033,7 @@ describe('gate-dataset', () => {
   //
   //  * the positive one names the path that must have fired, and comes first
   //    because it is the claim the test is named for. Deleting the guard
-  //    outright drops the run to exit **1** -- the nine documents then read as
+  //    outright drops the run to exit **1** -- every document then reads as
   //    missing and `non-empty` refuses, which is a verdict about the directory
   //    rather than a refusal to gate it -- so a code-first ordering reports
   //    `1 !== 2` where this one names the regression.
@@ -4474,6 +4824,255 @@ describe('gate-scope ALLOWED_PATHS mirrors raw.ts', () => {
     assert.throws(() => allowedPathsFrom('const OTHER = 1;'), /no ALLOWED_PATHS/);
     assert.throws(() => allowedPathsFrom('const ALLOWED_PATHS = new Set([]);'), /names no paths/);
     assert.throws(() => rawImportsFrom('export const x = 1;'), /imports no \.json/);
+    assert.throws(() => readOrRefuse(join(REPO, 'no', 'such', 'file.xyz')), /cannot read/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+// abdeslam-menacere/ModelTree#495. The block above holds `ALLOWED_PATHS` to
+// `raw.ts` -- what a refresh may *touch*. This one holds it to `DOCUMENTS` --
+// what `gate-dataset.mjs` will actually *read* when it judges the result. Those
+// are different questions, and they had different answers: `ALLOWED_PATHS`
+// carried sixteen paths while `DOCUMENTS` loaded nine, so six documents were
+// cleared to auto-merge unattended under ADR 0003 with no coherence check
+// applied to them at all. Nothing was malformed and nothing failed; the gate
+// simply never opened those files. `products.json` could have been rewritten
+// wholesale on `main` without a human, and every gate would have said yes.
+//
+// Two lists agreeing today is not the property worth having -- they agreed
+// before #613 too, and one widening put them six apart with no test to notice.
+// The property is that they cannot be *changed* apart. So this asserts the
+// relation rather than either list:
+//
+//     ALLOWED_PATHS == DOCUMENTS union {the ledger}
+//
+// and it is asserted in every direction that can go wrong. A path added to
+// `ALLOWED_PATHS` alone -- exactly what #613 did -- fails here. A document
+// dropped from `DOCUMENTS` while it stays in the class fails here. A document
+// added to `DOCUMENTS` that the class does not admit fails here too, because
+// the gate reading a file no refresh may touch means one of the two is wrong
+// about the dataset. The one permitted asymmetry is the ledger, enumerated with
+// the ADR that admits it and proved non-vacuous below.
+//
+// Both sides are DERIVED. No filename and no count appears here as a literal, so
+// the assertion cannot agree with the code by construction; and every parser is
+// exercised against synthetic sources that drift in each direction, so it is
+// proved able to fail without touching the committed files.
+describe('the ADR 0003 qualifying class is exactly what gate-dataset validates', () => {
+  const DATA_PREFIX = 'web/src/data/';
+  const LEDGER = `${DATA_PREFIX}refresh-runs.json`;
+
+  /**
+   * The ledger, and the four independent reasons it is the one member of the
+   * class this gate does not load. Enumerated rather than inferred, and each
+   * reason is checked by a test below rather than taken on trust: an exception
+   * nobody re-examines is how the gap this block closes stayed open.
+   */
+  const ADMITTED_UNVALIDATED = new Map([[
+    LEDGER,
+    'docs/adr/0006-a-refresh-run-records-itself-in-its-own-pull-request.md',
+  ]]);
+
+  function readOrRefuse(file) {
+    let text;
+    try {
+      text = readFileSync(file, 'utf8');
+    } catch (error) {
+      throw new Error(`cannot read ${file}: ${error.message}`);
+    }
+    if (text.length === 0) throw new Error(`${file} is empty`);
+    return text;
+  }
+
+  function allowedPathsFrom(source) {
+    const decl = /const\s+ALLOWED_PATHS\s*=\s*new\s+Set\(\s*\[([\s\S]*?)\]\s*\)/.exec(source);
+    if (!decl) throw new Error('no ALLOWED_PATHS = new Set([...]) declaration found');
+    const paths = [...decl[1].matchAll(/['"]([^'"]+)['"]/g)].map((m) => m[1]);
+    if (paths.length === 0) throw new Error('ALLOWED_PATHS declaration names no paths');
+    return new Set(paths);
+  }
+
+  // The files named inside `const DOCUMENTS = { ... }`, resolved to the same
+  // repo-relative shape `ALLOWED_PATHS` uses so the two are comparable at all.
+  // Reads only the object body, so the prose above the declaration -- which
+  // names the ledger, and must, since that is where the exception is explained
+  // -- cannot be mistaken for a document the gate loads.
+  function documentPathsFrom(source) {
+    const decl = /const\s+DOCUMENTS\s*=\s*\{([\s\S]*?)\}\s*;/.exec(source);
+    if (!decl) throw new Error('no DOCUMENTS = { ... } declaration found');
+    const files = [...decl[1].matchAll(/['"]([^'"]+\.json)['"]/g)].map((m) => `${DATA_PREFIX}${m[1]}`);
+    if (files.length === 0) throw new Error('DOCUMENTS declaration names no documents');
+    return new Set(files);
+  }
+
+  /**
+   * Both directions at once. `admitted` is subtracted from the first only: a
+   * document the gate loads is never excusable as an exception, because the
+   * exception exists to name things the gate deliberately does not read.
+   */
+  function diffClass(allowed, validated, admitted = new Set()) {
+    return {
+      allowedButNotValidated: [...allowed].filter((p) => !validated.has(p) && !admitted.has(p)).sort(),
+      validatedButNotAllowed: [...validated].filter((p) => !allowed.has(p)).sort(),
+    };
+  }
+
+  function describeClassDrift({ allowedButNotValidated, validatedButNotAllowed }) {
+    const parts = [];
+    if (allowedButNotValidated.length > 0) {
+      parts.push(
+        'may auto-merge unattended but gate-dataset never reads them: '
+          + `${allowedButNotValidated.join(', ')}`,
+      );
+    }
+    if (validatedButNotAllowed.length > 0) {
+      parts.push(`read by gate-dataset but outside the qualifying class: ${validatedButNotAllowed.join(', ')}`);
+    }
+    return parts.join('; ');
+  }
+
+  test('every path that may auto-merge is a path gate-dataset validates', () => {
+    const allowed = allowedPathsFrom(readOrRefuse(GATE_SCOPE));
+    const validated = documentPathsFrom(readOrRefuse(GATE_DATASET));
+    const drift = diffClass(allowed, validated, new Set(ADMITTED_UNVALIDATED.keys()));
+    assert.deepEqual(
+      drift,
+      { allowedButNotValidated: [], validatedButNotAllowed: [] },
+      'the ADR 0003 qualifying class and the documents gate-dataset validates have drifted - '
+        + `${describeClassDrift(drift)}. Widening one without the other is #495: a document that may `
+        + 'reach main unattended with no coherence check is the hole this asserts shut. Add it to '
+        + 'both, or record it in ADMITTED_UNVALIDATED with the ADR that admits it and the gate that '
+        + 'covers it instead.',
+    );
+  });
+
+  test('order is not load-bearing on either side, so a reordering is not drift', () => {
+    const allowed = allowedPathsFrom(readOrRefuse(GATE_SCOPE));
+    const validated = documentPathsFrom(readOrRefuse(GATE_DATASET));
+    const reversed = (set) => new Set([...set].reverse());
+    assert.deepEqual(
+      diffClass(reversed(allowed), reversed(validated), new Set(ADMITTED_UNVALIDATED.keys())),
+      { allowedButNotValidated: [], validatedButNotAllowed: [] },
+      'both lists are compared as sets, so reversing either must change no verdict. If this fails, '
+        + 'the comparison has become order-sensitive and would report a formatting change as a hole.',
+    );
+  });
+
+  test('a path added to ALLOWED_PATHS alone is refused, which is what #613 did', () => {
+    const drift = diffClass(
+      new Set([`${DATA_PREFIX}a.json`, `${DATA_PREFIX}widened.json`]),
+      new Set([`${DATA_PREFIX}a.json`]),
+    );
+    assert.deepEqual(drift.allowedButNotValidated, [`${DATA_PREFIX}widened.json`]);
+    assert.deepEqual(drift.validatedButNotAllowed, []);
+    assert.match(describeClassDrift(drift), /may auto-merge unattended but gate-dataset never reads them/);
+  });
+
+  test('a document dropped from DOCUMENTS while it stays in the class is refused', () => {
+    const drift = diffClass(
+      new Set([`${DATA_PREFIX}a.json`, `${DATA_PREFIX}b.json`]),
+      new Set([`${DATA_PREFIX}a.json`]),
+    );
+    assert.deepEqual(drift.allowedButNotValidated, [`${DATA_PREFIX}b.json`]);
+  });
+
+  test('a document added to DOCUMENTS alone is refused, so the guard cuts both ways', () => {
+    const drift = diffClass(
+      new Set([`${DATA_PREFIX}a.json`]),
+      new Set([`${DATA_PREFIX}a.json`, `${DATA_PREFIX}unadmitted.json`]),
+    );
+    assert.deepEqual(drift.validatedButNotAllowed, [`${DATA_PREFIX}unadmitted.json`]);
+    assert.deepEqual(drift.allowedButNotValidated, []);
+    assert.match(describeClassDrift(drift), /read by gate-dataset but outside the qualifying class/);
+  });
+
+  test('a path removed from ALLOWED_PATHS while the gate still loads it is refused', () => {
+    const drift = diffClass(new Set([]), new Set([`${DATA_PREFIX}a.json`]));
+    assert.deepEqual(drift.validatedButNotAllowed, [`${DATA_PREFIX}a.json`]);
+  });
+
+  test('the admitted exception excuses one direction only, never a document the gate loads', () => {
+    const drift = diffClass(new Set([`${DATA_PREFIX}a.json`]), new Set([`${DATA_PREFIX}a.json`, LEDGER]), new Set([LEDGER]));
+    assert.deepEqual(
+      drift.validatedButNotAllowed,
+      [LEDGER],
+      'the ledger being excused from validation must not also excuse it from the class',
+    );
+  });
+
+  test('a second undocumented extra still fails, so enumerating one did not disable the guard', () => {
+    const drift = diffClass(
+      new Set([...ADMITTED_UNVALIDATED.keys(), `${DATA_PREFIX}a.json`, `${DATA_PREFIX}smuggled.json`]),
+      new Set([`${DATA_PREFIX}a.json`]),
+      new Set(ADMITTED_UNVALIDATED.keys()),
+    );
+    assert.deepEqual(drift.allowedButNotValidated, [`${DATA_PREFIX}smuggled.json`]);
+  });
+
+  test('the admitted exception is in the class, so it is not a stale entry', () => {
+    const allowed = allowedPathsFrom(readOrRefuse(GATE_SCOPE));
+    for (const [path, adr] of ADMITTED_UNVALIDATED) {
+      assert.ok(
+        allowed.has(path),
+        `${path} is excused from validation here but gate-scope no longer admits it to the class - `
+          + `either restore it or drop this entry and revisit ${adr}`,
+      );
+    }
+  });
+
+  test('the admitted exception is genuinely unvalidated, so the entry is not vacuous', () => {
+    const validated = documentPathsFrom(readOrRefuse(GATE_DATASET));
+    for (const path of ADMITTED_UNVALIDATED.keys()) {
+      assert.ok(
+        !validated.has(path),
+        `${path} is listed as admitted-but-unvalidated, yet gate-dataset now loads it - `
+          + 'drop the exception rather than keeping a rule that excuses nothing',
+      );
+    }
+  });
+
+  test('the admitted exception cites an ADR that exists and names it', () => {
+    for (const [path, adr] of ADMITTED_UNVALIDATED) {
+      const text = readOrRefuse(join(REPO, adr));
+      assert.match(
+        text,
+        new RegExp(path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+        `${adr} is cited as admitting ${path} but does not name it`,
+      );
+    }
+  });
+
+  // The exception's load-bearing half. Excusing a path from *this* gate is only
+  // acceptable because another one covers it; an exception that meant "nothing
+  // checks this" would be the hole rather than a documented edge of it.
+  test('the admitted exception is covered by gate-ledger instead', () => {
+    const ledger = readOrRefuse(GATE_LEDGER);
+    for (const path of ADMITTED_UNVALIDATED.keys()) {
+      assert.ok(
+        ledger.includes(path.slice(DATA_PREFIX.length)),
+        `${path} is excused from gate-dataset on the grounds that gate-ledger covers it, but `
+          + 'gate-ledger.mjs does not name it',
+      );
+    }
+  });
+
+  test('both derivations read their real sources and fail closed rather than returning empty', () => {
+    const allowed = allowedPathsFrom(readOrRefuse(GATE_SCOPE));
+    const validated = documentPathsFrom(readOrRefuse(GATE_DATASET));
+    assert.ok(allowed.size > 0);
+    assert.ok(validated.size > 0);
+    for (const path of validated) {
+      assert.ok(path.startsWith(DATA_PREFIX), `unexpected validated path ${path}`);
+    }
+    assert.deepEqual(
+      [...documentPathsFrom("const DOCUMENTS = {\n  a: 'a.json',\n  b: \"b.json\",\n};\n")].sort(),
+      [`${DATA_PREFIX}a.json`, `${DATA_PREFIX}b.json`],
+    );
+    assert.throws(() => allowedPathsFrom('const OTHER = 1;'), /no ALLOWED_PATHS/);
+    assert.throws(() => allowedPathsFrom('const ALLOWED_PATHS = new Set([]);'), /names no paths/);
+    assert.throws(() => documentPathsFrom('const OTHER = 1;'), /no DOCUMENTS/);
+    assert.throws(() => documentPathsFrom('const DOCUMENTS = {};'), /names no documents/);
     assert.throws(() => readOrRefuse(join(REPO, 'no', 'such', 'file.xyz')), /cannot read/);
   });
 });
