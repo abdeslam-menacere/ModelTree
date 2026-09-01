@@ -249,6 +249,76 @@ could have named it by SHA changes the tree that is printed. A non-zero exit
 means the printed tree is not a comparable artefact at all: do not compare it,
 and conclude nothing from it.
 
+**Read that exit code from an unpiped invocation, and read it on the statement
+immediately after.** The OID is on the command's first line, so the natural way
+to get at it in PowerShell — which is where this repository's docks run — is to
+pipe into `Select-Object -First 1`, and that pipeline destroys the value the
+paragraph above calls the whole of the discrimination. `-First N` stops the
+pipeline as soon as it has N objects, which terminates the native process
+upstream, and PowerShell reports that termination as `$LASTEXITCODE = -1`. It
+does so **even when the command prints exactly one line and you asked for
+exactly one line**, so there is no output small enough to be safe, and nothing
+about the command you can inspect to tell. Measured here, against a branch whose
+merge into trunk is clean and whose true exit code is therefore 0:
+
+| invocation | `$LASTEXITCODE` | |
+|---|---|---|
+| `git merge-tree --write-tree refs/remotes/origin/main HEAD`, captured to a variable | 0 | the truth |
+| the same, piped into `Select-Object -First 1` | -1 | corrupted |
+| `git rev-parse HEAD`, piped into `Select-Object -First 1` | -1 | corrupted: one line printed, one line asked for |
+| `node --version` and `npm.cmd --version`, piped the same way | -1 | so this is the shell's doing, not git's |
+| `git rev-parse --verify nosuchref_zzz` | 128 | control: a genuine failure keeps its own value |
+
+Because -1 is non-zero, a corrupted read sends a clean merge down the non-zero
+branch below and reports landed work as unlanded. That is the safe direction,
+which is exactly why it survives: it manufactures a redundant gate cycle rather
+than a visibly wrong claim. It is not hypothetical — it was hit while verifying
+that abdeslam-menacere/ModelTree#731 had landed, in a report that printed two
+identical tree OIDs with a verdict of NO between them.
+
+Unlike the quoting note above, no single written form serves both shells here:
+the command is shared, the variable carrying its status is not. Capture, then
+read on the next statement, and only then slice.
+
+```bash
+out=$(git merge-tree --write-tree refs/remotes/origin/main HEAD); code=$?
+```
+
+```powershell
+$out = git merge-tree --write-tree refs/remotes/origin/main HEAD; $code = $LASTEXITCODE
+```
+
+Slice the variable, never the command: in PowerShell the first line is
+`@($out)[0]` and not `$out[0]`, because a capture of one line is a String while
+a capture of several is an array, so the naive index returns the first
+*character* of a clean merge's OID and the correct OID only in the conflicted
+case you were going to discard. That is inverted precisely against where you
+need it. The general property, worth carrying past this one probe: **a native
+command's exit status must be read from an unpiped invocation, on the statement
+immediately after it**, because a stage that stops the pipeline early kills the
+process upstream of it before the shell can read a real status. Early
+termination is the whole of the mechanism, which is what makes the rule
+predictive rather than a list to memorise: `Select-Object -First 1` and
+`-Index 0` corrupt, while `-Last 1`, `-First 1 -Wait`, `ForEach-Object`,
+`Where-Object`, `Out-String` and post-capture indexing all preserve, because
+each of those has to drain the producer before it can answer. You cannot tell
+which you have by looking at the output, so capture first and slice the
+variable. That is not `merge-tree`'s defect, nor git's.
+
+These documents read three other families of probe by exit code, and the same
+pipe corrupts each. `.github/scripts/ci-preflight.mjs`, where 2 is never a pass;
+`npm run validate` the same way; and — the sharpest of the three — the gate
+scripts under `.github/skills/modeltree-gates/scripts/`, whose contract
+`.github/skills/modeltree-gates/SKILL.md` states as **0** passed, **1** a gate
+failed, **2** the gate could not run, with 2 never a pass. Measured on
+`.github/skills/modeltree-gates/scripts/gate-scope.mjs` here: a real refusal
+exits 2 unpiped and -1 through `Select-Object -First 1`, and a real failure
+exits 1 unpiped and -1 the same way. -1 is not 0, 1 or 2 — it is outside the
+vocabulary every consumer of these scripts switches on, so a caller matching on
+those three values has no branch for what it just got. That is precisely the
+failure the gates exist to prevent, in that document's own words: a broken
+checker reading as a green one.
+
 So there are three readings, not two. Exit zero with the printed OID equal to
 trunk's tree: merging your branch into trunk would change trunk in no way, so
 your work is already there. Exit zero with a different OID: it is not. Non-zero:
