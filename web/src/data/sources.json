@@ -2053,5 +2053,62 @@
     "publisherId": "ai2",
     "lastCheckedDate": "2026-09-01",
     "notes": "The model's own card. States \"Molmo is a family of open vision-language models developed by the Allen Institute for AI\" and \"This checkpoint is a preview of the Molmo release\", and its front-matter declares \"license: apache-2.0\" and \"pipeline_tag: image-text-to-text\". Cited for the Apache-2.0 licence name, the preview lifecycle, and the image+text-to-text modalities. The release date is not taken from the \"0924\" in the checkpoint id (a name is not a source); it is taken from the dated Ai2 announcement. States no exact context-length integer, so contextWindow is withheld."
+  },
+  {
+    "id": "cohere-rerank-docs",
+    "url": "https://docs.cohere.com/docs/rerank",
+    "title": "Cohere Rerank documentation",
+    "type": "official-docs",
+    "publisherId": "cohere",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Cohere's own Rerank documentation. States \"Rerank models sort text inputs by semantic relevance to a specified query. They are often used to sort search results returned from an existing search solution\" — the distinct reranking function, separate from the generative Command family. The model table lists rerank-v3.5 with the note \"This model has a context length of 4096 tokens\" (the recorded contextWindow), and the only endpoint shown is POST https://api.cohere.com/v2/rerank requiring a bearer token, which is the API-only, proprietary-hosted access recorded. Cited for the family's reranking function, the API-only access, and the 4096-token context length."
+  },
+  {
+    "id": "cohere-rerank-v3-5-changelog",
+    "url": "https://docs.cohere.com/changelog/rerank-v3.5",
+    "title": "Announcing Rerank-v3.5",
+    "type": "official-announcement",
+    "publisherId": "cohere",
+    "publishedDate": "2024-12-02",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Cohere's own changelog release announcement for Rerank v3.5, titled \"Announcing Rerank-v3.5\". Cohere's changelog index dates this entry December 2, 2024, and the sibling \"Rerank v3.5 on Azure AI Foundry\" changelog corroborates the month in body text: \"In December 2024, Cohere released Rerank v3.5 model.\" Cited for the release date at day precision and the model identity rerank-v3.5."
+  },
+  {
+    "id": "stability-ai-svd-announcement",
+    "url": "https://stability.ai/news/stable-video-diffusion-open-ai-video-model",
+    "title": "Introducing Stable Video Diffusion",
+    "type": "official-announcement",
+    "publisherId": "stability-ai",
+    "publishedDate": "2023-11-21",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Stability AI's own announcement, headlined \"Introducing Stable Video Diffusion\", carrying the structured publication date 2023-11-21 (meta itemprop=\"datePublished\" content=\"2023-11-21T11:14:01+0000\"). States Stable Video Diffusion is \"a proud addition to our diverse range of open-source models\" spanning modalities \"including image, language, audio, 3D, and code\", establishing the open-weight access and the family's distinctness. Cited for the release date and the open-source, downloadable status."
+  },
+  {
+    "id": "stability-ai-svd-xt-model-card",
+    "url": "https://huggingface.co/stabilityai/stable-video-diffusion-img2vid-xt",
+    "title": "stabilityai/stable-video-diffusion-img2vid-xt model card",
+    "type": "model-card",
+    "publisherId": "stability-ai",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Stability AI's own model card (creator namespace stabilityai/ on Hugging Face; the card is not gated). States \"Stable Video Diffusion (SVD) Image-to-Video is a diffusion model that takes in a still image as a conditioning frame, and generates a video from it\" and \"Model type: Generative image-to-video model\" — the image-in, video-out modalities recorded. Notes the model \"cannot be controlled through text\", distinguishing it from text-to-image Stable Diffusion. The card's front-matter declares license_name \"stable-video-diffusion-community\" with the LICENSE.md titled \"STABILITY AI COMMUNITY LICENSE AGREEMENT\"; the card body directs commercial users to https://stability.ai/license. Cited for the image-to-video modalities, the licence, and the open-weight access. States no exact parameter integer, so parameters are withheld."
+  },
+  {
+    "id": "nvidia-cosmos-announcement",
+    "url": "https://nvidianews.nvidia.com/news/nvidia-launches-cosmos-world-foundation-model-platform-to-accelerate-physical-ai-development",
+    "title": "NVIDIA Launches Cosmos World Foundation Model Platform",
+    "type": "official-announcement",
+    "publisherId": "nvidia",
+    "publishedDate": "2025-01-06",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "NVIDIA's own press release announcing \"NVIDIA Cosmos, a platform comprising state-of-the-art generative world foundation models\" for physical AI. States developers can \"download the family of models and fine-tuning framework from the NVIDIA NGC catalog or Hugging Face\" — the open-weight access recorded. The Cosmos platform is described as purpose-built for physical AI (robotics, autonomous vehicles), a distinct family from NVIDIA's Nemotron language models. Cited for the family's world-model purpose and open-weight, downloadable status."
+  },
+  {
+    "id": "nvidia-cosmos-diffusion-7b-model-card",
+    "url": "https://huggingface.co/nvidia/Cosmos-1.0-Diffusion-7B-Text2World",
+    "title": "nvidia/Cosmos-1.0-Diffusion-7B-Text2World model card",
+    "type": "model-card",
+    "publisherId": "nvidia",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "NVIDIA's own model card (creator namespace nvidia/ on Hugging Face; the card is not gated). The card carries the NVIDIA Open Model License Agreement, headed \"NVIDIA Open Model License Agreement\" with \"Version Release Date: January 6, 2025\" — the release date recorded at day precision — and its grant clause permits commercial use (\"sell, offer for sale, distribute\"), with clause 2.4 stating \"NVIDIA owns the Model\". The model generates physics-aware video from a text prompt (Text2World). Cited for the release date, the licence name, and the open-weight, NVIDIA-owned status. States no exact parameter integer in prose (only \"7B\" in the model name), so parameters are withheld."
   }
 ]

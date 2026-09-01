@@ -4590,5 +4590,127 @@
       "osi-approved-licenses"
     ],
     "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "cohere-rerank-v3-5",
+    "slug": "rerank-v3-5",
+    "canonicalName": "rerank-v3.5",
+    "displayName": "Rerank v3.5",
+    "organizationId": "cohere",
+    "familyId": "cohere-rerank",
+    "version": "3.5",
+    "variant": "Standard",
+    "releaseDate": "2024-12-02",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "embedding-reranking"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 4096,
+    "apiAliases": [
+      "rerank-v3.5"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Cohere's state-of-the-art reranking model, which sorts documents by semantic relevance to a query. Multilingual, offered API-only, with a stated 4096-token context length.",
+    "intendedUse": "Reranking search results returned by an existing retrieval system, to improve relevance ordering in search and RAG pipelines.",
+    "sourceIds": [
+      "cohere-rerank-docs",
+      "cohere-rerank-v3-5-changelog"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "stability-ai-svd-img2vid-xt",
+    "slug": "svd-img2vid-xt",
+    "canonicalName": "stable-video-diffusion-img2vid-xt",
+    "displayName": "Stable Video Diffusion (img2vid-XT)",
+    "organizationId": "stability-ai",
+    "familyId": "stability-ai-stable-video-diffusion",
+    "version": "1.0",
+    "variant": "img2vid-XT",
+    "releaseDate": "2023-11-21",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "video"
+    ],
+    "inputModalities": [
+      "image"
+    ],
+    "outputModalities": [
+      "video"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Stability AI Community License",
+      "url": "https://stability.ai/community-license-agreement",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Stability AI's image-to-video latent diffusion model, generating 25 frames of video from a single conditioning image. Released with downloadable weights, distinct from the text-to-image Stable Diffusion family.",
+    "intendedUse": "Generating short videos from a still image for research and creative work. The model is conditioned on an image and cannot be controlled through text.",
+    "sourceIds": [
+      "stability-ai-svd-announcement",
+      "stability-ai-svd-xt-model-card",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "nvidia-cosmos-1-0-diffusion-7b-text2world",
+    "slug": "cosmos-1-0-diffusion-7b-text2world",
+    "canonicalName": "Cosmos-1.0-Diffusion-7B-Text2World",
+    "displayName": "Cosmos 1.0 Diffusion 7B (Text2World)",
+    "organizationId": "nvidia",
+    "familyId": "nvidia-cosmos",
+    "version": "1.0",
+    "variant": "Diffusion 7B Text2World",
+    "releaseDate": "2025-01-06",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "robotics-world"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "video"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "NVIDIA Open Model License",
+      "url": "https://huggingface.co/nvidia/Cosmos-1.0-Diffusion-7B-Text2World",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "An open-weight world foundation model from NVIDIA's Cosmos platform that generates physics-aware video of a virtual environment from a text prompt. Released under the NVIDIA Open Model License, which permits commercial use.",
+    "intendedUse": "Generating physics-based video for physical AI research and development, such as robotics and autonomous-vehicle simulation, and as a base for fine-tuning.",
+    "sourceIds": [
+      "nvidia-cosmos-announcement",
+      "nvidia-cosmos-diffusion-7b-model-card",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-09-01"
   }
 ]

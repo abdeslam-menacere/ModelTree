@@ -1314,5 +1314,59 @@
       "ai2-molmo-7b-d-model-card"
     ],
     "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "cohere-rerank",
+    "slug": "rerank",
+    "organizationId": "cohere",
+    "name": "Rerank",
+    "description": "Cohere's family of retrieval reranking models, which sort text inputs by semantic relevance to a query, distinct from the generative Command family. Offered as an API-only hosted service.",
+    "categories": [
+      "embedding-reranking"
+    ],
+    "firstReleaseDate": "2024-12-02",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "cohere-rerank-docs",
+      "cohere-rerank-v3-5-changelog"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "stability-ai-stable-video-diffusion",
+    "slug": "stable-video-diffusion",
+    "organizationId": "stability-ai",
+    "name": "Stable Video Diffusion",
+    "description": "Stability AI's image-to-video generative diffusion family, which takes a still image as a conditioning frame and generates a short video from it — a distinct modality from the text-to-image Stable Diffusion family.",
+    "categories": [
+      "video"
+    ],
+    "firstReleaseDate": "2023-11-21",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "stability-ai-svd-announcement",
+      "stability-ai-svd-xt-model-card"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "nvidia-cosmos",
+    "slug": "cosmos",
+    "organizationId": "nvidia",
+    "name": "Cosmos",
+    "description": "NVIDIA's family of world foundation models for physical AI, which generate physics-aware videos of future environment states from text, image, or video input — a distinct modality from the text-only Nemotron language models.",
+    "categories": [
+      "robotics-world"
+    ],
+    "firstReleaseDate": "2025-01-06",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "nvidia-cosmos-announcement",
+      "nvidia-cosmos-diffusion-7b-model-card"
+    ],
+    "verifiedAt": "2026-09-01"
   }
 ]
