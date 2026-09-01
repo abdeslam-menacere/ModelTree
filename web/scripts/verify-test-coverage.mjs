@@ -723,9 +723,9 @@ async function main() {
   const report = await readReport(reportPath);
 
   // Ask vitest itself which files it would run. This uses the same config the
-  // run used (there is none, so vitest's defaults), and it globs on the main
-  // thread without spawning the fork workers, so it cannot itself hit the
-  // startup-timeout bug it is here to detect.
+  // run used (`vitest.config.ts` since issue #720; vitest's own defaults before
+  // that), and it globs on the main thread without spawning the fork workers, so
+  // it cannot itself hit the startup-timeout bug it is here to detect.
   const { createVitest } = await import('vitest/node');
   const vitest = await createVitest('test', { watch: false });
   let expected;
