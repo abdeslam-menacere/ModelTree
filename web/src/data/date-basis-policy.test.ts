@@ -46,6 +46,9 @@ describe('dateBasis marks a platform-observed date', () => {
     'deepseek-v3-2',
     'deepseek-v4-flash',
     'deepseek-v4-pro',
+    'kyutai-moshiko-pytorch-bf16',
+    'lelapa-ai-inkubalm-0-4b',
+    'maritaca-ai-sabia-7b',
     'moonshot-ai-kimi-k2-instruct',
     'sarvam-ai-sarvam-m-v1',
   ];
@@ -54,6 +57,9 @@ describe('dateBasis marks a platform-observed date', () => {
     'baidu-ernie-4-5',
     'deepseek-v3-2',
     'deepseek-v4',
+    'kyutai-moshi',
+    'lelapa-ai-inkubalm',
+    'maritaca-ai-sabia',
     'moonshot-ai-kimi-k2',
     'sarvam-ai-sarvam-m',
   ];

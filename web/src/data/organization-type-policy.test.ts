@@ -147,6 +147,10 @@ describe('organization type policy', () => {
       'liquid-ai': 'company',
       xiaomi: 'company',
       'ai-singapore': 'research-lab',
+      kyutai: 'research-lab',
+      'lelapa-ai': 'company',
+      'maritaca-ai': 'company',
+      openbmb: 'company',
     });
   });
 
@@ -469,6 +473,45 @@ describe('organization type policy', () => {
         facts: { institutionControlsReleases: true, primarilyResearch: true },
         type: 'research-lab',
         clause: 'research-lab',
+      },
+      // Kyutai's own site titles it "kyutai: open-science AI lab", calls itself
+      // an "AI RESEARCH LAB BASED IN PARIS", and states a mission to "build and
+      // democratize artificial general intelligence through open science". One
+      // standalone institution controls its releases and exists primarily for
+      // research. No page read states that it sells model access under its own
+      // name, so the paid clause is not reached and research-lab is the first
+      // match.
+      kyutai: {
+        facts: { institutionControlsReleases: true, primarilyResearch: true },
+        type: 'research-lab',
+        clause: 'research-lab',
+      },
+      // Lelapa AI's own pricing page offers "Speech-to-text with codeswitching
+      // support for multilingual contact centres" under "Simple, transparent
+      // pricing", so it offers model access for payment under its own name and
+      // the paid clause matches before any later one is reached.
+      'lelapa-ai': {
+        facts: { offersPaidModelProductsOrAccess: true },
+        type: 'company',
+        clause: 'paid-company',
+      },
+      // Maritaca AI's own plans page prices its API "por 1 milhão de tokens",
+      // so it offers model access for payment under its own name. Its About
+      // page separately calls it "uma empresa brasileira", but the clause rests
+      // on the priced access rather than on the self-description.
+      'maritaca-ai': {
+        facts: { offersPaidModelProductsOrAccess: true },
+        type: 'company',
+        clause: 'paid-company',
+      },
+      // No page read states OpenBMB's governance, its legal form, or whether it
+      // sells access under its own name, so every earlier clause goes unmatched
+      // and the record falls to the fallback. That is an absence of evidence
+      // recorded as such, not a finding that OpenBMB is none of those things.
+      openbmb: {
+        facts: {},
+        type: 'company',
+        clause: 'company-fallback',
       },
     };
 

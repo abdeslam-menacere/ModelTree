@@ -4501,5 +4501,186 @@
       "osi-approved-licenses"
     ],
     "verifiedAt": "2026-08-31"
+  },
+  {
+    "id": "kyutai-moshiko-pytorch-bf16",
+    "slug": "moshiko-pytorch-bf16",
+    "canonicalName": "moshiko-pytorch-bf16",
+    "displayName": "Moshi (moshiko, bf16)",
+    "organizationId": "kyutai",
+    "familyId": "kyutai-moshi",
+    "version": "1",
+    "variant": "moshiko (PyTorch bf16)",
+    "releaseDate": "2024-09-11",
+    "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "audio-speech"
+    ],
+    "inputModalities": [
+      "text",
+      "audio"
+    ],
+    "outputModalities": [
+      "text",
+      "audio"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "CC-BY-4.0",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Kyutai's PyTorch build of Moshi, which its card describes as \"a speech-text foundation model and full-duplex spoken dialogue framework\" and as \"the first real-time full-duplex spoken large language model, with a theoretical latency of 160ms, 200ms in practice\"; the card names this build the \"Pytorch version quantized in bf16 precision\". No parameter count and no context window are recorded, because the card states neither and the Hub's own safetensors measurement is corroborating platform metadata rather than a Kyutai statement. The recorded licence name follows the repository's own licence metadata, \"cc-by-4.0\"; the card's prose gives the shorter form \"CC-BY\".",
+    "intendedUse": "Real-time spoken dialogue, per Kyutai's description of Moshi as \"a speech-text foundation model and full-duplex spoken dialogue framework\".",
+    "sourceIds": [
+      "kyutai-moshiko-pytorch-bf16-model-card",
+      "hugging-face-kyutai-moshiko-pytorch-bf16-hub-record",
+      "kyutai-site-home",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "lelapa-ai-inkubalm-0-4b",
+    "slug": "inkubalm-0-4b",
+    "canonicalName": "InkubaLM-0.4B",
+    "displayName": "InkubaLM 0.4B",
+    "organizationId": "lelapa-ai",
+    "familyId": "lelapa-ai-inkubalm",
+    "version": "1",
+    "variant": "0.4B",
+    "releaseDate": "2024-05-11",
+    "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "CC BY-NC 4.0",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "totalBillions": 0.422
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Lelapa AI's small language model for African languages, described on its card as a \"Small Language Model (SLM) for five African languages built using the architecture design of LLaMA-7B\" and trained \"from scratch using 1.9 billion tokens of data for five African languages\"; the card lists \"isiZulu, Yoruba, Swahili, isiXhosa, Hausa, English and French\". The recorded parameter count is the card's \"Total Parameters | 0.422B\". No context window is recorded: the only sequence length the card gives, \"Max Seq Length | 2048\", sits in its training hyperparameter table and states a training setting, not a served context. The parameter count is taken from that same table because a total parameter count is a property of the model that a training configuration does not change, which a training sequence length is not.",
+    "intendedUse": "Text generation in the five African languages the card names, per its statement that InkubaLM is a \"Small Language Model (SLM) for five African languages\". The card records the licence as \"CC BY-NC 4.0\", which is a non-commercial licence.",
+    "sourceIds": [
+      "lelapa-ai-inkubalm-0-4b-model-card",
+      "hugging-face-lelapa-inkubalm-0-4b-hub-record",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "maritaca-ai-sabia-7b",
+    "slug": "sabia-7b",
+    "canonicalName": "Sabiá-7B",
+    "displayName": "Sabiá-7B",
+    "organizationId": "maritaca-ai",
+    "familyId": "maritaca-ai-sabia",
+    "version": "1",
+    "variant": "7B",
+    "releaseDate": "2023-11-08",
+    "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Same as LLaMA-1's, research use only (per the model card)",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "contextWindow": 2048,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Maritaca AI's open-weight Portuguese-language model, recorded on its card as \"Portuguese language model developed by Maritaca AI\" and as \"an auto-regressive language model that uses the same architecture of LLaMA-1-7B\". The recorded 2,048-token context window is the card's \"Maximum sequence length: 2048 tokens\" exactly. No parameter count is recorded: the card states none, and reading one across from LLaMA-1-7B or from the \"7B\" in the model's own name would carry a figure no Maritaca source states. The lifecycle is recorded as unknown because no source read states one for this checkpoint. The licence is recorded under the card's own wording because the card names no licence document, gives no URL and no SPDX identifier.",
+    "intendedUse": "Portuguese-language text generation and Brazilian-context tasks, per Maritaca AI's statement that \"Sabiá models are specialized in Portuguese and Brazilian contexts\". The card records that the licensing restricts \"the model's use to research purposes only\".",
+    "sourceIds": [
+      "maritaca-ai-sabia-7b-model-card",
+      "hugging-face-maritaca-ai-sabia-7b-hub-record",
+      "maritaca-ai-about",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "openbmb-minicpm5-1b",
+    "slug": "minicpm5-1b",
+    "canonicalName": "MiniCPM5-1B",
+    "displayName": "MiniCPM5-1B",
+    "organizationId": "openbmb",
+    "familyId": "openbmb-minicpm5",
+    "version": "5",
+    "variant": "1B",
+    "releaseDate": "2026-05-19",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 1.080632832
+    },
+    "contextWindow": 131072,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "OpenBMB's first MiniCPM5 checkpoint, described on its card as \"a dense 1B Transformer built for on-device, local deployment, and resource-constrained scenarios\" with a \"built-in `<think>` chat template\" so that \"the same checkpoint serves as both a fast assistant and a deliberate reasoner\". The recorded parameter count is the card's \"Number of Parameters: 1,080,632,832\" expressed in billions, and the recorded context window is the card's \"Context Length: 131,072\" exactly. The card's comparative and leaderboard claims are deliberately not recorded: this dataset states no ranking and carries no composite score.",
+    "intendedUse": "Local assistants, coding agents and tool-use workflows on constrained hardware, per the card's statement that the model is \"designed for local assistants, coding agents, tool-use workflows, and reasoning scenarios where a compact model is preferred\".",
+    "sourceIds": [
+      "openbmb-minicpm5-1b-model-card",
+      "openbmb-minicpm-repository",
+      "hugging-face-openbmb-minicpm5-1b-hub-record",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-09-01"
   }
 ]

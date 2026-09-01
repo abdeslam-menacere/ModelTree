@@ -2015,5 +2015,131 @@
     "publisherId": "ibm",
     "lastCheckedDate": "2026-08-31",
     "notes": "IBM’s card for Granite-4.0-H-Tiny, a different document from the H-Small card and the one the family’s first release date is taken from: it states \"- **Release Date**: October 2nd, 2025\" in its own right, so the family date does not rest on the release it is paired with. Also states \"Granite-4.0-H-Tiny is a 7B parameter long-context instruct model finetuned from *Granite-4.0-H-Tiny-Base*\". As on the H-Small card, the only context figure sits in an HTML table whose columns are not mapped in text, so none is recorded. Card text read 2026-08-31 from https://huggingface.co/ibm-granite/granite-4.0-h-tiny/raw/main/README.md, the same document this page renders."
+  },
+  {
+    "id": "kyutai-site-home",
+    "url": "https://kyutai.org/",
+    "title": "kyutai: open-science AI lab",
+    "type": "official-docs",
+    "publisherId": "kyutai",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Kyutai's own site, fetched 2026-09-01: <title>kyutai: open-science AI lab</title>, meta description \"Our mission is to build and democratize artificial general intelligence through open science\", body text \"AI RESEARCH LAB BASED IN PARIS\" and \"Moshi is the first speech-native dialogue system\". The recorded research-lab type and the Paris location rest on those statements. The page also names a spin-off, \"Gradium\", without stating an ownership or control relationship, so none is recorded. The nav paths read on the same fetch were /team/, /papers/, /blog/, /tts/, /stt/, /unmute/, /moshivis/ and /casa/; https://kyutai.org/about returned 404 on the same date and is deliberately not cited."
+  },
+  {
+    "id": "kyutai-moshiko-pytorch-bf16-model-card",
+    "url": "https://huggingface.co/kyutai/moshiko-pytorch-bf16",
+    "title": "moshiko-pytorch-bf16 model card",
+    "type": "model-card",
+    "publisherId": "kyutai",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Kyutai's own card for the recorded build, in Kyutai's own Hugging Face namespace, so the publisher is Kyutai and not the host. Fetched 2026-09-01. States \"Moshi is a speech-text foundation model and full-duplex spoken dialogue framework\", \"Developed by: Kyutai\", \"Model type: Multimodal speech-text foundation model\", \"License: CC-BY\", \"Pytorch version quantized in bf16 precision\", and \"Moshi is the first real-time full-duplex spoken large language model, with a theoretical latency of 160ms, 200ms in practice\". It states no parameter count and no context window, which is why both fields are withheld on the release. Kyutai's blog carries a post titled \"Moshi open-source release: run Moshi locally!\" whose URL path contains 2024-09-18, but the page as fetched states no date in its text, so the URL slug is not read as a stated release date and the release is dated from the Hub repository record instead."
+  },
+  {
+    "id": "hugging-face-kyutai-moshiko-pytorch-bf16-hub-record",
+    "url": "https://huggingface.co/api/models/kyutai/moshiko-pytorch-bf16",
+    "title": "Hugging Face Hub record for kyutai/moshiko-pytorch-bf16",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "The Hub's own API record, in Hugging Face's own namespace, so the publisher is the host and not the creator. Fetched 2026-09-01: \"createdAt\":\"2024-09-11T15:37:18.000Z\", \"cardData\":{\"license\":\"cc-by-4.0\"}, \"safetensors\":{\"total\":7687729152}. Cited for the repository creation date the release records under dateBasis platform-repository-created, and for the licence identifier the card gives only as \"CC-BY\". The safetensors total is platform measurement, not a creator statement of a parameter count, so it is deliberately not carried into the release record."
+  },
+  {
+    "id": "lelapa-ai-about",
+    "url": "https://lelapa.ai/about",
+    "title": "Lelapa AI — Our Mission",
+    "type": "official-docs",
+    "publisherId": "lelapa-ai",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Lelapa AI's own About page, fetched 2026-09-01. States \"Lelapa AI is focused on building advanced language AI under real-world conditions: limited compute, fragmented data, and diverse linguistic contexts\", \"we're building the models and tools to make that a reality, starting with Africa\", and \"Africa's resource constraints have shaped a form of innovation grounded in efficiency, resilience, and adaptability\". The recorded African focus rests on those statements. The page states no country of incorporation, so the organization record states none; https://lelapa.ai/about-us returned 404 on the same date and is deliberately not cited."
+  },
+  {
+    "id": "lelapa-ai-pricing",
+    "url": "https://lelapa.ai/pricing",
+    "title": "Lelapa AI — Pricing",
+    "type": "official-docs",
+    "publisherId": "lelapa-ai",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Lelapa AI's own pricing page, fetched 2026-09-01: heading \"Pricing\", body \"Simple, transparent pricing that scales with your needs. Speech-to-text with codeswitching support for multilingual contact centres\", and an offer naming an \"SMME Pass\" and a \"tailored Enterprise solution\". Cited only for the organization type clause, which turns on whether the creator offers model products or access for payment under its own name."
+  },
+  {
+    "id": "lelapa-ai-inkubalm-0-4b-model-card",
+    "url": "https://huggingface.co/lelapa/InkubaLM-0.4B",
+    "title": "InkubaLM-0.4B model card",
+    "type": "model-card",
+    "publisherId": "lelapa-ai",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Lelapa AI's own card for the recorded model, in Lelapa AI's own Hugging Face namespace, so the publisher is Lelapa AI and not the host. Fetched 2026-09-01. States \"Developed by: Lelapa AI - Fundamental Research Team\", \"Model type: Small Language Model (SLM) for five African languages built using the architecture design of LLaMA-7B\", \"Language(s) (NLP): isiZulu, Yoruba, Swahili, isiXhosa, Hausa, English and French\", \"License: CC BY-NC 4.0\", and \"InkubaLM has been trained from scratch using 1.9 billion tokens of data for five African languages\". Its training hyperparameter table gives \"Total Parameters | 0.422B\" and \"Max Seq Length | 2048\"; the parameter count is recorded and the sequence length is withheld, because a total parameter count is a property of the model while a training sequence length states a training setting rather than the served context window."
+  },
+  {
+    "id": "hugging-face-lelapa-inkubalm-0-4b-hub-record",
+    "url": "https://huggingface.co/api/models/lelapa/InkubaLM-0.4B",
+    "title": "Hugging Face Hub record for lelapa/InkubaLM-0.4B",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "The Hub's own API record, in Hugging Face's own namespace, so the publisher is the host and not the creator. Fetched 2026-09-01: \"createdAt\":\"2024-05-11T16:06:09.000Z\", \"cardData\":{\"license\":\"cc-by-nc-4.0\"}, with pytorch_model.bin among the repository files. Cited for the repository creation date the release records under dateBasis platform-repository-created, and for the downloadable-weights fact."
+  },
+  {
+    "id": "maritaca-ai-about",
+    "url": "https://www.maritaca.ai/about",
+    "title": "Maritaca AI — Sobre",
+    "type": "official-docs",
+    "publisherId": "maritaca-ai",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Maritaca AI's own About page, fetched 2026-09-01. States \"A Maritaca AI é uma empresa brasileira dedicada ao desenvolvimento de inteligências artificiais especializadas em domínios e idiomas\" — the creator's own statement that it is a Brazilian company, which the organization record rests on. The English site at https://www.maritaca.ai/en, fetched on the same date, states \"Sabiá models are specialized in Portuguese and Brazilian contexts\", which the family description rests on."
+  },
+  {
+    "id": "maritaca-ai-plans",
+    "url": "https://www.maritaca.ai/planos",
+    "title": "Maritaca AI — Planos",
+    "type": "official-docs",
+    "publisherId": "maritaca-ai",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Maritaca AI's own plans page, fetched 2026-09-01: \"Preços por 1 milhão de tokens\" for its API, alongside \"Inferência 100% em território nacional (versões br-sp), para soberania e residência de dados\". Cited only for the organization type clause, which turns on whether the creator offers model products or access for payment under its own name."
+  },
+  {
+    "id": "maritaca-ai-sabia-7b-model-card",
+    "url": "https://huggingface.co/maritaca-ai/sabia-7b",
+    "title": "Sabiá-7B model card",
+    "type": "model-card",
+    "publisherId": "maritaca-ai",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Maritaca AI's own card for the recorded model, in Maritaca AI's own Hugging Face namespace, so the publisher is Maritaca AI and not the host. Fetched 2026-09-01. States \"Sabiá-7B is Portuguese language model developed by Maritaca AI\", \"Model Architecture: Sabiá-7B is an auto-regressive language model that uses the same architecture of LLaMA-1-7B\", \"Maximum sequence length: 2048 tokens\", and \"License: The licensing is the same as LLaMA-1's, restricting the model's use to research purposes only\". The context window rests on the stated maximum sequence length. The card states no parameter count, names no licence document, and gives no licence URL or SPDX identifier, so the parameter count is withheld and the licence is recorded under the card's own wording rather than a name no source states."
+  },
+  {
+    "id": "hugging-face-maritaca-ai-sabia-7b-hub-record",
+    "url": "https://huggingface.co/api/models/maritaca-ai/sabia-7b",
+    "title": "Hugging Face Hub record for maritaca-ai/sabia-7b",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "The Hub's own API record, in Hugging Face's own namespace, so the publisher is the host and not the creator. Fetched 2026-09-01: \"createdAt\":\"2023-11-08T22:13:36.000Z\", \"pipeline_tag\":\"text-generation\", with safetensors present in the repository and no license tag of any kind. Cited for the repository creation date the release records under dateBasis platform-repository-created, and for the downloadable-weights fact. The absence of a licence tag here is why the licence is recorded from the card's prose alone. The safetensors total is platform measurement, not a creator statement of a parameter count, so it is deliberately not carried into the release record."
+  },
+  {
+    "id": "openbmb-minicpm-repository",
+    "url": "https://github.com/OpenBMB/MiniCPM",
+    "title": "OpenBMB/MiniCPM repository",
+    "type": "repository",
+    "publisherId": "openbmb",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "OpenBMB's own MiniCPM repository, in OpenBMB's own GitHub organization, so the publisher is OpenBMB and not the host. Fetched 2026-09-01. Its changelog states \"[2026.05.19] MiniCPM5-1B is released: a compact 1B-class dense model for on-device and resource-constrained use\", which the day-precision release date rests on, and \"We are releasing MiniCPM5-1B, the first model in the MiniCPM5 series\". No page read here states OpenBMB's legal form or its relationship to ModelBest, so the organization record states neither; the repository links a \"MiniCPM Wiki (in Chinese)\" on a modelbest.feishu.cn host without stating what that relationship is. The repository's leaderboard and \"SOTA\" claims are deliberately not recorded, because this dataset states no ranking."
+  },
+  {
+    "id": "openbmb-minicpm5-1b-model-card",
+    "url": "https://huggingface.co/openbmb/MiniCPM5-1B",
+    "title": "MiniCPM5-1B model card",
+    "type": "model-card",
+    "publisherId": "openbmb",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "OpenBMB's own card for the recorded model, in OpenBMB's own Hugging Face namespace, so the publisher is OpenBMB and not the host. Fetched 2026-09-01. States \"We are releasing MiniCPM5-1B, the first model in the MiniCPM5 series. It is a dense 1B Transformer built for on-device, local deployment, and resource-constrained scenarios\", and a Model Information list giving \"Number of Parameters: 1,080,632,832\" and \"Context Length: 131,072\", which the recorded parameter count and context window rest on exactly. Also states \"MiniCPM5-1B is the first checkpoint in the MiniCPM5 series. It is designed for local assistants, coding agents, tool-use workflows, and reasoning scenarios where a compact model is preferred\". Its comparative and leaderboard claims are deliberately not recorded."
+  },
+  {
+    "id": "hugging-face-openbmb-minicpm5-1b-hub-record",
+    "url": "https://huggingface.co/api/models/openbmb/MiniCPM5-1B",
+    "title": "Hugging Face Hub record for openbmb/MiniCPM5-1B",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "The Hub's own API record, in Hugging Face's own namespace, so the publisher is the host and not the creator. Fetched 2026-09-01: tags include \"license:apache-2.0\", with \"gated\":false and safetensors present in the repository. Cited for the licence identifier and for the downloadable-weights fact. The release date is not taken from here, because OpenBMB states one itself in its own repository."
   }
 ]
