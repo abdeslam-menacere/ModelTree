@@ -624,20 +624,121 @@ nothing to show for it.
 A `--dry-run` reads nothing, so it can neither check for duplicates nor name a superseded
 run. It says so in its output: a clean dry run is not evidence that neither exists.
 
-### The manual GitHub workflow
+### The GitHub workflow: on demand, and weekly
 
-`.github/workflows/publish-updater-proposals.yml` runs the pair of commands on a runner.
+`.github/workflows/publish-updater-proposals.yml` runs the pair of commands on a runner,
+either when a human dispatches it or on a weekly schedule (#30).
 
-- `workflow_dispatch` **only**. There is deliberately no schedule: a run spends model
-  tokens and writes issues a human then has to read.
-- Inputs: `creators` (comma-separated), `mode` (`fixtures` runs offline, `live` fetches
-  real pages through Foundry), and `dry_run`, which defaults to `true`.
-- Permissions are `contents: read` at the top level; the job adds `issues: write` and
-  `id-token: write` and nothing else. It therefore *cannot* modify repository content,
-  create a branch, or open a pull request. The checkout runs with
-  `persist-credentials: false`. `tests/test_publication_workflow.py` asserts all of this
-  against the parsed YAML, so the claim is machine-checked rather than prose.
+- Inputs, on `workflow_dispatch`: `creators` (comma-separated), `mode` (`fixtures` runs
+  offline, `live` fetches real pages through Foundry), and `dry_run`, defaulting to `true`.
+- Permissions are `{}` at the top level, so a job added later inherits nothing; the
+  `publish` job adds `contents: read`, `issues: write` and `id-token: write` and nothing
+  else. It therefore *cannot* modify repository content, create a branch, or open a pull
+  request, on either trigger. The checkout runs with `persist-credentials: false`.
+  `tests/test_publication_workflow.py` asserts all of this against the parsed YAML, and
+  `tests/test_proposal_only.py` asserts the tool underneath it writes nothing outside its
+  output path, so both claims are machine-checked rather than prose.
 - The run artefact is uploaded, so the published issue can be diffed against the JSON.
+
+#### The cadence, and why it is this one
+
+`cron: '52 5 * * 1'` — weekly, early Monday UTC, off the hour.
+
+Weekly rather than daily because #66's argument against any schedule is still true: a run
+spends model tokens and writes issues a human then has to read, and a day's latency on a
+release announcement does not change what a reviewer does about it. Daily would multiply
+the review load by seven and the supersession churn below with it.
+
+Monday early UTC puts the result in front of a reviewer at the start of a week rather than
+part-way through one. The minute is off the hour because the top of an hour is the busiest
+slot on GitHub's shared schedulers, and it is distinct from the repository's two other
+weekly sweeps — `data-health.yml` at `19 7 * * 1` and `source-link-health.yml` at
+`37 6 * * 1` — so three jobs do not contend for the same runner minute.
+`test_the_three_scheduled_sweeps_do_not_contend` pins that separation.
+
+#### What a run does, resolved per trigger
+
+`inputs.*` is null on `schedule`, and the old publish step compared `dry_run` against the
+string `true` — so an empty value would have taken the *publishing* branch. Adding a
+trigger would have silently inverted the workflow's safest default. Every parameter is
+therefore resolved explicitly in one step, which writes its decision to the job summary:
+
+| Trigger | Live configured? | Creators | Mode | Publishes? |
+|---|---|---|---|---|
+| `workflow_dispatch` | — | the `creators` input | the `mode` input | unless `dry_run` |
+| `schedule` | yes (`vars.AZURE_CLIENT_ID` set) | `env.SCHEDULED_CREATORS` | `live` | yes |
+| `schedule` | no | `env.SCHEDULED_CREATORS` | `fixtures` | no — `--dry-run` |
+
+The last row is the configuration that exists today: the repository has no Actions
+variables, so live mode cannot run at all (#93). Rather than reddening every Monday on
+something nobody in this repository can fix, the scheduled run exercises the whole
+run→publish path against committed fixtures and publishes nothing. That is not a
+placeholder — #139 was a break in exactly this plumbing that stayed invisible until
+somebody dispatched the workflow, and a weekly rehearsal catches that class. When the
+variables are provisioned, the same schedule starts doing the real thing with no further
+change.
+
+#### Failure behaviour: what makes the run red
+
+`run` returns 3 when a creator failed, and the report carrying that failure is written
+*before* the exit code is chosen. Aborting the step on 3 would therefore throw away a
+report that already contains the thing a human needs to see — and failures are material,
+so they are exactly what the publisher would have raised an issue about.
+
+- **0** — publish.
+- **3 in live mode** — a third-party page could not be reached. Publish it, emit a
+  `::warning::`, and conclude green: an unreachable external page is a finding about the
+  world, not a defect of this repository, and a weekly job that goes red for it teaches
+  people to ignore it.
+- **3 in fixtures mode** — the fixtures are local and deterministic, so this is our bug.
+  Fail.
+- **anything else** — a fault in the tool or its inputs. Fail loudly with `::error::`.
+- **4**, from the publish step — GitHub refused our write. That is actionable here, so it
+  stays a failure.
+
+A run with nothing material to say makes no GitHub request and creates no issue. That is
+the expected weekly outcome, and it is reported as a no-op in the job summary rather than
+as a failure.
+
+#### False positives, and what to do about one
+
+The publisher raises an issue for anything material, which deliberately includes claims a
+reviewer will reject. Those are not false positives; they are the tool working. Three
+things genuinely are, and each has a different answer:
+
+1. **A weekly issue update that changed nothing of substance.** The state marker compares
+   *run ids*, and a scheduled run gets a fresh one every Monday, so an unchanged source
+   still files a supersession comment and rewrites the body — around 52 comments per
+   creator per year. Read the `Supersedes run` row and the material counts on the state
+   line: identical counts mean nothing moved. Suppressing it properly means comparing the
+   run against the last reviewed state, which is #85's clause and is deliberately not
+   built here.
+2. **A claim drawn from a page that is real but wrong** — a stale changelog, a mirror. The
+   fix is the source catalog, not the workflow: drop or replace the entry in the creator's
+   profile so later runs stop reading it.
+3. **A failure for a source that has moved rather than broken.** The issue body names the
+   failing source and the reason. Update the profile's URL; do not add a retry.
+
+In all three cases, close or edit the issue as a human would. Nothing in this tool reads
+its own issues, so a closed issue is not a signal to it — the next run simply opens a new
+one if the creator still has something material to say.
+
+#### Removing a source, or a creator, from the sweep
+
+- **A source**: remove it from the creator's profile in the trusted source catalog. It is
+  repository content and the removal is reviewable, which is the point.
+- **A creator, from the scheduled sweep only**: it is named in the workflow's
+  `SCHEDULED_CREATORS` list. Editing that list changes what runs unattended and nothing
+  else; the creator can still be dispatched by hand. The list is explicit rather than
+  blank because a blank `--creators` means *the whole library*, which on a fixtures-mode
+  run would sweep the eight synthetic fixture creators and publish proposals about
+  `contoso-ai`.
+- **A creator, entirely**: remove its profile. A creator with no open proposal and nothing
+  material to say produces no request at all.
+
+Removing a source never closes an issue that already quotes it. That is a human's call,
+for the reason under **Duplicates**: there is no conditional write on this API, so a
+read-then-close is a race.
 
 ### Azure setup this repository documents but does not provision
 
@@ -650,7 +751,9 @@ repository describes what is needed and provisions none of it:
 2. **A federated credential** on it, with issuer `https://token.actions.githubusercontent.com`,
    audience `api://AzureADTokenExchange`, and a subject that matches how the workflow is
    dispatched:
-   - `repo:<owner>/<repo>:ref:refs/heads/main` — dispatches from `main`;
+   - `repo:<owner>/<repo>:ref:refs/heads/main` — dispatches from `main`, and **every
+     scheduled run**, which GitHub always runs on the default branch. This subject is
+     therefore no longer optional once the schedule is live;
    - add one subject per branch you dispatch from, or
      `repo:<owner>/<repo>:environment:<environment-name>` if the job is bound to an
      environment.
