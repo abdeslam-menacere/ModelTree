@@ -207,22 +207,67 @@ citation is a data problem tracked separately, not a launch blocker.
 The independent WCAG 2.2 AA audit and its findings live in
 [`docs/product/WCAG-2.2-AA-AUDIT.md`](WCAG-2.2-AA-AUDIT.md), which is what
 issue #32 delivered. The audit is the evidence; this step verifies that the
-built site still holds against it:
+built site still holds against it.
+
+The Playwright end-to-end suite in [`web/e2e/`](../../web/e2e/) is not run
+by `npm run validate` (it drives a real Chromium and would put a browser
+download in the pre-merge path of every gate — see
+[`.github/workflows/README.md`](../../.github/workflows/README.md)). It is
+also the check that the paths-filter on `web-ci` does not select for a
+docs-only change: on a pull request that touches only `docs/`, `README.md`,
+`LICENSE`, or `SECURITY.md` / `SUPPORT.md`, the `web-e2e` workflow starts
+and then skips without executing anything, so a green tick on it is not
+accessibility evidence. A launch check has to run the suite by hand:
 
 ```sh
 cd web
-npm run test:e2e -- --grep "@a11y"
+npm run test:e2e -- \
+  e2e/site-a11y.e2e.ts \
+  e2e/lineage-a11y.e2e.ts \
+  e2e/lineage-keyboard.e2e.ts \
+  e2e/lineage-narrow-viewport.e2e.ts \
+  e2e/lineage-reduced-motion.e2e.ts \
+  e2e/forced-colors.e2e.ts \
+  e2e/zoom.e2e.ts
 ```
 
-This runs the axe-core Playwright pass over the core routes named in the
-audit. Any `serious` or `critical` finding is a launch blocker. `moderate`
-and `minor` findings are recorded and triaged; they do not block a launch on
-their own, but do not accumulate: if a launch would ship with more of them
-than the previous release, record why.
+The specs are named by path deliberately rather than by a `--grep` selector:
+there is no tag convention in `web/e2e/`, so a title-substring selector is
+brittle and — because Playwright exits nonzero when it matches zero tests —
+would fail this step loudly the first time a spec is renamed. Naming files
+survives a title rewrite.
 
-Keyboard-only and reduced-motion checks belong in this pass too and are
-covered by the audit's smoke matrix, not by a script. Run the matrix on at
-least one desktop browser and one screen reader before tagging.
+What each spec covers, verified against the files at HEAD:
+
+- `site-a11y.e2e.ts` — axe-core scan of the core routes, plus a planted-defect
+  test that proves the scan can fail (`it('the accessibility scan can fail,
+  and rates a planted defect as blocking')`).
+- `lineage-a11y.e2e.ts` — the same axe-core discipline applied to the lineage
+  markup specifically.
+- `lineage-keyboard.e2e.ts` — desktop and narrow-viewport keyboard operation
+  of the lineage view.
+- `lineage-narrow-viewport.e2e.ts` — 320 CSS px overflow, wrap, and clipping
+  checks with a real overflow detector that has its own must-fail control.
+- `lineage-reduced-motion.e2e.ts` — `prefers-reduced-motion` respected, with a
+  vacuity guard that shows the drawer *does* animate without the preference.
+- `forced-colors.e2e.ts` — Windows High Contrast / `forced-colors` still
+  paints connectors, spine, and focus rings, with a control case.
+- `zoom.e2e.ts` — reflow at 400% zoom does not overflow, with a real-overflow
+  positive control.
+
+Any `serious` or `critical` axe finding is a launch blocker. `moderate` and
+`minor` findings are recorded and triaged; they do not block a launch on
+their own, but they do not accumulate — if a launch would ship with more of
+them than the previous release, record why.
+
+Screen-reader coverage is by hand. Run the smoke matrix in
+[`WCAG-2.2-AA-AUDIT.md`](WCAG-2.2-AA-AUDIT.md) on at least one desktop
+browser and one screen reader before tagging.
+
+If any spec above is renamed, moved, or removed, this section is wrong until
+it is updated. That decay is manual (no test enforces the citation), and it
+is called out here for the same reason `CONTRIBUTING.md` calls its own
+citations an accepted gap.
 
 ### 2.6 Performance and asset budgets
 
