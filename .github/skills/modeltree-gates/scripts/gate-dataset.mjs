@@ -1317,35 +1317,72 @@ function gateNonEmpty(docs, required) {
 //
 // Scope, stated because it is narrower than the rule's name and that is
 // deliberate rather than an oversight. `web/src/data/schema.ts` constrains
-// twenty-one fields to a fixed set of values; this checks one of them, on the
-// two collections that carry it, which is what #761 asked for and no more. The
-// audit of the other twenty is reported in that issue rather than acted on here,
-// so that the widening is a decision someone takes on purpose with its own
-// review, not a side effect of the fix. `datePrecision` is the one other
-// enum-valued field this file already checks, in `gateDates` via
-// `PRECISION_SEGMENTS` -- and it checks it against a hand-written literal, so it
-// is the standing instance of exactly the duplication `enumMembers` exists to
-// avoid. Left alone here on the same grounds.
+// twenty-one fields to a fixed set of values; this checks two of them, on the
+// collections that carry them. `status` is what #761 asked for. `accessType`
+// was added by ADR 0011 in the same commit that gave it an `unknown` member,
+// because that member is the one a record is most likely to drift into by
+// mistake and this is the gate that runs at the moment claims are applied. The
+// audit of the other nineteen is reported in #761 rather than acted on here, so
+// that widening stays a decision someone takes on purpose with its own review,
+// not a side effect. `datePrecision` is the one other enum-valued field this
+// file already checks, in `gateDates` via `PRECISION_SEGMENTS` -- and it checks
+// it against a hand-written literal, so it is the standing instance of exactly
+// the duplication `enumMembers` exists to avoid. Left alone here on the same
+// grounds.
 // ---------------------------------------------------------------------------
-const LIFECYCLE_STATUS_COLLECTIONS = ['families', 'releases'];
 
-function gateVocabulary(docs, lifecycle) {
-  for (const collection of LIFECYCLE_STATUS_COLLECTIONS) {
-    for (const entry of docs[collection]) {
-      const value = entry.status;
-      // Absence is refused alongside a wrong value, not skipped the way the
-      // optional date fields are: `status` is required by both schemas, so a
-      // record without one is malformed in the same way and by the same
-      // authority. Skipping it would leave the cheapest way to hold an illegal
-      // lifecycle state -- omitting the field entirely -- as the one this gate
-      // does not see.
-      if (typeof value !== 'string' || !lifecycle.includes(value)) {
-        fail(
-          'vocabulary',
-          `status ${JSON.stringify(value) ?? String(value)} is not a member of lifecycleStatus, which `
-            + `web/src/data/schema.ts declares as ${lifecycle.join(', ')}`,
-          `${collection}:${entry.id}`,
-        );
+/**
+ * The enum-valued fields this gate checks, the schema declaration each is
+ * derived from, and the collections carrying it.
+ *
+ * A table rather than a second copy of the loop: adding `accessType` by
+ * duplicating the `status` rule would have duplicated the message, the absence
+ * check and the derivation alongside it, so the two could drift in any of four
+ * places. Every member here is read from `web/src/data/schema.ts` at run time
+ * via `enumMembers`; nothing in this file restates a vocabulary.
+ */
+const VOCABULARY_RULES = [
+  {
+    field: 'status',
+    enumName: 'lifecycleStatus',
+    purpose: 'the lifecycle vocabulary',
+    collections: ['families', 'releases'],
+  },
+  {
+    field: 'accessType',
+    enumName: 'accessType',
+    purpose: 'the access-type vocabulary',
+    // Releases only. `familySchema` does not carry `accessType`, so naming
+    // `families` here would check a field that is absent from every record and
+    // fail all of them -- the absence rule below is deliberately strict, and it
+    // is strict on the premise that the schema requires the field.
+    collections: ['releases'],
+  },
+];
+
+function gateVocabulary(docs, vocabularies) {
+  for (const rule of VOCABULARY_RULES) {
+    const members = vocabularies[rule.enumName];
+    for (const collection of rule.collections) {
+      for (const entry of docs[collection]) {
+        const value = entry[rule.field];
+        // Absence is refused alongside a wrong value, not skipped the way the
+        // optional date fields are: both fields are required by the schemas
+        // that carry them, so a record without one is malformed in the same way
+        // and by the same authority. Skipping it would leave the cheapest way
+        // to hold an illegal value -- omitting the field entirely -- as the one
+        // this gate does not see. For `accessType` that direction is the whole
+        // point: ADR 0011's guardrail is that absence must never select
+        // `unknown`, and a gate that ignored a missing field would make absence
+        // the most permissive state in the schema.
+        if (typeof value !== 'string' || !members.includes(value)) {
+          fail(
+            'vocabulary',
+            `${rule.field} ${JSON.stringify(value) ?? String(value)} is not a member of ${rule.enumName}, which `
+              + `web/src/data/schema.ts declares as ${members.join(', ')}`,
+            `${collection}:${entry.id}`,
+          );
+        }
       }
     }
   }
@@ -1379,16 +1416,18 @@ function main() {
   // by here, and they are discarded along with everything else -- exit 2 is not
   // a verdict about the data at all.
   let required;
-  let lifecycle;
+  let vocabularies;
   try {
     required = requiredCollections();
-    lifecycle = enumMembers('lifecycleStatus', 'the lifecycle vocabulary');
+    vocabularies = Object.fromEntries(
+      VOCABULARY_RULES.map((rule) => [rule.enumName, enumMembers(rule.enumName, rule.purpose)]),
+    );
   } catch (error) {
     process.stderr.write(`gate-dataset: ${error.message}\n`);
     return 2;
   }
   gateNonEmpty(docs, required);
-  gateVocabulary(docs, lifecycle);
+  gateVocabulary(docs, vocabularies);
   const ids = gateIdentity(docs);
   gateReferences(docs, ids);
   gateFamilyHasRelease(docs);
@@ -1412,8 +1451,10 @@ function main() {
     // a vocabulary that quietly lost a member would still pass every record that
     // happens to use the members it kept, so a passing run says nothing about
     // which values were actually admitted. Printing it is what lets a test tell
-    // the two apart.
-    process.stdout.write(`${JSON.stringify({ dataDir, today, counts, requiredCollections: required, lifecycleStatus: lifecycle, passed: failures.length === 0, failures }, null, 2)}\n`);
+    // the two apart. Every vocabulary in `VOCABULARY_RULES` is spread in under
+    // its own schema name, so adding a rule adds a reported key rather than
+    // hiding a second derived vocabulary behind the one that is printed.
+    process.stdout.write(`${JSON.stringify({ dataDir, today, counts, requiredCollections: required, ...vocabularies, passed: failures.length === 0, failures }, null, 2)}\n`);
   } else if (failures.length === 0) {
     const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
     process.stdout.write(`gate-dataset: all gates passed over ${total} records in ${dataDir}\n`);
