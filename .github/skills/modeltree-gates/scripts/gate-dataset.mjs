@@ -1030,6 +1030,118 @@ function gateNoRanking(docs) {
 const schemaEntryPattern = () => /(\w+)\s*:\s*z\.array\([^)]*\)([^,]*),/g;
 
 /**
+ * The schema's source text, for the two rules below that are derived from it
+ * rather than restated here.
+ *
+ * One reader for both, so there is exactly one place that decides which file is
+ * the schema and exactly one way of failing to read it. `purpose` names what
+ * could not be derived, because the two callers derive different things and a
+ * reader of the exit-2 message needs to know which rule went missing.
+ *
+ * The schema is taken from this repository, never from `--data`, for the reason
+ * `requiredCollections` states below: `--data` supplies the documents to be
+ * judged, and letting it supply the rule as well would turn it into a flag that
+ * lowers a threshold.
+ */
+function schemaSource(purpose) {
+  const path = join(repositoryDataDir(), 'schema.ts');
+  try {
+    return { path, source: readFileSync(path, 'utf8') };
+  } catch (error) {
+    throw new Error(`cannot read ${path}, so ${purpose} cannot be derived: ${error.message}`);
+  }
+}
+
+/** One quoted string literal of a `z.enum([...])` member list. */
+const ENUM_MEMBER = /^(?:'([^'\\]*)'|"([^"\\]*)")$/;
+
+/**
+ * The members of `export const <name> = z.enum([...])` in `web/src/data/schema.ts`.
+ *
+ * Read out of the schema's source text rather than by importing it, for exactly
+ * the reason `requiredCollections` gives: this script imports only `node:`
+ * builtins, and importing `schema.ts` would need a TypeScript loader *and* a
+ * resolvable `zod`, so the gate would stop running wherever `web/node_modules`
+ * is absent -- a fresh clone, and the refresh path that runs this before
+ * `web/src/data` is touched at all.
+ *
+ * Deriving it is the whole point rather than an implementation detail.
+ * abdeslam-menacere/ModelTree#761 was this gate reporting `"passed": true` over
+ * a `status` Zod rejects outright, and the obvious repair -- writing the six
+ * members into this file -- would have closed that instance by opening a second
+ * place for the same disagreement to reappear, silently, the next time a member
+ * is added or removed. SKILL.md already settles which side wins when they
+ * disagree: "The schema is the last word." So the vocabulary is read from the
+ * last word, and a member added there is enforced here in the same commit,
+ * without anyone having to remember this file exists.
+ *
+ * Every way of failing to read it throws rather than returning fewer members.
+ * A parser that silently matched nothing would return an empty vocabulary, and
+ * a check against an empty vocabulary refuses *every* value -- which is loud,
+ * but the same parser returning a *partial* list is not: it would refuse the
+ * members it lost and pass everything else, which is #761 again in the one
+ * direction nobody is watching. So a shape this cannot express is refused out
+ * loud, and `main()` turns that into exit 2.
+ *
+ * `z.enum(SOME_CONSTANT)` is refused rather than read as no vocabulary at all.
+ * That form is not hypothetical -- `datePrecision` in the same file is written
+ * exactly that way, from an imported `DATE_PRECISIONS` -- so the gate has to
+ * say it cannot follow the indirection instead of guessing past it.
+ */
+function enumMembers(name, purpose) {
+  const { path, source } = schemaSource(purpose);
+
+  const declared = source.indexOf(`export const ${name}`);
+  if (declared === -1) throw new Error(`${path} declares no "export const ${name}"`);
+  const call = source.indexOf('z.enum(', declared);
+  // `z.enum(` has to be the *next* thing after the name, not merely somewhere
+  // after it. Without the `;`, a declaration rewritten to any other Zod type
+  // would run on to whichever enum happens to be declared further down the file
+  // and gate against a vocabulary belonging to a different field entirely.
+  if (call === -1 || source.slice(declared, call).includes(';')) {
+    throw new Error(`${name} in ${path} is not a z.enum([ ... ]) this gate can read`);
+  }
+
+  // The `[` must open the call itself, immediately. Searching forward for one
+  // instead is the same borrowing hazard one level down and is not hypothetical:
+  // `datePrecision` in this very file is `z.enum(DATE_PRECISIONS)`, and a
+  // forward search from there finds the bracket belonging to `modality` three
+  // lines later. The gate would then derive a real, plausible, wrong vocabulary
+  // and report it as this field's -- which is worse than deriving none, because
+  // it is silent. Likewise `]` has to close the call, so a list that is built up
+  // rather than written down is refused rather than half-read.
+  const argument = source.slice(call + 'z.enum('.length);
+  const open = argument.length - argument.trimStart().length;
+  const close = argument.indexOf(']', open);
+  if (argument[open] !== '[' || close === -1 || argument.slice(close + 1).trimStart()[0] !== ')') {
+    throw new Error(
+      `${name} in ${path} does not list its members literally: z.enum(${argument.slice(0, 40).split('\n')[0]}`
+        + ' -- this gate executes no TypeScript, so it cannot follow the indirection to find them',
+    );
+  }
+
+  const members = [];
+  for (const raw of argument.slice(open + 1, close).split(',')) {
+    const literal = raw.trim();
+    if (literal.length === 0) continue;
+    const matched = ENUM_MEMBER.exec(literal);
+    if (!matched) {
+      throw new Error(
+        `${name} in ${path} lists a member this gate cannot read: ${literal.slice(0, 40)}`
+          + ' -- it cannot tell a vocabulary it has misread from one that admits fewer values',
+      );
+    }
+    members.push(matched[1] ?? matched[2]);
+  }
+  if (members.length === 0) {
+    throw new Error(
+      `${name} in ${path} yields no members, which this gate cannot tell from a vocabulary it has misread`,
+    );
+  }
+  return members;
+}
+
+/**
  * The two modifiers this gate can read on a collection, and the floor it takes
  * from the first of them.
  *
@@ -1078,14 +1190,7 @@ const UNDERSTOOD_MODIFIERS = /\.min\(\s*\d+\s*\)|\.default\(\s*\[\s*\]\s*\)/g;
  * loud rather than deciding it is not a floor.
  */
 function requiredCollections() {
-  const path = join(repositoryDataDir(), 'schema.ts');
-  let source;
-  try {
-    source = readFileSync(path, 'utf8');
-  } catch (error) {
-    throw new Error(`cannot read ${path}, so the collection floors cannot be derived: ${error.message}`);
-  }
-
+  const { path, source } = schemaSource('the collection floors');
   const declared = source.indexOf('export const datasetSchema');
   if (declared === -1) throw new Error(`${path} declares no "export const datasetSchema"`);
   const object = source.indexOf('z.object(', declared);
@@ -1186,6 +1291,67 @@ function gateNonEmpty(docs, required) {
 }
 
 // ---------------------------------------------------------------------------
+// Gate: vocabulary. A closed set in the schema is a closed set in the data.
+//
+// abdeslam-menacere/ModelTree#761. `familySchema` and `releaseSchema` both give
+// `status` the type `lifecycleStatus`, a `z.enum` of six members, and this gate
+// checked nothing about it: a family carrying `status: "active"` -- not a member
+// -- produced exit 0 and `"passed": true` here while Zod rejected the very same
+// dataset at `npm run validate`. SKILL.md says this gate answers "Is the
+// resulting dataset coherent?" and "refuses malformed documents", and settles
+// the disagreement in one line: "The schema is the last word. If these scripts
+// and Zod ever disagree, Zod wins and the script is wrong."
+//
+// Why it was worth closing even though Zod already refuses it. This is the gate
+// that runs at the moment it matters -- after claims are applied, which is the
+// point at which a bad value has just been written -- so catching it later, in a
+// different tool, is catching it after the gate that exists to catch it has said
+// yes. And an agent that applies claims, reads `"passed": true` and proceeds is
+// doing exactly what the skill instructs; the green was a weaker statement than
+// it read as. A check that returns success without having examined the thing is
+// indistinguishable from one that examined it and approved, which is the failure
+// shape this repository keeps paying for.
+//
+// The vocabulary is derived, never restated -- see `enumMembers` above for why
+// a hand-copied list would have been this bug in a form that is harder to see.
+//
+// Scope, stated because it is narrower than the rule's name and that is
+// deliberate rather than an oversight. `web/src/data/schema.ts` constrains
+// twenty-one fields to a fixed set of values; this checks one of them, on the
+// two collections that carry it, which is what #761 asked for and no more. The
+// audit of the other twenty is reported in that issue rather than acted on here,
+// so that the widening is a decision someone takes on purpose with its own
+// review, not a side effect of the fix. `datePrecision` is the one other
+// enum-valued field this file already checks, in `gateDates` via
+// `PRECISION_SEGMENTS` -- and it checks it against a hand-written literal, so it
+// is the standing instance of exactly the duplication `enumMembers` exists to
+// avoid. Left alone here on the same grounds.
+// ---------------------------------------------------------------------------
+const LIFECYCLE_STATUS_COLLECTIONS = ['families', 'releases'];
+
+function gateVocabulary(docs, lifecycle) {
+  for (const collection of LIFECYCLE_STATUS_COLLECTIONS) {
+    for (const entry of docs[collection]) {
+      const value = entry.status;
+      // Absence is refused alongside a wrong value, not skipped the way the
+      // optional date fields are: `status` is required by both schemas, so a
+      // record without one is malformed in the same way and by the same
+      // authority. Skipping it would leave the cheapest way to hold an illegal
+      // lifecycle state -- omitting the field entirely -- as the one this gate
+      // does not see.
+      if (typeof value !== 'string' || !lifecycle.includes(value)) {
+        fail(
+          'vocabulary',
+          `status ${JSON.stringify(value) ?? String(value)} is not a member of lifecycleStatus, which `
+            + `web/src/data/schema.ts declares as ${lifecycle.join(', ')}`,
+          `${collection}:${entry.id}`,
+        );
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 
 function main() {
   const args = parseArgs(process.argv);
@@ -1213,13 +1379,16 @@ function main() {
   // by here, and they are discarded along with everything else -- exit 2 is not
   // a verdict about the data at all.
   let required;
+  let lifecycle;
   try {
     required = requiredCollections();
+    lifecycle = enumMembers('lifecycleStatus', 'the lifecycle vocabulary');
   } catch (error) {
     process.stderr.write(`gate-dataset: ${error.message}\n`);
     return 2;
   }
   gateNonEmpty(docs, required);
+  gateVocabulary(docs, lifecycle);
   const ids = gateIdentity(docs);
   gateReferences(docs, ids);
   gateFamilyHasRelease(docs);
@@ -1239,7 +1408,12 @@ function main() {
     // `web/src/data/schema.ts` at run time, so a reader of this report -- and
     // the self-test that pins the derived set -- can see which floors were
     // actually in force rather than inferring them from a passing run.
-    process.stdout.write(`${JSON.stringify({ dataDir, today, counts, requiredCollections: required, passed: failures.length === 0, failures }, null, 2)}\n`);
+    // `lifecycleStatus` is reported for the same reason and is the sharper case:
+    // a vocabulary that quietly lost a member would still pass every record that
+    // happens to use the members it kept, so a passing run says nothing about
+    // which values were actually admitted. Printing it is what lets a test tell
+    // the two apart.
+    process.stdout.write(`${JSON.stringify({ dataDir, today, counts, requiredCollections: required, lifecycleStatus: lifecycle, passed: failures.length === 0, failures }, null, 2)}\n`);
   } else if (failures.length === 0) {
     const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
     process.stdout.write(`gate-dataset: all gates passed over ${total} records in ${dataDir}\n`);

@@ -216,15 +216,27 @@ against `tools/updater/` rather than drift that stops the automation.
 **`gate-dataset.mjs`** reads `web/src/data/` and refuses malformed documents,
 ids that are not kebab-case or repeat within a collection, references that do not
 resolve, a family that no release belongs to, a collection standing empty that
-`web/src/data/schema.ts` floors at one or more records, lineage that is
-self-referential or cyclic or contradicts itself, a
-release attributed away from its family's owner, a publisher taking a creator's
+`web/src/data/schema.ts` floors at one or more records, a family or release
+`status` outside the `lifecycleStatus` vocabulary that file declares, lineage
+that is self-referential or cyclic or contradicts itself, a release attributed
+away from its family's owner, a publisher taking a creator's
 id without being that creator's voice, dates that never existed, lie in the
 future, or fall before 1950, a release predating its family or its own
 predecessor, a source checked
 before it was published, non-https or credential-bearing URLs, a fact with no
 `sourceIds` or no `verifiedAt`, and any field whose name reads as a ranking or
 composite score.
+
+Two of those rules are *derived* from `web/src/data/schema.ts` at run time rather
+than restated in the script: which collections are floored, and which lifecycle
+states exist. Both are reported in `--json` — as `requiredCollections` and
+`lifecycleStatus` — so a reader can see which rule was actually in force instead
+of inferring it from a passing run, and a schema the gate cannot read either of
+them out of is exit 2, never a pass. Deriving them is what makes "the schema is
+the last word" true of this script rather than merely asserted by it: a
+hand-copied vocabulary that drifted would reintroduce
+abdeslam-menacere/ModelTree#761, where this gate reported `"passed": true` over a
+`status` Zod rejected outright.
 
 Which documents it reads is the ADR 0003 qualifying class itself, minus the one
 document that class holds which is not part of the dataset. `gate-scope.mjs`

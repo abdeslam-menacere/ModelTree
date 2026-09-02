@@ -186,6 +186,29 @@ const LOAD_BEARING = {
 };
 
 /**
+ * The vocabulary `lifecycleStatus` admits, written out here as the expected
+ * answer rather than derived.
+ *
+ * The same asymmetry as `LOAD_BEARING` above, and for the same reason.
+ * `gate-dataset.mjs` derives these members from `web/src/data/schema.ts` at run
+ * time and must not restate them -- a gate and a schema disagreeing about which
+ * lifecycle states exist *was* abdeslam-menacere/ModelTree#761, and a second
+ * hand-kept list in the gate would only have moved the disagreement rather than
+ * closed it. A test has the opposite duty: an expectation computed the way the
+ * code computes it agrees with the code by construction and proves nothing, so
+ * these six are literals. `the gate derives the lifecycle vocabulary from the
+ * schema` below pins the gate's derived set against them, so a member added to
+ * or removed from the schema arrives here as a named failure instead of as
+ * silent agreement.
+ *
+ * Order matters here and does not in `LOAD_BEARING`: this is the order
+ * `schema.ts` declares, and the gate reports what it read in the order it read
+ * it, so comparing in order also notices a derivation that returned the right
+ * members by some other route.
+ */
+const LIFECYCLE_STATUS = ['preview', 'current', 'legacy', 'deprecated', 'research', 'unknown'];
+
+/**
  * `entry` as a refresh dated `day` would leave it: the fields a refresh rewrites
  * move to that day, and nothing else does. Three fields move, not two --
  * `verifiedAt` and `lastCheckedDate` at the top level, and the *nested*
@@ -640,7 +663,18 @@ describe('gate-dataset', () => {
   // supplies a schema the parser *can* read and gets exit 1 out of the same
   // empty documents, so the difference is the schema and nothing else.
   describe('a schema it cannot derive floors from is exit 2, never a pass', () => {
-    const object = (body) => `export const datasetSchema = z.object({\n${body}});\n`;
+    // Both derived rules have to be satisfiable for a fixture to reach a verdict
+    // about the *floors*, so every planted schema carries a readable
+    // `lifecycleStatus` alongside its `datasetSchema`. Without it the positive
+    // control below would exit 2 for the vocabulary being underivable and read
+    // as proof that the floors could not be derived either -- two different
+    // refusals wearing the same exit code, which is the confusion this block
+    // exists to remove. The vocabulary's own refusals are proved separately,
+    // further down, by planting a readable `datasetSchema` and breaking only
+    // this declaration.
+    const object = (body) =>
+      `export const lifecycleStatus = z.enum(['preview', 'current']);\n`
+      + `export const datasetSchema = z.object({\n${body}});\n`;
     const withSchema = (schema) => fallbackRepo(GATE_DATASET, ({ dir }) => {
       const data = join(dir, 'web', 'src', 'data');
       for (const file of DATASET_DOCUMENTS) writeFileSync(join(data, file), '[]');
@@ -821,6 +855,266 @@ describe('gate-dataset', () => {
       const wiped = respelt(annotated, { wipe: true });
       assert.equal(wiped.code, 1, `expected exit 1, got ${wiped.code}:\n${wiped.stdout}`);
       assert.deepEqual(refusedFor(wiped), ['families', 'releases']);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // abdeslam-menacere/ModelTree#761: a `status` outside `lifecycleStatus`.
+  //
+  // The reported instance, verbatim: a family carrying `status: "active"` --
+  // which is not a member -- and this gate answering exit 0, `"passed": true`,
+  // `"failures": []` while Zod refused the identical dataset at `npm run
+  // validate`. It was found by the #751 dock during red-then-green testing of
+  // its own remediation: it set a deliberately bogus value to confirm its change
+  // was being detected, and discovered the gate did not care.
+  //
+  // Both directions, in the terms this file's header sets. The bogus value must
+  // be refused, or the gate is blind; every member the schema does declare must
+  // be accepted, or it is paranoid. A rule with no demonstrated failing case is
+  // not known to work, and the defect being fixed here was itself a check that
+  // returned success without having examined the thing -- so a test that
+  // asserted only an exit code would have the same shape as the bug, surviving
+  // the guard being deleted and replaced by any unrelated error. Every refusal
+  // below pins the gate's own message.
+  // -------------------------------------------------------------------------
+  test('the gate derives the lifecycle vocabulary from the schema, and it is the members named here', () => {
+    const report = JSON.parse(run(GATE_DATASET, ['--data', DATA, '--json']).stdout);
+    assert.deepEqual(
+      report.lifecycleStatus,
+      LIFECYCLE_STATUS,
+      'lifecycleStatus in web/src/data/schema.ts has changed which states exist. That is a decision '
+        + 'about the data model rather than drift to paper over: move LIFECYCLE_STATUS and the tests '
+        + 'around it deliberately, and say in the pull request which member changed and why.',
+    );
+  });
+
+  for (const collection of ['families', 'releases']) {
+    const file = `${collection}.json`;
+    test(`a ${collection} status outside lifecycleStatus is refused, and the refusal names the record`, () => {
+      let broken;
+      const result = gateMutatedDataset(({ read, write }) => {
+        const entries = read(file);
+        broken = entries[0].id;
+        entries[0].status = 'active';
+        write(file, entries);
+      });
+      assertFailed(
+        result,
+        'vocabulary',
+        'status "active" is not a member of lifecycleStatus, which web/src/data/schema.ts declares as '
+          + 'preview, current, legacy, deprecated, research, unknown',
+      );
+      const report = JSON.parse(result.stdout);
+      assert.deepEqual(
+        report.failures.map((failure) => failure.where),
+        [`${collection}:${broken}`],
+        `one illegal status must be refused once, naming the record that carries it`,
+      );
+    });
+
+    // Omission and a wrong value are the same fault by the same authority:
+    // `status` is required by both schemas. Covered because dropping the field
+    // is the cheapest way to hold no legal lifecycle state at all, and a rule
+    // written as "if it is present, it must be a member" would not see it --
+    // leaving the gate blind to the very case that is easiest to reach by
+    // accident when a claim is applied.
+    test(`a ${collection} record with no status at all is refused too`, () => {
+      const result = gateMutatedDataset(({ read, write }) => {
+        const entries = read(file);
+        delete entries[0].status;
+        write(file, entries);
+      });
+      assertFailed(result, 'vocabulary', 'status undefined is not a member of lifecycleStatus');
+    });
+  }
+
+  // The paranoid direction. Refusing everything would satisfy every assertion
+  // above, so each member the schema declares is put on every family and every
+  // release in turn and the whole dataset has to still pass. Six runs rather
+  // than one sampled member: a vocabulary that lost exactly one member would
+  // pass a spot check on any of the other five.
+  for (const member of LIFECYCLE_STATUS) {
+    test(`"${member}" is accepted on every family and release, so the gate is not simply refusing`, () => {
+      const result = gateMutatedDataset(({ read, write }) => {
+        for (const file of ['families.json', 'releases.json']) {
+          write(file, read(file).map((entry) => ({ ...entry, status: member })));
+        }
+      });
+      assert.equal(result.code, 0, `"${member}" is a declared member and must be accepted:\n${result.stdout}`);
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // That the vocabulary is *read from* the schema rather than copied beside it.
+  //
+  // This is the acceptance criterion the issue was most specific about: "Do not
+  // hand-copy the list into the script without a mechanism or a test that fails
+  // when the two drift." The two tests here are that mechanism proved, and they
+  // are the only ones in the file a hand-copied list would fail -- every other
+  // assertion above passes just as well against six members written into
+  // `gate-dataset.mjs`, because the committed schema and a faithful copy of it
+  // agree by definition. Only moving the schema and watching the gate move with
+  // it can tell a derivation from a copy that is currently correct.
+  //
+  // The dataset is left exactly as committed in both; the schema is the only
+  // thing that changes, so the change in verdict is attributable to it alone.
+  // -------------------------------------------------------------------------
+  describe('the vocabulary follows the schema rather than a copy of it', () => {
+    const SCHEMA = readFileSync(join(DATA, 'schema.ts'), 'utf8');
+    const DECLARATION = /export const lifecycleStatus = z\.enum\(\[[^\]]*\]\);/;
+
+    /**
+     * The live dataset, judged against a schema whose vocabulary is `members`,
+     * with `edit` given the chance to change the data as well.
+     *
+     * Planted rather than gated in place because the schema has to be edited and
+     * the gate reads it from its own repository root, never from `--data` --
+     * which is the property that stops `--data` lowering the rule it is judged
+     * against.
+     */
+    const withVocabulary = (members, edit = () => {}) => fallbackRepo(GATE_DATASET, ({ dir }) => {
+      const data = join(dir, 'web', 'src', 'data');
+      cpSync(DATA, data, { recursive: true });
+      const declaration = `export const lifecycleStatus = z.enum([${members.map((m) => `'${m}'`).join(', ')}]);`;
+      const respelt = SCHEMA.replace(DECLARATION, declaration);
+      assert.notEqual(respelt, SCHEMA, 'the lifecycleStatus declaration must actually have been rewritten');
+      writeFileSync(join(data, 'schema.ts'), respelt);
+      edit({
+        read: (file) => JSON.parse(readFileSync(join(data, file), 'utf8')),
+        write: (file, value) => writeFileSync(join(data, file), JSON.stringify(value, null, 2)),
+      });
+      return ['--data', data, '--json'];
+    });
+
+    // Narrowing the schema narrows the gate. `current` is carried by more
+    // families and releases than any other member, so removing it turns a
+    // passing dataset into a large, specific set of refusals -- which a gate
+    // holding its own copy of the six members could not produce.
+    test('a member removed from the schema stops being accepted in the data', () => {
+      const kept = LIFECYCLE_STATUS.filter((member) => member !== 'current');
+      const result = withVocabulary(kept);
+      assert.equal(result.code, 1, `expected exit 1, got ${result.code}:\n${result.stdout}`);
+      const report = JSON.parse(result.stdout);
+      assert.deepEqual(report.lifecycleStatus, kept, 'the gate must report the narrowed vocabulary it read');
+      const refused = report.failures.filter((failure) => failure.gate === 'vocabulary');
+      assert.equal(
+        refused.length,
+        report.failures.length,
+        `only the vocabulary rule may fire here, got: ${report.failures.map((f) => f.gate).join(', ')}`,
+      );
+      assert.ok(
+        refused.length > 0 && refused.every((failure) => failure.message.includes('status "current" is not a member')),
+        `every refusal must name the withdrawn member, got:\n${refused.map((f) => f.message).join('\n')}`,
+      );
+    });
+
+    // The converse, and the half that catches a copy the other way round: a
+    // member the schema admits has to be admitted here, even one nobody would
+    // want. `active` is the exact value from the report, so this is the bug's
+    // own fixture asserted to *pass* once the schema says it may.
+    test('a member added to the schema is accepted in the data', () => {
+      const widened = [...LIFECYCLE_STATUS, 'active'];
+      const result = withVocabulary(widened, ({ read, write }) => {
+        const families = read('families.json');
+        families[0].status = 'active';
+        write('families.json', families);
+      });
+      assert.equal(result.code, 0, `expected exit 0, got ${result.code}:\n${result.stdout}`);
+      assert.deepEqual(JSON.parse(result.stdout).lifecycleStatus, widened);
+    });
+  });
+
+  // A vocabulary the gate cannot derive is exit 2, never a pass -- the same
+  // rule, and the same reasoning, as the floors above. A parser that silently
+  // matched nothing would be worse here than there: an empty vocabulary refuses
+  // every record, which is at least loud, but a *partial* one refuses only the
+  // members it lost and passes everything else. That is #761 again, in the one
+  // direction nobody is watching, so every shape this cannot express is refused
+  // out loud instead.
+  //
+  // Each fixture plants a `datasetSchema` the gate reads without complaint, so
+  // the exit 2 is attributable to the vocabulary and not to the floors. The
+  // positive control at the end supplies a readable declaration and gets exit 1
+  // out of the same documents, so the difference is this declaration alone.
+  describe('a schema it cannot derive the lifecycle vocabulary from is exit 2, never a pass', () => {
+    const withLifecycle = (declaration) => fallbackRepo(GATE_DATASET, ({ dir }) => {
+      const data = join(dir, 'web', 'src', 'data');
+      for (const file of DATASET_DOCUMENTS) writeFileSync(join(data, file), '[]');
+      writeFileSync(
+        join(data, 'schema.ts'),
+        `${declaration}export const datasetSchema = z.object({\n  sources: z.array(sourceSchema).min(1),\n});\n`,
+      );
+      return ['--data', data];
+    });
+
+    const refusals = [
+      ['no lifecycleStatus declaration at all', '', /declares no "export const lifecycleStatus"/],
+      // The shape `datePrecision` is actually written in, one declaration above
+      // `lifecycleStatus` in the committed schema. It is the form most likely to
+      // arrive here for real, and the gate cannot follow the indirection without
+      // executing TypeScript -- which it deliberately does none of -- so it says
+      // so rather than deriving nothing and calling that a vocabulary.
+      //
+      // The trailing `z.enum(['a'])` is the case that matters and the reason
+      // this fixture is not simply the declaration on its own: a parser that
+      // searched forward for the next `[` would find *that* list, derive
+      // `['a']`, and report a real, plausible, wrong vocabulary belonging to
+      // another field. Silently deriving the wrong rule is worse than deriving
+      // none, and this test failed in exactly that way while it was being
+      // written.
+      [
+        'a vocabulary this gate would have to execute TypeScript to know',
+        'export const lifecycleStatus = z.enum(LIFECYCLE_STATES);\nexport const other = z.enum([\'a\']);\n',
+        /does not list its members literally: z\.enum\(LIFECYCLE_STATES\)/,
+      ],
+      // Written down, but not written down in full. The members that *are*
+      // literal would be read and the rest lost, which is the partial-vocabulary
+      // case: it refuses the members it lost and passes everything else.
+      [
+        'a list this gate can only partly read',
+        "export const lifecycleStatus = z.enum([...BASE, 'current']);\n",
+        /lists a member this gate cannot read: \.\.\.BASE/,
+      ],
+      [
+        'a member that is not a string literal',
+        "export const lifecycleStatus = z.enum(['preview', CURRENT]);\n",
+        /lists a member this gate cannot read: CURRENT/,
+      ],
+      [
+        'a vocabulary with no members',
+        'export const lifecycleStatus = z.enum([]);\n',
+        /yields no members/,
+      ],
+      // A list assembled rather than written down: the `]` is there, but it does
+      // not close the call, so what the gate can read is not the whole
+      // vocabulary. Refused for the same reason as the partial list above.
+      [
+        'a list the call goes on to modify',
+        "export const lifecycleStatus = z.enum(['preview'].concat(REST));\n",
+        /does not list its members literally/,
+      ],
+      // Not a `z.enum` at all. Without the check that `z.enum(` follows the
+      // name before any `;`, this would run on to the next declaration and gate
+      // against a vocabulary belonging to a different field entirely.
+      [
+        'a lifecycleStatus that is not an enum',
+        'export const lifecycleStatus = z.string();\nexport const other = z.enum([\'a\']);\n',
+        /is not a z\.enum\(\[ \.\.\. \]\) this gate can read/,
+      ],
+    ];
+
+    for (const [label, declaration, expected] of refusals) {
+      test(label, () => {
+        const result = withLifecycle(declaration);
+        assert.equal(result.code, 2, `expected exit 2, got ${result.code}:\n${result.stdout}`);
+        assert.match(result.stdout, expected);
+      });
+    }
+
+    test('a vocabulary it can read reaches exit 1 on the same documents, so the refusals are the declaration', () => {
+      const result = withLifecycle("export const lifecycleStatus = z.enum(['preview', 'current']);\n");
+      assert.equal(result.code, 1, `expected exit 1, got ${result.code}:\n${result.stdout}`);
+      assert.match(result.stdout, /\[non-empty\] sources: sources holds no records/);
     });
   });
 
