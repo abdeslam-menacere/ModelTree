@@ -92,9 +92,16 @@ record.
 are a **controlled vocabulary**: a fixed set of dataset terms, defined in
 `web/src/data/schema.ts`, that no source speaks. A creator writes "Live",
 "Active (legacy)" or "generally available"; the schema offers `preview`,
-`current`, `legacy`, `deprecated`, `research` and nothing else. None of those
-fields has an `unknown` member and `releaseSchema` requires every one of them,
-so no release record can be written without mapping. Quantities pose the same
+`current`, `legacy`, `deprecated`, `research`, `unknown` and nothing else.
+`releaseSchema` requires every one of these fields, so no release record can be
+written without mapping. Two of them carry an `unknown` member —  `status`
+(`docs/adr/0008-lifecycle-status-carries-an-explicit-unknown-member.md`) and
+`accessType`
+(`docs/adr/0011-access-type-carries-an-explicit-unknown-member.md`) — and that
+member is a value to be *claimed*, under the bar set out below, never a place to
+put a mapping you could not make. `categories`, `inputModalities` and
+`outputModalities` carry no such member, so for those an unmappable field still
+withholds the whole record. Quantities pose the same
 step in another form: the page says "128K", the record stores `128000` — the
 decimal reading a bare abbreviation takes by default, though a page that states
 an exact integer or fixes a binary size (Solar Pro Preview's "4K" is `4096`) is
@@ -132,6 +139,50 @@ still reject when:
   platform offers, not how the creator releases the model, so there is no
   underlying fact to transcribe. Vocabulary mapping never repairs an
   entity-boundary error; see the `editorial` rubric.
+
+#### `unknown` is a claim about the attached sources, not a fallback
+
+`status` and `accessType` each carry an `unknown` member, added by ADR 0008 and
+ADR 0011 respectively, for the same narrow reason: a primary source can describe
+a model completely and still state nothing on the point. Both are **asserted**
+values. `status: 'unknown'` says the sources state no lifecycle; `accessType:
+'unknown'` says the sources state nothing about how the release is obtained.
+Neither says the field was hard.
+
+Accept `unknown` when all three hold:
+
+1. **The claim's own sources were read and none states the field.** `unknown`
+   reports on the evidence attached to this claim, not on the internet. A claim
+   citing three pages, one of which states the field, is a rejection.
+2. **Nothing else in the claim contradicts it.** A record whose `license`
+   asserts `weightsDownloadable: true` has stated its access type; `schema.ts`
+   refuses that pair outright, and a reviewer should catch it first.
+3. **The absence is the finding, and the claim says so.** The rationale names
+   what was read and what it did not say. "No accessible source states an access
+   type" is checkable against the attached quotes; "unclear" is not.
+
+Reject `unknown` when the field *is* stated and the claim reached for `unknown`
+instead, which is the mirror image of mapping an unstated field to a real
+member, and equally a provenance failure.
+
+**The `accessType` trap, named because the ledger measured it.** The most common
+recorded `accessType` rejection by far is a claim proposing `open-weight` on the
+strength of a licence name, a download link, or the word "Open" in a licence
+title — none of which states that weights are downloadable. That rejection
+stands, and `unknown` is **not** its remedy. Run `2026-08-31-b7c2d9` recorded
+the reason in its own follow-up: several of those cards do state downloadable
+weights in prose — the GPT-Neo README says so a sentence before the link that
+was quoted instead — so "this particular gap is a scouting defect and not a
+structural one". Where the sentence exists, quote it and record `open-weight`.
+Recording `unknown` because the first quote chosen was the wrong one turns a
+fixable scouting miss into a permanent hole in the dataset, and it is the way
+this member is likeliest to be misused.
+
+No gate re-makes this judgement. `gate-dataset.mjs` checks that the value is a
+member of the schema's vocabulary, and that the field is present at all — so
+absence never reads as `unknown` — and ADR 0005 records that the evidence gate
+verifies form, not remote content. Whether the sources are genuinely silent is
+decided here and nowhere else.
 
 #### Licence name is not OSI status, and mapping between them is not a recording step
 
@@ -181,7 +232,7 @@ Reject — each of these is a real rejection that stands unchanged:
 |---|---|---|
 | `openai-gpt-5-3-codex-release-add` (PR abdeslam-menacere/ModelTree#438) | `inputModalities ['text','image']` | The page states the modalities, but the claim attached no quote for them. The remedy is to attach the quote, not to map from nothing. |
 | `mi4-release-large-3-add` (run `2026-08-27-4f1c9e`) | `status: 'current'`, `open-weight` | No quote states a lifecycle state at all, and `Start building: Ministral 3 and Large 3 on Hugging Face` does not state that weights are downloadable. Nothing to transcribe. |
-| `microsoft-mai-thinking-1` (same run, withheld) | `accessType` from `available in public preview on Microsoft Foundry` | A serving platform's offering, not the creator's release. Wrong entity, so the record was withheld rather than filled. |
+| `microsoft-mai-thinking-1` (same run, withheld) | `accessType` from `available in public preview on Microsoft Foundry` | A serving platform's offering, not the creator's release. Wrong entity, so the record was withheld rather than filled. Under ADR 0011 the honest record is now `accessType: 'unknown'` — the entity rule is unchanged and the quote still supports nothing, but the absence has become expressible. The run itself wrote "recorded as unknown rather than inferred" and had nowhere to put it. |
 | `co5-family-command-a-add` (same run) | family `firstReleaseDate`, `status: 'current'`, `multimodal-generalist` | The date is the announcement page's `datePublished`, not a stated first release; the `Live` row describes one dated release, not the family; and the family took a modality from a later sibling while the same table lists Command A as text-only. Added scope on all three. |
 | `mi3-release-large-3-add` (same run) | `intendedUse` asserting the model is "demanding to self-host" | Free-text, not vocabulary, and no quote says it. An added qualifier is a rejection wherever it appears. |
 

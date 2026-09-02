@@ -209,6 +209,19 @@ const LOAD_BEARING = {
 const LIFECYCLE_STATUS = ['preview', 'current', 'legacy', 'deprecated', 'research', 'unknown'];
 
 /**
+ * The vocabulary `accessType` admits, written out here for exactly the reasons
+ * given for `LIFECYCLE_STATUS` above: derived in the gate, literal in the test.
+ *
+ * `unknown` is last because `schema.ts` declares it last, and that placement is
+ * itself deliberate there -- see
+ * `docs/adr/0011-access-type-carries-an-explicit-unknown-member.md`. A member
+ * arriving in the middle of this list would change the reported order and fail
+ * the comparison below, which is the intended behaviour: the order is part of
+ * what is being pinned.
+ */
+const ACCESS_TYPE = ['proprietary-hosted', 'open-weight', 'source-available', 'both', 'unknown'];
+
+/**
  * `entry` as a refresh dated `day` would leave it: the fields a refresh rewrites
  * move to that day, and nothing else does. Three fields move, not two --
  * `verifiedAt` and `lastCheckedDate` at the top level, and the *nested*
@@ -663,17 +676,18 @@ describe('gate-dataset', () => {
   // supplies a schema the parser *can* read and gets exit 1 out of the same
   // empty documents, so the difference is the schema and nothing else.
   describe('a schema it cannot derive floors from is exit 2, never a pass', () => {
-    // Both derived rules have to be satisfiable for a fixture to reach a verdict
+    // Every derived rule has to be satisfiable for a fixture to reach a verdict
     // about the *floors*, so every planted schema carries a readable
-    // `lifecycleStatus` alongside its `datasetSchema`. Without it the positive
-    // control below would exit 2 for the vocabulary being underivable and read
-    // as proof that the floors could not be derived either -- two different
-    // refusals wearing the same exit code, which is the confusion this block
-    // exists to remove. The vocabulary's own refusals are proved separately,
-    // further down, by planting a readable `datasetSchema` and breaking only
-    // this declaration.
+    // `lifecycleStatus` and a readable `accessType` alongside its
+    // `datasetSchema`. Without them the positive control below would exit 2 for
+    // a vocabulary being underivable and read as proof that the floors could not
+    // be derived either -- different refusals wearing the same exit code, which
+    // is the confusion this block exists to remove. Each vocabulary's own
+    // refusals are proved separately, further down, by planting a readable
+    // `datasetSchema` and breaking only that declaration.
     const object = (body) =>
       `export const lifecycleStatus = z.enum(['preview', 'current']);\n`
+      + `export const accessType = z.enum(['open-weight']);\n`
       + `export const datasetSchema = z.object({\n${body}});\n`;
     const withSchema = (schema) => fallbackRepo(GATE_DATASET, ({ dir }) => {
       const data = join(dir, 'web', 'src', 'data');
@@ -945,6 +959,75 @@ describe('gate-dataset', () => {
   }
 
   // -------------------------------------------------------------------------
+  // ADR 0011: `accessType`, the second field this gate holds to its schema's
+  // vocabulary, added in the commit that gave that field an `unknown` member.
+  //
+  // The absence case below is the one carrying the ADR's guardrail. `unknown`
+  // there means "no accessible primary source states an access type", and it is
+  // reached by asserting it -- never by leaving the field out. If omission were
+  // tolerated, dropping a field would be the most permissive move available to
+  // a run applying claims, and the member added to make honest records
+  // publishable would instead be a way to publish records nobody researched.
+  // The rule is the same one lifecycle has, applied to `releases` alone because
+  // `accessType` is a release-level field; families carry no such property and
+  // are not checked for one.
+  // -------------------------------------------------------------------------
+  test('the gate derives the access-type vocabulary from the schema, and it is the members named here', () => {
+    const report = JSON.parse(run(GATE_DATASET, ['--data', DATA, '--json']).stdout);
+    assert.deepEqual(
+      report.accessType,
+      ACCESS_TYPE,
+      'accessType in web/src/data/schema.ts has changed which access types exist. That is a decision '
+        + 'about the data model rather than drift to paper over: move ACCESS_TYPE and the tests around '
+        + 'it deliberately, and say in the pull request which member changed and why.',
+    );
+  });
+
+  test('a releases accessType outside accessType is refused, and the refusal names the record', () => {
+    let broken;
+    const result = gateMutatedDataset(({ read, write }) => {
+      const entries = read('releases.json');
+      broken = entries[0].id;
+      entries[0].accessType = 'api-only';
+      write('releases.json', entries);
+    });
+    assertFailed(
+      result,
+      'vocabulary',
+      'accessType "api-only" is not a member of accessType, which web/src/data/schema.ts declares as '
+        + 'proprietary-hosted, open-weight, source-available, both, unknown',
+    );
+    const report = JSON.parse(result.stdout);
+    assert.deepEqual(
+      report.failures.map((failure) => failure.where),
+      [`releases:${broken}`],
+      'one illegal access type must be refused once, naming the record that carries it',
+    );
+  });
+
+  test('a releases record with no accessType at all is refused too, so absence never reads as unknown', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const entries = read('releases.json');
+      delete entries[0].accessType;
+      write('releases.json', entries);
+    });
+    assertFailed(result, 'vocabulary', 'accessType undefined is not a member of accessType');
+  });
+
+  // The paranoid direction again, `unknown` among them: the member this ADR adds
+  // has to be *accepted* by the gate, or the schema change would be unreachable
+  // through the pipeline that applies claims and the ADR would have unblocked
+  // nothing.
+  for (const member of ACCESS_TYPE) {
+    test(`"${member}" is accepted as an access type on every release, so the gate is not simply refusing`, () => {
+      const result = gateMutatedDataset(({ read, write }) => {
+        write('releases.json', read('releases.json').map((entry) => ({ ...entry, accessType: member })));
+      });
+      assert.equal(result.code, 0, `"${member}" is a declared member and must be accepted:\n${result.stdout}`);
+    });
+  }
+
+  // -------------------------------------------------------------------------
   // That the vocabulary is *read from* the schema rather than copied beside it.
   //
   // This is the acceptance criterion the issue was most specific about: "Do not
@@ -1042,7 +1125,11 @@ describe('gate-dataset', () => {
       for (const file of DATASET_DOCUMENTS) writeFileSync(join(data, file), '[]');
       writeFileSync(
         join(data, 'schema.ts'),
-        `${declaration}export const datasetSchema = z.object({\n  sources: z.array(sourceSchema).min(1),\n});\n`,
+        // A readable `accessType` throughout, so every exit 2 below is
+        // attributable to the lifecycle declaration under test rather than to
+        // the other vocabulary this gate also derives.
+        `${declaration}export const accessType = z.enum(['open-weight']);\n`
+        + `export const datasetSchema = z.object({\n  sources: z.array(sourceSchema).min(1),\n});\n`,
       );
       return ['--data', data];
     });
@@ -1113,6 +1200,62 @@ describe('gate-dataset', () => {
 
     test('a vocabulary it can read reaches exit 1 on the same documents, so the refusals are the declaration', () => {
       const result = withLifecycle("export const lifecycleStatus = z.enum(['preview', 'current']);\n");
+      assert.equal(result.code, 1, `expected exit 1, got ${result.code}:\n${result.stdout}`);
+      assert.match(result.stdout, /\[non-empty\] sources: sources holds no records/);
+    });
+  });
+
+  // The same refusal, proved for the second vocabulary rather than assumed from
+  // the first. `enumMembers` is shared, so it would be tempting to treat the
+  // lifecycle cases above as covering `accessType` too -- but what is under test
+  // here is that the *rule for `accessType`* is wired to that reader at all. A
+  // vocabulary derived by a lenient path of its own, or defaulted when the
+  // schema could not be read, would pass every assertion in the block above and
+  // gate releases against a list nobody declared.
+  //
+  // The comment case is not hypothetical. `accessType` was added to this gate
+  // with its members written across several lines and a comment among them, and
+  // the gate refused the run rather than deriving a vocabulary missing whatever
+  // the comment displaced. That refusal is why the member list in `schema.ts`
+  // carries its explanation above the declaration instead of inside it.
+  describe('a schema it cannot derive the access-type vocabulary from is exit 2, never a pass', () => {
+    const withAccessType = (declaration) => fallbackRepo(GATE_DATASET, ({ dir }) => {
+      const data = join(dir, 'web', 'src', 'data');
+      for (const file of DATASET_DOCUMENTS) writeFileSync(join(data, file), '[]');
+      writeFileSync(
+        join(data, 'schema.ts'),
+        // Readable lifecycle throughout: it is derived first, so leaving it out
+        // would refuse every fixture here for the other field's reason.
+        `export const lifecycleStatus = z.enum(['preview', 'current']);\n${declaration}`
+        + `export const datasetSchema = z.object({\n  sources: z.array(sourceSchema).min(1),\n});\n`,
+      );
+      return ['--data', data];
+    });
+
+    const refusals = [
+      ['no accessType declaration at all', '', /declares no "export const accessType"/],
+      [
+        'a member list with a comment inside the brackets',
+        "export const accessType = z.enum([\n  'open-weight',\n  // added by ADR 0011\n  'unknown',\n]);\n",
+        /lists a member this gate cannot read: \/\/ added by ADR 0011/,
+      ],
+      [
+        'a vocabulary this gate would have to execute TypeScript to know',
+        'export const accessType = z.enum(ACCESS_TYPES);\nexport const other = z.enum([\'a\']);\n',
+        /does not list its members literally: z\.enum\(ACCESS_TYPES\)/,
+      ],
+    ];
+
+    for (const [label, declaration, expected] of refusals) {
+      test(label, () => {
+        const result = withAccessType(declaration);
+        assert.equal(result.code, 2, `expected exit 2, got ${result.code}:\n${result.stdout}`);
+        assert.match(result.stdout, expected);
+      });
+    }
+
+    test('a vocabulary it can read reaches exit 1 on the same documents, so the refusals are the declaration', () => {
+      const result = withAccessType("export const accessType = z.enum(['open-weight', 'unknown']);\n");
       assert.equal(result.code, 1, `expected exit 1, got ${result.code}:\n${result.stdout}`);
       assert.match(result.stdout, /\[non-empty\] sources: sources holds no records/);
     });

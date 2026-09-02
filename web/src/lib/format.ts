@@ -84,6 +84,10 @@ export function accessLabel(accessType: ModelRelease['accessType']) {
     'open-weight': 'Open-weight',
     'source-available': 'Source-available',
     both: 'Hosted and open-weight',
+    // ADR 0011. Reads as "the creator did not say", matching `statusLabel`'s
+    // `unknown` so the two absences on a page are worded the same way. The
+    // methodology glossary carries the precision this one word cannot.
+    unknown: 'Unknown',
   }[accessType];
 }
 

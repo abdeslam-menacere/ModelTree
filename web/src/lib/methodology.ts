@@ -93,6 +93,8 @@ export const accessTypeGlossary: GlossaryEntry<ModelRelease['accessType']>[] =
         'Source or weights can be inspected or obtained under terms that are not OSI-approved. Kept distinct from open-source, which requires an OSI-approved licence.',
       both:
         'Offered as a hosted API and as downloadable weights. Shown as “Hosted and open-weight”.',
+      unknown:
+        'No accessible primary source states how this release can be obtained. It records that the creator did not say, and it is not a claim that weights are unavailable — that claim is “Hosted API”, and it needs a source of its own.',
     }[value],
   }));
 

@@ -81,6 +81,7 @@ body:
         - open-weight
         - source-available
         - both
+        - unknown
     validations: { required: true }
 
   - type: dropdown

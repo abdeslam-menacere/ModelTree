@@ -563,6 +563,33 @@ describe('comparison takeaways', () => {
     expect(takeaway!.detail).toContain('neither implies the other');
   });
 
+  it('withholds the self-hosting takeaway when a compared release states no access type', () => {
+    // ADR 0011 gave `accessType` an `unknown` member, and this rule enumerates
+    // the compared releases into open-weight and hosted-only lists. A release in
+    // neither is dropped from both sentences while the headline still says the
+    // row decides self-hosting -- so a reader is told a difference is decisive
+    // over a set that quietly excludes one of the models they asked about.
+    //
+    // `fullyStated` cannot catch this: the access row is built from
+    // `accessLabel`, which returns a string for every member, so its cells are
+    // always stated. The baseline below is the point of the test -- the same
+    // three models, differing only in that one access value, do produce the
+    // takeaway -- so this asserts the guard rather than an unrelated silence.
+    const chosen = [ATLAS_PRO, BOREALIS_AIR, ATLAS_MINI];
+    const withUnknownAccess: ComparisonDataset = {
+      ...comparisonFixtures,
+      releases: comparisonFixtures.releases.map((release) => (
+        release.slug === ATLAS_MINI ? { ...release, accessType: 'unknown' as const } : release
+      )),
+    };
+
+    const baseline = build(chosen);
+    expect(baseline.takeaways.find((entry) => entry.rule === 'self-hosting')).toBeDefined();
+
+    const view = build(chosen, withUnknownAccess);
+    expect(view.takeaways.find((entry) => entry.rule === 'self-hosting')).toBeUndefined();
+  });
+
   it('reports a blocked benchmark as a takeaway about the evidence, not the models', () => {
     const view = build([ATLAS_PRO, BOREALIS_AIR]);
     const takeaway = view.takeaways.find((entry) => entry.rule === 'benchmark-not-comparable');
