@@ -1,0 +1,74 @@
+{
+  "catalog": {
+    "id": "origins-nvidia",
+    "kind": "approved-origins",
+    "creator_id": "nvidia",
+    "creator_name": "NVIDIA",
+    "applies_to": "NVIDIA as a creator of the model families it trains and announces. Not NVIDIA as an accelerator vendor, not its model distribution or serving surfaces, and not any other creator's models that NVIDIA accelerates, hosts or packages."
+  },
+  "notes": [
+    "Human origin approval only. It records where NVIDIA publishes primary release information so a later refresh run can cite that origin; it adds no creator, family, release, product or deployment to the dataset, and it does not make NVIDIA a pilot creator or move it off the unanimous 3-of-3 long-tail bar of ADR 0002.",
+    "creator_id is the id the dataset already records: web/src/data/organizations.json carries id \"nvidia\", name \"NVIDIA\", website https://www.nvidia.com/, checked on 2026-09-02. It is not a new naming decision.",
+    "This document approves exactly one origin, https://nvidianews.nvidia.com, which was absent from both of gate-source-approval.mjs's trust anchors before it. Measured at merge base be72a5db on 2026-09-02: anchor 1 (web/src/data/sources.json) held 241 source records across 44 origins and anchor 2 (source_catalog[].url across tools/updater/profiles/**/*.json) held 24 origins, and nvidianews.nvidia.com was in neither.",
+    "It is deliberately not a complete map of where NVIDIA publishes. The same measurement found https://blogs.nvidia.com and https://research.nvidia.com already in anchor 1, trusted through the individual reviewed source records that cite them. This review checked neither of those hosts and does not re-approve them; the reasoning is in deferred_origins, and reading their absence here as a demotion would be a misreading.",
+    "NVIDIA is a creator, a hardware vendor and a distribution surface at once. Every entry below is scoped to the first of those, and the surfaces turned down are recorded in deferred_origins rather than left to be re-proposed."
+  ],
+  "source_catalog": [
+    {
+      "id": "nvidia-newsroom",
+      "owner": "NVIDIA",
+      "url": "https://nvidianews.nvidia.com/news",
+      "kind": "official-announcement",
+      "allowed_paths": ["/news"],
+      "allowed_content_types": ["announcement", "release-index"],
+      "trust": "primary",
+      "trust_notes": "NVIDIA's own corporate newsroom; authoritative for what NVIDIA announces as its own, including the model families and model platforms it announces there. Deliberately bounded to /news, the only section checked: the same host serves executive biographies at /bios (HTTP 200, <title>Exec Bios | NVIDIA Newsroom</title>) and a promotional landing page at its root, neither of which says who trained a model. Within /news the feed is a corporate press feed rather than a model feed — quarterly financial results are published under the same path — so a page here is not by itself a model release. Authoritative for what NVIDIA says it built and announced, never for what it only accelerates, serves or partners on.",
+      "verified_at": "2026-09-02",
+      "verification": "Fetched 2026-09-02: https://nvidianews.nvidia.com/news returned HTTP 200, <title>News Archive | NVIDIA Newsroom</title>, on the NVIDIA-owned nvidianews.nvidia.com host. A named article under the approved path was fetched as a specific check — /news/nvidia-launches-cosmos-world-foundation-model-platform-to-accelerate-physical-ai-development returned HTTP 200, <title>NVIDIA Launches Cosmos World Foundation Model Platform to Accelerate Physical AI Development | NVIDIA Newsroom</title>, carrying both 'Cosmos' and 'world foundation model'. The host root returned HTTP 200, <title>Home | NVIDIA Newsroom</title>. Two controls confirm the check discriminates rather than reporting 200 for anything: /media-assets returned HTTP 404 with <title>Not Found | NVIDIA Newsroom</title>, so the host is not a soft-200 catch-all, and the fabricated host zzfabricated-control.nvidianews.nvidia.com did not resolve at all. Separately, /news/nvidia-announces-financial-results-for-second-quarter-fiscal-2026 returned HTTP 200, which is the evidence for the caveat above that the approved path carries corporate press releases alongside model announcements."
+    }
+  ],
+  "deferred_origins": [
+    {
+      "origin": "https://blogs.nvidia.com",
+      "decision": "already trusted through dataset sources, deliberately not catalogued here",
+      "reason": "Present in anchor 1 as measured at merge base be72a5db on 2026-09-02, through the reviewed source records that cite it, so cataloguing it here would grant no trust it does not already have. Two reasons not to restate it. First, the README's rule: this review reached and checked only the newsroom, and an entry here for a host nobody checked in this review could not be told apart later from one that was. Second, an anchor-2 entry means something different from anchor-1 trust — it holds whether or not any source record still cites the host, so adding it would quietly convert trust that follows the reviewed citations into trust that outlives them. That change may be right, but it is a decision for whoever verifies the host, not a side effect of approving the newsroom."
+    },
+    {
+      "origin": "https://research.nvidia.com",
+      "decision": "already trusted through dataset sources, deliberately not catalogued here",
+      "reason": "Same measurement and the same two reasons as blogs.nvidia.com: already in anchor 1 through the reviewed records that cite it, not checked in this review, and promoting it into anchor 2 would decouple its trust from those records without anyone deciding to."
+    },
+    {
+      "origin": "https://www.nvidia.com",
+      "decision": "not approved",
+      "reason": "The corporate and product site, recorded as NVIDIA's website in organizations.json. It is a product, purchasing and driver surface rather than a publication channel for release facts, and it was not checked in this review. Approving the vendor's storefront alongside its newsroom is exactly the creator/product collapse this directory exists to prevent."
+    },
+    {
+      "origin": "https://build.nvidia.com",
+      "decision": "not approved",
+      "reason": "A model distribution and hosted-inference surface. It was not checked in this review, and it is turned down on kind rather than on content: a host is not approved because it serves a creator's models, and this one carries other creators' models beside NVIDIA's. If NVIDIA deployment facts are wanted later they are claims about a serving platform and need approving as such, deliberately and separately."
+    },
+    {
+      "origin": "https://huggingface.co",
+      "decision": "already-trusted generic host, not re-approved here",
+      "reason": "Already trusted through existing dataset source records. No NVIDIA organization page on it was checked in this review, so nothing here establishes which org there is NVIDIA's own, and distributing weights is not grounds for approving a host."
+    }
+  ],
+  "ambiguities": [
+    {
+      "topic": "NVIDIA as creator against NVIDIA as accelerator vendor and host",
+      "note": "Almost every model in the field runs on NVIDIA hardware, and NVIDIA publishes optimisation, packaging and partnership announcements about models other creators trained.",
+      "guidance": "Attribute a model to NVIDIA only where NVIDIA announces it as its own on an approved origin. Never attribute on the strength of a model running on NVIDIA hardware, being optimised or quantised by NVIDIA, or appearing in an NVIDIA catalogue — those are serving, tooling or commercial relationships and never lineage."
+    },
+    {
+      "topic": "The newsroom is a corporate press feed",
+      "note": "Checked on 2026-09-02, /news carries quarterly financial results, hardware launches, partnership announcements and event keynotes in the same path as model announcements.",
+      "guidance": "A press release under the approved path is not a model release unless it announces one. Take the model facts a release states and nothing else from it; do not read a keynote or partnership item as a release event."
+    },
+    {
+      "topic": "Platform names are not family names",
+      "note": "The article checked announces Cosmos as a 'World Foundation Model Platform', a name that covers a platform of which specific models are a part.",
+      "guidance": "Keep platform, product and model family apart even where one announcement names all three. Record a release only where the source names a model, and do not promote a platform name to a family name to fill a gap."
+    }
+  ]
+}
