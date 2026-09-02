@@ -2217,5 +2217,81 @@
     "publisherId": "tencent",
     "lastCheckedDate": "2026-09-01",
     "notes": "Tencent’s model card for HunyuanImage-3.0. Front matter states the licence name and the text-to-image pipeline tag from which the release modalities are read."
+  },
+  {
+    "id": "tii-falcon-180b-announcement",
+    "url": "https://www.tii.ae/news/technology-innovation-institute-introduces-worlds-most-powerful-open-llm-falcon-180b",
+    "title": "Technology Innovation Institute Introduces World's Most Powerful Open LLM Falcon-180B",
+    "type": "official-announcement",
+    "publisherId": "tii",
+    "publishedDate": "2023-09-06",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "TII's own announcement on its own domain, datelined \"Abu Dhabi-UAE: 06 September, 2023\". States \"the launch of Falcon 180B, an advanced iteration of its flagship large language model (LLM)\", that it is \"trained on 3.5 trillion tokens\" with \"180 billion parameters\", \"Open Access for Researchers and Commercial Users\", and that \"The licensing framework for the model is established on 'Falcon 180B TII License', which is based upon Apache 2.0\". Cited for the release date, parameter count, access, and licence name. Sourced from tii.ae rather than the parent ATRC newsroom so the record's publisher (TII) matches the domain that voices it."
+  },
+  {
+    "id": "tii-falcon-180b-model-card",
+    "url": "https://huggingface.co/tiiuae/falcon-180B",
+    "title": "Falcon-180B model card",
+    "type": "model-card",
+    "publisherId": "tii",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "The model's own card (the card is gated: the rendered card page is readable and its prose was verified, while /raw/ and /resolve/ return HTTP 401 for unauthenticated requests). States \"Falcon-180B is a 180B parameters causal decoder-only model built by TII and trained on 3,500B tokens of RefinedWeb\" and \"It is made available under the Falcon-180B TII License\". Cited for the model architecture, parameter count and downloadable weights. States no exact context-length integer, so contextWindow is withheld."
+  },
+  {
+    "id": "ai2-molmo-announcement",
+    "url": "https://allenai.org/blog/molmo",
+    "title": "Molmo | Ai2",
+    "type": "official-announcement",
+    "publisherId": "ai2",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Ai2's own announcement of the Molmo family. States \"The most critical ingredient to the success of the Molmo family of models is PixMo, Molmo's training data\" and describes Molmo as a family of open vision-language models, distinct from the text-only OLMo family. The page is datelined \"September 25, 2024\" under the Ai2 byline; that stated date is the release date recorded at day precision. Cited as the family's primary announcement and for its date.",
+    "publishedDate": "2024-09-25"
+  },
+  {
+    "id": "ai2-molmo-7b-d-model-card",
+    "url": "https://huggingface.co/allenai/Molmo-7B-D-0924",
+    "title": "Molmo-7B-D-0924 model card",
+    "type": "model-card",
+    "publisherId": "ai2",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "The model's own card. States \"Molmo is a family of open vision-language models developed by the Allen Institute for AI\" and \"This checkpoint is a preview of the Molmo release\", and its front-matter declares \"license: apache-2.0\" and \"pipeline_tag: image-text-to-text\". Cited for the Apache-2.0 licence name, the checkpoint-scoped preview lifecycle carried on the release (\"This checkpoint is a preview of the Molmo release\" describes this dated snapshot, not the family, so the family status is recorded as unknown), and the image+text-to-text modalities. The release date is not taken from the \"0924\" in the checkpoint id (a name is not a source); it is taken from the dated Ai2 announcement. States no exact context-length integer, so contextWindow is withheld."
+  },
+  {
+    "id": "stability-ai-svd-announcement",
+    "url": "https://stability.ai/news-updates/stable-video-diffusion-open-ai-video-model",
+    "title": "Introducing Stable Video Diffusion",
+    "type": "official-announcement",
+    "publisherId": "stability-ai",
+    "publishedDate": "2023-11-21",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Stability AI's own announcement, headlined \"Introducing Stable Video Diffusion\". The body states \"Today, we are releasing Stable Video Diffusion, our first foundation model for generative video based on the image model Stable Diffusion\" — a first-person release statement whose \"Today\" is anchored to the page's own publication date, 2023-11-21 (meta itemprop=\"datePublished\" content=\"2023-11-21T11:14:01+0000\"). The announcement frames the release as a research preview: \"Now available in research preview\" and \"we emphasize that this model is not intended for real-world or commercial applications at this stage\". Cited for the release date (the stated \"Today, we are releasing\", dated by the page) and for the research-preview framing at launch."
+  },
+  {
+    "id": "stability-ai-svd-xt-model-card",
+    "url": "https://huggingface.co/stabilityai/stable-video-diffusion-img2vid-xt",
+    "title": "stabilityai/stable-video-diffusion-img2vid-xt model card",
+    "type": "model-card",
+    "publisherId": "stability-ai",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Stability AI's own model card (creator namespace stabilityai/ on Hugging Face; the card is not gated). States \"Stable Video Diffusion (SVD) Image-to-Video is a diffusion model that takes in a still image as a conditioning frame, and generates a video from it\" and \"Model type: Generative image-to-video model\" — the image-in, video-out modalities recorded. Notes the model \"cannot be controlled through text\", distinguishing it from text-to-image Stable Diffusion. The card's front-matter declares license_name \"stable-video-diffusion-community\" with the LICENSE.md titled \"STABILITY AI COMMUNITY LICENSE AGREEMENT\"; the card body directs commercial users to https://stability.ai/license. Cited for the image-to-video modalities, the licence, and the open-weight access. States no exact parameter integer, so parameters are withheld."
+  },
+  {
+    "id": "nvidia-cosmos-announcement",
+    "url": "https://nvidianews.nvidia.com/news/nvidia-launches-cosmos-world-foundation-model-platform-to-accelerate-physical-ai-development",
+    "title": "NVIDIA Launches Cosmos World Foundation Model Platform",
+    "type": "official-announcement",
+    "publisherId": "nvidia",
+    "publishedDate": "2025-01-06",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "NVIDIA's own press release announcing \"NVIDIA Cosmos, a platform comprising state-of-the-art generative world foundation models\" for physical AI. States developers can \"download the family of models and fine-tuning framework from the NVIDIA NGC catalog or Hugging Face\" — the open-weight access recorded. The Cosmos platform is described as purpose-built for physical AI (robotics, autonomous vehicles), a distinct family from NVIDIA's Nemotron language models. The page carries its own publish date of January 6, 2025 and states the Cosmos models are \"now available under NVIDIA's open model license on Hugging Face\", dating the family's first release at day precision. Cited for the release date, the family's world-model purpose, and open-weight, downloadable status."
+  },
+  {
+    "id": "nvidia-cosmos-diffusion-7b-model-card",
+    "url": "https://huggingface.co/nvidia/Cosmos-1.0-Diffusion-7B-Text2World",
+    "title": "nvidia/Cosmos-1.0-Diffusion-7B-Text2World model card",
+    "type": "model-card",
+    "publisherId": "nvidia",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "NVIDIA's own model card (creator namespace nvidia/ on Hugging Face; the card is gated: the rendered card page is readable and its prose was verified, while /raw/ and /resolve/ return HTTP 401 for unauthenticated requests). The card carries the NVIDIA Open Model License Agreement, headed \"NVIDIA Open Model License Agreement\" (the document's own \"Version Release Date: January 6, 2025\" is the licence version date, not the model's release date, which is taken from the dated NVIDIA press release), and its grant clause permits commercial use (\"sell, offer for sale, distribute\"), with clause 2.4 stating \"NVIDIA owns the Model\". The model generates physics-aware video from a text prompt (Text2World). Cited for the licence name and the open-weight, NVIDIA-owned status. States no exact parameter integer in prose (only \"7B\" in the model name), so parameters are withheld."
   }
 ]
