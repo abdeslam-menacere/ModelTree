@@ -376,6 +376,29 @@ and for the same reason. An empty selection is not a licence to skip anything:
 it says only that no *pull-request* check reads what changed, and `web-ci` still
 reports on every pull request whatever the preflight selected.
 
+A **failing** check carries its own output, in both modes. In the default mode
+the child inherits the terminal and streams to it. Under `--json` it cannot —
+interleaving a transcript onto stdout would corrupt the document — so the
+combined stdout and stderr of the command that failed is attached to its entry
+in `results[].commands[]` as `output`, with `outputBytes` and `outputTruncated`
+beside it, and written to stderr as well so a reader needs no parser to see it.
+Only the last 64 KiB is kept, because a runner prints its failure summary last;
+when that bound bites, `outputTruncated` is true and the text says so, since an
+excerpt presented as the whole is its own kind of wrong answer. Nothing is
+attached to a command that passed, where the output is only noise.
+
+This closed [#663](https://github.com/abdeslam-menacere/ModelTree/issues/663).
+Before it, `--json` ran every child with `stdio: 'ignore'`, so a failure
+survived only as `"npm run test" exited 1` — an exit code and nothing else — and
+a flake, a real regression, a missing dependency and a typo in a script were
+byte-identical. The cost is measured rather than theoretical:
+[#517](https://github.com/abdeslam-menacere/ModelTree/issues/517) and
+[#720](https://github.com/abdeslam-menacere/ModelTree/issues/720) turned out to
+be one defect seen from two ends, and what made that visible was a report naming
+the failing test and the 5000 ms figure it timed out at instead of saying
+"flake". None of this touches the exit codes: capture changes what a failure
+says, never what it counts as.
+
 | Check | Run locally by the preflight as |
 |---|---|
 | `web-ci` | `npm run test`, `npm run check`, `npm run astro -- build`, from `web/` |
