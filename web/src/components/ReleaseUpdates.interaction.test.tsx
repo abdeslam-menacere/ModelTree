@@ -81,8 +81,19 @@ describe('the ledger a reader gets before any interaction', () => {
     const years = [...document.querySelectorAll('.updates-year-label')].map((n) => n.textContent);
     const months = [...document.querySelectorAll('.updates-month-label')].map((n) => n.textContent);
 
+    // The newest dated record's own month, derived rather than frozen. Pinning
+    // the literal month that happened to be newest when this was written made an
+    // ordinary dated addition to the ledger fail a test about heading structure,
+    // which is not what this is checking.
+    const newestDated = records.find((record) => record.date.length >= 7)!;
+    const [year, month] = newestDated.date.split('-');
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+
     expect(years).toEqual(['2026', '2025']);
-    expect(months[0]).toBe('August 2026');
+    expect(months[0]).toBe(`${monthNames[Number(month) - 1]} ${year}`);
     expect(new Set(months).size).toBe(months.length);
   });
 

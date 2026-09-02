@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { dataset as seedDataset } from '../data/dataset';
 import type { Dataset } from '../data/schema';
 import { validateDataset } from '../data/validate';
@@ -198,10 +198,29 @@ describe('the changelog is generated, not written', () => {
   it('reads no clock, so a rebuild of unchanged data changes nothing', () => {
     // A `Date.now()` in the render path would make every build differ from the
     // last and turn the determinism assertions above into tests of nothing.
-    // Asserting on the *text* catches it, because a build stamp would be printed.
-    const today = new Date().toISOString().slice(0, 10);
+    //
+    // Moving the clock tests that directly. The cheaper proxy this replaced —
+    // asserting today's date is absent from the text — was wrong in both
+    // directions, because every full ISO date this document prints is some
+    // record's `verifiedAt` rather than a stamp. It therefore failed on honest
+    // data whenever a record was verified today, which is the ordinary state on
+    // the day of a refresh and was true of the committed data on 2026-08-28,
+    // and it passed a build stamp minted on any other day.
+    vi.useFakeTimers();
+    try {
+      for (const day of ['2024-01-02T03:04:05Z', '2027-11-30T23:59:59Z']) {
+        vi.setSystemTime(new Date(day));
+        const rebuilt = buildUpdateIndex(seedDataset, '/');
 
-    expect(changelog).not.toContain(today);
+        expect(renderUpdatesChangelog({
+          feed: buildUpdateFeed(rebuilt, { updatesUrl: UPDATES_URL }),
+          records: rebuilt.records,
+        })).toBe(changelog);
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+
     expect(changelog).not.toMatch(/generated (on|at) \d/i);
   });
 
