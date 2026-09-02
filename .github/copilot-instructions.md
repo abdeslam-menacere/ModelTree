@@ -213,32 +213,546 @@ the first of its three commits, and read against that SHA its record looked
 strictly *worse* than trunk's, because everything that improved it sat in the
 two commits it did not name.
 
-**Establish whether your work has already landed, before you post.** Nothing
-inside a worktree changes when its branch merges into trunk, which makes the
-dock structurally the last party able to notice that it shipped; a summary that
-offers finished work for review buys a redundant gate cycle over a question
-trunk has already settled. From your worktree:
+**Establish that there is still a reason to open a gate, before you post.** A
+dock can be redundant in three structurally different ways. They fail
+independently, each has cost this repository whole cycles, and — the part that
+governs everything below — **no one of the three instruments can see the other
+two cases**:
 
-```bash
-git merge-tree --write-tree refs/remotes/origin/main HEAD
-git rev-parse 'refs/remotes/origin/main^{tree}'
+| # | how the dock is redundant | the only instrument that sees it |
+|---|---|---|
+| 1 | your branch already merged | the record, step 2 |
+| 2 | somebody closed your issue | issue state, step 0 |
+| 3 | somebody did your specific work, issue still open | content, step 4 |
+
+1. **Your branch already merged.** Nothing inside a worktree changes when its
+   branch merges into trunk, which makes the dock structurally the last party
+   able to notice that it shipped.
+2. **Somebody else's pull request resolved your issue.** Your branch genuinely
+   has *not* landed, so every branch-shaped comparison correctly says so and is
+   useless: the work is done and the issue is closed.
+3. **Somebody else did your specific work, and your issue is legitimately still
+   open.** Neither of the first two fires, and neither is wrong to stay silent:
+   the branch really is unmerged, the issue really is open. Only the content
+   answers it.
+
+Any of the three makes a summary offering finished work for review buy a
+redundant gate cycle over a question that is already settled.
+
+The second case is not a corner: the dock on abdeslam-menacere/ModelTree#682
+implemented it, then spent a second cycle refining it, on an issue that had been
+closed for over twenty-four hours — its work having shipped from a different
+branch entirely, as abdeslam-menacere/ModelTree#731. A flawless
+branch-landedness probe would have said "not landed" throughout and been right
+every time.
+
+The third is the one that survives both of the other checks, so it is worth
+seeing in full. The dock on abdeslam-menacere/ModelTree#689 implemented two
+model families, having first run the issue-state check and been cleared by it:
+
+```
+                     families   eleutherai            ibm
+merge-base f69ea888      64     [pythia]              [granite-4-2]
+dock tip   7ddbb27c      66     [pythia, gpt-neo]     [granite-4-2, granite-4-0]
+trunk      be72a5db      72     [pythia, gpt-neo]     [granite-4-2, granite-4-0]
 ```
 
-The quotes on the second line are load-bearing, and single quotes specifically:
-they are inert in bash and in PowerShell alike, so one written form is correct
-in both. Unquoted, a shell can rewrite the rev-spec before git sees it, and a
-rewritten rev-spec can still name a real object — so that failure reaches you as
-a well-formed OID rather than as an error. The general property, worth carrying
-past this one line: **an argument that literally contains `^`, `{`, `}`, `$`,
+Both families were already on trunk, added by somebody else, with the records
+byte-identical. Zero salvage after a full implementation cycle. The issue check
+passed because abdeslam-menacere/ModelTree#689 is an **umbrella** — "30 of 40
+creators are a single leaf" — which stays open by design until the last creator
+is done, and so says nothing whatever about any particular creator inside it.
+
+**Branch-level landedness is necessary and not sufficient, and that is the
+contract of this whole section.** `NOT LANDED` means one thing only: *this
+branch is not in trunk*. It does **not** mean the work still needs doing. A dock
+that reads it as licence to proceed has been handed exactly the reassurance that
+cost two docks a full cycle on the day this was written — and failing toward
+reassurance is the specific danger, the same one `web/scripts/run-tests.mjs`
+exists to name.
+
+**This repository squash merges, and that is the fact the whole procedure turns
+on.** A squash preserves your content and destroys your ancestry: trunk carries
+your work under a new commit that is neither your tip nor patch-equivalent to
+it, so your tip becomes a permanent non-ancestor of trunk. Every history-shaped
+probe therefore degrades toward "not landed" — silently, and in the direction
+nobody double-checks, because "not landed yet" is the expected answer for a
+dock that has just finished. Nine docks reported merged work as ready for
+review before this was written, and the last of them stood by for a review gate
+for forty hours on work that had merged before it began waiting
+(abdeslam-menacere/ModelTree#714).
+
+So this measurement has **six** verdicts, not two, and the ones it exists to
+have are the ones nobody thought to write down:
+
+| verdict | what it means | what you do |
+|---|---|---|
+| `ISSUE CLOSED` | the work is no longer wanted, whoever did it | stop, whatever the diff says; report who closed it and with what |
+| `LANDED` | trunk already carries **this branch** | report exactly that and stop; do not ask for a gate |
+| `PARTIALLY LANDED` | an earlier commit of yours merged, your newest did not | name which commits, and treat only the remainder as unlanded |
+| `SUPERSEDED` | trunk already asserts what your change adds, from somebody else's branch | stop; report what of yours is novel, which is often nothing |
+| `NOT LANDED` | this branch is not in trunk **and** trunk does not already assert what it adds | hand off to the review gate |
+| `UNDETERMINED` | the probe could not answer | say so, in that word; **never** round it to `NOT LANDED` |
+
+`NOT LANDED` is the only verdict with two conjuncts, and that is deliberate.
+Establishing the first alone is what every one of the failures on this page has
+in common. You may not issue it having run only step 2: it requires step 4 to
+have been reached and to have answered, and if step 4 could not answer then the
+verdict is `UNDETERMINED` and not `NOT LANDED`.
+
+**No instrument here subsumes another, and the tempting simplification is
+measurably false.** Content looks like the general answer — it is the only thing
+that sees case 3, and cases 1 and 2 both leave content on trunk. It fails at
+both. Against case 1, on the known-landed control whose work is *wholly* on
+trunk, `utf16` — a phrase straight off that branch — greps **absent** at exit 1
+while `new TextEncoder().encode(` from the same diff is present, because trunk
+edited the work after absorbing it; only the record answers that. Against case 2
+it cannot answer in principle: an issue closed `NOT_PLANNED` with nothing merged
+leaves content absent and the branch unmerged, both instruments truthfully
+saying "keep working" about work nobody wants. Three cases, three instruments,
+and the cost of collapsing them is a cycle each.
+
+`UNDETERMINED` is not a politer spelling of `NOT LANDED`. The gate scripts hold
+that **exit 2 is never a pass**; this is that rule with the sign flipped — a
+probe that could not run has not established unlandedness either, and
+collapsing the two is what turned each of those nine runs into a confident
+wrong answer instead of a visible failure.
+
+Work the steps in order. Stop at the first one that yields a verdict — with the
+single exception the table already states: `NOT LANDED` is not available before
+step 4, so an empty result at step 2 sends you on rather than ending the
+procedure. Every other verdict, including `UNDETERMINED`, stops it where it is
+found. Step 3 is not optional and not a formality: it is the step that decides
+whether the later ones are readable at all, and the anchor section that follows
+it governs both of the steps that compare against trunk.
+
+### Step 0 — is the work still wanted?
+
+The cheapest call in the whole procedure, and the one that dominates every
+other: a closed issue means stop, whatever the trees, the blobs and the record
+say about your branch.
+
+```powershell
+gh issue view <n> --json state,stateReason,closedAt; $cIssue = $LASTEXITCODE
+```
+
+- `CLOSED` ⇒ `ISSUE CLOSED`. Stop. Find out **who** closed it and with which
+  pull request or commit, and say in your summary whether anything of your work
+  survives in what landed — that is what the next reader needs, and it is not
+  answerable from your worktree alone.
+- `OPEN` ⇒ carry on to step 1. **This is not a result.** It is the absence of
+  one, and it is the weakest reading in the procedure.
+- `gh` failing, unauthenticated or offline ⇒ `UNDETERMINED`. Read the exit code;
+  an empty string from a failed call is not an empty result.
+
+**`OPEN` never clears you, and the way it fails is worth knowing before you lean
+on it.** An issue open by design tells you nothing about any particular piece of
+work inside it. Umbrella issues are the clean example — a tracking issue like
+"30 of 40 creators are a single leaf" stays open until the last creator is done,
+so it reads `OPEN` throughout, including for every creator already finished. The
+dock on abdeslam-menacere/ModelTree#689 ran exactly this check, was cleared by
+it, and implemented two families that were already on trunk. The check was not
+skipped and it did not malfunction: it answered the question it was asked, which
+was not the question the dock needed answered. Only step 4 asks that one.
+
+`stateReason` is worth recording but is not load-bearing for the stop decision:
+treat any `CLOSED` as `ISSUE CLOSED`, `NOT_PLANNED` included, since an issue
+somebody deliberately closed is not one to keep working. Note also that the
+field can read `REOPENED`, as abdeslam-menacere/ModelTree#689 does — issue state
+is not monotonic, so a check that passed earlier in your session is not still
+valid now. Ask again at the end.
+
+Ask this first for a reason that is the whole thesis of this section. **It is a
+network call, so it is immune to the frozen-anchor problem** that every other
+instrument here inherits. A dock's `refs/remotes/origin/main` is pinned near its
+merge-base and is structurally blind to anything that landed afterwards, so
+every git-based check it runs is blind in the same way — including the ones that
+pass. An issue-state query resolves against live GitHub and cannot go stale like
+that. It is also the cheapest thing you can run, which means there is no
+argument for deferring it.
+
+### Step 1 — count your own commits before probing anything
+
+```powershell
+$trunk = git rev-parse 'refs/remotes/origin/main'; $cTrunk = $LASTEXITCODE
+$base  = git merge-base HEAD $trunk;               $cBase  = $LASTEXITCODE
+$mine  = git rev-list --count "$base..HEAD";       $cMine  = $LASTEXITCODE
+```
+
+Each call gets its own status variable because each is separately capable of
+failing, and a single reused `$code` records only the last one — the same
+collapse this section warns about everywhere else, in the one place it would be
+easiest to excuse. Any of the three non-zero ⇒ `UNDETERMINED`.
+
+A branch carrying **zero** commits of its own has nothing that could be missing
+from trunk, so every content-shaped probe below reports `LANDED` about it —
+vacuously, and with output indistinguishable from a real positive. Measured on
+such a branch here: `merge-tree` exited 0 and printed trunk's own tree, exactly
+as it does for genuinely landed work. Take the count first, so you cannot read
+that as a result.
+
+### Step 2 — the record, not the trees
+
+This is the reading that works for case 1, it is one API call, and it is the
+question a finishing dock actually has about its own branch. A tree probe
+answers *"is this content on trunk?"*; the record answers *"was this branch
+already merged?"*, and the second is the one being asked. Ask it before any tree
+arithmetic. Like step 0 it goes to the network, so it too is free of the
+frozen-anchor problem.
+
+```powershell
+$branch = git rev-parse --abbrev-ref HEAD; $cBranch = $LASTEXITCODE
+$tip    = git rev-parse HEAD;              $cTip    = $LASTEXITCODE
+gh pr list --state all --head $branch --json number,state,mergedAt,headRefOid
+```
+
+Read it this way, checking the exit code of every call and never inferring a
+failure from empty output:
+
+- A `MERGED` pull request whose `headRefOid` sits in your history with
+  `git rev-list --count "$headRefOid..$tip"` returning **0** ⇒ `LANDED`. Under
+  squash-merge that is decisive regardless of ancestry, trees or blobs, and it
+  resolved every case tree equality could not answer.
+- The same with a count **above** 0 ⇒ `PARTIALLY LANDED`. The commits after
+  `headRefOid` are the only unlanded part; name them.
+- An empty list with `gh` exiting **0** ⇒ no record *for that head name*. This
+  is **not a verdict**: it settles only that your branch did not merge, which is
+  one of the three ways you can be redundant. A branch renamed after its pull
+  request was opened also hides its own record, so query the old name too before
+  relying on the silence. Either way you continue to step 4, which is the step
+  that can turn this into `NOT LANDED` or into `SUPERSEDED`.
+- `gh` failing, unauthenticated or offline ⇒ `UNDETERMINED`. An empty string
+  from a command that failed is not an empty result, which is why the exit code
+  is read rather than the output.
+
+Two identifiers appear here and they are not interchangeable. `headRefOid` is
+the tip of the branch the pull request was opened from; the commit that carries
+the work on trunk is the squash, with a different SHA and a different tree.
+Measured on the pull request that closed abdeslam-menacere/ModelTree#682: head
+ref `25a3cdbe10f89014f5d618daeaa98de0be6ec033`, trunk commit
+`79de43cf6ac31cceb0e783daff02ae05ae8dd0ed`. Both are real, both resolve, and
+they answer different questions — compare your tip against the former.
+
+**Quote every rev-spec, and never leave one bare.** Unquoted, a shell can
+rewrite the rev-spec before git sees it, and a rewritten rev-spec can still name
+a real object, so that failure reaches you as a well-formed answer rather than
+as an error. The general property, worth carrying past this
+one line: **an argument that literally contains `^`, `{`, `}`, `$`,
 `@`, `<`, `>`, or a backtick is shell-dependent and must be single-quoted**; a
 placeholder you substitute before running is not yet an argument. Sweeping for
 known-bad commands finds instances, and only the property finds the class.
 
-Capture the **exit code** of the first command. It is not decoration, it is the
-whole of the discrimination, and reading stdout without it is the one way this
-probe fails while looking like it worked. `merge-tree` prints a tree OID when
-the merge is clean *and equally when it conflicts* — in the conflicted case it
-writes conflict markers into the blobs and prints the OID of the tree holding
+Single quotes are for a *literal* rev-spec, and they are the right default
+because they are inert in bash and in PowerShell alike, so one written form is
+correct in both. Where the rev-spec has to interpolate a variable — most of the
+commands on this page do — single quotes would defeat the interpolation, so
+double-quote it there. What is never acceptable is bare.
+
+A rev-*range* belongs to that class too, even though `.` is not in the list
+above, and it fails without erring. Measured here against trunk pinned at
+`be72a5db1b4405940674a8beb4076e2ad4e2c06d`, one range written two ways:
+
+```
+$tip = d18a7309aec5da5820d9d9a68f140e1e7a5eb357
+
+git rev-list --count $tip..refs/remotes/origin/main     exit 0  ->  4
+git rev-list --count "$tip..refs/remotes/origin/main"   exit 0  ->  30
+```
+
+PowerShell splits the bare form into two arguments — the tip, and a separate
+`..refs/remotes/origin/main` — so git is handed a different question and
+answers that one successfully. Both forms exit 0, neither prints a warning, and
+nothing in the output says which question was answered. Widening the
+enumeration itself to cover this belongs to
+abdeslam-menacere/ModelTree#652, which argues that the enumeration rather than
+any single command is the unit needing repair; this note exists so that nobody
+reading the list concludes a range is safe bare while that is still open.
+
+### Step 3 — controls, fixed before any real result is read
+
+Write every expected classification down, then evaluate them all, and only if
+each came back as written classify your own branch.
+
+- **Must classify `ISSUE CLOSED`:** abdeslam-menacere/ModelTree#682, closed
+  `2026-09-01T04:31:23Z` with a branch that never merged. It is a clean case-2
+  fixture, and on its own it discriminates case 2 from case 1: a probe that only
+  compares branches to trunk classifies it `NOT LANDED`, correctly and uselessly.
+- **Must classify issue-open:** an issue you have confirmed open in the same
+  run. abdeslam-menacere/ModelTree#652, abdeslam-menacere/ModelTree#688,
+  abdeslam-menacere/ModelTree#703 and abdeslam-menacere/ModelTree#709 were all
+  open when this was written; re-verify rather than trusting the list, and do
+  **not** use the issue you are working on — if that one is closed the control
+  has not failed, it has just delivered your verdict, which is not what a
+  control is for.
+- **Must classify `LANDED`:** branch `abdeslam-menacere-picker-index-budget-stopping-rule`
+  at `84f3ae208b8854b0935b9888aff5e914d167a7c1`, merged as pull request
+  abdeslam-menacere/ModelTree#673 at exactly that tip. A second, if you want the
+  mechanism exercised twice: `abdeslam-menacere-compare-page-weight-guard-utf16-bytes`
+  at `d18a7309aec5da5820d9d9a68f140e1e7a5eb357`, merged as
+  abdeslam-menacere/ModelTree#715.
+- **Must classify anything except `LANDED`:** your own branch name with a suffix
+  that cannot exist. It is derived rather than hard-coded, so it never goes
+  stale and never needs maintaining.
+- **Must classify `SUPERSEDED`:** branch
+  `abdeslam-menacere-long-tail-breadth-re-bundle` at
+  `7ddbb27c0d16334416cff6c9757cca39a0cb7ae5`. Its issue,
+  abdeslam-menacere/ModelTree#689, is open; its branch never merged;
+  `merge-tree` against trunk exits 1 on all three data files; and both entities
+  it adds, `eleutherai-gpt-neo` and `ibm-granite-4-0`, are already on trunk. It
+  is the only control here that a branch-shaped probe gets *wrong while
+  answering correctly*, which is exactly the property to pin: a procedure that
+  reports "not landed, issue open" on this input has said something true and
+  useless, and would have cleared a dock that then spent a full cycle
+  reimplementing work already shipped.
+- **Must detect difference:** run your comparison, in the same invocation with
+  the same quoting and the same arguments, on a pair known to differ, and assert
+  the result is non-empty:
+
+  ```
+  git diff --stat <a-merged-tip> <trunk>   ->  94 files changed, 15718 insertions(+), 1990 deletions(-)
+  ```
+
+  This is the one that catches an instrument which has gone uniformly blind, and
+  neither of the branch controls can catch it alone.
+
+The first two guard step 0, the next two guard step 2, the fifth guards step 4,
+and the last guards every comparison in steps 4 and 5 — one per instrument,
+because the three failure cases are independent and a control for one says
+nothing about the others. That mapping is the point: if you find yourself with
+fewer controls than instruments, one of your instruments is unguarded, and it
+will be the one that fails.
+
+A one-sided control cannot catch a probe that answers "not landed" to
+everything, which is precisely the failure being guarded against. The dock at
+abdeslam-menacere/ModelTree#650 carried controls on its comparison, every one
+of them held, and the comparison was still fed the wrong input: controls on a
+comparison cannot catch a wrong input to the comparison, while controls on the
+*verdict*, in both directions, can.
+
+The difference control exists because even a two-sided one can pass while
+testing nothing. If the file your comparison reads is one your branch never
+touched, it
+is byte-identical on trunk **whether or not the work landed** — so the
+comparison returns "same" for a reason unrelated to the question, and the
+known-landed side duly classifies as landed, for the wrong reason. Measured on
+the `LANDED` control above, which touched exactly one file:
+
+```
+84f3ae20 touched:  web/src/lib/comparison.test.ts
+
+README.md              tip 915b0166   trunk 915b0166   identical
+web/astro.config.mjs   tip 59b3fc4d   trunk 59b3fc4d   identical
+```
+
+Both are identical across a landed pair and would be identical across an
+unlanded one, so a probe reading either learns nothing while appearing to
+confirm. Asserting the comparison can see difference *at all*, on that pair, in
+that invocation, is what makes "identical for precisely the path I touched"
+carry information.
+
+**The general rule, and it reaches well past this probe: a negative result is a
+claim, and a claim needs a control that would have come back positive.** "Not
+landed", "no difference", "no existing issue", "no matching file", "no such
+label" are all negatives produced by instruments that fail silently toward
+exactly that answer — a wrong path, a mangled rev-spec, an empty result read as
+equality, an unauthenticated call. Each needs a companion case that must come
+back positive, run the same way in the same invocation. A probe that cannot
+demonstrate it would have noticed the opposite has not measured anything.
+
+Say plainly what each control proves. The landed side is a real squash-merged
+branch and exercises the whole mechanism. The unlanded side is fabricated,
+because this repository has no stable counter-example to name — measured over
+the last 60 closed pull requests, every one of them was merged — so it proves
+only that the classifier does not answer `LANDED` unconditionally. The
+difference control proves the comparison is live, and nothing about
+landedness. If any control cannot be evaluated, the run is `UNDETERMINED` and
+you do not read your own result at all.
+
+### The trunk anchor, before steps 4 and 5
+
+Steps 4 and 5 both compare against trunk, so both inherit whatever is wrong with
+your trunk ref. `refs/remotes/origin/main` is a local cache that moves only when
+something fetches, so inside a dock it is frozen by construction and can be
+arbitrarily old. **Establish that your anchor is current, and if you cannot,
+say so rather than answering against it.**
+
+The reason this matters is that staleness does not degrade the answer evenly —
+it is safe in one direction and silently fatal in the other. Trunk only moves
+forward, so if your work is contained in a trunk that is an *ancestor* of the
+current one, it is still contained now; that inference is sound and you can rely
+on it. But the converse does not hold at all. Work absent from a stale anchor
+may simply have merged in the window that anchor cannot see, and the probe
+reports that absence with a clean exit 0 and nothing to flag it.
+
+Measured here, one merged branch judged at two anchors, where
+`f69ea8882a9c66ae339238a2d35248e21e603803` is an ancestor of
+`be72a5db1b4405940674a8beb4076e2ad4e2c06d` (`--is-ancestor` exit 0):
+
+```
+84f3ae20  merged 08-31 07:52, before the old anchor
+  vs old anchor f69ea888   merge-tree exit 0, tree EQUAL       -> LANDED       correct
+  vs current    be72a5db   merge-tree exit 1                   -> UNDETERMINED safe
+
+d18a7309  merged 09-01 00:16, AFTER the old anchor
+  vs old anchor f69ea888   merge-tree exit 0, trees DIFFER     -> NOT LANDED   WRONG
+```
+
+The last line is the nine-dock failure reproduced deliberately: a wholly merged
+branch reading `NOT LANDED`, at exit 0, with no conflict and no error, purely
+because the anchor predates its merge. Note also that the fresher anchor gives
+the *less* useful answer on the first branch — freshness is not simply better,
+which is why the rule is to establish what your anchor is rather than to assume
+a fetch settled it.
+
+So: resolve trunk once into a variable, record which SHA you used, and check it.
+If you can reach the network, `git ls-remote origin main` gives the real tip to
+compare against. If you cannot, you may still conclude `LANDED` from an anchor
+you have shown to be an ancestor of something newer, by the monotonicity above —
+but you may **not** conclude `NOT LANDED` from a stale anchor at all. That
+reading is `UNDETERMINED`, and steps 0 and 2, which ask GitHub directly and
+so have no anchor to be stale, are how you resolve it.
+
+### Step 4 — content, the only step that sees somebody else's work
+
+Never skippable, and the reason is the contract above: steps 0 and 2 between
+them establish that your issue is open and your branch is unmerged, and both of
+those are true of a dock whose work somebody else has already shipped. This is
+the step that tells the two apart, and it is the only one that can. It asks a
+different question from every other step on this page — not *did my branch
+land*, but **does trunk already assert what my change asserts**, from whatever
+branch and whoever's hand.
+
+Ask what the change *asserts* should now be true of trunk, and check it with a
+negative control so that an empty read cannot pass as a match:
+
+```powershell
+git --no-pager grep -c -F 'a phrase from your newest commit' $trunk
+```
+
+`git grep` exits 0 on a match, 1 on no match, and 2 or above on an error, so
+truth-testing it collapses "found nothing" into "could not look" — the same
+class as abdeslam-menacere/ModelTree#609. Read the code: 0 present, 1 absent,
+anything else `UNDETERMINED`.
+
+Then read the result against the two questions, not one:
+
+- Present, and absent at the merge-base ⇒ trunk asserts it and your branch did
+  not put it there. With step 2 silent that is `SUPERSEDED`. Find out which
+  pull request did, and report what of yours is novel — frequently nothing.
+- Absent, with the positive and negative controls both behaving ⇒ this is the
+  second conjunct of `NOT LANDED`, and only now may you issue that verdict.
+- Absent with the positive control also absent, or `grep` exiting 2 or above ⇒
+  `UNDETERMINED`.
+
+**Choosing the marker is the part that goes wrong, and there is one test for
+it: a marker is only usable if you can state what its absence would rule out.**
+Say what absence would prove before you search, and if the answer is "nothing",
+you have not got a marker. The same string can pass this test in one place and
+fail it in another, which is why the test is about the pairing and not the
+string. In trunk's *source*, the absence of `tier-source-count` rules the change
+out — it greps present tree-wide on trunk at exit 0, and could not if the work
+were missing. On a *rendered page*, the absence of the same string rules nothing
+out, because it has two incompatible explanations — not deployed, or deployed
+and correctly quiet — and an instrument that cannot distinguish those is not
+measuring anything. This is the negative-result rule above applied one step
+earlier: that one asks whether your control would have come back positive, this
+one asks whether your marker could have come back negative.
+
+**Search the whole tree first and narrow afterwards.** Adding `-- <path>` is an
+optimisation, not a starting point, and reaching for it first means guessing
+which files hold your marker — the guess is usually a subset, and a subset
+manufactures exactly the false "absent" this step exists to prevent. Measured on
+trunk: `line.sources` lives in **two** files,
+`web/src/components/LineageExplorer.tsx` and
+`tools/updater/tests/test_pilot_profiles.py`, so even a careful guess naming the
+component alone is incomplete.
+
+**Then read the context of every hit before calling it anything.** A surviving
+match is not a defect and not a survival until you have looked at it. Both
+remaining hits for `entry.official.sources[0]` on trunk are test fixtures rather
+than production code — `web/src/lib/passport.test.ts` asserts that a quote
+differs from a summary, and `web/src/lib/variant-positioning.test.ts` spreads
+the first source to construct a case — so a probe reporting "still present"
+about them would be reporting a defect that does not exist. Absent-versus-present
+is the cheap half of the reading; which of them the match actually supports is
+the half that needs eyes.
+
+**`git grep` reads blob contents and never path names, which matters most to
+exactly the change most likely to be duplicated: one that adds a file.** A dock
+probing for its new file by name gets "absent" while the file sits on trunk.
+Measured here:
+
+```
+git cat-file -e 'refs/remotes/origin/main:web/src/data/date-basis-policy.test.ts'   exit 0   EXISTS
+git grep -c -F 'date-basis-policy' 'refs/remotes/origin/main' -- 'web/src/data/'    exit 1   "absent"
+```
+
+The file is on trunk and the content probe says it is not, at exit 1 — a clean
+"no match", indistinguishable from a real absence. It fails toward "absent",
+which is to say toward `NOT LANDED`, which is to say toward reassurance, in the
+direction everything else on this page fails. For a path your change adds, test
+the path with `git cat-file -e` (0 present, non-zero absent — a path that cannot
+exist exits 128) or `git ls-tree`, and keep `grep` for what it can actually see.
+
+Take the probe string from the branch's **newest** commit, or you prove
+something about round one and nothing about round two. Take it narrow. A string
+that is distinctive but over-specific produces a false negative in the same
+direction as everything else on this page: measured on the known-landed control
+above, whose work is wholly on trunk, the exact expression that branch added is
+**absent**, because trunk later renamed one identifier inside it — while the
+distinctive fragment `new TextEncoder().encode(` is present and the form the
+change removed is gone. An absent positive control is `UNDETERMINED` until you
+have checked whether the phrase itself was edited afterwards.
+
+For a dataset change, the assertion is an entity id and the probe is exact.
+`eleutherai-gpt-neo` greps present on trunk across
+`web/src/data/families.json`, `web/src/data/releases.json`,
+`web/src/data/sources.json` and `web/src/data/refresh-runs.json`, while
+`zzz-not-a-real-creator-id` exits 1 in the same invocation — one query, run
+before the first commit, that would have saved a full implementation cycle.
+
+Step 3's difference control has a specific form here, and it is the one this
+probe most needs. A phrase that was already on trunk *before* your branch
+existed matches whether or not your work landed, so a match proves nothing —
+the content equivalent of comparing a file you never touched. Before trusting a
+match, establish that the phrase is yours: grep for it at the merge-base, where
+it must be **absent**, in the same invocation with the same quoting. A phrase
+present at the merge-base is not a probe, it is a constant.
+
+Step 3's difference control has a specific form here, and it is the one this
+probe most needs. A phrase that was already on trunk *before* your branch
+existed matches whether or not your work landed, so a match proves nothing —
+the content equivalent of comparing a file you never touched. Before trusting a
+match, establish that the phrase is yours: grep for it at the merge-base, where
+it must be **absent**, in the same invocation with the same quoting. A phrase
+present at the merge-base is not a probe, it is a constant.
+
+### Step 5 — tree arithmetic, corroboration only and never the verdict
+
+Only after the steps above, and never as the thing you report. Fetch, then
+**resolve the trunk SHA once into a variable and use that variable for every
+subsequent command in the measurement.** Never resolve
+`refs/remotes/origin/main` twice in one measurement and assume the two agree:
+it is shared mutable state across every worktree in this setup, so it moves
+when another session fetches, and a comparison whose halves were taken against
+two different trunks is not a comparison
+(abdeslam-menacere/ModelTree#703). Whether that one resolved SHA is *current*
+is the separate question the anchor section above governs; fetching does not
+settle it, and a `NOT LANDED` read against an anchor you have not checked is
+`UNDETERMINED`.
+
+```bash
+git fetch origin main
+trunk=$(git rev-parse 'refs/remotes/origin/main')
+git merge-tree --write-tree "$trunk" HEAD
+git rev-parse "$trunk^{tree}"
+```
+
+Capture the **exit code** of that merge-tree call. It is not decoration, it is
+the whole of the discrimination, and reading stdout without it is the one way
+this probe fails while looking like it worked. `merge-tree` prints a tree OID
+when the merge is clean *and equally when it conflicts* — in the conflicted case
+it writes conflict markers into the blobs and prints the OID of the tree holding
 them, exiting non-zero. Since a tree carrying markers can never equal trunk's,
 reading the OID alone makes every conflict report "unlanded". That is not
 hypothetical: it was hit while adjudicating abdeslam-menacere/ModelTree#584,
@@ -263,14 +777,15 @@ merge into trunk is clean and whose true exit code is therefore 0:
 
 | invocation | `$LASTEXITCODE` | |
 |---|---|---|
-| `git merge-tree --write-tree refs/remotes/origin/main HEAD`, captured to a variable | 0 | the truth |
+| `git merge-tree --write-tree "$trunk" HEAD`, captured to a variable | 0 | the truth |
 | the same, piped into `Select-Object -First 1` | -1 | corrupted |
 | `git rev-parse HEAD`, piped into `Select-Object -First 1` | -1 | corrupted: one line printed, one line asked for |
 | `node --version` and `npm.cmd --version`, piped the same way | -1 | so this is the shell's doing, not git's |
 | `git rev-parse --verify nosuchref_zzz` | 128 | control: a genuine failure keeps its own value |
 
 Because -1 is non-zero, a corrupted read sends a clean merge down the non-zero
-branch below and reports landed work as unlanded. That is the safe direction,
+branch below, where it becomes `UNDETERMINED` — and a run that then rounds that
+to `NOT LANDED` reports landed work as unlanded. That is the safe direction,
 which is exactly why it survives: it manufactures a redundant gate cycle rather
 than a visibly wrong claim. It is not hypothetical — it was hit while verifying
 that abdeslam-menacere/ModelTree#731 had landed, in a report that printed two
@@ -281,11 +796,11 @@ the command is shared, the variable carrying its status is not. Capture, then
 read on the next statement, and only then slice.
 
 ```bash
-out=$(git merge-tree --write-tree refs/remotes/origin/main HEAD); code=$?
+out=$(git merge-tree --write-tree "$trunk" HEAD); code=$?
 ```
 
 ```powershell
-$out = git merge-tree --write-tree refs/remotes/origin/main HEAD; $code = $LASTEXITCODE
+$out = git merge-tree --write-tree $trunk HEAD; $code = $LASTEXITCODE
 ```
 
 Slice the variable, never the command: in PowerShell the first line is
@@ -319,31 +834,136 @@ those three values has no branch for what it just got. That is precisely the
 failure the gates exist to prevent, in that document's own words: a broken
 checker reading as a green one.
 
-So there are three readings, not two. Exit zero with the printed OID equal to
-trunk's tree: merging your branch into trunk would change trunk in no way, so
-your work is already there. Exit zero with a different OID: it is not. Non-zero:
-fall back to the paths themselves, comparing every path your branch changed
-against trunk with `git rev-parse <ref>:<path>` on each side, since identical
-blob OIDs across all of them are that same finding reached without the
-conflicted tree. Any of the three is only as current as
-`refs/remotes/origin/main`, which moves when something fetches and not
-otherwise; a stale ref errs toward "not landed", which is the safe direction to
-err in.
+So the printed tree is readable in exactly one case, and the exit code decides
+which case you are in before stdout is touched at all.
 
-`git merge-base --is-ancestor` and `git cherry` answer a different question and
-will mislead you here. Both reason about commits, and this repository squash
-merges: trunk carries your content under a new commit that is neither your tip
-nor patch-equivalent to anything you wrote, so both report "not merged" about
-work that is wholly present on trunk. Content is what is being asked about, and
-the tree comparison above is what asks about content.
+**Exit 0 with the printed OID equal to trunk's tree.** Merging your branch into
+trunk would change trunk in no way, so your work is already there — `LANDED`,
+subject to step 1's count, because a branch carrying nothing produces this same
+output.
 
-If the probe says you have landed, report exactly that — the SHA, the count, and
-the comparison that establishes it — and stop there. Do not post a
-ready-for-review summary. If it says you have not, you have spent two commands
-and two lines and everything below applies unchanged. This is the general form
-stated near the top of this file, moved from invocation to status: an
-instruction that names a probe must not predict the probe's result, and a
-summary must not either.
+**Exit 0 with a different OID.** Trunk does not carry it. That corroborates
+`NOT LANDED`; report it alongside step 2's record rather than instead of it.
+
+**Any non-zero exit ⇒ `UNDETERMINED`.** Do not compare the tree, do not print
+its OID, and do not diff it. A conflicted tree holds conflict markers, so it
+can never equal trunk's and diffing it presents those markers as though they
+were the merge result. Report the `CONFLICT` paths instead, which are stable
+and actionable, and never key a cache, a dedup or a cross-run identity on a
+`merge-tree` OID unless the exit was 0.
+
+Measured against the same pinned trunk
+`be72a5db1b4405940674a8beb4076e2ad4e2c06d`, on two branches that had each squash
+merged at their exact tips and are wholly present on it:
+
+```
+d18a7309  merged as PR 715   merge-tree exit 1   CONFLICT: web/src/lib/comparison.ts, comparison.test.ts
+bf5abd4d  merged as PR 671   merge-tree exit 1   CONFLICT: web/src/data/sources.json
+```
+
+Neither conflict says anything about landedness. Trunk absorbed each change and
+then evolved the same files, so what conflicts is the branch against its own
+descendant — not against a rival change. Any structural probe compares the
+branch to a trunk that has moved past it, which is why all of them read later
+work as absence.
+
+**The per-path blob fallback this section used to prescribe has been withdrawn,
+not softened.** It said to compare every path your branch changed against trunk
+with `git rev-parse <ref>:<path>` on each side and to read identical OIDs as
+the same finding reached without the conflicted tree. It is broken two
+independent ways, both of which return "differ", so it can only ever produce
+one answer and cannot deliver the verdict it was added to deliver. A dock
+following it exactly, with a clean transcript and no error visible, concludes
+"genuinely unmerged" about merged work.
+
+First, on a path missing from one side it exits 128 and prints the rev-spec
+back **on stdout** — non-empty, stable, different per path, and opening with a
+real 40-character SHA, so a caller testing for emptiness or reading a prefix
+accepts it as an OID:
+
+```
+git rev-parse 'ed835b86827b524107328e79b28e00d1eddeaf4f:web/src/data/does-not-exist.json'
+
+stderr:  fatal: path 'web/src/data/does-not-exist.json' does not exist in 'ed835b86...'
+stdout:  ed835b86827b524107328e79b28e00d1eddeaf4f:web/src/data/does-not-exist.json
+exit:    128
+```
+
+A path missing from trunk is the *normal* case here, not an exotic one: any
+branch that adds a file has one, so the rescue is least reliable exactly where
+it gets invoked.
+
+Second, differing blobs do not mean absent work. On the known-landed control
+above, both calls exit 0 and the OIDs still differ, because trunk evolved those
+files after absorbing the change:
+
+```
+web/src/lib/comparison.ts        tip e1e7195a   trunk 767bccc8   differ
+web/src/lib/comparison.test.ts   tip 734c225e   trunk 51cccbf2   differ
+```
+
+At scale that second break produces something worse than a wrong answer, which
+is a *plausible* one. Measured on the branch for
+abdeslam-menacere/ModelTree#650, whose work is on trunk and whose issue closed
+`COMPLETED` on 2026-08-31:
+
+```
+tip bd56e242   merge-base 356989e9
+merge-tree --write-tree <trunk> <tip>      exit 1   inconclusive, so the fallback is invoked
+11 changed paths:   identical 5   differ 6
+```
+
+Read by the withdrawn rule that is `NOT LANDED`, and the six differing files are
+simply the ones trunk edited after absorbing the squash. Note what the split
+invites: an all-differ result at least looks like a definite answer, whereas
+five-identical-six-differ tempts a reader to average it into `PARTIALLY LANDED`
+— a third wrong answer, about a branch that is wholly present. The two prescribed
+methods here, primary and fallback, fail on the same input class, so a dock
+doing the documented thing after an inconclusive first probe is misled twice in
+a row. That is why the fallback is gone rather than annotated, and it is the
+strongest evidence for the position in abdeslam-menacere/ModelTree#652 that the
+unit needing repair is the section rather than any one command.
+
+### Ancestry is not a probe here
+
+`git merge-base --is-ancestor`, `git branch --merged` and `git cherry` answer a
+different question, and under squash-merge they answer it wrongly by
+construction rather than by accident. Trunk carries your content under a commit
+that is neither your tip nor patch-equivalent to anything you wrote. Measured
+against the pinned trunk above, `--is-ancestor` returned 1 — not an ancestor —
+for every landed branch tested, single-commit and multi-commit alike.
+
+`git cherry` earns its own sentence, because it is the trap-shaped one. It
+compares patch ids, so a **single-commit** branch squashed unchanged still
+matches and it correctly prints `-`: measured on `d18a7309` and `bf5abd4d`,
+which carry one commit each. As soon
+as a branch carries more than one commit there is no individual patch left to
+match, and it prints `+` for every commit of wholly landed work — measured on
+three merged branches of three, four and four commits. So it is right on
+exactly the branch shape somebody would first test it on and wrong on the rest,
+which is worse than being uniformly wrong, because the check that would
+establish trust in it is the one case it passes. Content is what is being asked
+about, and the record in step 2 is what answers it.
+
+If the probe says `ISSUE CLOSED`, report that first and stop: name who closed
+it and with which pull request, and say what of your work survives in what
+landed. Do not open a gate on a closed issue, and do not let a `NOT LANDED`
+reading on your branch talk you out of it — under case 2 that reading is
+correct and beside the point. If the probe says you have landed, report exactly
+that — the SHA, the count,
+and the evidence that establishes it — and stop there. Do not post a
+ready-for-review summary. If it says `PARTIALLY LANDED`, name the commits that
+landed and the ones that did not. If it says `SUPERSEDED`, name the pull request
+that got there first and state what of your change is novel against it; where
+the honest answer is nothing, that is the finding, and it is worth more to the
+next reader than a gate cycle would have been. If it could not determine, write
+`UNDETERMINED` in that word, say which step refused and why, and do not round it
+to either answer. Only if it says `NOT LANDED` — both conjuncts, the record
+silent *and* step 4 having positively established that trunk does not already
+assert what you add — does everything below apply
+unchanged. This is the general form stated near the top of this file, moved
+from invocation to status: an instruction that names a probe must not predict
+the probe's result, and a summary must not either.
 
 Then stop and hand off to the review gate. Whether that gate is run by a human
 or by a reviewer agent is set by this repo's configuration; either way it is not
