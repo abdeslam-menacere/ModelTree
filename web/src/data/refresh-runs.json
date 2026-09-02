@@ -1,5 +1,289 @@
 [
   {
+    "id": "2026-09-01-c3f81a",
+    "title": "Long-tail depth 2026-09-01 — Cohere, TII, NVIDIA",
+    "ranOn": "2026-09-01",
+    "outcome": "published",
+    "summary": "Researched a second model family for three creators that each hold exactly one — Cohere, TII and NVIDIA — and published one of the three. Fourteen claims were proposed across three bundles, all of kind add, carrying 44 evidence entries; every quote was machine-checked as a contiguous verbatim substring of the exact bytes its contentHash names, with positive and negative controls on the harness, and all 44 passed. The panel accepted eleven claims unanimously and blocked three, and the three blocks are what decided the run. The provenance rubric rejected the Falcon 3 release because its inputModalities and outputModalities were mapped to text from no quote at all: the card states no modality anywhere, so there was nothing to transcribe and the remedy of attaching a quote does not exist for that page. The editorial rubric rejected the Cohere model card and the Cohere release on entity attribution, holding that tools/updater/profiles/origins/cohere.json records huggingface.co/CohereLabs in deferred_origins as not approved, that resolving whether that org is Cohere's own voice is a human catalogue decision, and that this run did not take it. Because releaseSchema requires both modality fields and accessType with no unknown member, neither rejection could be repaired by dropping an optional field. Each rejection removed the creator's only release, which would have left an empty family that validateDataset refuses, so Cohere and TII were withheld whole — seven further claims that the panel had accepted unanimously were dropped after acceptance rather than applied and orphaned, per the scout contract's pairing rule. NVIDIA cleared unanimously on all four claims and is the run's entire output: the Nemotron Nano 2 family and its Nemotron Nano 9B v2 release, with two supporting sources. Both records carry status unknown, which under ADR 0008 records that the card states no lifecycle state and is a sourced value rather than a fallback; the family and its only release agree at unknown, so the run adds no family whose status outruns its releases. The release's accessType open-weight rests on the ADR 0009 composite — a Hugging Face Hub API record reporting the repository ungated and enabled with its safetensors shards enumerated — and not on the licence name, which states nothing about whether weights can be downloaded.",
+    "scope": "Three creators already in the catalogue, each holding exactly one family — Cohere, TII and NVIDIA — targeted at one added family plus at least one release each. Deliberately excluded by the coordinating brief and untouched here: ai2-molmo and the other family ids held by in-flight issue #740, the four held by #751, and Stability AI, which is reserved to #754. No id proposed by this run collides with any of those.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Re-measured the base from the committed data rather than quoting the brief. The worktree started at trunk but trunk moved during planning, so with zero commits of its own and no divergence the branch was fast-forwarded to refs/remotes/origin/main at b435c69056; that fast-forward is recorded as an assumption in the run summary. At that anchor the dataset held 71 families, 100 releases and 239 sources, schema.ts carried unknown in lifecycleStatus, and none of cohere-command-r, tii-falcon-3 or nvidia-nemotron-nano-2 existed. The reviewed-profile set at tools/updater/profiles holds seven creators and none of these three, so gate-evidence derives long-tail for all three bundles and the declared policy matches the derived one."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "Stored 18 page bodies and cut every quote out of those exact bytes between two literal markers, so a non-verbatim quote throws at build time rather than being emitted. Fourteen claims across three bundles, 44 evidence entries, all retrieval fetch and no search snippets. Two fields confirmed optional in schema.ts were dropped rather than sourced: maximumOutput on the Cohere release and parameters.totalBillions on both the Falcon 3 and Nemotron releases, where the size appears only in the model name. The Cohere family date came from a Hub createdAt with dateBasis platform-repository-created, because firstReleaseDate is required and Cohere's own docs date only the August 2024 update rather than the line."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Three reviewers, one per rubric, run in parallel and independently: none saw the scout's reasoning, another reviewer's verdict, or any statement of the threshold or the running tally. 42 verdicts over 14 claims. Each was pointed at web/src/data/schema.ts as the definition of the controlled vocabulary, because .github/skills/modeltree-review/SKILL.md has drifted from ADR 0008 and still states that no field has an unknown member; the drift is recorded as a follow-up rather than edited here, since SKILL.md is outside the qualifying class gate-scope enforces. No reviewer that rejected was re-run. The editorial reviewer was asked once to re-transcribe rationales lost to output truncation, with its votes stated as final and closed to revision; it returned wording only."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-evidence and gate-source-approval were run before any dataset file was touched. gate-evidence exited 0 on the published NVIDIA bundle and, run over the full Cohere and TII bundles, exited 1 naming exactly the three claims the panel had blocked — an independent confirmation of the withholding rather than the run's own word for it. gate-dataset and gate-scope both exited 0 after the change was applied. gate-ledger is the one gate this branch cannot pass by itself and the reason is structural, not a defect in the data: a published entry must name its pull request, and a dock does not open one."
+      },
+      {
+        "stage": "publish",
+        "status": "not-run",
+        "note": "Deliberately not run. The dock's boundary ends at a reviewable commit: it does not open a pull request, does not merge, does not rebase and does not gate its own work. The dataset change is committed to the branch and this entry is handed to the publishing step to commit second, once the pull request exists to be named — the same two-commit shape run 2026-09-01-b41087 used. Landing remains GitHub's once CI is green."
+      }
+    ],
+    "found": {
+      "scouts": 3,
+      "pagesFetched": 18,
+      "claimsProposed": 14,
+      "bundles": [
+        {
+          "creator": "cohere",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "tii",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "nvidia",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "add",
+          "count": 14,
+          "effect": "Four applied to the dataset; ten withheld, three of them blocked by the panel and seven dropped after unanimous acceptance to avoid orphaning them."
+        }
+      ],
+      "notCovered": [
+        "No second Falcon 3 or Command R variant was scouted after the first was blocked. Re-scouting the same creator for a page that scores better is vote-rigging however it is framed, and the Falcon 3 block in particular is a property of the card rather than of the variant chosen.",
+        "The build.nvidia.com API Catalog channel the Nemotron card names was not read, so the release records accessType open-weight rather than both. That under-claims rather than over-claims.",
+        "Link health was not swept and the second Python interpreter was not exercised; ci-preflight names both as outside what it covers."
+      ]
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 42,
+      "acceptedByPanel": 11,
+      "rejectedByPanel": 3,
+      "dissents": [],
+      "gates": [
+        {
+          "gate": "gate-evidence",
+          "scope": "the published NVIDIA bundle at .modeltree-refresh/runs/2026-09-01-c3f81a/published/nvidia.claims.json",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "4 claims admissible under the long-tail policy, all 4 applying to the dataset. The policy was derived from the reviewed-profile set rather than taken from the bundle, and the derived long-tail matched the declared long-tail, so the unanimous 3-of-3 threshold is the one actually applied."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "the full Cohere and TII bundles, run to confirm the withholding mechanically",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": false,
+          "detail": "Exit 1 on both, naming cohere-source-command-r-08-2024-card-add, cohere-release-command-r-08-2024-add and tii-release-falcon-3-7b-instruct-add as marked add but reaching only 2 of 3 required accepts. This is the expected and wanted result: it is the gate independently identifying the same three claims the panel blocked, and none of them is in the commit. Recorded as not required because these bundles are not what the run published."
+        },
+        {
+          "gate": "gate-source-approval",
+          "scope": "the published NVIDIA bundle against the approved origin set at merge-base b435c69056",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "13 citations rest on approved sources: 1 inherited from the dataset at the merge base and 2 proposed on already-trusted origins. No origin was widened and none needed to be."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "web/src/data after the four claims were applied",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "All gates passed over 545 records. In particular the new family carries a release, so the empty-family refusal that withheld Cohere and TII does not bite here, and the family's status unknown agrees with its only release."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "the branch against its computed merge-base with refs/remotes/origin/main",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Only families.json, releases.json and sources.json changed, all three inside the ADR 0003 qualifying class. No test, workflow, skill or document was touched: the SKILL.md drift found during review was left alone precisely because editing it would have taken the change out of class."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "web/, tests plus Astro and TypeScript diagnostics",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Green, with a green baseline measured on the unmodified base first so that any failure would have been attributable to this change. No pinned-enumeration test needed editing: the dataset-count assertions are all lower bounds."
+        },
+        {
+          "gate": "ci-preflight",
+          "scope": "the repository root, selecting the pull-request checks this branch's diff triggers",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Run from the repository root because npm run validate reads only web/ and would not have exercised the checks a diff outside it triggers. This diff is dataset-only, so the selection is narrow."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 4,
+      "documents": [
+        {
+          "document": "sources.json",
+          "recordsBefore": 239,
+          "recordsAfter": 241,
+          "note": "Two sources added: the Nemotron Nano 9B v2 model card and its Hugging Face Hub API record."
+        },
+        {
+          "document": "families.json",
+          "recordsBefore": 71,
+          "recordsAfter": 72,
+          "note": "One family added: nvidia-nemotron-nano-2."
+        },
+        {
+          "document": "releases.json",
+          "recordsBefore": 100,
+          "recordsAfter": 101,
+          "note": "One release added: nvidia-nemotron-nano-9b-v2."
+        }
+      ],
+      "records": [
+        {
+          "id": "nvidia-nemotron-nano-2",
+          "collection": "families",
+          "note": "New NVIDIA family, kept distinct from the earlier Nemotron-4 line. firstReleaseDate 2025-08-18 is the card's own stated release date and carries no dateBasis; status unknown."
+        },
+        {
+          "id": "nvidia-nemotron-nano-9b-v2",
+          "collection": "releases",
+          "note": "First release under that family. status unknown, accessType open-weight from the ADR 0009 platform composite, contextWindow 128000, modalities quoted from the card's Input Type(s) and Output Type(s) lines."
+        }
+      ]
+    },
+    "withheld": [
+      {
+        "id": "tii-release-falcon-3-7b-instruct-add",
+        "category": "rejected-by-panel",
+        "detail": "releases record tii-falcon-3-7b-instruct for tii. [provenance] inputModalities ['text'] and outputModalities ['text'] are unsupported: the card contains no modality statement of any kind and no modality quote is attached, so mapping text/text is inference from the word LLM rather than a recording step. Every other field on the record — releaseDate 2024-12, status unknown, contextWindow 32000, the licence block with osiApproved false, and accessType open-weight on the ADR 0009 composite — was found properly sourced, which is what makes the single defect decisive: releaseSchema requires both modality fields and neither is optional, so the record cannot be written without them.",
+        "blockedBy": [
+          "rubric:provenance"
+        ]
+      },
+      {
+        "id": "cohere-source-command-r-08-2024-card-add",
+        "category": "rejected-by-panel",
+        "detail": "sources record cohere-command-r-08-2024-model-card. [editorial] The claim attributes the card to publisherId cohere as Cohere's own voice, but tools/updater/profiles/origins/cohere.json records huggingface.co/CohereLabs in deferred_origins as not approved, reasoning that nothing there establishes it is Cohere's own org rather than a name anyone could take, and that resolving it is an organization mapping for a human. The run's own notes conceded that decision was not taken. The provenance rubric reached the opposite conclusion on the strength of an approved docs.cohere.com page naming the CohereLabs org, so this is a genuine split rather than a weak claim, and under the unanimous long-tail bar the split blocks it.",
+        "blockedBy": [
+          "rubric:editorial",
+          "profile:cohere deferred_origins"
+        ]
+      },
+      {
+        "id": "cohere-release-command-r-08-2024-add",
+        "category": "rejected-by-panel",
+        "detail": "releases record cohere-command-r-08-2024 for cohere. [editorial] Its creator-authored facts — accessType both with the open-weight half, the CC-BY-NC licence block, parameters.totalBillions 32 and the modality lines — rest solely on the model card whose attribution the same rubric rejected, so accessType both over-attributes open weights to Cohere when only the docs' Live-on-API row is solidly Cohere's voice. It separately found variant 'Standard' to be a tier no source states. The unsourced maximumOutput 4000 the previous run carried was already dropped rather than sourced.",
+        "blockedBy": [
+          "rubric:editorial",
+          "claim:cohere-source-command-r-08-2024-card-add"
+        ]
+      },
+      {
+        "id": "cohere-family-command-r-add",
+        "category": "dropped-after-acceptance",
+        "detail": "families record cohere-command-r. Accepted 3-of-3 on its own merits: firstReleaseDate 2024-03-11 with dateBasis platform-repository-created, status unknown, and sources that do not include the disputed card. Dropped because its only proposed release was blocked, which would leave a family with zero releases — the condition validateDataset refuses with 'family has no releases'. Publishing the family alone would have been incoherent, so family and release stand or fall together.",
+        "blockedBy": [
+          "claim:cohere-release-command-r-08-2024-add"
+        ]
+      },
+      {
+        "id": "cohere-source-command-r-docs-add",
+        "category": "dropped-after-acceptance",
+        "detail": "sources record cohere-command-r-docs, accepted 3-of-3 on an approved docs.cohere.com origin. Dropped because the only records citing it were the withheld Cohere family and release; applying it alone would leave an uncited source in the dataset.",
+        "blockedBy": [
+          "claim:cohere-family-command-r-add"
+        ]
+      },
+      {
+        "id": "cohere-source-command-r-v01-hub-record-add",
+        "category": "dropped-after-acceptance",
+        "detail": "sources record hugging-face-cohere-command-r-v01-hub-record, accepted 3-of-3 as a platform-authored ADR 0009 record. Dropped for the same orphaning reason: only the withheld Cohere family cited it.",
+        "blockedBy": [
+          "claim:cohere-family-command-r-add"
+        ]
+      },
+      {
+        "id": "tii-family-falcon-3-add",
+        "category": "dropped-after-acceptance",
+        "detail": "families record tii-falcon-3. Accepted 3-of-3, with firstReleaseDate 2024-12 taken from the card's creator-stated Model Release Date: December 2024 and status unknown. Dropped because its only proposed release was blocked on modalities, leaving an empty family. This is the closest miss of the run: the family claim itself has no known defect.",
+        "blockedBy": [
+          "claim:tii-release-falcon-3-7b-instruct-add"
+        ]
+      },
+      {
+        "id": "tii-source-falcon3-7b-instruct-card-add",
+        "category": "dropped-after-acceptance",
+        "detail": "sources record tii-falcon3-7b-instruct-model-card, accepted 3-of-3. Dropped because both records citing it were withheld.",
+        "blockedBy": [
+          "claim:tii-family-falcon-3-add"
+        ]
+      },
+      {
+        "id": "tii-source-falcon3-announcement-add",
+        "category": "dropped-after-acceptance",
+        "detail": "sources record tii-falcon3-announcement, accepted 3-of-3 as an official-announcement in TII's first-person voice. Dropped for orphaning.",
+        "blockedBy": [
+          "claim:tii-family-falcon-3-add"
+        ]
+      },
+      {
+        "id": "tii-source-falcon3-7b-instruct-hub-record-add",
+        "category": "dropped-after-acceptance",
+        "detail": "sources record hugging-face-falcon3-7b-instruct-hub-record, accepted 3-of-3 as a platform-authored ADR 0009 record. Dropped for orphaning.",
+        "blockedBy": [
+          "claim:tii-release-falcon-3-7b-instruct-add"
+        ]
+      }
+    ],
+    "caveats": [
+      "One creator of three landed. The issue's exactly-one-family count moves by one, not by three, and this run does not by itself satisfy #689.",
+      "status unknown is honest but it is not informative. Three of the dataset's families now sit at unknown plus this one, and a reader looking for whether Nemotron Nano 2 is current will not find that here, because NVIDIA's card does not say.",
+      "accessType open-weight on the Nemotron release rests on a platform record reporting an ungated repository with safetensors shards, not on a statement by NVIDIA that weights are downloadable. That is the ADR 0009 composite and the panel accepted it unanimously, but it is a weaker basis than a creator sentence saying so, and it can go stale if the repository is later gated.",
+      "The Cohere block is an unresolved human decision, not a finding that Cohere's card is wrong. Two rubrics reached opposite conclusions on whether huggingface.co/CohereLabs is Cohere's voice, and until a human updates that catalogue entry the question stays open and the evidence stays unused.",
+      "The panel is three instances of one model family reading the same pages, so it buys independence of reasoning and not independence of training. A page that is itself wrong could carry all three.",
+      "gate-ledger cannot pass on this branch as the dock leaves it, because this entry is not committed and cannot be until the pull request it must name exists."
+    ],
+    "followUps": [
+      "tools/updater/profiles/origins/cohere.json defers huggingface.co/CohereLabs as not approved on the ground that nothing establishes it as Cohere's own org. This run found first-party evidence bearing on exactly that: docs.cohere.com, an approved Cohere origin, links to a CohereLabs collection and describes it as where Cohere publishes open-weight models on Hugging Face. A human should decide whether that settles the mapping; the Cohere family and release are fully scouted and re-runnable the moment it does.",
+      ".github/skills/modeltree-review/SKILL.md states that none of the controlled-vocabulary fields has an unknown member and lists five members of lifecycleStatus. ADR 0008 added a sixth, unknown, and web/src/data/schema.ts carries it. The rubric text and the schema now disagree on a point that decides claims, and reviewers in this run had to be pointed at the schema to resolve it. Editing SKILL.md was deliberately not done here because it is outside the ADR 0003 qualifying class and would have taken the dataset change out of class.",
+      "The Falcon3 model card states no modality anywhere, which blocked an otherwise clean release. Whether TII states modalities on another Falcon 3 surface is unknown; a future run would need a different page, not a different reading of this one."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "PR #775 - feat(data): add NVIDIA Nemotron Nano 2 family and 9B v2 release (run 2026-09-01-c3f81a)",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/775",
+        "state": "open when this entry was written, and carrying the entry itself: a published run records itself in the same pull request that changes the dataset, per ADR 0006. The dock left this reference as a placeholder because a dock does not open pull requests; the publishing step filled it in."
+      },
+      {
+        "kind": "issue",
+        "label": "abdeslam-menacere/ModelTree#689 — the issue this run was opened against: 29 of 40 creators are a single leaf. This run reduces the exactly-one-family count by one, from NVIDIA.",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/689",
+        "state": "open"
+      }
+    ],
+    "recordedAt": "2026-09-01"
+  },
+  {
     "id": "2026-09-01-b41087",
     "title": "Long-tail sweep: all 40 creators re-verified",
     "ranOn": "2026-09-01",

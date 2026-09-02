@@ -4682,5 +4682,48 @@
       "osi-license-index"
     ],
     "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "nvidia-nemotron-nano-9b-v2",
+    "slug": "nvidia-nemotron-nano-9b-v2",
+    "canonicalName": "NVIDIA-Nemotron-Nano-9B-v2",
+    "displayName": "Nemotron Nano 9B v2",
+    "organizationId": "nvidia",
+    "familyId": "nvidia-nemotron-nano-2",
+    "version": "2",
+    "variant": "9B",
+    "releaseDate": "2025-08-18",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "NVIDIA Open Model License Agreement",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "contextWindow": 128000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "A compact reasoning model that NVIDIA released on 18 August 2025 and documents as taking text input and producing text output, with a stated context length of up to 128K. Use is governed by the NVIDIA Open Model License Agreement, which does not appear on the Open Source Initiative's published index of approved licences. Weights are recorded as downloadable on the Hugging Face Hub API record, which reports the repository as ungated and enabled and lists its safetensors shards; the licence name alone was not treated as establishing that. Status is unknown because the card states no lifecycle term. The context window records 128000, the decimal reading of the card's bare \"128K\", the only figure it gives. Parameter count is not recorded: the card states none in prose and the \"9B\" appears only in the model name.",
+    "intendedUse": "NVIDIA's card describes the model as suited to developers designing AI agent systems, chatbots and retrieval-augmented generation systems, and to typical instruction-following tasks, across the ten languages the card names for input. NVIDIA states the model is distributed for download under its Open Model License Agreement.",
+    "sourceIds": [
+      "nvidia-nemotron-nano-9b-v2-model-card",
+      "hugging-face-nemotron-nano-9b-v2-hub-record",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-09-01"
   }
 ]

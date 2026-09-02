@@ -2141,5 +2141,23 @@
     "publisherId": "hugging-face",
     "lastCheckedDate": "2026-09-01",
     "notes": "The Hub's own API record, in Hugging Face's own namespace, so the publisher is the host and not the creator. Fetched 2026-09-01: tags include \"license:apache-2.0\", with \"gated\":false and safetensors present in the repository. Cited for the licence identifier and for the downloadable-weights fact. The release date is not taken from here, because OpenBMB states one itself in its own repository."
+  },
+  {
+    "id": "nvidia-nemotron-nano-9b-v2-model-card",
+    "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-Nano-9B-v2",
+    "title": "NVIDIA-Nemotron-Nano-9B-v2 model card",
+    "type": "model-card",
+    "publisherId": "nvidia",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "NVIDIA's model card for NVIDIA-Nemotron-Nano-9B-v2, read as Markdown from /raw/main/README.md (HTTP 200, ungated). States \"**Model Developer:** NVIDIA Corporation\", \"### Release Date: 08/18/2025\", \"- Input Type(s): Text\", \"- Output Type(s): Text\", \"Context length up to 128K\" and, under License/Terms of Use, \"Governing Terms: Use of this model is governed by the [NVIDIA Open Model License Agreement]\". contextWindow records 128000: the card gives only the bare abbreviation \"128K\", so route 2 of the releaseSchema.contextWindow note applies and \"K\" reads decimally. The card states no lifecycle term, which is why the family and the release both record status \"unknown\". No parameter count appears in prose — the \"9B\" is in the model name only — so parameters is left unset. The card names another creator's model in a training-provenance note; nothing from that note is recorded here."
+  },
+  {
+    "id": "hugging-face-nemotron-nano-9b-v2-hub-record",
+    "url": "https://huggingface.co/api/models/nvidia/NVIDIA-Nemotron-Nano-9B-v2",
+    "title": "Hugging Face Hub API record for nvidia/NVIDIA-Nemotron-Nano-9B-v2",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Hugging Face's own API record for the NVIDIA-Nemotron-Nano-9B-v2 repository, cited under ADR 0009 for platform-authored facts only: the repository exists and is readable, reports \"gated\":false and \"disabled\":false, and lists model-0000N-of-00004.safetensors among its files. Those are what weightsDownloadable rests on for this release — an unrestricted public repository whose weight files the platform itself enumerates — rather than the licence name, which states only what the terms are called. The record is not cited for any fact NVIDIA authored."
   }
 ]
