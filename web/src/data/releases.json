@@ -431,7 +431,7 @@
     "datePrecision": "day",
     "status": "legacy",
     "featured": true,
-    "featuredRationale": "Anthropic's most capable widely released model, with a dated general-availability statement in the official model documentation.",
+    "featuredRationale": "A widely released Claude model with a dated general-availability statement in the official model documentation.",
     "categories": [
       "language-reasoning",
       "multimodal-generalist",
@@ -456,8 +456,8 @@
       "anthropic-claude-mythos-5"
     ],
     "derivedFromIds": [],
-    "summary": "Anthropic's most capable widely released model, with adaptive thinking always on.",
-    "intendedUse": "Long-running agent work that needs the highest available Claude capability.",
+    "summary": "Anthropic lists Claude Fable 5 among its legacy models and documents it as still available, with adaptive thinking always on. Anthropic's API release notes name Claude Fable 5.1 as its successor.",
+    "intendedUse": "Existing long-horizon agentic workloads still running on Claude Fable 5; Anthropic's documentation directs new work to Claude Fable 5.1.",
     "sourceIds": [
       "anthropic-models-overview",
       "anthropic-fable-5-mythos-5-docs",
