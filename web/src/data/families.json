@@ -1409,5 +1409,77 @@
       "tencent-hunyuanimage-3-0-repository"
     ],
     "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "tii-falcon-180b",
+    "slug": "falcon-180b",
+    "organizationId": "tii",
+    "name": "Falcon 180B",
+    "description": "TII's 180-billion-parameter causal decoder-only language model, trained on 3.5 trillion tokens of RefinedWeb and released under the Falcon 180B TII License. A distinct earlier family from the hybrid-architecture Falcon-H1.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2023-09-06",
+    "datePrecision": "day",
+    "status": "unknown",
+    "sourceIds": [
+      "tii-falcon-180b-announcement",
+      "tii-falcon-180b-model-card"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "ai2-molmo",
+    "slug": "molmo",
+    "organizationId": "ai2",
+    "name": "Molmo",
+    "description": "Ai2's family of open vision-language models, trained on the PixMo image-text data and distinct from the text-only OLMo family. Released with Apache-2.0 weights.",
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "firstReleaseDate": "2024-09-25",
+    "datePrecision": "day",
+    "status": "unknown",
+    "sourceIds": [
+      "ai2-molmo-announcement",
+      "ai2-molmo-7b-d-model-card"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "stability-ai-stable-video-diffusion",
+    "slug": "stable-video-diffusion",
+    "organizationId": "stability-ai",
+    "name": "Stable Video Diffusion",
+    "description": "Stability AI's image-to-video generative diffusion family, which takes a still image as a conditioning frame and generates a short video from it — a distinct modality from the text-to-image Stable Diffusion family. Its two cited primary sources disagree on intended use and the record does not reconcile them: the launch announcement is headed \"research preview\" and states the model is \"not intended for real-world or commercial applications at this stage\", while the later model card states it is \"intended for both non-commercial and commercial usage\" under the Stability AI Community License.",
+    "categories": [
+      "video"
+    ],
+    "firstReleaseDate": "2023-11-21",
+    "datePrecision": "day",
+    "status": "unknown",
+    "sourceIds": [
+      "stability-ai-svd-announcement",
+      "stability-ai-svd-xt-model-card"
+    ],
+    "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "nvidia-cosmos",
+    "slug": "cosmos",
+    "organizationId": "nvidia",
+    "name": "Cosmos",
+    "description": "NVIDIA's family of world foundation models for physical AI, which generate physics-aware videos of future environment states from text, image, or video input — a distinct modality from the text-only Nemotron language models.",
+    "categories": [
+      "robotics-world"
+    ],
+    "firstReleaseDate": "2025-01-06",
+    "datePrecision": "day",
+    "status": "unknown",
+    "sourceIds": [
+      "nvidia-cosmos-announcement",
+      "nvidia-cosmos-diffusion-7b-model-card"
+    ],
+    "verifiedAt": "2026-09-01"
   }
 ]
