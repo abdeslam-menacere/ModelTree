@@ -25,6 +25,17 @@
 // carrying. Both are ordinary string fields, so every state below is a dataset
 // the schema accepts — the sizes are real measurements, not stubs.
 //
+// The ceiling every scenario is driven against is the **picker index** one,
+// because it is the tightest and so the easiest to cross with a small pad. Be
+// clear about what that does and does not mean (#693): the picker index is
+// UNSHIPPED — `buildComparisonPickerIndex` has no production consumer, and
+// compare.astro ships `buildComparisonPayload` instead — so an over-budget
+// scenario here is a page-weight fiction constructed to exercise the
+// instrument, and not a claim that any reader would download those bytes. That
+// is fine for a red-then-green proof, whose subject is the merged-budget tool
+// and not the site's weight. It would not be fine as a reason to cut dataset
+// records, which is the reflex #693 exists to stop.
+//
 // The pad sizes are computed from the live measurement rather than written
 // down, so this keeps proving the same thing as the catalogue grows. A hard
 // figure here would be one more number measured against a state it no longer
@@ -138,6 +149,10 @@ function runDriver(webRoot) {
  * creator owns, and the same for a family's `name`. That is why a tranche on
  * trunk and a tranche on a branch each move this index, and why neither can see
  * the other's contribution from where it is standing.
+ *
+ * The picker ceiling is chosen here only because it is the tightest one and so
+ * the cheapest to cross deliberately. It guards an unshipped artefact (#693),
+ * which is exactly why crossing it in a temp repo costs nothing real.
  */
 function planPads(measurement) {
   const picker = measurement.metrics.find((metric) => metric.id === 'picker.totalBytes');
@@ -228,7 +243,8 @@ function main() {
     const pads = planPads(runMeasurer(join(seeded.repo, 'web')));
 
     process.stdout.write(
-      `Seeded from HEAD: picker index ${pads.picker.value.toLocaleString('en-US')} of `
+      `Seeded from HEAD: picker index (UNSHIPPED — no page delivers these bytes) `
+      + `${pads.picker.value.toLocaleString('en-US')} of `
       + `${pads.picker.ceiling.toLocaleString('en-US')} bytes over ${pads.rows} rows, `
       + `${pads.picker.headroom.toLocaleString('en-US')} spare.\n`
       + `Trunk tranche pads every creator label by ${pads.trunk} characters; `

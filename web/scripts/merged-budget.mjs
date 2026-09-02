@@ -1,6 +1,17 @@
 // Reports the `/compare` and picker byte budgets **for the merge**, not for the
 // branch in isolation (issue #753).
 //
+// The two subjects differ in kind, and every line of the report says which it
+// is (#693). The `/compare` payload is **shipped** — compare.astro serializes it
+// and every reader downloads it. The picker index is **UNSHIPPED**:
+// `buildComparisonPickerIndex` has no production consumer, so its ceilings bound
+// bytes no page delivers. They are kept deliberately, as a design constraint on
+// the row shape a /compare picker would ship if it is built (#693, reading (b)),
+// and they still bind — this tool lowers nothing and bypasses nothing. The
+// labelling exists because of what a reader does on a breach: a picker breach
+// read as a page-weight regression invites cutting dataset records, which is
+// how #740's three creators were dropped and why #754 exists.
+//
 // The defect this closes: a dock branches at commit X, measures a byte budget
 // there, and trunk then moves. The dock's figure silently stops being a claim
 // about what will ship and becomes a claim about history. It cost half of #740,
@@ -59,6 +70,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, rmdirSync, sy
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { UNSHIPPED_ESCALATION, isShipped } from './comparison-budget.mjs';
 
 /** What the remote says `main` is. Identical to `gate-scope.mjs`'s, on purpose. */
 const PUBLISHED_REF = 'refs/remotes/origin/main';
@@ -317,6 +330,9 @@ export function decide(head, merged) {
       id: mergedMetric.id,
       label: mergedMetric.label,
       unit: mergedMetric.unit,
+      // Taken from the merged side with the rest of it: if trunk reclassified a
+      // subject, the merged classification is the one that will bind.
+      shipped: isShipped(mergedMetric),
       head: headMetric,
       merged: mergedMetric,
       valueDelta: headMetric === null ? null : mergedMetric.value - headMetric.value,
@@ -399,7 +415,8 @@ export function render(anchor, verdict, dirty) {
       `  ${metric.label.padEnd(width)}  ${headCell.padStart(11)}  `
       + `${group(metric.merged.value).padStart(11)}  ${group(metric.merged.ceiling).padStart(9)}  `
       + `${(metric.merged.within ? group(metric.merged.headroom) : `OVER by ${group(-metric.merged.headroom)}`).padStart(12)}  `
-      + difference,
+      + difference
+      + (metric.shipped ? '  [shipped]' : '  [UNSHIPPED]'),
     );
   }
 
@@ -426,7 +443,10 @@ export function render(anchor, verdict, dirty) {
         + `(${group(metric.merged.value)} of ${group(metric.merged.ceiling)}, `
         + `${group(-metric.merged.headroom)} over). Trunk consumed the headroom this branch is`,
         '    spending. Every gate on the branch will pass and the ceiling will break after the',
-        '    squash-merge, on main. Cut scope or trim the row shape before handing off.',
+        '    squash-merge, on main.',
+        metric.shipped
+          ? '    Cut scope or trim the row shape before handing off.'
+          : '    Trim the row shape before handing off. Do NOT cut scope: see below.',
       );
     }
     for (const metric of verdict.breaches.filter((m) => m.finding === 'breach')) {
@@ -435,6 +455,12 @@ export function render(anchor, verdict, dirty) {
         + `${group(metric.merged.ceiling)}) and over on this branch alone too, so the branch's own`,
         '    tests already refuse it. This is not a merge-staleness finding.',
       );
+    }
+    // Which of the breached ceilings guard bytes nobody downloads, and what that
+    // does and does not license. It changes no verdict — every breached ceiling
+    // above is still breached and the exit code is still 1.
+    if (verdict.breaches.some((metric) => !metric.shipped)) {
+      lines.push('', ...UNSHIPPED_ESCALATION);
     }
   } else if (verdict.freed.length > 0) {
     lines.push(

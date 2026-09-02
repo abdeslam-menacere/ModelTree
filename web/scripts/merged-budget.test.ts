@@ -16,6 +16,11 @@
 //     no measurer for the picker index, so `measurePickerIndex` reproduces the
 //     expression the budget test uses. The mirror is asserted against that
 //     expression over the live dataset.
+//   * **Which subject a figure belongs to is stated on every line** (issue
+//     #693). The picker ceilings guard an artefact nothing ships, and a breach
+//     of one read as a page-weight regression is what cost #740 three
+//     researched creators. The tag and the escalation are asserted in both
+//     directions, and so is the fact that neither changes a verdict.
 //
 // The verdict logic is tested in both directions, and the benign one matters as
 // much as the dangerous one: an advisory that fires when trunk has *freed*
@@ -29,6 +34,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   CEILING_SUBJECTS,
+  isShipped,
   measurePickerIndex,
   readCeilings,
   renderMeasurement,
@@ -50,12 +56,30 @@ function measurement(values: Record<string, [number, number]>) {
   return {
     releaseCount: 96,
     pickerRowCount: 96,
-    metrics: CEILING_SUBJECTS.filter(({ id }) => id in values).map(({ id, label, unit }) => {
+    metrics: CEILING_SUBJECTS.filter(({ id }) => id in values).map(({ id, label, unit, shipped }) => {
       const [value, ceiling] = values[id]!;
-      return { id, label, unit, value, ceiling, headroom: ceiling - value, within: value <= ceiling };
+      return {
+        id,
+        label,
+        unit,
+        shipped,
+        value,
+        ceiling,
+        headroom: ceiling - value,
+        within: value <= ceiling,
+      };
     }),
   };
 }
+
+/** A resolved anchor in the shape `merged-budget.mjs` reports about. */
+const anchorFixture = {
+  head: 'aaaaaaaaaaaa1111111111111111111111111111',
+  published: 'bbbbbbbbbbbb2222222222222222222222222222',
+  anchor: 'cccccccccccc3333333333333333333333333333',
+  mergedTree: 'dddddddddddd4444444444444444444444444444',
+  trunkCommitsSinceAnchor: 2,
+};
 
 describe('reading the ceilings out of comparison.test.ts', () => {
   it('finds every ceiling the budget tests actually enforce', () => {
@@ -256,13 +280,7 @@ describe('the verdict', () => {
 });
 
 describe('what the report says', () => {
-  const anchor = {
-    head: 'aaaaaaaaaaaa1111111111111111111111111111',
-    published: 'bbbbbbbbbbbb2222222222222222222222222222',
-    anchor: 'cccccccccccc3333333333333333333333333333',
-    mergedTree: 'dddddddddddd4444444444444444444444444444',
-    trunkCommitsSinceAnchor: 2,
-  };
+  const anchor = anchorFixture;
 
   it('prints both numbers, labelled, and states the difference', () => {
     const report = render(
@@ -330,5 +348,105 @@ describe('the single-tree report', () => {
     expect(rendered).toContain('636 over');
     expect(rendered).toContain('ok   /compare payload, total');
     expect(rendered).toContain('26,710 spare');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Which subject a figure belongs to (issue #693).
+//
+// The picker ceilings guard an artefact nothing ships, and the cost of that
+// going unsaid is measured: three 1,024-byte raises, #740's three dropped
+// creators and #754 to recover them. So the classification is asserted here in
+// both directions — the tag must appear on the unshipped lines, and it must NOT
+// appear on the shipped ones, because a label that is always printed carries no
+// information and would be read straight past.
+//
+// Every assertion below is about *what the report says*. None of them touches a
+// ceiling or a verdict, and the two tests that pin the verdicts are here to keep
+// it that way: an "explanation" that quietly turned a breach into advice would
+// be the exact weakening this issue refuses.
+// ---------------------------------------------------------------------------
+
+describe('shipped and unshipped subjects are told apart', () => {
+  it('classifies every ceiling subject, picker unshipped and payload shipped', () => {
+    for (const subject of CEILING_SUBJECTS) {
+      expect(typeof subject.shipped, subject.id).toBe('boolean');
+      expect(subject.shipped, subject.id).toBe(!subject.id.startsWith('picker.'));
+    }
+  });
+
+  it('defaults an unclassified metric to shipped, never to unshipped', () => {
+    // The unshipped tag is a claim that nobody downloads these bytes, and it is
+    // the tag that licenses "do not cut data". Guessing it for a subject nobody
+    // classified would excuse a real page-weight breach, so the default runs the
+    // other way.
+    expect(isShipped({ id: 'something.nobody.classified' })).toBe(true);
+    expect(isShipped({ id: 'picker.totalBytes' })).toBe(false);
+    expect(isShipped({ id: 'picker.totalBytes', shipped: true })).toBe(true);
+  });
+
+  it('tags every line of the single-tree report with which subject it is', () => {
+    const rendered = renderMeasurement(measurement({
+      'picker.totalBytes': [7_360, 11_264],
+      'payload.totalBytes': [111_893, 143_360],
+    }));
+
+    expect(rendered).toMatch(/picker index, total.*\[UNSHIPPED/);
+    expect(rendered).toMatch(/\/compare payload, total.*\[shipped\]/);
+  });
+
+  it('prints the escalation on an unshipped breach and not on a shipped one', () => {
+    const pickerOver = renderMeasurement(measurement({ 'picker.totalBytes': [11_900, 11_264] }));
+    const payloadOver = renderMeasurement(measurement({ 'payload.totalBytes': [150_000, 143_360] }));
+    const nothingOver = renderMeasurement(measurement({ 'picker.totalBytes': [7_360, 11_264] }));
+
+    expect(pickerOver).toContain('no production consumer');
+    expect(pickerOver).toContain('cutting dataset records');
+    expect(pickerOver).toContain('must NOT be resolved by raising the ceiling');
+    expect(payloadOver).not.toContain('no production consumer');
+    expect(nothingOver).not.toContain('no production consumer');
+  });
+
+  it('says which subject each merged row is, and escalates an unshipped breach', () => {
+    const report = render(
+      anchorFixture,
+      decide(
+        measurement({ 'picker.totalBytes': [11_000, 11_264] }),
+        measurement({ 'picker.totalBytes': [11_900, 11_264] }),
+      ),
+      [],
+    );
+
+    expect(report).toMatch(/picker index, total.*\[UNSHIPPED\]/);
+    expect(report).toContain('no production consumer');
+    // The reflex this replaces. "Cut scope" is the right advice for the shipped
+    // payload and the wrong advice for an artefact nobody downloads.
+    expect(report).toContain('Do NOT cut scope');
+    expect(report).not.toContain('Cut scope or trim the row shape');
+  });
+
+  it('still tells a shipped breach to cut scope, and does not escalate it', () => {
+    const report = render(
+      anchorFixture,
+      decide(
+        measurement({ 'payload.totalBytes': [140_000, 143_360] }),
+        measurement({ 'payload.totalBytes': [150_000, 143_360] }),
+      ),
+      [],
+    );
+
+    expect(report).toContain('Cut scope or trim the row shape');
+    expect(report).not.toContain('no production consumer');
+  });
+
+  it('changes no verdict: an unshipped breach is still a breach and still exits 1', () => {
+    const verdict = decide(
+      measurement({ 'picker.totalBytes': [11_000, 11_264] }),
+      measurement({ 'picker.totalBytes': [11_900, 11_264] }),
+    );
+
+    expect(verdict.exitCode).toBe(1);
+    expect(verdict.breaches).toHaveLength(1);
+    expect(verdict.metrics[0]!.merged.within).toBe(false);
   });
 });
