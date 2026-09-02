@@ -1,13 +1,64 @@
 # Publishes creator proposals as GitHub issues. It cannot do anything else: it
 # has no write access to repository content, so it cannot commit, branch, or open
-# a pull request, and there is no code path here that tries.
+# a pull request, and there is no code path here that tries. That constraint is
+# what ADR 0003 calls deliberate, and adding the schedule below does not touch
+# it: the permission set is unchanged apart from being narrowed, and
+# `tools/updater/tests/test_proposal_only.py` is untouched.
 #
-# Deliberately manual. A run spends model tokens and writes issues a human then
-# has to read, so a human decides when it happens. Issue #66 excludes schedules
-# from this version.
+# ## Why there is a schedule now
+#
+# #66 shipped this workflow as `workflow_dispatch` only and put schedules out of
+# scope, because a run spends model tokens and writes issues a human then has to
+# read. That argument was about *cadence*, not about never running unattended,
+# and it is answered below rather than overridden: weekly, over the four creators
+# with reviewed profiles, and never publishing anything unless it could actually
+# observe a source.
+#
+# The scheduling half is issue #30, whose other clauses belong to #62 (the source
+# catalog), #85 (fingerprints and comparison with the last reviewed state) and
+# #66 (this publisher). None of those is implemented here.
+#
+# ## What a scheduled run actually does, and why it depends on #93
+#
+# `live` mode needs Microsoft Entra workload identity, and none is configured:
+# `AZURE_CLIENT_ID` and the four other repository variables below do not exist.
+# That is #93, still open, and ADR 0003 records the same measurement. A scheduled
+# `live` run would therefore fail on `azure/login` every single week -- the
+# "reddens on something nobody here can fix" failure that `source-link-health.yml`
+# is shaped around, and the fastest way to teach people to ignore this workflow.
+#
+# So the schedule resolves its own parameters from the event and from whether the
+# workload identity exists:
+#
+#   | event              | live configured | creators  | mode     | dry run |
+#   |--------------------|-----------------|-----------|----------|---------|
+#   | `workflow_dispatch`| n/a             | input     | input    | input   |
+#   | `schedule`         | yes             | the sweep | live     | no      |
+#   | `schedule`         | no              | the sweep | fixtures | **yes** |
+#
+# The last row is the configuration that exists today. It runs the whole pipeline
+# against committed fixtures and renders the payloads without sending them, so it
+# makes no GitHub request at all and cannot change an issue. It is not busywork:
+# #139 was a break in exactly this path that stayed invisible until somebody
+# dispatched the workflow by hand, and a weekly exercise is what catches that
+# class before the week it matters. The day #93 lands, the middle row starts
+# applying on its own with no change here.
+#
+# Resolving every parameter explicitly is not decoration either. `inputs.*` is
+# null on a `schedule`, and the publish step compares `DRY_RUN` with the string
+# `true`, so a bare `schedule:` trigger would have read the empty value as "not a
+# dry run" and inverted this workflow's safest default by accident.
 name: Publish updater proposals
 
 on:
+  schedule:
+    # Weekly, Monday, off the hour, and on a different hour and minute from
+    # `source-link-health` (37 6) and `data-health` (19 7) so the three sweeps do
+    # not contend. Weekly rather than daily because #66's argument still holds --
+    # a run spends model tokens and writes issues a human then has to read -- and
+    # because a day of latency on a release announcement does not change what a
+    # reviewer does about it. The review queue is the bottleneck, not the sweep.
+    - cron: '52 5 * * 1'
   workflow_dispatch:
     inputs:
       creators:
@@ -29,16 +80,38 @@ on:
         default: true
         type: boolean
 
-# Least privilege, set at the top so no job can start from a wider default.
-permissions:
-  contents: read
+# Nothing by default, so a job that forgets to declare a scope gets none. The
+# single job below widens this for itself and no further. This is tighter than
+# the `contents: read` default it replaces, and it is tightened *because* of the
+# schedule: before it, every run was something a human had just asked for, and
+# now one happens every week whether or not anybody is watching. It matches what
+# `data-health.yml` and `source-link-health.yml`, the repository's two other
+# scheduled workflows, already do.
+permissions: {}
 
 # Repository-global and never cancelled. Two publishers running at once could
 # both read "no open proposal for this creator" and both create one; cancelling a
-# publisher mid-write could leave an issue half updated.
+# publisher mid-write could leave an issue half updated. With a schedule in play
+# that stops being hypothetical -- a Monday sweep can now overlap a human's
+# dispatch -- and this group is what serialises the two. It is deliberately not
+# keyed on the ref or the run id, because a group that varies per run does not
+# serialise anything.
 concurrency:
   group: modeltree-proposal-publication
   cancel-in-progress: false
+
+env:
+  # Who the scheduled sweep watches, defined once so removing a creator from the
+  # sweep is a one-line edit with a diff and a reviewer.
+  #
+  # Deliberately not blank. Blank means "every creator in the fixture library"
+  # (`cli.py`: `args.creators or list(library.creator_ids)`), and that library
+  # holds eight synthetic creators -- contoso-ai, fabrikam-ai and the rest --
+  # which exist to exercise the pipeline offline and have no real pages behind
+  # them. A live sweep over those would be fetching fiction. These four are the
+  # creators with reviewed profiles from #62, and they are the same four the
+  # manual dispatch defaults to.
+  SCHEDULED_CREATORS: openai,anthropic,google-deepmind,meta
 
 defaults:
   run:
@@ -54,9 +127,15 @@ jobs:
       # Read the code to install the updater.
       contents: read
       # Create and update proposal issues. This is the only write this job has.
+      # It is still the only one now that the job also runs unattended: a
+      # scheduled run that cannot observe a source resolves to `--dry-run`, and
+      # `publisher.py`'s `_render_only` makes no GitHub request at all, so the
+      # scope is held and unused rather than exercised weekly.
       issues: write
       # Mint the OIDC token for Microsoft Entra workload identity. There is no
-      # client secret and no API key anywhere in this workflow.
+      # client secret and no API key anywhere in this workflow. Unused on every
+      # path except live mode, which is unreachable until #93 provisions the
+      # federated credential this would be exchanged for.
       id-token: write
     steps:
       - name: Check out the repository
@@ -64,6 +143,62 @@ jobs:
         with:
           # The publisher never pushes, so the checkout keeps no credentials.
           persist-credentials: false
+
+      - name: Resolve what this run does
+        id: params
+        env:
+          EVENT: ${{ github.event_name }}
+          # The presence of the workload identity is what decides whether a
+          # scheduled run can observe anything at all. One variable stands in for
+          # the set of five; a half-provisioned repository takes the live branch
+          # and fails loudly at `azure/login`, which is a visible failure rather
+          # than a silent wrong answer.
+          LIVE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          # Inputs reach the shell as environment variables, never interpolated
+          # into the script itself. On a `schedule` every one of these is empty,
+          # which is exactly why the script below never reads them on that path.
+          DISPATCH_CREATORS: ${{ inputs.creators }}
+          DISPATCH_MODE: ${{ inputs.mode }}
+          DISPATCH_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+
+          if [ "$EVENT" = "schedule" ]; then
+            creators="$SCHEDULED_CREATORS"
+            if [ -n "$LIVE_CLIENT_ID" ]; then
+              mode=live
+              dry_run=false
+              why='Workload identity is configured, so this sweep fetches real pages and may open or update review issues.'
+            else
+              mode=fixtures
+              dry_run=true
+              why='No workload identity is configured (#93), so this sweep runs offline against committed fixtures and sends nothing to GitHub.'
+            fi
+          else
+            creators="$DISPATCH_CREATORS"
+            mode="$DISPATCH_MODE"
+            dry_run="$DISPATCH_DRY_RUN"
+            why='Manual dispatch: the inputs decide.'
+          fi
+
+          {
+            echo "creators=$creators"
+            echo "mode=$mode"
+            echo "dry_run=$dry_run"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "## Publisher run"
+            echo
+            echo "| Setting | Value |"
+            echo "|---|---|"
+            echo "| Event | \`$EVENT\` |"
+            echo "| Mode | \`$mode\` |"
+            echo "| Dry run | \`$dry_run\` |"
+            echo "| Creators | \`${creators:-<every creator in the fixture library>}\` |"
+            echo
+            echo "$why"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -76,11 +211,11 @@ jobs:
           python -m pip install .
 
       - name: Install the Foundry client
-        if: inputs.mode == 'live'
+        if: steps.params.outputs.mode == 'live'
         run: python -m pip install '.[foundry]'
 
       - name: Sign in to Azure with workload identity
-        if: inputs.mode == 'live'
+        if: steps.params.outputs.mode == 'live'
         uses: azure/login@v2
         with:
           # Federated credential: no secret is stored for this workflow.
@@ -91,9 +226,11 @@ jobs:
       - name: Run the updater
         env:
           # Inputs reach the shell as environment variables, never interpolated
-          # into the script itself.
-          CREATORS: ${{ inputs.creators }}
-          MODE: ${{ inputs.mode }}
+          # into the script itself. These come from the resolution step rather
+          # than from `inputs`, so the scheduled path gets real values instead of
+          # the nulls a `schedule` event supplies.
+          CREATORS: ${{ steps.params.outputs.creators }}
+          MODE: ${{ steps.params.outputs.mode }}
           RUN_ID: run-${{ github.run_id }}-${{ github.run_attempt }}
           MODELTREE_FOUNDRY_ENDPOINT: ${{ vars.MODELTREE_FOUNDRY_ENDPOINT }}
           MODELTREE_FOUNDRY_DEPLOYMENT: ${{ vars.MODELTREE_FOUNDRY_DEPLOYMENT }}
@@ -112,23 +249,73 @@ jobs:
           # the invocation cannot be broken by an unrelated change to
           # `defaults.run.working-directory`. Creator definitions come from this
           # library in live mode too, so it is passed in both modes. #139.
+          #
+          # The exit code is captured rather than left to `-e`, because the
+          # updater has more than two of them and they do not all mean the same
+          # thing here. `|| code=$?` rather than toggling `set +e`: a command
+          # whose failure is tested by `||` is exempt from `-e` whether or not
+          # `-e` is in force, so this makes no assumption about the ambient
+          # shell options.
+          code=0
           python -m modeltree_updater run "${args[@]}" \
             --fixtures "$GITHUB_WORKSPACE/tools/updater/fixtures/creators" \
             --run-id "$RUN_ID" \
-            --output "$RUNNER_TEMP/proposals"
+            --output "$RUNNER_TEMP/proposals" || code=$?
+
+          if [ "$code" -eq 0 ]; then
+            exit 0
+          fi
+
+          # Exit 3 is `EXIT_CREATOR_FAILED`: at least one creator could not be
+          # completed. The report is written before that code is returned
+          # (`cli.py` calls `_write_report` and only then `_summarise`), so the
+          # artefact exists and the failures are *in* it -- `is_material` counts
+          # them precisely so they reach the issue a human reads.
+          #
+          # In live mode that means a page somebody else hosts did not answer.
+          # That is not a defect of this repository, so the run goes on to
+          # publish and the job concludes green: the finding travels in the
+          # proposal issue, which outlives a red X on a scheduled run and says
+          # what to do about it. Failing here instead would abort before the
+          # publish step and throw the record away -- which is what this step did
+          # before the schedule existed, and unattended it would have discarded
+          # the report every week with nobody watching the log.
+          #
+          # In fixtures mode the same code means a committed fixture failed.
+          # Nothing remote is involved, the inputs are in this repository, and
+          # that is our own bug, so it fails.
+          if [ "$code" -eq 3 ] && [ "$MODE" = "live" ]; then
+            echo "::warning::One or more creators could not be completed (exit 3). The failures are recorded in the proposal issue for review; publishing continues."
+            echo '> One or more creators could not be completed. The failures are in the proposal issue.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "::error::The updater could not run (exit $code, mode $MODE). This is a fault in the tool or its inputs, not a finding about a source, and it must not read as a clean sweep."
+          exit 1
 
       - name: Publish the proposals
         env:
           # The job token, scoped by the permissions block above to issues only.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DRY_RUN: ${{ inputs.dry_run }}
+          DRY_RUN: ${{ steps.params.outputs.dry_run }}
           RUN_ID: run-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           set -euo pipefail
           args=(--report "$RUNNER_TEMP/proposals/$RUN_ID/report.json" --repo "$GITHUB_REPOSITORY")
-          if [ "$DRY_RUN" = "true" ]; then
-            args+=(--dry-run)
-          fi
+          # Enumerated rather than tested for equality with `true`, so that an
+          # unexpected value refuses instead of publishing. The two are not the
+          # same: `[ "$DRY_RUN" = "true" ]` treats *everything else*, including
+          # the empty string a `schedule` event would have supplied before the
+          # resolution step existed, as permission to write to GitHub. The safe
+          # reading has to be the one that survives a value nobody anticipated.
+          case "$DRY_RUN" in
+            true) args+=(--dry-run) ;;
+            false) ;;
+            *)
+              echo "::error::DRY_RUN resolved to '$DRY_RUN', which is neither 'true' nor 'false'. Refusing to publish rather than guessing."
+              exit 1
+              ;;
+          esac
           python -m modeltree_updater publish "${args[@]}"
 
       - name: Keep the run artefact for review

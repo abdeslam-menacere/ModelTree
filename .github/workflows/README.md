@@ -17,7 +17,7 @@ waiting for a merge to tell it.
 | [`adr-numbers.yml`](adr-numbers.yml) | `pull_request` and `push` to `main`, path-filtered to `docs/adr/**`, `tools/adr_numbers/**` and `.github/workflows/adr-numbers.yml`, `workflow_dispatch` | Refuses two decision records under `docs/adr/` that claim the same four-digit number, and a record whose `# ADR NNNN:` heading disagrees with the number in its filename |
 | [`pages.yml`](pages.yml) | `push` to `main`, `workflow_dispatch` | Builds and deploys the site, reports a failed deploy, and resolves that report when the deploy recovers |
 | [`source-link-health.yml`](source-link-health.yml) | `schedule` (weekly), `pull_request` (every one), `workflow_dispatch`; both jobs scoped **inside the job** to `web/src/data/sources.json`, `.github/scripts/source-link-health/**` and `.github/workflows/source-link-health.yml` | Requests every recorded primary source URL and reports the ones that are definitively broken (404, 410) or permanently moved (301, 308), grouped by URL so one dead link is one finding however many records cite it. A rate-limit, a block, a timeout and a 5xx are each classified and **never** reported as a finding, because none of them is evidence the link is bad. On a schedule it opens or updates one maintenance issue and closes it when a later sweep is clean; on a pull request it can only report, and only about URLs that pull request itself introduced. It never writes to `web/src/data/` |
-| [`publish-updater-proposals.yml`](publish-updater-proposals.yml) | `workflow_dispatch` only | Files creator proposals as issues |
+| [`publish-updater-proposals.yml`](publish-updater-proposals.yml) | `schedule` (weekly, `52 5 * * 1`), `workflow_dispatch` | Files creator proposals as issues. A dispatch takes its creators, mode and `dry_run` from its inputs; a scheduled run has no inputs at all, so one step resolves both triggers to the same three parameters explicitly and writes the decision to the job summary — without that, `dry_run` reads as empty on a schedule and an empty value took the *publishing* branch. Where live mode is unconfigured (#93 — the repository has no Actions variables today), the scheduled run exercises the whole run→publish path against committed fixtures with `--dry-run` and publishes nothing, rather than reddening weekly on `azure/login`. A creator that could not be fetched still reaches a human: the CLI writes its report before returning 3, so the run step treats 3 in live mode as a finding to publish with a `::warning::`, not as an abort. It never writes to `web/src/data/` |
 | [`data-health.yml`](data-health.yml) | `schedule` (weekly), `workflow_dispatch` | Generates the staleness / data-health report over the versioned dataset and uploads it as an artifact: every dated record classified healthy, stale or conflicted with the date and category threshold that produced the verdict, releases missing optional coverage, the primary-source-type mix, and unresolved conflicts kept side by side. No score and no ranking. Ordinary age is reported, never failed; the one build-failing rule — a `verifiedAt` in the future — rides `web-ci` as a vitest test, not this workflow. Reads the dataset only, writes nothing back, uses no secrets |
 | [`web-e2e.yml`](web-e2e.yml) | `pull_request` (every one) and `push` to `main`, both scoped **inside the job** to `web/**` and `.github/workflows/web-e2e.yml`; `workflow_dispatch` | The browser half of the site's checks: Playwright drives a real Chromium over `astro preview`, and asserts the lineage view's 320px layout, its keyboard journey, its reduced-motion behaviour, and axe accessibility scans at desktop and mobile widths. Separate from `web-ci.yml` because it needs a Chromium download, which does not belong inside `npm run build` and therefore inside every dock's and every gate agent's install |
 
@@ -587,15 +587,18 @@ rules is a separate decision about where a rule should live.
 
 ## Permissions
 
-Every workflow sets `permissions: contents: read` at the top level, so no job can
-start from a wider default. Write scopes are granted per job, never globally:
+Every workflow pins its top-level `permissions:`, so no job can start from a wider
+default. Most set `contents: read`; `data-health.yml`, `source-link-health.yml`
+and `publish-updater-proposals.yml` set `{}` and grant `contents: read` on the
+job that checks out, which is the stricter form — a job added to one of those
+later inherits nothing at all. Write scopes are granted per job, never globally:
 
 | Job | Extra scope | Why |
 |---|---|---|
 | `pages.yml` → `deploy` | `pages: write`, `id-token: write` | Publish the built site and mint the OIDC token `actions/deploy-pages` exchanges |
 | `pages.yml` → `report-failure` | `issues: write` | File or update the stale-site issue |
 | `pages.yml` → `report-recovery` | `issues: write` | Close the stale-site issue once a deploy succeeds |
-| `publish-updater-proposals.yml` → `publish` | `issues: write`, `id-token: write` | Write proposal issues; sign in with workload identity |
+| `publish-updater-proposals.yml` → `publish` | `issues: write`, `id-token: write` (over a `{}` default, so it also names `contents: read`) | Write proposal issues; sign in with workload identity. Unchanged by the weekly schedule #30 added: the same job holds the same three scopes whoever or whatever starts it, so scheduling grants nothing new, and `tools/updater/tests/test_publication_workflow.py` asserts it against the parsed YAML |
 
 `web-ci.yml`, `skills-ci.yml`, `updater-tests.yml`, `instruction-references.yml`,
 `adr-numbers.yml` and `web-e2e.yml` hold no write scope at all. Nothing in this
