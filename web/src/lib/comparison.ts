@@ -1248,7 +1248,25 @@ export function buildModelComparison(
       (release) => release.accessType === 'open-weight' || release.accessType === 'both',
     );
     const hostedOnly = releases.filter((release) => release.accessType === 'proprietary-hosted');
-    if (openWeight.length > 0 && hostedOnly.length > 0) {
+    // Every compared release must appear in one of the two lists the detail
+    // below enumerates. A release in neither is dropped from both sentences
+    // while the headline still claims this row decides self-hosting, so the
+    // reader is told a difference is decisive over a set that quietly excludes
+    // one of the models they asked about.
+    //
+    // `fullyStated` does not catch this and cannot: the access row is built
+    // from `accessLabel`, which returns a string for every member, so its cells
+    // are always `stated` and the row is always fully stated. That is the
+    // silent-consumer shape ADR 0008 recorded for `STATUS_ORDER` -- an array,
+    // or here a pair of filters, where an omission is not a type error.
+    //
+    // Keyed on the enumeration rather than on `unknown` by name, so a member
+    // added later cannot reopen it. Two members currently fall outside:
+    // `unknown`, added by ADR 0011, and `source-available`, which has held zero
+    // records for the whole life of the dataset and is why this hole went
+    // unnoticed rather than being a regression this change introduces.
+    const accountedFor = openWeight.length + hostedOnly.length === releases.length;
+    if (accountedFor && openWeight.length > 0 && hostedOnly.length > 0) {
       takeaways.push({
         rule: 'self-hosting',
         headline: 'Only some of these can be run on your own hardware.',

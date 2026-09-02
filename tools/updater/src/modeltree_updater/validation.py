@@ -71,7 +71,22 @@ MODEL_CATEGORY = (
     "scientific",
     "robotics-world",
 )
-ACCESS_TYPE = ("proprietary-hosted", "open-weight", "source-available", "both")
+ACCESS_TYPE = (
+    "proprietary-hosted",
+    "open-weight",
+    "source-available",
+    "both",
+    # web/src/data/schema.ts is the source of truth for the dataset. `unknown`
+    # is the faithful value where no accessible primary source states how a
+    # release is obtained -- which happens in one direction only, because
+    # `proprietary-hosted` asserts that no weights are distributed and nobody
+    # announces an absence. It is a deliberate vocabulary member, not a nullable
+    # escape hatch, and it is emphatically not the value for a card that does
+    # state downloadable weights. Kept in lockstep so a record the web schema
+    # accepts is never rejected here in the permissive direction. See
+    # docs/adr/0011-access-type-carries-an-explicit-unknown-member.md.
+    "unknown",
+)
 ORGANIZATION_TYPE = ("company", "research-lab", "nonprofit", "community")
 
 

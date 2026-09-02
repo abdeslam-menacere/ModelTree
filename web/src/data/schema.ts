@@ -98,33 +98,60 @@ export const dateBasis = z.enum(['platform-repository-created']);
  * that adds a precision or scope the source never gave all remain rejections.
  * Nothing here licenses filling a field the source left unstated.
  *
- * **`status` carries an explicit `unknown` member; the other enums here do
- * not, and both halves of that are deliberate.** A lifecycle term is the one
- * field in this group that an approved primary source routinely does not state
- * at all: a bare model card names an architecture, a parameter count and a
- * licence yet says nothing about whether the vendor still offers the model,
- * whereas a card that omits its access type or its modalities is not publishing
- * a model. So `unknown` is the faithful recording of "the source states no
- * lifecycle state", exactly as `modelSelection` below carries `unknown` for a
- * product that discloses no selection policy — a first-class sourced value, not
- * an escape hatch, and it renders as its own label rather than a blank.
+ * **`status` and `accessType` each carry an explicit `unknown` member;
+ * `modelCategory` and `modality` do not, and every part of that is
+ * deliberate.** The test a field has to pass to earn one is not "is this
+ * sometimes hard to source" — it is whether an approved primary source can
+ * state the fact *at all*. Two fields here fail that test, for two different
+ * reasons, and each was decided separately rather than by analogy.
  *
- * It does not weaken the rule for the fields around it. `familySchema` and
- * `releaseSchema` below still require `categories`, `accessType` and both
- * modality lists to map to a stated term; there is still no member meaning
- * "left open" for them, and a tree branch rendering rows of blanks is not a
- * fact this dataset states. Where one of those fields cannot be mapped from an
- * approved source, the whole record is withheld rather than guessed. Where a
- * lifecycle is simply not stated, `status: 'unknown'` records that absence
- * honestly instead of compelling the record to assert a state its source never
- * gave — which is the case the schema previously had no way to express, so the
- * only route to publishing a bare model card was to smooth the absence over.
- * `unknown` says nothing about whether a release exists, so it does not reopen
- * the empty-family rule in `gate-dataset.mjs`. Fields that may honestly be
- * absent are `.optional()` instead, and `partialDate` above is the same
- * principle applied to how much of a date a source actually gave. The decision
- * and every consumer it touches are recorded in
+ * `status` fails it because a bare model card names an architecture, a
+ * parameter count and a licence yet says nothing about whether the vendor still
+ * offers the model. So `status: 'unknown'` is the faithful recording of "the
+ * source states no lifecycle state" — see
  * `docs/adr/0008-lifecycle-status-carries-an-explicit-unknown-member.md`.
+ *
+ * `accessType` fails it in one direction only, and the asymmetry is the whole
+ * of the reasoning. `open-weight`, `source-available` and `both` are positive
+ * claims a creator does publish: a card that says the weights can be downloaded
+ * states one outright. `proprietary-hosted` is the odd one, because it asserts a
+ * universal negative — no weights are distributed — and **nobody announces an
+ * absence.** A creator's pages state what a model is, name its context window
+ * and its modalities, and simply stop; there is no sentence saying "our weights
+ * are unavailable" to quote, because there is nothing to announce. A release
+ * whose access story is unstated in that direction had no expressible value at
+ * all, so it could not be recorded however well every other field was sourced.
+ * `accessType: 'unknown'` records that, and it is
+ * `docs/adr/0011-access-type-carries-an-explicit-unknown-member.md`.
+ *
+ * That ADR measured which direction actually blocks records, and the answer
+ * bounds this member tightly. The dominant recorded failure is the *other*
+ * direction: in one run, eight release records were refused with `accessType`
+ * among their provenance failures, and every one of them proposed
+ * `open-weight` on the strength of a licence name, a download link, or the word
+ * "Open" in a licence title. That run's own follow-up records the gap as a
+ * scouting defect rather than a structural one — the GPT-Neo README states
+ * downloadable weights a sentence before the link the scout quoted instead.
+ * **`unknown` is not for those.** Where a card states its access type, quoting
+ * it is the work; mapping a stated access type to `unknown` is a provenance
+ * failure exactly as mapping an unstated one to `open-weight` is.
+ *
+ * Both members are first-class sourced values in the same sense `modelSelection`
+ * below carries `unknown` for a product that discloses no selection policy — not
+ * escape hatches, and each renders as its own label rather than a blank.
+ *
+ * None of this weakens the rule for the fields around them. `familySchema` and
+ * `releaseSchema` below still require `categories` and both modality lists to
+ * map to a stated term; there is no member meaning "left open" for them, and a
+ * tree branch rendering rows of blanks is not a fact this dataset states. A card
+ * that omits its modalities is not publishing a model, and unlike a lifecycle or
+ * an absent-weights fact, those are things a source states whenever it publishes
+ * at all. Where one of them cannot be mapped from an approved source, the whole
+ * record is withheld rather than guessed. `unknown` says nothing about whether a
+ * release exists, so neither member reopens the empty-family rule in
+ * `gate-dataset.mjs`. Fields that may honestly be absent are `.optional()`
+ * instead, and `partialDate` above is the same principle applied to how much of
+ * a date a source actually gave.
  */
 export const lifecycleStatus = z.enum(['preview', 'current', 'legacy', 'deprecated', 'research', 'unknown']);
 export const modality = z.enum(['text', 'image', 'audio', 'video']);
@@ -141,11 +168,21 @@ export const modelCategory = z.enum([
   'robotics-world',
 ]);
 
+// `unknown` is deliberately last, so the four original members keep their order
+// and their index for any consumer that restates the vocabulary as an array.
+// The note above the enum group says what it means and, just as importantly,
+// what it is not for. The members are listed as bare literals with nothing else
+// between the brackets because `enumMembers` in
+// `.github/skills/modeltree-gates/scripts/gate-dataset.mjs` derives this
+// vocabulary by reading this declaration as text -- it executes no TypeScript,
+// so a comment sitting inside the list is a member it cannot read, and it
+// refuses the whole run rather than gate against a vocabulary it has misread.
 export const accessType = z.enum([
   'proprietary-hosted',
   'open-weight',
   'source-available',
   'both',
+  'unknown',
 ]);
 
 // Downloadable weights and OSI-approved licensing are separate claims. A model
@@ -522,6 +559,22 @@ export const releaseSchema = z.object({
       code: 'custom',
       path: ['license', 'weightsDownloadable'],
       message: 'contradicts an open-weight access type',
+    });
+  }
+  // The other half of that contradiction, and the one ADR 0011 adds. `unknown`
+  // records that no accessible primary source states how the release is
+  // obtained. A licence record asserting the weights *are* downloadable states
+  // exactly that, so the two cannot both be true of one release: whichever is
+  // right, the record is not "unknown". Refusing it here keeps `unknown` from
+  // becoming the value a record drifts to while still carrying the evidence
+  // that contradicts it -- the cheap failure this member is most likely to
+  // produce, since nothing else in the schema would notice.
+  if (release.accessType === 'unknown' && release.license?.weightsDownloadable) {
+    context.addIssue({
+      code: 'custom',
+      path: ['accessType'],
+      message:
+        'cannot be unknown when the release records downloadable weights, which states its access type',
     });
   }
   if (release.license?.osiApproved && !release.license.spdxId && !release.license.url) {
