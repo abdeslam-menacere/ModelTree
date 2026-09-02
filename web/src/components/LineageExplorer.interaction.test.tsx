@@ -349,3 +349,174 @@ describe('highlighting a selected path', () => {
     expect(successor?.textContent).toContain('Later in lineage');
   });
 });
+
+describe('shareable lineage trail (#39)', () => {
+  function findEcosystemWithLineage() {
+    const found = ecosystems
+      .flatMap(({ organization, families }) => families.map((family) => ({ organization, family })))
+      .find(({ family }) => family.linkCount > 0);
+    expect(found, 'catalog must record at least one lineage link').toBeDefined();
+    return found!;
+  }
+
+  it('enters the trail, marks unrelated nodes, and writes trail=1 to the URL', async () => {
+    const user = userEvent.setup();
+    renderExplorer();
+
+    const enter = await waitFor(() => {
+      const button = within(detailsPanel()).getByRole('button', { name: /Focus on lineage trail/ });
+      expect(button).toBeTruthy();
+      return button;
+    });
+
+    await user.click(enter);
+
+    await waitFor(() => {
+      expect(window.location.search).toMatch(/(?:^|[?&])trail=1(?:&|$)/);
+    });
+    expect(document.querySelectorAll('.release-node[data-in-trail="false"]').length).toBeGreaterThan(0);
+    // A trail with a selected release always has at least the selection carrying data-in-trail="true".
+    expect(document.querySelectorAll('.release-node[data-in-trail="true"]').length).toBeGreaterThan(0);
+    expect(within(detailsPanel()).getByRole('button', { name: /Exit trail/ })).toBeTruthy();
+  });
+
+  it('exits the trail, clears the flag from the URL, and drops data-in-trail from every node', async () => {
+    const user = userEvent.setup();
+    renderExplorer();
+
+    const enter = await waitFor(() => within(detailsPanel()).getByRole('button', { name: /Focus on lineage trail/ }));
+    await user.click(enter);
+    await waitFor(() => expect(window.location.search).toContain('trail=1'));
+    const searchBeforeExit = window.location.search;
+
+    const exit = within(detailsPanel()).getByRole('button', { name: /Exit trail/ });
+    await user.click(exit);
+
+    await waitFor(() => {
+      expect(window.location.search).not.toContain('trail=1');
+    });
+    expect(searchBeforeExit).toContain('provider=');
+    expect(searchBeforeExit).toContain('model=');
+    // Provider and model survive.
+    expect(window.location.search).toContain('provider=');
+    expect(window.location.search).toContain('model=');
+    expect(document.querySelectorAll('.release-node[data-in-trail]')).toHaveLength(0);
+  });
+
+  it('restores the trail on mount from ?trail=1', async () => {
+    const { organization, family } = findEcosystemWithLineage();
+    const release = family.roots[0].release;
+    window.history.replaceState(
+      {},
+      '',
+      `/ModelTree/?provider=${organization.slug}&model=${release.slug}&trail=1`,
+    );
+    renderExplorer();
+
+    await waitFor(() => {
+      expect(within(detailsPanel()).getByRole('button', { name: /Exit trail/ })).toBeTruthy();
+    });
+    // The share input is visible and holds the current URL.
+    const shareInput = document.querySelector('.lineage-trail-share-input') as HTMLInputElement;
+    expect(shareInput).toBeTruthy();
+    expect(shareInput.value).toContain('trail=1');
+    expect(shareInput.value).toContain(`provider=${organization.slug}`);
+    expect(shareInput.value).toContain(`model=${release.slug}`);
+  });
+
+  it('copies the shareable URL and announces via the live region', async () => {
+    const user = userEvent.setup();
+    const writes: string[] = [];
+    const original = (navigator as Navigator & { clipboard?: Clipboard }).clipboard;
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: (text: string) => {
+          writes.push(text);
+          return Promise.resolve();
+        },
+      },
+    });
+
+    try {
+      renderExplorer();
+      const enter = await waitFor(() => within(detailsPanel()).getByRole('button', { name: /Focus on lineage trail/ }));
+      await user.click(enter);
+      const copy = await waitFor(() => within(detailsPanel()).getByRole('button', { name: /Copy trail link/ }));
+      await user.click(copy);
+
+      await waitFor(() => {
+        expect(writes.length).toBe(1);
+      });
+      expect(writes[0]).toContain('trail=1');
+
+      const status = document.querySelector('.lineage-trail-copy-status');
+      await waitFor(() => {
+        expect(status?.textContent).toContain('copied');
+      });
+    } finally {
+      if (original === undefined) {
+        delete (navigator as Navigator & { clipboard?: Clipboard }).clipboard;
+      } else {
+        Object.defineProperty(navigator, 'clipboard', {
+          configurable: true,
+          value: original,
+        });
+      }
+    }
+  });
+
+  it('announces the fallback path when the clipboard is unavailable', async () => {
+    const user = userEvent.setup();
+    const original = (navigator as Navigator & { clipboard?: Clipboard }).clipboard;
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: undefined,
+    });
+
+    try {
+      renderExplorer();
+      const enter = await waitFor(() => within(detailsPanel()).getByRole('button', { name: /Focus on lineage trail/ }));
+      await user.click(enter);
+      const copy = await waitFor(() => within(detailsPanel()).getByRole('button', { name: /Copy trail link/ }));
+      await user.click(copy);
+
+      const status = document.querySelector('.lineage-trail-copy-status');
+      await waitFor(() => {
+        expect(status?.textContent).toMatch(/failed/i);
+      });
+      // The read-only share input is still there for the manual copy path.
+      expect(document.querySelector('.lineage-trail-share-input')).toBeTruthy();
+    } finally {
+      if (original === undefined) {
+        delete (navigator as Navigator & { clipboard?: Clipboard }).clipboard;
+      } else {
+        Object.defineProperty(navigator, 'clipboard', {
+          configurable: true,
+          value: original,
+        });
+      }
+    }
+  });
+
+  it('states the empty-trail case plainly for a release with no recorded relationships', async () => {
+    const flat = fixtureEcosystems.find((eco) =>
+      eco.families.some((family) => family.linkCount === 0 && family.roots.length === 1),
+    );
+    if (!flat) return;
+    const family = flat.families.find((f) => f.linkCount === 0 && f.roots.length === 1)!;
+    const release = family.roots[0].release;
+
+    window.history.replaceState(
+      {},
+      '',
+      `/ModelTree/?provider=${flat.organization.slug}&model=${release.slug}&trail=1`,
+    );
+    renderExplorer(fixtureEcosystems, lineageFixtureDataset.releases);
+
+    await waitFor(() => {
+      const empty = document.querySelector('.lineage-trail-empty');
+      expect(empty?.textContent).toContain('No recorded relationships');
+    });
+  });
+});

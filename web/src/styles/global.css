@@ -6187,6 +6187,115 @@ a.directory-letter:hover {
   }
 }
 
+/* --- Lineage trail (issue #39) ------------------------------------------------
+ * The trail is opt-in: when off, none of the rules below take effect because
+ * `data-in-trail` is absent from every node and `.lineage-trail` is a normal
+ * block. When on, unrelated nodes are muted with a small opacity change that
+ * keeps text at >=4.5:1 contrast against the surface (measured on the existing
+ * `.release-node` typography), and trail members carry an accent inset ring so
+ * the affordance is not colour-only. Forced-colours mode swaps to system colours
+ * and a border-style change, since accent colours are ignored there.
+ */
+.release-node[data-in-trail='false'] {
+  opacity: 0.85;
+}
+.release-node[data-in-trail='true'] {
+  box-shadow: inset 0 0 0 2px var(--cp-accent-soft, #4c66a4);
+}
+@media (forced-colors: active) {
+  .release-node[data-in-trail='false'] {
+    opacity: 1;
+    color: GrayText;
+    border-color: GrayText;
+  }
+  .release-node[data-in-trail='true'] {
+    box-shadow: none;
+    outline: 2px solid CanvasText;
+    outline-offset: 1px;
+  }
+}
+
+.lineage-trail {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid var(--cp-border, #d8d1c7);
+  border-radius: 10px;
+  background: var(--cp-surface-muted, #fbf8f3);
+}
+.lineage-trail-header h4 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+.lineage-trail-hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--cp-text-muted, #4b463d);
+}
+.lineage-trail-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.lineage-trail-share {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.lineage-trail-share-label {
+  font-size: 12px;
+  color: var(--cp-text-muted, #4b463d);
+}
+.lineage-trail-share-input {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  border: 1px solid var(--cp-border, #d8d1c7);
+  border-radius: 6px;
+  background: var(--cp-surface, #f7f4ef);
+  color: var(--cp-text, #1f1c17);
+}
+.lineage-trail-summary,
+.lineage-trail-copy-status {
+  margin: 4px 0;
+  font-size: 13px;
+  color: var(--cp-text, #1f1c17);
+}
+.lineage-trail-copy-status:empty {
+  display: none;
+}
+.lineage-trail-empty {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--cp-text-muted, #4b463d);
+}
+.lineage-trail-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+.lineage-trail-group h5 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--cp-text-muted, #4b463d);
+}
+.lineage-trail-group ol {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--cp-text, #1f1c17);
+}
+.lineage-trail-group li {
+  margin-bottom: 2px;
+}
+.lineage-trail-context,
+.lineage-trail-relation {
+  color: var(--cp-text-muted, #4b463d);
+}
+
 /* --- Primary navigation grouping (issue #523) ---------------------------------
  * Eleven flat header links overflowed their bar. They are now five top-level
  * items, two of which are native <details>/<summary> disclosures holding the

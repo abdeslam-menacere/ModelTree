@@ -3,17 +3,28 @@ import {
   CalendarDays,
   CheckCircle2,
   Cloud,
+  Copy,
   ExternalLink,
+  Focus,
   GitBranch,
   Users,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+} from 'react';
 import { accessLabel, formatDate, formatReleaseDate, statusLabel } from '../lib/format';
 import { compareUrl } from '../lib/compare-route';
 import { organizationLabel } from '../lib/organization-name';
 import {
   LINEAGE_RELATION_LABELS,
   buildLineageHighlight,
+  buildLineageTrail,
   findLineagePlacement,
   firstEcosystemRelease,
   lineageRelation,
@@ -21,15 +32,17 @@ import {
   type LineageEcosystem,
   type LineageHighlight,
   type LineageNode,
+  type LineageTrail,
 } from '../lib/lineage-view';
 import {
   variantPositioningCoverageLine,
   type FamilyVariantPositioningView,
 } from '../lib/variant-positioning';
 import {
-  createLineageSelectionUrl,
+  createLineageTrailUrl,
   readOptionalSelectedModel,
   readOptionalSelectedProvider,
+  readOptionalTrailFlag,
 } from '../lib/selection';
 
 interface SourceSummary {
@@ -85,6 +98,15 @@ export default function LineageExplorer({
   // output is the complete no-JS alternative to the interactive view.
   const [narrowed, setNarrowed] = useState(false);
   const [rovingIndex, setRovingIndex] = useState(0);
+  // The trail is opt-in and shareable. Off until the URL says otherwise, and
+  // toggled by the user via the enter/exit control below. Exiting only removes
+  // dimming and the trail panel; selection, focus, and roving tabindex are
+  // untouched, which is the "restore prior explorer state" acceptance criterion
+  // read as the smallest thing it can honestly mean.
+  const [trailActive, setTrailActive] = useState(false);
+  // "idle" until the user tries to copy; "copied" or "failed" after that, so the
+  // live region can announce feedback without polling clipboard state.
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
   const providerRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const normalizedBase = basePath.endsWith('/') ? basePath : `${basePath}/`;
@@ -96,6 +118,10 @@ export default function LineageExplorer({
   );
   const highlight = useMemo(
     () => buildLineageHighlight(ecosystems, placement?.release.slug),
+    [ecosystems, placement?.release.slug],
+  );
+  const trail = useMemo(
+    () => buildLineageTrail(ecosystems, placement?.release.slug),
     [ecosystems, placement?.release.slug],
   );
   const visible = narrowed ? ecosystems.slice(selectedIndex, selectedIndex + 1) : ecosystems;
@@ -114,6 +140,7 @@ export default function LineageExplorer({
       ?? (providerDefault ? firstEcosystemRelease(providerDefault).slug : undefined)
       ?? defaultSlug,
     );
+    setTrailActive(readOptionalTrailFlag(search));
     setNarrowed(true);
   }, [defaultSlug, slugs.join('\0'), providerSlugs.join('\0')]);
 
@@ -126,17 +153,56 @@ export default function LineageExplorer({
     window.history.replaceState(
       null,
       '',
-      createLineageSelectionUrl(
+      createLineageTrailUrl(
         window.location.href,
         placement.organization.slug,
         placement.release.slug,
+        trailActive,
       ),
     );
-  }, [narrowed, placement?.organization.slug, placement?.release.slug]);
+  }, [narrowed, placement?.organization.slug, placement?.release.slug, trailActive]);
+
+  // The copy affordance resets whenever the shareable URL changes, so a stale
+  // success message can't sit under a fresh link and mislead a reader.
+  useEffect(() => {
+    setCopyState('idle');
+  }, [placement?.release.slug, placement?.organization.slug, trailActive]);
 
   function selectEcosystem(ecosystem: LineageEcosystem) {
     setSelectedSlug(firstEcosystemRelease(ecosystem).slug);
   }
+
+  const shareableUrl = useMemo(() => {
+    if (!placement) return '';
+    if (typeof window === 'undefined') return '';
+    return new URL(
+      createLineageTrailUrl(
+        window.location.href,
+        placement.organization.slug,
+        placement.release.slug,
+        trailActive,
+      ),
+      window.location.origin,
+    ).toString();
+  }, [placement?.organization.slug, placement?.release.slug, trailActive]);
+
+  const copyShareableUrl = useCallback(async () => {
+    // The URL is always visible below as a read-only input, so a copy failure
+    // is a degraded outcome rather than a blocking one -- keyboard users can
+    // still select and copy manually. Feature-detect first so a test running
+    // without a clipboard shim announces the fallback path.
+    const clipboard = typeof navigator !== 'undefined' ? navigator.clipboard : undefined;
+    if (!clipboard || typeof clipboard.writeText !== 'function') {
+      setCopyState('failed');
+      return;
+    }
+    try {
+      await clipboard.writeText(shareableUrl);
+      setCopyState('copied');
+    } catch {
+      setCopyState('failed');
+    }
+  }, [shareableUrl]);
 
   function handleProviderKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     const last = ecosystems.length - 1;
@@ -253,6 +319,9 @@ export default function LineageExplorer({
                       releaseLabels={releaseLabels}
                       positioning={view.positioning}
                       onSelect={setSelectedSlug}
+                      trailActive={trailActive}
+                      trailMemberIds={trail.memberIds}
+                      selectedId={placement.release.id}
                     />
                   </article>
                 ))}
@@ -312,11 +381,23 @@ export default function LineageExplorer({
                 <dd>{namesFor(placement.release.siblingIds, releaseLabels) ?? 'No recorded sibling release.'}</dd>
               </div>
               <div>
-                <dt>Derived from</dt>
+                <dt>{LINEAGE_RELATION_LABELS.derivation}</dt>
                 <dd>{namesFor(placement.release.derivedFromIds, releaseLabels) ?? 'No recorded derivation.'}</dd>
               </div>
             </dl>
           </div>
+
+          <LineageTrailPanel
+            trail={trail}
+            trailActive={trailActive}
+            selectedName={placement.release.displayName}
+            releaseLabels={releaseLabels}
+            shareableUrl={shareableUrl}
+            copyState={copyState}
+            onEnter={() => setTrailActive(true)}
+            onExit={() => setTrailActive(false)}
+            onCopy={copyShareableUrl}
+          />
 
           <div className="summary-purpose">
             <span>When to use it</span>
@@ -369,6 +450,16 @@ interface BranchProps {
   releaseLabels: Record<string, string>;
   positioning: FamilyVariantPositioningView;
   onSelect: (slug: string) => void;
+  /**
+   * When the trail is active, every visible node carries a `data-in-trail`
+   * attribute describing whether it belongs to the recorded lineage of the
+   * selected release. When it is not active, the attribute is absent and the
+   * tree looks exactly as it did before this issue -- readers, styles, and the
+   * a11y suite all treat the absence as "no trail is in effect".
+   */
+  trailActive: boolean;
+  trailMemberIds: ReadonlySet<string>;
+  selectedId: string;
 }
 
 /**
@@ -429,7 +520,18 @@ function NodePositioning({
   );
 }
 
-function LineageBranch({ nodes, parentId, label, highlight, releaseLabels, positioning, onSelect }: BranchProps) {
+function LineageBranch({
+  nodes,
+  parentId,
+  label,
+  highlight,
+  releaseLabels,
+  positioning,
+  onSelect,
+  trailActive,
+  trailMemberIds,
+  selectedId,
+}: BranchProps) {
   if (nodes.length === 0) return null;
 
   return (
@@ -441,6 +543,9 @@ function LineageBranch({ nodes, parentId, label, highlight, releaseLabels, posit
       {nodes.map((node) => {
         const relation = lineageRelation(highlight, node.release.id);
         const alsoFollows = namesFor(node.additionalPredecessorIds, releaseLabels);
+        const inTrail = trailActive
+          ? trailMemberIds.has(node.release.id) || node.release.id === selectedId
+          : undefined;
 
         return (
           <li key={node.release.id} data-lineage-link={parentId}>
@@ -450,6 +555,7 @@ function LineageBranch({ nodes, parentId, label, highlight, releaseLabels, posit
               data-release={node.release.slug}
               data-relation={relation}
               data-status={node.release.status}
+              data-in-trail={inTrail === undefined ? undefined : inTrail ? 'true' : 'false'}
               aria-current={relation === 'selected' ? 'true' : undefined}
               onClick={() => onSelect(node.release.slug)}
             >
@@ -481,10 +587,151 @@ function LineageBranch({ nodes, parentId, label, highlight, releaseLabels, posit
               releaseLabels={releaseLabels}
               positioning={positioning}
               onSelect={onSelect}
+              trailActive={trailActive}
+              trailMemberIds={trailMemberIds}
+              selectedId={selectedId}
             />
           </li>
         );
       })}
     </ul>
+  );
+}
+
+interface LineageTrailPanelProps {
+  trail: LineageTrail;
+  trailActive: boolean;
+  selectedName: string;
+  releaseLabels: Record<string, string>;
+  shareableUrl: string;
+  copyState: 'idle' | 'copied' | 'failed';
+  onEnter: () => void;
+  onExit: () => void;
+  onCopy: () => void;
+}
+
+const TRAIL_GROUP_ORDER = ['ancestors', 'siblings', 'successors', 'derivations'] as const;
+const TRAIL_GROUP_HEADINGS: Record<(typeof TRAIL_GROUP_ORDER)[number], string> = {
+  ancestors: 'Predecessors',
+  siblings: 'Siblings',
+  successors: 'Successors',
+  derivations: 'Derivations',
+};
+const TRAIL_GROUP_RELATION_LABEL: Record<(typeof TRAIL_GROUP_ORDER)[number], string> = {
+  ancestors: LINEAGE_RELATION_LABELS.ancestor,
+  siblings: LINEAGE_RELATION_LABELS.sibling,
+  successors: LINEAGE_RELATION_LABELS.successor,
+  derivations: LINEAGE_RELATION_LABELS.derivation,
+};
+
+function LineageTrailPanel({
+  trail,
+  trailActive,
+  selectedName,
+  releaseLabels,
+  shareableUrl,
+  copyState,
+  onEnter,
+  onExit,
+  onCopy,
+}: LineageTrailPanelProps) {
+  const totalEntries =
+    trail.ancestors.length + trail.siblings.length + trail.successors.length + trail.derivations.length;
+
+  const summary = trailActive
+    ? `Trail focused on ${selectedName}: ${totalEntries === 1 ? '1 recorded relationship' : `${totalEntries} recorded relationships`}.`
+    : '';
+
+  const copyMessage = copyState === 'copied'
+    ? 'Trail link copied.'
+    : copyState === 'failed'
+      ? 'Copy failed. Select the link below to copy it manually.'
+      : '';
+
+  return (
+    <section className="lineage-trail" aria-labelledby="lineage-trail-heading">
+      <header className="lineage-trail-header">
+        <h4 id="lineage-trail-heading">Lineage trail</h4>
+        <p className="lineage-trail-hint">
+          {trailActive
+            ? 'Unrelated releases are muted. Copy the link to share this focus.'
+            : 'Focus dims unrelated releases and lists every recorded relationship.'}
+        </p>
+      </header>
+      <div className="lineage-trail-controls">
+        {trailActive ? (
+          <>
+            <button type="button" className="text-action" onClick={onExit}>
+              Exit trail
+            </button>
+            <button type="button" className="text-action" onClick={onCopy}>
+              <Copy size={15} aria-hidden="true" /> Copy trail link
+            </button>
+          </>
+        ) : (
+          <button type="button" className="primary-action" onClick={onEnter}>
+            <Focus size={15} aria-hidden="true" /> Focus on lineage trail
+          </button>
+        )}
+      </div>
+      {trailActive && (
+        <>
+          <div className="lineage-trail-share">
+            <label className="lineage-trail-share-label" htmlFor="lineage-trail-url">
+              Share this trail
+            </label>
+            <input
+              id="lineage-trail-url"
+              className="lineage-trail-share-input"
+              type="text"
+              readOnly
+              value={shareableUrl}
+              onFocus={(event) => event.currentTarget.select()}
+            />
+          </div>
+          <p className="lineage-trail-summary" role="status">
+            {summary}
+          </p>
+          <p className="lineage-trail-copy-status" role="status" aria-live="polite">
+            {copyMessage}
+          </p>
+          {trail.isEmpty ? (
+            <p className="lineage-trail-empty">
+              No recorded relationships in this family, so the trail contains only this release.
+            </p>
+          ) : (
+            <div className="lineage-trail-groups">
+              {TRAIL_GROUP_ORDER.map((group) => {
+                const entries = trail[group];
+                if (entries.length === 0) return null;
+                const relationLabel = TRAIL_GROUP_RELATION_LABEL[group];
+                return (
+                  <div className="lineage-trail-group" key={group}>
+                    <h5>{TRAIL_GROUP_HEADINGS[group]}</h5>
+                    <ol>
+                      {entries.map((entry) => {
+                        const label = entry.placement
+                          ? entry.placement.release.displayName
+                          : releaseLabels[entry.releaseId] ?? entry.releaseId;
+                        const context = entry.placement
+                          ? `${organizationLabel(entry.placement.organization)} / ${entry.placement.family.family.name}`
+                          : 'recorded outside the visible ecosystems';
+                        return (
+                          <li key={entry.releaseId}>
+                            <strong>{label}</strong>
+                            <span className="lineage-trail-context"> — {context}</span>
+                            <span className="lineage-trail-relation"> ({relationLabel})</span>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </section>
   );
 }
