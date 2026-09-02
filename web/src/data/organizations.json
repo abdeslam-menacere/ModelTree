@@ -52,14 +52,17 @@
     "name": "Meta",
     "shortName": "Meta",
     "type": "company",
-    "website": "https://www.llama.com/",
-    "releasePage": "https://huggingface.co/meta-llama",
-    "description": "Creator of the Llama models, published as downloadable weights under Meta's own community licences.",
+    "website": "https://ai.meta.com/",
+    "releasePage": "https://ai.meta.com/blog/",
+    "description": "Creator of two model lines that reach people differently, so not every Meta model is downloadable. Llama is published as downloadable weights under Meta's own community licences, collected at huggingface.co/meta-llama. Muse, developed by Meta Superintelligence Labs, is served only through Meta's own surfaces — the Meta AI app, meta.ai, and the Meta Model API — and no Muse weights are released. Both lines are announced on AI at Meta, which is what website and releasePage record: it is an announcement stream rather than an index of releases, and nothing checked here shows a single Meta page that lists both lines. The Hugging Face collection is Llama-only and is recorded as a source rather than as this creator's release page. The former Llama-only site www.llama.com now redirects to developer.meta.com and is no longer recorded here.",
     "sourceIds": [
       "meta-llama-collection",
-      "meta-llama-4-announcement"
+      "meta-llama-4-announcement",
+      "meta-muse-spark-announcement",
+      "meta-muse-spark-1-1-announcement",
+      "meta-muse-image-video-announcement"
     ],
-    "verifiedAt": "2026-08-27"
+    "verifiedAt": "2026-09-01"
   },
   {
     "id": "xai",
