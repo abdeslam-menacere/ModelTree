@@ -456,7 +456,7 @@ describe('shareable lineage trail (#39)', () => {
       });
     } finally {
       if (original === undefined) {
-        delete (navigator as Navigator & { clipboard?: Clipboard }).clipboard;
+        delete (navigator as unknown as Record<string, unknown>).clipboard;
       } else {
         Object.defineProperty(navigator, 'clipboard', {
           configurable: true,
@@ -489,7 +489,7 @@ describe('shareable lineage trail (#39)', () => {
       expect(document.querySelector('.lineage-trail-share-input')).toBeTruthy();
     } finally {
       if (original === undefined) {
-        delete (navigator as Navigator & { clipboard?: Clipboard }).clipboard;
+        delete (navigator as unknown as Record<string, unknown>).clipboard;
       } else {
         Object.defineProperty(navigator, 'clipboard', {
           configurable: true,

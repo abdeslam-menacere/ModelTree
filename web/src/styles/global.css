@@ -6193,34 +6193,23 @@ a.directory-letter:hover {
  * block. When on, unrelated nodes are muted with a small opacity change that
  * keeps text at >=4.5:1 contrast against the surface (measured on the existing
  * `.release-node` typography), and trail members carry an accent inset ring so
- * the affordance is not colour-only. Forced-colours mode swaps to system colours
- * and a border-style change, since accent colours are ignored there.
+ * the affordance is not colour-only. The forced-colours override lives in the
+ * single `@media (forced-colors: active)` block below so the visual-system tests
+ * find every fallback rule inside it.
  */
 .release-node[data-in-trail='false'] {
   opacity: 0.85;
 }
 .release-node[data-in-trail='true'] {
-  box-shadow: inset 0 0 0 2px var(--cp-accent-soft, #4c66a4);
-}
-@media (forced-colors: active) {
-  .release-node[data-in-trail='false'] {
-    opacity: 1;
-    color: GrayText;
-    border-color: GrayText;
-  }
-  .release-node[data-in-trail='true'] {
-    box-shadow: none;
-    outline: 2px solid CanvasText;
-    outline-offset: 1px;
-  }
+  box-shadow: inset 0 0 0 2px var(--cp-accent);
 }
 
 .lineage-trail {
   margin-top: 20px;
   padding: 16px;
-  border: 1px solid var(--cp-border, #d8d1c7);
+  border: 1px solid var(--cp-border);
   border-radius: 10px;
-  background: var(--cp-surface-muted, #fbf8f3);
+  background: var(--cp-surface-soft);
 }
 .lineage-trail-header h4 {
   margin: 0 0 4px;
@@ -6229,7 +6218,7 @@ a.directory-letter:hover {
 .lineage-trail-hint {
   margin: 0 0 12px;
   font-size: 13px;
-  color: var(--cp-text-muted, #4b463d);
+  color: var(--cp-text-muted);
 }
 .lineage-trail-controls {
   display: flex;
@@ -6245,23 +6234,23 @@ a.directory-letter:hover {
 }
 .lineage-trail-share-label {
   font-size: 12px;
-  color: var(--cp-text-muted, #4b463d);
+  color: var(--cp-text-muted);
 }
 .lineage-trail-share-input {
   width: 100%;
   padding: 6px 8px;
   font-size: 12px;
   font-family: inherit;
-  border: 1px solid var(--cp-border, #d8d1c7);
+  border: 1px solid var(--cp-border);
   border-radius: 6px;
-  background: var(--cp-surface, #f7f4ef);
-  color: var(--cp-text, #1f1c17);
+  background: var(--cp-surface);
+  color: var(--cp-text);
 }
 .lineage-trail-summary,
 .lineage-trail-copy-status {
   margin: 4px 0;
   font-size: 13px;
-  color: var(--cp-text, #1f1c17);
+  color: var(--cp-text);
 }
 .lineage-trail-copy-status:empty {
   display: none;
@@ -6269,7 +6258,7 @@ a.directory-letter:hover {
 .lineage-trail-empty {
   margin: 8px 0 0;
   font-size: 13px;
-  color: var(--cp-text-muted, #4b463d);
+  color: var(--cp-text-muted);
 }
 .lineage-trail-groups {
   display: flex;
@@ -6280,20 +6269,20 @@ a.directory-letter:hover {
 .lineage-trail-group h5 {
   margin: 0 0 4px;
   font-size: 13px;
-  color: var(--cp-text-muted, #4b463d);
+  color: var(--cp-text-muted);
 }
 .lineage-trail-group ol {
   margin: 0;
   padding-left: 20px;
   font-size: 13px;
-  color: var(--cp-text, #1f1c17);
+  color: var(--cp-text);
 }
 .lineage-trail-group li {
   margin-bottom: 2px;
 }
 .lineage-trail-context,
 .lineage-trail-relation {
-  color: var(--cp-text-muted, #4b463d);
+  color: var(--cp-text-muted);
 }
 
 /* --- Primary navigation grouping (issue #523) ---------------------------------
@@ -7159,6 +7148,23 @@ html[data-theme="dark"] {
   .tree-release-list > li::before,
   .timeline-entry::before {
     background: CanvasText;
+  }
+
+  /* 7. Lineage trail (issue #39). The two `data-in-trail` states are painted
+   *    with `opacity` and an accent-coloured inset ring outside forced colours.
+   *    A forced palette ignores both, so the muted state is redrawn with the
+   *    system muted foreground (`GrayText`) and the trail-member state gets a
+   *    drawn outline in `CanvasText`. Border-style rather than colour, matching
+   *    the WCAG 1.4.1 constraint that the trail signal is never colour-only. */
+  .release-node[data-in-trail='false'] {
+    opacity: 1;
+    color: GrayText;
+    border-color: GrayText;
+  }
+  .release-node[data-in-trail='true'] {
+    box-shadow: none;
+    outline: 2px solid CanvasText;
+    outline-offset: 1px;
   }
 }
 
