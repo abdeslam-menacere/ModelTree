@@ -717,7 +717,9 @@ describe('comparison over the shipped dataset', () => {
 
 // ---------------------------------------------------------------------------
 // Payload. `/compare` is the one page in this site that ships its records, so
-// it is the one page whose weight can grow without anybody noticing.
+// it is the one page whose weight can grow without anybody noticing. Every
+// budget in this block guards bytes a reader really downloads. The picker
+// index budget further down does not, and says so.
 // ---------------------------------------------------------------------------
 
 describe('comparison payload', () => {
@@ -858,11 +860,14 @@ describe('comparison payload', () => {
     // repeating it in prose.
     expect(
       size.bytesPerRelease,
-      'a record got fatter — trim the payload rather than raising this',
+      '/compare PAYLOAD (SHIPPED) — a record got fatter, so trim the payload rather than '
+      + 'raising this. These bytes are really delivered: compare.astro ships this payload to '
+      + 'every reader of /compare. Not to be confused with the picker index budget, which '
+      + 'guards an unshipped artefact and is asserted in its own describe block below.',
     ).toBeLessThanOrEqual(1_600);
     expect(
       size.totalBytes,
-      `/compare ships ${size.totalBytes} UTF-8 bytes for ${payload.releases.length} releases `
+      `/compare PAYLOAD (SHIPPED) — /compare ships ${size.totalBytes} UTF-8 bytes for ${payload.releases.length} releases `
       + `(${size.bytesPerRelease}/release, budget 143,360). The #584-era anchors — 124,410 over 83 `
       + 'releases at 1,499 each, against 121,916 over 82 at its 7ca5802 merge-base — are '
       + 'verbose-key UTF-16 code-unit counts taken before #621 corrected the unit and #726 '
@@ -925,8 +930,42 @@ describe('comparison payload', () => {
       }
     }
   });
+});
 
-  it('needs only the picker index before a reader has chosen anything', () => {
+// ---------------------------------------------------------------------------
+// Comparison picker index. **UNSHIPPED.** Read this before the budget below.
+//
+// No page delivers these bytes. `buildComparisonPickerIndex` has no production
+// consumer: `/compare` ships `buildComparisonPayload` (see compare.astro), and
+// the only importers of the picker are this file and organization-name.test.ts.
+// No .astro page, no component and no client bundle imports it.
+//
+// The budget below is therefore not a page-weight guard on delivered bytes. It
+// is a deliberate design constraint on the shape a /compare picker would ship
+// **if** it is built — the disposition the repository owner chose in
+// abdeslam-menacere/ModelTree#693 (reading (b)), against deleting the index.
+// Kept, on purpose, with both ceilings at their current values.
+//
+// Which makes one failure mode the whole point of saying this here. A picker
+// overflow is not a regression in anything a reader downloads, and it must not
+// be answered the way a real page-weight regression would be:
+//
+//   * **Do not cut dataset records to fit it.** #740 dropped `cohere`,
+//     `stability-ai` and `nvidia` at "picker index: 11,219 of 11,264 — 45 bytes
+//     spare"; #754 exists solely to recover them. Real researched breadth was
+//     spent on a constraint no reader was subject to.
+//   * **Do not raise the ceiling.** It has already been raised three times,
+//     1,024 bytes each, once per breadth tranche
+//     (`web/src/data/refresh-runs.json`). A fourth raise measures nothing but
+//     how recently someone last raised it.
+//
+// Trim the row shape, or escalate it as what it is: a design question about
+// what a future picker row should carry. The stopping rule inside the budget
+// below states the trim that is already measured and still on the table.
+// ---------------------------------------------------------------------------
+
+describe('comparison picker index (UNSHIPPED — no page delivers these bytes)', () => {
+  it('keeps the unshipped picker index within its design budget', () => {
     const index = buildComparisonPickerIndex(dataset);
     // UTF-8 bytes, matching the payload guard after #621. Measured at the time
     // of that correction the two counts were identical here — delta exactly 0 —
@@ -1013,17 +1052,16 @@ describe('comparison payload', () => {
     // declines to be its remedy. Shortening keys or moving to tuple rows keeps
     // every value on every row and is mechanical.
     //
-    // Worth weighing before spending effort on either side: nothing ships this
-    // index. `buildComparisonPickerIndex` is imported only by this file and by
-    // organization-name.test.ts — /compare ships buildComparisonPayload
-    // (compare.astro), and no .astro, script or client bundle imports the picker.
-    // So a raise costs zero delivered bytes and a trim saves zero; both move a
-    // proxy for a page weight that is not yet real. The guard is still worth
-    // keeping as a design constraint on what /compare would ship if the picker is
-    // adopted — but what adoption would inherit is the row shape, not the
-    // catalogue size, and the catalogue growing is the thing this project exists
-    // to do. That is a second and independent reason the remedy here is the trim
-    // and not the raise.
+    // Worth weighing before spending effort on either side, and stated in full
+    // in the banner above this describe block: nothing ships this index, so a
+    // raise costs zero delivered bytes and a trim saves zero. Both move a proxy
+    // for a page weight that is not yet real. The guard is kept deliberately as
+    // a design constraint on what /compare would ship if the picker is adopted
+    // (#693, reading (b)) — and what adoption would inherit is the row shape,
+    // not the catalogue size, and the catalogue growing is the thing this
+    // project exists to do. That is a second and independent reason the remedy
+    // here is the trim and not the raise, and the reason a blocked data tranche
+    // is never the thing that gives way.
     //
     // #651 raised this from 10,240 to 11,264, correctly reading the protocol this
     // comment used to document; the protocol was what was wrong, not that dock.
@@ -1039,12 +1077,23 @@ describe('comparison payload', () => {
     // the failure message below prints the live value rather than repeating it.
     expect(
       bytesPerRelease,
-      'a picker row got fatter — trim the row rather than raising this',
+      'PICKER INDEX (UNSHIPPED) — a picker row got fatter, so trim the row rather than raising '
+      + 'this. Not a /compare page-weight regression: no page delivers these bytes, and '
+      + 'compare.astro ships buildComparisonPayload instead. This ceiling constrains the shape '
+      + 'of a row the unbuilt /compare picker would carry.',
     ).toBeLessThanOrEqual(128);
     expect(
       bytes,
-      `the picker index ships ${bytes} bytes for ${index.length} releases `
-      + `(${bytesPerRelease}/release, budget 11,264). Do not raise this number. `
+      `PICKER INDEX (UNSHIPPED) — the picker index measures ${bytes} bytes for ${index.length} `
+      + `releases (${bytesPerRelease}/release, budget 11,264). NO PAGE DELIVERS THESE BYTES: `
+      + 'buildComparisonPickerIndex has no production consumer — compare.astro ships '
+      + 'buildComparisonPayload, and the only importers of the picker are this file and '
+      + 'organization-name.test.ts. So this is a design constraint on an unbuilt /compare '
+      + 'picker (#693, reading (b)), not a regression in anything a reader downloads. '
+      + 'IF A DATA TRANCHE IS BLOCKED HERE: do not cut dataset records to fit — #740 cut '
+      + 'cohere, stability-ai and nvidia against this ceiling and #754 exists to recover them — '
+      + 'and do not raise this number, which has already been raised three times at 1,024 bytes '
+      + "each. Raise it as what it is: a design question about the future picker's row shape. "
       + 'A picker row cites no source, so trimming one drops no provenance and '
       + 'stubs no record. #745 already spent the key-name trim — one-character '
       + 'keys took 96 rows from 10,912 bytes to 7,360 — so the trim still on the '
@@ -1061,7 +1110,7 @@ describe('comparison payload', () => {
     }
   });
 
-  it('pins the picker row to its one-character keys', () => {
+  it('pins the unshipped picker row to its one-character keys', () => {
     // The budget above measures bytes, so it can only notice a revert to long
     // key names once the catalogue has grown back into the ceiling — by which
     // point it reads as "the dataset got too big" and invites the raise this
@@ -1076,7 +1125,8 @@ describe('comparison payload', () => {
     for (const row of index) {
       expect(
         Object.keys(row).sort(),
-        'the picker row shape changed — see the picker budget above before widening this',
+        'PICKER INDEX (UNSHIPPED) — the picker row shape changed. No page delivers these bytes; '
+        + 'see the picker budget above before widening this.',
       ).toEqual(['d', 'f', 'o', 's']);
     }
   });

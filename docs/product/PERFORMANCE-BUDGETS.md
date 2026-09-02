@@ -283,6 +283,65 @@ the payload has a ceiling at all). Read the numbers there; they are deliberately
 not restated here, because a restated ceiling is a second copy to keep in sync
 and it drifts.
 
+**Those two budgets are not the same kind of thing, and the difference decides
+what you do when one fails.** See
+[the picker index is unshipped](#the-picker-index-budget-guards-bytes-no-page-delivers)
+immediately below before acting on a picker failure.
+
+### The picker index budget guards bytes no page delivers
+
+The `/compare` **payload** budget guards bytes a reader really downloads:
+`compare.astro` serializes `buildComparisonPayload(dataset)` into the page.
+
+The **comparison picker index** budget does not. `buildComparisonPickerIndex`
+has **no production consumer**: no `.astro` page, no component and no client
+bundle imports it, and the only importers are `web/src/lib/comparison.test.ts`
+and `web/src/lib/organization-name.test.ts`. `/compare` ships
+`buildComparisonPayload` instead. So its `11,264`-byte total and `128`-byte
+per-row ceilings bound bytes nobody receives.
+
+They are kept anyway, deliberately. `abdeslam-menacere/ModelTree#693` put the
+question to the repository owner — delete it as dead code, or keep it as a
+constraint on an unbuilt feature — and the owner chose to keep it: the picker is
+a `/compare` interaction that is still wanted, and pinning the shape of its row
+before it exists is the budget doing its job. **Both ceilings keep their current
+values and both still fail the build when exceeded.** Nothing about this
+paragraph relaxes either one; there is no skip, no flag and no environment
+variable, on this guard or any other in this document.
+
+What it changes is the response to a failure, because the two failures have
+opposite correct answers:
+
+| | `/compare` payload over budget | picker index over budget |
+|---|---|---|
+| Who pays the bytes | every reader of `/compare` | nobody, today |
+| Correct response | trim the payload; cut scope against the merged figure | trim the **row shape**; escalate the row's design |
+| Never | drop a cited source, stub a record | **cut dataset records**; **raise the ceiling** |
+
+The "never" column on the right is not theoretical. The picker ceiling has been
+raised **three times, 1,024 bytes each**, once per breadth tranche
+(`web/src/data/refresh-runs.json`). Once it stopped moving, the data moved
+instead: #740 cut `cohere`, `stability-ai` and `nvidia` at `picker index: 11,219
+of 11,264 — 45 bytes spare`, and #754 exists solely to recover them. Three
+raises, one trim PR (#748), one detector-sensitivity regression (#747), one
+dropped tranche and one recovery issue — every step locally reasonable, and the
+aggregate not. The mechanism was that a picker overflow is indistinguishable
+from a real shipped-page regression, so the reflex was to cut real user-facing
+data to satisfy a constraint on a feature nobody can use yet.
+
+A picker breach is therefore a **design signal about the future picker's row
+shape**, and it is raised as that. The measured trim still on the table — tuple
+rows, `5,824` bytes on the dataset #745 measured, against `7,360` after its
+key-name trim — is recorded beside the assertion. Both tooling and tests now say
+which subject a failure belongs to at the point of failure: the assertion
+messages in `comparison.test.ts` are prefixed `/compare PAYLOAD (SHIPPED)` and
+`PICKER INDEX (UNSHIPPED)`, the picker assertions live in their own
+`describe` block named for it, and `npm run budget:compare` and
+`npm run budget:merged` tag every reported line `[shipped]` or `[UNSHIPPED]` and
+print the escalation instruction when an unshipped ceiling is breached.
+
+### Staleness: the branch figure is not the merged figure
+
 Enforcing on the branch is right, and it is also incomplete. A dock branches at
 commit X, measures a budget there, and trunk then moves. The figure silently
 stops being a claim about what will ship and becomes a claim about history.
@@ -298,6 +357,10 @@ Both directions cost something, and they do not cost the same thing.
   taken two commits behind #748, which had trimmed the picker row shape. On the
   actual merge the figure is `7,556 of 11,264` — about 3,708 bytes spare. Half
   the issue's scope was dropped to satisfy a ceiling that no longer existed.
+  Staleness is only half of what that cost: the ceiling in question is the
+  **unshipped** picker one, so researched creators were dropped for bytes no
+  reader downloads. #754 exists to recover them. Both halves have to fail for
+  that outcome, which is why both are addressed.
 - **Trunk consumed headroom**, because another tranche landed while this one was
   in flight. The branch measures at its stale base, sees room, and adds records
   that do not fit. Every gate on the branch passes; the ceiling breaks *after*
@@ -325,6 +388,13 @@ Cut scope against the merged number. Never against the branch-only one.
 The command reports; it does not gate, and it raises nothing. When the merged
 figure says a tranche does not fit, the response is the one this repository has
 always taken: cut releases, or trim the row shape — never raise a ceiling.
+
+That instruction is for a **shipped** ceiling. When the breached ceiling is the
+picker index, the first branch of it is struck out too: do not cut releases,
+because nobody is downloading them for the picker's sake. Trim the row shape, or
+escalate the row's design. `npm run budget:merged` tags every line `[shipped]`
+or `[UNSHIPPED]` and prints that instruction on an unshipped breach, so the
+distinction reaches you at the moment you would otherwise reach for the data.
 
 ## What is reported, not gated: lab metrics
 
@@ -401,7 +471,9 @@ From `web/`:
 - `npm run test` — runs the merge-blocking budget test (among the full suite).
 - `npm run budget:compare` — prints the `/compare` payload and picker index
   sizes and headroom for the working tree, against the ceilings read out of
-  `src/lib/comparison.test.ts`.
+  `src/lib/comparison.test.ts`. Each line is tagged `[shipped]` or
+  `[UNSHIPPED — no page delivers these bytes]`; see
+  [the picker index is unshipped](#the-picker-index-budget-guards-bytes-no-page-delivers).
 - `npm run budget:merged` — the same figures for the **merge** of
   `refs/remotes/origin/main` and `HEAD`, next to the branch-only figures, with
   the difference stated. Run this before cutting scope for bytes.
