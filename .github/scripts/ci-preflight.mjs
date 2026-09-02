@@ -39,6 +39,27 @@
 // parsing prose. Exit 0 in `gate-scope.mjs` has the same dual reading and is
 // separated the same way.
 //
+// -- A failure carries its own evidence --
+//
+// This script used to run children with `stdio: 'ignore'` under `--json`, which
+// destroyed every command's stdout and stderr before anyone could read them. A
+// failing check then survived only as `"npm run test" exited 1` -- an exit code
+// and nothing else -- so a flake, a real regression, a missing dependency and a
+// typo in a script all produced byte-identical output and none of them could be
+// told from the others (#663).
+//
+// The cost of that is measured, not hypothetical. #517 and #720 turned out to
+// be one defect seen from two ends, and the only reason anyone noticed was a
+// report that named the failing test and the 5000 ms figure it timed out at
+// rather than saying "flake". Under `--json` that report could not have been
+// written.
+//
+// So output is captured and reaches a reader two ways: attached to the failing
+// command as `output`, with `outputBytes` and `outputTruncated` beside it, and
+// written to stderr as it happens. Never to stdout, which `--json` owns -- a
+// transcript interleaved into the document would break every consumer that
+// parses it. The default mode is untouched and still streams to the terminal.
+//
 // -- What decides which checks run --
 //
 // The same anchor the gates use: `git merge-base HEAD refs/remotes/origin/main`,
@@ -65,13 +86,45 @@
 // inferring a completeness that was never there.
 
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { closeSync, existsSync, mkdtempSync, openSync, readSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // What the remote says `main` is. Not a local branch: a local `main` is a ref
 // this working copy can move, and an anchor the run can move is not an anchor.
 const PUBLISHED_REF = 'refs/remotes/origin/main';
+
+/*
+ * How much of a failing command's output is kept.
+ *
+ * The tail, not the head: a test runner prints its failure summary last, so the
+ * end of the stream is where the failing test's name and the figure it failed
+ * on live. Bounded because this text is embedded in a JSON document that a
+ * reader has to get through, and an unbounded transcript would bury the report
+ * it is attached to. Whenever the bound bites it is stated -- in the text and
+ * in `outputTruncated` -- because evidence silently cut looks complete, and a
+ * reader who over-reads a tail is back where this started.
+ */
+const MAX_CAPTURED_OUTPUT_BYTES = 64 * 1024;
+
+/*
+ * The escape sequences a terminal-aware runner emits, removed before the text
+ * becomes evidence.
+ *
+ * vitest colours its output whenever std-env does not report an agent -- which
+ * is exactly the CI case -- and the codes land *inside* phrases: `Test Files `
+ * and `1 passed` separated by them is the concrete failure `web/scripts/ansi.mjs`
+ * was written for. A consumer searching this field for a test name walks into
+ * the same trap, so the field carries what the command said rather than how it
+ * asked a terminal to paint it.
+ *
+ * That module holds the same pattern and is deliberately not imported: this
+ * script depends on nothing outside the standard library, so it still runs when
+ * `web/` cannot be loaded at all, and a static import would trade that for one
+ * shared regex. Anchored on ESC, so it can never eat ordinary text.
+ */
+const ANSI_PATTERN = /\u001B(?:\[[0-9;:?]*[ -/]*[@-~]|\][\s\S]*?(?:\u0007|\u001B\\)|[@-Z\\-_])/gu;
 
 /**
  * Every pull-request status check this script knows how to run locally.
@@ -662,6 +715,116 @@ function unmetRequirements(cwd, check) {
   return unmet;
 }
 
+/**
+ * One command's combined stdout and stderr, read back after it exited.
+ *
+ * Only the tail is ever brought into memory, so the size of what the child
+ * wrote does not decide the size of what this process holds.
+ *
+ * @param {string} path the file both streams were redirected into
+ * @returns {{ text: string, bytes: number, truncated: boolean }} the evidence
+ */
+function readCapturedTail(path) {
+  const size = statSync(path).size;
+  if (size === 0) return { text: '', bytes: 0, truncated: false };
+
+  const keep = Math.min(size, MAX_CAPTURED_OUTPUT_BYTES);
+  const buffer = Buffer.alloc(keep);
+  const fd = openSync(path, 'r');
+  let read = 0;
+  try {
+    // A short read is legal even on a regular file, so this loops rather than
+    // assuming one call returns everything asked for.
+    while (read < keep) {
+      const got = readSync(fd, buffer, read, keep - read, size - keep + read);
+      if (got <= 0) break;
+      read += got;
+    }
+  } finally {
+    closeSync(fd);
+  }
+
+  let text = buffer.subarray(0, read).toString('utf8').replace(ANSI_PATTERN, '');
+  const truncated = keep < size;
+  if (truncated) {
+    // A byte offset can land inside a line, and inside a multi-byte character.
+    // Dropping forward to the next line boundary starts the excerpt on
+    // something whole rather than on half a word or half a codepoint.
+    const boundary = text.indexOf('\n');
+    if (boundary !== -1) text = text.slice(boundary + 1);
+    text = `[ci-preflight: earlier output dropped; this is the last ${keep} of ${size} bytes]\n${text}`;
+  }
+  return { text, bytes: size, truncated };
+}
+
+/**
+ * Run one command, capturing its output only when it cannot be shown live.
+ *
+ * Capture is into a **file descriptor**, not a pipe, and deliberately so.
+ * `spawnSync` with `'pipe'` buffers into memory under `maxBuffer` and *kills*
+ * a child that exceeds it, reporting `ENOBUFS` as a spawn error -- which would
+ * turn a chatty check that was passing into one that "could not run", inventing
+ * an exit 2 out of nothing but volume. A descriptor has no such ceiling and
+ * nothing to drain: the child writes straight to disk at its own pace, and this
+ * process reads only the tail afterwards. Both streams share one descriptor so
+ * they interleave in the order they were written, the way `> file 2>&1` does.
+ *
+ * @param {string} file the executable, already resolved
+ * @param {string[]} args its arguments
+ * @param {object} options cwd and shell, as `spawnSync` takes them
+ * @param {boolean} capture true when stdout belongs to a JSON document
+ * @returns {{ run: object, output: ?{ text: string, bytes: number, truncated: boolean } }}
+ */
+function runCommand(file, args, options, capture) {
+  if (!capture) {
+    return { run: spawnSync(file, args, { ...options, stdio: 'inherit' }), output: null };
+  }
+
+  const dir = mkdtempSync(join(tmpdir(), 'ci-preflight-output-'));
+  const logPath = join(dir, 'combined.log');
+  let fd = null;
+  try {
+    fd = openSync(logPath, 'w');
+    const run = spawnSync(file, args, { ...options, stdio: ['ignore', fd, fd] });
+    closeSync(fd);
+    fd = null;
+    return { run, output: readCapturedTail(logPath) };
+  } finally {
+    if (fd !== null) closeSync(fd);
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * The evidence on stderr, at the moment the command produced it.
+ *
+ * `--json` owns stdout, so nothing here may touch it: a transcript interleaved
+ * into the document would break every consumer that parses it. But capturing
+ * output into a field nobody prints is the same defect wearing a different hat,
+ * so the text a machine reads from `commands[].output` is also put where a
+ * person running the command sees it without a parser.
+ *
+ * @param {object} check the check group whose command failed
+ * @param {string} shown the command as written in the report
+ * @param {string} verdict how it ended, in the same words the reason uses
+ * @param {?{ text: string, bytes: number, truncated: boolean }} output the evidence
+ */
+function reportCapturedFailure(check, shown, verdict, output) {
+  process.stderr.write(
+    `\nci-preflight: ${check.id}: "${shown}" ${verdict}. Its output follows, and is `
+    + 'also in commands[].output of the JSON on stdout.\n',
+  );
+  if (output === null || output.text.length === 0) {
+    process.stderr.write(`ci-preflight: ${check.id} produced no output at all.\n`);
+    return;
+  }
+  process.stderr.write(output.text.endsWith('\n') ? output.text : `${output.text}\n`);
+  process.stderr.write(
+    `ci-preflight: end of ${check.id} output (${output.bytes} byte(s) written`
+    + `${output.truncated ? `, last ${MAX_CAPTURED_OUTPUT_BYTES} kept` : ''}).\n`,
+  );
+}
+
 function runCheck(cwd, check, quiet) {
   const unmet = unmetRequirements(cwd, check);
   if (unmet.length > 0) return { status: 'unknown', reasons: unmet, commands: [] };
@@ -678,27 +841,39 @@ function runCheck(cwd, check, quiet) {
     }
     const shown = `${command.bin} ${command.args.join(' ')}`;
     if (!quiet) process.stdout.write(`\n  ${check.id}: ${command.label}\n  $ ${shown}\n`);
-    const run = spawnSync(
+    const { run, output } = runCommand(
       resolved.shell ? quoteForShell(resolved.file) : resolved.file,
       resolved.shell ? command.args.map(quoteForShell) : command.args,
       {
         cwd: resolve(cwd, command.cwd),
-        stdio: quiet ? 'ignore' : 'inherit',
         shell: resolved.shell,
       },
+      quiet,
     );
+    // Present only when there is something to show. An absent field says the
+    // command was silent or its output went to the terminal, never that the
+    // evidence was thrown away.
+    const evidence = output !== null && output.text.length > 0
+      ? { output: output.text, outputBytes: output.bytes, outputTruncated: output.truncated }
+      : {};
     if (run.error) {
-      results.push({ label: command.label, command: shown, status: 'unknown' });
+      results.push({ label: command.label, command: shown, status: 'unknown', ...evidence });
+      if (quiet) reportCapturedFailure(check, shown, `could not start: ${run.error.message}`, output);
       return {
         status: 'unknown',
         reasons: [`could not start "${shown}": ${run.error.message}`],
         commands: results,
       };
     }
-    results.push({ label: command.label, command: shown, status: run.status === 0 ? 'pass' : 'fail', exitCode: run.status });
     if (run.status !== 0) {
+      results.push({ label: command.label, command: shown, status: 'fail', exitCode: run.status, ...evidence });
+      if (quiet) reportCapturedFailure(check, shown, `exited ${run.status}`, output);
       return { status: 'fail', reasons: [`"${shown}" exited ${run.status}`], commands: results };
     }
+    // A passing command's output is noise. The value is on the failure, and
+    // attaching a green transcript to every entry would bury the one that
+    // matters under the ones that do not.
+    results.push({ label: command.label, command: shown, status: 'pass', exitCode: run.status });
   }
   return { status: 'pass', reasons: [], commands: results };
 }

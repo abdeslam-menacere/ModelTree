@@ -698,3 +698,293 @@ describe('the preflight states what it does not cover', () => {
     expect(excluded?.why).toContain('network');
   });
 });
+
+/*
+ * abdeslam-menacere/ModelTree#663. Under `--json` the script ran every child
+ * with `stdio: 'ignore'`, so a failing check survived only as `"npm run test"
+ * exited 1` -- an exit code and nothing else. A flake, a real regression, a
+ * missing dependency and a typo in a script were byte-identical, and nobody
+ * reading the result could tell which they had.
+ *
+ * The measured cost is cross-issue identity. #517 and #720 were one defect seen
+ * from two ends, and the only reason that was noticed is that a report named
+ * the failing test and the 5000 ms figure it timed out at instead of saying
+ * "flake". Under `--json` that report could not have been written at all.
+ *
+ * So these cases assert the evidence exists *and* that it reaches a reader:
+ * capturing output into a field nothing prints would be the same defect wearing
+ * a different hat. Each one that proves new behaviour fails against the
+ * `stdio: 'ignore'` implementation, which is the only kind of assertion worth
+ * having here.
+ */
+describe('a failing check carries its own evidence', () => {
+  // The two things a reader needs and an exit code cannot give: which test
+  // failed, and the figure it failed on. Split across the two streams on
+  // purpose, so an assertion finding both proves they were captured together
+  // and in order rather than one of them being captured alone.
+  const FAILING_TEST = 'tests/lineage/LineageModelDrawer.test.ts > opens the drawer';
+  const TIMEOUT_FIGURE = 'Test timed out in 5000ms.';
+  // Wide enough that a few thousand lines pass the retained-tail bound.
+  const NOISE_LINES_OVER_THE_BOUND = 4000;
+
+  interface RunCommand {
+    label: string;
+    command: string;
+    status: 'pass' | 'fail' | 'unknown';
+    exitCode?: number | null;
+    output?: string;
+    outputBytes?: number;
+    outputTruncated?: boolean;
+  }
+
+  interface RunResult {
+    id: string;
+    status: 'pass' | 'fail' | 'unknown';
+    reasons: string[];
+    commands: RunCommand[];
+  }
+
+  interface RunReport {
+    results: RunResult[];
+    empty: boolean;
+    passed: boolean;
+    exitCode: number;
+  }
+
+  /**
+   * A stand-in for a test runner that fails: coloured, across both streams, and
+   * with the part a reader needs printed last, which is where a runner puts its
+   * failure summary and why the tail is what gets kept.
+   */
+  function failingStub(noiseLines: number): string {
+    return [
+      `for (let i = 0; i < ${noiseLines}; i += 1) process.stdout.write("noise " + i + " ".repeat(60) + "\\n");`,
+      // Coloured because CI is coloured. The codes land *inside* the phrase, so
+      // a raw capture is not searchable for the test name -- the concrete
+      // failure web/scripts/ansi.mjs was written for.
+      `process.stdout.write("\\u001b[31mFAIL\\u001b[39m ${FAILING_TEST}\\n");`,
+      `process.stderr.write("${TIMEOUT_FIGURE}\\n");`,
+      'process.exit(1);',
+      '',
+    ].join('\n');
+  }
+
+  /**
+   * A repository whose one changed file selects `skills-ci` alone, standing in
+   * the gate scripts that check runs: the first passes, so the run reaches the
+   * second, which fails. Published rather than changed, so the diff stays one
+   * file and the selection stays the one the other cases here rely on.
+   */
+  function repoWithAFailingCheck(noiseLines = 0): string {
+    const repo = scratchRepo();
+    const git = (...args: string[]) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' });
+
+    const stubs: [string, string][] = [
+      [
+        '.github/skills/modeltree-gates/scripts/gates.test.mjs',
+        "import { test } from 'node:test';\ntest('stub passes', () => {});\n",
+      ],
+      ['.github/skills/modeltree-gates/scripts/gate-dataset.mjs', failingStub(noiseLines)],
+    ];
+    for (const [path, body] of stubs) {
+      const target = join(repo, path);
+      mkdirSync(dirname(target), { recursive: true });
+      writeFileSync(target, body);
+    }
+    git('add', '-A');
+    git('commit', '-qm', 'publish the gate scripts');
+    git('update-ref', 'refs/remotes/origin/main', git('rev-parse', 'HEAD').trim());
+
+    touch(repo, '.github/scripts/something.mjs');
+    return repo;
+  }
+
+  /** The machine-readable run, with stdout parsed rather than inspected. */
+  function jsonRun(repo: string): {
+    report: RunReport;
+    status: number | null;
+    stdout: string;
+    stderr: string;
+  } {
+    const run = spawnSync(process.execPath, [script, '--repo', repo, '--json'], { encoding: 'utf8' });
+
+    return {
+      report: JSON.parse(run.stdout) as RunReport,
+      status: run.status,
+      stdout: run.stdout,
+      stderr: run.stderr,
+    };
+  }
+
+  function failingCommandOf(report: RunReport): RunCommand {
+    const failed = report.results.find((result) => result.status === 'fail');
+    const command = failed?.commands.find((entry) => entry.status === 'fail');
+
+    expect(command, 'the run should have produced a failing command to report on').toBeDefined();
+    return command as RunCommand;
+  }
+
+  it('puts the failing command output in the JSON, not only its exit code', () => {
+    const repo = repoWithAFailingCheck();
+
+    try {
+      const { report, status } = jsonRun(repo);
+      const command = failingCommandOf(report);
+
+      // Both halves, so this cannot pass on a capture of one stream. The name
+      // came from the child's stdout and the figure from its stderr.
+      expect(command.output, 'the failing test name is the thing an exit code cannot give')
+        .toContain(FAILING_TEST);
+      expect(command.output, 'and the figure it failed on').toContain(TIMEOUT_FIGURE);
+      expect(command.outputBytes).toBeGreaterThan(0);
+      expect(command.outputTruncated).toBe(false);
+
+      // The exit-code mapping is load-bearing and this changes none of it.
+      expect(status).toBe(1);
+      expect(report.exitCode).toBe(1);
+      expect(report.passed).toBe(false);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps stdout a JSON document while it does that', () => {
+    // `--json` exists to be machine-readable, so the evidence must not be
+    // interleaved onto stdout. Parsed rather than eyeballed: a document that
+    // merely looks like JSON is what a consumer would choke on.
+    const repo = repoWithAFailingCheck();
+
+    try {
+      const run = spawnSync(process.execPath, [script, '--repo', repo, '--json'], { encoding: 'utf8' });
+
+      expect(() => JSON.parse(run.stdout)).not.toThrow();
+      expect(run.stdout.trimStart().startsWith('{'), 'nothing may precede the document').toBe(true);
+      expect(run.stdout.trimEnd().endsWith('}'), 'and nothing may follow it').toBe(true);
+
+      const report = JSON.parse(run.stdout) as RunReport;
+      expect(report.results.length).toBeGreaterThan(0);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it('writes the evidence to stderr too, where it needs no parser to be read', () => {
+    // Captured into a field nobody prints is the same defect in a different
+    // hat. stderr is free -- `--json` owns only stdout -- so the person running
+    // the command sees the failing test without reaching for jq.
+    const repo = repoWithAFailingCheck();
+
+    try {
+      const { stderr, stdout } = jsonRun(repo);
+
+      expect(stderr).toContain(FAILING_TEST);
+      expect(stderr).toContain(TIMEOUT_FIGURE);
+      expect(stderr).toContain('skills-ci');
+      // And the document on stdout is still intact beside it.
+      expect(() => JSON.parse(stdout)).not.toThrow();
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it('strips the escape codes that would otherwise split the phrase being searched for', () => {
+    const repo = repoWithAFailingCheck();
+
+    try {
+      // The live control first. In the default mode the child's bytes reach the
+      // terminal untouched, so this proves the stub really did emit colour --
+      // without it the stripping assertion below could pass vacuously.
+      const inherited = spawnSync(process.execPath, [script, '--repo', repo], { encoding: 'utf8' });
+      expect(inherited.stdout, 'the stub must really be colouring its output').toContain('\u001B[31m');
+
+      const command = failingCommandOf(jsonRun(repo).report);
+
+      expect(command.output).not.toContain('\u001B');
+      expect(command.output, 'and the phrase survives whole rather than in fragments')
+        .toContain(`FAIL ${FAILING_TEST}`);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it('says when it kept only the tail, rather than passing an excerpt off as the whole', () => {
+    // Silently truncated evidence that looks complete is this bug again, one
+    // level down: a reader concludes from an excerpt what it does not support.
+    const repo = repoWithAFailingCheck(NOISE_LINES_OVER_THE_BOUND);
+
+    try {
+      const { report, status } = jsonRun(repo);
+      const command = failingCommandOf(report);
+
+      expect(command.outputTruncated).toBe(true);
+      expect(command.outputBytes).toBeGreaterThan(65536);
+      expect(command.output, 'the cut is stated in the text as well as in the flag')
+        .toContain('earlier output dropped');
+      // The tail is kept because that is where a runner puts what failed. If
+      // the head were kept instead, this is the assertion that would notice.
+      expect(command.output).toContain(FAILING_TEST);
+      expect(command.output).toContain(TIMEOUT_FIGURE);
+      expect(status).toBe(1);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it('attaches nothing to a command that passed, so the failure is not buried', () => {
+    const repo = repoWithAFailingCheck();
+
+    try {
+      const failed = jsonRun(repo).report.results.find((result) => result.status === 'fail');
+      const passed = failed?.commands.filter((entry) => entry.status === 'pass') ?? [];
+
+      expect(passed.length, 'the first gate command should have passed').toBeGreaterThan(0);
+      for (const entry of passed) {
+        expect(Object.keys(entry)).not.toContain('output');
+      }
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it('still streams to the terminal in the default mode, capturing nothing', () => {
+    // The guard on the half that was never broken. Capture is for the mode that
+    // cannot show output live; the human path must keep inheriting the terminal.
+    const repo = repoWithAFailingCheck();
+
+    try {
+      const run = spawnSync(process.execPath, [script, '--repo', repo], { encoding: 'utf8' });
+
+      expect(run.stdout).toContain(FAILING_TEST);
+      expect(run.stdout).toContain('FAIL');
+      expect(run.status).toBe(1);
+
+      // No capture happened, so no command carries an output field.
+      const json = spawnSync(process.execPath, [script, '--repo', repo, '--plan', '--json'], {
+        encoding: 'utf8',
+      });
+      expect(json.status, 'and --plan still verifies nothing').toBe(2);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it('leaves a check it could not run at exit 2, which capture must never make a pass', () => {
+    // The direction that matters most. Capturing output changes what a failure
+    // says, never what it counts as, and 2 is never a pass.
+    const repo = scratchRepo();
+
+    try {
+      // web-ci needs web/node_modules, absent here, so it cannot run at all.
+      touch(repo, 'web/src/pages/index.astro');
+      const { report, status } = jsonRun(repo);
+
+      expect(status).toBe(2);
+      expect(report.exitCode).toBe(2);
+      expect(report.passed).toBe(false);
+      expect(report.empty, 'this is "could not run", not "nothing to check"').toBe(false);
+      expect(report.results.some((result) => result.status === 'unknown')).toBe(true);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+});
