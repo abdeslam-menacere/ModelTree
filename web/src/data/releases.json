@@ -4893,51 +4893,5 @@
       "osi-license-index"
     ],
     "verifiedAt": "2026-09-01"
-  },
-  {
-    "id": "databricks-dolly-v2-12b",
-    "slug": "dolly-v2-12b",
-    "canonicalName": "dolly-v2-12b",
-    "displayName": "Dolly 2.0 12B",
-    "organizationId": "databricks",
-    "familyId": "databricks-dolly",
-    "version": "v2-12b",
-    "variant": "12B",
-    "releaseDate": "2023-04-12",
-    "datePrecision": "day",
-    "status": "unknown",
-    "featured": false,
-    "categories": [
-      "language-reasoning"
-    ],
-    "inputModalities": [
-      "text"
-    ],
-    "outputModalities": [
-      "text"
-    ],
-    "accessType": "open-weight",
-    "license": {
-      "name": "Apache 2.0",
-      "spdxId": "Apache-2.0",
-      "url": "https://github.com/databrickslabs/dolly/blob/master/LICENSE",
-      "weightsDownloadable": true,
-      "osiApproved": true
-    },
-    "derivedFromIds": [
-      "eleutherai-pythia-12b"
-    ],
-    "apiAliases": [],
-    "predecessorIds": [],
-    "successorIds": [],
-    "siblingIds": [],
-    "summary": "Databricks' 12-billion-parameter instruction-following model, derived from EleutherAI's Pythia-12b and fine-tuned on the human-generated databricks-dolly-15k corpus. Databricks describes it as \"the first open source, instruction-following LLM\" with training code, dataset and model weights \"all suitable for commercial use\".",
-    "intendedUse": "Instruction following for commercial and research use. Databricks notes it is not a state-of-the-art model and is offered as an openly licensed instruction-following LLM.",
-    "sourceIds": [
-      "databricks-dolly-repository",
-      "databricks-dolly-v2-announcement",
-      "osi-approved-licenses"
-    ],
-    "verifiedAt": "2026-09-01"
   }
 ]

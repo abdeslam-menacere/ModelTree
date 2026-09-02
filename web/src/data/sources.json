@@ -2236,24 +2236,5 @@
     "publisherId": "nvidia",
     "lastCheckedDate": "2026-09-01",
     "notes": "NVIDIA's own model card (creator namespace nvidia/ on Hugging Face; the card is not gated). The card carries the NVIDIA Open Model License Agreement, headed \"NVIDIA Open Model License Agreement\" with \"Version Release Date: January 6, 2025\" — the release date recorded at day precision — and its grant clause permits commercial use (\"sell, offer for sale, distribute\"), with clause 2.4 stating \"NVIDIA owns the Model\". The model generates physics-aware video from a text prompt (Text2World). Cited for the release date, the licence name, and the open-weight, NVIDIA-owned status. States no exact parameter integer in prose (only \"7B\" in the model name), so parameters are withheld."
-  },
-  {
-    "id": "databricks-dolly-repository",
-    "url": "https://github.com/databrickslabs/dolly",
-    "title": "databrickslabs/dolly repository",
-    "type": "repository",
-    "publisherId": "databricks",
-    "lastCheckedDate": "2026-09-01",
-    "notes": "Databricks' own public source repository for Dolly (HTTP 200). States \"dolly-v2-12b is a 12 billion parameter causal language model created by Databricks that is derived from EleutherAI's Pythia-12b\" — the parameter count, creator attribution and Pythia lineage (recorded as derivedFromIds eleutherai-pythia-12b). The repository's LICENSE file (https://github.com/databrickslabs/dolly/blob/master/LICENSE, HTTP 200) is the Apache License 2.0, the recorded weights licence. Note the repo README's phrase \"released under a permissive license (CC-BY-SA)\" refers to the databricks-dolly-15k instruction corpus, not the model weights; it is not used here. Cited for the parameter count, creator, Pythia lineage and the Apache-2.0 licence."
-  },
-  {
-    "id": "databricks-dolly-v2-announcement",
-    "url": "https://www.databricks.com/blog/2023/04/12/dolly-first-open-commercially-viable-instruction-tuned-llm",
-    "title": "Free Dolly: Introducing the World's First Truly Open Instruction-Tuned LLM",
-    "type": "official-announcement",
-    "publisherId": "databricks",
-    "publishedDate": "2023-04-12",
-    "lastCheckedDate": "2026-09-01",
-    "notes": "Databricks' own announcement of Dolly 2.0, dated April 12, 2023 (the recorded release date). States \"Today, we're releasing Dolly 2.0, the first open source, instruction-following LLM\" and \"We are open-sourcing the entirety of Dolly 2.0, including the training code, the dataset, and the model weights, all suitable for commercial use\" — the open-weight, commercial-use access recorded. Also states \"Dolly 2.0 is a 12B parameter language model based on the EleutherAI pythia model family\". The dataset's CC-BY-SA-3.0 licence named here governs databricks-dolly-15k, not the weights. Cited for the release date and the open-weight commercial-use access."
   }
 ]

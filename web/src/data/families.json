@@ -1444,23 +1444,5 @@
       "nvidia-cosmos-diffusion-7b-model-card"
     ],
     "verifiedAt": "2026-09-01"
-  },
-  {
-    "id": "databricks-dolly",
-    "slug": "dolly",
-    "organizationId": "databricks",
-    "name": "Dolly",
-    "description": "Databricks' family of instruction-following large language models, fine-tuned on the human-generated databricks-dolly-15k instruction corpus and released with open weights for commercial use, distinct from Databricks' data-analytics products.",
-    "categories": [
-      "language-reasoning"
-    ],
-    "firstReleaseDate": "2023-04-12",
-    "datePrecision": "day",
-    "status": "unknown",
-    "sourceIds": [
-      "databricks-dolly-repository",
-      "databricks-dolly-v2-announcement"
-    ],
-    "verifiedAt": "2026-09-01"
   }
 ]
