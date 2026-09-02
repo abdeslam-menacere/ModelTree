@@ -776,7 +776,16 @@ describe('partial dates on family and release dates', () => {
     const notDay = dated.filter((entry) => entry.precision !== 'day');
     expect(notDay.map(({ id, precision }) => ({ id, precision }))).toEqual(datesCoarserThanADay);
 
-    const disagreeing = dated.filter((entry) => precisionOf(entry.value) !== entry.precision);
+    // `unstated` is the one precision that carries no value, so it is checked
+    // as the pairing rather than as a shape (ADR 0012). Both halves: an
+    // unstated record holds no date, and a dated record is never unstated.
+    for (const entry of dated) {
+      expect(entry.value === undefined).toBe(entry.precision === 'unstated');
+    }
+
+    const disagreeing = dated.filter(
+      (entry) => entry.value !== undefined && precisionOf(entry.value) !== entry.precision,
+    );
     expect(disagreeing).toEqual([]);
   });
 });

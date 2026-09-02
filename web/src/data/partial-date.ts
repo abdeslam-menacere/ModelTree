@@ -19,11 +19,41 @@ export const DATE_PRECISIONS = ['year', 'month', 'day'] as const;
 
 export type DatePrecision = (typeof DATE_PRECISIONS)[number];
 
+/**
+ * The same scale with its zero, for `familySchema.firstReleaseDate` and nothing
+ * else (ADR 0012).
+ *
+ * `year`, `month` and `day` say how much of a date a source gave. `unstated`
+ * says it gave none of it: no primary source states when the family began, at
+ * any precision. That is a claim about the sources, not a lesser precision —
+ * `2023` already records "the year and no finer" — so the two states stay
+ * distinguishable rather than collapsing into one another.
+ *
+ * The member is scoped to families deliberately. A release is an event, and a
+ * record of an event nobody can date at all is not a release; `releaseSchema`
+ * and `releaseEventSchema` keep the three-member vocabulary, so the states
+ * their consumers must handle are unchanged and the compiler still proves it.
+ */
+export const FAMILY_DATE_PRECISIONS = [...DATE_PRECISIONS, 'unstated'] as const;
+
+export type FamilyDatePrecision = (typeof FAMILY_DATE_PRECISIONS)[number];
+
 /** How many `-`-separated segments a value at each precision carries. */
 export const PRECISION_SEGMENTS: Record<DatePrecision, number> = {
   year: 1,
   month: 2,
   day: 3,
+};
+
+/**
+ * The same table extended by the zero case: an `unstated` record carries no
+ * value at all, so it carries no segments. Written as the arithmetic rather
+ * than as a special case, because that is what makes the pairing rule below one
+ * rule instead of two.
+ */
+export const FAMILY_PRECISION_SEGMENTS: Record<FamilyDatePrecision, number> = {
+  ...PRECISION_SEGMENTS,
+  unstated: 0,
 };
 
 const PRECISION_BY_SEGMENTS: Record<number, DatePrecision> = {
@@ -47,6 +77,24 @@ export function precisionOf(value: string): DatePrecision {
  */
 export function precisionMatchesValue(value: string, precision: DatePrecision): boolean {
   return value.split('-').length === PRECISION_SEGMENTS[precision];
+}
+
+/**
+ * The same guard where the value may be absent, which is the shape
+ * `familySchema.firstReleaseDate` takes under ADR 0012.
+ *
+ * It is a biconditional and both halves matter. An absent date with a stated
+ * precision is a record that lost its date; a present date beside `unstated` is
+ * a record contradicting its own claim that no source gives one. Neither is a
+ * state a reader could interpret, so both are refused, and absence on its own
+ * can never select `unstated` — the precision has to say so.
+ */
+export function familyPrecisionMatchesValue(
+  value: string | undefined,
+  precision: FamilyDatePrecision,
+): boolean {
+  const carried = value === undefined ? 0 : value.split('-').length;
+  return carried === FAMILY_PRECISION_SEGMENTS[precision];
 }
 
 /** The earliest day a partial date could mean, so `2026` is not read as 1 January. */

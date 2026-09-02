@@ -646,10 +646,27 @@ const PRECISION_SEGMENTS = { year: 1, month: 2, day: 3 };
 // day has invented that day, and one claiming `day` while carrying only a month
 // has lost one. Either way a reader downstream cannot tell which part is
 // sourced, so both are refused here.
+//
+// Each rule names its collection, and that is load-bearing rather than tidiness.
+// `inspect` runs over every collection, so a pair named by field alone is
+// applied wherever those field names happen to co-occur — and `datePrecision`
+// sits beside `date` on a release event and beside `releaseDate` on a release,
+// so a rule keyed on `releaseDate` alone would see every release event as a
+// record whose `releaseDate` is missing. Naming the collection is what lets the
+// rules below say anything about an *absent* value without inventing failures
+// in collections the rule was never about.
+//
+// `unstated` is admissible in exactly one of them (ADR 0012). It is the family's
+// claim that no primary source states a first release date at any precision, and
+// it is the only case in which the date field may be absent at all. A release is
+// an event, and a record of an event nobody can date is not a release, so
+// `releases` and `releaseEvents` keep the three-member vocabulary and keep
+// requiring their date.
+const UNSTATED_PRECISION = 'unstated';
 const PRECISION_COMPANIONS = [
-  ['releaseDate', 'datePrecision'],
-  ['firstReleaseDate', 'datePrecision'],
-  ['date', 'datePrecision'],
+  { collection: 'releases', field: 'releaseDate', companion: 'datePrecision', allowsUnstated: false },
+  { collection: 'families', field: 'firstReleaseDate', companion: 'datePrecision', allowsUnstated: true },
+  { collection: 'releaseEvents', field: 'date', companion: 'datePrecision', allowsUnstated: false },
 ];
 
 function gateDates(docs, today) {
@@ -705,17 +722,59 @@ function gateDates(docs, today) {
         fail('dates', `${field} "${value}" is in the future (today is ${today})`, `${collection}:${entry.id}`);
       }
     }
-    for (const [field, companion] of PRECISION_COMPANIONS) {
+    for (const rule of PRECISION_COMPANIONS) {
+      if (rule.collection !== collection) continue;
+      const { field, companion, allowsUnstated } = rule;
       const value = entry[field];
       const declared = entry[companion];
-      if (value === undefined || declared === undefined) continue;
+      // A record with neither half is a different fault -- a missing required
+      // field -- and the schema reports it. This rule is about the two
+      // disagreeing, which needs at least one of them present.
+      if (value === undefined && declared === undefined) continue;
+      const vocabulary = allowsUnstated
+        ? `year, month, day, ${UNSTATED_PRECISION}`
+        : 'year, month, day';
+      if (declared === undefined) {
+        fail('dates', `${field} "${value}" is recorded without a ${companion}`, `${collection}:${entry.id}`);
+        continue;
+      }
+      if (declared === UNSTATED_PRECISION && allowsUnstated) {
+        // The contradiction guard, and the reason `unstated` is a claim rather
+        // than a shrug: a record asserting that no source states this date,
+        // while carrying one, has contradicted itself and the reader cannot
+        // tell which half to believe.
+        if (value !== undefined) {
+          fail(
+            'dates',
+            `${companion} "${UNSTATED_PRECISION}" is recorded beside a ${field} "${value}"`,
+            `${collection}:${entry.id}`,
+          );
+        }
+        continue;
+      }
+      if (!Object.hasOwn(PRECISION_SEGMENTS, declared)) {
+        fail('dates', `${companion} "${declared}" is not one of ${vocabulary}`, `${collection}:${entry.id}`);
+        continue;
+      }
+      // Absence is never self-authorising. A record that simply drops its date
+      // has lost a fact, and looks from the outside exactly like one nobody
+      // checked; only an explicit `unstated` says the absence was established.
+      // Where `unstated` is not admissible at all, the same refusal is what
+      // keeps the field required.
+      if (value === undefined) {
+        const remedy = allowsUnstated
+          ? `, and only "${UNSTATED_PRECISION}" licenses an absent ${field}`
+          : '';
+        fail(
+          'dates',
+          `${field} is absent while ${companion} "${declared}" states one${remedy}`,
+          `${collection}:${entry.id}`,
+        );
+        continue;
+      }
       // A malformed value is already reported above; reporting it twice would
       // only make the real fault harder to find.
       if (!isRealPartialDate(value)) continue;
-      if (!Object.hasOwn(PRECISION_SEGMENTS, declared)) {
-        fail('dates', `${companion} "${declared}" is not one of year, month, day`, `${collection}:${entry.id}`);
-        continue;
-      }
       const carried = String(value).split('-').length;
       if (carried !== PRECISION_SEGMENTS[declared]) {
         fail(
@@ -754,6 +813,12 @@ function gateDates(docs, today) {
   // that year could mean falls before the family's earliest possible start. An
   // overlap means the sources do not settle the order, which is not the same
   // thing as a contradiction and must not be reported as one.
+  //
+  // A family whose first release date is unstated (ADR 0012) has no interval to
+  // compare against, and `isRealPartialDate` already returns false for the
+  // absent value, so every release is admissible under it. That is the same
+  // open-question rule at its widest, not a check being skipped: there is no
+  // claim there for a release to contradict.
   const familyById = new Map(docs.families.map((family) => [family.id, family]));
   for (const release of docs.releases) {
     const family = familyById.get(release.familyId);
@@ -1329,6 +1394,15 @@ function gateNonEmpty(docs, required) {
 // it against a hand-written literal, so it is the standing instance of exactly
 // the duplication `enumMembers` exists to avoid. Left alone here on the same
 // grounds.
+//
+// ADR 0012 gave families a wider `datePrecision` vocabulary and did not move it
+// here either, for a reason worth stating so the omission is not read as one:
+// `enumMembers` executes no TypeScript, so it refuses `z.enum(SOME_CONSTANT)`
+// rather than guessing past the indirection, and both `datePrecision` and
+// `familyDatePrecision` are declared that way. A rule naming them would not have
+// a derived list to check against, only a second hand-written one -- which is
+// the duplication above, doubled. `gateDates` therefore stays the place both
+// vocabularies are enforced, and the one place they are written down twice.
 // ---------------------------------------------------------------------------
 
 /**

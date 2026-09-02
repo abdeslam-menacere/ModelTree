@@ -395,6 +395,14 @@ const gapCount = knownCoverageGaps(refreshLog).length;
               date, a release earlier than its family’s first release, and a release earlier than a
               model it descends from.
             </p>
+            <p>
+              Some families have no first release date to record at any precision: no primary source
+              states when they began. That is a different claim from a vague one, so it is written
+              down as one — those families carry a precision of <code>unstated</code> and read
+              <q>Not stated by any source</q> rather than a blank or an inferred year. Omitting the
+              date without saying so stays a hard failure, and a record cannot both claim the date is
+              unstated and carry one.
+            </p>
 
             <h3 id="freshness">Verification and freshness</h3>
             <p>

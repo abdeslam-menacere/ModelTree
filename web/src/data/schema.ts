@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DATE_PRECISIONS } from './partial-date';
+import { DATE_PRECISIONS, FAMILY_DATE_PRECISIONS } from './partial-date';
 import {
   FAMILY_FACT_FIELDS,
   FIT_CLASSIFICATIONS,
@@ -34,6 +34,22 @@ export const partialDate = z.string().regex(/^\d{4}(-\d{2}(-\d{2})?)?$/).refine(
 }, 'must be a real date written as YYYY, YYYY-MM, or YYYY-MM-DD');
 
 export const datePrecision = z.enum(DATE_PRECISIONS);
+
+/**
+ * The family-only precision vocabulary, `datePrecision` plus `unstated`
+ * (ADR 0012). Built from `FAMILY_DATE_PRECISIONS` for the reason
+ * `partial-date.ts` gives: the edge runs one way, so the two cannot drift.
+ *
+ * One consequence is worth recording where a reader will meet it.
+ * `enumMembers` in `.github/skills/modeltree-gates/scripts/gate-dataset.mjs`
+ * executes no TypeScript, so it refuses `z.enum(SOME_CONSTANT)` rather than
+ * guessing past the indirection — it cannot derive these members any more than
+ * it can derive `datePrecision`'s. That gate therefore checks this pairing
+ * through its own segment table, exactly as it already does for the three-member
+ * vocabulary, and the duplication is the one that file already documents rather
+ * than a new one this decision introduces.
+ */
+export const familyDatePrecision = z.enum(FAMILY_DATE_PRECISIONS);
 
 /**
  * How a committed date came to be known, recorded **only** where it is known not
@@ -384,12 +400,31 @@ export const organizationSchema = z.object({
  * family in month-precision prose is recorded at month precision rather than
  * withheld, and the day is never filled in to satisfy the type.
  *
+ * -- READ THIS BEFORE MAKING THE FIELD REQUIRED AGAIN, OR OPTIONAL ANYWHERE ELSE --
+ *
+ * The field is optional and its absence is **not** self-authorising (ADR 0012).
+ * `partialDate` expresses vagueness at three precisions and cannot express
+ * absence, and the two are different claims: "the source gave only the year" is
+ * a statement about how much was said, while "no primary source states when
+ * this family began" is a statement about the world. Cohere's Rerank family is
+ * the second, and was dropped from the dataset rather than published with an
+ * invented date.
+ *
+ * So the absence is carried by the companion rather than by the field. A record
+ * omitting `firstReleaseDate` must declare `datePrecision: 'unstated'`, and the
+ * `superRefine` below refuses both halves of the contradiction: a date missing
+ * beside a stated precision, and a date present beside `unstated`. Omitting the
+ * field because nobody looked is therefore still a hard failure — the only way
+ * past the schema is to say, in the record, that no source states one.
+ *
  * The companion is named `datePrecision`, matching `releaseSchema` below and
  * `releaseEventSchema` further down. Both name the companion for the idea, not
  * for the field beside it (`date` there, `releaseDate` here), so the shared
  * name is the existing convention rather than a third one. A family holds
  * exactly one source-stated date — `verifiedAt` is ours, and always a day — so
- * there is nothing for the shorter name to be ambiguous between.
+ * there is nothing for the shorter name to be ambiguous between. Its type is
+ * the wider `familyDatePrecision`, which is what makes every consumer of a
+ * family's date handle the unstated case or fail to compile.
  *
  * `validateDataset` requires the value's shape and the declared precision to
  * agree, which is what stops a `month` record from carrying an invented day.
@@ -404,12 +439,43 @@ export const familySchema = z.object({
   name: z.string().min(1),
   description: z.string().min(1),
   categories: z.array(modelCategory).min(1),
-  firstReleaseDate: partialDate,
-  datePrecision,
+  firstReleaseDate: partialDate.optional(),
+  datePrecision: familyDatePrecision,
   dateBasis: dateBasis.optional(),
   status: lifecycleStatus,
   sourceIds: z.array(entityId).min(1),
   verifiedAt: isoDate,
+}).superRefine((family, context) => {
+  if (family.datePrecision === 'unstated') {
+    if (family.firstReleaseDate !== undefined) {
+      context.addIssue({
+        code: 'custom',
+        path: ['datePrecision'],
+        message:
+          'cannot be unstated when the family records a first release date, which is a source stating one',
+      });
+    }
+    if (family.dateBasis !== undefined) {
+      // `dateBasis` says where a *recorded* date came from. With no date
+      // recorded there is nothing for it to describe, and leaving it admissible
+      // would let a record cite a basis for a fact it does not state.
+      context.addIssue({
+        code: 'custom',
+        path: ['dateBasis'],
+        message: 'cannot be recorded when no first release date is stated',
+      });
+    }
+    return;
+  }
+
+  if (family.firstReleaseDate === undefined) {
+    context.addIssue({
+      code: 'custom',
+      path: ['firstReleaseDate'],
+      message:
+        'is required unless datePrecision is "unstated", which records that no source states one',
+    });
+  }
 });
 
 export const releaseSchema = z.object({
@@ -934,6 +1000,7 @@ export const datasetSchema = z.object({
 
 export type SourceReference = z.infer<typeof sourceSchema>;
 export type DatePrecision = z.infer<typeof datePrecision>;
+export type FamilyDatePrecision = z.infer<typeof familyDatePrecision>;
 export type Publisher = z.infer<typeof publisherSchema>;
 export type Organization = z.infer<typeof organizationSchema>;
 export type ModelFamily = z.infer<typeof familySchema>;

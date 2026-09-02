@@ -226,6 +226,56 @@ def test_a_date_claim_alone_in_its_batch_is_not_faulted_for_a_missing_precision(
     assert _gate(_run(date_claim, claims=[date_claim]), GATE_DATES).status is GateStatus.PASSED
 
 
+def _family_date_and_precision(date_value: str | None, precision: str):
+    """A family proposing its first release date and the precision beside it."""
+    precision_claim = _claim(
+        id="contoso-ai-atlas-family-date-precision",
+        entity_kind=EntityKind.FAMILY,
+        entity_id="contoso-atlas",
+        field_path="datePrecision",
+        value=precision,
+    )
+    if date_value is None:
+        return None, precision_claim
+    date_claim = _claim(
+        id="contoso-ai-atlas-family-first-release-date",
+        entity_kind=EntityKind.FAMILY,
+        entity_id="contoso-atlas",
+        field_path="firstReleaseDate",
+        value=date_value,
+    )
+    return date_claim, precision_claim
+
+
+def test_a_family_claiming_an_unstated_date_beside_a_date_is_refused() -> None:
+    """ADR 0012's contradiction guard, in the tool that proposes the change.
+
+    `unstated` asserts that no source states this date at any precision, so a
+    batch carrying both halves contradicts itself. The segment arithmetic cannot
+    see it -- there is no segment count for a value that should not exist -- so
+    it is a rule of its own rather than a case of that one.
+    """
+    date_claim, precision_claim = _family_date_and_precision("2024-12-02", "unstated")
+    batch = [date_claim, precision_claim]
+
+    assert _gate(_run(date_claim, claims=batch), GATE_DATES).status is GateStatus.FAILED
+    assert _gate(_run(precision_claim, claims=batch), GATE_DATES).status is GateStatus.FAILED
+
+
+def test_a_family_claiming_an_unstated_date_alone_passes() -> None:
+    """The positive control, and the state the affordance exists to make proposable.
+
+    Without it the test above would pass on a gate that refused `unstated`
+    outright, which is the opposite of what ADR 0012 decided.
+    """
+    _, precision_claim = _family_date_and_precision(None, "unstated")
+
+    assert (
+        _gate(_run(precision_claim, claims=[precision_claim]), GATE_DATES).status
+        is GateStatus.PASSED
+    )
+
+
 def test_dates_we_observe_ourselves_are_still_exact() -> None:
     """Only the two source-stated fields moved; evidence dates did not."""
     evidence = Evidence(

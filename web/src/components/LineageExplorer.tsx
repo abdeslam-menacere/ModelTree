@@ -8,7 +8,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
-import { accessLabel, formatDate, formatReleaseDate, statusLabel } from '../lib/format';
+import { accessLabel, familyFirstReleaseLine, formatDate, formatReleaseDate, statusLabel } from '../lib/format';
 import { compareUrl } from '../lib/compare-route';
 import { organizationLabel } from '../lib/organization-name';
 import {
@@ -226,7 +226,7 @@ export default function LineageExplorer({
                         <GitBranch size={14} aria-hidden="true" /> Family
                       </span>
                       <h3 id={`family-${view.family.id}`}>{view.family.name}</h3>
-                      <small>First released {formatReleaseDate(view.family.firstReleaseDate, view.family.datePrecision)}</small>
+                      <small>{familyFirstReleaseLine(view.family)}</small>
                     </header>
 
                     {view.hasRecordedLineage ? (

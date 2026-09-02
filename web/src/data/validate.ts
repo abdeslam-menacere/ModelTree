@@ -11,11 +11,11 @@ import {
 import { RUBRIC_DIMENSION_SUPPORT } from './model-fit-rubric';
 import {
   earliestDay,
+  familyPrecisionMatchesValue,
   isDefinitelyAfter,
   isDefinitelyBefore,
   latestDay,
-  precisionMatchesValue,
-  type DatePrecision,
+  type FamilyDatePrecision,
 } from './partial-date';
 
 export const PRIMARY_SOURCE_TYPES = new Set<SourceReference['type']>([
@@ -52,16 +52,25 @@ export function comparabilityKey(observation: UsageObservation) {
  * with a `datePrecision`, and all three are held to this one rule rather than
  * to three copies of it. This is what closes the invented-day path: a `month`
  * record cannot smuggle a day in and then label it as though it had not.
+ *
+ * A family may also declare `datePrecision: 'unstated'` and carry no date at
+ * all (ADR 0012), which is the zero of the same scale and so is the same rule
+ * rather than an exception to it: the segments carried must equal the segments
+ * declared, and an absent value carries none. Both directions are reported —
+ * a date missing where a precision was stated, and a date present beside
+ * `unstated` — because absence must never be readable as the unstated claim on
+ * its own.
  */
 function addPrecisionIssue(
   issues: string[],
   owner: string,
   field: string,
-  value: string,
-  precision: DatePrecision,
+  value: string | undefined,
+  precision: FamilyDatePrecision,
 ) {
-  if (!precisionMatchesValue(value, precision)) {
-    issues.push(`${owner} ${field} "${value}" does not match precision "${precision}"`);
+  if (!familyPrecisionMatchesValue(value, precision)) {
+    const stated = value === undefined ? 'is absent and' : `"${value}"`;
+    issues.push(`${owner} ${field} ${stated} does not match precision "${precision}"`);
   }
 }
 
@@ -556,7 +565,11 @@ export function validateDataset(input: unknown): Dataset {
       family.firstReleaseDate,
       family.datePrecision,
     );
-    if (isDefinitelyAfter(family.firstReleaseDate, family.verifiedAt)) {
+    // An unstated first release date is not a date, so there is no interval to
+    // contradict `verifiedAt` with. The absence is checked above, by the
+    // pairing rule; what is skipped here is a comparison with nothing on one
+    // side, not a check.
+    if (family.firstReleaseDate !== undefined && isDefinitelyAfter(family.firstReleaseDate, family.verifiedAt)) {
       issues.push(`family ${family.id} was verified before its first release date`);
     }
     addMissingReferences(issues, `family ${family.id}`, 'sourceIds', family.sourceIds, sourceIds);
@@ -576,8 +589,13 @@ export function validateDataset(input: unknown): Dataset {
       // Only a *definite* contradiction is reported. Where the two intervals
       // overlap — a day-precision release inside its family's month-precision
       // first release — the sources leave the order open, and an open question
-      // is not an error to raise.
-      if (isDefinitelyBefore(release.releaseDate, family.firstReleaseDate)) {
+      // is not an error to raise. A family whose first release date is unstated
+      // has no interval at all, which is the same open question in its widest
+      // form: every release is admissible under it, and none contradicts it.
+      if (
+        family.firstReleaseDate !== undefined
+        && isDefinitelyBefore(release.releaseDate, family.firstReleaseDate)
+      ) {
         issues.push(`release ${release.id} predates family ${family.id}`);
       }
     }

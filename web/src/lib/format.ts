@@ -1,4 +1,4 @@
-import type { DatePrecision, ModelRelease } from '../data/schema';
+import type { DatePrecision, ModelFamily, ModelRelease } from '../data/schema';
 import { precisionOf, PRECISION_SEGMENTS } from '../data/partial-date';
 
 /**
@@ -61,6 +61,40 @@ export { precisionOf as precisionOfPartialDate } from '../data/partial-date';
 /** A release date rendered no more precisely than its source stated it. */
 export function formatReleaseDate(value: string, precision: DatePrecision) {
   return formatDateWithPrecision(value, precision);
+}
+
+/**
+ * What a family's first release date says, including the case where no source
+ * states one (ADR 0012).
+ *
+ * The unstated case renders its own words and never a blank. That is the point
+ * of recording it: a family published with an explicit "no source states this"
+ * is a reviewable claim a reader can see and challenge, whereas the alternative
+ * the schema used to force — dropping the family from the dataset — leaves
+ * nothing on the page at all. A treatment that rendered empty space would put
+ * the record back in the second state while pretending to be in the first.
+ */
+export const FIRST_RELEASE_NOT_STATED = 'Not stated by any source';
+
+export function formatFamilyFirstRelease(
+  family: Pick<ModelFamily, 'firstReleaseDate' | 'datePrecision'>,
+) {
+  if (family.datePrecision === 'unstated' || family.firstReleaseDate === undefined) {
+    return FIRST_RELEASE_NOT_STATED;
+  }
+
+  return formatDateWithPrecision(family.firstReleaseDate, family.datePrecision);
+}
+
+/** The same fact as a sentence, for the places that introduce it with a verb. */
+export function familyFirstReleaseLine(
+  family: Pick<ModelFamily, 'firstReleaseDate' | 'datePrecision'>,
+) {
+  if (family.datePrecision === 'unstated' || family.firstReleaseDate === undefined) {
+    return 'First release date not stated by any source';
+  }
+
+  return `First released ${formatDateWithPrecision(family.firstReleaseDate, family.datePrecision)}`;
 }
 
 export function formatNumber(value: number) {
