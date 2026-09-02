@@ -1,0 +1,63 @@
+{
+  "catalog": {
+    "id": "origins-tii",
+    "kind": "approved-origins",
+    "creator_id": "tii",
+    "creator_name": "Technology Innovation Institute",
+    "applies_to": "Technology Innovation Institute as the creator of the Falcon model families it trains and announces. Not the institute's non-AI research programmes, and not any host that only serves or redistributes Falcon weights."
+  },
+  "notes": [
+    "Human origin approval only. It records where TII publishes primary release information so a later refresh run can cite those origins; it adds no creator, family, release, product or deployment to the dataset, and it does not make TII a pilot creator or move it off the unanimous 3-of-3 long-tail bar of ADR 0002.",
+    "creator_id is the id the dataset already records: web/src/data/organizations.json carries id \"tii\", name \"Technology Innovation Institute\", website https://www.tii.ae/, checked on 2026-09-02. It is not a new naming decision.",
+    "This document approves exactly one origin, https://www.tii.ae, which was absent from both of gate-source-approval.mjs's trust anchors before it. Measured at merge base be72a5db on 2026-09-02: anchor 1 (web/src/data/sources.json) held 241 source records across 44 origins and anchor 2 (source_catalog[].url across tools/updater/profiles/**/*.json) held 24 origins, and www.tii.ae was in neither.",
+    "No Hugging Face organization is catalogued here. huggingface.co is already a trusted origin through existing dataset sources, and no TII organization page on it was checked in this review, so nothing here is evidence about which org there is TII's own."
+  ],
+  "source_catalog": [
+    {
+      "id": "tii-news",
+      "owner": "Technology Innovation Institute",
+      "url": "https://www.tii.ae/news",
+      "kind": "official-announcement",
+      "allowed_paths": ["/news"],
+      "allowed_content_types": ["announcement", "research-post"],
+      "trust": "primary",
+      "trust_notes": "TII's own news section; authoritative for what TII announces as its own work, including its Falcon model announcements. Deliberately bounded to /news, the only section checked: www.tii.ae is a multi-disciplinary institute site whose root is a corporate landing page (HTTP 200, <title>Technology Innovation Institute UAE | Advanced Tech Research Center</title>) and whose /careers path redirects off-host to careers.tii.ae, neither of which says who trained a model. Within /news the feed is the whole institute's rather than an AI feed, so a post here is not by itself a model release. Authoritative for what TII says it built and released, never for how any third party serves it.",
+      "verified_at": "2026-09-02",
+      "verification": "Fetched 2026-09-02: https://www.tii.ae/news returned HTTP 200, <title>Latest News | Technology Innovation Institute(TII)</title>, on the TII-owned www.tii.ae host, with the index carrying the string 'Falcon'. A named article under the approved path was fetched as a specific check — /news/technology-innovation-institute-introduces-worlds-most-powerful-open-llm-falcon-180b returned HTTP 200, <title>Technology Innovation Institute Introduces World’s Most Powerful Open LLM: Falcon 180B | Technology Innovation Institute</title>, carrying both 'Falcon 180B' and 'Technology Innovation Institute'. Two controls confirm the check discriminates rather than reporting 200 for anything: a fabricated slug under the same approved path returned HTTP 404 with <title>Page not found | Technology Innovation Institute</title>, so the section is not a soft-200 catch-all, and the fabricated host zzfabricated-control.tii.ae did not resolve at all."
+    }
+  ],
+  "deferred_origins": [
+    {
+      "origin": "https://falconllm.tii.ae",
+      "decision": "not approved",
+      "reason": "Reached 2026-09-02: HTTP 200, <title>Introducing the Technology Innovation Institute’s Falcon Perception Making Advanced AI accessible and Available to Everyone, Everywhere</title>. It is a separate origin from www.tii.ae — trust attaches to scheme and host, and a shared registrable domain is not a shared origin — and it reads as a product and marketing surface for the Falcon line rather than the institute's publication channel. Approving it was not part of the reviewed grant this document records; it would be its own reviewed change."
+    },
+    {
+      "origin": "https://huggingface.co",
+      "decision": "already-trusted generic host, not re-approved here",
+      "reason": "Already trusted through existing dataset source records, so nothing here needs to re-approve it. No TII organization page on it was checked in this review, and a host is not approved because it distributes a creator's weights."
+    },
+    {
+      "origin": "https://careers.tii.ae",
+      "decision": "not approved",
+      "reason": "Reached indirectly on 2026-09-02, as the target of a redirect from www.tii.ae/careers (HTTP 200, <title>Careers at Technology Innovation Institute | Technology Innovation Institute jobs</title>). A recruitment site says nothing about who trained a model. Recorded so the redirect is not mistaken later for evidence that the careers section sits inside the approved origin: it does not, and /careers is outside allowed_paths in any case."
+    }
+  ],
+  "ambiguities": [
+    {
+      "topic": "The institute's name against its own root page",
+      "note": "As checked on 2026-09-02 the dataset records the creator as 'Technology Innovation Institute', the news index titles itself 'Technology Innovation Institute(TII)', and the site root titles itself 'Technology Innovation Institute UAE | Advanced Tech Research Center'. Nothing checked here states a rename, and nothing checked establishes the relationship between the institute and any parent research council.",
+      "guidance": "Record the name the source uses and keep the existing 'tii' id. Do not merge the institute with a parent body, and do not assert a corporate relationship between them; that is an organization mapping for a human."
+    },
+    {
+      "topic": "/news is an institute feed, not an AI feed",
+      "note": "TII describes itself as an advanced technology research centre, and its single news section carries items from research programmes other than the AI work that produces Falcon.",
+      "guidance": "Treat only a post that announces a model as evidence of a release. Do not infer an AI fact from a post about another programme, and do not treat the feed's post count as a release count."
+    },
+    {
+      "topic": "Falcon is a family line and a product surface at once",
+      "note": "Falcon names the model families TII announces on /news and also the separately hosted falconllm.tii.ae surface, which presents Falcon as something users adopt.",
+      "guidance": "Keep creator, family, release and product apart even where TII uses one name for all of them. Attribute a capability to a release only where the source does."
+    }
+  ]
+}
