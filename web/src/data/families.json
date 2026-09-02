@@ -1392,5 +1392,22 @@
       "nvidia-nemotron-nano-9b-v2-model-card"
     ],
     "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "tencent-hunyuanimage-3-0",
+    "slug": "hunyuanimage-3-0",
+    "organizationId": "tencent",
+    "name": "HunyuanImage-3.0",
+    "description": "Tencent’s HunyuanImage-3.0, which the creator titles a native multimodal model for image generation and whose inference code and model weights it states were made publicly available on 28 September 2025. No source consulted states a lifecycle status, so it is recorded as unknown.",
+    "categories": [
+      "image"
+    ],
+    "firstReleaseDate": "2025-09-28",
+    "datePrecision": "day",
+    "status": "unknown",
+    "sourceIds": [
+      "tencent-hunyuanimage-3-0-repository"
+    ],
+    "verifiedAt": "2026-09-01"
   }
 ]
