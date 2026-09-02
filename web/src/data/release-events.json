@@ -58,5 +58,32 @@
       "amazon-nova-2-sonic-announcement"
     ],
     "verifiedAt": "2026-08-28"
+  },
+  {
+    "id": "claude-fable-5-1-general-availability",
+    "releaseId": "anthropic-claude-fable-5-1",
+    "type": "generally-available",
+    "date": "2026-09-01",
+    "datePrecision": "day",
+    "note": "Anthropic launched Claude Fable 5.1 and described it as generally available, on the Claude API, Amazon Bedrock, Claude Platform on AWS, Google Cloud and Microsoft Foundry.",
+    "sourceIds": [
+      "anthropic-fable-5-1-announcement",
+      "anthropic-api-release-notes"
+    ],
+    "verifiedAt": "2026-09-02"
+  },
+  {
+    "id": "claude-mythos-5-1-invitation-only-availability",
+    "releaseId": "anthropic-claude-mythos-5-1",
+    "type": "api-available",
+    "date": "2026-09-01",
+    "datePrecision": "day",
+    "note": "Anthropic launched Claude Mythos 5.1 on the Claude API alongside Claude Fable 5.1, for Project Glasswing participants. Anthropic describes it as available only through its trusted access programs rather than generally available.",
+    "sourceIds": [
+      "anthropic-fable-5-1-announcement",
+      "anthropic-mythos-5-1-docs",
+      "anthropic-api-release-notes"
+    ],
+    "verifiedAt": "2026-09-02"
   }
 ]

@@ -429,7 +429,7 @@
     "variant": "Fable",
     "releaseDate": "2026-06-09",
     "datePrecision": "day",
-    "status": "current",
+    "status": "legacy",
     "featured": true,
     "featuredRationale": "Anthropic's most capable widely released model, with a dated general-availability statement in the official model documentation.",
     "categories": [
@@ -460,9 +460,10 @@
     "intendedUse": "Long-running agent work that needs the highest available Claude capability.",
     "sourceIds": [
       "anthropic-models-overview",
-      "anthropic-fable-5-mythos-5-docs"
+      "anthropic-fable-5-mythos-5-docs",
+      "anthropic-fable-5-docs"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-02"
   },
   {
     "id": "anthropic-claude-mythos-5",
@@ -2447,6 +2448,98 @@
       "anthropic-model-deprecations"
     ],
     "verifiedAt": "2026-08-29"
+  },
+  {
+    "id": "anthropic-claude-fable-5-1",
+    "slug": "claude-fable-5-1",
+    "canonicalName": "Claude Fable 5.1",
+    "displayName": "Claude Fable 5.1",
+    "organizationId": "anthropic",
+    "familyId": "anthropic-claude-5-1",
+    "version": "5.1",
+    "variant": "Fable",
+    "releaseDate": "2026-09-01",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 1000000,
+    "maximumOutput": 128000,
+    "apiAliases": [
+      "claude-fable-5-1"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [
+      "anthropic-claude-mythos-5-1"
+    ],
+    "derivedFromIds": [],
+    "summary": "Anthropic’s widely released model for demanding reasoning and long-horizon agentic work, with adaptive thinking always on.",
+    "intendedUse": "Long-running agentic coding, multistep research, and document, spreadsheet, and slide work.",
+    "sourceIds": [
+      "anthropic-fable-5-1-docs",
+      "anthropic-fable-5-1-announcement",
+      "anthropic-api-release-notes"
+    ],
+    "verifiedAt": "2026-09-02"
+  },
+  {
+    "id": "anthropic-claude-mythos-5-1",
+    "slug": "claude-mythos-5-1",
+    "canonicalName": "Claude Mythos 5.1",
+    "displayName": "Claude Mythos 5.1",
+    "organizationId": "anthropic",
+    "familyId": "anthropic-claude-5-1",
+    "version": "5.1",
+    "variant": "Mythos",
+    "releaseDate": "2026-09-01",
+    "datePrecision": "day",
+    "status": "preview",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 1000000,
+    "maximumOutput": 128000,
+    "apiAliases": [
+      "claude-mythos-5-1"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [
+      "anthropic-claude-fable-5-1"
+    ],
+    "derivedFromIds": [],
+    "summary": "Shares Claude Fable 5.1’s specifications and pricing, but with safeguards designed for cybersecurity and life sciences work. Offered by invitation only.",
+    "intendedUse": "Cybersecurity and life sciences workflows for customers approved through Anthropic’s Project Glasswing.",
+    "sourceIds": [
+      "anthropic-mythos-5-1-docs",
+      "anthropic-fable-5-1-announcement",
+      "anthropic-api-release-notes"
+    ],
+    "verifiedAt": "2026-09-02"
   },
   {
     "id": "alibaba-qwen3-8-2-4t-a95b",

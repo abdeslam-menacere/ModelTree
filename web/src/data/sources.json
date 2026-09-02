@@ -151,6 +151,30 @@
     "lastCheckedDate": "2026-08-31"
   },
   {
+    "id": "anthropic-fable-5-1-announcement",
+    "url": "https://www.anthropic.com/claude-fable-and-mythos-5-1",
+    "title": "Introducing Claude Fable 5.1 and Claude Mythos 5.1",
+    "type": "official-announcement",
+    "publisherId": "anthropic",
+    "lastCheckedDate": "2026-09-02"
+  },
+  {
+    "id": "anthropic-fable-5-1-docs",
+    "url": "https://platform.claude.com/docs/en/models/fable-5-1/overview",
+    "title": "Claude Fable 5.1",
+    "type": "official-docs",
+    "publisherId": "anthropic",
+    "lastCheckedDate": "2026-09-02"
+  },
+  {
+    "id": "anthropic-fable-5-docs",
+    "url": "https://platform.claude.com/docs/en/models/fable-5/overview",
+    "title": "Claude Fable 5",
+    "type": "official-docs",
+    "publisherId": "anthropic",
+    "lastCheckedDate": "2026-09-02"
+  },
+  {
     "id": "anthropic-model-deprecations",
     "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations",
     "title": "Model deprecations",
@@ -2159,5 +2183,21 @@
     "publisherId": "hugging-face",
     "lastCheckedDate": "2026-09-01",
     "notes": "Hugging Face's own API record for the NVIDIA-Nemotron-Nano-9B-v2 repository, cited under ADR 0009 for platform-authored facts only: the repository exists and is readable, reports \"gated\":false and \"disabled\":false, and lists model-0000N-of-00004.safetensors among its files. Those are what weightsDownloadable rests on for this release — an unrestricted public repository whose weight files the platform itself enumerates — rather than the licence name, which states only what the terms are called. The record is not cited for any fact NVIDIA authored."
+  },
+  {
+    "id": "anthropic-mythos-5-1-docs",
+    "url": "https://platform.claude.com/docs/en/models/mythos-5-1/overview",
+    "title": "Claude Mythos 5.1",
+    "type": "official-docs",
+    "publisherId": "anthropic",
+    "lastCheckedDate": "2026-09-02"
+  },
+  {
+    "id": "anthropic-api-release-notes",
+    "url": "https://platform.claude.com/docs/en/release-notes/api",
+    "title": "API release notes",
+    "type": "official-docs",
+    "publisherId": "anthropic",
+    "lastCheckedDate": "2026-09-02"
   }
 ]
