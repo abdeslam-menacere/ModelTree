@@ -7,11 +7,18 @@ import { dataset } from '../data/dataset';
 import { buildModelTree } from '../lib/model-tree';
 import { organizationLabel } from '../lib/organization-name';
 import { datasetWithOtherCreators } from '../../tests/fixtures/model-tree-dataset';
+import { familyDisclosure, releaseButton } from '../../tests/helpers/model-tree-queries';
 import ModelTreeExplorer from './ModelTreeExplorer';
 
 const tree = buildModelTree(dataset);
 const otherTree = buildModelTree(datasetWithOtherCreators);
 const selectedRelease = dataset.releases.find(({ id }) => id === 'anthropic-claude-opus-5')!;
+const siblingRelease = dataset.releases.find(({ id }) => id === 'anthropic-claude-sonnet-5')!;
+// Families and releases are selected through the ids the component emits rather
+// than by a name prefix (issue #777): `/^Claude 5/` matched `Claude 5` and every
+// future `Claude 5.x` at once, which stopped a reviewed Anthropic release from
+// being recordable at all. See `tests/helpers/model-tree-queries.ts`.
+const claudeFiveFamily = dataset.families.find(({ id }) => id === 'anthropic-claude-5')!;
 // The creator toolbar renders the creator label, so read it from the record
 // rather than hard-coding either recorded name form.
 const googleLabel = organizationLabel(
@@ -48,7 +55,7 @@ describe('ModelTreeExplorer interactions', () => {
     expect(google.getAttribute('aria-expanded')).toBe('false');
 
     await user.click(anthropic);
-    const claudeFive = screen.getByRole('button', { name: /^Claude 5/ });
+    const claudeFive = familyDisclosure(claudeFiveFamily);
     expect(anthropic.getAttribute('aria-expanded')).toBe('true');
     expect(claudeFive.getAttribute('aria-expanded')).toBe('false');
 
@@ -70,14 +77,14 @@ describe('ModelTreeExplorer interactions', () => {
 
     await waitFor(() => expect(creatorButton('Anthropic').getAttribute('aria-expanded')).toBe('false'));
     await user.click(creatorButton('Anthropic'));
-    await user.click(screen.getByRole('button', { name: /^Claude 5/ }));
-    const releaseButton = screen.getByRole('button', { name: /^Claude Opus 5/ });
-    await user.click(releaseButton);
+    await user.click(familyDisclosure(claudeFiveFamily));
+    const releaseButtonNode = releaseButton(selectedRelease);
+    await user.click(releaseButtonNode);
 
     const details = document.querySelector('.tree-details') as HTMLElement;
     expect(within(details).getByRole('heading', { name: selectedRelease.displayName })).toBeTruthy();
     expect(within(details).getByText(selectedRelease.summary)).toBeTruthy();
-    expect(releaseButton.getAttribute('aria-pressed')).toBe('true');
+    expect(releaseButtonNode.getAttribute('aria-pressed')).toBe('true');
     expect(window.location.pathname).toBe('/ModelTree/tree/');
     expect(window.location.search).toBe(`?utm=kept&model=${selectedRelease.id}`);
     expect(window.location.hash).toBe('#details');
@@ -93,12 +100,12 @@ describe('ModelTreeExplorer interactions', () => {
 
     await waitFor(() => {
       expect(creatorButton('Anthropic').getAttribute('aria-expanded')).toBe('true');
-      expect(screen.getByRole('button', { name: /^Claude 5/ }).getAttribute('aria-expanded'))
+      expect(familyDisclosure(claudeFiveFamily).getAttribute('aria-expanded'))
         .toBe('true');
     });
 
-    const releaseButton = screen.getByRole('button', { name: /^Claude Opus 5/ });
-    expect(releaseButton.getAttribute('aria-pressed')).toBe('true');
+    const releaseButtonNode = releaseButton(selectedRelease);
+    expect(releaseButtonNode.getAttribute('aria-pressed')).toBe('true');
     expect(within(document.querySelector('.tree-details') as HTMLElement).getByRole(
       'heading',
       { name: selectedRelease.displayName },
@@ -178,9 +185,9 @@ describe('ModelTreeExplorer interactions', () => {
 
     await waitFor(() => expect(creatorButton('Anthropic').getAttribute('aria-expanded')).toBe('false'));
     await user.click(creatorButton('Anthropic'));
-    await user.click(screen.getByRole('button', { name: /^Claude 5/ }));
+    await user.click(familyDisclosure(claudeFiveFamily));
 
-    const opus = screen.getByRole('button', { name: /^Claude Opus 5/ });
+    const opus = releaseButton(selectedRelease);
     const marker = () => document.querySelectorAll('.tree-release-selected');
     expect(marker()).toHaveLength(0);
 
@@ -190,7 +197,7 @@ describe('ModelTreeExplorer interactions', () => {
     expect(opus.querySelector('.tree-release-selected')?.getAttribute('aria-hidden')).toBe('true');
     expect(opus.getAttribute('aria-pressed')).toBe('true');
 
-    const sibling = screen.getAllByRole('button', { name: /^Claude Sonnet 5/ })[0];
+    const sibling = releaseButton(siblingRelease);
     await user.click(sibling);
     expect(marker()).toHaveLength(1);
     expect(opus.querySelector('.tree-release-selected')).toBeNull();
