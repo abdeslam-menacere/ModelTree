@@ -2199,5 +2199,23 @@
     "type": "official-docs",
     "publisherId": "anthropic",
     "lastCheckedDate": "2026-09-02"
+  },
+  {
+    "id": "tencent-hunyuanimage-3-0-repository",
+    "url": "https://github.com/Tencent-Hunyuan/HunyuanImage-3.0/raw/main/README.md",
+    "title": "HunyuanImage-3.0 repository README (Tencent Hunyuan)",
+    "type": "repository",
+    "publisherId": "tencent",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Tencent’s own HunyuanImage-3.0 repository README. Its \"News\" list carries a dated entry stating that inference code and model weights were made publicly available; that entry states the event, so it is not a page publication timestamp."
+  },
+  {
+    "id": "tencent-hunyuanimage-3-0-model-card",
+    "url": "https://huggingface.co/tencent/HunyuanImage-3.0/raw/main/README.md",
+    "title": "HunyuanImage-3.0 model card (Tencent)",
+    "type": "model-card",
+    "publisherId": "tencent",
+    "lastCheckedDate": "2026-09-01",
+    "notes": "Tencent’s model card for HunyuanImage-3.0. Front matter states the licence name and the text-to-image pipeline tag from which the release modalities are read."
   }
 ]
