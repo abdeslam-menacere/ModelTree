@@ -432,9 +432,16 @@ export const releaseSchema = z.object({
   // that each one reaches the Featured branch, because a creator is featured
   // exactly when it holds a featured release and the schema carries no
   // organization-level flag; flag no release of any other creator, which is what
-  // places every creator the list omits on the Others branch; and write a
+  // places every creator the list omits on the Others branch; write a
   // `featuredRationale` on exactly the releases flagged, so that no rationale
-  // outlives the placement it explains. The list records what this site leads
+  // outlives the placement it explains; and let no lifecycle status decide the
+  // flag in either direction: `status` is a sourced measurement, and deriving
+  // this list from it would make the list track recency, which is an order this
+  // procedure refuses -- so a `legacy` release may stay flagged and a `current`
+  // one is not owed the flag, and what a flagged release owes instead is a
+  // `featuredRationale` saying why it carries its creator's placement, in terms
+  // that stay true once it is superseded and that could not be written of
+  // another release of the same creator. The list records what this site leads
   // with, which is a choice about its own entry point rather than a measurement
   // of the creators: it states no order, no score, and no claim that a listed
   // creator is larger, better, or more important than one it omits. A creator
