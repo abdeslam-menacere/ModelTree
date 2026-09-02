@@ -182,6 +182,20 @@ verdicts live in `.drydock/docks/`, and the role contracts in `.github/agents/`.
 The Drydock CLI is installed separately — it is a tool, not a dependency of this
 project.
 
+## Security, support, and privacy
+
+- **Security** — how to report a vulnerability, and what the site's static
+  shape means for its threat model, is in [`SECURITY.md`](SECURITY.md).
+- **Support** — where to ask a question or file a correction is in
+  [`SUPPORT.md`](SUPPORT.md); the fastest path is usually one of the two
+  issue-template links there.
+- **Privacy** — the site collects nothing. The dated decision, and what
+  reversing it would require, is in
+  [`docs/product/PRIVACY-DECISION.md`](docs/product/PRIVACY-DECISION.md).
+- **Launching or re-launching** — the owner-audited procedure, with owner UI
+  steps separated from maintainer commands, is in
+  [`docs/product/LAUNCH-RUNBOOK.md`](docs/product/LAUNCH-RUNBOOK.md).
+
 ## Status
 
 Live, and expanding. Shipped so far: the interactive lineage at `/tree`; the
