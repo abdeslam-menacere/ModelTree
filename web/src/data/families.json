@@ -1354,5 +1354,22 @@
       "openbmb-minicpm5-1b-model-card"
     ],
     "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "nvidia-nemotron-nano-2",
+    "slug": "nvidia-nemotron-nano-2",
+    "organizationId": "nvidia",
+    "name": "Nemotron Nano 2",
+    "description": "NVIDIA's Nemotron Nano 2 line of compact hybrid Mamba-Transformer reasoning models, which NVIDIA's model card presents as intended for AI agent systems, chatbots, retrieval-augmented generation systems and general instruction-following. The first release date is the \"Release Date: 08/18/2025\" the family's own model card states, recorded at day precision. Status is recorded as unknown because the card states no lifecycle term for the line. This is a separate family from NVIDIA's earlier Nemotron-4 models, which this dataset records under their own family.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2025-08-18",
+    "datePrecision": "day",
+    "status": "unknown",
+    "sourceIds": [
+      "nvidia-nemotron-nano-9b-v2-model-card"
+    ],
+    "verifiedAt": "2026-09-01"
   }
 ]
