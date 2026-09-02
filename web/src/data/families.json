@@ -102,7 +102,7 @@
     "slug": "claude-5",
     "organizationId": "anthropic",
     "name": "Claude 5",
-    "description": "The current Claude generation. Fable and Mythos share the same capabilities and specifications, but Fable is widely released while Mythos is restricted to approved customers. Opus is the tier Anthropic recommends for complex coding work that runs over many steps.",
+    "description": "A 2026 Claude generation. Fable and Mythos share the same capabilities and specifications, but Fable is widely released while Mythos is restricted to approved customers. Opus is the tier Anthropic recommends for complex coding work that runs over many steps.",
     "categories": [
       "language-reasoning",
       "multimodal-generalist",
@@ -371,6 +371,27 @@
       "anthropic-model-deprecations"
     ],
     "verifiedAt": "2026-08-27"
+  },
+  {
+    "id": "anthropic-claude-5-1",
+    "slug": "claude-5-1",
+    "organizationId": "anthropic",
+    "name": "Claude 5.1",
+    "description": "Anthropic’s Claude 5.1 generation. Fable 5.1 and Mythos 5.1 are the same model with different safeguards: Fable 5.1 is generally available, while Mythos 5.1 is offered by invitation only through Project Glasswing.",
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "firstReleaseDate": "2026-09-01",
+    "datePrecision": "day",
+    "status": "current",
+    "sourceIds": [
+      "anthropic-fable-5-1-announcement",
+      "anthropic-fable-5-1-docs",
+      "anthropic-api-release-notes"
+    ],
+    "verifiedAt": "2026-09-02"
   },
   {
     "id": "xai-grok-4",
