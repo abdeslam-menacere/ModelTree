@@ -5,9 +5,15 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import { buildModelTree } from '../lib/model-tree';
+import { familyDisclosure, releaseButton } from '../../tests/helpers/model-tree-queries';
 import ModelTreeExplorer from './ModelTreeExplorer';
 
 const tree = buildModelTree(dataset);
+// Selected through the ids the component emits rather than by a name prefix
+// (issue #777): `/^Claude 5/` matched `Claude 5` and every future `Claude 5.x`
+// at once. See `tests/helpers/model-tree-queries.ts`.
+const claudeFiveFamily = dataset.families.find(({ id }) => id === 'anthropic-claude-5')!;
+const opusFive = dataset.releases.find(({ id }) => id === 'anthropic-claude-opus-5')!;
 
 function installMatchMedia(isMobile: boolean) {
   (window as unknown as { matchMedia: (query: string) => MediaQueryList }).matchMedia = (
@@ -38,10 +44,10 @@ function creatorButton(name: string) {
 async function selectClaudeOpus(user: ReturnType<typeof userEvent.setup>) {
   await waitFor(() => expect(creatorButton('Anthropic').getAttribute('aria-expanded')).toBe('false'));
   await user.click(creatorButton('Anthropic'));
-  await user.click(screen.getByRole('button', { name: /^Claude 5/ }));
-  const releaseButton = screen.getByRole('button', { name: /^Claude Opus 5/ });
-  await user.click(releaseButton);
-  return releaseButton;
+  await user.click(familyDisclosure(claudeFiveFamily));
+  const release = releaseButton(opusFive);
+  await user.click(release);
+  return release;
 }
 
 beforeEach(() => {

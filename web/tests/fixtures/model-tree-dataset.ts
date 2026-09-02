@@ -160,3 +160,45 @@ export const datasetWithOtherCreators: Dataset = withEmptyFamily(validateDataset
 
 /** Creator ids the fixture expects under `others`, in exact render order. */
 export const expectedOtherCreatorIds = ['other-bravo', 'other-zulu', 'other-alpha'];
+
+/**
+ * One more creator, whose two families and whose two releases carry display
+ * names that are prefix extensions of one another: `Prism 5` beside `Prism 5.1`,
+ * and `Prism Opus 5` beside `Prism Opus 5.1`.
+ *
+ * This is the shape of issue #777, held permanently in a fixture. The defect was
+ * a role query anchored only at the start of a name -- `{ name: /^Claude 5/ }`
+ * -- which matches a family and every future point release of it at once, so
+ * `getByRole` throws the moment both exist. The reviewed catalog contains no
+ * such pair today, and this branch must not add one; a fix proved against the
+ * catalog alone would therefore be proved against everything except the case it
+ * is for. The names are invented for the same reason the rest of this file's
+ * are: the fixture has to state the pathology without asserting anything about a
+ * real creator.
+ *
+ * Kept out of `datasetWithOtherCreators` deliberately. That dataset is consumed
+ * by hierarchy, homepage and explorer tests that count families and assert
+ * creator ordering, and adding a collision to it would charge every one of them
+ * for a guard that is not about them.
+ */
+const prefixCollidingOrganization = organization('other-prism', 'Prism Systems');
+
+export const prefixCollidingFamilies: ModelFamily[] = [
+  family('other-prism-5', 'other-prism', 'Prism 5', '2025-04-01'),
+  family('other-prism-5-1', 'other-prism', 'Prism 5.1', '2025-05-01'),
+];
+
+export const prefixCollidingReleases: ModelRelease[] = [
+  release('other-prism-opus-5', 'other-prism', 'other-prism-5', 'Prism Opus 5', '2025-04-01'),
+  release('other-prism-opus-5-1', 'other-prism', 'other-prism-5-1', 'Prism Opus 5.1', '2025-05-01'),
+];
+
+/** The reviewed catalog plus that one creator, through the real validator. */
+export const datasetWithPrefixCollidingNames: Dataset = validateDataset({
+  ...dataset,
+  publishers: [...dataset.publishers, publisher],
+  sources: [...dataset.sources, source],
+  organizations: [...dataset.organizations, prefixCollidingOrganization],
+  families: [...dataset.families, ...prefixCollidingFamilies],
+  releases: [...dataset.releases, ...prefixCollidingReleases],
+});
