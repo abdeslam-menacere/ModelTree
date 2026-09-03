@@ -272,7 +272,10 @@ jobs:
       # is legitimate -- an ordinary reviewed change is allowed to be more
       # permissive than the automated panel -- but it left two committed
       # documents disagreeing and nothing noticing, which is how nine such
-      # reversals accumulated before anyone counted them.
+      # reversals accumulated, visible to this gate, before anyone counted them.
+      # Nine is what the gate can read, not the population: 17 further rejections
+      # it cannot parse also name a record that is present. See the gate header
+      # for that measurement -- it is a known, quantified gap, not a clean bill.
       #
       # The step belongs here specifically because this job's scope pattern
       # includes `web/src/data/`. The reversals arrived by ordinary data change,
@@ -290,7 +293,7 @@ jobs:
         if: steps.scope.outputs.run == 'true'
         run: node .github/skills/modeltree-gates/scripts/gate-reversals.mjs
 
-
+      # The suite above prints its own size on every run, so the documentation
       # does not repeat it. This step is what keeps that true: it refuses a
       # hand-written test count in the skill docs (#276).
       #
