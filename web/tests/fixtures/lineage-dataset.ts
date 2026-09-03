@@ -28,6 +28,14 @@ import { validateDataset } from '../../src/data/validate';
  * - cycle: two releases that each record the other as a successor
  * - derivation: a `derivedFromIds` edge that crosses organizations, which
  *   `validate.ts` explicitly permits and which therefore must never nest
+ * - cross-family succession: two families of one creator, each holding a single
+ *   release, joined by `successorIds`. This is the shape ADR 0014 exists for --
+ *   Anthropic models each point release as its own family, so Fable 5 -> 5.1 is
+ *   a family boundary while Google's identical 3.1 -> 3.5 is not. The link is
+ *   written on the *earlier* release only, so reading it from the later family
+ *   proves the union-of-both-directions read survives the crossing. Before
+ *   ADR 0014 this fixture could not be constructed at all: `validateDataset`
+ *   threw on it, which is why the fixture is itself the validator's witness
  * - partial dates: releases a source dated only to the year or the month, stored
  *   at exactly that precision, so a renderer cannot invent a day the source
  *   never stated. Before abdeslam-menacere/ModelTree#468 these had to carry a
@@ -150,10 +158,14 @@ export const MULTI_ROOT_FAMILY_ID = 'fixture-beta-roots';
 export const FLAT_FAMILY_ID = 'fixture-gamma-flat';
 export const MULTI_PREDECESSOR_FAMILY_ID = 'fixture-gamma-converge';
 export const CYCLE_FAMILY_ID = 'fixture-gamma-cycle';
+export const SUCCESSION_ORIGIN_FAMILY_ID = 'fixture-alpha-mark-one';
+export const SUCCESSION_HEIR_FAMILY_ID = 'fixture-alpha-mark-two';
 
 const families: ModelFamily[] = [
   family(SHALLOW_FAMILY_ID, 'fixture-alpha', 'Alpha Solo', '2025-01-01'),
   family(LONG_TAIL_FAMILY_ID, 'fixture-alpha', 'Alpha Long Tail', '2025-01-01'),
+  family(SUCCESSION_ORIGIN_FAMILY_ID, 'fixture-alpha', 'Alpha Mark One', '2025-04-01'),
+  family(SUCCESSION_HEIR_FAMILY_ID, 'fixture-alpha', 'Alpha Mark Two', '2025-05-01'),
   family(DEEP_FAMILY_ID, 'fixture-beta', 'Beta Chain', '2022-01-01'),
   family(MULTI_ROOT_FAMILY_ID, 'fixture-beta', 'Beta Roots', '2025-01-01'),
   family(FLAT_FAMILY_ID, 'fixture-gamma', 'Gamma Flat', '2025-01-01'),
@@ -170,6 +182,17 @@ const releases: ModelRelease[] = [
   release('fixture-alpha-longtail-one', 'fixture-alpha', LONG_TAIL_FAMILY_ID, 'Alpha Long Tail One', '2025-01-01', {
     featured: false,
   }),
+
+  // Cross-family succession: one creator, one release per family, joined across
+  // the boundary. Recorded on the earlier release only, so the later family has
+  // to find the edge by reading the other end -- the same union-of-directions
+  // rule the within-family tree uses, applied where the two ends are drawn in
+  // different panels and no connector between them is possible.
+  release('fixture-alpha-mark-one-release', 'fixture-alpha', SUCCESSION_ORIGIN_FAMILY_ID, 'Alpha Mark One Release', '2025-04-01', {
+    successorIds: ['fixture-alpha-mark-two-release'],
+    status: 'legacy',
+  }),
+  release('fixture-alpha-mark-two-release', 'fixture-alpha', SUCCESSION_HEIR_FAMILY_ID, 'Alpha Mark Two Release', '2025-05-01'),
 
   // Deep: gen1 -> gen2 -> gen3 -> gen4.
   // gen1/gen2 is recorded only on the child's `predecessorIds`; gen3/gen4 only on

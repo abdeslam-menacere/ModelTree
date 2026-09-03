@@ -9,6 +9,7 @@ import {
   buildLineageEcosystems,
   firstEcosystemRelease,
   type LineageEcosystem,
+  type LineageFamilyView,
 } from '../lib/lineage-view';
 import { organizationLabel } from '../lib/organization-name';
 import LineageExplorer from './LineageExplorer';
@@ -534,17 +535,24 @@ describe('shareable lineage trail (#39)', () => {
   });
 
   it('states the empty-trail case plainly for a release with no recorded relationships', async () => {
-    const flat = fixtureEcosystems.find((eco) =>
-      eco.families.some((family) => family.linkCount === 0 && family.roots.length === 1),
-    );
-    if (!flat) return;
-    const family = flat.families.find((f) => f.linkCount === 0 && f.roots.length === 1)!;
+    // `linkCount === 0` alone stopped identifying such a release when ADR 0014
+    // let succession leave a family: a family can draw no connector of its own
+    // and still have its release tied to one in another family, which is a
+    // recorded relationship and so a non-empty trail. Both counts must be zero.
+    const isUnrelated = (family: LineageFamilyView) =>
+      family.linkCount === 0 && family.externalLinkCount === 0 && family.roots.length === 1;
+    const flat = fixtureEcosystems.find((eco) => eco.families.some(isUnrelated));
+    // Was `if (!flat) return`, which passed silently when nothing matched. Since
+    // this change narrows the predicate, a predicate that matches nothing has to
+    // be a failure rather than a skip.
+    expect(flat, 'the fixture must still hold a release with no recorded relationship').toBeDefined();
+    const family = flat!.families.find(isUnrelated)!;
     const release = family.roots[0].release;
 
     window.history.replaceState(
       {},
       '',
-      `/ModelTree/?provider=${flat.organization.slug}&model=${release.slug}&trail=1`,
+      `/ModelTree/?provider=${flat!.organization.slug}&model=${release.slug}&trail=1`,
     );
     renderExplorer(fixtureEcosystems, lineageFixtureDataset.releases);
 

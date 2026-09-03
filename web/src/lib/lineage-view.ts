@@ -35,6 +35,24 @@ export type LineageRelation =
   | 'derivation'
   | 'unrelated';
 
+/**
+ * One end of a recorded succession edge that lives outside the family being
+ * drawn, resolved far enough to be named on the page.
+ *
+ * The family is carried because it is the whole of what makes such an edge
+ * legible. "Also followed by Claude Fable 5.1" reads as a missing connector and
+ * invites the reader to look for one in this panel; "continues into Claude Fable
+ * 5.1, in the Claude Fable 5.1 family" says where the lineage went and why no
+ * line is drawn to it.
+ */
+export interface LineageExternalEdge {
+  releaseId: string;
+  /** The target's display name, or its id if the catalog cannot resolve it. */
+  releaseName: string;
+  familyId: string;
+  familyName: string;
+}
+
 export interface LineageNode {
   release: ModelRelease;
   /** 0 for a root. Rendering caps indentation; the tree itself is never truncated. */
@@ -45,8 +63,24 @@ export interface LineageNode {
    * each node one parent. They are named in the output and never drawn as a
    * second connector, so a converging lineage stays visible without implying a
    * shape the data does not have.
+   *
+   * Within-family only. A predecessor in another family was never a candidate
+   * for this node's parent, so calling it "additional" would misdescribe it; it
+   * is reported in `externalPredecessors` instead.
    */
   additionalPredecessorIds: string[];
+  /**
+   * Recorded succession edges that leave this family, in each direction.
+   *
+   * ADR 0014 lets a predecessor or successor live in another family, and a
+   * family panel draws only its own releases -- so these can never become
+   * connectors, in either the tree or the DOM. They are named instead, together
+   * with the family they point into. Before ADR 0014 the renderer discarded
+   * them, and discarded them *silently*, which is why relaxing the validator on
+   * its own would have changed nothing a reader could see.
+   */
+  externalPredecessors: LineageExternalEdge[];
+  externalSuccessors: LineageExternalEdge[];
 }
 
 export interface LineageFamilyView {
@@ -56,7 +90,21 @@ export interface LineageFamilyView {
   roots: LineageNode[];
   /** Parent-to-child connectors this family renders. Zero when nothing is recorded. */
   linkCount: number;
-  /** True when the catalog records any predecessor, successor, or sibling here. */
+  /**
+   * Recorded succession edges with one end in this family and the other outside
+   * it, counted once per (release, direction, target). These are never drawn as
+   * connectors, so they are deliberately *not* folded into `linkCount`: that
+   * number is what the panel draws, and this one is what the panel can only
+   * name.
+   */
+  externalLinkCount: number;
+  /**
+   * True when the catalog records any predecessor, successor, or sibling between
+   * two releases *of this family*. An edge that leaves the family does not set
+   * it -- `externalLinkCount` carries that, and the two are reported separately
+   * because "nothing connects these releases to each other" and "nothing
+   * connects them to anything" are different statements about a family.
+   */
   hasRecordedLineage: boolean;
   /**
    * What each variant name in this family is said to mean, and which names have
@@ -113,18 +161,31 @@ function newestReleaseDate(releases: readonly ModelRelease[]) {
 }
 
 /**
- * Directed edges within one family, read as the union of both directions.
+ * Directed succession edges over a given set of releases, read as the union of
+ * both directions.
  *
  * `validate.ts` requires sibling relationships to be reciprocal but imposes no
  * such rule on predecessor/successor, so the same fact may be recorded on either
  * end. Reading only one field would render the same lineage differently
  * depending on which side a curator happened to write it down.
  *
- * `derivedFromIds` is deliberately excluded. `validate.ts` permits derivation to
- * cross families and organizations, so it is not a within-family tree edge; it is
- * surfaced as a labelled reference instead.
+ * **The set the caller passes is load-bearing, and since ADR 0014 it differs by
+ * caller.** `buildFamilyView` passes one family, because a tree connector can
+ * only join two releases the same panel draws. `buildLineageHighlight` passes
+ * every release on the page, because succession may now cross a family boundary
+ * and an ancestor/successor highlight has to follow it there. `buildEcosystems`
+ * passes the whole catalog, so a family view can *name* the edges it cannot
+ * draw. An endpoint outside the set is excluded from the result here and is
+ * recovered by the caller -- it is never simply lost, which is what this
+ * function used to do to every cross-family edge.
+ *
+ * `derivedFromIds` stays excluded, and ADR 0014 did not change why: derivation
+ * is not descent. A fine-tune of somebody else's base model is not the next
+ * generation of that model, so it is surfaced as a labelled reference rather
+ * than as a lineage edge -- which was always true whether or not it crossed a
+ * family, and is now the only difference between the two relations.
  */
-function familyEdges(releases: readonly ModelRelease[]) {
+function successionEdges(releases: readonly ModelRelease[]) {
   const present = new Set(releases.map(({ id }) => id));
   const parents = new Map<string, Set<string>>(releases.map(({ id }) => [id, new Set<string>()]));
   const children = new Map<string, Set<string>>(releases.map(({ id }) => [id, new Set<string>()]));
@@ -143,6 +204,53 @@ function familyEdges(releases: readonly ModelRelease[]) {
 
   return { parents, children };
 }
+
+type SuccessionEdges = ReturnType<typeof successionEdges>;
+
+/**
+ * Resolves ids that fall outside a family into edges the page can name.
+ *
+ * Built once per ecosystem build rather than per family, because it indexes the
+ * whole catalog: the target of a departing edge is by definition not in the
+ * family doing the asking.
+ */
+function externalEdgeResolver(catalog: PositioningCatalog) {
+  const releaseById = new Map(catalog.releases.map((release) => [release.id, release]));
+  const familyById = new Map(catalog.families.map((family) => [family.id, family]));
+
+  return function resolve(
+    relatedIds: Iterable<string>,
+    present: ReadonlySet<string>,
+  ): LineageExternalEdge[] {
+    const edges: LineageExternalEdge[] = [];
+
+    for (const releaseId of relatedIds) {
+      if (present.has(releaseId)) continue;
+      const target = releaseById.get(releaseId);
+      // `validate.ts` guarantees every recorded relationship id names a release
+      // in the catalog, so these fallbacks are unreachable in a validated
+      // dataset. They are here because an unresolvable id must still render as a
+      // named gap: dropping it is precisely the silent failure ADR 0014 exists
+      // to end, and it should not come back through the error path.
+      edges.push({
+        releaseId,
+        releaseName: target?.displayName ?? releaseId,
+        familyId: target?.familyId ?? '',
+        familyName: target
+          ? familyById.get(target.familyId)?.name ?? target.familyId
+          : 'a family outside this catalog',
+      });
+    }
+
+    return edges.sort((a, b) => (
+      compare(a.familyName, b.familyName)
+      || compare(a.releaseName, b.releaseName)
+      || compare(a.releaseId, b.releaseId)
+    ));
+  };
+}
+
+type ExternalEdgeResolver = ReturnType<typeof externalEdgeResolver>;
 
 /**
  * One parent per release, chosen so the result is a forest even when the records
@@ -189,10 +297,13 @@ function buildFamilyView(
   family: ModelFamily,
   familyReleases: readonly ModelRelease[],
   dataset: PositioningCatalog,
+  catalogEdges: SuccessionEdges,
+  resolveExternal: ExternalEdgeResolver,
   positioningRecords?: VariantPositioning,
 ): LineageFamilyView {
   const releases = [...familyReleases].sort(byNewestRelease);
-  const { parents } = familyEdges(releases);
+  const present = new Set(releases.map(({ id }) => id));
+  const { parents } = successionEdges(releases);
   const { primaryParent, additional } = assignPrimaryParents(releases, parents);
 
   function nodesFor(parentId: string | undefined, depth: number): LineageNode[] {
@@ -203,11 +314,27 @@ function buildFamilyView(
         depth,
         children: nodesFor(release.id, depth + 1),
         additionalPredecessorIds: additional.get(release.id) ?? [],
+        // Read from the catalog-wide graph rather than from this release's own
+        // two fields, for the reason the within-family tree reads the union of
+        // both directions -- and with more force here. Across a family boundary
+        // the far side is usually the only side written down: a successor
+        // family's record names its predecessor, and the predecessor's record,
+        // written first, could not have known about it.
+        externalPredecessors: resolveExternal(catalogEdges.parents.get(release.id) ?? [], present),
+        externalSuccessors: resolveExternal(catalogEdges.children.get(release.id) ?? [], present),
       }));
   }
 
+  function countExternal(nodes: readonly LineageNode[]): number {
+    return nodes.reduce((total, node) => (
+      total
+      + node.externalPredecessors.length
+      + node.externalSuccessors.length
+      + countExternal(node.children)
+    ), 0);
+  }
+
   const roots = nodesFor(undefined, 0);
-  const present = new Set(releases.map(({ id }) => id));
   const hasRecordedLineage = releases.some((release) => (
     [...release.predecessorIds, ...release.successorIds, ...release.siblingIds]
       .some((relatedId) => relatedId !== release.id && present.has(relatedId))
@@ -223,6 +350,7 @@ function buildFamilyView(
     roots,
     // Every release is either a root or the child end of exactly one connector.
     linkCount: releases.length - roots.length,
+    externalLinkCount: countExternal(roots),
     hasRecordedLineage,
     positioning: buildVariantPositioningForFamily(dataset, family, releases, positioningRecords),
     maxDepth: deepest(roots),
@@ -236,9 +364,15 @@ function buildFamilyView(
  * The seed decides membership and nothing else: an organization qualifies when a
  * seed release names it, and so does a family, but a qualifying family then
  * renders all of its releases rather than only the seeding ones. That is
- * deliberate -- relationships are constrained to stay within a family, so
- * dropping part of one would leave recorded relationships pointing at releases
- * that are not on the page.
+ * deliberate -- a family drawn in part would leave its own within-family
+ * relationships pointing at releases that are not on the page.
+ *
+ * Since ADR 0014 that argument no longer covers everything, and the gap is
+ * handled rather than closed: succession may leave a family altogether, and a
+ * family this seed does not reach is still not drawn. Such an edge is named on
+ * the node it departs from -- `externalPredecessors`/`externalSuccessors` are
+ * resolved against the whole catalog, not against the seed -- so it is visible
+ * as a recorded fact even when its far end is not on this page.
  *
  * Both public views below are this function under different seeds, which is what
  * keeps them the same shape and stops them drifting apart.
@@ -251,6 +385,10 @@ function buildEcosystems(
   const seedReleases = dataset.releases.filter(seeds);
   const seedOrganizationIds = new Set(seedReleases.map(({ organizationId }) => organizationId));
   const seedFamilyIds = new Set(seedReleases.map(({ familyId }) => familyId));
+  // Catalog-wide and seed-independent, so a departing edge reads the same
+  // whether it is met on the homepage or on a provider page.
+  const catalogEdges = successionEdges(dataset.releases);
+  const resolveExternal = externalEdgeResolver(dataset);
   const releasesByFamily = new Map<string, ModelRelease[]>();
   for (const release of dataset.releases) {
     const bucket = releasesByFamily.get(release.familyId);
@@ -270,6 +408,8 @@ function buildEcosystems(
           family,
           releasesByFamily.get(family.id) ?? [],
           dataset,
+          catalogEdges,
+          resolveExternal,
           positioningRecords,
         ))
         .filter(hasRecordedRelease)
@@ -366,6 +506,21 @@ export function firstEcosystemRelease(ecosystem: LineageEcosystem): ModelRelease
  * relationships the catalog records. All three are read from the recorded edge
  * graph rather than from the rendered tree, so a converging predecessor that
  * could not be drawn as a second connector is still highlighted as an ancestor.
+ *
+ * The succession graph spans **every release the page draws**, not the selected
+ * release's family. That is the ADR 0014 change: a successor in another family
+ * is a recorded fact about this release, so selecting Claude Fable 5 has to mark
+ * Claude Fable 5.1 as later in the lineage and list it in the trail, which is
+ * where the reader gets the target's creator and family. Restricting the walk to
+ * one family would have relaxed the validator and then shown the reader nothing.
+ *
+ * Siblings stay family-scoped, because `validate.ts` still keeps them there.
+ *
+ * The bound is the visible view rather than the catalog: these functions are
+ * given ecosystems, not the dataset, so a succession edge into a family this
+ * view does not draw is not walked. The node it departs from still names it --
+ * `buildFamilyView` resolves departing edges against the whole catalog -- so the
+ * fact is never hidden, only unlinked.
  */
 export function buildLineageHighlight(
   ecosystems: readonly LineageEcosystem[],
@@ -382,7 +537,10 @@ export function buildLineageHighlight(
   }
 
   const { family, release } = placement;
-  const { parents, children } = familyEdges(family.releases);
+  const visibleReleases = ecosystems.flatMap(
+    ({ families }) => families.flatMap(({ releases }) => releases),
+  );
+  const { parents, children } = successionEdges(visibleReleases);
 
   function walk(from: ReadonlyMap<string, Set<string>>) {
     const reached = new Set<string>();

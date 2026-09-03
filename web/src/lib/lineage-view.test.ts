@@ -8,6 +8,8 @@ import {
   MULTI_PREDECESSOR_FAMILY_ID,
   MULTI_ROOT_FAMILY_ID,
   SHALLOW_FAMILY_ID,
+  SUCCESSION_HEIR_FAMILY_ID,
+  SUCCESSION_ORIGIN_FAMILY_ID,
   lineageFixtureDataset,
 } from '../../tests/fixtures/lineage-dataset';
 import {
@@ -251,6 +253,108 @@ describe('unknown relationships do not become connectors', () => {
         expect(parentIds).not.toContain(derivedFromId);
       }
     }
+  });
+});
+
+describe('succession across a family boundary', () => {
+  // ADR 0014. The fixture records the link on the *earlier* release only, so the
+  // heir's side has to be read from the far end -- the union-of-both-directions
+  // rule the within-family tree uses, applied where no connector is possible.
+  const originId = 'fixture-alpha-mark-one-release';
+  const heirId = 'fixture-alpha-mark-two-release';
+
+  function soleNode(familyId: string) {
+    const nodes = flatten(familyView(fixtureEcosystems, familyId).roots);
+    expect(nodes).toHaveLength(1);
+    return nodes[0];
+  }
+
+  it('reads the edge from the end it was not recorded on', () => {
+    const origin = lineageFixtureDataset.releases.find(({ id }) => id === originId)!;
+    const heir = lineageFixtureDataset.releases.find(({ id }) => id === heirId)!;
+
+    // The asymmetry is the thing under test, so it is pinned rather than
+    // assumed: if the fixture ever records both ends, the heir's assertion below
+    // stops proving the far-end read and this fails first.
+    expect(origin.successorIds).toEqual([heirId]);
+    expect(heir.predecessorIds).toEqual([]);
+    expect(origin.familyId).not.toBe(heir.familyId);
+
+    expect(soleNode(SUCCESSION_HEIR_FAMILY_ID).externalPredecessors.map(({ releaseId }) => releaseId))
+      .toEqual([originId]);
+  });
+
+  it('names the departing edge, with the family it points into, on both ends', () => {
+    const origin = soleNode(SUCCESSION_ORIGIN_FAMILY_ID);
+    const heir = soleNode(SUCCESSION_HEIR_FAMILY_ID);
+
+    expect(origin.externalSuccessors).toEqual([{
+      releaseId: heirId,
+      releaseName: 'Alpha Mark Two Release',
+      familyId: SUCCESSION_HEIR_FAMILY_ID,
+      familyName: 'Alpha Mark Two',
+    }]);
+    expect(heir.externalPredecessors).toEqual([{
+      releaseId: originId,
+      releaseName: 'Alpha Mark One Release',
+      familyId: SUCCESSION_ORIGIN_FAMILY_ID,
+      familyName: 'Alpha Mark One',
+    }]);
+
+    // Each end reports the edge in one direction only, so the two panels do not
+    // both claim to be the later one.
+    expect(origin.externalPredecessors).toEqual([]);
+    expect(heir.externalSuccessors).toEqual([]);
+  });
+
+  it('never draws it as a connector, in either family', () => {
+    for (const familyId of [SUCCESSION_ORIGIN_FAMILY_ID, SUCCESSION_HEIR_FAMILY_ID]) {
+      const view = familyView(fixtureEcosystems, familyId);
+
+      expect(connectors(view.roots)).toEqual([]);
+      expect(view.linkCount).toBe(0);
+      expect(view.roots).toHaveLength(view.releases.length);
+    }
+  });
+
+  it('counts a departing edge apart from the connectors a family draws', () => {
+    const origin = familyView(fixtureEcosystems, SUCCESSION_ORIGIN_FAMILY_ID);
+    const deep = familyView(fixtureEcosystems, DEEP_FAMILY_ID);
+
+    expect(origin.externalLinkCount).toBe(1);
+    // `hasRecordedLineage` keeps its meaning: nothing connects this family's own
+    // releases to each other, and that is still true with an edge leaving it.
+    expect(origin.hasRecordedLineage).toBe(false);
+
+    // Difference control: a family whose lineage is wholly internal has the
+    // opposite pair, so neither number is a constant.
+    expect(deep.externalLinkCount).toBe(0);
+    expect(deep.linkCount).toBeGreaterThan(0);
+    expect(deep.hasRecordedLineage).toBe(true);
+  });
+
+  it('highlights the far end as lineage instead of leaving it unrelated', () => {
+    const fromOrigin = buildLineageHighlight(fixtureEcosystems, originId);
+    const fromHeir = buildLineageHighlight(fixtureEcosystems, heirId);
+
+    expect(lineageRelation(fromOrigin, heirId)).toBe('successor');
+    expect(lineageRelation(fromHeir, originId)).toBe('ancestor');
+
+    // Negative control: the walk crosses a recorded edge, not every boundary. A
+    // third family of the same creator stays unrelated.
+    expect(lineageRelation(fromOrigin, 'fixture-alpha-solo-one')).toBe('unrelated');
+    expect(fromOrigin.siblingIds.size).toBe(0);
+  });
+
+  it('lists the far end in the trail under its own creator and family', () => {
+    const trail = buildLineageTrail(fixtureEcosystems, originId);
+
+    expect(trail.isEmpty).toBe(false);
+    expect(trail.successors.map(({ releaseId }) => releaseId)).toEqual([heirId]);
+    // The placement is what the trail panel prints as "creator / family", and is
+    // the whole of how a reader learns where the lineage went.
+    expect(trail.successors[0].placement?.family.family.id).toBe(SUCCESSION_HEIR_FAMILY_ID);
+    expect(trail.successors[0].placement?.organization.id).toBe('fixture-alpha');
   });
 });
 
