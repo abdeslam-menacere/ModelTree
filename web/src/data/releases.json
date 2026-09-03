@@ -3508,7 +3508,9 @@
     "apiAliases": [],
     "predecessorIds": [],
     "successorIds": [],
-    "siblingIds": [],
+    "siblingIds": [
+      "bytedance-seed-oss-36b-base"
+    ],
     "summary": "ByteDance Seed’s instruction-tuned 36B open-weight model, trained on 12T tokens with a context length the card states as 512K, released under Apache 2.0 alongside its base counterparts.",
     "intendedUse": "Instruction following and reasoning. The card states a context length of \"512K\" rather than an exact token count; the recorded contextWindow applies this dataset’s documented mapping of a stated K figure to a token number.",
     "sourceIds": [
@@ -5124,5 +5126,155 @@
       "osi-approved-licenses"
     ],
     "verifiedAt": "2026-09-02"
+  },
+  {
+    "id": "bytedance-seed-oss-36b-base",
+    "slug": "seed-oss-36b-base",
+    "canonicalName": "Seed-OSS-36B-Base",
+    "displayName": "Seed-OSS 36B Base",
+    "organizationId": "bytedance-seed",
+    "familyId": "bytedance-seed-oss",
+    "version": "36B",
+    "variant": "36B Base",
+    "releaseDate": "2025-08-20",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 36
+    },
+    "contextWindow": 512000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [
+      "bytedance-seed-oss-36b-instruct"
+    ],
+    "derivedFromIds": [],
+    "summary": "ByteDance Seed’s pretrained (non-instruction-tuned) 36B open-weight base model, released the same day as its Instruct sibling. The card states \"This model card is dedicated to the `Seed-OSS-36B-Base` model.\" and that the series was trained \"with only 12T tokens\", released \"under the Apache-2.0 license\"; the card’s Model Summary gives \"Parameters: 36B\" and \"Context Length: 512K\". The card notes it is released \"both with and without synthetic data versions\"; this record covers the base line without asserting a ranking between them.",
+    "intendedUse": "Pretraining base for downstream fine-tuning and research. The card highlights a \"Research-Friendly\" motivation: \"we released pre-trained models both with and without instruction data, providing the research community with more diverse options\". The recorded contextWindow applies this dataset’s documented mapping of the card’s stated \"512K\" to a token number, matching the Instruct sibling.",
+    "sourceIds": [
+      "bytedance-seed-oss-36b-base-model-card",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-09-03"
+  },
+  {
+    "id": "openbmb-minicpm-v-4-5",
+    "slug": "minicpm-v-4-5",
+    "canonicalName": "MiniCPM-V-4.5",
+    "displayName": "MiniCPM-V 4.5",
+    "organizationId": "openbmb",
+    "familyId": "openbmb-minicpm-v",
+    "version": "4.5",
+    "variant": "8B",
+    "releaseDate": "2025-08-26",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "image",
+      "video",
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 8
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [
+      "openbmb-minicpm-v-4-6"
+    ],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "A vision-language (multimodal) MLLM in OpenBMB’s MiniCPM-V line, open-sourced 2025-08-26. Its card states \"With only 8B parameters, it surpasses widely used proprietary models like GPT-4o-latest, Gemini-2.0 Pro, and strong open-source models like Qwen2.5-VL 72B\" (the recorded 8B parameter figure), and describes single-image, multi-image and high-FPS / long-video understanding plus OCR and document parsing. The card’s OpenCompass average and per-benchmark scores are deliberately not recorded; this dataset states no ranking. Lifecycle is recorded as unknown because no source read states one for this release. The context window is not recorded because no source read states a token figure for it.",
+    "intendedUse": "Image, multi-image and video understanding, OCR and document parsing, and multilingual vision-language tasks, per the card’s stated capabilities. The model is offered as open weights on Hugging Face for local and server deployment.",
+    "sourceIds": [
+      "openbmb-minicpm-v-4-5-model-card",
+      "openbmb-minicpm-v-repository",
+      "hugging-face-openbmb-minicpm-v-4-5-hub-record",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-09-03"
+  },
+  {
+    "id": "openbmb-minicpm-v-4-6",
+    "slug": "minicpm-v-4-6",
+    "canonicalName": "MiniCPM-V-4.6",
+    "displayName": "MiniCPM-V 4.6",
+    "organizationId": "openbmb",
+    "familyId": "openbmb-minicpm-v",
+    "version": "4.6",
+    "variant": "1.3B",
+    "releaseDate": "2026-05-11",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "image",
+      "video",
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 1.3
+    },
+    "apiAliases": [],
+    "predecessorIds": [
+      "openbmb-minicpm-v-4-5"
+    ],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "The successor to MiniCPM-V 4.5 in OpenBMB’s MiniCPM-V line, open-sourced 2026-05-11. Its card states the model \"is built based on SigLIP2-400M and the Qwen3.5-0.8B LLM\" and introduces \"mixed 4x/16x visual token compression\", while OpenBMB’s repository README announces its \"lightweight 1.3B scale\" (the recorded 1.3B parameter figure). It \"inherits the strong single-image, multi-image, and video understanding capabilities of MiniCPM-V family\". The card’s Artificial-Analysis-Index and comparison claims are deliberately not recorded; this dataset states no ranking. Lifecycle is recorded as unknown because no source read states one. The context window is not recorded because no source read states a token figure for it.",
+    "intendedUse": "Edge and on-device image, multi-image and video understanding, per the card’s statement that it is \"our most edge-deployment-friendly model to date\" and can be \"deployed across all three mainstream mobile platforms — iOS, Android, and HarmonyOS\". Offered as open weights on Hugging Face.",
+    "sourceIds": [
+      "openbmb-minicpm-v-4-6-model-card",
+      "openbmb-minicpm-v-repository",
+      "hugging-face-openbmb-minicpm-v-4-6-hub-record",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-09-03"
   }
 ]

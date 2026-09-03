@@ -1518,5 +1518,22 @@
       "zhipu-ai-cogvideox-2b-model-card"
     ],
     "verifiedAt": "2026-09-02"
+  },
+  {
+    "id": "openbmb-minicpm-v",
+    "slug": "minicpm-v",
+    "organizationId": "openbmb",
+    "name": "MiniCPM-V",
+    "description": "OpenBMB’s MiniCPM-V line of on-device vision-language (multimodal) models, distinct from the text-only MiniCPM / MiniCPM5 language families. The MiniCPM-V repository first announces \"[2024.02.01] We open-source MiniCPM-V and OmniLMM-12B\", which the firstReleaseDate rests on. Only the recent 4.5 and 4.6 releases are recorded here; the earlier versions of the line (1.0, 2.0, 2.6, and others named in the same changelog) are not separately recorded.",
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "firstReleaseDate": "2024-02-01",
+    "datePrecision": "day",
+    "status": "unknown",
+    "sourceIds": [
+      "openbmb-minicpm-v-repository"
+    ],
+    "verifiedAt": "2026-09-03"
   }
 ]
