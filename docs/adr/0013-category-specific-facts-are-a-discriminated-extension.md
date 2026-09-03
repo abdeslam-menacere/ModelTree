@@ -1,4 +1,4 @@
-# ADR 0012: Category-Specific Facts Are a Discriminated Extension
+# ADR 0013: Category-Specific Facts Are a Discriminated Extension
 
 - Status: Accepted
 - Date: 2026-09-02
@@ -9,8 +9,10 @@
   nowhere to go", explicitly deferring the fix. This is that fix, for one
   category. It does **not** widen the ADR 0003 qualifying class — the new
   document is deliberately kept out of `web/src/data/raw.ts`, for reasons set out
-  below — and it leaves ADR 0008's ruling that `accessType` and the modality
-  lists gain no `unknown` member untouched, because nothing here needs one.
+  below — and it leaves untouched ADR 0008's ruling, as amended for `accessType`
+  alone by ADR 0011, that `categories` and the modality lists gain no `unknown`
+  member. Nothing here needs one: this ADR reads those lists and adds no member
+  to any of them.
 
 ## Context
 
