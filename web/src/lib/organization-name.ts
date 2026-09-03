@@ -56,9 +56,37 @@ import type { Organization } from '../data/schema';
 export type OrganizationNames = Pick<Organization, 'name' | 'shortName'>;
 
 /**
+ * What {@link organizationLabel} actually reads: the label form, alone.
+ *
+ * Narrower than {@link OrganizationNames} on purpose, and narrower than it used
+ * to be. The label rule says the label *is* `shortName`, so requiring `name` as
+ * well asked every display site to hold a recorded form it must not render --
+ * which is fine while a surface carries whole records, and is a hard error the
+ * moment one carries only what it draws. The tree island became that surface in
+ * abdeslam-menacere/ModelTree#813, where sending whole records had consumed 99%
+ * of the route's byte budget.
+ *
+ * This widens what the label rule accepts and narrows nothing: every existing
+ * caller passes a record with both forms and still typechecks, because a record
+ * carrying more fields is assignable to a type asking for fewer. It is a type
+ * change with no runtime part -- `organizationLabel` returned `shortName`
+ * before and returns it now.
+ *
+ * `name` is not weakened by this and is not discarded: it stays required by
+ * {@link organizationFullName}, {@link organizationFullNameIfDistinct} and
+ * {@link organizationSearchTerms}, which are the functions that genuinely need
+ * both recorded forms. A surface that holds only the label can display the
+ * label and can do nothing else with a creator's names -- which is the property
+ * that makes abdeslam-menacere/ModelTree#479, a full name reaching a display
+ * that should show the label, structurally impossible on such a surface rather
+ * than merely tested against.
+ */
+export type OrganizationLabelName = Pick<Organization, 'shortName'>;
+
+/**
  * The label: what an organization is displayed as, sorted on, and filed under.
  */
-export function organizationLabel(organization: OrganizationNames): string {
+export function organizationLabel(organization: OrganizationLabelName): string {
   return organization.shortName;
 }
 

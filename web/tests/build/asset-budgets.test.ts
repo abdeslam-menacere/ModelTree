@@ -229,6 +229,110 @@ describe('deterministic asset budgets on the production build', () => {
     );
   });
 
+  // The recorded-measurement drift guard -- abdeslam-menacere/ModelTree#813.
+  //
+  // Every `measured*` field in asset-budgets.json is documentation: the test
+  // above gates on `criticalMaxRaw`, so a stale measurement never reddens a
+  // build. That is exactly why it decayed. On 2026-09-02 every route's recorded
+  // figure was stale, tree by 75,378 bytes, and the file was advertising 82,997
+  // bytes of headroom on a route that had 7,619 -- which is how a fully
+  // researched data tranche came to look unaffordable when it was not (#811).
+  // Nothing failed, because nothing was checking.
+  //
+  // So the recorded numbers are now checked against the build that produced
+  // them. This is a tightening and never a bypass: it permits no extra byte, it
+  // cannot raise or soften a ceiling, and a route over its ceiling still fails
+  // on the ceiling. A failure here means the recorded number is wrong -- re-run
+  // `npm run assets:report` and write the new figures into asset-budgets.json.
+  //
+  // Raw bytes are deterministic for a given source tree (see the $schema-note),
+  // so this cannot flake between machines the way a compressed or parsed figure
+  // could.
+  describe('recorded measurements track the real build (measuredDrift)', () => {
+    const { maxFraction } = budgets.measuredDrift;
+
+    // The tolerance is the guard's own budget, so it gets the same treatment
+    // the byte ceilings get: it is not for the party it constrains to widen
+    // quietly. Measured drift on the 2026-09-02 re-baseline ran 0.62%-11.1%,
+    // and four of the eight recorded figures were stale by 4.0%-4.9%, so a
+    // tolerance above 5% would have called that day's rot compliant.
+    it('keeps a tolerance tight enough to have caught the drift it exists for', () => {
+      expect(typeof maxFraction, 'measuredDrift.maxFraction must be a number').toBe('number');
+      expect(maxFraction).toBeGreaterThan(0);
+      expect(
+        maxFraction,
+        'a tolerance above 5% would have passed four of the eight figures that were ' +
+          'stale on 2026-09-02; widening it that far defeats the guard',
+      ).toBeLessThanOrEqual(0.05);
+    });
+
+    function expectWithinTolerance(label: string, recorded: number, measured: number) {
+      // A fraction of the recorded value, with no absolute floor: a recorded 0
+      // (the passport static-hydration tripwire) therefore means exactly 0.
+      const tolerance = Math.floor(recorded * maxFraction);
+      const drift = Math.abs(measured - recorded);
+      expect(
+        drift,
+        `${label}: asset-budgets.json records ${recorded}, the build measures ${measured} ` +
+          `(drift ${drift} > tolerance ${tolerance} at ${maxFraction * 100}%). The recorded ` +
+          `figure is stale, not the ceiling. Re-run \`npm run assets:report\` and update the ` +
+          `measured value; do NOT change any *MaxRaw ceiling to accommodate this.`,
+      ).toBeLessThanOrEqual(tolerance);
+    }
+
+    it.each(budgets.fixedRoutes.map((r: any) => [r.id, r]) as [string, any][])(
+      '%s measuredRaw matches the build',
+      (_id: string, route: any) => {
+        expectWithinTolerance(
+          `${route.id} (${route.path}) measuredRaw`,
+          route.measuredRaw,
+          analyzeRoute(outDir, route.path, caches).totals.critical.raw,
+        );
+      },
+    );
+
+    it.each(budgets.routeGroups.map((g: any) => [g.id, g]) as [string, any][])(
+      '%s measuredWorstRaw matches the build',
+      (_id: string, group: any) => {
+        const { worstCritical, worstJs } = analyzeGroup(group.dir);
+        expectWithinTolerance(
+          `${group.id} measuredWorstRaw`,
+          group.measuredWorstRaw,
+          worstCritical.totals.critical.raw,
+        );
+        if (typeof group.measuredWorstJsRaw === 'number') {
+          expectWithinTolerance(
+            `${group.id} measuredWorstJsRaw`,
+            group.measuredWorstJsRaw,
+            worstJs.totals.js.raw,
+          );
+        }
+      },
+    );
+
+    it.each([
+      ['js', 'jsTotalMeasuredRaw'],
+      ['css', 'cssTotalMeasuredRaw'],
+      ['font', 'fontTotalMeasuredRaw'],
+      ['astroDir', 'astroDirMeasuredRaw'],
+    ] as const)('globals %s measured total matches the build', (kind, key) => {
+      expectWithinTolerance(`globals.${key}`, budgets.globals[key], globalTotals(outDir)[kind]);
+    });
+
+    // Non-vacuous: every assertion above is an equality-ish check, and a
+    // comparison that is fed the same number on both sides passes while
+    // measuring nothing. This proves the guard can see a difference at all.
+    it('fails a recorded figure that is genuinely wrong', () => {
+      const route = budgets.fixedRoutes.find((r: any) => r.id === 'tree');
+      const measured = analyzeRoute(outDir, route.path, caches).totals.critical.raw;
+      expect(measured, 'tree must measure a non-trivial number of bytes').toBeGreaterThan(100_000);
+      expect(() =>
+        expectWithinTolerance('control', Math.round(measured * 0.5), measured),
+      ).toThrow();
+    });
+  });
+
+
   // The #34 accounting distinction, locked in. A route's transfer sums only its
   // render/hydration resources; an `og:image` <meta> asset (the single static OG
   // card #34 will add) is not one of those and must not be charged to any route.

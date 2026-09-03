@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ModelFamily, ModelRelease, Organization } from '../data/schema';
+import type {
+  ModelTreeViewFamilyRecord,
+  ModelTreeViewOrganization,
+  ModelTreeViewRelease,
+} from '../lib/model-tree';
 import { accessLabel, formatDate, formatReleaseDate, statusLabel } from '../lib/format';
 import { createCompareUrl, createEvidenceUrl } from '../lib/evidence-actions';
 import { organizationLabel } from '../lib/organization-name';
@@ -15,10 +19,16 @@ import { organizationLabel } from '../lib/organization-name';
  */
 const MOBILE_QUERY = '(max-width: 700px)';
 
+/**
+ * The drawer's slice of a selection, projected rather than whole: this arrives
+ * through a serialised island prop, so it carries the recorded fields the panel
+ * below renders and no others (abdeslam-menacere/ModelTree#813). Whole records
+ * stay assignable to it, so a caller holding one needs no change.
+ */
 export interface DrawerSelection {
-  organization: Organization;
-  family: ModelFamily;
-  release: ModelRelease;
+  organization: ModelTreeViewOrganization;
+  family: ModelTreeViewFamilyRecord;
+  release: ModelTreeViewRelease;
 }
 
 export interface DrawerSource {

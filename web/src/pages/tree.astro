@@ -3,9 +3,11 @@ import ModelTreeExplorer from '../components/ModelTreeExplorer';
 import { dataset, sourceById } from '../data/dataset';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { formatDate } from '../lib/format';
-import { buildModelTree } from '../lib/model-tree';
+import { buildModelTree, projectModelTree } from '../lib/model-tree';
 
-const tree = buildModelTree(dataset);
+// Projected, not whole: this becomes a serialised island prop, so it ships to
+// every visitor. See `projectModelTree` (abdeslam-menacere/ModelTree#813).
+const tree = projectModelTree(buildModelTree(dataset));
 const sourceByReleaseId = Object.fromEntries(dataset.releases.map((release) => {
 	const source = release.sourceIds
 		.map((sourceId) => sourceById.get(sourceId))
