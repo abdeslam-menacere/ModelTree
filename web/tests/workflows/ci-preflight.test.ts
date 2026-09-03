@@ -988,3 +988,155 @@ describe('a failing check carries its own evidence', () => {
     }
   });
 });
+
+/*
+ * abdeslam-menacere/ModelTree#678. `updater-pytest` declares three python-module
+ * preconditions, and one of them tested something the suite never required.
+ *
+ * `tools/updater/tests/conftest.py` puts `tools/updater/src` on `sys.path`
+ * before collection, so every test imports `modeltree_updater` whether or not
+ * anything was installed. Probing it with a bare `import` therefore asked a
+ * stricter question than the suite asks, and could fail in exactly one
+ * direction: a false "could not run" where the suite passes completely. Four
+ * sessions met that exit 2 -- on ADR-only and skills-only diffs, which select
+ * this group too -- and every one of them ran the suite by hand and found it
+ * green.
+ *
+ * The danger in fixing it is the opposite one, and it is the worse of the two: a
+ * probe that stops exiting 2 by learning to say 0 is worse than the defect,
+ * because the defect is at least loud. So the three cases below are the three
+ * worlds the probe can be in, and the one that must still exit 2 is asserted as
+ * hard as the one that must now run.
+ */
+describe('a precondition the suite bootstraps for itself is probed the way the suite imports it', () => {
+  /** The interpreter the script would resolve, found the same way it finds it. */
+  function resolvePython(): string | null {
+    for (const candidate of ['python', 'python3']) {
+      const probe = spawnSync(candidate, ['--version'], { stdio: 'ignore' });
+      if (!probe.error && probe.status === 0) return candidate;
+    }
+    return null;
+  }
+
+  const python = resolvePython();
+
+  /** The environment the script runs in, with any inherited PYTHONPATH removed. */
+  function envWithout(...extra: string[]): NodeJS.ProcessEnv {
+    const env = { ...process.env };
+    for (const name of ['PYTHONPATH', ...extra]) delete env[name];
+    return env;
+  }
+
+  /**
+   * Whether this interpreter already has the package, asked with no PYTHONPATH.
+   *
+   * Two of the cases below need it absent, which is the state of every machine
+   * this issue was reported from and of the runner this suite runs on -- nothing
+   * in `web-ci` installs the updater. Where it is present the ordinary probe
+   * legitimately succeeds and "could not run" would be the wrong assertion, so
+   * those cases say so and skip rather than assert something false.
+   */
+  const installed = python !== null
+    && spawnSync(python, ['-c', 'import modeltree_updater'], {
+      stdio: 'ignore',
+      env: envWithout(),
+    }).status === 0;
+
+  /** A directory holding an importable `modeltree_updater`, and nothing else. */
+  function stubPackageIn(dir: string): string {
+    const target = join(dir, 'modeltree_updater', '__init__.py');
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, '"""Stub: importable, and nothing more."""\n');
+    return dir;
+  }
+
+  /** The phrase the run prints when, and only when, the fallback supplied it. */
+  const FALLBACK_NOTE = 'was met through tools/updater/src';
+  const UNMET = 'python cannot import modeltree_updater';
+
+  it.skipIf(python === null || installed)(
+    'exits 2 when the package is importable neither way, rather than running a suite that cannot import itself',
+    () => {
+      // The criterion that keeps this a fix and not a bypass. The scratch
+      // repository has a path that selects the group and no `tools/updater/src`
+      // for the fallback to find, so both attempts fail and the only honest
+      // answer is could-not-run.
+      const repo = scratchRepo();
+
+      try {
+        touch(repo, 'tools/updater/notes.txt');
+        const run = spawnSync(process.execPath, [script, '--repo', repo], {
+          encoding: 'utf8',
+          env: envWithout(),
+        });
+
+        expect(run.stdout).toContain('COULD NOT RUN');
+        expect(run.stdout).toContain(UNMET);
+        expect(run.stdout).not.toContain(FALLBACK_NOTE);
+        expect(run.stdout).not.toContain('PASS');
+        expect(run.status).toBe(2);
+      } finally {
+        rmSync(repo, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.skipIf(python === null || installed)(
+    'runs the check when the package is importable only through the directory the suite bootstraps',
+    () => {
+      // The case the issue is about. Same interpreter and same absent install as
+      // above; the only difference is that `tools/updater/src` now holds the
+      // package, which is what the suite's own conftest.py puts on sys.path.
+      const repo = scratchRepo();
+
+      try {
+        stubPackageIn(join(repo, 'tools', 'updater', 'src'));
+        touch(repo, 'tools/updater/notes.txt');
+        const run = spawnSync(process.execPath, [script, '--repo', repo], {
+          encoding: 'utf8',
+          env: envWithout(),
+        });
+
+        // The requirement is met, so the group is no longer refused over it.
+        expect(run.stdout).not.toContain(UNMET);
+        // And the reader is told which path met it, beside the verdict and in
+        // the not-covered notice, because a result from a source tree and a
+        // result from an installed package are different claims.
+        expect(run.stdout).toContain(FALLBACK_NOTE);
+        expect(run.stdout.match(new RegExp(FALLBACK_NOTE, 'g'))?.length ?? 0).toBeGreaterThan(1);
+      } finally {
+        rmSync(repo, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.skipIf(python === null)(
+    'never reaches for the fallback when the package imports on its own',
+    () => {
+      // The second criterion: with the package installed, behaviour is what it
+      // was before the fallback existed. `PYTHONPATH` puts an importable
+      // package on the interpreter's own search path, which is the state an
+      // install produces, and `tools/updater/src` is deliberately left empty --
+      // so a note here would mean the fallback ran when the ordinary import had
+      // already answered.
+      const repo = scratchRepo();
+      const site = mkdtempSync(join(tmpdir(), 'ci-preflight-site-'));
+
+      try {
+        stubPackageIn(site);
+        mkdirSync(join(repo, 'tools', 'updater', 'src'), { recursive: true });
+        touch(repo, 'tools/updater/notes.txt');
+        const run = spawnSync(process.execPath, [script, '--repo', repo], {
+          encoding: 'utf8',
+          env: { ...envWithout(), PYTHONPATH: site },
+        });
+
+        expect(run.stdout).not.toContain(UNMET);
+        expect(run.stdout).not.toContain(FALLBACK_NOTE);
+      } finally {
+        rmSync(repo, { recursive: true, force: true });
+        rmSync(site, { recursive: true, force: true });
+      }
+    },
+  );
+});
