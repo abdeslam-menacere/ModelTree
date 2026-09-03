@@ -193,19 +193,34 @@ For a launch check, invoke it manually and read the run rather than trusting
 the last scheduled result:
 
 ```sh
+# `source-link-health.yml` runs on a schedule, so `gh run list` already
+# returns completed runs from before this dispatch. Capture the newest id
+# *before* dispatching, then poll until a newer id appears — that is the
+# one this dispatch created. `gh run watch` takes a run id (not
+# --workflow), and would attach to the pre-dispatch run and exit at once
+# if we watched by non-emptiness alone.
+before=$(gh run list --workflow=source-link-health.yml --limit=1 \
+  --json databaseId --jq '.[0].databaseId')
+
 gh workflow run source-link-health.yml
 
-# The run needs a moment to appear in the API after `gh workflow run`
-# starts it. Poll gh run list until it returns an id, then watch by id.
-# `gh run watch` does not take --workflow; it takes a run id (or picks
-# interactively when given none).
 run_id=""
-for _ in 1 2 3 4 5; do
-  run_id=$(gh run list --workflow=source-link-health.yml --limit=1 \
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  candidate=$(gh run list --workflow=source-link-health.yml --limit=1 \
     --json databaseId --jq '.[0].databaseId')
-  [ -n "$run_id" ] && break
-  sleep 2
+  if [ -n "$candidate" ] && [ "$candidate" != "$before" ]; then
+    run_id="$candidate"
+    break
+  fi
+  sleep 3
 done
+
+if [ -z "$run_id" ]; then
+  echo "the dispatched run has not appeared after ~30s; open the Actions" \
+       "tab and find it there. do not proceed on the last completed run,"  \
+       "whose result is from an earlier sweep." >&2
+  exit 1
+fi
 gh run watch "$run_id"
 ```
 
@@ -487,11 +502,28 @@ git pull --ff-only origin main
 git revert <bad-sha>          # produces one revert commit
 git push origin main
 
-# 3. Watch the redeploy. The revert push in step 2 triggers a new
-#    pages.yml run; resolve its id from gh run list and watch by id.
+# 3. Watch the redeploy. The revert push in step 2 creates a new commit,
+#    which is the identity discriminator: filter gh run list by that SHA
+#    with -c so we cannot attach to the previous, successful pages.yml
+#    run and mistake its "success" for this redeploy having succeeded.
+#    Poll because runs are registered asynchronously after a push.
 #    `gh run watch` does not take --workflow; it takes a run id.
-run_id=$(gh run list --workflow=pages.yml --branch=main --limit=1 \
-  --json databaseId --jq '.[0].databaseId')
+revert_sha=$(git rev-parse HEAD)
+run_id=""
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  run_id=$(gh run list --workflow=pages.yml -c "$revert_sha" --limit=1 \
+    --json databaseId --jq '.[0].databaseId')
+  [ -n "$run_id" ] && break
+  sleep 3
+done
+
+if [ -z "$run_id" ]; then
+  echo "no pages.yml run for $revert_sha after ~30s. do not read the" \
+       "previous run's success as this redeploy succeeding; open the"  \
+       "Actions tab and confirm the run is registered before waiting"  \
+       "further." >&2
+  exit 1
+fi
 gh run watch "$run_id"
 ```
 
