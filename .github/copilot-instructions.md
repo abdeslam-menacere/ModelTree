@@ -433,6 +433,58 @@ ref `25a3cdbe10f89014f5d618daeaa98de0be6ec033`, trunk commit
 `79de43cf6ac31cceb0e783daff02ae05ae8dd0ed`. Both are real, both resolve, and
 they answer different questions — compare your tip against the former.
 
+**Your tip does not have to equal `headRefOid`, and until the measurement below
+every worked example on this page was of the case where it does.** The rule
+stated above is the count, and the count is satisfied by an *ancestor*:
+`git rev-list --count "$headRefOid..$tip"` asks whether your tip carries
+anything the merged head did not, so it returns 0 both when the two are the same
+commit and when the merged head is one or more commits *ahead* of your tip. That
+second shape is ordinary — a re-anchor or a review fixup pushed to the branch
+after the dock took its last reading is enough to produce it — and a reader who
+has generalised from the examples will not recognise it.
+
+That generalisation was available here rather than hypothetical. The
+abdeslam-menacere/ModelTree#682 case just above, both `LANDED` controls in step
+3, and the question 1 example further down are all merges at the branch's exact
+tip, and the last of them prints the word `IDENTICAL` against the pair. So
+"landed means `headRefOid` equals my tip" is a reading this page invited, and it
+condemns correct work.
+
+Measured on abdeslam-menacere/ModelTree#813, whose dock reported `NOT LANDED`
+and offered finished work for review, against trunk
+`7db25d67c5d536f37351923e99584b7406802b58`:
+
+```
+dock tip   11836e28f4e9f3e2ae292b62280507897a509322
+PR 818     headRefOid 7ab64880c151472c081bbad465a4422a002e3d91   NOT identical
+squash     2c951daa909d4cdb4868d786e867ac106a5af733   merged 2026-09-03T04:05:15Z
+
+git rev-list --count "7ab64880..11836e28"        exit 0  ->  0   the rule => LANDED
+git rev-list --count "11836e28..7ab64880"        exit 0  ->  1   reverse control
+git merge-base --is-ancestor 11836e28 7ab64880   exit 0      tip is an ancestor
+git merge-base --is-ancestor 7ab64880 11836e28   exit 1      and is not equal
+```
+
+The one commit between them is `7ab64880 docs(budgets): re-anchor recorded
+figures to current trunk`, which the branch acquired after that dock's last
+reading. By the count the branch is `LANDED`; by equality it is not, and pushing
+it would have reverted 49 files and 6,622 lines:
+
+```
+git diff --stat "7db25d67..11836e28"
+   exit 0     49 files changed, 194 insertions(+), 6622 deletions(-)
+```
+
+The two `is-ancestor` lines are each other's control: one exits 0 and the other
+exits 1 in the same run, so the pair separates *ancestor* from *equal* rather
+than merely reporting one of them, and a run in which both came back the same
+way has measured nothing. That use of `is-ancestor` is not the one the section
+below rules out. There, both operands straddle trunk, where squash merging makes
+ancestry meaningless. Here both are branch commits — your tip and the pull
+request's recorded head — and they describe the branch's own shape *after* the
+record has already delivered the verdict. It explains a reading; it never
+produces one.
+
 **Quote every rev-spec, and never leave one bare.** Unquoted, a shell can
 rewrite the rev-spec before git sees it, and a rewritten rev-spec can still name
 a real object, so that failure reaches you as a well-formed answer rather than
@@ -974,6 +1026,49 @@ descendant — not against a rival change. Any structural probe compares the
 branch to a trunk that has moved past it, which is why all of them read later
 work as absence.
 
+**A conflict is not evidence of absence, and is more often evidence of the
+opposite.** That needs its own sentence because the intuition runs the other
+way: a conflict feels like a collision between rival changes, so it reads as
+"trunk does not have this". The mechanism above is the reverse — trunk absorbed
+the work and then edited the same lines, and a branch that stopped at the older
+text conflicts with its own descendant. The chance of that rises the longer a
+dock waits, which is exactly the condition under which this probe gets run, so
+the probe is least trustworthy precisely when it is most reached for.
+
+Measured on abdeslam-menacere/ModelTree#813, the branch from step 2, whose work
+is wholly on trunk:
+
+```
+$trunk = 7db25d67c5d536f37351923e99584b7406802b58
+$tip   = 11836e28f4e9f3e2ae292b62280507897a509322
+
+$out = git merge-tree --write-tree $trunk $tip; $code = $LASTEXITCODE
+   exit 1     printed  32dcd17b3dc8308927af8038b4aa4472c3eb7bdf
+git rev-parse "$trunk^{tree}"
+   exit 0     printed  c41ca042b94951fc404610a75128a7b258078810
+```
+
+The two OIDs differ, and they were always going to: the first names a tree
+holding conflict markers. A reader who compares them — the natural thing to do
+with two printed OIDs — gets "not equal" and concludes `NOT LANDED` about a
+branch step 2 settles as `LANDED` in one call. The exit was 1, so the reading
+this probe supports is `UNDETERMINED` and there is no comparable OID at all.
+
+The control that makes that exit 1 a finding rather than this instrument's only
+answer, run the same way in the same session:
+
+```
+git merge-tree --write-tree $trunk 9e60e48afe442fb5319659fe6d757a96dad2a082
+   exit 0     printed  c41ca042b94951fc404610a75128a7b258078810
+```
+
+That second operand is the branch's own merge-base and an ancestor of trunk, so
+a clean merge printing trunk's tree is certain by construction — which is what
+this control is for, and the whole of what it establishes. It shows the
+invocation can return 0 and can print trunk's tree, so the exit 1 above is a
+property of the input rather than of the instrument. Expect that identity and
+not that OID: it is whichever trunk you resolved.
+
 **The per-path blob fallback this section used to prescribe has been withdrawn,
 not softened.** It said to compare every path your branch changed against trunk
 with `git rev-parse <ref>:<path>` on each side and to read identical OIDs as
@@ -1030,6 +1125,39 @@ doing the documented thing after an inconclusive first probe is misled twice in
 a row. That is why the fallback is gone rather than annotated, and it is the
 strongest evidence for the position in abdeslam-menacere/ModelTree#652 that the
 unit needing repair is the section rather than any one command.
+
+**The obvious repair — compare against the squash commit instead of against
+trunk — does not work either, and it fails on the same input.** It is the first
+thing a reader reaches for once the second break above is understood, and it was
+proposed in as many words in abdeslam-menacere/ModelTree#848, so it is recorded
+here measured rather than left for the next reader to re-derive. It does remove
+trunk's later drift, which is the defect it was aimed at. What it does not
+survive is the branch shape step 2 documents: a dock tip that is an *ancestor*
+of `headRefOid` rather than equal to it differs from the squash on every path
+the branch's own later commits touched.
+
+Measured on abdeslam-menacere/ModelTree#813, over the 8 paths that branch
+changed against its merge-base `9e60e48afe442fb5319659fe6d757a96dad2a082`:
+
+```
+dock tip   vs current trunk        identical 6   differing 2   -> reads NOT LANDED
+dock tip   vs squash 2c951daa      identical 7   differing 1   -> still NOT LANDED
+headRefOid vs squash 2c951daa      identical 8   differing 0   -> the squash is faithful
+```
+
+The third line is the control, and it is what makes the second readable: the
+squash carries `headRefOid` exactly, so the one differing path on the second
+line is not the squash having lost anything. It is `web/asset-budgets.json`,
+touched by the single commit the dock's tip lacks — the re-anchor commit named
+in step 2. The repair narrows the failure from two paths to one and does not
+remove it, and any rule reading "all identical" still condemns a branch that is
+wholly present.
+
+So the fallback stays withdrawn in every form. It is the *shape* of the question
+that is wrong rather than the choice of comparand: a content comparison rooted
+at a dock's tip cannot settle landedness while that tip is free to be an
+ancestor of what merged. Step 2 answers the question in one call, with no
+comparand and no anchor.
 
 ### Ancestry is not a probe here
 
