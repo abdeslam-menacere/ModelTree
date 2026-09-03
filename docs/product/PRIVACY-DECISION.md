@@ -105,18 +105,20 @@ The rule that keeps this document honest is not a test. It is the site's
 architecture, recorded in
 [ADR 0001](../adr/0001-static-first-architecture.md): the build declares
 `output: 'static'` in [`web/astro.config.mjs`](../../web/astro.config.mjs),
-every route under [`web/src/pages/`](../../web/src/pages/) exports
-`prerender = true`, and the build emits HTML, CSS, JS islands, and a small
-set of prerendered text and XML artefacts. There is no origin the site
-operates, no session for a cookie to belong to, and no build hook that
-would inject a measurement script.
+which makes prerendering the default for every route under
+[`web/src/pages/`](../../web/src/pages/), and no route opts into server
+rendering. The build emits HTML, CSS, JS islands, and a small set of
+prerendered text and XML artefacts. There is no origin the site operates,
+no session for a cookie to belong to, and no build hook that would inject
+a measurement script.
 
 `npm run validate` does **not** search the code for a runtime fetch, an
 analytics import, or a `document.cookie` write. If a change introduced any
 of those, the signal would be an ADR that had to change to accommodate it,
 or a review comment; not a red test. If that architectural posture stops
-holding — if a route stops being prerendered, or the build gains a runtime
-data flow — this document is wrong until it is updated.
+holding — if `output: 'static'` changes, if a route opts into server
+rendering, or if the build gains a runtime data flow — this document is
+wrong until it is updated.
 
 ## History
 

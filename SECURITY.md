@@ -5,10 +5,12 @@ versioned JSON in [`web/src/data/`](web/src/data/), served by GitHub Pages.
 There is no server we operate, no database, no user accounts, no session
 cookies, and no runtime data fetching. [ADR 0001 — Static-first
 architecture](docs/adr/0001-static-first-architecture.md) records the
-decision, and the runtime property rests on the build itself — Astro's
-`output: 'static'` in [`web/astro.config.mjs`](web/astro.config.mjs) and
-`prerender = true` on every route — rather than on a test that greps for
-`fetch(`. Reversing it would change ADR 0001, not slip past a check.
+decision, and the runtime property rests on the build itself: Astro's
+`output: 'static'` in [`web/astro.config.mjs`](web/astro.config.mjs) makes
+prerendering the default for every route, and no route in this repository
+opts into server rendering. The guarantee is that build shape, not a test
+that greps for `fetch(`. Reversing it would change ADR 0001, not slip past
+a check.
 
 That shape does most of what a security policy usually promises for us. What
 remains is a small, precise surface, and this file states it precisely.
@@ -90,14 +92,15 @@ architecture rather than on a test suite, and the enforcement points are:
 - **The no-runtime-fetch and no-runtime-measurement properties rest on the
   site being a static build, not on a command that greps for `fetch(` or
   `document.cookie`.** [`web/astro.config.mjs`](web/astro.config.mjs)
-  declares `output: 'static'` and every route file under
-  [`web/src/pages/`](web/src/pages/) exports `prerender = true`, so the
-  build emits HTML, CSS, JS islands, and a handful of prerendered `.txt` /
-  `.xml` / `.json` artefacts, and it emits no server. There is no origin
-  that could serve a request the client made, no session for a cookie to
-  identify, and no build hook that would inject a measurement script.
-  Adding any of those would change the ADR 0001 decision, not slip past
-  it. See [ADR 0001](docs/adr/0001-static-first-architecture.md).
+  declares `output: 'static'`, which makes prerendering the default for
+  every route under [`web/src/pages/`](web/src/pages/), and no route opts
+  into server rendering. The build emits HTML, CSS, JS islands, and a
+  handful of prerendered `.txt` / `.xml` / `.json` artefacts, and it emits
+  no server. There is no origin that could serve a request the client
+  made, no session for a cookie to identify, and no build hook that would
+  inject a measurement script. Adding any of those would change the ADR
+  0001 decision, not slip past it. See
+  [ADR 0001](docs/adr/0001-static-first-architecture.md).
 - **What may reach a public build without human review** is bounded by
   [`.github/skills/modeltree-gates/scripts/gate-scope.mjs`](.github/skills/modeltree-gates/scripts/gate-scope.mjs)
   and by
