@@ -65,7 +65,7 @@ export function formatReleaseDate(value: string, precision: DatePrecision) {
 
 /**
  * What a family's first release date says, including the case where no source
- * states one (ADR 0012).
+ * states one (ADR 0013).
  *
  * The unstated case renders its own words and never a blank. That is the point
  * of recording it: a family published with an explicit "no source states this"

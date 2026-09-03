@@ -21,7 +21,7 @@ export type DatePrecision = (typeof DATE_PRECISIONS)[number];
 
 /**
  * The same scale with its zero, for `familySchema.firstReleaseDate` and nothing
- * else (ADR 0012).
+ * else (ADR 0013).
  *
  * `year`, `month` and `day` say how much of a date a source gave. `unstated`
  * says it gave none of it: no primary source states when the family began, at
@@ -81,7 +81,7 @@ export function precisionMatchesValue(value: string, precision: DatePrecision): 
 
 /**
  * The same guard where the value may be absent, which is the shape
- * `familySchema.firstReleaseDate` takes under ADR 0012.
+ * `familySchema.firstReleaseDate` takes under ADR 0013.
  *
  * It is a biconditional and both halves matter. An absent date with a stated
  * precision is a record that lost its date; a present date beside `unstated` is

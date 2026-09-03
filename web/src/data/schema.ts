@@ -37,7 +37,7 @@ export const datePrecision = z.enum(DATE_PRECISIONS);
 
 /**
  * The family-only precision vocabulary, `datePrecision` plus `unstated`
- * (ADR 0012). Built from `FAMILY_DATE_PRECISIONS` for the reason
+ * (ADR 0013). Built from `FAMILY_DATE_PRECISIONS` for the reason
  * `partial-date.ts` gives: the edge runs one way, so the two cannot drift.
  *
  * One consequence is worth recording where a reader will meet it.
@@ -402,7 +402,7 @@ export const organizationSchema = z.object({
  *
  * -- READ THIS BEFORE MAKING THE FIELD REQUIRED AGAIN, OR OPTIONAL ANYWHERE ELSE --
  *
- * The field is optional and its absence is **not** self-authorising (ADR 0012).
+ * The field is optional and its absence is **not** self-authorising (ADR 0013).
  * `partialDate` expresses vagueness at three precisions and cannot express
  * absence, and the two are different claims: "the source gave only the year" is
  * a statement about how much was said, while "no primary source states when

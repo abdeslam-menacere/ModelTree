@@ -110,7 +110,7 @@ def test_date_precision_is_proposable_and_checked_against_its_vocabulary() -> No
 
 
 def test_unstated_precision_is_proposable_for_a_family_and_for_nothing_else() -> None:
-    """ADR 0012: `unstated` records that no source states a family's first release date.
+    """ADR 0013: `unstated` records that no source states a family's first release date.
 
     Scoped to families deliberately. A release is an event, and a record of an
     event nobody can date at all is not a release -- so the release vocabulary is

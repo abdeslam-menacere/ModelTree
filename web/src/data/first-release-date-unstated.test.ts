@@ -7,7 +7,7 @@ import { familyFirstReleaseLine, formatFamilyFirstRelease } from '../lib/format'
 
 /**
  * The decision recorded in
- * `docs/adr/0012-a-family-first-release-date-may-be-explicitly-unstated.md`:
+ * `docs/adr/0013-a-family-first-release-date-may-be-explicitly-unstated.md`:
  * a family may record that no primary source states its first release date at
  * any precision, by omitting `firstReleaseDate` and declaring
  * `datePrecision: 'unstated'` beside it.
@@ -46,7 +46,7 @@ const unstatedFamily = {
 };
 
 describe('a family first release date may be explicitly unstated', () => {
-  it('adds unstated to the family vocabulary without touching the release one (ADR 0012)', () => {
+  it('adds unstated to the family vocabulary without touching the release one (ADR 0013)', () => {
     // The scope of the member is the decision, so it is asserted rather than
     // described. A release is an event, and a record of an event nobody can
     // date at all is not a release -- widening the shared vocabulary would have

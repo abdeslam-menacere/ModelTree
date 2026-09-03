@@ -54,7 +54,7 @@ export function comparabilityKey(observation: UsageObservation) {
  * record cannot smuggle a day in and then label it as though it had not.
  *
  * A family may also declare `datePrecision: 'unstated'` and carry no date at
- * all (ADR 0012), which is the zero of the same scale and so is the same rule
+ * all (ADR 0013), which is the zero of the same scale and so is the same rule
  * rather than an exception to it: the segments carried must equal the segments
  * declared, and an absent value carries none. Both directions are reported —
  * a date missing where a precision was stated, and a date present beside

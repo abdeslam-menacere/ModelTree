@@ -1660,7 +1660,7 @@ describe('gate-dataset', () => {
   });
 
   // -------------------------------------------------------------------------
-  // `unstated`, the family-only zero of that scale (ADR 0012). A family may
+  // `unstated`, the family-only zero of that scale (ADR 0013). A family may
   // record that no primary source states its first release date at any
   // precision, by omitting the date and saying so in the companion. The three
   // properties below are what make that a claim rather than a hole, and they

@@ -1,4 +1,4 @@
-# ADR 0012: A Family First Release Date May Be Explicitly Unstated
+# ADR 0013: A Family First Release Date May Be Explicitly Unstated
 
 - Status: Accepted
 - Date: 2026-09-02

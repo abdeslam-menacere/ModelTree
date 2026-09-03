@@ -739,7 +739,7 @@ describe('partial dates on family and release dates', () => {
         id: 'cohere-rerank',
         precision: 'unstated',
         // The one entry here that is not a precision at all but an absence
-        // (ADR 0012). #740 reviewed three candidate dates for the Rerank
+        // (ADR 0013). #740 reviewed three candidate dates for the Rerank
         // family and rejected each -- two date a release rather than the
         // family, the third could not be corroborated -- so no primary source
         // states this family's first release at *any* precision. Month or year
@@ -788,7 +788,7 @@ describe('partial dates on family and release dates', () => {
     expect(notDay.map(({ id, precision }) => ({ id, precision }))).toEqual(datesCoarserThanADay);
 
     // `unstated` is the one precision that carries no value, so it is checked
-    // as the pairing rather than as a shape (ADR 0012). Both halves: an
+    // as the pairing rather than as a shape (ADR 0013). Both halves: an
     // unstated record holds no date, and a dated record is never unstated.
     for (const entry of dated) {
       expect(entry.value === undefined).toBe(entry.precision === 'unstated');

@@ -57,7 +57,7 @@ PRECISION_SEGMENTS = {"year": 1, "month": 2, "day": 3}
 # the other is refused by `gates.py`, in both directions. Kept in lockstep so a
 # record the web schema accepts is never rejected here in the permissive
 # direction. See
-# docs/adr/0012-a-family-first-release-date-may-be-explicitly-unstated.md.
+# docs/adr/0013-a-family-first-release-date-may-be-explicitly-unstated.md.
 UNSTATED_PRECISION = "unstated"
 FAMILY_DATE_PRECISIONS = (*DATE_PRECISIONS, UNSTATED_PRECISION)
 

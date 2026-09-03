@@ -395,7 +395,7 @@ def _precision_agreement_issues(
             continue
         if precision == UNSTATED_PRECISION:
             # `unstated` asserts that no source states this date at all
-            # (ADR 0012), so proposing it in the same batch as the date itself
+            # (ADR 0013), so proposing it in the same batch as the date itself
             # is a proposal that contradicts itself. It is caught here rather
             # than by the segment arithmetic below, which has no segment count
             # to compare a claim against a value that should not exist.

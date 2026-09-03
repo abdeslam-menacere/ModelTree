@@ -248,7 +248,7 @@ def _family_date_and_precision(date_value: str | None, precision: str):
 
 
 def test_a_family_claiming_an_unstated_date_beside_a_date_is_refused() -> None:
-    """ADR 0012's contradiction guard, in the tool that proposes the change.
+    """ADR 0013's contradiction guard, in the tool that proposes the change.
 
     `unstated` asserts that no source states this date at any precision, so a
     batch carrying both halves contradicts itself. The segment arithmetic cannot
@@ -266,7 +266,7 @@ def test_a_family_claiming_an_unstated_date_alone_passes() -> None:
     """The positive control, and the state the affordance exists to make proposable.
 
     Without it the test above would pass on a gate that refused `unstated`
-    outright, which is the opposite of what ADR 0012 decided.
+    outright, which is the opposite of what ADR 0013 decided.
     """
     _, precision_claim = _family_date_and_precision(None, "unstated")
 

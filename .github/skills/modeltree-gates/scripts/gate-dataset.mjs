@@ -656,7 +656,7 @@ const PRECISION_SEGMENTS = { year: 1, month: 2, day: 3 };
 // rules below say anything about an *absent* value without inventing failures
 // in collections the rule was never about.
 //
-// `unstated` is admissible in exactly one of them (ADR 0012). It is the family's
+// `unstated` is admissible in exactly one of them (ADR 0013). It is the family's
 // claim that no primary source states a first release date at any precision, and
 // it is the only case in which the date field may be absent at all. A release is
 // an event, and a record of an event nobody can date is not a release, so
@@ -814,7 +814,7 @@ function gateDates(docs, today) {
   // overlap means the sources do not settle the order, which is not the same
   // thing as a contradiction and must not be reported as one.
   //
-  // A family whose first release date is unstated (ADR 0012) has no interval to
+  // A family whose first release date is unstated (ADR 0013) has no interval to
   // compare against, and `isRealPartialDate` already returns false for the
   // absent value, so every release is admissible under it. That is the same
   // open-question rule at its widest, not a check being skipped: there is no
@@ -1395,7 +1395,7 @@ function gateNonEmpty(docs, required) {
 // the duplication `enumMembers` exists to avoid. Left alone here on the same
 // grounds.
 //
-// ADR 0012 gave families a wider `datePrecision` vocabulary and did not move it
+// ADR 0013 gave families a wider `datePrecision` vocabulary and did not move it
 // here either, for a reason worth stating so the omission is not read as one:
 // `enumMembers` executes no TypeScript, so it refuses `z.enum(SOME_CONSTANT)`
 // rather than guessing past the indirection, and both `datePrecision` and
