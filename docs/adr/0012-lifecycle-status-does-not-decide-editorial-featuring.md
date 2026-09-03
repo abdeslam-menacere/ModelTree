@@ -151,13 +151,38 @@ passport. That is what this change fixes.
 
 ### Costs
 
-- The rule is enforced over flagged `legacy` releases only. A `current` flagged
-  release whose rationale is equally generic is not caught, and two exist:
-  `google-gemini-3-6-flash`'s rationale is true as written of
-  `google-gemini-3-7-flash`, and the three GPT-4.1 seed rationales are identical
-  to one another. Widening the class would force edits to creators #788 places
-  out of scope, so the shortfall is recorded here rather than closed, and is
-  filed as a follow-up.
+- The rule was enforced over flagged `legacy` releases only, and this bullet
+  recorded that shortfall wrongly in two ways. Both are corrected here, on
+  2026-09-03, by #840 — which is also the change that closed the shortfall.
+
+  **Three cases existed, not two.** As first written this bullet named
+  `google-gemini-3-6-flash`, whose rationale was true as written of
+  `google-gemini-3-7-flash`, and the three GPT-4.1 seed rationales, which were
+  byte-identical to one another. It missed a third: `openai-gpt-5-6-terra` and
+  `openai-gpt-5-6-luna` also published one byte-identical sentence. It
+  understated the Gemini case as well — 3.6 Flash's sentence was true as written
+  of `google-gemini-3-5-flash` too, not only of 3.7 Flash.
+
+  **No follow-up had been filed.** As first written this bullet said the
+  shortfall "is filed as a follow-up". Nothing was filed, so that clause was
+  false from the moment it merged until #840 was opened against it. A record
+  reporting its own remedy as already in hand is worse than one reporting no
+  remedy at all, because it stops the next reader from looking.
+
+  The deferral's stated reason — "widening the class would force edits to
+  creators #788 places out of scope" — held only for the one way of widening it
+  had in view. #840 measured that way: applying `featured-policy.test.ts`'s
+  reference list to all 24 flagged records fails 9 of them, six being records
+  that already discriminate in substance, and it *passes* all three GPT-4.1
+  rationales outright, because "Seed release …" contains `seed`. So that list is
+  the proxy for this decision's *durability* clause, and it stays scoped to
+  superseded releases. The *discrimination* clause — "could not be written of
+  another release of the same creator" — is a different question, and it is now
+  enforced over every flagged release regardless of status, by the transplant
+  test the Fable 5 case already called decidable. It caught six rationales,
+  which were rewritten. No `featured` flag changed, in either direction, and the
+  featured totals are unchanged at 24 of 117 releases: 18 `current`, 4 `legacy`,
+  2 `preview`.
 - The discrimination check is a documented list of reference kinds, not a
   decision procedure for English. It can pass a rationale that happens to
   contain "only" incidentally. It fails safe — a false pass weakens the check,
