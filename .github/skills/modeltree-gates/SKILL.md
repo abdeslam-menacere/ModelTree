@@ -9,7 +9,7 @@ These gates are mechanical. No model, no judgement, no vote. They run **after**
 semantic review and **cannot be outvoted by it** — that ordering is the whole
 point, and ADR 0003 forbids reversing it.
 
-Five scripts, all dependency-free Node, all safe to run at any time:
+Six scripts, all dependency-free Node, all safe to run at any time:
 
 | Script | Question it answers |
 |---|---|
@@ -18,6 +18,7 @@ Five scripts, all dependency-free Node, all safe to run at any time:
 | `scripts/gate-dataset.mjs` | Is the resulting dataset coherent? |
 | `scripts/gate-scope.mjs` | Is this change even allowed to auto-merge? |
 | `scripts/gate-ledger.mjs` | Does the run's own record of itself match what it did? |
+| `scripts/gate-reversals.mjs` | Is a claim the panel rejected back in the dataset without anyone saying so? |
 
 Exit codes are uniform: **0** passed, **1** a gate failed, **2** the gate could
 not run. Treat 2 as a failure. A gate that could not run has not passed, and the
@@ -61,6 +62,11 @@ node .github/skills/modeltree-gates/scripts/gate-ledger.mjs --json
 # 5b. Is the ledger complete over everything published so far? No bundle needed;
 #     safe to run at any time, and skills-ci runs it on every pull request.
 node .github/skills/modeltree-gates/scripts/gate-ledger.mjs --history --json
+
+# 6. Is a claim this ledger records as rejected sitting in the dataset with
+#    nothing saying who put it back? No bundle needed; safe at any time, and
+#    skills-ci runs it on every pull request that touches web/src/data/.
+node .github/skills/modeltree-gates/scripts/gate-reversals.mjs --json
 ```
 
 Keep the JSON from step 2. Its `anchor`, `anchors`, `inheritedSources`, and
@@ -443,6 +449,53 @@ append-only rule, because editing a historical entry in place is exactly what a
 correction is. It never relaxes the no-deletion half. A branch may repair what an
 entry says; no branch may make a published run disappear from the page, whatever
 it says it is doing.
+
+---
+
+**`gate-reversals.mjs`** reads `refresh-runs.json` and the dataset **together**,
+which is the thing nothing did before abdeslam-menacere/ModelTree#835. Every
+`withheld[]` entry with category `rejected-by-panel` is a claim the automated
+panel refused. That refusal is permanent — the ledger is append-only — but the
+record it refused can arrive later by the ordinary reviewed pull-request path,
+which is a route the panel does not police. When it does, two committed
+documents disagree and, until this gate, nothing read them together. Nine such
+reversals had accumulated by the time anyone counted.
+
+The gate refuses a `rejected-by-panel` record that is in `web/src/data/` today
+with no entry in `web/src/data/rejection-reversals.json` naming which change
+brought it back and what became of each objection.
+
+**Read what it verifies precisely, because the temptation is to read more.** It
+verifies that a reversal is *written down*. It does not verify that the
+objections were well answered, and it cannot: that is a judgement about
+evidence, which is a reviewer's to make and a script's to stay out of. So a
+green run here means the reversal is visible and reviewable, never that it was
+right.
+
+That is also why `unanswered` is a first-class `disposition` beside `answered`
+and `overruled`. A gate that only accepted a resolution would be a gate that
+rewarded inventing one, and a fabricated resolution is a worse outcome than the
+silence the gate was written to end. Recording an objection as still open is not
+free either — it obliges the entry to say what *would* answer it.
+
+Two properties are deliberately absent. It does not resolve `landedVia`:
+checking that a pull request reference is real is a network call, and a gate
+that needs one cannot run where these run — so that field is a claim a reader
+can check, not one the gate has. And it records no `who`, because every session
+in this repository commits and comments as the same account, so a required field
+for it would be filled with a guess. *Which change* is answerable; *whose hand*
+is not.
+
+Its blind spot is measured and printed on the passing path rather than left for
+a reader to discover: the record id is only available where the panel's `detail`
+prose opens with the structured `<collection> record <id>` form, which most
+rejections do not. The pass line says how many rejections it could not read, and
+says that not checked is not passed.
+
+`rejection-reversals.json` sits **outside** the ADR 0003 qualifying class, and
+that is load-bearing rather than incidental: a refresh run that tried to write
+its own absolution would leave the class and forfeit auto-merge. Only a
+human-reviewed change can record a reversal.
 
 ## Verifying the gates themselves
 

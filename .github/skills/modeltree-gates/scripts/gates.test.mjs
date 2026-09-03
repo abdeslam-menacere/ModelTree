@@ -26,6 +26,7 @@ const GATE_EVIDENCE = join(HERE, 'gate-evidence.mjs');
 const GATE_SCOPE = join(HERE, 'gate-scope.mjs');
 const GATE_LEDGER = join(HERE, 'gate-ledger.mjs');
 const GATE_SOURCE_APPROVAL = join(HERE, 'gate-source-approval.mjs');
+const GATE_REVERSALS = join(HERE, 'gate-reversals.mjs');
 
 // ---------------------------------------------------------------------------
 // Two clocks, and which tests may use which (#318)
@@ -6673,5 +6674,355 @@ describe('gate-ledger', () => {
     const result = run(GATE_LEDGER, ['--repo', REPO, '--history', '--json']);
     if (result.code === 2) return; // no origin/main ref here, e.g. a shallow CI checkout
     assert.equal(result.code, 0, result.stdout);
+  });
+});
+
+// ===========================================================================
+// gate-reversals.mjs -- a claim the panel rejected is on trunk (#835)
+//
+// The gate answers one question: is every panel-rejected record that is in the
+// dataset today annotated in `rejection-reversals.json`? It does not judge
+// whether the annotation's reasoning is good. So the tests below are about
+// discrimination -- that the gate refuses a reversal nobody wrote down, and
+// passes one that somebody did -- and never about whether an objection was
+// well answered, which is a reviewer's job and not a script's.
+//
+// Fixtures rather than the live dataset wherever a test needs a specific
+// shape, because the live ledger is 62 rejections deep and a mutation buried
+// in it is unreadable next to the assertion. The live data is exercised too,
+// at the top, since a gate that only ever sees fixtures can drift away from
+// the thing it gates.
+// ===========================================================================
+
+/**
+ * A three-file dataset directory: the ledger, one collection, and the register.
+ * Enough for this gate, which reads nothing else, and small enough that the
+ * fixture fits beside its assertion.
+ */
+function gateReversalsFixture({ ledger, families, register }, args = []) {
+  const dir = mkdtempSync(join(tmpdir(), 'modeltree-reversals-'));
+  try {
+    writeFileSync(join(dir, 'refresh-runs.json'), JSON.stringify(ledger, null, 2));
+    writeFileSync(join(dir, 'families.json'), JSON.stringify(families ?? [], null, 2));
+    if (register !== undefined) {
+      writeFileSync(join(dir, 'rejection-reversals.json'), JSON.stringify(register, null, 2));
+    }
+    return run(GATE_REVERSALS, ['--data', dir, '--json', ...args]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/** The live dataset, mutated by `edit`, then gated. */
+function gateReversalsMutated(edit) {
+  const dir = mkdtempSync(join(tmpdir(), 'modeltree-reversals-live-'));
+  try {
+    cpSync(DATA, dir, { recursive: true });
+    const read = (file) => JSON.parse(readFileSync(join(dir, file), 'utf8'));
+    const write = (file, value) => writeFileSync(join(dir, file), JSON.stringify(value, null, 2));
+    edit({ read, write });
+    return run(GATE_REVERSALS, ['--data', dir, '--json']);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/** One rejection, in the ledger shape the panel actually writes. */
+const rejection = (id, detail) => ({ id, category: 'rejected-by-panel', detail, blockedBy: [] });
+
+/** A ledger holding exactly the rejections given. The run's own key is `id`. */
+const ledgerOf = (...withheld) => [{ id: 'fixture-run', startedAt: '2026-01-01T00:00:00Z', withheld }];
+
+/** A register entry that satisfies every shape rule, so a test can break one thing. */
+const annotation = (over = {}) => ({
+  runId: 'fixture-run',
+  withheldId: 'w-1',
+  collection: 'families',
+  recordId: 'acme-widget',
+  landedVia: '#1 (abc1234)',
+  recordedOn: '2026-01-02',
+  objections: [{ summary: 'The panel wanted a quote.', disposition: 'answered', evidence: 'The record now carries one.' }],
+  ...over,
+});
+
+const REJECTED_WIDGET = rejection('w-1', 'families record acme-widget for acme. No quote was supplied.');
+const WIDGET = [{ id: 'acme-widget' }];
+
+describe('gate-reversals.mjs', () => {
+  // -------------------------------------------------------------------------
+  // The live dataset, and the two directions that make a pass mean something.
+  // -------------------------------------------------------------------------
+
+  test('the live dataset annotates every panel-rejected record that is in it', () => {
+    const result = run(GATE_REVERSALS, ['--json']);
+    assert.equal(result.code, 0, result.stdout);
+  });
+
+  test('dropping one live annotation is refused, naming the record it dropped', () => {
+    // The difference control for the test above. Same gate, same data, one
+    // entry removed: if this passed too, the passing run would be measuring
+    // nothing.
+    const result = gateReversalsMutated(({ read, write }) => {
+      const register = read('rejection-reversals.json');
+      const kept = register.filter((entry) => entry.recordId !== 'ai2-molmo');
+      assert.equal(kept.length, register.length - 1, 'the live register should annotate ai2-molmo');
+      write('rejection-reversals.json', kept);
+    });
+    assert.equal(result.code, 1);
+    assert.match(result.stdout, /families\/ai2-molmo/);
+  });
+
+  test('a dataset with no annotations at all is refused once per reversal', () => {
+    // #835 as it stood: the records on trunk, the rejections in the ledger,
+    // and nothing reconciling them.
+    const result = gateReversalsMutated(({ write }) => write('rejection-reversals.json', []));
+    assert.equal(result.code, 1);
+    const parsed = JSON.parse(result.stdout);
+    assert.equal(parsed.failures.length, parsed.reversals.length);
+    assert.ok(parsed.reversals.includes('families/ai2-molmo'));
+  });
+
+  // -------------------------------------------------------------------------
+  // Rule 1 -- a rejected record in the dataset needs an annotation, and a
+  // rejected record that is *not* in the dataset needs nothing.
+  // -------------------------------------------------------------------------
+
+  test('a rejected record that is in the dataset and unannotated is refused', () => {
+    const result = gateReversalsFixture({ ledger: ledgerOf(REJECTED_WIDGET), families: WIDGET, register: [] });
+    assert.equal(result.code, 1);
+    assert.match(result.stdout, /families\/acme-widget is in the dataset/);
+  });
+
+  test('the same rejection with the record absent passes -- the rejection still stands', () => {
+    // The clean case for the test above, differing in one thing only: whether
+    // the record is there. A gate that refused here would be forbidding
+    // rejections rather than requiring reversals to be visible.
+    const result = gateReversalsFixture({ ledger: ledgerOf(REJECTED_WIDGET), families: [], register: [] });
+    assert.equal(result.code, 0, result.stdout);
+    assert.deepEqual(JSON.parse(result.stdout).reversals, []);
+  });
+
+  test('the same rejection, annotated, passes with the record present', () => {
+    const result = gateReversalsFixture({ ledger: ledgerOf(REJECTED_WIDGET), families: WIDGET, register: [annotation()] });
+    assert.equal(result.code, 0, result.stdout);
+  });
+
+  test('a withheld entry in another category is not this gate\u2019s business', () => {
+    const ledger = ledgerOf(REJECTED_WIDGET, {
+      id: 'w-2', category: 'dropped-after-acceptance', detail: 'families record acme-other for acme.', blockedBy: [],
+    });
+    const result = gateReversalsFixture({
+      ledger, families: [...WIDGET, { id: 'acme-other' }], register: [annotation()],
+    });
+    assert.equal(result.code, 0, result.stdout);
+    assert.deepEqual(JSON.parse(result.stdout).reversals, ['families/acme-widget']);
+  });
+
+  // -------------------------------------------------------------------------
+  // Rule 2 -- an annotation has to point at a rejection that exists, and at the
+  // record that rejection is about. An annotation nobody can trace back is a
+  // note, not a reconciliation.
+  // -------------------------------------------------------------------------
+
+  test('an annotation naming no such rejection is refused', () => {
+    const result = gateReversalsFixture({
+      ledger: ledgerOf(REJECTED_WIDGET), families: WIDGET,
+      register: [annotation(), annotation({ withheldId: 'w-99', recordId: 'acme-widget' })],
+    });
+    assert.equal(result.code, 1);
+    assert.match(result.stdout, /annotates no rejection/);
+  });
+
+  test('an annotation naming the wrong record for a real rejection is refused', () => {
+    const result = gateReversalsFixture({
+      ledger: ledgerOf(REJECTED_WIDGET), families: WIDGET,
+      register: [annotation({ recordId: 'acme-something-else' })],
+    });
+    assert.equal(result.code, 1);
+    assert.match(result.stdout, /but that rejection is about families\/acme-widget/);
+  });
+
+  // -------------------------------------------------------------------------
+  // Rule 3 -- an annotation whose record has since gone is stale. The rejection
+  // stands again, and a register still claiming it was revisited misleads.
+  // -------------------------------------------------------------------------
+
+  test('an annotation for a record no longer in the dataset is refused as stale', () => {
+    const result = gateReversalsFixture({
+      ledger: ledgerOf(REJECTED_WIDGET), families: [], register: [annotation()],
+    });
+    assert.equal(result.code, 1);
+    assert.match(result.stdout, /is not in the dataset/);
+  });
+
+  // -------------------------------------------------------------------------
+  // Rule 4 -- one rejection, at most one annotation. Two annotations of the
+  // same rejection can disagree, and then the register has no single answer.
+  // -------------------------------------------------------------------------
+
+  test('two annotations of one rejection are refused', () => {
+    const result = gateReversalsFixture({
+      ledger: ledgerOf(REJECTED_WIDGET), families: WIDGET,
+      register: [annotation(), annotation({ landedVia: '#2 (def5678)' })],
+    });
+    assert.equal(result.code, 1);
+    assert.match(result.stdout, /is a duplicate/);
+  });
+
+  // -------------------------------------------------------------------------
+  // Rule 5 -- shape. Each of these is one field away from the passing entry
+  // above, so what the assertion demonstrates is that field and not the rest.
+  // -------------------------------------------------------------------------
+
+  for (const field of ['runId', 'withheldId', 'collection', 'recordId', 'landedVia', 'recordedOn']) {
+    test(`an annotation missing ${field} is refused`, () => {
+      const entry = annotation();
+      delete entry[field];
+      const result = gateReversalsFixture({ ledger: ledgerOf(REJECTED_WIDGET), families: WIDGET, register: [entry] });
+      assert.equal(result.code, 1);
+      assert.match(result.stdout, new RegExp(field));
+    });
+  }
+
+  test('an annotation with no objections is refused', () => {
+    const result = gateReversalsFixture({
+      ledger: ledgerOf(REJECTED_WIDGET), families: WIDGET, register: [annotation({ objections: [] })],
+    });
+    assert.equal(result.code, 1);
+    assert.match(result.stdout, /objections/);
+  });
+
+  test('an objection claiming it was answered, with no evidence, is refused', () => {
+    // The failure this whole gate exists to make impossible to do quietly: a
+    // reversal recorded as resolved without saying what resolved it.
+    const result = gateReversalsFixture({
+      ledger: ledgerOf(REJECTED_WIDGET), families: WIDGET,
+      register: [annotation({ objections: [{ summary: 'wanted a quote', disposition: 'answered' }] })],
+    });
+    assert.equal(result.code, 1);
+    assert.match(result.stdout, /evidence/);
+  });
+
+  test('an objection recorded as unanswered, with no wouldAnswer, is refused', () => {
+    // The honest disposition is still not a free pass: saying an objection
+    // stands open obliges you to say what would close it.
+    const result = gateReversalsFixture({
+      ledger: ledgerOf(REJECTED_WIDGET), families: WIDGET,
+      register: [annotation({ objections: [{ summary: 'wanted a quote', disposition: 'unanswered' }] })],
+    });
+    assert.equal(result.code, 1);
+    assert.match(result.stdout, /wouldAnswer/);
+  });
+
+  test('an objection recorded as unanswered, saying what would answer it, passes', () => {
+    // The pair for the test above. An unanswered objection must be recordable,
+    // or the gate would push its user toward claiming a resolution they do not
+    // have -- which is worse than the defect it was written for.
+    const result = gateReversalsFixture({
+      ledger: ledgerOf(REJECTED_WIDGET), families: WIDGET,
+      register: [annotation({
+        objections: [{ summary: 'wanted a quote', disposition: 'unanswered', wouldAnswer: 'A quote from the model card.' }],
+      })],
+    });
+    assert.equal(result.code, 0, result.stdout);
+  });
+
+  test('a disposition outside the closed vocabulary is refused', () => {
+    const result = gateReversalsFixture({
+      ledger: ledgerOf(REJECTED_WIDGET), families: WIDGET,
+      register: [annotation({ objections: [{ summary: 'wanted a quote', disposition: 'resolved', evidence: 'x' }] })],
+    });
+    assert.equal(result.code, 1);
+    assert.match(result.stdout, /disposition/);
+  });
+
+  test('a field filled with whitespace does not count as filled', () => {
+    const result = gateReversalsFixture({
+      ledger: ledgerOf(REJECTED_WIDGET), families: WIDGET,
+      register: [annotation({ objections: [{ summary: 'wanted a quote', disposition: 'answered', evidence: '   ' }] })],
+    });
+    assert.equal(result.code, 1);
+    assert.match(result.stdout, /evidence/);
+  });
+
+  // -------------------------------------------------------------------------
+  // Which rejections the gate can read at all. It reads the record id out of
+  // the panel's prose, so the pattern's discrimination is load-bearing: too
+  // greedy and it invents reversals, too narrow and it misses them silently.
+  // -------------------------------------------------------------------------
+
+  test('the record-naming pattern reads both shapes the panel writes and no prose', () => {
+    const ledger = ledgerOf(
+      rejection('m-1', 'families record acme-widget for acme. No quote.'),
+      rejection('m-2', 'families record acme-widget. No creator clause on this one.'),
+      rejection('p-1', 'No quote was supplied for the families record in question.'),
+      rejection('p-2', 'releases/acme-widget.verifiedAt is not supported by the cited page.'),
+      rejection('p-3', 'acme, as a creator, is not established by the sources consulted.'),
+    );
+    const result = gateReversalsFixture({ ledger, families: WIDGET, register: [annotation({ withheldId: 'm-1' })] });
+    const parsed = JSON.parse(result.stdout);
+    assert.equal(parsed.rejectionsRead, 5);
+    assert.equal(parsed.rejectionsNamingARecord, 2, 'both structured shapes, neither more nor fewer');
+    assert.deepEqual(parsed.unresolved.map((u) => u.withheldId).sort(), ['p-1', 'p-2', 'p-3']);
+  });
+
+  test('a pass says how many rejections it could not read', () => {
+    // A pass that read as coverage of the whole ledger would be the wrong
+    // reassurance. `unresolved` is the gate's own blind spot, reported.
+    const result = run(GATE_REVERSALS, []);
+    assert.equal(result.code, 0, result.stdout);
+    assert.match(result.stdout, /name no record in their detail/);
+    assert.match(result.stdout, /Not checked is not passed/);
+  });
+
+  // -------------------------------------------------------------------------
+  // Exit 2 -- could not run. Never a pass, and distinct from a refusal.
+  // -------------------------------------------------------------------------
+
+  test('a ledger holding no panel rejection at all exits 2, not 0', () => {
+    // The subject vanished -- a renamed category, a restructured ledger, a
+    // wrong directory. A gate with nothing to check must not report a pass.
+    const ledger = ledgerOf({ id: 'w-1', category: 'dropped-after-acceptance', detail: 'families record acme-widget.', blockedBy: [] });
+    const result = gateReversalsFixture({ ledger, families: WIDGET, register: [] });
+    assert.equal(result.code, 2);
+    assert.match(result.stdout, /no withheld entry with category/);
+  });
+
+  test('a missing register is a refusal when there are reversals, not a pass', () => {
+    // Deleting the file must not be a way through. `register` omitted here
+    // means the file is not written at all.
+    const result = gateReversalsFixture({ ledger: ledgerOf(REJECTED_WIDGET), families: WIDGET });
+    assert.equal(result.code, 1);
+    assert.match(result.stdout, /is in the dataset/);
+  });
+
+  test('a data directory that does not exist exits 2', () => {
+    const result = run(GATE_REVERSALS, ['--data', join(tmpdir(), 'modeltree-no-such-dir-zzz'), '--json']);
+    assert.equal(result.code, 2);
+  });
+
+  for (const flag of ['--force', '--skip-gates', '--allow', '--no-verify']) {
+    test(`${flag} is not a flag this gate has`, () => {
+      // Bypasses belong in branch protection, where they are auditable. An
+      // unrecognised flag is a gate that could not run, never a pass.
+      const result = run(GATE_REVERSALS, [flag]);
+      assert.equal(result.code, 2);
+    });
+  }
+
+  test('the gate source offers no bypass', () => {
+    // Scanned with comments stripped, because this file's own header discusses
+    // the flags it refuses to have and an unscoped search would match that
+    // prose -- a test that fails on the documentation of the property it is
+    // checking would teach the next reader to delete the documentation.
+    const code = readFileSync(GATE_REVERSALS, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/^\s*\/\/.*$/gm, '');
+    for (const bypass of ['--force', '--skip', 'process.env']) {
+      assert.equal(code.includes(bypass), false, `${bypass} appears in gate-reversals.mjs`);
+    }
+    // The stripper has to be shown to leave code behind, or an empty string
+    // would satisfy every assertion above.
+    assert.match(code, /function gate\(/);
   });
 });
