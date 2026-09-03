@@ -27,7 +27,13 @@ import {
  */
 
 /** How one release relates to the current selection. Drives emphasis and labels. */
-export type LineageRelation = 'selected' | 'ancestor' | 'successor' | 'sibling' | 'unrelated';
+export type LineageRelation =
+  | 'selected'
+  | 'ancestor'
+  | 'successor'
+  | 'sibling'
+  | 'derivation'
+  | 'unrelated';
 
 export interface LineageNode {
   release: ModelRelease;
@@ -72,6 +78,14 @@ export interface LineageHighlight {
   ancestorIds: ReadonlySet<string>;
   successorIds: ReadonlySet<string>;
   siblingIds: ReadonlySet<string>;
+  /**
+   * Recorded `derivedFromIds` of the selected release, filtered to targets that
+   * exist in the reviewed catalog. Derivation may cross families and creators
+   * (`validate.ts` permits it), so this set is *not* restricted to the selected
+   * release's family, unlike siblings. Derivations are never transitive: only
+   * the ids the record itself names appear here.
+   */
+  derivationIds: ReadonlySet<string>;
 }
 
 export interface LineagePlacement {
@@ -359,7 +373,12 @@ export function buildLineageHighlight(
 ): LineageHighlight {
   const placement = findLineagePlacement(ecosystems, releaseSlug);
   if (!placement) {
-    return { ancestorIds: new Set(), successorIds: new Set(), siblingIds: new Set() };
+    return {
+      ancestorIds: new Set(),
+      successorIds: new Set(),
+      siblingIds: new Set(),
+      derivationIds: new Set(),
+    };
   }
 
   const { family, release } = placement;
@@ -384,6 +403,13 @@ export function buildLineageHighlight(
     ancestorIds: walk(parents),
     successorIds: walk(children),
     siblingIds: new Set(release.siblingIds.filter((id) => id !== release.id && present.has(id))),
+    // Derivations may cross families and creators, so validity is *not* checked
+    // here against the ecosystems the UI happens to render: the dataset
+    // validator (`validate.ts`) already guarantees every recorded id names a
+    // release in the catalog. Trimming here would hide edges the trail must
+    // still name -- as an "external" entry -- when the target sits outside the
+    // visible view (a non-featured creator on the homepage, for one).
+    derivationIds: new Set(release.derivedFromIds.filter((id) => id !== release.id)),
   };
 }
 
@@ -392,6 +418,7 @@ export function lineageRelation(highlight: LineageHighlight, releaseId: string):
   if (highlight.ancestorIds.has(releaseId)) return 'ancestor';
   if (highlight.successorIds.has(releaseId)) return 'successor';
   if (highlight.siblingIds.has(releaseId)) return 'sibling';
+  if (highlight.derivationIds.has(releaseId)) return 'derivation';
   return 'unrelated';
 }
 
@@ -400,4 +427,117 @@ export const LINEAGE_RELATION_LABELS: Record<Exclude<LineageRelation, 'unrelated
   ancestor: 'Earlier in lineage',
   successor: 'Later in lineage',
   sibling: 'Released alongside',
+  derivation: 'Derived from',
 };
+
+/**
+ * The trail is what a shareable focused lineage view actually holds: the
+ * selected release, and every release the record ties to it by a recorded
+ * relationship, grouped by relation. Nothing is inferred; derivations reflect
+ * the release's own `derivedFromIds` field only.
+ *
+ * Each entry carries its `placement` when the target lives inside the visible
+ * ecosystems -- so the trail UI can link to it. A derivation whose target is
+ * outside the current view (a long-tail creator on the featured homepage, for
+ * example) is surfaced by id alone with `placement: undefined`, since dropping
+ * it would misrepresent the record: the fact was recorded, and the trail says
+ * so, even if the target is not on this screen.
+ */
+export interface LineageTrailEntry {
+  releaseId: string;
+  placement?: LineagePlacement;
+}
+
+export interface LineageTrail {
+  selected?: LineagePlacement;
+  ancestors: LineageTrailEntry[];
+  successors: LineageTrailEntry[];
+  siblings: LineageTrailEntry[];
+  derivations: LineageTrailEntry[];
+  /** Every id in the trail (excluding the selection), for cheap membership checks. */
+  memberIds: ReadonlySet<string>;
+  /** True when no recorded relationship of any kind ties into the selection. */
+  isEmpty: boolean;
+}
+
+function findPlacementById(
+  ecosystems: readonly LineageEcosystem[],
+  releaseId: string,
+): LineagePlacement | undefined {
+  for (const { organization, families } of ecosystems) {
+    for (const family of families) {
+      const release = family.releases.find((candidate) => candidate.id === releaseId);
+      if (release) return { organization, family, release };
+    }
+  }
+  return undefined;
+}
+
+/**
+ * The trail is ordered so a reader sees the newest release in each group first
+ * -- matching the rest of the explorer. External derivations sit at the end of
+ * their group, since a release the catalog does not surface here has no date to
+ * sort against, and stamping one would invent an order.
+ */
+function orderedEntries(
+  ecosystems: readonly LineageEcosystem[],
+  ids: Iterable<string>,
+  claimed: Set<string>,
+): LineageTrailEntry[] {
+  const entries: LineageTrailEntry[] = [];
+  for (const releaseId of ids) {
+    // Priority dedup across groups: a release the record ties to the selection
+    // twice (an impossible-but-recorded cyclic pair, for one) is listed exactly
+    // once, in the earliest group it qualified for. This matches the ambient
+    // tree, which draws each release exactly once too.
+    if (claimed.has(releaseId)) continue;
+    claimed.add(releaseId);
+    const placement = findPlacementById(ecosystems, releaseId);
+    entries.push({ releaseId, placement });
+  }
+  entries.sort((a, b) => {
+    if (a.placement && b.placement) {
+      return byNewestRelease(a.placement.release, b.placement.release);
+    }
+    if (a.placement) return -1;
+    if (b.placement) return 1;
+    return compare(a.releaseId, b.releaseId);
+  });
+  return entries;
+}
+
+/**
+ * Build the focused-lineage trail for a selection.
+ *
+ * The trail is derived from the same `LineageHighlight` the tree already uses,
+ * so the "focused" view and the ambient highlight of the tree can never disagree
+ * about what is related -- a single source of truth for the acceptance criterion
+ * that "only recorded relationships enter the trail". Cycles are handled by the
+ * highlight's visited-set walk, and a converging predecessor that the tree could
+ * not draw as a second connector still appears in the trail's ancestor list.
+ */
+export function buildLineageTrail(
+  ecosystems: readonly LineageEcosystem[],
+  releaseSlug: string | null | undefined,
+): LineageTrail {
+  const selected = findLineagePlacement(ecosystems, releaseSlug);
+  const highlight = buildLineageHighlight(ecosystems, releaseSlug);
+
+  // Group priority: ancestor -> successor -> sibling -> derivation. Anything
+  // the tree conveys through structure wins over anything the tree only
+  // conveys through a text label, so an ambiguity settles the same way the
+  // tree already draws it.
+  const claimed = new Set<string>();
+  const ancestors = orderedEntries(ecosystems, highlight.ancestorIds, claimed);
+  const successors = orderedEntries(ecosystems, highlight.successorIds, claimed);
+  const siblings = orderedEntries(ecosystems, highlight.siblingIds, claimed);
+  const derivations = orderedEntries(ecosystems, highlight.derivationIds, claimed);
+  const memberIds = new Set(claimed);
+  const isEmpty =
+    ancestors.length === 0
+    && successors.length === 0
+    && siblings.length === 0
+    && derivations.length === 0;
+
+  return { selected, ancestors, successors, siblings, derivations, memberIds, isEmpty };
+}

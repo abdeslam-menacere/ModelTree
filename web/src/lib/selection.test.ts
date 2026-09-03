@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   createLineageSelectionUrl,
+  createLineageTrailUrl,
   createModelSelectionUrl,
   readOptionalSelectedModel,
   readOptionalSelectedProvider,
+  readOptionalTrailFlag,
   readSelectedModel,
 } from './selection';
 
@@ -65,5 +67,56 @@ describe('provider and model share the homepage query state', () => {
     );
 
     expect(result).toBe(`/?provider=anthropic&model=${slugs[1]}`);
+  });
+});
+
+describe('lineage trail flag shares the homepage query state', () => {
+  it('reads only the canonical `1` as focused, everything else as off', () => {
+    expect(readOptionalTrailFlag('?trail=1')).toBe(true);
+    // A hand-typed URL falls back safe; the strict-writer/lenient-reader split
+    // is what stops a partial or unrecognised value from leaving the trail in
+    // an ambiguous state.
+    expect(readOptionalTrailFlag('?trail=true')).toBe(false);
+    expect(readOptionalTrailFlag('?trail=')).toBe(false);
+    expect(readOptionalTrailFlag('?trail=0')).toBe(false);
+    expect(readOptionalTrailFlag('')).toBe(false);
+    expect(readOptionalTrailFlag(`?provider=openai&model=${slugs[0]}`)).toBe(false);
+  });
+
+  it('writes provider, model, and the trail flag in a stable order when focused', () => {
+    const result = createLineageTrailUrl('/?ref=launch#explorer', 'anthropic', slugs[1], true);
+
+    expect(result).toBe(`/?ref=launch&provider=anthropic&model=${slugs[1]}&trail=1#explorer`);
+  });
+
+  it('clears the trail flag when leaving focus, without touching the pair', () => {
+    const result = createLineageTrailUrl(
+      `/?provider=anthropic&model=${slugs[1]}&trail=1#explorer`,
+      'anthropic',
+      slugs[1],
+      false,
+    );
+
+    expect(result).toBe(`/?provider=anthropic&model=${slugs[1]}#explorer`);
+  });
+
+  it('re-emits the trio in a stable order whatever order it arrived in', () => {
+    const canonical = `/?provider=anthropic&model=${slugs[1]}&trail=1`;
+
+    expect(createLineageTrailUrl(`/?trail=1&model=${slugs[0]}`, 'anthropic', slugs[1], true))
+      .toBe(canonical);
+    expect(createLineageTrailUrl('/?provider=openai&trail=1', 'anthropic', slugs[1], true))
+      .toBe(canonical);
+  });
+
+  it('leaves unrelated parameters and the fragment alone in either state', () => {
+    const on = createLineageTrailUrl('/?ref=launch#explorer', 'anthropic', slugs[1], true);
+    const off = createLineageTrailUrl(on, 'anthropic', slugs[1], false);
+
+    expect(on).toContain('ref=launch');
+    expect(on).toContain('#explorer');
+    expect(off).toContain('ref=launch');
+    expect(off).toContain('#explorer');
+    expect(off).not.toContain('trail=');
   });
 });
