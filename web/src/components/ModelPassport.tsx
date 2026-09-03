@@ -19,6 +19,7 @@ import { organizationLabel } from '../lib/organization-name';
 import { variantPositioningCoverageLine } from '../lib/variant-positioning';
 import type {
   AvailabilityRow,
+  CategorySpecView,
   ModelPassportView,
   PassportFact,
   PassportSection,
@@ -69,10 +70,82 @@ function FactList({ facts, className }: { facts: PassportFact[]; className: stri
       {facts.map((item) => (
         <div key={item.term}>
           <dt>{item.term}</dt>
-          <dd className={item.unknown ? 'passport-unknown' : undefined}>{item.value}</dd>
+          {/*
+            Three states, three classes. The value text already spells each one
+            out in words -- "Not recorded", "Not applicable -- ..." -- so the
+            class only tints what the sentence has already said, and a reader
+            who cannot see the tint loses nothing.
+          */}
+          <dd
+            className={item.notApplicable
+              ? 'passport-not-applicable'
+              : item.unknown ? 'passport-unknown' : undefined}
+          >
+            {item.value}
+          </dd>
         </div>
       ))}
     </dl>
+  );
+}
+
+/**
+ * The category-specific block (issue #43).
+ *
+ * Each fact shows ModelTree's statement and the creator's own words beneath it,
+ * the same two-part shape the variant positioning block uses, so a reader can
+ * check the recording against the quote without leaving the page.
+ */
+function CategorySpecBlock({ spec }: { spec: CategorySpecView }) {
+  return (
+    <div className="category-spec">
+      <h3 className="category-spec-heading">
+        {spec.categoryLabel}-specific record
+      </h3>
+      <p className="category-spec-note">
+        Facts that apply to {spec.categoryLabel.toLowerCase()} models and have no
+        equivalent on a language model. Checked {spec.verifiedAt}.
+      </p>
+
+      <dl className="category-spec-facts">
+        {spec.facts.map((item) => (
+          <div key={item.dimension}>
+            <dt title={item.definition}>{item.label}</dt>
+            <dd>
+              <span className="category-spec-statement">{item.statement}</span>
+              <blockquote className="category-spec-quote">
+                <p>{item.quote}</p>
+                {item.source ? (
+                  <footer>
+                    <a href={item.source.url} rel="nofollow noopener noreferrer">
+                      {item.source.title}
+                    </a>
+                    {' — '}
+                    {item.source.typeLabel}, checked {item.source.lastCheckedDate}
+                  </footer>
+                ) : null}
+              </blockquote>
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      {spec.undocumented.length > 0 ? (
+        <div className="category-spec-undocumented">
+          <h4>Not documented by any cited source</h4>
+          <p>
+            ModelTree records these dimensions for {spec.categoryLabel.toLowerCase()} models.
+            No source cited on this page states them for this release, so they are left
+            empty rather than filled in.
+          </p>
+          <ul>
+            {spec.undocumented.map((item) => (
+              <li key={item.dimension} title={item.definition}>{item.label}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -373,6 +446,7 @@ export default function ModelPassport({ view }: Props) {
       <section className="passport-section" aria-labelledby={technical.headingId}>
         <SectionHeading section={technical} />
         <FactList facts={view.technicalFacts} className="technical-facts" />
+        {view.categorySpec ? <CategorySpecBlock spec={view.categorySpec} /> : null}
         <div className="tag-groups">
           <div>
             <span>Categories</span>

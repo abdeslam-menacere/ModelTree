@@ -104,6 +104,28 @@ export const imageSpecDimension = z.enum([
   'multi-image-input',
 ]);
 
+/**
+ * How each dimension is titled on a page.
+ *
+ * Held beside the vocabulary rather than in `format.ts` so that adding a member
+ * to {@link imageSpecDimension} without titling it is a type error. The same
+ * total-map discipline as {@link CATEGORY_SPEC_COVERAGE}, one level down.
+ */
+export const IMAGE_SPEC_DIMENSION_LABELS: Record<z.infer<typeof imageSpecDimension>, string> = {
+  'output-sizing': 'Output sizing',
+  'aspect-ratio-control': 'Aspect ratio control',
+  'image-editing': 'Image editing',
+  'multi-image-input': 'Multiple input images',
+};
+
+/**
+ * The order these dimensions appear in, fixed so two releases are read down the
+ * same column. `model-dna.ts` fixes its order for the same reason: a list that
+ * reorders itself per record invites a reader to compare rows that are not
+ * aligned.
+ */
+export const IMAGE_SPEC_DIMENSION_ORDER = imageSpecDimension.options;
+
 /** What each dimension is, in ModelTree's words. Never a value's meaning. */
 export const IMAGE_SPEC_DIMENSION_DEFINITIONS: Record<
   z.infer<typeof imageSpecDimension>,
