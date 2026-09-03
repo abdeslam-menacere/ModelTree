@@ -18,7 +18,7 @@
         "evidence": "The paired release eleutherai-gpt-neo-2-7b landed in the same change carrying the license object the objection said was missing (MIT, spdxId MIT, osiApproved true), so the family has a release and the pair validates. The panel's own suggested fix was \"add the missing license to the release and re-submit family+release together\", which is what happened."
       }
     ],
-    "note": "This run rejected all 15 of its family and release claims, and the reason was near-uniform: a required status field with no sourceable value and no 'unknown' member to record the absence. Four creators' records later returned by the ordinary reviewed path once that member existed. Nine of those reversals are annotated in this file."
+    "note": "This run rejected all 15 of its family and release claims, and the reason was near-uniform: a required status field with no sourceable value and no 'unknown' member to record the absence. Four creators' records later returned by the ordinary reviewed path once that member existed. Nine of those reversals are annotated in this file. Nine is the number gate-reversals.mjs can see, not the number that exist: only 18 of the 62 rejected-by-panel entries across all runs name their record in a form the gate reads, and 17 of the other 44 also name a record that is in web/src/data today. That gap is measured in the gate's header and is deliberately left open rather than closed by loosening the extractor."
   },
   {
     "runId": "2026-08-31-b7c2d9",

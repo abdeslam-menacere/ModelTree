@@ -7025,4 +7025,43 @@ describe('gate-reversals.mjs', () => {
     // would satisfy every assertion above.
     assert.match(code, /function gate\(/);
   });
+
+  test('the unresolved set is a real blind spot, not an empty formality', () => {
+    // abdeslam-menacere/ModelTree#835's review caught this gate's header
+    // asserting that the rejections it cannot parse hold nothing that landed.
+    // That was false, and a false claim in a committed document is the exact
+    // defect #835 was filed about, so the correction is locked here rather than
+    // left in prose that can rot again.
+    //
+    // The assertion is deliberately an invariant and not a count. A hand-written
+    // number is right only against one merge-base -- two branches could each land
+    // a rejected record, each state a total right for themselves, and both go
+    // green while their merge is wrong. That is the #276 lesson, and the reason
+    // the skill docs are forbidden a test count; the same trap applies here.
+    const result = run(GATE_REVERSALS, ['--json']);
+    assert.equal(result.code, 0, result.stdout);
+    const report = JSON.parse(result.stdout);
+    assert.ok(report.unresolved.length > 0, 'no unresolved rejections, so this test measures nothing');
+
+    const present = new Set();
+    for (const file of ['families.json', 'releases.json', 'sources.json', 'organizations.json', 'publishers.json']) {
+      for (const record of JSON.parse(readFileSync(join(DATA, file), 'utf8'))) present.add(record.id);
+    }
+    // Control: the id set must be able to answer "no", or "yes" below is noise.
+    assert.equal(present.has('zzz-not-a-real-record'), false);
+
+    const SUFFIXES = ['-release-add', '-add-release', '-release', '-family', '-source', '-add'];
+    const landed = report.unresolved.filter(({ withheldId }) => {
+      if (typeof withheldId !== 'string' || /\.verifiedAt$/.test(withheldId)) return false;
+      const candidates = [withheldId];
+      for (const s of SUFFIXES) if (withheldId.endsWith(s)) candidates.push(withheldId.slice(0, -s.length));
+      return candidates.some((c) => present.has(c));
+    });
+    assert.ok(
+      landed.length > 0,
+      'The gate\'s documented blind spot claims unreadable rejections name records that are '
+      + 'present. None do. Either the gap closed -- in which case update the header, SKILL.md, '
+      + 'skills-ci.yml and web/src/data/README.md, which all state it -- or this probe broke.',
+    );
+  });
 });

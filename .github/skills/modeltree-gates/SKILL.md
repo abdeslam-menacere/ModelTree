@@ -459,7 +459,21 @@ panel refused. That refusal is permanent — the ledger is append-only — but t
 record it refused can arrive later by the ordinary reviewed pull-request path,
 which is a route the panel does not police. When it does, two committed
 documents disagree and, until this gate, nothing read them together. Nine such
-reversals had accumulated by the time anyone counted.
+reversals were visible to this gate's extractor by the time anyone counted.
+
+**Nine is a floor, not a population.** The record id is read out of the entry's
+`detail` prose, and only 18 of the 62 `rejected-by-panel` entries write it in a
+form the gate will act on. Of the other 44, measured at trunk `ca67bc10` with a
+fabricated-id control in the same pass: 10 are `releases/<id>.verifiedAt` field
+re-verifications of records that were already present, which are correctly not
+reversals and must stay excluded from any future widening; **17 name a record
+that is in `web/src/data/` today and unannotated**; and 17 name a record that is
+absent. The gate does not act on those 17, and deliberately was not widened to:
+presence is not reversal — sampled records entered the dataset the same day as
+the run that refused them, so arrival order does not follow from the ledger.
+Making them checkable means giving withheld entries a machine-readable record id
+when a run writes them, which is its own reviewed change. Until then this is a
+known, quantified gap, printed on every passing run.
 
 The gate refuses a `rejected-by-panel` record that is in `web/src/data/` today
 with no entry in `web/src/data/rejection-reversals.json` naming which change

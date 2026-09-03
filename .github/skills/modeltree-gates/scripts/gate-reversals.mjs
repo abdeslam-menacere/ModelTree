@@ -9,9 +9,14 @@
 // a reversal is allowed. What is not allowed is a reversal nobody can see.
 //
 // That is not hypothetical and it is not a one-off. Measured at trunk
-// `ca67bc10` while #835 was open, nine claims the panel rejected are in the
-// dataset today, from one run (`2026-08-31-b7c2d9`) and four creators, landed by
-// three separate pull requests. The rejections are still on the /refresh page,
+// `ca67bc10` while #835 was open, nine of the eighteen rejections this gate can
+// read name a record that is in the dataset today, from one run
+// (`2026-08-31-b7c2d9`) and four creators, landed by
+// three separate pull requests. Nine is a count of what is *visible* to the
+// extractor below, not a count of the reversals in this repository: a further 17
+// of the 44 rejections it cannot read also name a record that is present, and
+// the blind-spot note further down gives that measurement in full. The
+// rejections are still on the /refresh page,
 // still saying these records were refused for want of a quote. Both documents
 // are committed, they disagree, and until this gate existed nothing read them
 // together.
@@ -72,19 +77,64 @@
 // one cannot run where these gates run. `landedVia` is a claim a reader can
 // check, not one the gate has checked.
 //
-// **The blind spot, stated rather than hidden.** The record id is extracted from
-// the `detail` prose, because that is the only place a withheld entry names one:
-// the `id` field is a free-form claim id (`ai2-family-molmo-add`), and the
-// record it produced (`ai2-molmo`) is not derivable from it. Measured at
-// `ca67bc10`, 18 of 62 `rejected-by-panel` entries name a record in the
-// recognised form and 44 do not — those 44 are prose about a creator, a
-// field-level re-verification, or a claim that never became a record. This gate
-// cannot see a reversal among them. It counts them, names them under
-// `unresolved` in the JSON report, and says so on every passing run, because a
-// gate that quietly skipped two thirds of its subject while printing a pass is
-// the failure this whole directory exists to prevent. Widening the coverage
-// means giving withheld entries a machine-readable record id at the moment a run
-// writes them, which is a change to the refresh skill and not to this gate.
+// **The blind spot, measured rather than characterised.** The record id is
+// extracted from the `detail` prose, because that is the only place a withheld
+// entry names one in a form this gate will act on. The entry's own `id` is a
+// free-form claim id and is derivable only sometimes: `ai2-family-molmo-add`
+// does not yield `ai2-molmo`, while `openai-gpt-5-1-release-add` does yield
+// `openai-gpt-5-1`. Sometimes is not a convention a gate may rely on.
+//
+// Measured at trunk `ca67bc10`, 18 of 62 `rejected-by-panel` entries name a
+// record in the recognised `detail` form and 44 do not. An earlier version of
+// this comment asserted that those 44 were prose about a creator, a field-level
+// re-verification, or a claim that never became a record. That was false, and it
+// reproduced inside this gate the very defect abdeslam-menacere/ModelTree#835
+// was filed about: a committed document asserting something the dataset
+// contradicts. What the 44 actually contain, under a predicate stated here so a
+// reader can re-run it rather than take the figures on trust — *an entry whose
+// `id`, after stripping at most one action suffix (`-release-add`,
+// `-add-release`, `-release`, `-family`, `-source`, `-add`), equals the `id` of a
+// record present in `families`, `releases`, `sources`, `organizations` or
+// `publishers`* — with the denominator alongside every count so a shrinking
+// population is visible rather than absorbed:
+//
+//   62  `rejected-by-panel` entries in the ledger  (the denominator)
+//   18  of those name a record in the `detail` form this gate acts on
+//   44  do not, and those 44 divide as:
+//
+//   10  `releases/<id>.verifiedAt` entries. A run declined to advance a field on
+//       a record that was already present. Correctly not reversals, and they
+//       must stay excluded from any future widening.
+//   17  entries matching the predicate above: the record IS in `web/src/data/`
+//       today and carries no annotation.
+//   17  entries naming a record that is not in the dataset at all.
+//
+// The predicate is shown to discriminate rather than assumed to: in one pass the
+// 10 `.verifiedAt` entries yield 0 matches, three fabricated ids yield 0, a real
+// id that is genuinely absent (`openai-gpt-5-4-mini-release-add`) yields 0, and a
+// real id that is genuinely present (`openai-gpt-5-1-release-add`) yields 1. A
+// selector that returned the same answer to all four would have measured nothing.
+// `gates.test.mjs` locks the invariant — that this set is non-empty — rather than
+// the number, because a hand-written count is right only against one merge-base
+// and two branches could each land a rejected record, each state a total right
+// for themselves, and both go green while their merge is wrong (#276).
+//
+// **Presence is not reversal, and that gap is why the 17 are reported unchecked
+// rather than accused.** Sampled with `git log -S` against real and fabricated
+// ids, several of those records entered `web/src/data/` on the same day as the
+// run that rejected them, so arrival order does not follow from the ledger and
+// this gate cannot tell a reversal from a record that already existed when the
+// claim was refused. Deciding each one needs per-entry judgement the ledger
+// prose does not carry.
+//
+// So this gate counts the 44, names them under `unresolved` in the JSON report,
+// and says so on every passing run, because a gate that quietly skipped two
+// thirds of its subject while printing a pass is the failure this whole
+// directory exists to prevent. It deliberately does **not** widen the extractor
+// to swallow the 17: a gate that grew its own scope to make its prose true would
+// be worse than the prose. Widening means giving withheld entries a
+// machine-readable record id at the moment a run writes them, which is a change
+// to the refresh skill and its own reviewed issue, not a change to this gate.
 //
 // Usage:
 //   node gate-reversals.mjs [--data <dir>] [--json]

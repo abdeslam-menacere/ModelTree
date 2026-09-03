@@ -47,6 +47,14 @@ sources and are not required to be registered.
   fields quote records and sources already committed elsewhere; it introduces no
   new source of its own, and `gate-reversals.mjs` checks that a reversal is
   *recorded*, never that the reasoning is sound. That judgement is a reviewer's.
+  Its coverage is partial and the shortfall is quantified rather than implied:
+  the gate reads a record id out of each rejection's `detail` prose, which only
+  18 of 62 `rejected-by-panel` entries write in a usable form, and **17 of the
+  other 44 also name a record that is present in this directory today**. Those 17
+  are unchecked, not cleared. Closing the gap means having refresh runs emit a
+  machine-readable record id, which is its own reviewed change; loosening the
+  extractor instead would make the gate's own prose true by widening its scope,
+  which is the worse trade.
 
 ## Known pre-existing gap
 
