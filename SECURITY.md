@@ -112,5 +112,8 @@ architecture rather than on a test suite, and the enforcement points are:
 The distinction matters: `npm run validate` does **not** search the code
 for a runtime fetch or a cookie write. If a change introduced one, the
 signal would be an ADR that had to change to accommodate it, or a review
-comment, and not a red test. If that architectural posture stops holding,
-this file is wrong until it is updated.
+comment, and not a red test. If that architectural posture stops holding
+— if `output` in [`web/astro.config.mjs`](web/astro.config.mjs) changes
+away from `'static'`, if a route sets `prerender = false` and opts into
+server rendering, or if the build gains a runtime data flow — this file
+is wrong until it is updated.

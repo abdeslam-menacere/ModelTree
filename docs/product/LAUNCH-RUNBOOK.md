@@ -240,7 +240,7 @@ survives a title rewrite.
 What each spec covers, verified against the files at HEAD:
 
 - `site-a11y.e2e.ts` — axe-core scan of the core routes, plus a planted-defect
-  test that proves the scan can fail (`it('the accessibility scan can fail,
+  test that proves the scan can fail (`test('the accessibility scan can fail,
   and rates a planted defect as blocking')`).
 - `lineage-a11y.e2e.ts` — the same axe-core discipline applied to the lineage
   markup specifically.
@@ -413,12 +413,16 @@ already serving the commit the tag names, before or after the tag is
 pushed:
 
 ```sh
-# 1. Confirm the tag names the current main tip:
-git rev-parse v<x.y.z>
+# 1. Confirm the tag names the current main tip. `git rev-parse` on an
+#    annotated tag returns the tag *object* SHA, which is never equal to
+#    the commit SHA; peel to the commit with ^{commit}.
+git rev-parse "v<x.y.z>^{commit}"
 git rev-parse origin/main
-# these should be equal.
+# these two commit SHAs should be equal.
 
-# 2. Confirm the last successful pages.yml deploy is that commit:
+# 2. Confirm the last successful pages.yml deploy is that commit. The
+#    `headSha` field is the commit the workflow ran against; compare it
+#    to the peeled tag above.
 gh run list --workflow=pages.yml --branch=main --limit=1 \
   --json headSha,conclusion,createdAt
 
