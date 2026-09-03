@@ -5174,5 +5174,107 @@
       "osi-approved-licenses"
     ],
     "verifiedAt": "2026-09-03"
+  },
+  {
+    "id": "openbmb-minicpm-v-4-5",
+    "slug": "minicpm-v-4-5",
+    "canonicalName": "MiniCPM-V-4.5",
+    "displayName": "MiniCPM-V 4.5",
+    "organizationId": "openbmb",
+    "familyId": "openbmb-minicpm-v",
+    "version": "4.5",
+    "variant": "8B",
+    "releaseDate": "2025-08-26",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "image",
+      "video",
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 8
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [
+      "openbmb-minicpm-v-4-6"
+    ],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "A vision-language (multimodal) MLLM in OpenBMB’s MiniCPM-V line, open-sourced 2025-08-26. Its card states \"With only 8B parameters, it surpasses widely used proprietary models like GPT-4o-latest, Gemini-2.0 Pro, and strong open-source models like Qwen2.5-VL 72B\" (the recorded 8B parameter figure), and describes single-image, multi-image and high-FPS / long-video understanding plus OCR and document parsing. The card’s OpenCompass average and per-benchmark scores are deliberately not recorded; this dataset states no ranking. Lifecycle is recorded as unknown because no source read states one for this release. The context window is not recorded because no source read states a token figure for it.",
+    "intendedUse": "Image, multi-image and video understanding, OCR and document parsing, and multilingual vision-language tasks, per the card’s stated capabilities. The model is offered as open weights on Hugging Face for local and server deployment.",
+    "sourceIds": [
+      "openbmb-minicpm-v-4-5-model-card",
+      "openbmb-minicpm-v-repository",
+      "hugging-face-openbmb-minicpm-v-4-5-hub-record",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-09-03"
+  },
+  {
+    "id": "openbmb-minicpm-v-4-6",
+    "slug": "minicpm-v-4-6",
+    "canonicalName": "MiniCPM-V-4.6",
+    "displayName": "MiniCPM-V 4.6",
+    "organizationId": "openbmb",
+    "familyId": "openbmb-minicpm-v",
+    "version": "4.6",
+    "variant": "1.3B",
+    "releaseDate": "2026-05-11",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "image",
+      "video",
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 1.3
+    },
+    "apiAliases": [],
+    "predecessorIds": [
+      "openbmb-minicpm-v-4-5"
+    ],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "The successor to MiniCPM-V 4.5 in OpenBMB’s MiniCPM-V line, open-sourced 2026-05-11. Its card states the model \"is built based on SigLIP2-400M and the Qwen3.5-0.8B LLM\" and describes its \"lightweight 1.3B scale\" (the recorded 1.3B parameter figure) with \"mixed 4x/16x visual token compression\". It \"inherits the strong single-image, multi-image, and video understanding capabilities of MiniCPM-V family\". The card’s Artificial-Analysis-Index and comparison claims are deliberately not recorded; this dataset states no ranking. Lifecycle is recorded as unknown because no source read states one. The context window is not recorded because no source read states a token figure for it.",
+    "intendedUse": "Edge and on-device image, multi-image and video understanding, per the card’s statement that it is \"our most edge-deployment-friendly model to date\" and can be \"deployed across all three mainstream mobile platforms — iOS, Android, and HarmonyOS\". Offered as open weights on Hugging Face.",
+    "sourceIds": [
+      "openbmb-minicpm-v-4-6-model-card",
+      "openbmb-minicpm-v-repository",
+      "hugging-face-openbmb-minicpm-v-4-6-hub-record",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-09-03"
   }
 ]

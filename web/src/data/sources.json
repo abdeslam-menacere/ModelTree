@@ -2348,5 +2348,50 @@
     "publisherId": "bytedance-seed",
     "lastCheckedDate": "2026-09-03",
     "notes": "ByteDance Seed Team’s own card for the base model, in ByteDance-Seed’s own Hugging Face namespace, so the publisher is ByteDance Seed and not the host. Fetched 2026-09-03. States \"This model card is dedicated to the `Seed-OSS-36B-Base` model.\" and, in its News section, \"[2025/08/20]🔥We release `Seed-OSS-36B-Base` (both with and without synthetic data versions) and `Seed-OSS-36B-Instruct`.\", which the day-precision release date rests on. States \"We release this series of models to the open-source community under the Apache-2.0 license.\" The Model Summary table gives \"Parameters: 36B\" and \"Context Length: 512K\", which the recorded parameter count and context window rest on (the stated \"512K\" is mapped to 512000 by this dataset’s documented K-to-token rule, matching the sibling Instruct record). Base is the pretrained counterpart of the instruction-tuned Instruct release, hence recorded as a sibling. The card’s benchmark and comparison claims are deliberately not recorded, because this dataset states no ranking."
+  },
+  {
+    "id": "openbmb-minicpm-v-repository",
+    "url": "https://github.com/OpenBMB/MiniCPM-V",
+    "title": "OpenBMB/MiniCPM-V repository",
+    "type": "repository",
+    "publisherId": "openbmb",
+    "lastCheckedDate": "2026-09-03",
+    "notes": "OpenBMB’s own MiniCPM-V repository, in OpenBMB’s own GitHub organization, so the publisher is OpenBMB and not the host. Fetched 2026-09-03. Its News list states the family’s first release, \"[2024.02.01] We open-source MiniCPM-V and OmniLMM-12B, which support efficient end-side deployment and powerful multimodal capabilities correspondingly.\", which the family firstReleaseDate rests on; \"[2025.08.26] 🔥🔥🔥 We open-source MiniCPM-V 4.5, which outperforms GPT-4o-latest, Gemini-2.0 Pro, and Qwen2.5-VL 72B.\"; and \"[2026.05.11] 🔥🔥🔥 We open-source MiniCPM-V 4.6, with mixed 4x/16x visual token compression. Powered by strong encoding efficiency and its lightweight 1.3B scale, it is our most edge-deployment-friendly model to date\". These three lines carry the day-precision release dates. Only the 4.5 and 4.6 releases are recorded in this dataset; the earlier MiniCPM-V versions (1.0 in 2024, 2.0, 2.6, etc.) are named here but not separately recorded. Leaderboard and \"SOTA\" claims are deliberately not recorded."
+  },
+  {
+    "id": "openbmb-minicpm-v-4-5-model-card",
+    "url": "https://huggingface.co/openbmb/MiniCPM-V-4_5",
+    "title": "MiniCPM-V 4.5 model card",
+    "type": "model-card",
+    "publisherId": "openbmb",
+    "lastCheckedDate": "2026-09-03",
+    "notes": "OpenBMB’s own card for MiniCPM-V 4.5, in OpenBMB’s own Hugging Face namespace, so the publisher is OpenBMB and not the host. Fetched 2026-09-03. States \"With only 8B parameters, it surpasses widely used proprietary models like GPT-4o-latest, Gemini-2.0 Pro, and strong open-source models like Qwen2.5-VL 72B\", which the recorded 8B parameter figure rests on. Describes the model as a vision-language MLLM with single-image, multi-image and \"high-FPS and Long Video Understanding\" capabilities plus OCR and document parsing, which the recorded image/video/text input modalities rest on. Its comparative and leaderboard claims (OpenCompass average, per-benchmark scores) are deliberately not recorded, because this dataset states no ranking."
+  },
+  {
+    "id": "openbmb-minicpm-v-4-6-model-card",
+    "url": "https://huggingface.co/openbmb/MiniCPM-V-4.6",
+    "title": "MiniCPM-V 4.6 model card",
+    "type": "model-card",
+    "publisherId": "openbmb",
+    "lastCheckedDate": "2026-09-03",
+    "notes": "OpenBMB’s own card for MiniCPM-V 4.6, in OpenBMB’s own Hugging Face namespace, so the publisher is OpenBMB and not the host. Fetched 2026-09-03. States \"MiniCPM-V 4.6 is our most edge-deployment-friendly model to date. The model is built based on SigLIP2-400M and the Qwen3.5-0.8B LLM\", and describes its \"lightweight 1.3B scale\" with \"mixed 4x/16x visual token compression\", which the recorded 1.3B parameter figure rests on. It \"inherits the strong single-image, multi-image, and video understanding capabilities of MiniCPM-V family\", which the recorded image/video/text input modalities rest on. Its Artificial-Analysis-Index and per-benchmark comparison claims are deliberately not recorded, because this dataset states no ranking."
+  },
+  {
+    "id": "hugging-face-openbmb-minicpm-v-4-5-hub-record",
+    "url": "https://huggingface.co/api/models/openbmb/MiniCPM-V-4_5",
+    "title": "Hugging Face Hub record for openbmb/MiniCPM-V-4_5",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-09-03",
+    "notes": "The Hub’s own API record, in Hugging Face’s own namespace, so the publisher is the host and not the creator. Fetched 2026-09-03: tags include \"license:apache-2.0\", with \"gated\":false and safetensors present in the repository, and pipeline_tag \"image-text-to-text\". Cited for the licence identifier and for the downloadable-weights fact. The release date is not taken from here, because OpenBMB states one itself in its own repository."
+  },
+  {
+    "id": "hugging-face-openbmb-minicpm-v-4-6-hub-record",
+    "url": "https://huggingface.co/api/models/openbmb/MiniCPM-V-4.6",
+    "title": "Hugging Face Hub record for openbmb/MiniCPM-V-4.6",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-09-03",
+    "notes": "The Hub’s own API record, in Hugging Face’s own namespace, so the publisher is the host and not the creator. Fetched 2026-09-03: tags include \"license:apache-2.0\", with \"gated\":false and safetensors present in the repository, and pipeline_tag \"image-text-to-text\". Cited for the licence identifier and for the downloadable-weights fact. The release date is not taken from here, because OpenBMB states one itself in its own repository."
   }
 ]
