@@ -243,8 +243,17 @@ download in the pre-merge path of every gate — see
 also the check that the paths-filter on `web-ci` does not select for a
 docs-only change: on a pull request that touches only `docs/`, `README.md`,
 `LICENSE`, or `SECURITY.md` / `SUPPORT.md`, the `web-e2e` workflow starts
-and then skips without executing anything, so a green tick on it is not
-accessibility evidence. A launch check has to run the suite by hand:
+and then skips without executing anything. The mechanism is worth naming
+because a maintainer who checks and sees a green tick will otherwise
+assume it means what it usually means: `web-e2e.yml`'s first job step
+computes a `scope` output that is `run=false` when the diff touches only
+those paths, and every subsequent step is gated on
+`if: steps.scope.outputs.run == 'true'`. Skipped steps do not fail the
+job, so the job concludes **green having executed no accessibility test
+at all**. That is not the workflow failing quietly — it is the
+paths-filter design working as intended — but it does mean a green tick
+on `web-e2e` on a docs-only PR carries no accessibility signal. A launch
+check has to run the suite by hand:
 
 ```sh
 cd web
@@ -366,7 +375,12 @@ at 375px is a launch blocker.
 
 ### 2.9 Production check — the deployed site itself
 
-After the deploy in step 3, before tagging the release:
+`pages.yml` deploys automatically on every merge to `main` (see
+[`DEPLOYMENT-RUNBOOK.md`](DEPLOYMENT-RUNBOOK.md)), so a "deploy step" is
+not something this runbook triggers — the deploy has already happened by
+the time the checklist in section 3 is reached, and section 3's tag names
+the commit it deployed rather than triggering a new deploy. This step is
+the check that the origin is actually serving that commit:
 
 ```sh
 curl -sI https://abdeslam-menacere.github.io/ModelTree/ | head -1
@@ -456,9 +470,17 @@ gh run list --workflow=pages.yml --branch=main --limit=1 \
 # 3. Re-run section 2.9 against the origin.
 ```
 
-If step 1 disagrees, the tag is pointed at the wrong commit and the
-release notes are about a build that is not the one deployed. Fix the tag
-before announcing.
+If step 1 disagrees, the tag and `origin/main` are pointing at different
+commits. The usual cause is that the tag is on the wrong commit and the
+release notes are about a build that is not the one deployed. Another
+possibility, worth ruling out before re-tagging, is that `main` advanced
+after tagging — a merge landed between `git tag` and this check — in
+which case the tag is correct and it is `main` that has moved past it.
+`git log --oneline "v<x.y.z>^{commit}"..origin/main` distinguishes the
+two: an empty result means the tag is behind for the wrong reason and
+should be fixed; a non-empty result means `main` moved on and the
+decision is whether to re-tag the newer tip or accept that the release
+names an earlier commit. Fix before announcing.
 
 ## 4. Publishing known gaps honestly
 
@@ -526,6 +548,23 @@ if [ -z "$run_id" ]; then
 fi
 gh run watch "$run_id"
 ```
+
+`gh run watch` streams the run's step output and displays its conclusion,
+but it does **not** carry that conclusion out as its own exit code by
+default — the flag for that is `--exit-status`, and this snippet
+deliberately omits it because rollback verification is delegated to
+section 2.9's live `curl` against the origin, which is the check that
+matters under pressure. Read the conclusion the command prints; do not
+rely on `$?`. If a maintainer would rather the command carry the
+conclusion, add `--exit-status`.
+
+**Scope.** This procedure assumes the revert is clean. If `git revert
+<bad-sha>` reports a conflict — usually because a later commit depends
+on the one being reverted — this runbook stops here. Conflict resolution
+is a code change that belongs on a reviewed branch through the ordinary
+path, not inside a rollback step. Reverting a merge commit or a commit
+with dependents is out of scope for the single-bad-deploy case this
+section covers.
 
 The revert commit triggers `pages.yml`, which rebuilds and redeploys. Verify
 with section 2.9 against the routes that were broken.
