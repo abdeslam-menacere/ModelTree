@@ -5124,5 +5124,43 @@
       "osi-approved-licenses"
     ],
     "verifiedAt": "2026-09-02"
+  },
+  {
+    "id": "cohere-rerank-v3-5",
+    "slug": "rerank-v3-5",
+    "canonicalName": "rerank-v3.5",
+    "displayName": "Rerank v3.5",
+    "organizationId": "cohere",
+    "familyId": "cohere-rerank",
+    "version": "3.5",
+    "variant": "Standard",
+    "releaseDate": "2024-12-02",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "embedding-reranking"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 4096,
+    "apiAliases": [
+      "rerank-v3.5"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Cohere's state-of-the-art reranking model, which sorts documents by semantic relevance to a query. Multilingual, offered API-only, with a stated 4096-token context length. Lifecycle status is unknown: Cohere's model overview publishes a Status column for its Command and Parse tables (values such as \"Live\" and \"Deprecated\"), but the Rerank table carries no Status column and the Rerank docs state no lifecycle term, so no source states whether rerank-v3.5 is current.",
+    "intendedUse": "Reranking search results returned by an existing retrieval system, to improve relevance ordering in search and RAG pipelines.",
+    "sourceIds": [
+      "cohere-rerank-docs",
+      "cohere-rerank-v3-5-changelog"
+    ],
+    "verifiedAt": "2026-09-01"
   }
 ]

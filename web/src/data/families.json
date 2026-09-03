@@ -1518,5 +1518,22 @@
       "zhipu-ai-cogvideox-2b-model-card"
     ],
     "verifiedAt": "2026-09-02"
+  },
+  {
+    "id": "cohere-rerank",
+    "slug": "rerank",
+    "organizationId": "cohere",
+    "name": "Rerank",
+    "description": "Cohere's family of retrieval reranking models, which sort text inputs by semantic relevance to a query, distinct from the generative Command family. Offered as an API-only hosted service.",
+    "categories": [
+      "embedding-reranking"
+    ],
+    "datePrecision": "unstated",
+    "status": "unknown",
+    "sourceIds": [
+      "cohere-rerank-docs",
+      "cohere-rerank-v3-5-changelog"
+    ],
+    "verifiedAt": "2026-09-01"
   }
 ]

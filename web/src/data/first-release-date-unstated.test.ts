@@ -172,6 +172,34 @@ describe('a family first release date may be explicitly unstated', () => {
     expect(familyFirstReleaseLine(built!.family)).toBe('First release date not stated by any source');
   });
 
+  it('shows Cohere Rerank in the tree the site builds, dateless (#441, #554)', () => {
+    // The mutated probe above proves the mechanism; this one proves the record
+    // that motivated it, on the real dataset with nothing rewritten. The two
+    // are not redundant: a family can survive a synthetic edit and still be
+    // dropped for a reason particular to it -- an organization that no branch
+    // reaches, a category nothing renders -- which is exactly how #441 and #554
+    // shipped families the site never showed.
+    const tree = buildModelTree(validateDataset(rawDataset));
+    const familyIds = [...tree.featured, ...tree.others].flatMap(
+      (creator) => creator.families.map(({ family }) => family.id),
+    );
+
+    expect(familyIds).toContain('cohere-command-a'); // positive control
+    expect(familyIds).not.toContain('zzz-not-a-real-family-id'); // negative control
+    expect(familyIds).toContain('cohere-rerank');
+
+    const built = [...tree.featured, ...tree.others]
+      .flatMap((creator) => creator.families)
+      .find(({ family }) => family.id === 'cohere-rerank');
+    expect(built).toBeDefined();
+    expect(built!.family.firstReleaseDate).toBeUndefined();
+    expect(built!.family.datePrecision).toBe('unstated');
+    expect(familyFirstReleaseLine(built!.family)).toBe('First release date not stated by any source');
+
+    // And the release under it, so the family is not an empty shell on the page.
+    expect(built!.releases.map((release) => release.id)).toContain('cohere-rerank-v3-5');
+  });
+
   it('refuses an unstated family through validateDataset as well as the schema', () => {
     // The build boundary, not just the record boundary. `validateDataset` is
     // what every page goes through, and its precision pairing reads the same

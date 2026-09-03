@@ -47,6 +47,11 @@ function coarsen() {
   }
 
   for (const family of input.families as any[]) {
+    // A family may now record that no source states its first release date, in
+    // which case it holds no date to coarsen (ADR 0012). The `as any[]` cast
+    // above is why `strictNullChecks` did not flag this: the guard is the
+    // enumeration the type would otherwise have forced.
+    if (typeof family.firstReleaseDate !== 'string') continue;
     if (!family.firstReleaseDate.startsWith(`${MONTH}-`)) continue;
     family.firstReleaseDate = MONTH;
     family.datePrecision = 'month';
