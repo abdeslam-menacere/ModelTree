@@ -195,12 +195,16 @@ describe('unknown relationships do not create implied connecting lines', () => {
     expect(fixtureMarkup).toContain('data-external-lineage="predecessor"');
     expect(fixtureMarkup).toContain('Continues into Alpha Mark Two Release (Alpha Mark Two)');
     expect(fixtureMarkup).toContain('Continues from Alpha Mark One Release (Alpha Mark One)');
+    expect(fixtureMarkup).toContain('Continues into Alpha Mark Three Release (Alpha Mark Three)');
+    expect(fixtureMarkup).toContain('Continues from Alpha Mark Two Release (Alpha Mark Two)');
     expect(fixtureMarkup).toContain('recorded lineage link leaves this family');
+    expect(fixtureMarkup).toContain('recorded lineage links leave this family');
 
-    // Named, and still not a connector: neither family draws a line to the
-    // other's release.
+    // Named, and still not a connector: no family draws a line to another
+    // family's release.
     expect(fixtureMarkup).not.toContain('data-lineage-link="fixture-alpha-mark-one-release"');
     expect(fixtureMarkup).not.toContain('data-lineage-link="fixture-alpha-mark-two-release"');
+    expect(fixtureMarkup).not.toContain('data-lineage-link="fixture-alpha-mark-three-release"');
   });
 
   it('never draws a connector for a derivation, which may cross families', () => {

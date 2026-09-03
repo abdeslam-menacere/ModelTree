@@ -10,6 +10,7 @@ import {
   SHALLOW_FAMILY_ID,
   SUCCESSION_HEIR_FAMILY_ID,
   SUCCESSION_ORIGIN_FAMILY_ID,
+  SUCCESSION_TAIL_FAMILY_ID,
   lineageFixtureDataset,
 } from '../../tests/fixtures/lineage-dataset';
 import {
@@ -262,6 +263,7 @@ describe('succession across a family boundary', () => {
   // rule the within-family tree uses, applied where no connector is possible.
   const originId = 'fixture-alpha-mark-one-release';
   const heirId = 'fixture-alpha-mark-two-release';
+  const tailId = 'fixture-alpha-mark-three-release';
 
   function soleNode(familyId: string) {
     const nodes = flatten(familyView(fixtureEcosystems, familyId).roots);
@@ -269,24 +271,30 @@ describe('succession across a family boundary', () => {
     return nodes[0];
   }
 
-  it('reads the edge from the end it was not recorded on', () => {
+  it('reads the edge from the end it was not recorded on, in both directions', () => {
     const origin = lineageFixtureDataset.releases.find(({ id }) => id === originId)!;
     const heir = lineageFixtureDataset.releases.find(({ id }) => id === heirId)!;
+    const tail = lineageFixtureDataset.releases.find(({ id }) => id === tailId)!;
 
     // The asymmetry is the thing under test, so it is pinned rather than
-    // assumed: if the fixture ever records both ends, the heir's assertion below
-    // stops proving the far-end read and this fails first.
+    // assumed: if the fixture ever records both ends of a hop, the far-end
+    // assertion for that hop stops proving anything and this fails first.
     expect(origin.successorIds).toEqual([heirId]);
+    expect(heir.successorIds).toEqual([]);
     expect(heir.predecessorIds).toEqual([]);
-    expect(origin.familyId).not.toBe(heir.familyId);
+    expect(tail.predecessorIds).toEqual([heirId]);
+    expect(new Set([origin.familyId, heir.familyId, tail.familyId]).size).toBe(3);
 
-    expect(soleNode(SUCCESSION_HEIR_FAMILY_ID).externalPredecessors.map(({ releaseId }) => releaseId))
-      .toEqual([originId]);
+    // The middle family records neither hop, so both of its edges are far-end
+    // reads -- one written by the family before it, one by the family after.
+    const middle = soleNode(SUCCESSION_HEIR_FAMILY_ID);
+    expect(middle.externalPredecessors.map(({ releaseId }) => releaseId)).toEqual([originId]);
+    expect(middle.externalSuccessors.map(({ releaseId }) => releaseId)).toEqual([tailId]);
   });
 
   it('names the departing edge, with the family it points into, on both ends', () => {
     const origin = soleNode(SUCCESSION_ORIGIN_FAMILY_ID);
-    const heir = soleNode(SUCCESSION_HEIR_FAMILY_ID);
+    const tail = soleNode(SUCCESSION_TAIL_FAMILY_ID);
 
     expect(origin.externalSuccessors).toEqual([{
       releaseId: heirId,
@@ -294,21 +302,25 @@ describe('succession across a family boundary', () => {
       familyId: SUCCESSION_HEIR_FAMILY_ID,
       familyName: 'Alpha Mark Two',
     }]);
-    expect(heir.externalPredecessors).toEqual([{
-      releaseId: originId,
-      releaseName: 'Alpha Mark One Release',
-      familyId: SUCCESSION_ORIGIN_FAMILY_ID,
-      familyName: 'Alpha Mark One',
+    expect(tail.externalPredecessors).toEqual([{
+      releaseId: heirId,
+      releaseName: 'Alpha Mark Two Release',
+      familyId: SUCCESSION_HEIR_FAMILY_ID,
+      familyName: 'Alpha Mark Two',
     }]);
 
-    // Each end reports the edge in one direction only, so the two panels do not
-    // both claim to be the later one.
+    // Each end reports the edge in one direction only, so no two panels both
+    // claim to be the later one.
     expect(origin.externalPredecessors).toEqual([]);
-    expect(heir.externalSuccessors).toEqual([]);
+    expect(tail.externalSuccessors).toEqual([]);
   });
 
-  it('never draws it as a connector, in either family', () => {
-    for (const familyId of [SUCCESSION_ORIGIN_FAMILY_ID, SUCCESSION_HEIR_FAMILY_ID]) {
+  it('never draws it as a connector, in any of the three families', () => {
+    for (const familyId of [
+      SUCCESSION_ORIGIN_FAMILY_ID,
+      SUCCESSION_HEIR_FAMILY_ID,
+      SUCCESSION_TAIL_FAMILY_ID,
+    ]) {
       const view = familyView(fixtureEcosystems, familyId);
 
       expect(connectors(view.roots)).toEqual([]);
@@ -319,12 +331,17 @@ describe('succession across a family boundary', () => {
 
   it('counts a departing edge apart from the connectors a family draws', () => {
     const origin = familyView(fixtureEcosystems, SUCCESSION_ORIGIN_FAMILY_ID);
+    const middle = familyView(fixtureEcosystems, SUCCESSION_HEIR_FAMILY_ID);
     const deep = familyView(fixtureEcosystems, DEEP_FAMILY_ID);
 
     expect(origin.externalLinkCount).toBe(1);
+    // The middle family sits on both hops, so it reports two departing edges
+    // while still drawing no line of its own.
+    expect(middle.externalLinkCount).toBe(2);
     // `hasRecordedLineage` keeps its meaning: nothing connects this family's own
-    // releases to each other, and that is still true with an edge leaving it.
+    // releases to each other, and that stays true with edges leaving it.
     expect(origin.hasRecordedLineage).toBe(false);
+    expect(middle.hasRecordedLineage).toBe(false);
 
     // Difference control: a family whose lineage is wholly internal has the
     // opposite pair, so neither number is a constant.
@@ -335,13 +352,16 @@ describe('succession across a family boundary', () => {
 
   it('highlights the far end as lineage instead of leaving it unrelated', () => {
     const fromOrigin = buildLineageHighlight(fixtureEcosystems, originId);
-    const fromHeir = buildLineageHighlight(fixtureEcosystems, heirId);
+    const fromTail = buildLineageHighlight(fixtureEcosystems, tailId);
 
     expect(lineageRelation(fromOrigin, heirId)).toBe('successor');
-    expect(lineageRelation(fromHeir, originId)).toBe('ancestor');
+    expect(lineageRelation(fromTail, heirId)).toBe('ancestor');
+    // The walk is transitive across two boundaries, not one hop deep.
+    expect(lineageRelation(fromOrigin, tailId)).toBe('successor');
+    expect(lineageRelation(fromTail, originId)).toBe('ancestor');
 
     // Negative control: the walk crosses a recorded edge, not every boundary. A
-    // third family of the same creator stays unrelated.
+    // further family of the same creator stays unrelated.
     expect(lineageRelation(fromOrigin, 'fixture-alpha-solo-one')).toBe('unrelated');
     expect(fromOrigin.siblingIds.size).toBe(0);
   });
@@ -350,10 +370,13 @@ describe('succession across a family boundary', () => {
     const trail = buildLineageTrail(fixtureEcosystems, originId);
 
     expect(trail.isEmpty).toBe(false);
-    expect(trail.successors.map(({ releaseId }) => releaseId)).toEqual([heirId]);
+    // Newest first, which is `orderedEntries`' existing sort and not something
+    // the crossing changes: Mark Three (2025-06) precedes Mark Two (2025-05).
+    expect(trail.successors.map(({ releaseId }) => releaseId)).toEqual([tailId, heirId]);
     // The placement is what the trail panel prints as "creator / family", and is
     // the whole of how a reader learns where the lineage went.
-    expect(trail.successors[0].placement?.family.family.id).toBe(SUCCESSION_HEIR_FAMILY_ID);
+    expect(trail.successors[0].placement?.family.family.id).toBe(SUCCESSION_TAIL_FAMILY_ID);
+    expect(trail.successors[1].placement?.family.family.id).toBe(SUCCESSION_HEIR_FAMILY_ID);
     expect(trail.successors[0].placement?.organization.id).toBe('fixture-alpha');
   });
 });
