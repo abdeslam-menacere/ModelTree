@@ -4,9 +4,11 @@ ModelTree is a static site: an [Astro](https://astro.build) build over
 versioned JSON in [`web/src/data/`](web/src/data/), served by GitHub Pages.
 There is no server we operate, no database, no user accounts, no session
 cookies, and no runtime data fetching. [ADR 0001 — Static-first
-architecture](docs/adr/0001-static-first-architecture.md) records why, and the
-runtime property is enforced by the tests in [`web/`](web/): a change that
-introduces a runtime fetch fails `npm run validate` before it can ship.
+architecture](docs/adr/0001-static-first-architecture.md) records the
+decision, and the runtime property rests on the build itself — Astro's
+`output: 'static'` in [`web/astro.config.mjs`](web/astro.config.mjs) and
+`prerender = true` on every route — rather than on a test that greps for
+`fetch(`. Reversing it would change ADR 0001, not slip past a check.
 
 That shape does most of what a security policy usually promises for us. What
 remains is a small, precise surface, and this file states it precisely.
@@ -82,21 +84,30 @@ dated decision and what a change to it would require.
 
 ## Where security-relevant claims are actually enforced
 
-A rule that is only written down decays. The rules above have concrete
-enforcement points in this repository, and the enforcement points are the
-authority:
+A rule that is only written down decays. The rules above rest on the site's
+architecture rather than on a test suite, and the enforcement points are:
 
-- The no-runtime-fetch rule is enforced by
-  [`web/src/lib/`](web/src/lib/) tests and by
-  [ADR 0001](docs/adr/0001-static-first-architecture.md).
-- The dataset schema, and what may reach a public build without human review,
-  is enforced by
+- **The no-runtime-fetch and no-runtime-measurement properties rest on the
+  site being a static build, not on a command that greps for `fetch(` or
+  `document.cookie`.** [`web/astro.config.mjs`](web/astro.config.mjs)
+  declares `output: 'static'` and every route file under
+  [`web/src/pages/`](web/src/pages/) exports `prerender = true`, so the
+  build emits HTML, CSS, JS islands, and a handful of prerendered `.txt` /
+  `.xml` / `.json` artefacts, and it emits no server. There is no origin
+  that could serve a request the client made, no session for a cookie to
+  identify, and no build hook that would inject a measurement script.
+  Adding any of those would change the ADR 0001 decision, not slip past
+  it. See [ADR 0001](docs/adr/0001-static-first-architecture.md).
+- **What may reach a public build without human review** is bounded by
   [`.github/skills/modeltree-gates/scripts/gate-scope.mjs`](.github/skills/modeltree-gates/scripts/gate-scope.mjs)
-  and is bounded by
+  and by
   [ADR 0003](docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md).
-- The lockfile integrity property that keeps supply-chain review meaningful is
-  recorded in
+- **The lockfile integrity property that keeps supply-chain review
+  meaningful** is recorded in
   [ADR 0004](docs/adr/0004-sha-1-lockfile-integrity-is-a-mirror-constraint.md).
 
-If any of those cease to hold, this policy is wrong and the code is right.
-Report that, too.
+The distinction matters: `npm run validate` does **not** search the code
+for a runtime fetch or a cookie write. If a change introduced one, the
+signal would be an ADR that had to change to accommodate it, or a review
+comment, and not a red test. If that architectural posture stops holding,
+this file is wrong until it is updated.

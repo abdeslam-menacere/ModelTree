@@ -395,10 +395,39 @@ gh release create v<x.y.z> --generate-notes
 ```
 
 Then verify the tag reaches `https://abdeslam-menacere.github.io/ModelTree/`
-by re-running section 2.9 against the newly deployed HEAD. **This is the
-"verified public URL before release tagging" acceptance criterion**: it is
-not satisfied by pushing the tag — it is satisfied by observing `200` from
-the origin against the routes above after the deploy that the tag triggers.
+by re-running section 2.9 against the commit the tag names. **This is the
+"verified public URL before release tagging" acceptance criterion**, and its
+mechanics are worth being exact about because a maintainer reading this
+under release pressure has to know what they are waiting for.
+
+`.github/workflows/pages.yml` triggers on `push` to `main` and on
+`workflow_dispatch`. **It does not trigger on tag push.** A tag names a
+commit that has already merged to `main`, so the deploy that brought the
+site up to that commit ran when the merge landed, not when the tag was
+pushed. Do not wait for a second deploy that will not come, and do not add
+a tag trigger to `pages.yml` to make one — that is architecture rework in
+a docs step.
+
+The criterion is therefore satisfied by observing that the origin is
+already serving the commit the tag names, before or after the tag is
+pushed:
+
+```sh
+# 1. Confirm the tag names the current main tip:
+git rev-parse v<x.y.z>
+git rev-parse origin/main
+# these should be equal.
+
+# 2. Confirm the last successful pages.yml deploy is that commit:
+gh run list --workflow=pages.yml --branch=main --limit=1 \
+  --json headSha,conclusion,createdAt
+
+# 3. Re-run section 2.9 against the origin.
+```
+
+If step 1 disagrees, the tag is pointed at the wrong commit and the
+release notes are about a build that is not the one deployed. Fix the tag
+before announcing.
 
 ## 4. Publishing known gaps honestly
 

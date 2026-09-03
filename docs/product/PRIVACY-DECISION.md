@@ -99,13 +99,24 @@ A measurement proposal that would meet all five is welcome. One that would
 not is a data problem, not a privacy problem, and should be reframed —
 usually as a repository-side signal instead.
 
-## What the tests hold
+## What holds this document honest
 
-The rule that keeps this document honest is the same one that keeps the site
-static: a change that adds a runtime fetch, an analytics script, or a
-`document.cookie` write fails `npm run validate` before it can land. That
-enforcement lives in the code, not here, and if the enforcement changes this
-document is wrong until it is updated.
+The rule that keeps this document honest is not a test. It is the site's
+architecture, recorded in
+[ADR 0001](../adr/0001-static-first-architecture.md): the build declares
+`output: 'static'` in [`web/astro.config.mjs`](../../web/astro.config.mjs),
+every route under [`web/src/pages/`](../../web/src/pages/) exports
+`prerender = true`, and the build emits HTML, CSS, JS islands, and a small
+set of prerendered text and XML artefacts. There is no origin the site
+operates, no session for a cookie to belong to, and no build hook that
+would inject a measurement script.
+
+`npm run validate` does **not** search the code for a runtime fetch, an
+analytics import, or a `document.cookie` write. If a change introduced any
+of those, the signal would be an ADR that had to change to accommodate it,
+or a review comment; not a red test. If that architectural posture stops
+holding — if a route stops being prerendered, or the build gains a runtime
+data flow — this document is wrong until it is updated.
 
 ## History
 
