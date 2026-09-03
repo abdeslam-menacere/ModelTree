@@ -292,6 +292,22 @@ describe('skills-ci.yml scope detection', () => {
     expect(String(step?.run ?? '')).toContain('--history HEAD');
   });
 
+  // #835: `refresh-runs.json` records a rejected claim permanently, and the
+  // ordinary reviewed pull-request path can land that same record later. The
+  // reversal is legitimate; the silence about it is not. Nine had accumulated
+  // before anyone counted them, because nothing read the two documents
+  // together. This step is the thing that reads them together, and it belongs
+  // in *this* job because this job's scope pattern includes `web/src/data/` —
+  // the path those reversals took. A check wired into the refresh pipeline
+  // instead would watch the one route they did not use.
+  it('runs the reversal gate over the rejection ledger and the dataset', () => {
+    const step = skillsCiSteps.find((candidate) =>
+      String(candidate.run ?? '').includes('gate-reversals.mjs'),
+    );
+
+    expect(step, 'skills-ci must run gate-reversals.mjs').toBeDefined();
+  });
+
   // The complement of the assertion above, and the one that catches a step of a
   // kind this test did not anticipate: everything after the decision belongs to
   // one side of it or the other. Only the checkout and the decision itself may

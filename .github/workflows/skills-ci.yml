@@ -266,7 +266,31 @@ jobs:
         if: steps.scope.outputs.run == 'true'
         run: node .github/skills/modeltree-gates/scripts/gate-ledger.mjs --history HEAD
 
-      # The suite above prints its own size on every run, so the documentation
+      # A claim the panel rejected, on trunk, with nothing reconciling the two
+      # (#835). `refresh-runs.json` records a rejection permanently, and the
+      # ordinary reviewed pull-request path can land the same record later. That
+      # is legitimate -- an ordinary reviewed change is allowed to be more
+      # permissive than the automated panel -- but it left two committed
+      # documents disagreeing and nothing noticing, which is how nine such
+      # reversals accumulated before anyone counted them.
+      #
+      # The step belongs here specifically because this job's scope pattern
+      # includes `web/src/data/`. The reversals arrived by ordinary data change,
+      # not by a refresh run, so a check wired into the refresh pipeline would
+      # have watched the one path they did not take.
+      #
+      # It gates visibility, never permission: it asks whether
+      # `rejection-reversals.json` records the reversal, and has no opinion on
+      # whether the objections were well answered. Judging that is a reviewer's
+      # job, and a script that claimed to do it would be the more reassuring and
+      # the less true. `unanswered` is a first-class disposition for the same
+      # reason -- see the header of the gate for why a check that forced a
+      # resolution would push its user into inventing one.
+      - name: Run the reversal gate over the rejection ledger and the dataset
+        if: steps.scope.outputs.run == 'true'
+        run: node .github/skills/modeltree-gates/scripts/gate-reversals.mjs
+
+
       # does not repeat it. This step is what keeps that true: it refuses a
       # hand-written test count in the skill docs (#276).
       #
