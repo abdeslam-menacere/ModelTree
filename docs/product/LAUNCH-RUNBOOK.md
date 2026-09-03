@@ -194,7 +194,19 @@ the last scheduled result:
 
 ```sh
 gh workflow run source-link-health.yml
-gh run watch --workflow=source-link-health.yml
+
+# The run needs a moment to appear in the API after `gh workflow run`
+# starts it. Poll gh run list until it returns an id, then watch by id.
+# `gh run watch` does not take --workflow; it takes a run id (or picks
+# interactively when given none).
+run_id=""
+for _ in 1 2 3 4 5; do
+  run_id=$(gh run list --workflow=source-link-health.yml --limit=1 \
+    --json databaseId --jq '.[0].databaseId')
+  [ -n "$run_id" ] && break
+  sleep 2
+done
+gh run watch "$run_id"
 ```
 
 Failures come in two shapes. A `4xx` or `5xx` against a primary source cited
@@ -475,8 +487,12 @@ git pull --ff-only origin main
 git revert <bad-sha>          # produces one revert commit
 git push origin main
 
-# 3. Watch the redeploy:
-gh run watch --workflow=pages.yml
+# 3. Watch the redeploy. The revert push in step 2 triggers a new
+#    pages.yml run; resolve its id from gh run list and watch by id.
+#    `gh run watch` does not take --workflow; it takes a run id.
+run_id=$(gh run list --workflow=pages.yml --branch=main --limit=1 \
+  --json databaseId --jq '.[0].databaseId')
+gh run watch "$run_id"
 ```
 
 The revert commit triggers `pages.yml`, which rebuilds and redeploys. Verify
