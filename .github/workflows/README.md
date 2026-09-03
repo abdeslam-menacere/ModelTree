@@ -20,6 +20,7 @@ waiting for a merge to tell it.
 | [`publish-updater-proposals.yml`](publish-updater-proposals.yml) | `schedule` (weekly, `52 5 * * 1`), `workflow_dispatch` | Files creator proposals as issues. A dispatch takes its creators, mode and `dry_run` from its inputs; a scheduled run has no inputs at all, so one step resolves both triggers to the same three parameters explicitly and writes the decision to the job summary — without that, `dry_run` reads as empty on a schedule and an empty value took the *publishing* branch. Where live mode is unconfigured (#93 — the repository has no Actions variables today), the scheduled run exercises the whole run→publish path against committed fixtures with `--dry-run` and publishes nothing, rather than reddening weekly on `azure/login`. A creator that could not be fetched still reaches a human: the CLI writes its report before returning 3, so the run step treats 3 in live mode as a finding to publish with a `::warning::`, not as an abort. It never writes to `web/src/data/` |
 | [`data-health.yml`](data-health.yml) | `schedule` (weekly), `workflow_dispatch` | Generates the staleness / data-health report over the versioned dataset and uploads it as an artifact: every dated record classified healthy, stale or conflicted with the date and category threshold that produced the verdict, releases missing optional coverage, the primary-source-type mix, and unresolved conflicts kept side by side. No score and no ranking. Ordinary age is reported, never failed; the one build-failing rule — a `verifiedAt` in the future — rides `web-ci` as a vitest test, not this workflow. Reads the dataset only, writes nothing back, uses no secrets |
 | [`web-e2e.yml`](web-e2e.yml) | `pull_request` (every one) and `push` to `main`, both scoped **inside the job** to `web/**` and `.github/workflows/web-e2e.yml`; `workflow_dispatch` | The browser half of the site's checks: Playwright drives a real Chromium over `astro preview`, and asserts the lineage view's 320px layout, its keyboard journey, its reduced-motion behaviour, and axe accessibility scans at desktop and mobile widths. Separate from `web-ci.yml` because it needs a Chromium download, which does not belong inside `npm run build` and therefore inside every dock's and every gate agent's install |
+| [`aggregate-checks.yml`](aggregate-checks.yml) | `pull_request` (every one), **no path filter at all**; `workflow_dispatch` is deliberately absent, because outside a pull request there is no head SHA whose check runs it could read | Observes the check runs GitHub recorded against this pull request's head commit and fails if any watched path-filtered check did not pass. It runs nothing itself — it is the one check whose whole job is to make the checks that *cannot* be required countable by the one that can. Requiring it is a branch-protection change, and until somebody makes it this workflow changes nothing |
 
 ## Status check names
 
@@ -39,6 +40,7 @@ satisfied, because GitHub waits for a check that no longer reports.
 | `source-link-health-tests` | `source-link-health.yml` | **Yes** — see below |
 | `source-link-health` | `source-link-health.yml` | **No, and never** — see below |
 | `web-e2e` | `web-e2e.yml` | **Yes** — see below |
+| `aggregate-checks` | `aggregate-checks.yml` | **Yes** — see below, and requiring it is the point |
 
 ### Why `web-ci` is safe to require
 
@@ -131,7 +133,110 @@ scope — two pull requests each adding the next ADR would collide by constructi
 under a contiguity rule, and a check that fires on correct work gets worked
 around rather than fixed.
 
-### `skills-ci` is safe to require
+### `aggregate-checks` makes the three above countable
+
+The three sections above each end the same way — this check cannot be required,
+because a path-filtered workflow reports nothing on a non-matching pull request
+and a required check that never reports blocks forever. That is true, and it left
+a hole that [#710](https://github.com/abdeslam-menacere/ModelTree/issues/710)
+measured: `adr-numbers`, `instruction-references`, `pytest (Python 3.11)` and
+`pytest (Python 3.13)` **do** run against the merged tree when they trigger,
+because GitHub checks out the merge commit for `pull_request` — but nothing
+blocks on their result. GitHub's `mergeStateStatus` reads `CLEAN` while one of
+them is red, because that field means *mergeable, and nothing that blocks is
+red*, not *everything passed*. A human or an agent merging on that signal merges
+a red pull request. Pull request 772 is the recorded shape of it:
+`source-link-health` red, `web-ci`, `skills-ci` and `web-e2e` all green.
+
+`aggregate-checks` is the requirable check that fails when one of those failed.
+It has **no** `on.pull_request.paths` filter, so it reports on every pull request
+including one that touches nothing relevant — which is exactly the property the
+path-filtered workflows lack and the only thing that makes a check safe to
+require. Its job id and its `name:` are both the literal `aggregate-checks`, and
+it has no `strategy.matrix`, so the reported name never varies.
+
+It does not *run* any of those checks. It **observes** them, and the distinction
+is forced rather than chosen. `needs:` names jobs in the same workflow file only;
+there is no cross-workflow `needs`, so the familiar `needs.*.result` pattern
+cannot see another workflow at all. `workflow_run` is worse here, not better: it
+fires only when the named workflow actually ran, which is precisely the case the
+aggregator has to tell apart from the other one. What is left is the single
+source of truth GitHub does expose —
+`GET /repos/{owner}/{repo}/commits/{head_sha}/check-runs` — which was checked
+against the `statusCheckRollup` of a real past pull request and returned the same
+set, name for name and conclusion for conclusion.
+
+**The distinction the whole thing exists for** is between a check that was
+*skipped* and a check that *never triggered*. They are different states and only
+one of them is visible as a check run:
+
+| State | What the checks API shows |
+|---|---|
+| Passed | a run, `status: completed`, `conclusion: success` |
+| Failed | a run, `status: completed`, `conclusion: failure` |
+| Skipped | a run, `status: completed`, `conclusion: skipped` |
+| Never triggered | **no run with that name at all** |
+
+The last row is the trap. An absent check and a check whose run has not been
+created *yet* look identical, so a naive reader that treats "absent" as "fine"
+passes a pull request whose real checks had simply not started. So the script
+does not treat absence as anything on its own. It reads
+`GET /repos/{owner}/{repo}/pulls/{number}/files` — which is what GitHub itself
+matches an `on.pull_request.paths` filter against — computes from the committed
+path filters which watched checks *should* have triggered, and requires each of
+those to be present and to have finished. An expected check that never appears is
+**undetermined**, which is a red job, not a green one. Only a check that is both
+absent and unexpected is read as never-triggered, and only after the run has
+observed the check set hold still.
+
+Two conclusions pass: `success` and `skipped`. Everything else fails, and
+`cancelled` is the one worth stating a reason for, since several workflows here
+set `cancel-in-progress: true` and cancellation is therefore routine rather than
+exceptional. A cancelled check is the **absence of a verdict**, not a verdict of
+success, so it fails. That costs nothing in the routine case: concurrency cancels
+the runs belonging to a *superseded* head SHA, and the aggregator on that same
+SHA is cancelled by the same rule at the same time, so the commit that goes red
+is one nobody is merging. The newest head SHA gets a fresh set of runs and a
+fresh aggregation. `timed_out`, `neutral`, `action_required`, `stale` and a null
+conclusion all fail for the same reason: none of them is evidence the check
+passed.
+
+What it deliberately does **not** watch, and why:
+
+| Not watched | Why |
+|---|---|
+| `web-ci`, `skills-ci`, `web-e2e` | already required, so aggregating them would only add a second way to say the same thing |
+| `source-link-health` | must never be required — it depends on other people's uptime, and the section below explains at length why it is advisory |
+| the two link-health issue jobs | they are `needs:`-gated issue bookkeeping and are skipped on every pull request |
+| itself | for the obvious reason |
+
+`source-link-health-tests` **is** watched: it is the in-job-scoped self-test half
+of that workflow, which the section below already records as safe to require.
+
+There is exactly one environment variable, `AGGREGATE_CHECKS_TIMEOUT_SECONDS`,
+and it is fail-closed by construction: it can only end a run *sooner*, as
+undetermined, which is a red job. There is no value of it that turns a
+non-success into a pass. The job has no `continue-on-error`, no `if: always()`,
+no `|| true`, and the script takes no arguments, so there is no flag to reach
+for. Its exit codes are 0 passed, 1 a watched check did not pass, 2 the question
+could not be answered — and 2 is a failing job, the same rule the gate scripts
+hold: a check that could not run has not passed.
+
+**Merging this workflow changes nothing on its own.** It reports, and a report
+nobody requires is a report. Adding `aggregate-checks` to the required set on
+`main` is a branch-protection change and needs the repository owner; until that
+happens the hole #710 measured is still open, with one more green check beside
+it.
+
+Its decision logic is covered by `web/tests/workflows/aggregate-checks.test.ts`,
+which runs the real script against a fixture checks API and asserts real exit
+codes for each case above — failed, skipped, never-triggered, cancelled, timed
+out, still-running and unreadable. What that cannot cover is GitHub's own
+production of the check runs, which is evidenced from past runs rather than
+executed locally. `.github/scripts/ci-preflight.mjs` names the same limit in its
+`NOT_COVERED` list, so a green preflight does not silently claim it.
+
+
 
 It was trigger-path-filtered until #294, which is why older text lists it with
 the three above as the same trap. That reason has stopped being true.
