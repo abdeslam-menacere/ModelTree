@@ -1046,6 +1046,42 @@
     "notes": "States \"Number of Parameters: 27B\", \"Context Length: 262,144 natively and extensible up to 1,000,000 tokens\", apache-2.0 licensing and an image-text-to-text pipeline. The pipeline tag is the creator’s own modality statement and is what this dataset records, in preference to a third party’s broader description."
   },
   {
+    "id": "qwen3-8-flash-next-model-card",
+    "url": "https://huggingface.co/Qwen/Qwen3.8-Flash-Next",
+    "title": "Qwen/Qwen3.8-Flash-Next model card",
+    "type": "model-card",
+    "publisherId": "alibaba-cloud",
+    "lastCheckedDate": "2026-09-03",
+    "notes": "The creator’s card for Qwen3.8-Flash-Next, read this run at the repository’s raw README endpoint on the same origin. States \"Context Length: 262,144 natively and extensible up to 1,000,000 tokens\", \"Number of Parameters: 125B with 6B activated, plus 51B n-gram embedding and 4B MTP\", an image-text-to-text pipeline, and licence metadata naming qwen-community-1.0. It calls the model \"This experimental preview of the architecture that will underpin Qwen4\" and distinguishes it from Qwen3.8-Flash, which it describes as \"the official version based on Qwen3.8-Flash-Next with more production features\"; the release records status \"preview\" on those two statements. The card links a launch post on qwen.ai, an origin no reviewed profile catalogue and no committed source stands behind, so nothing is cited from there."
+  },
+  {
+    "id": "hugging-face-qwen3-8-flash-next-hub-record",
+    "url": "https://huggingface.co/api/models/Qwen/Qwen3.8-Flash-Next",
+    "title": "Hugging Face Hub record for Qwen/Qwen3.8-Flash-Next",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-09-03",
+    "notes": "The Hub’s machine-readable record for the repository. Cited only for the platform-authored facts ADR 0009 permits: that the repository is readable, ungated and not disabled, and that its weight shards are enumerated. Those support the release’s open-weight access type alongside the creator’s own statement on the card. The record carries createdAt 2026-08-24; that timestamp is *not* this release’s date, because the creator’s repository states \"2026-08-26: We release Qwen3.8-Flash-Next.\" and a creator statement outranks a platform timestamp."
+  },
+  {
+    "id": "qwen3-8-flash-next-repository",
+    "url": "https://github.com/QwenLM/Qwen3.8-Flash-Next",
+    "title": "QwenLM/Qwen3.8-Flash-Next",
+    "type": "repository",
+    "publisherId": "alibaba-cloud",
+    "lastCheckedDate": "2026-09-03",
+    "notes": "The creator’s own repository for this model, separate from qwen3-8-repository which covers the Qwen3.8 generation as a whole and whose dated News list does not mention Flash-Next. Its README carries the dated entry \"2026-08-26: We release Qwen3.8-Flash-Next.\", which is the creator-stated release date this dataset records, and states that the release \"delivers superior capabilities in coding and office tasks\". Read this run at the rendered file page on github.com."
+  },
+  {
+    "id": "qwen3-8-flash-next-license",
+    "url": "https://huggingface.co/Qwen/Qwen3.8-Flash-Next/blob/main/LICENSE",
+    "title": "Qwen Community License 1.0 (Qwen3.8-Flash-Next)",
+    "type": "official-docs",
+    "publisherId": "alibaba-cloud",
+    "lastCheckedDate": "2026-09-03",
+    "notes": "The licence text the model card’s license_link points at, read this run at the raw file endpoint on the same origin. Its first line is \"Qwen Community License 1.0\" and it grants permission over \"the model weights, parameters, configuration files, inference code and associated documentation\", which is what the release’s weightsDownloadable value rests on. It is a licence of the creator’s own drafting; whether OSI approved it is not a question this document can answer, and the release cites osi-license-index for that."
+  },
+  {
     "id": "amazon-sagemaker-jumpstart-qwen3-8-27b",
     "url": "https://aws.amazon.com/about-aws/whats-new/2026/01/muse-glimmer-30b-qwen-3.8-27b-on-sagemaker-jumpstart/",
     "title": "Muse-Glimmer-30B and Qwen 3.8-27B models now available on Amazon SageMaker JumpStart",
@@ -1112,6 +1148,42 @@
     "publisherId": "microsoft",
     "lastCheckedDate": "2026-08-31",
     "notes": "States \"Developer: Microsoft Research AI Frontiers\", \"Release date: 21 May 2026\", MIT licensing, 27B parameters, \"Context length 262,144\", inputs of a text goal plus screenshots and text outputs, and that the model is \"supervised fine-tuned from Qwen3.5-27B\". The base model it names is created by Alibaba Cloud and is not recorded in this dataset, so the derivation is stated in prose rather than linked."
+  },
+  {
+    "id": "microsoft-fara-1-5-4b-model-card",
+    "url": "https://huggingface.co/microsoft/Fara1.5-4B",
+    "title": "microsoft/Fara1.5-4B model card",
+    "type": "model-card",
+    "publisherId": "microsoft",
+    "lastCheckedDate": "2026-09-03",
+    "notes": "Microsoft Research AI Frontiers’ card for the 4B member of the Fara1.5 line, read this run at the repository’s raw README endpoint on the same origin. States \"Developer | Microsoft Research AI Frontiers\", \"Release date | 21 May 2026\", \"Parameters | 4B\", \"Context length | 262,144 tokens\", an \"image + text → text\" architecture and MIT licensing. It states no lifecycle status anywhere, which is why the release records status \"unknown\" rather than the 27B’s \"current\". Its frontmatter names a Qwen3.5 base model created by Alibaba Cloud; that model is not in this dataset, so the derivation is stated in the release summary rather than linked."
+  },
+  {
+    "id": "hugging-face-fara-1-5-4b-hub-record",
+    "url": "https://huggingface.co/api/models/microsoft/Fara1.5-4B",
+    "title": "Hugging Face Hub record for microsoft/Fara1.5-4B",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-09-03",
+    "notes": "The Hub’s machine-readable record for the repository. Cited only for the platform-authored facts ADR 0009 permits: that the repository is readable, ungated and not disabled, and that its weight shards are enumerated. Together those support the release’s open-weight access type. The record also carries createdAt 2026-07-17, which is *not* used as this release’s date — the creator states 21 May 2026 on the card, and a creator statement outranks a platform timestamp. That divergence is recorded here rather than reconciled."
+  },
+  {
+    "id": "microsoft-fara-1-5-9b-model-card",
+    "url": "https://huggingface.co/microsoft/Fara1.5-9B",
+    "title": "microsoft/Fara1.5-9B model card",
+    "type": "model-card",
+    "publisherId": "microsoft",
+    "lastCheckedDate": "2026-09-03",
+    "notes": "Microsoft Research AI Frontiers’ card for the 9B member of the Fara1.5 line, read this run at the repository’s raw README endpoint on the same origin. States \"Developer | Microsoft Research AI Frontiers\", \"Release date | 21 May 2026\", \"Parameters | 9B\", \"Context length | 262,144 tokens\", an \"image + text → text\" architecture and MIT licensing. It states no lifecycle status anywhere, which is why the release records status \"unknown\". Its frontmatter names a Qwen3.5 base model created by Alibaba Cloud; that model is not in this dataset, so the derivation is stated in the release summary rather than linked."
+  },
+  {
+    "id": "hugging-face-fara-1-5-9b-hub-record",
+    "url": "https://huggingface.co/api/models/microsoft/Fara1.5-9B",
+    "title": "Hugging Face Hub record for microsoft/Fara1.5-9B",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-09-03",
+    "notes": "The Hub’s machine-readable record for the repository. Cited only for the platform-authored facts ADR 0009 permits: that the repository is readable, ungated and not disabled, and that its weight shards are enumerated. Together those support the release’s open-weight access type. The record also carries createdAt 2026-05-12, nine days before the creator-stated release date of 21 May 2026; the creator’s statement is what the release records, and the platform timestamp is noted here rather than used."
   },
   {
     "id": "microsoft-fara-7b-model-card",
