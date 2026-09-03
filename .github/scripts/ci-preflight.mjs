@@ -511,6 +511,18 @@ const NOT_COVERED = [
       + 'lineage view, and read its result on the pull request otherwise.',
   },
   {
+    check: 'aggregate-checks',
+    what: 'the `aggregate-checks` aggregating status check',
+    why:
+      'it reads the check runs GitHub recorded against a real pull request head SHA, so what it '
+      + 'judges does not exist until a pull request does. There is nothing here for it to observe: '
+      + 'a local preflight has a working tree, not a set of completed check runs. Its decision '
+      + 'logic is covered instead by `web/tests/workflows/aggregate-checks.test.ts`, which drives '
+      + 'the real script against a fixture checks API, and that test does run here as part of '
+      + '`npm run validate`. What stays uncovered is only GitHub\'s own production of those check '
+      + 'runs.',
+  },
+  {
     what: 'the second Python interpreter',
     why:
       'CI runs the updater suite on 3.11 and 3.13. This runs it once, on whatever `python` '
