@@ -571,13 +571,32 @@ each came back as written classify your own branch.
   conflicting on those same three data files — measured at trunk
   `6a86892562618a3bf7fbff87fa454429c97a64da` on 2026-09-03, and confirming the
   reading previously taken at `4dd99cb72b11b1fe71107b66996aa7dfe2d236f6`. Run it
-  at both arms or it proves nothing: against `f69ea888` the same command exits 0
-  and prints trunk's own tree, so exit 1 is a finding rather than this
-  instrument's only answer. That leg is trunk-relative rather than terminal, so
-  re-measure it against the trunk you resolved rather than trusting this line,
-  and read a disagreement as trunk having moved rather than as your instrument
-  being broken. It corroborates and never decides: a non-zero exit says nothing
-  about landedness, so the verdict on this input still comes from the content.
+  at both arms or it proves nothing — and write each arm out in full, because a
+  phrase like "the same command against `f69ea888`" does not say which operand it
+  replaces, and the two available substitutions print different trees. The arm
+  meant here keeps trunk on the left:
+
+  ```
+  git merge-tree --write-tree "$trunk" '7ddbb27c0d16334416cff6c9757cca39a0cb7ae5'
+  git merge-tree --write-tree "$trunk" 'f69ea8882a9c66ae339238a2d35248e21e603803'
+  ```
+
+  The first exits 1 and the second exits 0; those codes are the operative
+  reading, and 1 against 0 is the whole discrimination, so exit 1 is a finding
+  rather than this instrument's only answer. The second prints trunk's own tree
+  — `59cd8123` at the anchor above, so expect that identity and not that OID,
+  since it is whichever trunk you resolved. Its 0 is certain by construction
+  rather than earned, `f69ea888` being an ancestor of trunk, so the arm
+  establishes that this instrument can return 0 at all and nothing beyond that.
+  Replace the *left* operand instead and you get a different measurement that
+  also exits 0 — `git merge-tree --write-tree f69ea888 7ddbb27c` prints
+  `7ddbb27c`'s own tree, that pair being a fast-forward — which is why the
+  operands are written out rather than described. That leg is trunk-relative
+  rather than terminal, so re-measure it against the trunk you resolved rather
+  than trusting this line, and read a disagreement as trunk having moved rather
+  than as your instrument being broken. It corroborates and never decides: a
+  non-zero exit says nothing about landedness, so the verdict on this input
+  still comes from the content.
 - **Must detect difference:** run your comparison, in the same invocation with
   the same quoting and the same arguments, on a pair known to differ, and assert
   the result is non-empty:
