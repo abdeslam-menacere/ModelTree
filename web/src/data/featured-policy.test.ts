@@ -38,13 +38,26 @@ const CREATORS_THE_SITE_LEADS_WITH = [
 ];
 
 /**
- * ADR 0012. A rationale earns its place by saying something that a rationale
- * for a different release of the same creator could not say. Three kinds of
- * reference qualify, and transplanting the sentence onto another release
- * falsifies each: it names another release, which that release's own rationale
- * could not do without pointing at itself; it states this release's lifecycle
- * standing, which a release still current does not share; or it states a
- * uniqueness claim, which by construction holds of one release in a line.
+ * ADR 0012 asks two things of a rationale, and #840 established by measurement
+ * that one instrument cannot answer both:
+ *
+ *   "... in terms that stay true once the release is superseded [durability]
+ *    and that could not be written of another release of the same creator
+ *    [discrimination]."
+ *
+ * The list below is the *durability* proxy. Half of it is lifecycle vocabulary
+ * -- `legacy`, `retirement`, `shutdown`, `superseded`, `preceded` -- which a
+ * release that is still current cannot honestly use about itself, so the list
+ * is scoped to flagged releases that have been superseded and stays there.
+ *
+ * Reading it as the discrimination instrument as well was tried and refused on
+ * the measurement: applied to all 24 flagged records it fails 9 of them, six of
+ * which #840 puts out of scope because they already discriminate in substance
+ * (`meta-llama-4-maverick` names another release outright), and it *passes* the
+ * three byte-identical GPT-4.1 rationales, because "Seed release with ..."
+ * contains `seed`. A check that fails records that are fine and passes the
+ * records the issue was filed about is measuring the wrong thing. Discrimination
+ * is enforced instead by `isWrittenOf` below, over every flagged release.
  *
  * This is a documented list of reference kinds, not a decision procedure for
  * English, and it fails safe -- a rationale containing "only" incidentally
@@ -66,9 +79,54 @@ const DISCRIMINATING_REFERENCES = [
 const SUPERSEDED_FABLE_5_RATIONALE =
   'A widely released Claude model with a dated general-availability statement in the official model documentation.';
 
+/**
+ * ADR 0012's discrimination clause, and the sentences #840 was filed about.
+ * Both are kept verbatim so the widened check is pinned against the exact
+ * defect rather than against whatever the dataset happens to hold today.
+ */
+const SHARED_GPT_5_6_RATIONALE =
+  'Launched in the GPT-5.6 general-availability announcement with its own dated API model documentation.';
+const SUBSUMED_GEMINI_3_6_RATIONALE =
+  'A generally available Flash tier of the Gemini 3 generation, with a dated release and published token limits.';
+const SUBSUMING_GEMINI_3_7_RATIONALE =
+  'The newest generally available Flash tier of the Gemini 3 generation, with a dated release and published token limits.';
+
 function discriminates(rationale: string): boolean {
   const text = rationale.toLowerCase();
   return DISCRIMINATING_REFERENCES.some((reference) => text.includes(reference));
+}
+
+function rationaleWords(rationale: string): string[] {
+  return rationale
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+/**
+ * The transplant test the Fable 5 case already calls decidable, generalised so
+ * it applies to every flagged release rather than to one pair by hand.
+ *
+ * A rationale is *written of* a sibling when every word it uses is a word that
+ * sibling's rationale already uses. It then asserts nothing about its own
+ * release that the sibling's sentence does not already assert, so transplanting
+ * it changes nothing -- which is ADR 0012's "could not be written of another
+ * release of the same creator", failing.
+ *
+ * Strictly stronger than the string equality it replaces, and directional,
+ * which is what lets it name the record that must change: Gemini 3.6 Flash's
+ * sentence is written of Gemini 3.7 Flash's, while 3.7's says "newest" and is
+ * not written of 3.6's. Byte-identical rationales are the symmetric case and
+ * fail in both directions.
+ */
+function isWrittenOf(rationale: string, sibling: string): boolean {
+  const words = rationaleWords(rationale);
+  // A rationale with no words at all would be vacuously "written of" everything.
+  if (words.length === 0) return false;
+
+  const siblingWords = new Set(rationaleWords(sibling));
+  return words.every((word) => siblingWords.has(word));
 }
 
 function normalizePolicyText(source: string): string {
@@ -217,6 +275,13 @@ describe('featured policy', () => {
   });
 
   it('makes a flagged release that has been superseded say why it keeps its placement', () => {
+    // ADR 0012's *durability* clause, and deliberately still scoped to `legacy`
+    // after #840 widened the discrimination clause beside it. The reference list
+    // this reads is half lifecycle vocabulary, which a release that is still
+    // current cannot honestly use about itself, so widening this particular
+    // check would demand edits to six records that already discriminate. The
+    // status-independent rule is the sibling test below.
+    //
     // Instrument controls, both directions, before any record is read: a check
     // that cannot come back false would pass the whole catalog vacuously, and a
     // check that cannot come back true would fail it for no reason.
@@ -257,7 +322,22 @@ describe('featured policy', () => {
     expect(discriminates(SUPERSEDED_FABLE_5_RATIONALE)).toBe(false);
   });
 
-  it('gives no two featured releases of one creator the same rationale, unless they launched together', () => {
+  it('gives no flagged release a rationale that is written of a sibling, whatever its status', () => {
+    // Instrument controls, both directions, before any record is read. #840
+    // requires one that fires on a generic `current` rationale: the sentence the
+    // GPT-5.6 pair published is exactly that, and the string-equality check this
+    // replaces caught it only because it happened to be byte-identical.
+    expect(isWrittenOf(SHARED_GPT_5_6_RATIONALE, SHARED_GPT_5_6_RATIONALE)).toBe(true);
+    // The case equality could not reach: not byte-identical, still written of it.
+    expect(isWrittenOf(SUBSUMED_GEMINI_3_6_RATIONALE, SUBSUMING_GEMINI_3_7_RATIONALE)).toBe(true);
+    // Directional, so it names the one record that must change rather than both
+    // halves of a pair. Without this the check would demand an edit to a
+    // rationale that is doing its job.
+    expect(isWrittenOf(SUBSUMING_GEMINI_3_7_RATIONALE, SUBSUMED_GEMINI_3_6_RATIONALE)).toBe(false);
+    // And it must come back false on a sentence that genuinely says something
+    // else, or every record below would pass for the wrong reason.
+    expect(isWrittenOf(SUPERSEDED_FABLE_5_RATIONALE, SHARED_GPT_5_6_RATIONALE)).toBe(false);
+
     const flagged = rawDataset.releases.filter(({ featured }) => featured);
     const byCreator = new Map<string, typeof flagged>();
     for (const release of flagged) {
@@ -267,19 +347,27 @@ describe('featured policy', () => {
       ]);
     }
 
+    // Widening control: the rule is enforced regardless of `status`, so the
+    // class it reaches must actually hold more than one status. If the catalog
+    // ever flagged only `current` releases, "regardless of status" would be
+    // true and vacuous, and this assertion is what would say so.
+    expect(new Set(flagged.map(({ status }) => status)).size).toBeGreaterThan(1);
+
     let compared = 0;
     for (const [creatorId, releases] of byCreator) {
       for (const a of releases) {
         for (const b of releases) {
-          if (a.id >= b.id) continue;
+          if (a.id === b.id) continue;
           compared += 1;
 
-          // Releases announced on one date may share one launch rationale: the
-          // three GPT-4.1 seeds are a single announcement, not three decisions.
-          if (a.releaseDate === b.releaseDate) continue;
-
-          expect(a.featuredRationale, `${creatorId}: ${a.id} vs ${b.id}`)
-            .not.toBe(b.featuredRationale);
+          // No launch-date exemption. #840: a shared announcement date is a
+          // fact about the launch, not a licence for one sentence to stand in
+          // for three. The three GPT-4.1 seeds shared one rationale on exactly
+          // that reasoning, and it identified none of them.
+          expect(
+            isWrittenOf(a.featuredRationale!, b.featuredRationale!),
+            `${creatorId}: ${a.id}'s rationale is written of ${b.id}`,
+          ).toBe(false);
         }
       }
     }
