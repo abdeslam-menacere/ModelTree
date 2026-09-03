@@ -287,7 +287,7 @@ have are the ones nobody thought to write down:
 
 | verdict | what it means | what you do |
 |---|---|---|
-| `ISSUE CLOSED` | the work is no longer wanted, whoever did it | stop, whatever the diff says; report who closed it and with what |
+| `ISSUE CLOSED` | the work is no longer wanted, whoever did it | stop, whatever the diff says; report which pull request or commit closed it |
 | `LANDED` | trunk already carries **this branch** | report exactly that and stop; do not ask for a gate |
 | `PARTIALLY LANDED` | an earlier commit of yours merged, your newest did not | name which commits, and treat only the remainder as unlanded |
 | `SUPERSEDED` | trunk already asserts what your change adds, from somebody else's branch | stop; report what of yours is novel, which is often nothing |
@@ -336,9 +336,9 @@ say about your branch.
 gh issue view <n> --json state,stateReason,closedAt; $cIssue = $LASTEXITCODE
 ```
 
-- `CLOSED` ⇒ `ISSUE CLOSED`. Stop. Find out **who** closed it and with which
-  pull request or commit, and say in your summary whether anything of your work
-  survives in what landed — that is what the next reader needs, and it is not
+- `CLOSED` ⇒ `ISSUE CLOSED`. Stop. Find out **which pull request or commit**
+  closed it, and say in your summary whether anything of your work survives in
+  what landed — that is what the next reader needs, and it is not
   answerable from your worktree alone.
 - `OPEN` ⇒ carry on to step 1. **This is not a result.** It is the absence of
   one, and it is the weakest reading in the procedure.
@@ -945,8 +945,8 @@ which is worse than being uniformly wrong, because the check that would
 establish trust in it is the one case it passes. Content is what is being asked
 about, and the record in step 2 is what answers it.
 
-If the probe says `ISSUE CLOSED`, report that first and stop: name who closed
-it and with which pull request, and say what of your work survives in what
+If the probe says `ISSUE CLOSED`, report that first and stop: name which pull
+request or commit closed it, and say what of your work survives in what
 landed. Do not open a gate on a closed issue, and do not let a `NOT LANDED`
 reading on your branch talk you out of it — under case 2 that reading is
 correct and beside the point. If the probe says you have landed, report exactly
@@ -1001,10 +1001,10 @@ from it did not land — that inference is sound. Trunk's tip moves, and a later
 commit may edit or delete what your work added, so an absence read *there* has
 two incompatible explanations — never landed, or landed and subsequently edited
 — which carry opposite dispositions. This file already carries the measurement
-that settles it: `utf16`, a phrase straight off a branch whose work is wholly on
-trunk, greps **absent** at trunk's tip, because trunk edited that work after
-absorbing it. An instrument that cannot separate "never landed" from "landed and
-then edited" is not measuring landedness.
+that settles it, in step 4: a phrase taken straight off a branch whose work is
+wholly on trunk greps **absent** at trunk's tip, because trunk edited that work
+after absorbing it. An instrument that cannot separate "never landed" from
+"landed and then edited" is not measuring landedness.
 
 Reading that commit takes one of two paths, and which one you have is a fact to
 establish rather than to assume:
@@ -1025,9 +1025,12 @@ the same discipline the rest of this page applies to every other instrument.
 
 Two things follow that are easy to miss. Every worktree in this setup shares one
 object store, so the object may be present because *another session* fetched,
-with no act of yours — measured here: 71 worktrees, one common store, their
-`HEAD`s all differing, which is the control that they are genuinely separate
-worktrees and not one path counted many times. And presence is therefore not
+with no act of yours — measured by enumerating every worktree and resolving each
+one's object store: many worktrees, exactly one common store, their `HEAD`s all
+differing, which is the control that they are genuinely separate worktrees and
+not one path counted many times. Take that measurement rather than trusting a
+count written here: worktrees are created and archived continuously, so a figure
+in this sentence would be stale by the time you read it. And presence is therefore not
 evidence that the work landed, nor absence evidence that it did not: it reports
 only what has been fetched into a store you share. That is what the probe is
 for — routing you to a reader that works — and it settles nothing on its own.
@@ -1097,7 +1100,9 @@ whatever closed the issue.
 repository posts as the same account, so "who closed it" and "who pushed that
 branch" are not answerable from any artefact here, and a rule that depends on
 them cannot be carried out. The answerable question is *which pull request*,
-never *whose hand*.
+never *whose hand*. That is why step 0 and the routing paragraph both ask which
+pull request or commit closed the issue: the field a person's name would go in
+has one possible value, so asking for it reads as information and returns none.
 
 #### Question 3 — what carries the remainder forward?
 
@@ -1135,7 +1140,7 @@ was never a diff. Whatever was not, did not land, whatever the paths say.
 | `ISSUE CLOSED` with `stateReason` `NOT_PLANNED` | Discard. Do not re-propose and do not file a follow-up — the work was refused, not missed. Name what you discarded, so the refusal stays legible. |
 | Fully landed — no authored path differs against the squash — and all of your output was diff | Stand down and discard. Report the identity that establishes it and stop. Do not ask for a gate. |
 | Fully landed, but part of your output was never a diff — a finding, an audit, an inventory, a counter-example | Stand down on the code; **re-home the non-diff output** onto whichever open issue wants it, or file it as a new issue if none does. Landed code does not make a finding redundant. |
-| `PARTIALLY LANDED` — some authored path differs against the squash | Name which paths and which commits, and file a follow-up issue quoting the absent hunks inline. Do not rebase, and do not reopen the closed issue. |
+| `PARTIALLY LANDED` — some authored path differs against the squash | Name which paths and which commits, and file a follow-up issue quoting the absent hunks inline. Do not rebase; and where the issue is closed, do not reopen it — the follow-up carries the remainder, not the old issue. |
 | `SUPERSEDED` | Read the superseding change before deciding anything. It may already contain your remainder, may contradict it, or may have solved a different problem under the same name. Only then apply one of the rows above. |
 | `UNDETERMINED` at any step | Dispose of nothing. Report which step refused and why. Discarding on an undetermined reading is the only irreversible move here. |
 
