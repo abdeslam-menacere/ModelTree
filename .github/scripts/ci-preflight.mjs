@@ -88,7 +88,7 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { closeSync, existsSync, mkdtempSync, openSync, readSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { resolve, dirname, join } from 'node:path';
+import { resolve, delimiter, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // What the remote says `main` is. Not a local branch: a local `main` is a ref
@@ -299,24 +299,73 @@ const CHECKS = [
         ciRun: 'pytest',
       },
     ],
-    // The suite imports the installed package and hard-requires PyYAML, so an
-    // environment missing either collects errors that look like test failures
-    // but are not. Probing first turns that into an honest "could not run".
+    /*
+     * What the suite needs before its result means anything -- and, for one of
+     * the three, what it does not (abdeslam-menacere/ModelTree#678).
+     *
+     * `yaml` and `pytest` are genuine. Both are third-party imports with no
+     * bootstrap of their own, and an environment missing either collects errors
+     * that read as test failures but are not, which sends the reader after the
+     * wrong bug. Probing first turns that into an honest "could not run".
+     *
+     * `modeltree_updater` is not like them, and this block used to claim it was:
+     * it said the suite "imports the installed package". It does not.
+     * `tools/updater/tests/conftest.py` puts `tools/updater/src` on `sys.path`
+     * before collection -- its first line is "Test bootstrap: make `src`
+     * importable" -- so every test imports the package whether or not anything
+     * was ever installed. A bare `import modeltree_updater` therefore tests a
+     * *stricter* condition than the suite requires, and a precondition stricter
+     * than the thing it guards can fail in only one direction: a false "could
+     * not run" on a machine where the suite passes completely.
+     *
+     * That direction is the expensive one. This group is selected by
+     * `docs/adr/**` and `.github/skills/**` as well as `tools/updater/**`, so
+     * every decision record and every skill edit met that exit 2 -- and those
+     * are exactly the changes `npm run validate` does not read, which is why
+     * this script exists for them. Four sessions hit it and all four discharged
+     * it by hand. A check that reliably exits 2 teaches its readers to skim past
+     * the one code that must never be read as green.
+     *
+     * So the probe asks the ordinary question first and, only when that fails,
+     * asks the suite's question: is the package importable through the
+     * directory the suite itself bootstraps? If neither succeeds this is still
+     * exit 2 with the same message. The fallback narrows when 2 is reached; it
+     * can never turn a could-not-run into a pass, and a test that fails once the
+     * suite does run still exits 1.
+     */
     requires: [
       {
         kind: 'python-module',
         module: 'modeltree_updater',
-        hint: "install the updater and its test dependencies: cd tools/updater && python -m pip install '.[dev]'",
+        // The directory `tests/conftest.py` prepends to `sys.path`, named
+        // relative to the repository root. If that bootstrap ever moves, this
+        // probe stops finding the package and reports could-not-run again
+        // rather than inventing a pass out of a path that no longer exists.
+        importableFrom: 'tools/updater/src',
+        hint:
+          'the suite bootstraps `tools/updater/src` itself, so reaching this means neither an '
+          + 'installed package nor that directory is importable: check the checkout is complete, '
+          + "or install the updater where the package index is reachable (cd tools/updater && "
+          + "python -m pip install '.[dev]')",
       },
       {
         kind: 'python-module',
         module: 'yaml',
-        hint: "PyYAML is a hard requirement of the suite: cd tools/updater && python -m pip install '.[dev]'",
+        // No `importableFrom`: PyYAML is a real dependency with nothing in this
+        // repository to point at, and inventing a path for it would be the
+        // weakening this fallback exists to avoid.
+        hint:
+          'PyYAML is a hard requirement of the suite and has no bootstrap: install it into this '
+          + 'interpreter (python -m pip install pyyaml), or run the preflight on an interpreter '
+          + 'that already has it. Where the package index is unreachable there is no local '
+          + 'remedy, and this stays an honest could-not-run rather than a pass',
       },
       {
         kind: 'python-module',
         module: 'pytest',
-        hint: "cd tools/updater && python -m pip install '.[dev]'",
+        hint:
+          'the test runner itself is missing: install it into this interpreter (python -m pip '
+          + 'install pytest), or run the preflight on an interpreter that already has it',
       },
     ],
   },
@@ -684,15 +733,59 @@ function quoteForShell(token) {
 }
 
 /**
+ * Whether `python` can import a module, and by which path it found it.
+ *
+ * Two attempts at most, and the second only after the first has failed, so an
+ * interpreter that already has the module is probed exactly as it was before
+ * this fallback existed -- one `import`, same arguments, same result.
+ *
+ * The fallback adds a place to look and takes none away. `PYTHONPATH` is
+ * prepended to `sys.path` by the interpreter and any existing value is kept
+ * rather than replaced, so nothing that was importable stops being importable.
+ * It cannot manufacture a pass either: if the module is not there, the second
+ * attempt fails exactly as the first did and the requirement stays unmet.
+ *
+ * @param {string} python the interpreter, already resolved
+ * @param {string} module the module name to import
+ * @param {?string} searchPath an absolute directory to look in, or null
+ * @returns {{ importable: boolean, via: ?string }} `via` names the fallback
+ *   directory when, and only when, the ordinary import failed and it succeeded
+ */
+function probePythonModule(python, module, searchPath) {
+  const ordinary = spawnSync(python, ['-c', `import ${module}`], { stdio: 'ignore' });
+  if (!ordinary.error && ordinary.status === 0) return { importable: true, via: null };
+  if (searchPath === null) return { importable: false, via: null };
+
+  const existing = process.env.PYTHONPATH;
+  const probe = spawnSync(python, ['-c', `import ${module}`], {
+    stdio: 'ignore',
+    env: {
+      ...process.env,
+      PYTHONPATH: existing ? `${searchPath}${delimiter}${existing}` : searchPath,
+    },
+  });
+  if (!probe.error && probe.status === 0) return { importable: true, via: searchPath };
+  return { importable: false, via: null };
+}
+
+/**
  * Anything a check needs before its commands mean anything.
  *
  * An unmet precondition is reported as `unknown` -- the exit-2 state -- and
  * never as a pass and never as a failure. Running a suite that cannot import its
  * own package produces collection errors that read as test failures, which sends
  * the reader after the wrong bug.
+ *
+ * A requirement met only through its `importableFrom` directory is met, not
+ * waived, and it returns a note rather than nothing: the reader of the result is
+ * then told which interpreter path produced it instead of having to infer it.
+ *
+ * @returns {{ unmet: string[], notes: string[] }} the reasons this check cannot
+ *   run, and what a reader needs to know about the ones that were satisfied
  */
 function unmetRequirements(cwd, check) {
   const unmet = [];
+  const notes = [];
   for (const requirement of check.requires) {
     if (requirement.kind === 'path') {
       if (!existsSync(join(cwd, requirement.path))) {
@@ -704,15 +797,32 @@ function unmetRequirements(cwd, check) {
         unmet.push(`no python interpreter on PATH - ${requirement.hint}`);
         continue;
       }
-      const probe = spawnSync(python, ['-c', `import ${requirement.module}`], { stdio: 'ignore' });
-      if (probe.error || probe.status !== 0) {
+      // A directory that is not there cannot be searched. Skipping it keeps the
+      // failure one honest attempt rather than two identical ones, and keeps
+      // `via` meaning "found here" rather than "asked here".
+      const searchPath = requirement.importableFrom === undefined
+        ? null
+        : resolve(cwd, requirement.importableFrom);
+      const probe = probePythonModule(
+        python,
+        requirement.module,
+        searchPath !== null && existsSync(searchPath) ? searchPath : null,
+      );
+      if (!probe.importable) {
         unmet.push(`python cannot import ${requirement.module} - ${requirement.hint}`);
+      } else if (probe.via !== null) {
+        notes.push(
+          `${requirement.module} is not importable from a bare interpreter here; the requirement `
+          + `was met through ${requirement.importableFrom}, the directory the suite's own `
+          + 'conftest.py puts on sys.path before collection. So this group ran against that '
+          + 'source tree and not against an installed package.',
+        );
       }
     } else {
       throw new Error(`unknown requirement kind ${JSON.stringify(requirement.kind)}`);
     }
   }
-  return unmet;
+  return { unmet, notes };
 }
 
 /**
@@ -826,8 +936,8 @@ function reportCapturedFailure(check, shown, verdict, output) {
 }
 
 function runCheck(cwd, check, quiet) {
-  const unmet = unmetRequirements(cwd, check);
-  if (unmet.length > 0) return { status: 'unknown', reasons: unmet, commands: [] };
+  const { unmet, notes } = unmetRequirements(cwd, check);
+  if (unmet.length > 0) return { status: 'unknown', reasons: unmet, notes, commands: [] };
 
   const results = [];
   for (const command of check.commands) {
@@ -836,6 +946,7 @@ function runCheck(cwd, check, quiet) {
       return {
         status: 'unknown',
         reasons: [`no python interpreter on PATH for "${command.label}"`],
+        notes,
         commands: results,
       };
     }
@@ -862,25 +973,36 @@ function runCheck(cwd, check, quiet) {
       return {
         status: 'unknown',
         reasons: [`could not start "${shown}": ${run.error.message}`],
+        notes,
         commands: results,
       };
     }
     if (run.status !== 0) {
       results.push({ label: command.label, command: shown, status: 'fail', exitCode: run.status, ...evidence });
       if (quiet) reportCapturedFailure(check, shown, `exited ${run.status}`, output);
-      return { status: 'fail', reasons: [`"${shown}" exited ${run.status}`], commands: results };
+      return { status: 'fail', reasons: [`"${shown}" exited ${run.status}`], notes, commands: results };
     }
     // A passing command's output is noise. The value is on the failure, and
     // attaching a green transcript to every entry would bury the one that
     // matters under the ones that do not.
     results.push({ label: command.label, command: shown, status: 'pass', exitCode: run.status });
   }
-  return { status: 'pass', reasons: [], commands: results };
+  return { status: 'pass', reasons: [], notes, commands: results };
 }
 
-function writeNotCovered(write) {
+/**
+ * What this run does not cover, printed on every result.
+ *
+ * The static list is what the script never covers. `notes` is what *this* run
+ * additionally leaves unsaid -- today, that a requirement was satisfied through
+ * a source tree rather than an installed package. Both belong here for the same
+ * reason: the inference being guarded against is formed while somebody reads a
+ * verdict, so the limits have to travel with the verdict.
+ */
+function writeNotCovered(write, notes = []) {
   write('\nWhat this preflight does NOT cover, so a pass is not read for more than it is:\n');
   for (const item of NOT_COVERED) write(`  - ${item.what}: ${item.why}\n`);
+  for (const note of notes) write(`  - ${note}\n`);
 }
 
 /**
@@ -1048,6 +1170,10 @@ function main() {
     const verdict = result.status === 'pass' ? 'PASS' : result.status === 'fail' ? 'FAIL' : 'COULD NOT RUN';
     process.stdout.write(`  ${verdict.padEnd(14)}${result.id} (${result.label})\n`);
     for (const reason of result.reasons) process.stdout.write(`                ${reason}\n`);
+    // Beside the verdict, because that is where a reader decides what the
+    // verdict is worth. Repeated in the not-covered block below for the reader
+    // who scrolls to the summary and reads nothing else.
+    for (const note of result.notes ?? []) process.stdout.write(`                note: ${note}\n`);
   }
 
   if (empty) {
@@ -1070,7 +1196,10 @@ function main() {
     );
   }
 
-  writeNotCovered((text) => process.stdout.write(text));
+  writeNotCovered(
+    (text) => process.stdout.write(text),
+    results.flatMap((result) => (result.notes ?? []).map((note) => `${result.id}: ${note}`)),
+  );
   return code;
 }
 
