@@ -91,6 +91,99 @@ const SUBSUMED_GEMINI_3_6_RATIONALE =
 const SUBSUMING_GEMINI_3_7_RATIONALE =
   'The newest generally available Flash tier of the Gemini 3 generation, with a dated release and published token limits.';
 
+/**
+ * A sentence that says everything `SHARED_GPT_5_6_RATIONALE` says and more, so
+ * the containment control below compares two distinct strings. Kept beside the
+ * sentences it is built from rather than inline, so that it is visibly a
+ * fixture and cannot be mistaken for a rationale any record publishes.
+ */
+const GENERIC_RATIONALE_SUPERSET =
+  'Launched in the dated GPT-5.6 general-availability announcement for developers, with its own API model documentation and published token limits.';
+
+/**
+ * The featured set, pinned as a roster of ids rather than as a count.
+ *
+ * #840's sixth criterion asks that the featured totals be asserted "with their
+ * denominator". A count alone cannot carry that claim: `toBeGreaterThan(0)`
+ * stays green when a release is flagged, unflagged, or moved between statuses,
+ * and even an exact `toBe(24)` stays green when one record leaves the set and
+ * another joins it in the same change. The membership question and the size
+ * question are different questions, and only the first one is the invariant
+ * #840 exists to protect. So the roster below is compared by *identity*, in
+ * both directions, and the counts are derived from it rather than written
+ * beside it where the two could disagree.
+ *
+ * Why this is a roster and not a computation: ADR 0012 holds that featuring is
+ * an editorial choice and that no lifecycle status decides it. An editorial set
+ * has no formula, so the honest machine-readable form of "this set did not
+ * change" is the set, written down. That is the same bookkeeping the asset
+ * budgets use for `measuredRaw` -- a measured figure is pinned, and a change to
+ * it is a reviewable line in the same commit as the change that moved it.
+ *
+ * If a data change moves any of this, updating the roster is the correct
+ * response and belongs in that same commit. One caveat is worth knowing before
+ * you reach for it: `.github/skills/modeltree-gates/scripts/gate-scope.mjs`
+ * limits an ADR 0003 auto-merging refresh to the dataset JSON documents, and
+ * this file is not among them. A refresh that reds this test therefore cannot
+ * repair it in-class, and that is the intended outcome rather than a snag --
+ * such a refresh is by definition changing an editorial set from sourced data,
+ * which is the exact move ADR 0012 forbids. It should stop, loudly, and be
+ * looked at by someone.
+ */
+const FEATURED_ROSTER: Readonly<Record<string, readonly string[]>> = {
+  current: [
+    'anthropic-claude-haiku-4-5',
+    'anthropic-claude-opus-5',
+    'anthropic-claude-sonnet-5',
+    'google-gemini-2-5-flash',
+    'google-gemini-2-5-pro',
+    'google-gemini-3-1-flash-lite',
+    'google-gemini-3-5-flash-lite',
+    'google-gemini-3-6-flash',
+    'google-gemini-3-7-flash',
+    'meta-llama-4-maverick',
+    'meta-llama-4-scout',
+    'meta-muse-spark-1-1',
+    'openai-gpt-4-1-2025-04-14',
+    'openai-gpt-4-1-mini-2025-04-14',
+    'openai-gpt-4-1-nano-2025-04-14',
+    'openai-gpt-5-6-luna',
+    'openai-gpt-5-6-sol',
+    'openai-gpt-5-6-terra',
+  ],
+  legacy: [
+    'anthropic-claude-fable-5',
+    'google-gemini-3-5-flash',
+    'meta-llama-3-1-405b',
+    'meta-llama-3-3-70b',
+  ],
+  preview: [
+    'google-gemini-3-1-pro-preview',
+    'microsoft-mai-thinking-1',
+  ],
+};
+
+/**
+ * The denominator. Pinned for the same reason as the roster: "24 flagged" is a
+ * claim about the catalog only if the size of the catalog is fixed beside it.
+ * Unlike the roster this figure is sourced rather than editorial, so a refresh
+ * that adds a release is expected to move it and to say so in its own commit.
+ */
+const TOTAL_RELEASES = 117;
+
+/**
+ * The one creator holding a single flagged release, and therefore the one the
+ * sibling rule below cannot say anything about: a release with no flagged
+ * sibling forms no pair, so its rationale is unconstrained by that rule.
+ *
+ * Pinned rather than left implicit because an unstated hole in an enforcement
+ * claim is the same defect #840 was filed about, one level up. Naming the
+ * exemption makes it counted, reviewable, and load-bearing: if a second creator
+ * ever drops to one flagged release, this goes red and someone decides whether
+ * the claim or the data should move.
+ */
+const CREATORS_EXEMPT_FROM_THE_SIBLING_RULE = ['microsoft'];
+
 function discriminates(rationale: string): boolean {
   const text = rationale.toLowerCase();
   return DISCRIMINATING_REFERENCES.some((reference) => text.includes(reference));
@@ -257,6 +350,90 @@ describe('featured policy', () => {
     expect(explained.map(({ id }) => id).sort()).toEqual(flagged.map(({ id }) => id).sort());
   });
 
+  it('reconciles the featured set against its denominator, by identity and not by count', () => {
+    // #840 criterion 6. Everything here is asserted as an exact figure or an
+    // exact set: a lower bound cannot express "these totals did not change",
+    // which is the claim ADR 0012's Costs section now makes in prose and which
+    // nothing in this suite could previously check.
+    const rosterByStatus = Object.entries(FEATURED_ROSTER);
+    const rosterIds = rosterByStatus.flatMap(([, ids]) => ids).sort();
+
+    // Fixture controls, before the dataset is read at all. The roster is
+    // hand-maintained, so a duplicated id would inflate its own denominator and
+    // a partition that did not sum would make every comparison below ambiguous.
+    expect(new Set(rosterIds).size, 'roster holds a duplicate id').toBe(rosterIds.length);
+    expect(rosterIds.length).toBe(24);
+    expect(FEATURED_ROSTER.current).toHaveLength(18);
+    expect(FEATURED_ROSTER.legacy).toHaveLength(4);
+    expect(FEATURED_ROSTER.preview).toHaveLength(2);
+    expect(
+      FEATURED_ROSTER.current.length + FEATURED_ROSTER.legacy.length + FEATURED_ROSTER.preview.length,
+    ).toBe(rosterIds.length);
+
+    // The denominator. Asserted first so "24 flagged" below is a share of a
+    // known catalog rather than a bare number, and so a release appearing or
+    // disappearing is caught even when the featured set is untouched.
+    expect(
+      rawDataset.releases.length,
+      'the release count moved; update TOTAL_RELEASES in the same commit as the data',
+    ).toBe(TOTAL_RELEASES);
+    // Liveness: a denominator equal to its numerator would make the share
+    // meaningless, and would also be the shape a broken read produces.
+    expect(TOTAL_RELEASES).toBeGreaterThan(rosterIds.length);
+
+    const flagged = rawDataset.releases.filter(({ featured }) => featured);
+    const flaggedIds = flagged.map(({ id }) => id).sort();
+
+    // Identity, not count. This is what a count cannot do: removing one record
+    // from the set and adding another leaves every total unchanged, so a
+    // size-only check stays green through exactly the change that would break
+    // the "no featured flag changes anywhere" invariant #840 turns on.
+    expect(flaggedIds, 'the featured set changed membership').toEqual(rosterIds);
+    expect(flagged.length).toBe(rosterIds.length);
+
+    // Differential control: set comparison has to be able to come back false,
+    // or the equality above proves only that the comparison is blind. A swap --
+    // one out, one in -- is the specific mutation that keeps the count at 24.
+    const swapped = [...rosterIds.slice(1), 'zzz-not-a-real-release'].sort();
+    expect(swapped).toHaveLength(rosterIds.length);
+    expect(swapped, 'set comparison cannot distinguish a swap').not.toEqual(rosterIds);
+
+    // The partition covers the set with nothing left over, in both directions:
+    // every flagged release lands in exactly one pinned bucket, and no bucket
+    // claims a release the catalog does not flag with that status.
+    for (const [status, ids] of rosterByStatus) {
+      const actual = flagged.filter((r) => r.status === status).map(({ id }) => id).sort();
+      expect(actual, `the ${status} share of the featured set changed`).toEqual([...ids].sort());
+    }
+
+    const classified = new Set(rosterByStatus.flatMap(([, ids]) => ids));
+    const unclassified = flagged.filter(({ id }) => !classified.has(id));
+    expect(unclassified.map(({ id }) => id), 'a flagged release holds a status the roster does not partition').toEqual([]);
+
+    // The sibling rule below forms no pair for a creator holding one flagged
+    // release, so its enforcement is not universal and the exemption is named
+    // rather than left for a reader to discover. #840's own defect was an
+    // enforcement claim wider than the enforcement.
+    const flaggedPerCreator = new Map<string, number>();
+    for (const release of flagged) {
+      flaggedPerCreator.set(
+        release.organizationId,
+        (flaggedPerCreator.get(release.organizationId) ?? 0) + 1,
+      );
+    }
+    const exempt = [...flaggedPerCreator.entries()]
+      .filter(([, count]) => count === 1)
+      .map(([creatorId]) => creatorId)
+      .sort();
+    expect(exempt, 'the set of creators the sibling rule cannot reach changed').toEqual(
+      [...CREATORS_EXEMPT_FROM_THE_SIBLING_RULE].sort(),
+    );
+    // Control on that reading: the exemption is meaningful only while some
+    // creator does form pairs. If every creator held one flagged release the
+    // sibling rule would be universally vacuous and this test would say so.
+    expect([...flaggedPerCreator.values()].some((count) => count > 1)).toBe(true);
+  });
+
   it('lets no lifecycle status decide the flag, in either direction', () => {
     // ADR 0012. `status` is a sourced measurement, so deriving the list from it
     // would make membership a function of recency -- an order, computed from
@@ -324,11 +501,19 @@ describe('featured policy', () => {
 
   it('gives no flagged release a rationale that is written of a sibling, whatever its status', () => {
     // Instrument controls, both directions, before any record is read. #840
-    // requires one that fires on a generic `current` rationale: the sentence the
-    // GPT-5.6 pair published is exactly that, and the string-equality check this
-    // replaces caught it only because it happened to be byte-identical.
-    expect(isWrittenOf(SHARED_GPT_5_6_RATIONALE, SHARED_GPT_5_6_RATIONALE)).toBe(true);
+    // requires one that fires on a generic `current` rationale.
+    //
+    // Not `isWrittenOf(X, X)`: that holds of any non-empty string by the shape
+    // of the predicate, so it restates the implementation instead of testing
+    // it. The two cases below are the ones that carry information, and both are
+    // drawn from the defect this issue was filed about. First, strict
+    // containment between two *distinct* sentences -- the generic one the
+    // GPT-5.6 pair shared, against a sentence that says everything it says and
+    // more. Equality would call these different and let the pair stand.
+    expect(SHARED_GPT_5_6_RATIONALE).not.toBe(GENERIC_RATIONALE_SUPERSET);
+    expect(isWrittenOf(SHARED_GPT_5_6_RATIONALE, GENERIC_RATIONALE_SUPERSET)).toBe(true);
     // The case equality could not reach: not byte-identical, still written of it.
+    expect(SUBSUMED_GEMINI_3_6_RATIONALE).not.toBe(SUBSUMING_GEMINI_3_7_RATIONALE);
     expect(isWrittenOf(SUBSUMED_GEMINI_3_6_RATIONALE, SUBSUMING_GEMINI_3_7_RATIONALE)).toBe(true);
     // Directional, so it names the one record that must change rather than both
     // halves of a pair. Without this the check would demand an edit to a
