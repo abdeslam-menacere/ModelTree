@@ -12,7 +12,7 @@
     "datePrecision": "day",
     "status": "current",
     "featured": true,
-    "featuredRationale": "Seed release with an official launch announcement and current model documentation.",
+    "featuredRationale": "The standard GPT-4.1 variant, the one carrying the bare gpt-4.1 API alias, with its own model documentation page.",
     "categories": [
       "language-reasoning",
       "multimodal-generalist",
@@ -59,7 +59,7 @@
     "datePrecision": "day",
     "status": "current",
     "featured": true,
-    "featuredRationale": "Seed release with an official launch announcement and current model documentation.",
+    "featuredRationale": "The mini GPT-4.1 variant, documented on its own model page for lower-latency instruction following and tool calling.",
     "categories": [
       "language-reasoning",
       "multimodal-generalist",
@@ -106,7 +106,7 @@
     "datePrecision": "day",
     "status": "current",
     "featured": true,
-    "featuredRationale": "Seed release with an official launch announcement and current model documentation.",
+    "featuredRationale": "The nano GPT-4.1 variant, documented on its own model page for classification and autocompletion workloads.",
     "categories": [
       "language-reasoning",
       "multimodal-generalist",
@@ -204,7 +204,7 @@
     "datePrecision": "day",
     "status": "current",
     "featured": true,
-    "featuredRationale": "Launched in the GPT-5.6 general-availability announcement with its own dated API model documentation.",
+    "featuredRationale": "The balanced tier of the GPT-5.6 family, which OpenAI's model documentation maps to the mini tier of earlier GPT-5 generations.",
     "categories": [
       "language-reasoning",
       "multimodal-generalist",
@@ -252,7 +252,7 @@
     "datePrecision": "day",
     "status": "current",
     "featured": true,
-    "featuredRationale": "Launched in the GPT-5.6 general-availability announcement with its own dated API model documentation.",
+    "featuredRationale": "The high-throughput tier of the GPT-5.6 family, which OpenAI's model documentation maps to the nano tier of earlier GPT-5 generations.",
     "categories": [
       "language-reasoning",
       "multimodal-generalist",
@@ -1375,7 +1375,7 @@
     "datePrecision": "day",
     "status": "current",
     "featured": true,
-    "featuredRationale": "A generally available Flash tier of the Gemini 3 generation, with a dated release and published token limits.",
+    "featuredRationale": "The Gemini 3 Flash model documented for multi-step orchestration and full-stack code refactoring, and the one its own documentation compares with Gemini 3.5 Flash on token efficiency.",
     "categories": [
       "language-reasoning",
       "multimodal-generalist",
