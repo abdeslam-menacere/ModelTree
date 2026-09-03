@@ -80,6 +80,38 @@ describe('nothing in the explorer rests on colour alone', () => {
   });
 });
 
+/**
+ * Issue #39 adds `data-in-trail` on every visible release node when the trail
+ * is on. Its paint rule and the earlier `.release-node[data-relation="selected"]`
+ * rule share `(0,2,0)` specificity and both declare `box-shadow`. Whichever is
+ * later in source order wins for a node carrying both attributes -- and the
+ * selected node always carries `data-in-trail="true"`, since the explorer
+ * marks it as a trail member by id. So the trail rule needs to explicitly
+ * exclude the selected node, otherwise turning the trail on quietly removes
+ * the selected node's outer glow.
+ *
+ * These assertions read the source rather than a computed style because the
+ * cascade is a source-text property here: source order at equal specificity.
+ */
+describe('the lineage trail affordance does not shadow the selected outer glow (#39)', () => {
+  it('scopes every trail-active box-shadow rule to exclude the selected node', () => {
+    const trailShadowRules = globalStyles.match(
+      /\.release-node\[data-in-trail='true'\][^{]*\{[^}]*\bbox-shadow\s*:/g,
+    );
+
+    expect(trailShadowRules, 'expected the trail-active rule to declare box-shadow').not.toBeNull();
+    for (const rule of trailShadowRules!) {
+      expect(rule, 'trail-active box-shadow rules must exclude the selected node').toMatch(
+        /:not\(\[data-relation="selected"\]\)/,
+      );
+    }
+  });
+
+  it('keeps the selected node rule declaring its own box-shadow next to it', () => {
+    expect(ruleFor('.release-node[data-relation="selected"]')).toMatch(/box-shadow\s*:\s*0 0 0 3px/);
+  });
+});
+
 describe('motion preferences are respected', () => {
   it('neutralises transitions and animations under reduced motion', () => {
     const block = globalStyles.match(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/);

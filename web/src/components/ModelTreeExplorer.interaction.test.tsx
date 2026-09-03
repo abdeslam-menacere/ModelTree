@@ -5,9 +5,12 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import { buildModelTree } from '../lib/model-tree';
-import { organizationLabel } from '../lib/organization-name';
 import { datasetWithOtherCreators } from '../../tests/fixtures/model-tree-dataset';
-import { familyDisclosure, releaseButton } from '../../tests/helpers/model-tree-queries';
+import {
+  creatorDisclosure,
+  familyDisclosure,
+  releaseButton,
+} from '../../tests/helpers/model-tree-queries';
 import ModelTreeExplorer from './ModelTreeExplorer';
 
 const tree = buildModelTree(dataset);
@@ -19,18 +22,41 @@ const siblingRelease = dataset.releases.find(({ id }) => id === 'anthropic-claud
 // future `Claude 5.x` at once, which stopped a reviewed Anthropic release from
 // being recordable at all. See `tests/helpers/model-tree-queries.ts`.
 const claudeFiveFamily = dataset.families.find(({ id }) => id === 'anthropic-claude-5')!;
-// The creator toolbar renders the creator label, so read it from the record
-// rather than hard-coding either recorded name form.
-const googleLabel = organizationLabel(
-  dataset.organizations.find(({ id }) => id === 'google-deepmind')!,
-);
+// Creators are selected the same way, and for the second reason recorded on
+// `creatorDisclosure`: a role-by-name lookup computes an accessible name for
+// every button in the rendered catalog, so it cost 10.6ms more per release added
+// while an id lookup costs 0.9ms (issue #744). The organization records are read
+// from the dataset rather than hard-coded, so neither recorded name form is
+// duplicated here.
+const anthropic = dataset.organizations.find(({ id }) => id === 'anthropic')!;
+const google = dataset.organizations.find(({ id }) => id === 'google-deepmind')!;
+const zenith = datasetWithOtherCreators.organizations.find(({ id }) => id === 'other-alpha')!;
+const zenithCore = datasetWithOtherCreators.families.find(({ id }) => id === 'other-alpha-core')!;
+const zenithFlagship = datasetWithOtherCreators.releases
+  .find(({ id }) => id === 'other-alpha-core-one')!;
+const zuluAtlas = datasetWithOtherCreators.families.find(({ id }) => id === 'other-zulu-atlas')!;
+const atlasPrime = datasetWithOtherCreators.releases
+  .find(({ id }) => id === 'other-zulu-atlas-one')!;
 
 function renderExplorer() {
   return render(<ModelTreeExplorer tree={tree} sourceByReleaseId={{}} basePath="/ModelTree/" />);
 }
 
-function creatorButton(name: string) {
-  return screen.getByRole('button', { name: new RegExp(`^${name}`) });
+/**
+ * A structural disclosure -- the tree root, `Featured ecosystems`, `Others` --
+ * reached through the fixed `aria-controls` id the component emits for it.
+ *
+ * These three name no dataset entity, so there is no record to read an id from
+ * the way `creatorDisclosure` does; the ids are constants in the component and
+ * are constants here. The visible label is asserted for the same reason the
+ * shared helpers assert theirs: selecting by id says nothing about what the
+ * button is called, and a disclosure that stopped being named for its branch
+ * would otherwise still be found.
+ */
+function disclosure(controls: string, label: string) {
+  const button = document.querySelector<HTMLButtonElement>(`button[aria-controls="${controls}"]`);
+  expect(button?.querySelector('span')?.textContent).toBe(label);
+  return button!;
 }
 
 beforeEach(() => {
@@ -45,29 +71,29 @@ describe('ModelTreeExplorer interactions', () => {
   it('opens and closes creator and family disclosures independently', async () => {
     const user = userEvent.setup();
     renderExplorer();
-    expect(screen.getByRole('button', { name: /^AI Model Ecosystem/ }).getAttribute(
+    expect(disclosure('model-tree-root-branches', 'AI Model Ecosystem').getAttribute(
       'aria-expanded',
     )).toBe('true');
-    const anthropic = creatorButton('Anthropic');
-    const google = creatorButton(googleLabel);
+    const anthropicBranch = creatorDisclosure(anthropic);
+    const googleBranch = creatorDisclosure(google);
 
-    await waitFor(() => expect(anthropic.getAttribute('aria-expanded')).toBe('false'));
-    expect(google.getAttribute('aria-expanded')).toBe('false');
+    await waitFor(() => expect(anthropicBranch.getAttribute('aria-expanded')).toBe('false'));
+    expect(googleBranch.getAttribute('aria-expanded')).toBe('false');
 
-    await user.click(anthropic);
+    await user.click(anthropicBranch);
     const claudeFive = familyDisclosure(claudeFiveFamily);
-    expect(anthropic.getAttribute('aria-expanded')).toBe('true');
+    expect(anthropicBranch.getAttribute('aria-expanded')).toBe('true');
     expect(claudeFive.getAttribute('aria-expanded')).toBe('false');
 
     await user.click(claudeFive);
-    await user.click(google);
-    expect(anthropic.getAttribute('aria-expanded')).toBe('true');
+    await user.click(googleBranch);
+    expect(anthropicBranch.getAttribute('aria-expanded')).toBe('true');
     expect(claudeFive.getAttribute('aria-expanded')).toBe('true');
-    expect(google.getAttribute('aria-expanded')).toBe('true');
+    expect(googleBranch.getAttribute('aria-expanded')).toBe('true');
 
-    await user.click(anthropic);
-    expect(anthropic.getAttribute('aria-expanded')).toBe('false');
-    expect(google.getAttribute('aria-expanded')).toBe('true');
+    await user.click(anthropicBranch);
+    expect(anthropicBranch.getAttribute('aria-expanded')).toBe('false');
+    expect(googleBranch.getAttribute('aria-expanded')).toBe('true');
   });
 
   it('selects a release, updates details, and preserves unrelated URL state', async () => {
@@ -75,8 +101,9 @@ describe('ModelTreeExplorer interactions', () => {
     window.history.replaceState({}, '', '/ModelTree/tree/?utm=kept#details');
     renderExplorer();
 
-    await waitFor(() => expect(creatorButton('Anthropic').getAttribute('aria-expanded')).toBe('false'));
-    await user.click(creatorButton('Anthropic'));
+    const anthropicBranch = creatorDisclosure(anthropic);
+    await waitFor(() => expect(anthropicBranch.getAttribute('aria-expanded')).toBe('false'));
+    await user.click(anthropicBranch);
     await user.click(familyDisclosure(claudeFiveFamily));
     const releaseButtonNode = releaseButton(selectedRelease);
     await user.click(releaseButtonNode);
@@ -98,8 +125,9 @@ describe('ModelTreeExplorer interactions', () => {
     );
     renderExplorer();
 
+    const anthropicBranch = creatorDisclosure(anthropic);
     await waitFor(() => {
-      expect(creatorButton('Anthropic').getAttribute('aria-expanded')).toBe('true');
+      expect(anthropicBranch.getAttribute('aria-expanded')).toBe('true');
       expect(familyDisclosure(claudeFiveFamily).getAttribute('aria-expanded'))
         .toBe('true');
     });
@@ -118,7 +146,8 @@ describe('ModelTreeExplorer interactions', () => {
     window.history.replaceState({}, '', '/ModelTree/tree/?model=not-a-release&view=tree#safe');
     renderExplorer();
 
-    await waitFor(() => expect(creatorButton('Anthropic').getAttribute('aria-expanded')).toBe('false'));
+    const anthropicBranch = creatorDisclosure(anthropic);
+    await waitFor(() => expect(anthropicBranch.getAttribute('aria-expanded')).toBe('false'));
     expect(screen.getByRole('heading', { name: 'Choose a model release' })).toBeTruthy();
     expect(document.querySelector('[aria-pressed="true"]')).toBeNull();
     expect(window.location.search).toBe('?model=not-a-release&view=tree');
@@ -128,20 +157,21 @@ describe('ModelTreeExplorer interactions', () => {
   it('selects a release under Others and fills the details panel', async () => {
     const user = userEvent.setup();
     render(<ModelTreeExplorer tree={otherTree} sourceByReleaseId={{}} basePath="/ModelTree/" />);
-    const others = screen.getByRole('button', { name: /^Others/ });
+    const others = disclosure('model-tree-other-creators', 'Others');
 
-    await waitFor(() => expect(creatorButton('Zenith Labs').getAttribute('aria-expanded')).toBe('false'));
+    const zenithBranch = creatorDisclosure(zenith);
+    await waitFor(() => expect(zenithBranch.getAttribute('aria-expanded')).toBe('false'));
     expect(others.getAttribute('aria-expanded')).toBe('true');
 
-    await user.click(creatorButton('Zenith Labs'));
-    await user.click(screen.getByRole('button', { name: /^Zenith Core/ }));
-    const releaseButton = screen.getByRole('button', { name: /^Zenith Flagship/ });
-    await user.click(releaseButton);
+    await user.click(zenithBranch);
+    await user.click(familyDisclosure(zenithCore));
+    const releaseButtonNode = releaseButton(zenithFlagship);
+    await user.click(releaseButtonNode);
 
     const details = document.querySelector('.tree-details') as HTMLElement;
     expect(within(details).getByRole('heading', { name: 'Zenith Flagship' })).toBeTruthy();
     expect(within(details).getByText('Zenith Labs / Zenith Core')).toBeTruthy();
-    expect(releaseButton.getAttribute('aria-pressed')).toBe('true');
+    expect(releaseButtonNode.getAttribute('aria-pressed')).toBe('true');
     expect(window.location.search).toBe('?model=other-alpha-core-one');
   });
 
@@ -150,9 +180,9 @@ describe('ModelTreeExplorer interactions', () => {
     render(<ModelTreeExplorer tree={otherTree} sourceByReleaseId={{}} basePath="/ModelTree/" />);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /^Zulu Atlas/ }).getAttribute('aria-expanded')).toBe('true');
+      expect(familyDisclosure(zuluAtlas).getAttribute('aria-expanded')).toBe('true');
     });
-    expect(screen.getByRole('button', { name: /^Atlas Prime/ }).getAttribute('aria-pressed')).toBe('true');
+    expect(releaseButton(atlasPrime).getAttribute('aria-pressed')).toBe('true');
     expect(within(document.querySelector('.tree-details') as HTMLElement).getByRole(
       'heading',
       { name: 'Atlas Prime' },
@@ -162,14 +192,15 @@ describe('ModelTreeExplorer interactions', () => {
   it('collapses the Others branch on demand like any other disclosure', async () => {
     const user = userEvent.setup();
     render(<ModelTreeExplorer tree={otherTree} sourceByReleaseId={{}} basePath="/ModelTree/" />);
-    const others = screen.getByRole('button', { name: /^Others/ });
+    const others = disclosure('model-tree-other-creators', 'Others');
 
-    await waitFor(() => expect(creatorButton('Zenith Labs').getAttribute('aria-expanded')).toBe('false'));
+    const zenithBranch = creatorDisclosure(zenith);
+    await waitFor(() => expect(zenithBranch.getAttribute('aria-expanded')).toBe('false'));
     await user.click(others);
 
     expect(others.getAttribute('aria-expanded')).toBe('false');
     expect(document.getElementById('model-tree-other-creators')?.hasAttribute('hidden')).toBe(true);
-    expect(screen.getByRole('button', { name: /^Featured ecosystems/ }).getAttribute(
+    expect(disclosure('model-tree-featured-creators', 'Featured ecosystems').getAttribute(
       'aria-expanded',
     )).toBe('true');
   });
@@ -183,8 +214,16 @@ describe('ModelTreeExplorer interactions', () => {
     const user = userEvent.setup();
     renderExplorer();
 
-    await waitFor(() => expect(creatorButton('Anthropic').getAttribute('aria-expanded')).toBe('false'));
-    await user.click(creatorButton('Anthropic'));
+    // This is the test that failed the Pages deploy at 96 releases (#744), and
+    // the cost was in the queries rather than in the component. The creator
+    // lookup below was a role-by-name query over every button in the rendered
+    // catalog; measured on this exact four-click sequence with only that lookup
+    // varied, it cost 10.6ms per added release against 0.9ms for the id lookup.
+    // Same clicks, same real dataset, same assertions -- only the search is
+    // priced differently.
+    const anthropicBranch = creatorDisclosure(anthropic);
+    await waitFor(() => expect(anthropicBranch.getAttribute('aria-expanded')).toBe('false'));
+    await user.click(anthropicBranch);
     await user.click(familyDisclosure(claudeFiveFamily));
 
     const opus = releaseButton(selectedRelease);

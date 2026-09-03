@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { dataset } from '../data/dataset';
 import { buildModelTree } from '../lib/model-tree';
-import { familyDisclosure, releaseButton } from '../../tests/helpers/model-tree-queries';
+import { creatorDisclosure, familyDisclosure, releaseButton } from '../../tests/helpers/model-tree-queries';
 import ModelTreeExplorer from './ModelTreeExplorer';
 
 const tree = buildModelTree(dataset);
@@ -14,6 +14,10 @@ const tree = buildModelTree(dataset);
 // at once. See `tests/helpers/model-tree-queries.ts`.
 const claudeFiveFamily = dataset.families.find(({ id }) => id === 'anthropic-claude-5')!;
 const opusFive = dataset.releases.find(({ id }) => id === 'anthropic-claude-opus-5')!;
+// The creator is selected the same way, for the cost reason recorded on
+// `creatorDisclosure` (issue #744). This helper is shared by all eight tests in
+// this file and previously ran two whole-catalog role-by-name scans per call.
+const anthropic = dataset.organizations.find(({ id }) => id === 'anthropic')!;
 
 function installMatchMedia(isMobile: boolean) {
   (window as unknown as { matchMedia: (query: string) => MediaQueryList }).matchMedia = (
@@ -37,13 +41,10 @@ function renderExplorer() {
   return render(<ModelTreeExplorer tree={tree} sourceByReleaseId={{}} basePath="/ModelTree/" />);
 }
 
-function creatorButton(name: string) {
-  return screen.getByRole('button', { name: new RegExp(`^${name}`) });
-}
-
 async function selectClaudeOpus(user: ReturnType<typeof userEvent.setup>) {
-  await waitFor(() => expect(creatorButton('Anthropic').getAttribute('aria-expanded')).toBe('false'));
-  await user.click(creatorButton('Anthropic'));
+  const anthropicBranch = creatorDisclosure(anthropic);
+  await waitFor(() => expect(anthropicBranch.getAttribute('aria-expanded')).toBe('false'));
+  await user.click(anthropicBranch);
   await user.click(familyDisclosure(claudeFiveFamily));
   const release = releaseButton(opusFive);
   await user.click(release);

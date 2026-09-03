@@ -287,7 +287,7 @@ have are the ones nobody thought to write down:
 
 | verdict | what it means | what you do |
 |---|---|---|
-| `ISSUE CLOSED` | the work is no longer wanted, whoever did it | stop, whatever the diff says; report who closed it and with what |
+| `ISSUE CLOSED` | the work is no longer wanted, whoever did it | stop, whatever the diff says; report which pull request or commit closed it |
 | `LANDED` | trunk already carries **this branch** | report exactly that and stop; do not ask for a gate |
 | `PARTIALLY LANDED` | an earlier commit of yours merged, your newest did not | name which commits, and treat only the remainder as unlanded |
 | `SUPERSEDED` | trunk already asserts what your change adds, from somebody else's branch | stop; report what of yours is novel, which is often nothing |
@@ -336,9 +336,9 @@ say about your branch.
 gh issue view <n> --json state,stateReason,closedAt; $cIssue = $LASTEXITCODE
 ```
 
-- `CLOSED` ⇒ `ISSUE CLOSED`. Stop. Find out **who** closed it and with which
-  pull request or commit, and say in your summary whether anything of your work
-  survives in what landed — that is what the next reader needs, and it is not
+- `CLOSED` ⇒ `ISSUE CLOSED`. Stop. Find out **which pull request or commit**
+  closed it, and say in your summary whether anything of your work survives in
+  what landed — that is what the next reader needs, and it is not
   answerable from your worktree alone.
 - `OPEN` ⇒ carry on to step 1. **This is not a result.** It is the absence of
   one, and it is the weakest reading in the procedure.
@@ -959,8 +959,8 @@ which is worse than being uniformly wrong, because the check that would
 establish trust in it is the one case it passes. Content is what is being asked
 about, and the record in step 2 is what answers it.
 
-If the probe says `ISSUE CLOSED`, report that first and stop: name who closed
-it and with which pull request, and say what of your work survives in what
+If the probe says `ISSUE CLOSED`, report that first and stop: name which pull
+request or commit closed it, and say what of your work survives in what
 landed. Do not open a gate on a closed issue, and do not let a `NOT LANDED`
 reading on your branch talk you out of it — under case 2 that reading is
 correct and beside the point. If the probe says you have landed, report exactly
@@ -982,6 +982,218 @@ the probe's result, and a summary must not either.
 Then stop and hand off to the review gate. Whether that gate is run by a human
 or by a reviewer agent is set by this repo's configuration; either way it is not
 you, and you do not run it against your own work.
+
+### Your issue is closed — what happens to the branch in your hands
+
+Everything above is a *detector*. It ends by naming a state of the world, and
+the routing paragraph says what to **report** about it. Neither says what becomes
+of the work. This section begins there, and it changes nothing upstream of
+itself: the six verdicts keep their names and their meanings exactly, no verdict
+is added, and you arrive here only once one of them has been issued. Arrive on
+`ISSUE CLOSED` or `SUPERSEDED`, and on any `LANDED` or `PARTIALLY LANDED` where
+you were about to throw something away.
+
+**"Stand down" and "discard" are not the same instruction, and collapsing them
+is how the value gets destroyed.** The recorded failure runs the other way — the
+dock on abdeslam-menacere/ModelTree#714 never established that it had landed and
+spent three addenda re-deriving a change already on trunk — but the correction
+to that is not "assume nothing of mine survived". Work three questions in order.
+
+#### Question 1 — is anything of mine absent from what landed?
+
+A measurement, not a judgement, and it has exactly one comparand: **the squash
+commit, never trunk's tip.**
+
+```powershell
+$sq  = gh pr view <n> --repo <owner>/<repo> --json mergeCommit --jq .mergeCommit.oid
+$cSq = $LASTEXITCODE
+```
+
+The two are not interchangeable, and only one of them answers the question. The
+squash commit is the moment of landing and is immutable, so something absent
+from it did not land — that inference is sound. Trunk's tip moves, and a later
+commit may edit or delete what your work added, so an absence read *there* has
+two incompatible explanations — never landed, or landed and subsequently edited
+— which carry opposite dispositions. This file already carries the measurement
+that settles it, in step 4: a phrase taken straight off a branch whose work is
+wholly on trunk greps **absent** at trunk's tip, because trunk edited that work
+after absorbing it. An instrument that cannot separate "never landed" from
+"landed and then edited" is not measuring landedness.
+
+Reading that commit takes one of two paths, and which one you have is a fact to
+establish rather than to assume:
+
+```powershell
+git cat-file -e "$sq^{commit}"; $cObj = $LASTEXITCODE
+```
+
+Exit 0 and the object is in your store, so ordinary git reads it. Non-zero and
+it is not in your store *at that moment* — which is common, because the squash
+postdates the worktree and the store is only as current as the most recent fetch
+into it. Note what that reason is not: it is not a permission. Rule 4 above bars
+switching branches, rebasing and merging by hand, and fetching is not on that
+list — step 5 instructs `git fetch origin main` outright — so a dock that
+fetched would reach the object too. The probe is here because presence is a fact
+to establish rather than one to deduce from history you have assumed, which is
+the same discipline the rest of this page applies to every other instrument.
+
+Two things follow that are easy to miss. Every worktree in this setup shares one
+object store, so the object may be present because *another session* fetched,
+with no act of yours — measured by enumerating every worktree and resolving each
+one's object store: many worktrees, exactly one common store, their `HEAD`s all
+differing, which is the control that they are genuinely separate worktrees and
+not one path counted many times. Take that measurement rather than trusting a
+count written here: worktrees are created and archived continuously, so a figure
+in this sentence would be stale by the time you read it. And presence is therefore not
+evidence that the work landed, nor absence evidence that it did not: it reports
+only what has been fetched into a store you share. That is what the probe is
+for — routing you to a reader that works — and it settles nothing on its own.
+
+So read it over the network instead whenever the object is not local, which
+needs no local object and has no anchor to go stale:
+
+```powershell
+gh api "repos/<owner>/<repo>/contents/<path>?ref=$sq" -H "Accept: application/vnd.github.raw"
+```
+
+Read that call's exit code too, and never infer absence from an empty body: a
+404 for a path you got wrong prints nothing and would otherwise read as "my work
+is missing", which is the same collapse of "found nothing" into "could not look"
+that the rest of this page refuses.
+
+**Compare only the paths your branch authored.** A branch that was behind trunk
+differs legitimately everywhere the merge took trunk's side, so "all paths
+match" is the wrong test: it fails toward a false "something of mine is
+missing", which is the reassuring direction and therefore the one nobody
+re-checks. Take the list from the record rather than reconstructing it:
+
+```powershell
+gh pr view <n> --repo <owner>/<repo> --json files --jq '[.files[].path]'
+```
+
+Measured on abdeslam-menacere/ModelTree#777, whose branch merged at its exact
+tip:
+
+```
+dock tip   1afcb121b77e80d11bda90fc5dccb45e43872e02
+PR 784     headRefOid 1afcb121b77e80d11bda90fc5dccb45e43872e02   IDENTICAL
+squash     a07c7420aab3464bb8c62923a904fb94f2287781   mergeCommit.oid, frozen
+
+git diff --stat "$tip" "$sq" -- <the 5 authored paths>
+  exit 0, no output                      nothing of mine is absent
+git diff --stat "$tip" "$sq"
+  exit 0, 2 files changed, +137          trunk's own work, not mine:
+                                           tools/updater/profiles/origins/nvidia.json
+                                           tools/updater/profiles/origins/tii.json
+```
+
+Neither differing path is one that branch authored. Read unrestricted it looks
+to be missing 137 lines; read against the paths it actually wrote, it is missing
+nothing. **The unrestricted run is the control for the restricted one** — same
+command, same quoting, same two commits, one argument shorter — and it came back
+non-empty, which is what makes "no output" a finding rather than a blind
+instrument.
+
+#### Question 2 — absent because it was refused, or absent because it was never seen?
+
+Opposite dispositions, and the artefacts do not separate them on their own.
+Re-proposing refused work is worse than discarding good work: it spends a
+reviewer's cycle arguing with a decision that has already been made.
+
+The instrument is `stateReason`, which step 0 has already read, together with
+whatever closed the issue.
+
+- `NOT_PLANNED` ⇒ unwanted. Discard, and do not re-propose it in any form.
+- `COMPLETED` with a merged pull request ⇒ overtaken, not refused. Question 3
+  applies to whatever question 1 found absent.
+- `COMPLETED` with nothing merged ⇒ closed by hand. Treat it as unwanted, and
+  say in your summary that you read it that way, because that reading is a
+  judgement and the next reader may want to revisit it.
+
+**Do not key any of this on *who* did something.** Every session in this
+repository posts as the same account, so "who closed it" and "who pushed that
+branch" are not answerable from any artefact here, and a rule that depends on
+them cannot be carried out. The answerable question is *which pull request*,
+never *whose hand*. That is why step 0 and the routing paragraph both ask which
+pull request or commit closed the issue: the field a person's name would go in
+has one possible value, so asking for it reads as information and returns none.
+
+#### Question 3 — what carries the remainder forward?
+
+You cannot push, cannot open a pull request, cannot rebase, and your worktree
+does not survive you. `DOCK.md` is untracked and dies with the dock. So the
+disposition has to be an artefact that outlives the worktree, and it has to be
+readable without your branch: a comment or a new issue that **quotes the absent
+hunks inline**, because a later reader cannot check out a branch that no longer
+exists.
+
+**Ask what the remainder *is*, not merely whether the code landed.** A dock's
+output is not only its diff. Findings, inventories, audits, counter-examples and
+negative results are output too, and they land on no branch at all, so a diff
+being wholly present on trunk says nothing whatever about them.
+
+That is not hypothetical, and it is the case the obvious table gets wrong. The
+abdeslam-menacere/ModelTree#777 dock above measures as *fully landed* on
+question 1 — five authored paths, zero difference against the squash. "Fully
+landed ⇒ discard" is the natural reading and it would have destroyed real work:
+that dock had also produced a 42-site audit of prefix-anchored selectors, which
+merged with nothing because it was never code, and which
+abdeslam-menacere/ModelTree#785 — open, and asking for exactly that inventory —
+was waiting for. The disposition was neither "discard" nor "file a follow-up":
+it was **stand down on the code and re-home the audit onto the open issue that
+wanted it**, done at
+https://github.com/abdeslam-menacere/ModelTree/issues/785#issuecomment-5515687691.
+
+So before discarding on a fully-landed reading, ask which part of your output
+was never a diff. Whatever was not, did not land, whatever the paths say.
+
+#### The dispositions
+
+| what the measurements say | what you do |
+|---|---|
+| `ISSUE CLOSED` with `stateReason` `NOT_PLANNED` | Discard. Do not re-propose and do not file a follow-up — the work was refused, not missed. Name what you discarded, so the refusal stays legible. |
+| Fully landed — no authored path differs against the squash — and all of your output was diff | Stand down and discard. Report the identity that establishes it and stop. Do not ask for a gate. |
+| Fully landed, but part of your output was never a diff — a finding, an audit, an inventory, a counter-example | Stand down on the code; **re-home the non-diff output** onto whichever open issue wants it, or file it as a new issue if none does. Landed code does not make a finding redundant. |
+| `PARTIALLY LANDED` — some authored path differs against the squash | Name which paths and which commits, and file a follow-up issue quoting the absent hunks inline. Do not rebase; and where the issue is closed, do not reopen it — the follow-up carries the remainder, not the old issue. |
+| `SUPERSEDED` | Read the superseding change before deciding anything. It may already contain your remainder, may contradict it, or may have solved a different problem under the same name. Only then apply one of the rows above. |
+| `UNDETERMINED` at any step | Dispose of nothing. Report which step refused and why. Discarding on an undetermined reading is the only irreversible move here. |
+
+None of this is a licence, and the standing prohibition is unchanged: you still
+do not push, do not open a pull request, do not rebase, do not merge, and do not
+record a gate verdict on your own work. Every disposition above is either
+writing something down or stopping.
+
+#### Which control guards which instrument
+
+Three instruments, three controls, one each — the file's own rule is that fewer
+controls than instruments leaves one unguarded, so the mapping is written out
+here to be counted rather than asserted. Every control below was evaluated
+before any real result was read, and each would have come back the other way.
+
+| instrument | what it answers | its control, run the same way | which way the control must come back |
+|---|---|---|---|
+| `gh issue view --json state,stateReason` | question 2: refused, or overtaken | one known-closed and one known-open issue, in the same run | it must return **both** values. Measured: abdeslam-menacere/ModelTree#777 `CLOSED` / `COMPLETED`, abdeslam-menacere/ModelTree#785 `OPEN` |
+| `gh pr list --search <sha>` and `gh pr view --json mergeCommit` | which pull request landed it, and the frozen comparand | a real merged head SHA and a fabricated one, in the same run | real must find the pull request, fabricated must come back empty **at exit 0**. Measured: `1afcb121…` found it, `ffffffff…00000000` returned an empty list |
+| `git diff --stat <squash> <tip> -- <authored paths>` | question 1: what of mine is absent | the identical command with the path restriction removed | it must come back **non-empty**. Measured: restricted empty, unrestricted 2 files and +137 |
+
+A one-sided control cannot catch an instrument that answers the same thing to
+everything, and that is the failure being guarded against here: an issue check
+that read `CLOSED` unconditionally, or a diff that reported "no difference"
+because it was aimed at paths nobody touched, would each produce a confident
+disposition and destroy work. Note also what the third control does **not**
+prove — it establishes that the comparison is live, and says nothing about
+landedness, which is question 1's own reading.
+
+Two further calls appear above and are deliberately **not** counted as
+instruments, because neither can produce a wrong disposition that survives.
+`git cat-file -e` only routes you between the local read and the network one,
+and both of its outcomes are handled: a false "not present" sends you to the
+network path, which is strictly the more reliable of the two, so it fails in the
+safe direction by construction. `gh api` is the read mechanism for the question-1
+comparison rather than a measurement of its own, and it is guarded by its exit
+code in the paragraph that introduces it. If you add a fourth thing that can
+answer, it needs a fourth control; the count is the check, which is why it is
+stated as a count.
 
 ## This repo's own constraints
 

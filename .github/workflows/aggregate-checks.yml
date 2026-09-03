@@ -1,0 +1,101 @@
+name: Aggregate checks
+
+# One status check that reports on every pull request and is red whenever a
+# path-filtered check on the same pull request is not green.
+#
+# Branch protection on `main` requires `web-ci`, `skills-ci` and `web-e2e`.
+# `adr-numbers`, `instruction-references` and the two `pytest` legs are not
+# required, and `adr-numbers.yml` records why in its own header: each is
+# filtered at its trigger, so it reports no check at all on a pull request that
+# touches none of its paths, and a required check that never reports leaves a
+# pull request pending forever. They therefore run, go red, and stop nothing --
+# `mergeStateStatus` still reads `CLEAN`, because that field means "mergeable,
+# and nothing that blocks is red", not "everything passed".
+#
+# This job is deliberately NOT filtered by `on.pull_request.paths`, the same
+# shape and for the same reason as `web-ci` and `skills-ci`: it starts on every
+# pull request, so its check always reports, so it can be required without
+# deadlocking anything. It reads the checks API for the pull request's head
+# commit and is red unless every watched check passed, was skipped, or was never
+# triggered. `.github/scripts/aggregate-checks.mjs` holds that reading, states
+# which checks it watches and which it deliberately does not, and explains why
+# `needs:` cannot express any of it -- `needs` names jobs in the same workflow,
+# and every check aggregated here lives in a different one.
+#
+# Adding `aggregate-checks` to the required contexts is a branch-protection
+# change and an owner action. Until that happens this workflow reports and
+# blocks nothing, which is the prerequisite rather than the outcome.
+#
+# It runs on pull requests only. There is no pull request on a push or a
+# dispatch, so there is no head commit whose checks could be aggregated and no
+# changed-file list from which to work out what should have run; the watched
+# workflows carry their own `push` triggers for `main`, and reporting a green
+# aggregate for an event this cannot measure is the unearned green the whole job
+# exists to remove.
+#
+# The script installs nothing, reads only, and holds no write scope of any kind.
+
+on:
+  pull_request:
+
+# Least privilege, set at the top so no job can start from a wider default.
+permissions:
+  # The checkout, which is how the script itself arrives.
+  contents: read
+  # The check runs on the head commit.
+  checks: read
+  # The changed-file list, which is what decides whether an absent check was
+  # never triggered or never reported.
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Superseded pull request runs are cancelled, matching every sibling workflow.
+  # It matters more here than elsewhere: the checks this job reads belong to one
+  # head commit, so a run left polling an abandoned commit would report about a
+  # commit nobody is merging.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # The job id and its name are both the literal `aggregate-checks`, and there
+  # is no matrix, so the reported status check is always exactly
+  # `aggregate-checks`. Renaming either breaks any branch protection rule that
+  # requires it.
+  aggregate-checks:
+    name: aggregate-checks
+    runs-on: ubuntu-latest
+    # Comfortably above the script's own 20-minute deadline, so the script is
+    # what ends a stuck run -- with a message naming which check it was still
+    # waiting for -- rather than the runner killing it with none.
+    timeout-minutes: 25
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          # Only the script is needed; nothing here diffs locally, because the
+          # changed-file list comes from the API that GitHub itself compares
+          # against a `paths:` filter.
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          # Matches web-ci, skills-ci, source-link-health and pages.yml. The
+          # script is dependency-free, so there is nothing to install and no
+          # lockfile to cache.
+          node-version: 22
+
+      - name: Aggregate the checks that report on this pull request
+        env:
+          # The job token, scoped by the permissions block above to reads.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Event data reaches the script as environment variables, never
+          # interpolated into a command line.
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          # The head commit, which is where check runs are reported. Measured
+          # against pull request 715: the check-runs endpoint for its head SHA
+          # returned exactly the entries `statusCheckRollup` shows.
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        # No arguments: there is no flag that skips, forces or relaxes a check,
+        # so the job cannot be pointed at an easier question than the real one.
+        run: node .github/scripts/aggregate-checks.mjs

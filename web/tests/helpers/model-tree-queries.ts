@@ -1,4 +1,5 @@
 import { expect } from 'vitest';
+import { organizationLabel, type OrganizationLabelName } from '../../src/lib/organization-name';
 
 /**
  * Queries for the lineage tree's disclosures and release nodes, selecting on the
@@ -36,6 +37,14 @@ import { expect } from 'vitest';
  * already uses for the same reason: select on the stable identifier, then assert
  * the name, so that id-based selection cannot quietly stop being *named* for the
  * thing it selects.
+ *
+ * -- A second reason, since issue #744 --
+ *
+ * Selecting by id is also what keeps these lookups' cost off the dataset, which
+ * is the thing this repository is deliberately growing. That is why
+ * {@link creatorDisclosure} was added: not to resolve an ambiguity, but because
+ * the name-based creator lookup it replaces was the last query in these files
+ * still priced by the size of the whole catalog. The measurements are on it.
  */
 
 function only<T extends Element>(nodes: ArrayLike<T>, what: string): T {
@@ -45,6 +54,50 @@ function only<T extends Element>(nodes: ArrayLike<T>, what: string): T {
   // the old selectors could not produce.
   expect(found.length, `expected exactly one ${what}, found ${found.length}`).toBe(1);
   return found[0] as T;
+}
+
+/**
+ * The disclosure button for one creator, selected by the organization id in its
+ * `aria-controls`.
+ *
+ * -- Why this is not `getByRole('button', { name: /^Anthropic/ })` (issue #744) --
+ *
+ * The two are not equally priced. `getByRole(..., { name })` computes an
+ * accessible name for every button in its container and, because the default
+ * `hidden: false` also filters on accessibility-visibility, resolves computed
+ * style for each one as well. The explorer renders the whole dataset up front --
+ * collapsed branches carry the `hidden` attribute, they are not unmounted -- so
+ * that container is the entire catalog: 237 buttons at 110 releases, growing
+ * with every tranche. Measured here, on the failing test's own four-click
+ * sequence with only this lookup varied:
+ *
+ *   releases  buttons   by name   by id
+ *       110       237    2005ms   892ms
+ *       210       454    2596ms   913ms
+ *       310       671    4115ms  1063ms
+ *
+ * 10.6 ms per added release by name against 0.9 by id. The point is the slope,
+ * not the intercept: this repository is deliberately growing the dataset, so a
+ * test priced by name gets worse with every creator added, and one priced by id
+ * does not.
+ *
+ * The id is the same `aria-controls` wiring {@link familyDisclosure} uses, one
+ * level up, so reaching the button this way exercises the disclosure's
+ * association with its panel rather than assuming it.
+ */
+export function creatorDisclosure(
+  organization: { id: string } & OrganizationLabelName,
+): HTMLButtonElement {
+  const button = only(
+    document.querySelectorAll<HTMLButtonElement>(
+      `button[aria-controls="tree-creator-${organization.id}"]`,
+    ),
+    `creator disclosure for "${organization.id}"`,
+  );
+  // Same reason as below: selecting by id says nothing about what the button is
+  // called, so the label is asserted rather than assumed.
+  expect(button.querySelector('span')?.textContent).toBe(organizationLabel(organization));
+  return button;
 }
 
 /**
