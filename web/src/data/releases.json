@@ -2644,6 +2644,57 @@
     "verifiedAt": "2026-09-01"
   },
   {
+    "id": "alibaba-qwen3-8-flash-next",
+    "slug": "qwen3-8-flash-next",
+    "canonicalName": "Qwen3.8-Flash-Next",
+    "displayName": "Qwen3.8-Flash-Next",
+    "organizationId": "alibaba-cloud",
+    "familyId": "qwen3-8",
+    "version": "3.8",
+    "variant": "Flash-Next",
+    "releaseDate": "2026-08-26",
+    "datePrecision": "day",
+    "status": "preview",
+    "featured": false,
+    "categories": [
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Qwen Community License 1.0",
+      "url": "https://huggingface.co/Qwen/Qwen3.8-Flash-Next/blob/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "parameters": {
+      "activeBillions": 6
+    },
+    "contextWindow": 262144,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "A sparse mixture-of-experts model published as downloadable weights and described by its own card as \"This experimental preview of the architecture that will underpin Qwen4\", distinguished there from Qwen3.8-Flash, \"the official version based on Qwen3.8-Flash-Next with more production features\". Its card gives the parameter count as \"125B with 6B activated, plus 51B n-gram embedding and 4B MTP\"; only the activated count is recorded, because the card states no single total and this dataset does not add a main-model figure to an embedding table to manufacture one. The native context length is 262,144 tokens, which the card says is extensible to 1,000,000; the native figure is what the field holds. The creator’s launch post sits on qwen.ai, an origin outside this dataset’s approved set, so nothing is cited from it.",
+    "intendedUse": "Multimodal understanding over text and images, coding and office tasks, run from the published weights rather than through the creator’s hosted service.",
+    "sourceIds": [
+      "qwen3-8-flash-next-model-card",
+      "hugging-face-qwen3-8-flash-next-hub-record",
+      "qwen3-8-flash-next-repository",
+      "qwen3-8-flash-next-license",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-09-03"
+  },
+  {
     "id": "microsoft-mai-thinking-1",
     "slug": "mai-thinking-1",
     "canonicalName": "MAI-Thinking-1",
@@ -2730,6 +2781,102 @@
       "osi-license-mit"
     ],
     "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "microsoft-fara-1-5-4b",
+    "slug": "fara-1-5-4b",
+    "canonicalName": "Fara1.5-4B",
+    "displayName": "Fara1.5-4B",
+    "organizationId": "microsoft",
+    "familyId": "microsoft-fara",
+    "version": "1.5",
+    "variant": "4B",
+    "releaseDate": "2026-05-21",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "MIT License",
+      "spdxId": "MIT",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 4
+    },
+    "contextWindow": 262144,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "A 4B-parameter computer-use agent model from Microsoft Research AI Frontiers, in the same Fara1.5 line as the already-recorded 27B and carrying the same card template: a \"Multimodal decoder-only LM (image + text → text)\" that takes a user goal plus screenshots and emits a reasoning block followed by a tool call, published under the MIT licence with a 262,144-token context length. Its card names a base model in the Qwen3.5 line created by Alibaba Cloud; that base is not recorded in this dataset, so the derivation is stated here rather than linked. The card states no lifecycle, so the status field records that rather than borrowing the 27B's.",
+    "intendedUse": "Automating repetitive web tasks from screenshots — forms, shopping, travel and reservation booking, information seeking and account workflows — or serving as a grounding model for another agent that needs pixel-accurate action prediction.",
+    "sourceIds": [
+      "microsoft-fara-1-5-4b-model-card",
+      "hugging-face-fara-1-5-4b-hub-record",
+      "osi-license-mit"
+    ],
+    "verifiedAt": "2026-09-03"
+  },
+  {
+    "id": "microsoft-fara-1-5-9b",
+    "slug": "fara-1-5-9b",
+    "canonicalName": "Fara1.5-9B",
+    "displayName": "Fara1.5-9B",
+    "organizationId": "microsoft",
+    "familyId": "microsoft-fara",
+    "version": "1.5",
+    "variant": "9B",
+    "releaseDate": "2026-05-21",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "MIT License",
+      "spdxId": "MIT",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 9
+    },
+    "contextWindow": 262144,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "A 9B-parameter computer-use agent model from Microsoft Research AI Frontiers, in the same Fara1.5 line as the already-recorded 27B and carrying the same card template: a \"Multimodal decoder-only LM (image + text → text)\" that takes a user goal plus screenshots and emits a reasoning block followed by a tool call, published under the MIT licence with a 262,144-token context length. Its card names a base model in the Qwen3.5 line created by Alibaba Cloud; that base is not recorded in this dataset, so the derivation is stated here rather than linked. The card states no lifecycle, so the status field records that rather than borrowing the 27B's.",
+    "intendedUse": "Automating repetitive web tasks from screenshots — forms, shopping, travel and reservation booking, information seeking and account workflows — or serving as a grounding model for another agent that needs pixel-accurate action prediction.",
+    "sourceIds": [
+      "microsoft-fara-1-5-9b-model-card",
+      "hugging-face-fara-1-5-9b-hub-record",
+      "osi-license-mit"
+    ],
+    "verifiedAt": "2026-09-03"
   },
   {
     "id": "amazon-nova-2-sonic",

@@ -4323,5 +4323,279 @@
       }
     ],
     "recordedAt": "2026-08-31"
+  },
+  {
+    "id": "2026-09-03-660be8",
+    "title": "Pilot depth 2026-09-03 — Microsoft Fara 1.5 and Alibaba Qwen3.8-Flash-Next",
+    "ranOn": "2026-09-03",
+    "outcome": "published",
+    "summary": "A depth pass over the seven reviewed pilot profiles that published two of them. Eleven claims were proposed across two bundles, every one of kind add, carrying 35 evidence entries; each quote was machine-checked as a contiguous verbatim substring of the exact stored bytes its contentHash names, with a positive and a negative span control in the same invocation. The three-rubric panel accepted all eleven unanimously at 3-of-3, which is above the 2-of-3 the pilot policy requires, and rejected none. The run stopped once before it published: on its first pass npm run validate reddened on web/asset-budgets.json, whose recorded measuredRaw figures had drifted past the 2% tolerance, and the only fix — re-recording them — lies outside the ADR 0003 qualifying class. Rather than edit that file or shrink the tranche to fit a stale figure, the run stopped and filed the conflict as issue #833. It resumed only after trunk PR #830 re-recorded those figures against its own merge tree for unrelated reasons; current trunk was then merged in and everything re-measured against the merge, which is the state CI builds. No budget figure, ceiling, threshold or tolerance was changed by this run.",
+    "scope": "All creators, as instructed. In practice the seven creators carrying a reviewed profile under tools/updater/profiles were probed and two produced claims, so this is a depth pass over the pilot set and not a sweep of the catalogue; the 37 organisations with no reviewed profile were not scouted and are recorded as not covered.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Confirmed the dataset round-trips byte-exactly through JSON.stringify(v, null, 2) + newline before touching it — no CRLF, no BOM, 2-space indent — and captured insertion anchors from the committed order rather than assuming one. Checked that every proposed id was absent from the dataset and that both target families microsoft-fara and qwen3-8 already existed, so no release could orphan. The first id-presence probe was a PowerShell git grep whose pattern was mangled by the shell: it reported every id absent including a known-present positive control, which is the only reason the fault was visible. It was replaced with a Node reader carrying its own positive and negative controls."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "Stored 31 page bodies and cut every quote from those exact bytes. Eleven claims across two bundles, 35 evidence entries, all retrieval fetch and no search snippets. Several origins refused or could not be read and are recorded under withheld rather than worked around: openai.com returned 403, ai.meta.com/blog 400, the Gemini API model docs failed outright, and microsoft.ai/models/mai-code-1-1-flash returned 404. qwen.ai is reachable but is not in the approved origin catalogue, so nothing was cited from it; raw.githubusercontent.com is likewise unapproved, which forced the Qwen README to be re-fetched from its github.com blob page instead. derivedFromIds was left empty on both Fara records with the base model named only in prose, matching the committed microsoft-fara-1-5-27b precedent rather than inventing a lineage edge."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Three reviewers, one per rubric, run independently: none saw the scout reasoning, another reviewer verdict, the threshold, or the running tally. 33 verdicts over 11 claims, all accept, so no claim was carried over a dissent and none was rejected. No reviewer was re-run. One harness casualty is worth recording: the provenance reviewer deleted check-bundle-pairing.mjs from the run directory as scratch, and it had to be rewritten with a live negative control before the bundles could be re-checked — a sub-agent tidying its own working directory can remove the harness that judges it."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "Run in order and re-run in full after each trunk merge, because a verdict measured against the branch alone is not a verdict about what CI builds, and a verdict measured against a superseded trunk is not either. Trunk was merged twice: once to pick up the re-recorded budgets, and again when it moved on to carry ADR 0013 and a changed release schema while this entry was being written. The second merge shifted the anchor, which correctly invalidated the record counts written here and made gate-ledger exit 1 until they were re-measured — the gate catching a stale figure is the gate working. gate-evidence and gate-source-approval ran before any dataset file was touched, and gate-source-approval re-derived the anchor itself rather than being handed one. gate-ledger initially exited 1 against this branch for a different reason, naming both the missing entry and the run id declared in the commit subject: it is not part of npm run validate and does not run in CI, so nothing downstream would have caught it, and being fully in class is precisely what set unattended true and made the record mandatory. This entry is that failure being repaired rather than argued with. Two invocations exited 2 during the run — gate-evidence on a wrong flag and verify-quotes with no arguments — and both were read as refusals and re-run, never recorded as results."
+      },
+      {
+        "stage": "publish",
+        "status": "not-run",
+        "note": "Deliberately not run. The dock boundary ends at a reviewable commit: it does not open a pull request, does not push, does not merge, does not rebase and does not gate its own work. The dataset change and this entry are committed to the branch and handed to the publishing step, which fills in the pull-request reference below once that pull request exists to be named. Landing remains GitHub’s once CI is green."
+      }
+    ],
+    "found": {
+      "scouts": 7,
+      "pagesFetched": 31,
+      "claimsProposed": 11,
+      "bundles": [
+        {
+          "creator": "microsoft",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "alibaba-cloud",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 5
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "add",
+          "count": 11,
+          "effect": "All eleven were accepted unanimously and all eleven were applied: three releases and eight sources. Nothing was dropped after acceptance, because both target families already held releases and no record could be orphaned."
+        }
+      ],
+      "notCovered": [
+        "Only the seven creators carrying a reviewed profile under tools/updater/profiles were probed, and only microsoft and alibaba-cloud yielded claims. The other 37 organisations in the dataset were not scouted at all this run, so this is a depth pass and its silence about them is absence of evidence rather than evidence of absence.",
+        "The four MAI models named on microsoft.ai, plus MAI-Image-2.6, were confirmed absent from releases.json but were not scouted into claims. Their absence was measured with a positive and a negative control, so it is a finding rather than an assumption.",
+        "Link health was not swept and the second Python interpreter was not exercised; ci-preflight names both as outside what it covers, along with the web-e2e browser check and GitHub’s own production of the aggregate-checks status."
+      ]
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 33,
+      "acceptedByPanel": 11,
+      "rejectedByPanel": 0,
+      "dissents": [],
+      "gates": [
+        {
+          "gate": "gate-evidence",
+          "scope": "the microsoft bundle, before any dataset file was touched",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "6 claims admissible under the pilot policy, all 6 applying to the dataset. The policy was derived from the reviewed-profile set rather than read from the bundle, and the derived pilot matched the declared pilot, so 2-of-3 is the threshold actually applied — which the panel cleared at 3-of-3 anyway."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "the alibaba-cloud bundle, before any dataset file was touched",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "5 claims admissible under the pilot policy, all 5 applying to the dataset."
+        },
+        {
+          "gate": "gate-source-approval",
+          "scope": "the microsoft bundle against the approved origin set at the branch’s merge-base with refs/remotes/origin/main",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "20 citations rest on approved sources: 1 inherited from the dataset at the merge base and 4 proposed on already-trusted origins. No origin was widened, and qwen.ai was left unapproved rather than added to make a citation fit."
+        },
+        {
+          "gate": "gate-source-approval",
+          "scope": "the alibaba-cloud bundle against the approved origin set at the branch’s merge-base with refs/remotes/origin/main",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "15 citations rest on approved sources: 1 inherited from the dataset at the merge base and 4 proposed on already-trusted origins. No origin was widened."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "web/src/data after the eleven claims and this entry were applied",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "All gates passed over the whole dataset. Both new Fara releases join a family that already holds a release and the Qwen release joins qwen3-8, so the empty-family refusal does not bite, and each release status agrees with its family."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "the branch against its computed merge-base with refs/remotes/origin/main",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "In class. releases.json and sources.json changed, plus this ledger entry, which ADR 0006 admits to the class. web/asset-budgets.json is deliberately absent from the diff: trunk re-recorded it in PR #830 and that version became the merge base, so its figures were inherited rather than edited. No test, workflow, skill or document was touched."
+        },
+        {
+          "gate": "gate-ledger",
+          "scope": "the branch against its computed merge-base, after this entry was added",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Exit 1 before this entry existed, naming two findings: a change confined to the qualifying class may auto-merge unattended and so must record itself (ADR 0006, the #419 failure), and the commit subject declared run 2026-09-03-660be8 with no entry reaching the ledger. Both are repaired by this entry, whose posted.documents figures the gate re-counts from the anchor and the working tree rather than trusting what is written here. The gate is not in npm run validate and does not run in CI, so its absence from the first verification set was invisible from inside the run."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "web/, the test suite plus Astro and TypeScript diagnostics",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Green on the merge commit, including tests/build/asset-budgets.test.ts, which is what had stopped the first pass. A green baseline was measured on the unmodified tree first, so any failure would have been attributable to this change."
+        },
+        {
+          "gate": "ci-preflight",
+          "scope": "the repository root, selecting the pull-request checks this diff triggers",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Selected web-ci, skills-ci and source-link-health-tests, all passing. Run from the root because npm run validate reads only web/ and would not exercise the checks a diff outside it triggers; this diff is dataset-only, so the selection is narrow."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 11,
+      "documents": [
+        {
+          "document": "releases.json",
+          "recordsBefore": 114,
+          "recordsAfter": 117,
+          "note": "Three releases appended after their family siblings: the two Fara 1.5 records after microsoft-fara-1-5-27b, and the Qwen record after alibaba-qwen3-8-27b."
+        },
+        {
+          "document": "sources.json",
+          "recordsBefore": 269,
+          "recordsAfter": 277,
+          "note": "Eight sources, each cited by a record claim in the same bundle: microsoft-fara-1-5-4b-model-card, hugging-face-fara-1-5-4b-hub-record, microsoft-fara-1-5-9b-model-card, hugging-face-fara-1-5-9b-hub-record, qwen3-8-flash-next-model-card, hugging-face-qwen3-8-flash-next-hub-record, qwen3-8-flash-next-repository, qwen3-8-flash-next-license. They are counted here rather than listed under records, because a source resolves to no page on this site and would render as a link to nowhere."
+        }
+      ],
+      "records": [
+        {
+          "id": "microsoft-fara-1-5-4b",
+          "collection": "releases",
+          "note": "MIT with osiApproved true against the OSI licence index, 262144 context, creator-stated releaseDate 2026-05-21, status unknown. derivedFromIds left empty with the base named only in prose, matching the committed 27B record."
+        },
+        {
+          "id": "microsoft-fara-1-5-9b",
+          "collection": "releases",
+          "note": "Same licence, context, date basis and status as the 4B, sourced separately from its own model card and Hub API record rather than inherited from its sibling."
+        },
+        {
+          "id": "alibaba-qwen3-8-flash-next",
+          "collection": "releases",
+          "note": "Creator-stated 2026-08-26 from the GitHub README, 262144 native context, Qwen Community License 1.0 with osiApproved false citing the OSI licence index, status preview. Only parameters.activeBillions 6 is recorded, because the card states no total."
+        }
+      ]
+    },
+    "withheld": [
+      {
+        "id": "microsoft-mai-family-releases",
+        "category": "not-covered",
+        "detail": "Four MAI models named on microsoft.ai, plus MAI-Image-2.6, hold no release record in releases.json. Their absence was measured rather than assumed, with a known-present positive control and a fabricated negative control in the same lookup. They were not scouted into claims this run: microsoft.ai/models/mai-code-1-1-flash returned 404, and the run did not widen its scope to chase the rest once the Fara bundle was complete.",
+        "blockedBy": []
+      },
+      {
+        "id": "microsoft-fara-7b-release",
+        "category": "not-covered",
+        "detail": "Fara-7B and Fara-7B-onnx already carry sources in the dataset but no release records. The run confirmed this while placing the Fara 1.5 records and left it alone: adding them is a separate researched claim, not a side effect of this tranche.",
+        "blockedBy": []
+      },
+      {
+        "id": "microsoft-vibevoice-asr-streaming",
+        "category": "not-covered",
+        "detail": "VibeVoice-ASR-Streaming appears in no dataset document at all. Observed during the Microsoft sweep and not scouted, for the same reason as the MAI models.",
+        "blockedBy": []
+      },
+      {
+        "id": "qwen-ai-origin-citations",
+        "category": "source-refused",
+        "detail": "qwen.ai is reachable and carries creator-stated material, but it is not in the approved origin catalogue, so nothing was cited from it. The alternative — widening the catalogue mid-run to admit a source the run wanted — is the move the approval gate exists to prevent, so the origin was left unapproved and the facts were taken from approved origins instead.",
+        "blockedBy": [
+          "gate-source-approval"
+        ]
+      },
+      {
+        "id": "raw-githubusercontent-fetches",
+        "category": "source-refused",
+        "detail": "raw.githubusercontent.com is not approved while github.com is, so the Qwen README could not be cited from its raw URL and was re-fetched from the github.com blob page. The quote is verbatim against the blob body actually stored, not against the raw file.",
+        "blockedBy": [
+          "gate-source-approval"
+        ]
+      },
+      {
+        "id": "unreachable-creator-origins",
+        "category": "source-refused",
+        "detail": "openai.com/news and /index returned 403, ai.meta.com/blog returned 400, and ai.google.dev/gemini-api/docs/models failed to fetch. No claim was made about any of the three creators on the strength of recalled knowledge or a search snippet, so those creators contributed nothing this run.",
+        "blockedBy": []
+      },
+      {
+        "id": "asset-budget-re-record",
+        "category": "blocked-by-policy",
+        "detail": "On the first pass the run needed web/asset-budgets.json re-recorded to keep web-ci green, because trunk drift plus this tranche pushed /tree and /compare past the 2% measuredDrift tolerance. That file is outside the ADR 0003 qualifying class, so the run stopped and filed issue #833 rather than edit it, and it declined to shrink the tranche to fit a figure known to be stale — sizing researched data by stale documentation is the failure #813 exists to end. The need disappeared when trunk PR #830 re-recorded those figures for its own reasons; the structural conflict did not, and #833 remains open.",
+        "blockedBy": [
+          "web/asset-budgets.json",
+          "ADR 0003"
+        ]
+      }
+    ],
+    "caveats": [
+      "Coverage is seven reviewed pilot creators, not the catalogue. Nothing here says anything about the 37 organisations that were not probed, and a green run is not a statement that the rest of the dataset is current.",
+      "The panel reviewed the claims, not the world. Unanimous acceptance means three rubrics found each claim properly sourced against the bytes fetched on 2026-09-03; it does not mean the creator has not changed the page since, and it does not verify facts no source asserts.",
+      "Both Fara records leave derivedFromIds empty although the cards name a base model in prose. That under-claims the lineage rather than over-claiming it, and it matches the committed 27B record, but a reader should not read the empty edge as evidence that no lineage exists.",
+      "The measuredDrift figures this run passed against were re-recorded by PR #830, not by this run. Its margin is real but inherited: on the tree this run gated, /tree sat 5113 bytes and /compare 7110 bytes inside a 2% tolerance, so the next tranche of comparable size meets the same wall #833 describes unless something re-records again first. Trunk growth eats that margin without anyone deciding to spend it.",
+      "gate-ledger is absent from npm run validate and from CI. This run reached a full green verification set without it and was wrong to; the entry exists because a reviewer ran the gate the run had not."
+    ],
+    "followUps": [
+      "The four MAI models and MAI-Image-2.6 carry no release records, and microsoft.ai/models/mai-code-1-1-flash returns 404 — the model pages may have moved, which is worth establishing before scouting them.",
+      "Fara-7B and Fara-7B-onnx have sources but no release records.",
+      "VibeVoice-ASR-Streaming is absent from every dataset document.",
+      "qwen.ai is reachable, creator-operated and unapproved; whether it belongs in the approved origin catalogue is a decision for a human, not something a run should settle for itself mid-tranche.",
+      "raw.githubusercontent.com is unapproved while github.com is approved, which makes README evidence needlessly awkward to cite and is worth a deliberate decision either way.",
+      "scripts/run-check.test.ts has a load-dependent failure: \"runs --root . and --root=. for real\" fails under full-suite contention between two real astro check subprocesses and passes 15 of 15 in isolation. It was green in CI at the same SHA and is not attributable to this run."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "PR #842 — feat(data): add Fara 1.5 4B/9B and Qwen3.8-Flash-Next (run 2026-09-03-660be8), the pull request carrying this run’s dataset change and this entry",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/842",
+        "state": "Open when this entry was completed, and carrying the entry itself: a published run records itself in the same pull request that changes the dataset, per ADR 0006. The dock left this reference as a placeholder because a dock does not open pull requests; the publishing step filled it in with the real number rather than a guessed one, and merges it with --auto so GitHub enforces web-ci."
+      },
+      {
+        "kind": "issue",
+        "label": "abdeslam-menacere/ModelTree#833 — the ADR 0003 class conflict this run hit and filed: web/asset-budgets.json measuredDrift is a required check but the file is outside the qualifying class, so a refresh large enough to move a page cannot both publish and stay green.",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/833",
+        "state": "open, and should stay open: PR #830 re-recorded the figures for unrelated reasons and cleared this run in passing, which is timing rather than a resolution."
+      },
+      {
+        "kind": "issue",
+        "label": "abdeslam-menacere/ModelTree#834 — the run summary filed when this run first stopped.",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/834",
+        "state": "closed on the day it was filed, because at that point nothing had reached main. It records the stopped pass, not this published one."
+      },
+      {
+        "kind": "commit",
+        "label": "4bc61c621d38d48c808ac1cd5623d9345d444c6a — the dataset commit, applying the eleven accepted claims.",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/4bc61c621d38d48c808ac1cd5623d9345d444c6a",
+        "state": "on the branch, with current trunk merged in afterwards so that every gate was measured against the merge rather than the branch alone."
+      }
+    ],
+    "recordedAt": "2026-09-03"
   }
 ]
