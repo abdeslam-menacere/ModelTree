@@ -178,11 +178,27 @@ passport. That is what this change fixes.
   the proxy for this decision's *durability* clause, and it stays scoped to
   superseded releases. The *discrimination* clause — "could not be written of
   another release of the same creator" — is a different question, and it is now
-  enforced over every flagged release regardless of status, by the transplant
-  test the Fable 5 case already called decidable. It caught six rationales,
-  which were rewritten. No `featured` flag changed, in either direction, and the
-  featured totals are unchanged at 24 of 117 releases: 18 `current`, 4 `legacy`,
-  2 `preview`.
+  enforced over every flagged release that has a flagged sibling to be tested
+  against, regardless of status, by the transplant test the Fable 5 case already
+  called decidable. It caught six rationales, which were rewritten.
+
+  That qualifier is exact rather than cautious, and it is worth stating plainly
+  because an enforcement claim wider than its enforcement is the defect this
+  bullet is already correcting once. The clause is a comparison between two
+  releases of one creator, so a creator holding a single flagged release forms
+  no pair and the rule says nothing about it. Today that is one creator of five
+  and one release of 24 — `microsoft-mai-thinking-1`. The exemption is pinned
+  in `featured-policy.test.ts` as a named set rather than left to be discovered,
+  so it is counted, and so a second creator falling into it goes red instead of
+  quietly widening the hole.
+
+  No `featured` flag changed, in either direction, and the featured totals are
+  unchanged at 24 of 117 releases: 18 `current`, 4 `legacy`, 2 `preview`. Those
+  figures are no longer only prose. #840 pins the featured set as a roster of
+  ids reconciled by identity against that denominator, because a count cannot
+  express the claim being made here: one release leaving the set and another
+  joining it holds every total in this paragraph constant. The same sentence in
+  this section, unenforced, is what #840 was filed about.
 - The discrimination check is a documented list of reference kinds, not a
   decision procedure for English. It can pass a rationale that happens to
   contain "only" incidentally. It fails safe — a false pass weakens the check,
