@@ -2293,5 +2293,51 @@
     "publisherId": "nvidia",
     "lastCheckedDate": "2026-09-01",
     "notes": "NVIDIA's own model card (creator namespace nvidia/ on Hugging Face; the card is gated: the rendered card page is readable and its prose was verified, while /raw/ and /resolve/ return HTTP 401 for unauthenticated requests). The card carries the NVIDIA Open Model License Agreement, headed \"NVIDIA Open Model License Agreement\" (the document's own \"Version Release Date: January 6, 2025\" is the licence version date, not the model's release date, which is taken from the dated NVIDIA press release), and its grant clause permits commercial use (\"sell, offer for sale, distribute\"), with clause 2.4 stating \"NVIDIA owns the Model\". The model generates physics-aware video from a text prompt (Text2World). Cited for the licence name and the open-weight, NVIDIA-owned status. States no exact parameter integer in prose (only \"7B\" in the model name), so parameters are withheld."
+  },
+  {
+    "id": "apple-fastvlm-announcement",
+    "url": "https://machinelearning.apple.com/research/fast-vision-language-models",
+    "title": "FastVLM: Efficient Vision Encoding for Vision Language Models",
+    "type": "official-announcement",
+    "publisherId": "apple",
+    "publishedDate": "2025-07-23",
+    "lastCheckedDate": "2026-09-02",
+    "notes": "Apple's own announcement article, cited for the family and release date. States \"The inference code, model checkpoints, and an iOS/macOS demo app based on MLX are available here\", which is the earliest Apple statement on an approved origin that the checkpoints are obtainable, and is why the date is taken from this page. DATE PROVENANCE: the rendered page shows no byline. The day is the page's own embedded \"published\":\"2025-07-23\" field, read on 2026-09-02; publisher-stated metadata on the publisher's own origin, so no dateBasis applies. A control ran in the same invocation: a fabricated string was absent from the same fetched markup while the published field was present, so the read discriminates. TWO OTHER APPLE DATES WERE CONSIDERED AND DECLINED, and the reasoning is recorded because the choice is contestable. The companion paper page, /research/fastvlm-efficient-vision-encoding, carries \"published\":\"2025-04-18\" with \"type\":\"paper\" — that dates the paper, not the release of weights, and the same distinction is why the existing OpenELM record does not use its own paper page's 2024-04-24. This page's own dated update, \"Update - September 22, 2025: FastVLM models, including checkpoints for MLX and CoreML, are available on HuggingFace\", dates a later distribution of the same checkpoints on the Hub, not the family's first release. The Hub createdAt for apple/FastVLM-7B was deliberately not read or used (ADR 0009). No context window and no parameter count are stated on this page."
+  },
+  {
+    "id": "apple-fastvlm-model-card",
+    "url": "https://huggingface.co/apple/FastVLM-7B",
+    "title": "apple/FastVLM-7B model card",
+    "type": "model-card",
+    "publisherId": "apple",
+    "lastCheckedDate": "2026-09-02",
+    "notes": "The released artefact's own card, in Apple's own Hugging Face namespace. Front matter carries a single licence identifier, \"license: apple-amlr\", with no competing second label — unlike the OpenELM card, whose front matter names a different licence from its licence file. Cited for modalities, which come from the card's own usage example: it loads an image with Image.open(...).convert(\"RGB\"), splices an image token into a text prompt built from {\"role\": \"user\", \"content\": \"<image>\\nDescribe this image in detail.\"}, and decodes generated tokens back to text — image and text in, text out. NO RELEASE DATE IS STATED ON THIS CARD, which is why the date rests on Apple's announcement article instead. NO PARAMETER COUNT is stated: the card's only 7B reference is to the language model it is built on, \"Our larger variants using Qwen2-7B LLM outperform recent works like Cambrian-1-8B\", which counts that component and not this model, so parameters are withheld rather than read off the name. NO CONTEXT WINDOW is stated anywhere on the card; it is withheld and left as #557/#733 debt."
+  },
+  {
+    "id": "apple-fastvlm-license",
+    "url": "https://huggingface.co/apple/FastVLM-7B/raw/main/LICENSE",
+    "title": "Apple licence shipped with the FastVLM weights",
+    "type": "official-docs",
+    "publisherId": "apple",
+    "lastCheckedDate": "2026-09-02",
+    "notes": "The licence file shipped in the artefact's own repository, and the source of both the recorded licence name and the research status. The file is hard-wrapped, so line breaks inside quoted passages are rendered here as single spaces; no other character is changed. It opens \"Disclaimer: IMPORTANT: This Apple Machine Learning Research Model is specifically developed and released by Apple Inc. (\"Apple\") for the sole purpose of scientific research of artificial intelligence and machine-learning technology\", and defines its subject as covering the weights themselves: \"\"Apple Machine Learning Research Model\" means the model, including but not limited to algorithms, formulas, trained model weights, parameters, configurations, checkpoints, and any related materials (including documentation).\" The grant is limited to \"\"Research Purposes\" means non-commercial scientific research and academic development activities, such as experimentation, analysis, testing conducted by You with the sole intent to advance scientific knowledge and research. \"Research Purposes\" does not include any commercial exploitation, product development or use in any commercial product or service.\" That restriction is a lifecycle statement about the artefact and is why this release records research rather than unknown — the status is sourced, not inferred from the absence of other wording. The recorded licence name is the file's own self-description, quoted from the attribution notice its redistribution clause requires: \"Apple Machine Learning Research Model is licensed under the Apple Machine Learning Research Model License Agreement.\" The typographic quotation marks are the file's own. That \"apple-amlr\" in the card front matter abbreviates this title is an inference no page states and is not relied on. These terms are not published by the Open Source Initiative, so osiApproved is false, cited to osi-license-index."
+  },
+  {
+    "id": "zhipu-ai-cogvideo-repository",
+    "url": "https://github.com/zai-org/CogVideo",
+    "title": "zai-org/CogVideo repository",
+    "type": "repository",
+    "publisherId": "zhipu-ai",
+    "lastCheckedDate": "2026-09-02",
+    "notes": "Zhipu AI's own repository, cited for the family and release date. Its Project Updates list states, verbatim, \"2024/8/6: We have open-sourced the first model of the CogVideoX series video generation models, CogVideoX-2B\", which names both the series and its first member and is the recorded date at day precision. The same entry date carries \"2024/8/6: We have open-sourced 3D Causal VAE, used for CogVideoX-2B\", a component rather than a model, which is not recorded. LICENCE HISTORY, recorded because it changes what was true when: the list also states \"2024/8/27: ... Additionally, the open-source license for the CogVideoX-2B model has been changed to the Apache 2.0 License.\" The Apache-2.0 recorded on the release is therefore the licence in force now, read from the artefact's own card, and was not the licence at the 2024-08-06 release three weeks earlier; this record states the change rather than presenting the current licence as the original one. ENTITY: the repository is in the zai-org GitHub organisation, the same namespace the existing GLM-4.5 records use for this creator; the older THUDM path redirects here. No Hub or repository creation timestamp was used (ADR 0009) — the creator states the date in prose, so no dateBasis applies. LIFECYCLE: the list runs to 2025-03-24 and states no deprecation, successor or end-of-life notice for CogVideoX, and no \"generally available\" or \"preview\" wording either; later entries announce CogVideoX1.5 as \"an upgraded version of the open-source model CogVideoX\", which is a successor announcement and not a statement that this model is legacy. Nothing on an approved origin states the family's lifecycle, so both family and release record unknown under ADR 0008, per issue #760."
+  },
+  {
+    "id": "zhipu-ai-cogvideox-2b-model-card",
+    "url": "https://huggingface.co/zai-org/CogVideoX-2b",
+    "title": "zai-org/CogVideoX-2b model card",
+    "type": "model-card",
+    "publisherId": "zhipu-ai",
+    "lastCheckedDate": "2026-09-02",
+    "notes": "The released artefact's own card, in this creator's own Hugging Face namespace. Front matter states \"license: apache-2.0\", which is the recorded licence, and tags the model \"text-to-video\" and \"video-generation\", which is the text-in, video-out mapping. osiApproved is true because the Apache License 2.0 is OSI-published, cited to osi-approved-licenses. NO PARAMETER COUNT is stated in prose: \"2B\" appears only in the model name, so parameters are withheld rather than read off the name. NO CONTEXT WINDOW is stated. The card's prompt-length figures, which describe how many tokens a generation prompt may carry, are not a context window and were deliberately not mapped to one; the field is withheld and left as #557/#733 debt. The card states no release date, which is why the date rests on the repository's Project Updates list."
   }
 ]
