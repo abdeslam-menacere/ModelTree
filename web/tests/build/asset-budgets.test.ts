@@ -10,6 +10,13 @@ import {
   globalTotals,
   groupRoutes,
 } from '../../scripts/asset-budget.mjs';
+import {
+  NEAR_MISS_FRACTION,
+  driftFailureMessage,
+  driftOf,
+  formatAllowanceReport,
+} from '../../scripts/asset-drift.mjs';
+import { probeTreeProvenance } from '../../scripts/tree-provenance.mjs';
 
 // Issue #33: enforce deterministic asset budgets on the real production build.
 //
@@ -100,7 +107,14 @@ buildSiteExclusively(outDir, { ...inheritedEnv, NODE_ENV: 'production', BASE_PAT
 // content-hashed, so each chunk is read and compressed once.
 const caches = { importCache: new Map(), fontCache: new Map(), sizeCache: new Map() };
 
-function analyzeGroup(dir: string) {
+// Memoised by directory: a group scan re-reads every page's HTML, and the drift
+// reporting below asks for the same two groups several more times than the
+// original assertions did. The `caches` above already spare the shared `_astro`
+// chunks; this spares the per-page HTML too, so the reporting added for #832
+// costs no extra scans.
+const groupAnalyses = new Map<string, ReturnType<typeof analyzeGroupUncached>>();
+
+function analyzeGroupUncached(dir: string) {
   const analyses = groupRoutes(outDir, dir).map((route) => analyzeRoute(outDir, route, caches));
   const worstBy = (pick: (a: (typeof analyses)[number]) => number) =>
     analyses.reduce((worst, a) => (pick(a) > pick(worst) ? a : worst));
@@ -110,6 +124,23 @@ function analyzeGroup(dir: string) {
     worstJs: worstBy((a) => a.totals.js.raw),
   };
 }
+
+function analyzeGroup(dir: string) {
+  let analysis = groupAnalyses.get(dir);
+  if (!analysis) {
+    analysis = analyzeGroupUncached(dir);
+    groupAnalyses.set(dir, analysis);
+  }
+  return analysis;
+}
+
+// Which tree these bytes describe. Measured once, at module load, and never
+// asserted on: it is the provenance line attached to every drift reading below.
+// A local build measures the branch alone; `web-ci.yml` checks out with no
+// `ref:` override, so a `pull_request` run builds `refs/pull/N/merge`, the
+// branch merged with trunk. The probe never throws and an unanswerable probe
+// reports `undetermined` rather than "level" -- see scripts/tree-provenance.mjs.
+const provenance = probeTreeProvenance(fileURLToPath(new URL('../..', import.meta.url)));
 
 describe('deterministic asset budgets on the production build', () => {
   it('builds and emits a hashed asset directory', () => {
@@ -248,6 +279,26 @@ describe('deterministic asset budgets on the production build', () => {
   // Raw bytes are deterministic for a given source tree (see the $schema-note),
   // so this cannot flake between machines the way a compressed or parsed figure
   // could.
+  //
+  // -- What #832 added, and what it deliberately did not --
+  //
+  // "For a given source tree" is the load-bearing clause, and there are two
+  // source trees. A local run builds the branch alone; `web-ci.yml` checks out
+  // with no `ref:` override, so a `pull_request` run builds `refs/pull/N/merge`,
+  // the branch merged with trunk. The allowance below therefore absorbs two
+  // unrelated quantities: accumulated staleness, which #813 sized it for, and
+  // the branch-vs-trunk build delta, which nothing sized it for. Their sum
+  // reddened PR #830 on a commit whose local run was green, with `/tree` at
+  // 97.1% of its allowance locally and no way for the dock to see it, because a
+  // pass/fail assertion cannot tell 97.1% from 2%.
+  //
+  // The fix is a reading, not a looser number. `maxFraction` is UNCHANGED at 2%
+  // and every assertion below binds exactly where it did. What is new is that
+  // each figure now reports how much of its allowance it has spent, on success
+  // as well as on failure, and every reading carries the provenance of the tree
+  // it was taken on. Widening the tolerance would have made the symptom vanish
+  // and the guard meaningless; see scripts/asset-drift.mjs for why the two jobs
+  // are reported apart rather than budgeted apart.
   describe('recorded measurements track the real build (measuredDrift)', () => {
     const { maxFraction } = budgets.measuredDrift;
 
@@ -268,55 +319,117 @@ describe('deterministic asset budgets on the production build', () => {
 
     function expectWithinTolerance(label: string, recorded: number, measured: number) {
       // A fraction of the recorded value, with no absolute floor: a recorded 0
-      // (the passport static-hydration tripwire) therefore means exactly 0.
-      const tolerance = Math.floor(recorded * maxFraction);
-      const drift = Math.abs(measured - recorded);
-      expect(
-        drift,
-        `${label}: asset-budgets.json records ${recorded}, the build measures ${measured} ` +
-          `(drift ${drift} > tolerance ${tolerance} at ${maxFraction * 100}%). The recorded ` +
-          `figure is stale, not the ceiling. Re-run \`npm run assets:report\` and update the ` +
-          `measured value; do NOT change any *MaxRaw ceiling to accommodate this.`,
-      ).toBeLessThanOrEqual(tolerance);
+      // (the passport static-hydration tripwire) therefore means exactly 0. The
+      // arithmetic lives in scripts/asset-drift.mjs so the report below computes
+      // the allowance the same way the assertion does -- a report describing a
+      // different allowance from the one that binds would be worse than none.
+      const row = driftOf(label, recorded, measured, maxFraction);
+      expect(row.drift, driftFailureMessage(row, maxFraction, provenance)).toBeLessThanOrEqual(
+        row.tolerance,
+      );
     }
 
-    it.each(budgets.fixedRoutes.map((r: any) => [r.id, r]) as [string, any][])(
-      '%s measuredRaw matches the build',
-      (_id: string, route: any) => {
-        expectWithinTolerance(
-          `${route.id} (${route.path}) measuredRaw`,
-          route.measuredRaw,
-          analyzeRoute(outDir, route.path, caches).totals.critical.raw,
-        );
+    // ONE enumeration of every recorded figure. The per-figure assertions and
+    // the allowance report both read this list, so the report's denominator is
+    // the assertion set by construction rather than by two lists happening to
+    // agree. `measure` is a thunk: nothing is measured until the row is needed,
+    // and every measurement goes through the caches above.
+    type DriftSubject = { label: string; recorded: number; measure: () => number };
+
+    const driftSubjects: DriftSubject[] = [
+      ...budgets.fixedRoutes.map((route: any) => ({
+        label: `${route.id} (${route.path}) measuredRaw`,
+        recorded: route.measuredRaw,
+        measure: () => analyzeRoute(outDir, route.path, caches).totals.critical.raw,
+      })),
+      ...budgets.routeGroups.map((group: any) => ({
+        label: `${group.id} measuredWorstRaw`,
+        recorded: group.measuredWorstRaw,
+        measure: () => analyzeGroup(group.dir).worstCritical.totals.critical.raw,
+      })),
+      ...budgets.routeGroups
+        .filter((group: any) => typeof group.measuredWorstJsRaw === 'number')
+        .map((group: any) => ({
+          label: `${group.id} measuredWorstJsRaw`,
+          recorded: group.measuredWorstJsRaw,
+          measure: () => analyzeGroup(group.dir).worstJs.totals.js.raw,
+        })),
+      ...(
+        [
+          ['js', 'jsTotalMeasuredRaw'],
+          ['css', 'cssTotalMeasuredRaw'],
+          ['font', 'fontTotalMeasuredRaw'],
+          ['astroDir', 'astroDirMeasuredRaw'],
+        ] as const
+      ).map(([kind, key]) => ({
+        label: `globals.${key}`,
+        recorded: budgets.globals[key],
+        measure: () => globalTotals(outDir)[kind],
+      })),
+    ];
+
+    it.each(driftSubjects.map((subject) => [subject.label, subject] as [string, DriftSubject]))(
+      '%s matches the build',
+      (_label: string, subject: DriftSubject) => {
+        expectWithinTolerance(subject.label, subject.recorded, subject.measure());
       },
     );
 
-    it.each(budgets.routeGroups.map((g: any) => [g.id, g]) as [string, any][])(
-      '%s measuredWorstRaw matches the build',
-      (_id: string, group: any) => {
-        const { worstCritical, worstJs } = analyzeGroup(group.dir);
-        expectWithinTolerance(
-          `${group.id} measuredWorstRaw`,
-          group.measuredWorstRaw,
-          worstCritical.totals.critical.raw,
+    // The reporting half of #832, and the reason this issue is not "raise the
+    // tolerance". The assertions above are pass/fail, so a figure that has spent
+    // 97.1% of its allowance reads exactly like one that has spent 2% -- which
+    // is what let PR #830 hand off green on a branch that was one trunk commit
+    // from red. This prints consumed-vs-available for every recorded figure, on
+    // success as well as on failure, and states which tree produced the numbers.
+    //
+    // It asserts rather than merely printing, because a report is only worth
+    // reading if its denominator reconciles. `recordedFigureKeys` walks
+    // asset-budgets.json itself and finds every numeric field whose name says it
+    // records a measurement; the report must cover exactly that many. Add a new
+    // `measured*` field to the file without adding it to `driftSubjects` and
+    // this fails -- which is the accumulation this guard exists to prevent,
+    // caught at the point a figure stops being checked rather than months later.
+    it('reports how much of the drift allowance each recorded figure has consumed', () => {
+      const recordedFigureKeys = (node: unknown, trail: string[] = []): string[] => {
+        if (Array.isArray(node)) return node.flatMap((item) => recordedFigureKeys(item, trail));
+        if (node === null || typeof node !== 'object') return [];
+        return Object.entries(node as Record<string, unknown>).flatMap(([key, value]) =>
+          typeof value === 'number' && /measured/i.test(key)
+            ? [[...trail, key].join('.')]
+            : recordedFigureKeys(value, [...trail, key]),
         );
-        if (typeof group.measuredWorstJsRaw === 'number') {
-          expectWithinTolerance(
-            `${group.id} measuredWorstJsRaw`,
-            group.measuredWorstJsRaw,
-            worstJs.totals.js.raw,
-          );
-        }
-      },
-    );
+      };
 
-    it.each([
-      ['js', 'jsTotalMeasuredRaw'],
-      ['css', 'cssTotalMeasuredRaw'],
-      ['font', 'fontTotalMeasuredRaw'],
-      ['astroDir', 'astroDirMeasuredRaw'],
-    ] as const)('globals %s measured total matches the build', (kind, key) => {
-      expectWithinTolerance(`globals.${key}`, budgets.globals[key], globalTotals(outDir)[kind]);
+      const declared = recordedFigureKeys(budgets);
+      expect(
+        declared.length,
+        'asset-budgets.json declares no recorded measurement at all, so this report and the ' +
+          'assertions above are both measuring nothing. The key scan is the broken part, not the file.',
+      ).toBeGreaterThan(0);
+      expect(
+        driftSubjects.length,
+        `asset-budgets.json declares ${declared.length} recorded figure(s) (${declared.join(', ')}) ` +
+          `and the drift guard covers ${driftSubjects.length}. A recorded figure that no subject ` +
+          'measures is a figure free to rot unnoticed -- add it to `driftSubjects` above rather ' +
+          'than removing it from the file.',
+      ).toBe(declared.length);
+
+      const rows = driftSubjects.map((subject) =>
+        driftOf(subject.label, subject.recorded, subject.measure(), maxFraction),
+      );
+
+      // eslint-disable-next-line no-console -- the report IS the deliverable here.
+      console.log(
+        formatAllowanceReport(rows, provenance, maxFraction, NEAR_MISS_FRACTION).join('\n'),
+      );
+
+      // Non-vacuous: a report built from thunks that all returned 0 would print
+      // a clean table and mean nothing. Every route ships a non-trivial number
+      // of bytes, so at least one measurement must be substantial.
+      expect(
+        rows.filter((row) => row.measured > 100_000).length,
+        'no recorded figure measured over 100,000 bytes, so the report is not reading a real build',
+      ).toBeGreaterThan(0);
     });
 
     // Non-vacuous: every assertion above is an equality-ish check, and a
