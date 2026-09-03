@@ -1,0 +1,76 @@
+[
+  {
+    "category": "image",
+    "releaseId": "openai-gpt-image-2",
+    "verifiedAt": "2026-09-02",
+    "sourceIds": ["openai-gpt-image-2-docs"],
+    "facts": [
+      {
+        "dimension": "output-sizing",
+        "statement": "OpenAI says image sizes are flexible, and names no resolution, no maximum, and no list of accepted sizes on this page.",
+        "quote": "It supports flexible image sizes and high-fidelity image inputs.",
+        "sourceId": "openai-gpt-image-2-docs"
+      },
+      {
+        "dimension": "image-editing",
+        "statement": "OpenAI describes the model as doing image editing as well as generation.",
+        "quote": "GPT Image 2 is our state-of-the-art image generation model for fast, high-quality image generation and editing.",
+        "sourceId": "openai-gpt-image-2-docs"
+      }
+    ]
+  },
+  {
+    "category": "image",
+    "releaseId": "meta-muse-image",
+    "verifiedAt": "2026-09-02",
+    "sourceIds": ["meta-muse-image-video-announcement"],
+    "facts": [
+      {
+        "dimension": "image-editing",
+        "statement": "Meta says Muse Image edits an image it is given, and changes only what was asked for.",
+        "quote": "Muse Image edits images with precision, changing exactly what the user asks for.",
+        "sourceId": "meta-muse-image-video-announcement"
+      },
+      {
+        "dimension": "multi-image-input",
+        "statement": "Meta says Muse Image takes more than one reference image at once and composes elements from them.",
+        "quote": "Muse Image can compose elements from many input reference images in the prompt, including people, objects, clothing, styles, and environments.",
+        "sourceId": "meta-muse-image-video-announcement"
+      }
+    ]
+  },
+  {
+    "category": "image",
+    "releaseId": "stability-ai-stable-diffusion-3-5-large",
+    "verifiedAt": "2026-09-02",
+    "sourceIds": ["stability-ai-sd-3-5-announcement"],
+    "facts": [
+      {
+        "dimension": "output-sizing",
+        "statement": "Stability AI names one megapixel as the resolution this model is intended for. The announcement frames it as the model's professional use case rather than as a hard limit.",
+        "quote": "This model is ideal for professional use cases at 1 megapixel resolution.",
+        "sourceId": "stability-ai-sd-3-5-announcement"
+      }
+    ]
+  },
+  {
+    "category": "image",
+    "releaseId": "tencent-hunyuanimage-3-0-standard",
+    "verifiedAt": "2026-09-02",
+    "sourceIds": ["tencent-hunyuanimage-3-0-repository"],
+    "facts": [
+      {
+        "dimension": "output-sizing",
+        "statement": "Tencent documents the resolution as a caller-supplied argument, with an automatic default, and gives 1280x768 as an example of an explicit size.",
+        "quote": "Image resolution. Can be `auto`, like `1280x768` or `16:9`",
+        "sourceId": "tencent-hunyuanimage-3-0-repository"
+      },
+      {
+        "dimension": "aspect-ratio-control",
+        "statement": "The same argument accepts a ratio in place of a pixel size, so the caller can ask for a shape rather than a resolution.",
+        "quote": "Image resolution. Can be `auto`, like `1280x768` or `16:9`",
+        "sourceId": "tencent-hunyuanimage-3-0-repository"
+      }
+    ]
+  }
+]
