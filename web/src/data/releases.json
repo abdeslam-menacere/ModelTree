@@ -5037,5 +5037,92 @@
       "osi-license-index"
     ],
     "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "apple-fastvlm-7b",
+    "slug": "fastvlm-7b",
+    "canonicalName": "FastVLM-7B",
+    "displayName": "FastVLM 7B",
+    "organizationId": "apple",
+    "familyId": "apple-fastvlm",
+    "version": "1",
+    "variant": "7B",
+    "releaseDate": "2025-07-23",
+    "datePrecision": "day",
+    "status": "research",
+    "featured": false,
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "image",
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apple Machine Learning Research Model License Agreement",
+      "url": "https://huggingface.co/apple/FastVLM-7B/raw/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": false
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The largest published FastVLM variant, a vision language model answering questions about high-resolution images, released with downloadable weights under a licence restricting use to non-commercial research.",
+    "intendedUse": "Research into efficient vision encoding for vision language models. The licence shipped with the weights limits use, and any derivative, to non-commercial scientific research, which is why the record carries research status. No Apple page read for this record states a parameter count for the model itself or a context window, so neither is recorded.",
+    "sourceIds": [
+      "apple-fastvlm-model-card",
+      "apple-fastvlm-license",
+      "apple-fastvlm-announcement",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-09-02"
+  },
+  {
+    "id": "zhipu-ai-cogvideox-2b",
+    "slug": "cogvideox-2b",
+    "canonicalName": "CogVideoX-2B",
+    "displayName": "CogVideoX 2B",
+    "organizationId": "zhipu-ai",
+    "familyId": "zhipu-ai-cogvideox",
+    "version": "1",
+    "variant": "2B",
+    "releaseDate": "2024-08-06",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "video"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "video"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "url": "https://huggingface.co/zai-org/CogVideoX-2b",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The first published model of Zhipu AI’s CogVideoX series, an open-weight text-to-video model released with inference code and a 3D causal VAE.",
+    "intendedUse": "Video generation from text prompts using downloadable weights. The recorded Apache-2.0 licence is the one in force now: the creator’s repository records that the licence was changed to Apache 2.0 three weeks after this release, so it was not the licence at release. No source states an exact parameter count or a context window, so neither is recorded.",
+    "sourceIds": [
+      "zhipu-ai-cogvideo-repository",
+      "zhipu-ai-cogvideox-2b-model-card",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-09-02"
   }
 ]

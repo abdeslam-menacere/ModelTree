@@ -1481,5 +1481,42 @@
       "nvidia-cosmos-diffusion-7b-model-card"
     ],
     "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "apple-fastvlm",
+    "slug": "fastvlm",
+    "organizationId": "apple",
+    "name": "FastVLM",
+    "description": "Apple’s FastVLM vision language models, built on the FastViTHD hybrid vision encoder to cut encoding time on high-resolution images, released under a licence limiting them to research.",
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "firstReleaseDate": "2025-07-23",
+    "datePrecision": "day",
+    "status": "research",
+    "sourceIds": [
+      "apple-fastvlm-announcement",
+      "apple-fastvlm-model-card",
+      "apple-fastvlm-license"
+    ],
+    "verifiedAt": "2026-09-02"
+  },
+  {
+    "id": "zhipu-ai-cogvideox",
+    "slug": "cogvideox",
+    "organizationId": "zhipu-ai",
+    "name": "CogVideoX",
+    "description": "Zhipu AI’s CogVideoX series of open-weight video generation models, released from the creator’s own repositories with inference code.",
+    "categories": [
+      "video"
+    ],
+    "firstReleaseDate": "2024-08-06",
+    "datePrecision": "day",
+    "status": "unknown",
+    "sourceIds": [
+      "zhipu-ai-cogvideo-repository",
+      "zhipu-ai-cogvideox-2b-model-card"
+    ],
+    "verifiedAt": "2026-09-02"
   }
 ]
