@@ -193,12 +193,29 @@ passport. That is what this change fixes.
   quietly widening the hole.
 
   No `featured` flag changed, in either direction, and the featured totals are
-  unchanged at 24 of 117 releases: 18 `current`, 4 `legacy`, 2 `preview`. Those
-  figures are no longer only prose. #840 pins the featured set as a roster of
-  ids reconciled by identity against that denominator, because a count cannot
-  express the claim being made here: one release leaving the set and another
-  joining it holds every total in this paragraph constant. The same sentence in
-  this section, unenforced, is what #840 was filed about.
+  unchanged at 24 of 117 releases: 18 `current`, 4 `legacy`, 2 `preview`. Only
+  the first of those figures is enforced, and the split is deliberate. #840
+  pins the featured set as a roster of ids reconciled by identity, because a
+  count cannot express the claim being made here: one release leaving the set
+  and another joining it holds every total in this paragraph constant. That set
+  is editorial, so pinning it is right and a refresh must never move it.
+
+  The denominator and the lifecycle shares are **reported here and not pinned**,
+  and the reason is this ADR's own holding. Both are sourced figures a refresh
+  moves on purpose — `refresh-runs.json` records the release count in its own
+  ledger — so asserting them would red the suite on the pipeline working.
+  Worse, `.github/skills/modeltree-gates/scripts/gate-scope.mjs` confines an
+  ADR 0003 refresh to the dataset JSON documents, and the test is not among
+  them, so such a failure could not be repaired by the change that caused it.
+  Pinning 18/4/2 would also re-couple lifecycle status to editorial featuring,
+  which is the coupling this ADR exists to break. What is enforced instead is
+  that the partition *covers* the featured set with nothing unclassified and
+  nothing double-counted, that every roster id resolves to a real release, and
+  that the population clears a floor. Read the figures above as measured on the
+  date in this ADR's metadata, not as invariants.
+
+  Stating which half is enforced is the point. The same sentence in this
+  section, claiming more enforcement than existed, is what #840 was filed about.
 - The discrimination check is a documented list of reference kinds, not a
   decision procedure for English. It can pass a rationale that happens to
   contain "only" incidentally. It fails safe — a false pass weakens the check,
