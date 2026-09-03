@@ -1,5 +1,5 @@
 import { startTransition, useEffect, useState } from 'react';
-import type { ModelTree, ModelTreeCreator } from '../lib/model-tree';
+import type { ModelTreeView, ModelTreeViewCreator } from '../lib/model-tree';
 import {
   modelTreeReleaseIds,
   restoreModelTreeSelection,
@@ -16,7 +16,12 @@ interface SourceSummary {
 }
 
 interface Props {
-  tree: ModelTree;
+  /**
+   * The projected view, not the built tree: this prop is serialised into the
+   * page by Astro, so every field it carries is shipped to every visitor. See
+   * `projectModelTree` (abdeslam-menacere/ModelTree#813).
+   */
+  tree: ModelTreeView;
   sourceByReleaseId: Record<string, SourceSummary>;
   basePath: string;
 }
@@ -69,7 +74,7 @@ export default function ModelTreeExplorer({ tree, sourceByReleaseId, basePath }:
 
   // Featured and Others render the identical markup contract; a creator belongs
   // to exactly one branch, so the generated element IDs stay unique.
-  function creatorBranches(creators: ModelTreeCreator[]) {
+  function creatorBranches(creators: ModelTreeViewCreator[]) {
     return creators.map(({ organization, families }) => {
       const creatorOpen = isOpen(openCreators, organization.id);
       const creatorContentId = `tree-creator-${organization.id}`;

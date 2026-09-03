@@ -18,6 +18,108 @@ export interface ModelTree {
   others: ModelTreeCreator[];
 }
 
+/**
+ * The tree as the hydrated island receives it: the recorded fields those
+ * components render, and nothing else (abdeslam-menacere/ModelTree#813).
+ *
+ * `buildModelTree` returns whole `Organization`, `ModelFamily` and
+ * `ModelRelease` records, which is right for a server-side caller reasoning
+ * about the dataset. It is wrong for an island prop, because an island prop is
+ * *shipped*: Astro serialises it into the page, so every recorded field the
+ * components never read is paid for by every visitor. `/tree` was paying
+ * 364,623 bytes of HTML attribute for a 100,652-byte view, and the route sat at
+ * 99.0% of its critical-path budget with under one further creator of headroom.
+ *
+ * These are `Pick`s of the schema types rather than restatements of them, so
+ * the field list cannot drift from the records it projects, and a full record
+ * stays structurally assignable to its view — which is what lets the existing
+ * component tests keep passing whole `buildModelTree` output.
+ *
+ * The selection helpers below take the view type for the same reason: they read
+ * only ids, so narrowing their parameter costs no caller anything and lets the
+ * island call them with what it actually holds.
+ */
+export type ModelTreeViewOrganization = Pick<Organization, 'id' | 'shortName'>;
+
+export type ModelTreeViewFamilyRecord = Pick<ModelFamily, 'id' | 'name'>;
+
+export type ModelTreeViewRelease = Pick<
+  ModelRelease,
+  | 'id'
+  | 'slug'
+  | 'displayName'
+  | 'releaseDate'
+  | 'datePrecision'
+  | 'status'
+  | 'accessType'
+  | 'intendedUse'
+  | 'summary'
+  | 'verifiedAt'
+>;
+
+export interface ModelTreeViewFamily {
+  family: ModelTreeViewFamilyRecord;
+  releases: ModelTreeViewRelease[];
+}
+
+export interface ModelTreeViewCreator {
+  organization: ModelTreeViewOrganization;
+  families: ModelTreeViewFamily[];
+}
+
+export interface ModelTreeView {
+  featured: ModelTreeViewCreator[];
+  others: ModelTreeViewCreator[];
+}
+
+const VIEW_ORGANIZATION_FIELDS = ['id', 'shortName'] as const;
+const VIEW_FAMILY_FIELDS = ['id', 'name'] as const;
+const VIEW_RELEASE_FIELDS = [
+  'id',
+  'slug',
+  'displayName',
+  'releaseDate',
+  'datePrecision',
+  'status',
+  'accessType',
+  'intendedUse',
+  'summary',
+  'verifiedAt',
+] as const;
+
+/**
+ * Copy exactly the listed keys, omitting any the record does not carry.
+ *
+ * Optional fields are omitted rather than emitted as `undefined` because
+ * `JSON.stringify` drops an undefined value anyway: writing the key would only
+ * make the two representations disagree.
+ */
+function pickFields<T extends object, K extends keyof T>(record: T, fields: readonly K[]): Pick<T, K> {
+  const out = {} as Pick<T, K>;
+  for (const field of fields) {
+    if (record[field] !== undefined) out[field] = record[field];
+  }
+  return out;
+}
+
+function projectCreators(creators: ModelTreeCreator[]): ModelTreeViewCreator[] {
+  return creators.map(({ organization, families }) => ({
+    organization: pickFields(organization, VIEW_ORGANIZATION_FIELDS),
+    families: families.map(({ family, releases }) => ({
+      family: pickFields(family, VIEW_FAMILY_FIELDS),
+      releases: releases.map((release) => pickFields(release, VIEW_RELEASE_FIELDS)),
+    })),
+  }));
+}
+
+/** Reduce a built tree to the fields the island renders. Order is preserved. */
+export function projectModelTree(tree: ModelTree): ModelTreeView {
+  return {
+    featured: projectCreators(tree.featured),
+    others: projectCreators(tree.others),
+  };
+}
+
 export interface ModelTreePath {
   creatorId: string;
   familyId: string;
@@ -110,12 +212,12 @@ export function buildModelTree(dataset: Dataset): ModelTree {
 }
 
 /** Every creator branch in render order: featured first, then others. */
-function modelTreeCreators(tree: ModelTree): ModelTreeCreator[] {
+function modelTreeCreators(tree: ModelTreeView): ModelTreeViewCreator[] {
   return [...tree.featured, ...tree.others];
 }
 
 export function findModelTreePath(
-  tree: ModelTree,
+  tree: ModelTreeView,
   releaseId: string | null | undefined,
 ): ModelTreePath | undefined {
   if (!releaseId) return undefined;
@@ -131,7 +233,7 @@ export function findModelTreePath(
   return undefined;
 }
 
-export function modelTreeReleaseIds(tree: ModelTree) {
+export function modelTreeReleaseIds(tree: ModelTreeView) {
   // A creator belongs to exactly one branch, so concatenating the two cannot
   // repeat a release.
   return modelTreeCreators(tree).flatMap(({ families }) => (
@@ -140,7 +242,7 @@ export function modelTreeReleaseIds(tree: ModelTree) {
 }
 
 export function restoreModelTreeSelection(
-  tree: ModelTree,
+  tree: ModelTreeView,
   releaseId: string | null | undefined,
 ): ModelTreeInteractionState {
   const path = findModelTreePath(tree, releaseId);
