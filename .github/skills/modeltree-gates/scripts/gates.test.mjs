@@ -1659,6 +1659,85 @@ describe('gate-dataset', () => {
     assertFailed(result, 'dates', 'is not one of year, month, day');
   });
 
+  // -------------------------------------------------------------------------
+  // `unstated`, the family-only zero of that scale (ADR 0013). A family may
+  // record that no primary source states its first release date at any
+  // precision, by omitting the date and saying so in the companion. The three
+  // properties below are what make that a claim rather than a hole, and they
+  // are asserted here because the schema cannot reach a refresh: this gate runs
+  // before anything is written.
+  // -------------------------------------------------------------------------
+
+  test('a family whose first release date no source states passes', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const families = read('families.json');
+      delete families[0].firstReleaseDate;
+      delete families[0].dateBasis;
+      families[0].datePrecision = 'unstated';
+      write('families.json', families);
+    });
+    // The point of the change, and simultaneously the false-positive control
+    // for the collection scoping: release events carry `date` beside their own
+    // `datePrecision`, and releases carry `releaseDate` beside theirs, so a rule
+    // keyed on field name alone would now read every one of them as a record
+    // whose date had gone missing. A clean exit is what proves it does not.
+    assert.equal(result.code, 0, result.stdout);
+  });
+
+  test('a family that drops its first release date without saying so is caught', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const families = read('families.json');
+      delete families[0].firstReleaseDate;
+      write('families.json', families);
+    });
+    // Absence is never self-authorising. A record that simply loses its date
+    // looks from the outside exactly like one nobody checked, which is the
+    // state `unstated` exists to be distinguishable from.
+    assertFailed(result, 'dates', 'firstReleaseDate is absent while datePrecision "day" states one');
+  });
+
+  test('a family that claims its date is unstated while carrying one is caught', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const families = read('families.json');
+      families[0].datePrecision = 'unstated';
+      write('families.json', families);
+    });
+    // The contradiction guard. The record asserts that no source states this
+    // date, beside the date, and a reader cannot tell which half to believe.
+    assertFailed(result, 'dates', 'datePrecision "unstated" is recorded beside a firstReleaseDate');
+  });
+
+  test('a release may not claim its date is unstated', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      releases[0].datePrecision = 'unstated';
+      write('releases.json', releases);
+    });
+    // The scope of the member, enforced rather than described. A release is an
+    // event, and a record of an event nobody can date at all is not a release.
+    assertFailed(result, 'dates', 'is not one of year, month, day');
+  });
+
+  test('a release event may not claim its date is unstated', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const events = read('release-events.json');
+      events[0].datePrecision = 'unstated';
+      write('release-events.json', events);
+    });
+    assertFailed(result, 'dates', 'is not one of year, month, day');
+  });
+
+  test('a release event that loses its date is caught', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const events = read('release-events.json');
+      delete events[0].date;
+      write('release-events.json', events);
+    });
+    // The same absence rule where `unstated` is not admissible, which is what
+    // keeps the field required for the two collections that never gained it.
+    assertFailed(result, 'dates', 'date is absent while datePrecision');
+  });
+
   test('a sourced partial release date passes', () => {
     const result = gateMutatedDataset(({ read, write }) => {
       const releases = read('releases.json');
