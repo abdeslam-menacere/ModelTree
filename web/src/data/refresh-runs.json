@@ -4573,9 +4573,9 @@
     "references": [
       {
         "kind": "pull-request",
-        "label": "The pull request carrying this run’s dataset change and this entry (run 2026-09-03-660be8)",
-        "url": "https://github.com/abdeslam-menacere/ModelTree/pulls",
-        "state": "Not yet opened when this entry was written. The dock left this reference as a placeholder because a dock does not open pull requests, and the URL points at the pull request list rather than at a number the run guessed: a fabricated number would validate against the schema while naming the wrong change. The publishing step replaces both the URL and this note with the real pull request, which is the same shape run 2026-09-01-c3f81a used."
+        "label": "PR #842 — feat(data): add Fara 1.5 4B/9B and Qwen3.8-Flash-Next (run 2026-09-03-660be8), the pull request carrying this run’s dataset change and this entry",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/842",
+        "state": "Open when this entry was completed, and carrying the entry itself: a published run records itself in the same pull request that changes the dataset, per ADR 0006. The dock left this reference as a placeholder because a dock does not open pull requests; the publishing step filled it in with the real number rather than a guessed one, and merges it with --auto so GitHub enforces web-ci."
       },
       {
         "kind": "issue",
