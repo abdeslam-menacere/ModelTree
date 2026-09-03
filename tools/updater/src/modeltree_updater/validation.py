@@ -22,10 +22,12 @@ from .contracts import (
 
 __all__ = [
     "DATE_PRECISIONS",
+    "FAMILY_DATE_PRECISIONS",
     "FIELD_REGISTRY",
     "FieldSpec",
     "PARTIAL_DATE",
     "PRECISION_SEGMENTS",
+    "UNSTATED_PRECISION",
     "partial_date_is_real",
     "validate_claim",
     "validate_claims",
@@ -44,6 +46,20 @@ PARTIAL_DATE = re.compile(r"^\d{4}(-\d{2}(-\d{2})?)?$")
 # value carries at each precision.
 DATE_PRECISIONS = ("year", "month", "day")
 PRECISION_SEGMENTS = {"year": 1, "month": 2, "day": 3}
+
+# The family-only precision vocabulary. Mirrors `FAMILY_DATE_PRECISIONS` in
+# `web/src/data/partial-date.ts`, which is the source of truth for the dataset.
+#
+# `unstated` says no primary source states the family's first release date at any
+# precision — a claim about the sources, not a coarser reading of a date. It is
+# admissible on `families.datePrecision` and nowhere else, and it is the only
+# value that licenses an absent `firstReleaseDate`: a claim proposing one without
+# the other is refused by `gates.py`, in both directions. Kept in lockstep so a
+# record the web schema accepts is never rejected here in the permissive
+# direction. See
+# docs/adr/0013-a-family-first-release-date-may-be-explicitly-unstated.md.
+UNSTATED_PRECISION = "unstated"
+FAMILY_DATE_PRECISIONS = (*DATE_PRECISIONS, UNSTATED_PRECISION)
 
 LIFECYCLE_STATUS = (
     "preview",
@@ -114,7 +130,7 @@ FIELD_REGISTRY: Mapping[EntityKind, Mapping[str, FieldSpec]] = {
         "description": FieldSpec("text"),
         "categories": FieldSpec("enum-list", MODEL_CATEGORY),
         "firstReleaseDate": FieldSpec("partial-date"),
-        "datePrecision": FieldSpec("enum", DATE_PRECISIONS),
+        "datePrecision": FieldSpec("enum", FAMILY_DATE_PRECISIONS),
         "status": FieldSpec("enum", LIFECYCLE_STATUS),
         "verifiedAt": FieldSpec("date"),
     },

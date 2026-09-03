@@ -736,6 +736,17 @@ describe('partial dates on family and release dates', () => {
         // synthesising a day is the invention this field exists to prevent.
       },
       {
+        id: 'cohere-rerank',
+        precision: 'unstated',
+        // The one entry here that is not a precision at all but an absence
+        // (ADR 0013). #740 reviewed three candidate dates for the Rerank
+        // family and rejected each -- two date a release rather than the
+        // family, the third could not be corroborated -- so no primary source
+        // states this family's first release at *any* precision. Month or year
+        // would not be a coarser reading of a known date; they would be an
+        // invented one.
+      },
+      {
         id: 'zhipu-ai-glm-4-5-air',
         precision: 'month',
         // The Air variant shipped in the same GLM-4.5 launch; same reasoning.
@@ -776,7 +787,16 @@ describe('partial dates on family and release dates', () => {
     const notDay = dated.filter((entry) => entry.precision !== 'day');
     expect(notDay.map(({ id, precision }) => ({ id, precision }))).toEqual(datesCoarserThanADay);
 
-    const disagreeing = dated.filter((entry) => precisionOf(entry.value) !== entry.precision);
+    // `unstated` is the one precision that carries no value, so it is checked
+    // as the pairing rather than as a shape (ADR 0013). Both halves: an
+    // unstated record holds no date, and a dated record is never unstated.
+    for (const entry of dated) {
+      expect(entry.value === undefined).toBe(entry.precision === 'unstated');
+    }
+
+    const disagreeing = dated.filter(
+      (entry) => entry.value !== undefined && precisionOf(entry.value) !== entry.precision,
+    );
     expect(disagreeing).toEqual([]);
   });
 });

@@ -109,6 +109,26 @@ def test_date_precision_is_proposable_and_checked_against_its_vocabulary() -> No
         assert bad.status is ValidationStatus.INVALID, entity_kind
 
 
+def test_unstated_precision_is_proposable_for_a_family_and_for_nothing_else() -> None:
+    """ADR 0013: `unstated` records that no source states a family's first release date.
+
+    Scoped to families deliberately. A release is an event, and a record of an
+    event nobody can date at all is not a release -- so the release vocabulary is
+    unchanged, and this asserts both halves rather than only the new one.
+    """
+    family = validate_claim(
+        _claim(entity_kind=EntityKind.FAMILY, field_path="datePrecision", value="unstated"),
+        checked_at="2026-01-01",
+    )
+    release = validate_claim(
+        _claim(entity_kind=EntityKind.RELEASE, field_path="datePrecision", value="unstated"),
+        checked_at="2026-01-01",
+    )
+
+    assert family.status is ValidationStatus.VALID, family.issues
+    assert release.status is ValidationStatus.INVALID
+
+
 def test_dates_we_observe_ourselves_stay_exact() -> None:
     """Only dates a *source* stated were widened. `verifiedAt` is ours: we know the day."""
     for entity_kind in (EntityKind.RELEASE, EntityKind.FAMILY, EntityKind.ORGANIZATION):

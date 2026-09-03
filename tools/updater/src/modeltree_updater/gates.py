@@ -49,6 +49,7 @@ from .validation import (
     FIELD_REGISTRY,
     PARTIAL_DATE,
     PRECISION_SEGMENTS,
+    UNSTATED_PRECISION,
     partial_date_is_real,
     validate_claim,
 )
@@ -391,6 +392,19 @@ def _precision_agreement_issues(
     issues: list[str] = []
     for value, precision in pairs:
         if not isinstance(value, str) or not isinstance(precision, str):
+            continue
+        if precision == UNSTATED_PRECISION:
+            # `unstated` asserts that no source states this date at all
+            # (ADR 0013), so proposing it in the same batch as the date itself
+            # is a proposal that contradicts itself. It is caught here rather
+            # than by the segment arithmetic below, which has no segment count
+            # to compare a claim against a value that should not exist.
+            if PARTIAL_DATE.match(value):
+                issues.append(
+                    f"datePrecision {precision!r} is proposed beside the date {value!r} for "
+                    f"{claim.entity_kind.value} {claim.entity_id!r}; {UNSTATED_PRECISION!r} "
+                    f"records that no source states one"
+                )
             continue
         expected = PRECISION_SEGMENTS.get(precision)
         # An unrecognised precision is the schema gate's finding, not this one's.
