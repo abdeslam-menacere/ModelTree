@@ -3508,7 +3508,9 @@
     "apiAliases": [],
     "predecessorIds": [],
     "successorIds": [],
-    "siblingIds": [],
+    "siblingIds": [
+      "bytedance-seed-oss-36b-base"
+    ],
     "summary": "ByteDance Seed’s instruction-tuned 36B open-weight model, trained on 12T tokens with a context length the card states as 512K, released under Apache 2.0 alongside its base counterparts.",
     "intendedUse": "Instruction following and reasoning. The card states a context length of \"512K\" rather than an exact token count; the recorded contextWindow applies this dataset’s documented mapping of a stated K figure to a token number.",
     "sourceIds": [
@@ -5124,5 +5126,53 @@
       "osi-approved-licenses"
     ],
     "verifiedAt": "2026-09-02"
+  },
+  {
+    "id": "bytedance-seed-oss-36b-base",
+    "slug": "seed-oss-36b-base",
+    "canonicalName": "Seed-OSS-36B-Base",
+    "displayName": "Seed-OSS 36B Base",
+    "organizationId": "bytedance-seed",
+    "familyId": "bytedance-seed-oss",
+    "version": "36B",
+    "variant": "36B Base",
+    "releaseDate": "2025-08-20",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 36
+    },
+    "contextWindow": 512000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [
+      "bytedance-seed-oss-36b-instruct"
+    ],
+    "derivedFromIds": [],
+    "summary": "ByteDance Seed’s pretrained (non-instruction-tuned) 36B open-weight base model, released the same day as its Instruct sibling. The card states \"This model card is dedicated to the `Seed-OSS-36B-Base` model.\" and that the series was trained \"with only 12T tokens\", released \"under the Apache-2.0 license\"; OpenBMB’s Model Summary gives \"Parameters: 36B\" and \"Context Length: 512K\". The card notes it is released \"both with and without synthetic data versions\"; this record covers the base line without asserting a ranking between them.",
+    "intendedUse": "Pretraining base for downstream fine-tuning and research. The card highlights a \"Research-Friendly\" motivation: \"we released pre-trained models both with and without instruction data, providing the research community with more diverse options\". The recorded contextWindow applies this dataset’s documented mapping of the card’s stated \"512K\" to a token number, matching the Instruct sibling.",
+    "sourceIds": [
+      "bytedance-seed-oss-36b-base-model-card",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-09-03"
   }
 ]

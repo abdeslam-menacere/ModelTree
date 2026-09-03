@@ -2339,5 +2339,14 @@
     "publisherId": "zhipu-ai",
     "lastCheckedDate": "2026-09-02",
     "notes": "The released artefact's own card, in this creator's own Hugging Face namespace. Front matter states \"license: apache-2.0\", which is the recorded licence, and tags the model \"text-to-video\" and \"video-generation\", which is the text-in, video-out mapping. osiApproved is true because the Apache License 2.0 is OSI-published, cited to osi-approved-licenses. NO PARAMETER COUNT is stated in prose: \"2B\" appears only in the model name, so parameters are withheld rather than read off the name. NO CONTEXT WINDOW is stated. The card's prompt-length figures, which describe how many tokens a generation prompt may carry, are not a context window and were deliberately not mapped to one; the field is withheld and left as #557/#733 debt. The card states no release date, which is why the date rests on the repository's Project Updates list."
+  },
+  {
+    "id": "bytedance-seed-oss-36b-base-model-card",
+    "url": "https://huggingface.co/ByteDance-Seed/Seed-OSS-36B-Base",
+    "title": "Seed-OSS-36B-Base model card",
+    "type": "model-card",
+    "publisherId": "bytedance-seed",
+    "lastCheckedDate": "2026-09-03",
+    "notes": "ByteDance Seed Team’s own card for the base model, in ByteDance-Seed’s own Hugging Face namespace, so the publisher is ByteDance Seed and not the host. Fetched 2026-09-03. States \"This model card is dedicated to the `Seed-OSS-36B-Base` model.\" and, in its News section, \"[2025/08/20]🔥We release `Seed-OSS-36B-Base` (both with and without synthetic data versions) and `Seed-OSS-36B-Instruct`.\", which the day-precision release date rests on. States \"We release this series of models to the open-source community under the Apache-2.0 license.\" The Model Summary table gives \"Parameters: 36B\" and \"Context Length: 512K\", which the recorded parameter count and context window rest on (the stated \"512K\" is mapped to 512000 by this dataset’s documented K-to-token rule, matching the sibling Instruct record). Base is the pretrained counterpart of the instruction-tuned Instruct release, hence recorded as a sibling. The card’s benchmark and comparison claims are deliberately not recorded, because this dataset states no ranking."
   }
 ]
