@@ -110,8 +110,8 @@ const GENERIC_RATIONALE_SUPERSET =
  * another joins it in the same change. The membership question and the size
  * question are different questions, and only the first one is the invariant
  * #840 exists to protect. So the roster below is compared by *identity*, in
- * both directions, and the counts are derived from it rather than written
- * beside it where the two could disagree.
+ * both directions, and every count in this file is derived from it rather than
+ * written beside it where the two could disagree.
  *
  * Why this is a roster and not a computation: ADR 0012 holds that featuring is
  * an editorial choice and that no lifecycle status decides it. An editorial set
@@ -120,56 +120,66 @@ const GENERIC_RATIONALE_SUPERSET =
  * budgets use for `measuredRaw` -- a measured figure is pinned, and a change to
  * it is a reviewable line in the same commit as the change that moved it.
  *
- * If a data change moves any of this, updating the roster is the correct
- * response and belongs in that same commit. One caveat is worth knowing before
- * you reach for it: `.github/skills/modeltree-gates/scripts/gate-scope.mjs`
- * limits an ADR 0003 auto-merging refresh to the dataset JSON documents, and
- * this file is not among them. A refresh that reds this test therefore cannot
- * repair it in-class, and that is the intended outcome rather than a snag --
- * such a refresh is by definition changing an editorial set from sourced data,
- * which is the exact move ADR 0012 forbids. It should stop, loudly, and be
- * looked at by someone.
+ * This list is editorial, so pinning it exactly is correct and costs nothing: a
+ * refresh must never move it. `.github/skills/modeltree-gates/scripts/
+ * gate-scope.mjs` limits an ADR 0003 auto-merging refresh to the dataset JSON
+ * documents, and this file is not among them, so a refresh that reds this
+ * cannot repair it in-class. That is the intended outcome here and not a snag:
+ * such a refresh would be deriving an editorial set from sourced data, the
+ * exact move ADR 0012 forbids. It should stop, loudly, and be looked at.
+ *
+ * The same reasoning is why nothing *sourced* is pinned in this file. See
+ * `MINIMUM_RELEASES` below.
  */
-const FEATURED_ROSTER: Readonly<Record<string, readonly string[]>> = {
-  current: [
-    'anthropic-claude-haiku-4-5',
-    'anthropic-claude-opus-5',
-    'anthropic-claude-sonnet-5',
-    'google-gemini-2-5-flash',
-    'google-gemini-2-5-pro',
-    'google-gemini-3-1-flash-lite',
-    'google-gemini-3-5-flash-lite',
-    'google-gemini-3-6-flash',
-    'google-gemini-3-7-flash',
-    'meta-llama-4-maverick',
-    'meta-llama-4-scout',
-    'meta-muse-spark-1-1',
-    'openai-gpt-4-1-2025-04-14',
-    'openai-gpt-4-1-mini-2025-04-14',
-    'openai-gpt-4-1-nano-2025-04-14',
-    'openai-gpt-5-6-luna',
-    'openai-gpt-5-6-sol',
-    'openai-gpt-5-6-terra',
-  ],
-  legacy: [
-    'anthropic-claude-fable-5',
-    'google-gemini-3-5-flash',
-    'meta-llama-3-1-405b',
-    'meta-llama-3-3-70b',
-  ],
-  preview: [
-    'google-gemini-3-1-pro-preview',
-    'microsoft-mai-thinking-1',
-  ],
-};
+const FEATURED_ROSTER = [
+  'anthropic-claude-fable-5',
+  'anthropic-claude-haiku-4-5',
+  'anthropic-claude-opus-5',
+  'anthropic-claude-sonnet-5',
+  'google-gemini-2-5-flash',
+  'google-gemini-2-5-pro',
+  'google-gemini-3-1-flash-lite',
+  'google-gemini-3-1-pro-preview',
+  'google-gemini-3-5-flash',
+  'google-gemini-3-5-flash-lite',
+  'google-gemini-3-6-flash',
+  'google-gemini-3-7-flash',
+  'meta-llama-3-1-405b',
+  'meta-llama-3-3-70b',
+  'meta-llama-4-maverick',
+  'meta-llama-4-scout',
+  'meta-muse-spark-1-1',
+  'microsoft-mai-thinking-1',
+  'openai-gpt-4-1-2025-04-14',
+  'openai-gpt-4-1-mini-2025-04-14',
+  'openai-gpt-4-1-nano-2025-04-14',
+  'openai-gpt-5-6-luna',
+  'openai-gpt-5-6-sol',
+  'openai-gpt-5-6-terra',
+];
 
 /**
- * The denominator. Pinned for the same reason as the roster: "24 flagged" is a
- * claim about the catalog only if the size of the catalog is fixed beside it.
- * Unlike the roster this figure is sourced rather than editorial, so a refresh
- * that adds a release is expected to move it and to say so in its own commit.
+ * The denominator, as a floor rather than an equality, and deliberately the
+ * same figure `date-basis-policy.test.ts` already uses for this population.
+ *
+ * The release count is *sourced*, not editorial: a refresh adds releases on
+ * purpose and records the new total in its own ledger, where
+ * `refresh-runs.json` currently reads `"recordsAfter": 117`. Pinning it here
+ * would red the suite on the pipeline working correctly, in a file the refresh
+ * is not allowed to touch -- so the pin could not even be repaired by the
+ * change that tripped it. Every assertion trunk makes about this population is
+ * a floor or is relative for that reason; an equality here would be the only
+ * absolute release-count pin in the repository.
+ *
+ * Reusing 80 rather than choosing a tighter number is the point of the choice.
+ * A second, stricter definition of "the catalog is intact" in a second file is
+ * a figure that can disagree with the first, and the tighter of the two trips
+ * first on a legitimate pruning -- reintroducing exactly the false positive
+ * this floor exists to avoid. This is also defence in depth rather than the
+ * load-bearing check: a collapsed or unloaded dataset loses flagged ids, so the
+ * roster comparison above fails first, on identity, and names what went missing.
  */
-const TOTAL_RELEASES = 117;
+const MINIMUM_RELEASES = 80;
 
 /**
  * The one creator holding a single flagged release, and therefore the one the
@@ -180,7 +190,8 @@ const TOTAL_RELEASES = 117;
  * claim is the same defect #840 was filed about, one level up. Naming the
  * exemption makes it counted, reviewable, and load-bearing: if a second creator
  * ever drops to one flagged release, this goes red and someone decides whether
- * the claim or the data should move.
+ * the claim or the data should move. It is derived from the featured set, which
+ * is editorial, so it is safe to pin for the same reason the roster is.
  */
 const CREATORS_EXEMPT_FROM_THE_SIBLING_RULE = ['microsoft'];
 
@@ -351,35 +362,27 @@ describe('featured policy', () => {
   });
 
   it('reconciles the featured set against its denominator, by identity and not by count', () => {
-    // #840 criterion 6. Everything here is asserted as an exact figure or an
-    // exact set: a lower bound cannot express "these totals did not change",
-    // which is the claim ADR 0012's Costs section now makes in prose and which
-    // nothing in this suite could previously check.
-    const rosterByStatus = Object.entries(FEATURED_ROSTER);
-    const rosterIds = rosterByStatus.flatMap(([, ids]) => ids).sort();
+    // #840 criterion 6. The featured set is asserted as an exact set, because a
+    // lower bound cannot express "these records and no others". The population
+    // it is drawn from is asserted as a floor, because that figure is sourced
+    // and grows on purpose -- see MINIMUM_RELEASES for why the two halves are
+    // treated differently rather than uniformly.
+    const rosterIds = [...FEATURED_ROSTER].sort();
 
-    // Fixture controls, before the dataset is read at all. The roster is
-    // hand-maintained, so a duplicated id would inflate its own denominator and
-    // a partition that did not sum would make every comparison below ambiguous.
+    // Fixture control, before the dataset is read at all: a duplicated id would
+    // inflate its own denominator and make every comparison below ambiguous.
     expect(new Set(rosterIds).size, 'roster holds a duplicate id').toBe(rosterIds.length);
-    expect(rosterIds.length).toBe(24);
-    expect(FEATURED_ROSTER.current).toHaveLength(18);
-    expect(FEATURED_ROSTER.legacy).toHaveLength(4);
-    expect(FEATURED_ROSTER.preview).toHaveLength(2);
-    expect(
-      FEATURED_ROSTER.current.length + FEATURED_ROSTER.legacy.length + FEATURED_ROSTER.preview.length,
-    ).toBe(rosterIds.length);
 
-    // The denominator. Asserted first so "24 flagged" below is a share of a
-    // known catalog rather than a bare number, and so a release appearing or
-    // disappearing is caught even when the featured set is untouched.
+    // The denominator, as a floor. Its job is to catch a collapsed or unloaded
+    // dataset, not to track growth; a release being added is the pipeline
+    // working, and is not a defect this file should red.
     expect(
       rawDataset.releases.length,
-      'the release count moved; update TOTAL_RELEASES in the same commit as the data',
-    ).toBe(TOTAL_RELEASES);
-    // Liveness: a denominator equal to its numerator would make the share
-    // meaningless, and would also be the shape a broken read produces.
-    expect(TOTAL_RELEASES).toBeGreaterThan(rosterIds.length);
+      'the release catalog is smaller than a loaded catalog can be',
+    ).toBeGreaterThan(MINIMUM_RELEASES);
+    // Liveness: a population no larger than the featured set would make the
+    // share meaningless, and is also the shape a truncated read produces.
+    expect(rawDataset.releases.length).toBeGreaterThan(rosterIds.length);
 
     const flagged = rawDataset.releases.filter(({ featured }) => featured);
     const flaggedIds = flagged.map(({ id }) => id).sort();
@@ -389,7 +392,13 @@ describe('featured policy', () => {
     // size-only check stays green through exactly the change that would break
     // the "no featured flag changes anywhere" invariant #840 turns on.
     expect(flaggedIds, 'the featured set changed membership').toEqual(rosterIds);
-    expect(flagged.length).toBe(rosterIds.length);
+
+    // Referential integrity, which is the honest form of "with its denominator":
+    // every pinned id resolves to a real release in the population above, so the
+    // roster cannot drift into naming records the catalog no longer holds.
+    const byId = new Map(rawDataset.releases.map((r) => [r.id, r]));
+    const unresolved = rosterIds.filter((id) => !byId.has(id));
+    expect(unresolved, 'roster names a release the catalog does not hold').toEqual([]);
 
     // Differential control: set comparison has to be able to come back false,
     // or the equality above proves only that the comparison is blind. A swap --
@@ -398,17 +407,49 @@ describe('featured policy', () => {
     expect(swapped).toHaveLength(rosterIds.length);
     expect(swapped, 'set comparison cannot distinguish a swap').not.toEqual(rosterIds);
 
-    // The partition covers the set with nothing left over, in both directions:
-    // every flagged release lands in exactly one pinned bucket, and no bucket
-    // claims a release the catalog does not flag with that status.
-    for (const [status, ids] of rosterByStatus) {
-      const actual = flagged.filter((r) => r.status === status).map(({ id }) => id).sort();
-      expect(actual, `the ${status} share of the featured set changed`).toEqual([...ids].sort());
-    }
+    // Selector controls, both directions, so a green run cannot mean the
+    // selector matched everything or matched nothing.
+    const fabricated = rawDataset.releases.filter(({ id }) => id === 'zzz-not-a-real-release');
+    expect(fabricated, 'the selector matches an id that does not exist').toEqual([]);
 
-    const classified = new Set(rosterByStatus.flatMap(([, ids]) => ids));
-    const unclassified = flagged.filter(({ id }) => !classified.has(id));
-    expect(unclassified.map(({ id }) => id), 'a flagged release holds a status the roster does not partition').toEqual([]);
+    // A real, present release that must not be flagged. Fable 5.1 is the
+    // successor whose existence made Fable 5's old rationale undiscriminating,
+    // and it is deliberately unflagged, so it is the honest miss to pin: if the
+    // selector ever matched everything, this is what would say so.
+    const unflagged = byId.get('anthropic-claude-fable-5-1');
+    expect(unflagged, 'anthropic-claude-fable-5-1').toBeDefined();
+    expect(unflagged!.featured ?? false, 'the control release became flagged').toBe(false);
+    expect(rosterIds).not.toContain(unflagged!.id);
+    // And the matching hit, drawn the same way, so the miss above is a property
+    // of the selector rather than of a broken read.
+    const aFlagged = byId.get('anthropic-claude-fable-5');
+    expect(aFlagged, 'anthropic-claude-fable-5').toBeDefined();
+    expect(aFlagged!.featured).toBe(true);
+    expect(rosterIds).toContain(aFlagged!.id);
+
+    // The lifecycle partition *covers* the featured set, and that is all it is
+    // asked to do. Which status each flagged release carries is sourced, and a
+    // featured model moving to `legacy` is a legitimate refresh -- pinning the
+    // shares would red the suite on that, and would re-couple the two things
+    // ADR 0012 spent its length separating. What matters is that nothing is
+    // unclassified and nothing is double-counted, so the shares below are
+    // derived rather than asserted.
+    const shares = new Map<string, number>();
+    for (const release of flagged) {
+      const status = release.status;
+      expect(status, `${release.id} carries no lifecycle status`).toBeTruthy();
+      shares.set(status, (shares.get(status) ?? 0) + 1);
+    }
+    const partitioned = [...shares.values()].reduce((total, count) => total + count, 0);
+    expect(partitioned, 'the lifecycle partition does not cover the featured set').toBe(
+      flagged.length,
+    );
+    // Covering is only informative while the partition is genuinely a partition
+    // of more than one class; a single-status featured set would satisfy the
+    // sum above and would also mean lifecycle had started deciding the flag.
+    expect(shares.size, 'the featured set collapsed to a single lifecycle status').toBeGreaterThan(
+      1,
+    );
 
     // The sibling rule below forms no pair for a creator holding one flagged
     // release, so its enforcement is not universal and the exemption is named
