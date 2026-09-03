@@ -1014,10 +1014,26 @@ git cat-file -e "$sq^{commit}"; $cObj = $LASTEXITCODE
 ```
 
 Exit 0 and the object is in your store, so ordinary git reads it. Non-zero and
-it is not — which is the **normal** case for a dock whose own work merged during
-its life, since the squash postdates the worktree and you are correctly
-forbidden to fetch. Read it over the network instead, which has no anchor and so
-cannot be stale:
+it is not in your store *at that moment* — which is common, because the squash
+postdates the worktree and the store is only as current as the most recent fetch
+into it. Note what that reason is not: it is not a permission. Rule 4 above bars
+switching branches, rebasing and merging by hand, and fetching is not on that
+list — step 5 instructs `git fetch origin main` outright — so a dock that
+fetched would reach the object too. The probe is here because presence is a fact
+to establish rather than one to deduce from history you have assumed, which is
+the same discipline the rest of this page applies to every other instrument.
+
+Two things follow that are easy to miss. Every worktree in this setup shares one
+object store, so the object may be present because *another session* fetched,
+with no act of yours — measured here: 71 worktrees, one common store, their
+`HEAD`s all differing, which is the control that they are genuinely separate
+worktrees and not one path counted many times. And presence is therefore not
+evidence that the work landed, nor absence evidence that it did not: it reports
+only what has been fetched into a store you share. That is what the probe is
+for — routing you to a reader that works — and it settles nothing on its own.
+
+So read it over the network instead whenever the object is not local, which
+needs no local object and has no anchor to go stale:
 
 ```powershell
 gh api "repos/<owner>/<repo>/contents/<path>?ref=$sq" -H "Accept: application/vnd.github.raw"
