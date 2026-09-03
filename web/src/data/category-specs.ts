@@ -13,7 +13,8 @@ import {
  *
  * Kept out of `raw.ts` on purpose, following `variant-positioning.ts`,
  * `glossary.ts` and `refresh-log.ts`. `gate-scope.mjs` bounds an auto-merging
- * refresh to exactly the documents `raw.ts` composes, so adding this one there
+ * refresh to the documents `raw.ts` composes plus `refresh-runs.json`, so adding
+ * this one there
  * would widen ADR 0003's qualifying class — a decision that belongs to an ADR
  * rather than to a data change. It also carries ModelTree's own `statement`
  * prose beside each quote, which is the kind of writing a person should have to

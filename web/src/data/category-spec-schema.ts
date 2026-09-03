@@ -45,8 +45,9 @@ import { isoDate, modelCategory } from './schema';
  *
  * ## Deliberately not part of `raw.ts`
  *
- * `gate-scope.mjs` bounds an auto-merging refresh to exactly the documents
- * `raw.ts` composes, and `gates.test.mjs` asserts that correspondence, so adding
+ * `gate-scope.mjs` bounds an auto-merging refresh to the documents `raw.ts`
+ * composes plus `refresh-runs.json`, and `gates.test.mjs` asserts that
+ * correspondence, so adding
  * this file to `raw.ts` would widen ADR 0003's qualifying class — an ADR-level
  * decision rather than a data change, and not one #43 asked for.
  * `variant-positioning-schema.ts`, `glossary-schema.ts` and
