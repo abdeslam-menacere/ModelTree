@@ -294,12 +294,21 @@ Cohere Rerank is a separate commit and a separate reviewable act.
   recorded release is evidence about a release; if that is all a source gives,
   the family's own date is `unstated`.
 - **Absence never selects `unstated`.** A family with no `firstReleaseDate` and
-  no `datePrecision: 'unstated'` is a hard failure in the schema, in
-  `validateDataset`, and in `gate-dataset.mjs`. This is the guardrail most likely
-  to be quietly relaxed by a future change, and
+  no `datePrecision: 'unstated'` is a hard failure in `familySchema`, and so in
+  `validateDataset` and every consumer that calls it. `gate-dataset.mjs` does
+  *not* also refuse it, and is not meant to: its companion rule fires on the two
+  halves disagreeing and skips a record carrying neither, because a missing
+  required field is the schema's finding rather than the gate's. This is the
+  guardrail most likely to be quietly relaxed by a future change, and
   `web/src/data/first-release-date-unstated.test.ts` fails without it.
 - **`unstated` and a first release date cannot coexist**, nor can `unstated` and
-  a `dateBasis`. Both are refused in the schema and at the gate.
+  a `dateBasis`. Both are refused by `familySchema`'s `superRefine`. Only the
+  first is *also* refused by `gate-dataset.mjs`, whose `PRECISION_COMPANIONS`
+  contradiction guard reasons about a value and its precision; the gate does not
+  model `dateBasis` in any collection, so for that half the schema is the sole
+  enforcement. Do not read the gate as a backstop for that half: weakening the
+  `dateBasis` rule in `schema.ts` removes it outright, whereas weakening the
+  first would still be caught by the gate.
 - **The member is admissible on `families.datePrecision` only.** `releases` and
   `releaseEvents` keep the three-member vocabulary and keep requiring their
   dates. Extending it to either is a new decision with its own ADR, and it must
