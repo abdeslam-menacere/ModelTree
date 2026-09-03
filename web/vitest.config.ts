@@ -185,6 +185,36 @@
 // slow, but that the budget they were handed was never chosen, and sits close
 // enough to their ordinary duration that ordinary variance crosses it.
 //
+// -- What issue #744 changed underneath this, and why the value stands --
+//
+// The over-5 s table above names three files, and #744 has since made two of
+// them substantially cheaper without touching any budget. Both were paying a
+// query cost that scaled with the dataset: `getByRole('button', { name })`
+// computes an accessible name for every candidate in its container, and the
+// explorer renders the whole catalog up front with collapsed branches carrying
+// `hidden` rather than being unmounted, so each such lookup walked all 237
+// buttons at today's 110 releases and grew with every tranche added. Those
+// lookups now resolve through the id helpers in
+// `tests/helpers/model-tree-queries.ts`.
+//
+// Measured on this machine, both files in one run, median of three, with no
+// synthetic load: the sum of test durations went from 39679 ms to 15611 ms.
+// The two peaks this file names moved from 3694 ms to 1372 ms
+// (`LineageModelDrawer`) and from 4215 ms to 1330 ms (`ModelTreeExplorer`).
+//
+// That is deliberately not a re-run of runs A-D or L1-L4. It is unloaded, and
+// it is two files rather than 114, so it updates no number in any table above
+// and is not offered as doing so. What it changes is how the over-5 s list
+// should be read: two of its three entries no longer belong near the top.
+// `verify-test-coverage.test.ts` -- 19 observations, peak 9156 ms -- is
+// untouched by #744, and run C's uncensored 11753 ms is what sizes 30 s in the
+// first place. The budget therefore still rests on the evidence it was chosen
+// on, with one fewer class of test pressing against it.
+//
+// The direction of travel is the point. #744 decoupled these two files from
+// dataset size, so the creators queued in #820 no longer spend the headroom
+// this file bought. A budget is a ceiling, not an allowance.
+//
 // -- Why the worker pool is not capped here --
 //
 // Issue #720 proposed a pool cap as the more honest lever, reasoning that a
