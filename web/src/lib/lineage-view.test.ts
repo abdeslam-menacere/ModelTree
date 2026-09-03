@@ -14,6 +14,7 @@ import {
   buildCreatorEcosystems,
   buildLineageEcosystems,
   buildLineageHighlight,
+  buildLineageTrail,
   findLineagePlacement,
   firstEcosystemRelease,
   lineageRelation,
@@ -305,7 +306,132 @@ describe('path highlighting', () => {
       expect(highlight.selectedId).toBeUndefined();
       expect(highlight.ancestorIds.size + highlight.successorIds.size + highlight.siblingIds.size)
         .toBe(0);
+      expect(highlight.derivationIds.size).toBe(0);
     }
+  });
+});
+
+describe('derivation is a first-class relationship, not a hidden ancestor', () => {
+  // The featured view drops the flat family (its releases are not featured), so
+  // the derivation edge from `fixture-gamma-flat-two` to `fixture-alpha-solo-one`
+  // is exercised through the coverage view instead. That is deliberate: the
+  // trail must work for every creator the catalog holds, not only the ones the
+  // homepage happens to lead with today.
+  const creatorEcosystems = buildCreatorEcosystems(lineageFixtureDataset);
+
+  it('reads derivation ids only from the selected release, not from siblings or ancestors', () => {
+    const highlight = buildLineageHighlight(creatorEcosystems, 'fixture-gamma-flat-two');
+
+    expect([...highlight.derivationIds]).toEqual(['fixture-alpha-solo-one']);
+    // Derivation is not a within-family edge, so it never leaks into the family
+    // walk: no ancestor, no successor, no sibling.
+    expect(highlight.ancestorIds.size).toBe(0);
+    expect(highlight.successorIds.size).toBe(0);
+    expect(highlight.siblingIds.size).toBe(0);
+    expect(lineageRelation(highlight, 'fixture-alpha-solo-one')).toBe('derivation');
+  });
+
+  it('excludes derivation ids that name a release the catalog does not hold', () => {
+    // A stray id would be filtered out by the presence check, so the highlight
+    // never asks the UI to render a phantom.
+    const highlight = buildLineageHighlight(creatorEcosystems, 'fixture-gamma-flat-one');
+    for (const id of highlight.derivationIds) {
+      expect(id).not.toBe('fixture-does-not-exist');
+    }
+  });
+});
+
+describe('trail projection', () => {
+  const creatorEcosystems = buildCreatorEcosystems(lineageFixtureDataset);
+
+  it('groups every recorded relationship, ordered newest-first with placements resolved', () => {
+    const trail = buildLineageTrail(fixtureEcosystems, 'fixture-beta-chain-gen3');
+
+    expect(trail.selected?.release.id).toBe('fixture-beta-chain-gen3');
+    expect(trail.isEmpty).toBe(false);
+    // Newest first: gen2 before gen1.
+    expect(trail.ancestors.map((entry) => entry.releaseId))
+      .toEqual(['fixture-beta-chain-gen2', 'fixture-beta-chain-gen1']);
+    expect(trail.successors.map((entry) => entry.releaseId)).toEqual(['fixture-beta-chain-gen4']);
+    expect(trail.siblings).toEqual([]);
+    expect(trail.derivations).toEqual([]);
+    // Every entry inside a visible ecosystem resolves to a placement, so the UI
+    // can link to it without a second lookup.
+    for (const entry of [...trail.ancestors, ...trail.successors]) {
+      expect(entry.placement?.release.id).toBe(entry.releaseId);
+    }
+    expect(trail.memberIds).toEqual(
+      new Set(['fixture-beta-chain-gen1', 'fixture-beta-chain-gen2', 'fixture-beta-chain-gen4']),
+    );
+  });
+
+  it('lists both predecessors when the tree could only draw one, and neither is a successor', () => {
+    const trail = buildLineageTrail(fixtureEcosystems, 'fixture-gamma-converge-merged');
+
+    expect(trail.ancestors.map((entry) => entry.releaseId).sort())
+      .toEqual(['fixture-gamma-converge-left', 'fixture-gamma-converge-right']);
+    expect(trail.successors).toEqual([]);
+    expect(trail.memberIds.has('fixture-gamma-converge-merged')).toBe(false);
+  });
+
+  it('terminates on a cyclic pair, listing the other release exactly once and never the selection', () => {
+    const trail = buildLineageTrail(fixtureEcosystems, 'fixture-gamma-cycle-one');
+    const idsSeen = [
+      ...trail.ancestors.map((entry) => entry.releaseId),
+      ...trail.successors.map((entry) => entry.releaseId),
+      ...trail.siblings.map((entry) => entry.releaseId),
+      ...trail.derivations.map((entry) => entry.releaseId),
+    ];
+
+    expect(idsSeen).not.toContain('fixture-gamma-cycle-one');
+    expect(idsSeen.filter((id) => id === 'fixture-gamma-cycle-two')).toHaveLength(1);
+    expect(trail.isEmpty).toBe(false);
+  });
+
+  it('lists a cross-organization derivation as a derivation entry, not as an ancestor', () => {
+    const trail = buildLineageTrail(creatorEcosystems, 'fixture-gamma-flat-two');
+
+    expect(trail.derivations.map((entry) => entry.releaseId)).toEqual(['fixture-alpha-solo-one']);
+    // The derivation's placement resolves against the catalog view where the
+    // target release lives -- so a component can name its creator and family
+    // without inventing them.
+    expect(trail.derivations[0].placement?.organization.id).toBe('fixture-alpha');
+    expect(trail.derivations[0].placement?.family.family.id).toBe(SHALLOW_FAMILY_ID);
+    expect(trail.ancestors).toEqual([]);
+  });
+
+  it('marks a derivation whose target lives outside the visible ecosystems as external', () => {
+    // Simulating "featured homepage that hides the derivation source" by
+    // dropping the ecosystem the target sits in. The trail must still surface
+    // the derivation -- the record exists whether or not this screen shows the
+    // target -- but the placement is undefined so the UI cannot link it.
+    const withoutAlpha = creatorEcosystems.filter(({ organization }) => organization.id !== 'fixture-alpha');
+    const trail = buildLineageTrail(withoutAlpha, 'fixture-gamma-flat-two');
+
+    expect(trail.derivations.map((entry) => entry.releaseId)).toEqual(['fixture-alpha-solo-one']);
+    expect(trail.derivations[0].placement).toBeUndefined();
+  });
+
+  it('returns an empty trail for a release the catalog records no relationship for', () => {
+    // Any release in the flat family qualifies, but flat-two carries a
+    // derivation, so pick flat-one -- the release with nothing recorded at all.
+    const trail = buildLineageTrail(creatorEcosystems, 'fixture-gamma-flat-one');
+
+    expect(trail.selected?.release.id).toBe('fixture-gamma-flat-one');
+    expect(trail.ancestors).toEqual([]);
+    expect(trail.successors).toEqual([]);
+    expect(trail.siblings).toEqual([]);
+    expect(trail.derivations).toEqual([]);
+    expect(trail.isEmpty).toBe(true);
+    expect(trail.memberIds.size).toBe(0);
+  });
+
+  it('returns an empty trail with no selection for an unknown slug', () => {
+    const trail = buildLineageTrail(fixtureEcosystems, 'not-a-release');
+
+    expect(trail.selected).toBeUndefined();
+    expect(trail.isEmpty).toBe(true);
+    expect(trail.memberIds.size).toBe(0);
   });
 });
 
@@ -363,6 +489,15 @@ describe('the reviewed catalog, whatever it currently contains', () => {
 
       for (const id of [...highlight.ancestorIds, ...highlight.successorIds, ...highlight.siblingIds]) {
         expect(inFamily.has(id), `${id} highlighted outside ${placement.family.family.id}`).toBe(true);
+      }
+      // Derivation may cross families and creators, so it is *not* asserted to
+      // stay in the selected release's family. What it must not do is name a
+      // release the catalog does not hold at all.
+      const allIds = new Set(catalogEcosystems.flatMap(({ families }) => (
+        families.flatMap(({ releases }) => releases.map(({ id }) => id))
+      )));
+      for (const id of highlight.derivationIds) {
+        expect(allIds.has(id), `${id} derivation names a release not in the catalog`).toBe(true);
       }
     }
   });
