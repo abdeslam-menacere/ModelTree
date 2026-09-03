@@ -104,6 +104,7 @@ function datasetWithSupportingRecords(
     name: 'Test Benchmark',
     domain: 'general-reasoning',
     owner: 'Test Benchmark Owner',
+    appliesToCategories: ['language-reasoning', 'coding'],
     metric: 'accuracy',
     metricUnit: '%',
     direction: 'higher-is-better',

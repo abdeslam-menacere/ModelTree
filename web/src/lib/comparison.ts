@@ -1567,6 +1567,7 @@ const BENCHMARK_KEY_TO_SHORT: Record<string, string> = {
   id: 'i', slug: 's', name: 'n', domain: 'd', owner: 'o', metric: 'm',
   metricUnit: 'u', direction: 'r', datasetVersion: 'v',
   methodologyNotes: 'y', sourceIds: 'S', verifiedAt: 'V',
+  appliesToCategories: 'c',
 };
 
 const PRICING_KEY_TO_SHORT: Record<string, string> = {
