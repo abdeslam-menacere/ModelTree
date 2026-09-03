@@ -498,7 +498,8 @@ each came back as written classify your own branch.
   `eleutherai-gpt-neo` and `ibm-granite-4-0`. Pin it on content, the way the
   fabricated-branch control above is derived rather than hard-coded, because
   content is the only part of this fixture that holds still. Both ids are
-  present on trunk and absent at that commit's merge-base in
+  present on trunk and absent at that commit's merge-base
+  `f69ea8882a9c66ae339238a2d35248e21e603803` in
   `web/src/data/families.json`, `web/src/data/releases.json` and
   `web/src/data/sources.json`, so trunk asserts what the commit adds and the
   commit did not put it there — which *is* supersession, and is the whole of
@@ -506,6 +507,20 @@ each came back as written classify your own branch.
   alongside, so that the present and the absent readings each have a counterpart
   that came back the other way; a run in which every id reads the same way has
   measured nothing.
+
+  That merge-base is written out as a SHA, rather than left as "that commit's
+  merge-base", for one reason worth keeping: deriving it needs the superseding
+  commit, and `f69ea888` is an ancestor of `main` while that commit is not. Cited
+  literally it is in every clone already, so **these two content legs need no
+  fetch at all** — measured on a fresh `git clone` of origin, which resolves
+  `f69ea888` at exit 0 and the superseding commit at exit 128. Derive it with
+  `git merge-base '7ddbb27c0d16334416cff6c9757cca39a0cb7ae5' "$trunk"` when you
+  do have the commit, and treat a disagreement as trunk having moved.
+
+  Measured at trunk `6a86892562618a3bf7fbff87fa454429c97a64da` on 2026-09-03,
+  both ids exit 0 against trunk and exit 1 against `f69ea888`, while
+  `zzz-not-a-real-creator-id` exits 1 at both ends. Re-measure against the trunk
+  you resolved rather than trusting those codes.
 
   Do **not** restore the two legs this control used to carry. It asserted that
   the branch was unmerged and that its issue was open, and both have since
@@ -525,14 +540,63 @@ each came back as written classify your own branch.
   validate, because an agent that sees the documented expectation fail is as
   likely to adjust a working procedure as to distrust the fixture.
 
-  `merge-tree --write-tree` against trunk exits 1 here, conflicting on those
-  same three data files — measured at trunk
-  `4dd99cb72b11b1fe71107b66996aa7dfe2d236f6` on 2026-09-03. That leg is
-  trunk-relative rather than terminal, so re-measure it against the trunk you
-  resolved rather than trusting this line, and read a disagreement as trunk
-  having moved rather than as your instrument being broken. It corroborates and
-  never decides: a non-zero exit says nothing about landedness, so the verdict
-  on this input still comes from the content.
+  The third leg needs the superseding commit itself, and **that commit is
+  fetchable but not fetched by default — so fetch it first, and never read a
+  missing object as a result.** Its branch was deleted once it merged, so no
+  `refs/heads/*` on origin reaches it and a plain `git clone` does not have it:
+  measured on a fresh clone, `git cat-file -e` exits 128 for it while the same
+  probe against trunk exits 0. What survives is the pull request ref, which
+  GitHub keeps permanently and immutably once the pull request is terminal:
+
+  ```
+  git fetch origin refs/pull/742/head
+  ```
+
+  Exit 0 there, and `git cat-file -e '7ddbb27c0d16334416cff6c9757cca39a0cb7ae5^{commit}'`
+  exits 0 immediately after, both measured on a fresh clone on 2026-09-03; a
+  fabricated `refs/pull/999999/head` exits 128 in the same run, so the fetch is
+  discriminating rather than always-succeeding. `git ls-remote origin` advertises
+  that ref as `3f1bb51a704d0a3064fc3c7a73a12e0b9e901004` — the tip of the branch
+  that merged as abdeslam-menacere/ModelTree#742, of which `7ddbb27c` is an
+  ancestor at exit 0, against exit 1 for the same test on `main`. Note the shape
+  of that guarantee: the ref is a `refs/pull/*` one rather than a head or a tag,
+  and it is durable *because* the pull request is `MERGED` and therefore terminal
+  — the same selection rule this fixture states above. The deleted branch is the
+  demonstration, not a caveat: the head it pointed at is gone and the pull ref
+  still serves the object. If the fetch fails, this leg is `UNDETERMINED` and
+  you say so; a leg that could not run has not passed, and the two content legs
+  above still stand on their own because they need no fetch.
+
+  With the commit in hand, `merge-tree --write-tree` against trunk exits 1 here,
+  conflicting on those same three data files — measured at trunk
+  `6a86892562618a3bf7fbff87fa454429c97a64da` on 2026-09-03, and confirming the
+  reading previously taken at `4dd99cb72b11b1fe71107b66996aa7dfe2d236f6`. Run it
+  at both arms or it proves nothing — and write each arm out in full, because a
+  phrase like "the same command against `f69ea888`" does not say which operand it
+  replaces, and the two available substitutions print different trees. The arm
+  meant here keeps trunk on the left:
+
+  ```
+  git merge-tree --write-tree "$trunk" '7ddbb27c0d16334416cff6c9757cca39a0cb7ae5'
+  git merge-tree --write-tree "$trunk" 'f69ea8882a9c66ae339238a2d35248e21e603803'
+  ```
+
+  The first exits 1 and the second exits 0; those codes are the operative
+  reading, and 1 against 0 is the whole discrimination, so exit 1 is a finding
+  rather than this instrument's only answer. The second prints trunk's own tree
+  — `59cd8123` at the anchor above, so expect that identity and not that OID,
+  since it is whichever trunk you resolved. Its 0 is certain by construction
+  rather than earned, `f69ea888` being an ancestor of trunk, so the arm
+  establishes that this instrument can return 0 at all and nothing beyond that.
+  Replace the *left* operand instead and you get a different measurement that
+  also exits 0 — `git merge-tree --write-tree f69ea888 7ddbb27c` prints
+  `7ddbb27c`'s own tree, that pair being a fast-forward — which is why the
+  operands are written out rather than described. That leg is trunk-relative
+  rather than terminal, so re-measure it against the trunk you resolved rather
+  than trusting this line, and read a disagreement as trunk having moved rather
+  than as your instrument being broken. It corroborates and never decides: a
+  non-zero exit says nothing about landedness, so the verdict on this input
+  still comes from the content.
 - **Must detect difference:** run your comparison, in the same invocation with
   the same quoting and the same arguments, on a pair known to differ, and assert
   the result is non-empty:
