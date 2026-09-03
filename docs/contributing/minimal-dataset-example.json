@@ -214,6 +214,9 @@
       "name": "Example Reasoning Suite",
       "domain": "general-reasoning",
       "owner": "Example Benchmark Council",
+      "appliesToCategories": [
+        "language-reasoning"
+      ],
       "metric": "accuracy",
       "metricUnit": "percent",
       "direction": "higher-is-better",

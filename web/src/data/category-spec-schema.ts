@@ -250,27 +250,25 @@ export interface CategorySpecContext {
 }
 
 /**
- * Parses the document and enforces the cross-references a schema cannot.
+ * Parses the document and enforces the two checks that need nothing but the
+ * document itself:
  *
- * Four checks, each of which has a way of failing quietly if left to review
- * attention rather than to a build:
- *
- * 1. **The release exists.** A spec naming a release that was renamed or
- *    withdrawn would otherwise sit in the file rendering nowhere, and nothing
- *    would say so.
- * 2. **The release actually carries the category.** This is the check that
- *    keeps the discriminant honest: an `image` spec on a language model would
- *    render image facts on a page that has no business showing them.
- * 3. **One spec per release per category.** Two records would both render, and
+ * 1. **One spec per release per category.** Two records would both render, and
  *    a reader would have no way to tell which was current.
- * 4. **Every quote's source is registered, and is one the record itself
- *    lists.** A `sourceId` outside `sourceIds` would put a fact's evidence
- *    outside the set the page cites underneath it.
+ * 2. **Every quote's source is one the record itself lists.** A `sourceId`
+ *    outside `sourceIds` would put a fact's evidence outside the set the page
+ *    cites underneath it.
+ *
+ * The checks that need the dataset live in {@link assertCategorySpecsResolve},
+ * separately and deliberately. This function is reachable from the browser
+ * bundle through the passport, so it must not import `releases.json` or
+ * `sources.json`: doing so shipped a second, unshared copy of both and put the
+ * `/compare` critical payload 262 kB over its budget. `variant-positioning`
+ * splits along the same line for the same reason — its loader validates the
+ * records, and `buildVariantPositioningIndex` does the cross-referencing where
+ * the dataset is already in scope.
  */
-export function validateCategorySpecs(
-  input: unknown,
-  context: CategorySpecContext,
-): CategorySpec[] {
+export function validateCategorySpecs(input: unknown): CategorySpec[] {
   const parsed = z.array(categorySpecSchema).parse(input);
   const issues: string[] = [];
   const seen = new Set<string>();
@@ -278,25 +276,9 @@ export function validateCategorySpecs(
   for (const spec of parsed) {
     const label = `category spec ${spec.category}/${spec.releaseId}`;
 
-    const categories = context.releaseCategories.get(spec.releaseId);
-    if (!categories) {
-      issues.push(`${label} references missing release "${spec.releaseId}"`);
-    } else if (!categories.includes(spec.category)) {
-      issues.push(
-        `${label} is a "${spec.category}" spec, but that release declares only `
-          + `${categories.map((category) => `"${category}"`).join(', ')}`,
-      );
-    }
-
     const key = `${spec.category}/${spec.releaseId}`;
     if (seen.has(key)) issues.push(`${label} duplicates an existing spec for the same release`);
     seen.add(key);
-
-    for (const sourceId of spec.sourceIds) {
-      if (!context.knownSourceIds.has(sourceId)) {
-        issues.push(`${label}.sourceIds references missing source "${sourceId}"`);
-      }
-    }
 
     const listed = new Set(spec.sourceIds);
     for (const item of spec.facts) {
@@ -316,4 +298,53 @@ export function validateCategorySpecs(
   }
 
   return parsed;
+}
+
+/**
+ * Enforces the cross-references a schema cannot, against a dataset the caller
+ * already holds.
+ *
+ * 1. **The release exists.** A spec naming a release that was renamed or
+ *    withdrawn would otherwise sit in the file rendering nowhere, and nothing
+ *    would say so.
+ * 2. **The release actually carries the category.** This is the check that
+ *    keeps the discriminant honest: an `image` spec on a language model would
+ *    render image facts on a page that has no business showing them.
+ *
+ * Run from `category-specs.test.ts` against the shipped dataset, so a broken
+ * cross-reference fails `npm run validate` — which `npm run build` runs first,
+ * so it cannot ship. Enforcing it at module load instead would mean importing
+ * the raw documents here, which is what this split exists to avoid.
+ */
+export function assertCategorySpecsResolve(
+  specs: readonly CategorySpec[],
+  context: CategorySpecContext,
+): void {
+  const issues: string[] = [];
+
+  for (const spec of specs) {
+    const label = `category spec ${spec.category}/${spec.releaseId}`;
+
+    const categories = context.releaseCategories.get(spec.releaseId);
+    if (!categories) {
+      issues.push(`${label} references missing release "${spec.releaseId}"`);
+    } else if (!categories.includes(spec.category)) {
+      issues.push(
+        `${label} is a "${spec.category}" spec, but that release declares only `
+          + `${categories.map((category) => `"${category}"`).join(', ')}`,
+      );
+    }
+
+    for (const sourceId of spec.sourceIds) {
+      if (!context.knownSourceIds.has(sourceId)) {
+        issues.push(`${label}.sourceIds references missing source "${sourceId}"`);
+      }
+    }
+  }
+
+  if (issues.length > 0) {
+    throw new CategorySpecValidationError(
+      `category spec validation failed:\n- ${issues.join('\n- ')}`,
+    );
+  }
 }

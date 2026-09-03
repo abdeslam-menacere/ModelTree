@@ -1,5 +1,3 @@
-import releases from './releases.json';
-import sources from './sources.json';
 import categorySpecRecords from './category-specs.json';
 import {
   validateCategorySpecs,
@@ -21,20 +19,16 @@ import {
  * accept. `docs/adr/0012-category-specific-facts-are-a-discriminated-extension.md`
  * records both reasons.
  *
- * The cross-reference context is built from the raw documents rather than from
- * the validated dataset so that this module never imports `validate.ts`, which
- * would be a cycle. The ids checked here are the same ids `validateDataset`
- * checks, so a spec cannot point at a release or source the dataset would
- * reject.
+ * This module deliberately imports nothing but its own document. The passport
+ * reaches it, so anything imported here travels to the browser: an earlier
+ * revision read `releases.json` and `sources.json` for cross-reference checks
+ * and shipped a second, unshared copy of both, putting the `/compare` critical
+ * payload 262 kB over budget. Those checks now live in
+ * `assertCategorySpecsResolve`, which `category-specs.test.ts` runs against the
+ * validated dataset — so they still fail `npm run validate`, and `npm run build`
+ * runs that first.
  */
-const releaseCategories = new Map<string, readonly string[]>(
-  releases.map((release) => [release.id, release.categories]),
-);
-
-export const categorySpecs: CategorySpec[] = validateCategorySpecs(categorySpecRecords, {
-  releaseCategories,
-  knownSourceIds: new Set(sources.map((source) => source.id)),
-});
+export const categorySpecs: CategorySpec[] = validateCategorySpecs(categorySpecRecords);
 
 /**
  * Specs by release id.

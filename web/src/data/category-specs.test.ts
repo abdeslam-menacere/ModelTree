@@ -7,6 +7,7 @@ import {
   CategorySpecValidationError,
   IMAGE_SPEC_DIMENSION_DEFINITIONS,
   PILOTED_CATEGORIES,
+  assertCategorySpecsResolve,
   categorySpecSchema,
   imageSpecDimension,
   validateCategorySpecs,
@@ -132,36 +133,14 @@ describe('the pilot dataset', () => {
   });
 });
 
-describe('cross-reference validation', () => {
+describe('document validation', () => {
   it('accepts the pilot shape', () => {
-    expect(validateCategorySpecs([imageSpec()], context())).toHaveLength(1);
-  });
-
-  it('refuses a spec for a release that does not exist', () => {
-    const spec = { ...imageSpec(), releaseId: 'not-a-real-release' };
-
-    expect(() => validateCategorySpecs([spec], context()))
-      .toThrow(CategorySpecValidationError);
-  });
-
-  it('refuses an image spec on a release that is not an image model', () => {
-    // The check that keeps the discriminant honest.
-    const spec = { ...imageSpec(), releaseId: 'meta-llama-4-scout' };
-
-    expect(() => validateCategorySpecs([spec], context()))
-      .toThrow(/is a "image" spec, but that release declares only/);
+    expect(validateCategorySpecs([imageSpec()])).toHaveLength(1);
   });
 
   it('refuses two specs for the same release and category', () => {
-    expect(() => validateCategorySpecs([imageSpec(), imageSpec()], context()))
+    expect(() => validateCategorySpecs([imageSpec(), imageSpec()]))
       .toThrow(/duplicates an existing spec/);
-  });
-
-  it('refuses a source id the dataset does not register', () => {
-    const spec = { ...imageSpec(), sourceIds: ['no-such-source'] };
-
-    expect(() => validateCategorySpecs([spec], context()))
-      .toThrow(/references missing source/);
   });
 
   it('refuses a quote whose source the record does not list', () => {
@@ -171,27 +150,66 @@ describe('cross-reference validation', () => {
       facts: [{ ...base.facts[0], sourceId: 'openai-models-catalog' }],
     };
 
-    expect(() => validateCategorySpecs([spec], context()))
+    expect(() => validateCategorySpecs([spec]))
       .toThrow(/which the record does not list in sourceIds/);
   });
 
   it('refuses a record with no facts', () => {
     const spec = { ...imageSpec(), facts: [] };
 
-    expect(() => validateCategorySpecs([spec], context())).toThrow(z.ZodError);
+    expect(() => validateCategorySpecs([spec])).toThrow(z.ZodError);
   });
 
   it('refuses a dimension outside the vocabulary', () => {
     const base = imageSpec();
     const spec = { ...base, facts: [{ ...base.facts[0], dimension: 'render-speed' }] };
 
-    expect(() => validateCategorySpecs([spec], context())).toThrow(z.ZodError);
+    expect(() => validateCategorySpecs([spec])).toThrow(z.ZodError);
   });
 
   it('refuses a fact whose quote is empty', () => {
     const base = imageSpec();
     const spec = { ...base, facts: [{ ...base.facts[0], quote: '' }] };
 
-    expect(() => validateCategorySpecs([spec], context())).toThrow(z.ZodError);
+    expect(() => validateCategorySpecs([spec])).toThrow(z.ZodError);
+  });
+});
+
+describe('cross-reference validation', () => {
+  // These run here rather than at module load so that `category-specs.ts` can
+  // import its own document and nothing else. It is reachable from the passport,
+  // and importing the raw documents there shipped a second copy of them to the
+  // browser. `npm run build` runs `npm run validate` first, so a cross-reference
+  // that breaks still cannot ship.
+  it('accepts every shipped spec against the real dataset', () => {
+    expect(() => assertCategorySpecsResolve(categorySpecs, context())).not.toThrow();
+    expect(categorySpecs.length).toBeGreaterThan(0);
+  });
+
+  it('refuses a spec for a release that does not exist', () => {
+    const spec = { ...imageSpec(), releaseId: 'not-a-real-release' };
+
+    expect(() => assertCategorySpecsResolve(validateCategorySpecs([spec]), context()))
+      .toThrow(CategorySpecValidationError);
+  });
+
+  it('refuses an image spec on a release that is not an image model', () => {
+    // The check that keeps the discriminant honest.
+    const spec = { ...imageSpec(), releaseId: 'meta-llama-4-scout' };
+
+    expect(() => assertCategorySpecsResolve(validateCategorySpecs([spec]), context()))
+      .toThrow(/is a "image" spec, but that release declares only/);
+  });
+
+  it('refuses a source id the dataset does not register', () => {
+    const base = imageSpec();
+    const spec = {
+      ...base,
+      sourceIds: ['no-such-source'],
+      facts: [{ ...base.facts[0], sourceId: 'no-such-source' }],
+    };
+
+    expect(() => assertCategorySpecsResolve(validateCategorySpecs([spec]), context()))
+      .toThrow(/references missing source/);
   });
 });
