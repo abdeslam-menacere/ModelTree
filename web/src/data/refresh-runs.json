@@ -4350,7 +4350,7 @@
       {
         "stage": "gates",
         "status": "ran",
-        "note": "Run in order and re-run in full against the merge commit after current trunk was merged in, because a verdict measured against the branch alone is not a verdict about what CI builds. gate-evidence and gate-source-approval ran before any dataset file was touched; gate-source-approval re-derived the anchor to the new merge-base itself rather than being handed one. gate-ledger initially exited 1 against this branch, naming both the missing entry and the run id declared in the commit subject: it is not part of npm run validate and does not run in CI, so nothing downstream would have caught it, and being fully in class is precisely what set unattended true and made the record mandatory. This entry is that failure being repaired rather than argued with. Two invocations exited 2 during the run — gate-evidence on a wrong flag and verify-quotes with no arguments — and both were read as refusals and re-run, never recorded as results."
+        "note": "Run in order and re-run in full after each trunk merge, because a verdict measured against the branch alone is not a verdict about what CI builds, and a verdict measured against a superseded trunk is not either. Trunk was merged twice: once to pick up the re-recorded budgets, and again when it moved on to carry ADR 0013 and a changed release schema while this entry was being written. The second merge shifted the anchor, which correctly invalidated the record counts written here and made gate-ledger exit 1 until they were re-measured — the gate catching a stale figure is the gate working. gate-evidence and gate-source-approval ran before any dataset file was touched, and gate-source-approval re-derived the anchor itself rather than being handed one. gate-ledger initially exited 1 against this branch for a different reason, naming both the missing entry and the run id declared in the commit subject: it is not part of npm run validate and does not run in CI, so nothing downstream would have caught it, and being fully in class is precisely what set unattended true and made the record mandatory. This entry is that failure being repaired rather than argued with. Two invocations exited 2 during the run — gate-evidence on a wrong flag and verify-quotes with no arguments — and both were read as refusals and re-run, never recorded as results."
       },
       {
         "stage": "publish",
@@ -4414,7 +4414,7 @@
         },
         {
           "gate": "gate-source-approval",
-          "scope": "the microsoft bundle against the approved origin set at merge-base 4dd99cb72b",
+          "scope": "the microsoft bundle against the approved origin set at the branch’s merge-base with refs/remotes/origin/main",
           "exitCode": 0,
           "outcome": "pass",
           "required": true,
@@ -4422,7 +4422,7 @@
         },
         {
           "gate": "gate-source-approval",
-          "scope": "the alibaba-cloud bundle against the approved origin set at merge-base 4dd99cb72b",
+          "scope": "the alibaba-cloud bundle against the approved origin set at the branch’s merge-base with refs/remotes/origin/main",
           "exitCode": 0,
           "outcome": "pass",
           "required": true,
@@ -4475,14 +4475,14 @@
       "documents": [
         {
           "document": "releases.json",
-          "recordsBefore": 113,
-          "recordsAfter": 116,
+          "recordsBefore": 114,
+          "recordsAfter": 117,
           "note": "Three releases appended after their family siblings: the two Fara 1.5 records after microsoft-fara-1-5-27b, and the Qwen record after alibaba-qwen3-8-27b."
         },
         {
           "document": "sources.json",
-          "recordsBefore": 267,
-          "recordsAfter": 275,
+          "recordsBefore": 269,
+          "recordsAfter": 277,
           "note": "Eight sources, each cited by a record claim in the same bundle: microsoft-fara-1-5-4b-model-card, hugging-face-fara-1-5-4b-hub-record, microsoft-fara-1-5-9b-model-card, hugging-face-fara-1-5-9b-hub-record, qwen3-8-flash-next-model-card, hugging-face-qwen3-8-flash-next-hub-record, qwen3-8-flash-next-repository, qwen3-8-flash-next-license. They are counted here rather than listed under records, because a source resolves to no page on this site and would render as a link to nowhere."
         }
       ],
@@ -4559,7 +4559,7 @@
       "Coverage is seven reviewed pilot creators, not the catalogue. Nothing here says anything about the 37 organisations that were not probed, and a green run is not a statement that the rest of the dataset is current.",
       "The panel reviewed the claims, not the world. Unanimous acceptance means three rubrics found each claim properly sourced against the bytes fetched on 2026-09-03; it does not mean the creator has not changed the page since, and it does not verify facts no source asserts.",
       "Both Fara records leave derivedFromIds empty although the cards name a base model in prose. That under-claims the lineage rather than over-claiming it, and it matches the committed 27B record, but a reader should not read the empty edge as evidence that no lineage exists.",
-      "The measuredDrift figures this run passed against were re-recorded by PR #830, not by this run. Its margin is real but inherited: /tree sat 5113 bytes and /compare 7110 bytes inside tolerance at the merge, so the next tranche of comparable size meets the same wall #833 describes unless something re-records again first.",
+      "The measuredDrift figures this run passed against were re-recorded by PR #830, not by this run. Its margin is real but inherited: on the tree this run gated, /tree sat 5113 bytes and /compare 7110 bytes inside a 2% tolerance, so the next tranche of comparable size meets the same wall #833 describes unless something re-records again first. Trunk growth eats that margin without anyone deciding to spend it.",
       "gate-ledger is absent from npm run validate and from CI. This run reached a full green verification set without it and was wrong to; the entry exists because a reviewer ran the gate the run had not."
     ],
     "followUps": [
