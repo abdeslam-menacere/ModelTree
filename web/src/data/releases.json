@@ -431,7 +431,7 @@
     "datePrecision": "day",
     "status": "legacy",
     "featured": true,
-    "featuredRationale": "A widely released Claude model with a dated general-availability statement in the official model documentation.",
+    "featuredRationale": "The release that introduced Anthropic's Fable line, named in its own launch announcement, and the one Anthropic now lists under Legacy models while directing new work to Claude Fable 5.1.",
     "categories": [
       "language-reasoning",
       "multimodal-generalist",
@@ -1021,7 +1021,7 @@
     "datePrecision": "day",
     "status": "legacy",
     "featured": true,
-    "featuredRationale": "The model card and licence agree on its release date.",
+    "featuredRationale": "The newest release recorded in the legacy Llama 3 generation, and its instruction-tuned 70B for multilingual dialogue: the entry that keeps Llama 3 represented once the generation stopped being current.",
     "categories": [
       "language-reasoning"
     ],
