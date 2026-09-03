@@ -380,6 +380,40 @@ describe('shareable lineage trail (#39)', () => {
     expect(within(detailsPanel()).getByRole('button', { name: /Exit trail/ })).toBeTruthy();
   });
 
+  it('assigns data-in-trail="true" to every non-unrelated relation and data-in-trail="false" only to unrelated', async () => {
+    const user = userEvent.setup();
+    renderExplorer();
+
+    const enter = await waitFor(() => within(detailsPanel()).getByRole('button', { name: /Focus on lineage trail/ }));
+    await user.click(enter);
+    await waitFor(() => expect(window.location.search).toContain('trail=1'));
+
+    const nodes = Array.from(document.querySelectorAll<HTMLElement>('.release-node'));
+    expect(nodes.length, 'trail run must render at least one release node').toBeGreaterThan(0);
+
+    // The two attributes are computed from the same LineageHighlight, so on
+    // any rendered node they are provably coextensive: `data-in-trail="true"`
+    // iff the node's relation is one the trail treats as a member
+    // (selected/ancestor/successor/sibling/derivation), `false` iff the
+    // relation is `unrelated`, and never neither. This assertion pins that
+    // property directly so a future divergence (e.g. adding a relation whose
+    // ids miss `memberIds`) fails a test, rather than silently painting a
+    // node dimmed by only the ambient `[data-relation="unrelated"]` rule.
+    const memberRelations = new Set(['selected', 'ancestor', 'successor', 'sibling', 'derivation']);
+    for (const node of nodes) {
+      const relation = node.getAttribute('data-relation');
+      const inTrail = node.getAttribute('data-in-trail');
+      expect(relation, `node ${node.getAttribute('data-release')} missing data-relation`).not.toBeNull();
+      expect(inTrail, `node ${node.getAttribute('data-release')} missing data-in-trail in trail mode`).not.toBeNull();
+      if (memberRelations.has(relation!)) {
+        expect(inTrail, `${relation} node should be in the trail`).toBe('true');
+      } else {
+        expect(relation).toBe('unrelated');
+        expect(inTrail).toBe('false');
+      }
+    }
+  });
+
   it('exits the trail, clears the flag from the URL, and drops data-in-trail from every node', async () => {
     const user = userEvent.setup();
     renderExplorer();

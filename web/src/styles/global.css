@@ -6188,19 +6188,43 @@ a.directory-letter:hover {
 }
 
 /* --- Lineage trail (issue #39) ------------------------------------------------
- * The trail is opt-in: when off, none of the rules below take effect because
- * `data-in-trail` is absent from every node and `.lineage-trail` is a normal
- * block. When on, unrelated nodes are muted with a small opacity change that
- * keeps text at >=4.5:1 contrast against the surface (measured on the existing
- * `.release-node` typography), and trail members carry an accent inset ring so
- * the affordance is not colour-only. The forced-colours override lives in the
- * single `@media (forced-colors: active)` block below so the visual-system tests
- * find every fallback rule inside it.
+ * The trail is opt-in and adds one affordance only: a token-driven inset ring
+ * on trail members. It does NOT introduce a second opacity rule, deliberately.
+ *
+ * The reason is a cascade fact, not an aesthetic preference. Every non-trail
+ * node in trail mode also carries `data-relation="unrelated"`, because the
+ * trail and the highlight derive from the same selection. The dim on those
+ * nodes is therefore already set by the existing rule further down this file
+ *
+ *   .release-node[data-relation="unrelated"] { opacity: 0.9 }
+ *
+ * which the ledger records at 5.2:1 composited over the surface. That rule
+ * sits at a later source position than this one and would win by source order
+ * at equal specificity anyway, so a competing opacity here would be dead
+ * bytes read past by the cascade. More importantly, adding a new opacity
+ * value here would move a measured ratio without recording that move in the
+ * ledger the rest of this file follows.
+ *
+ * The affirmative "this node is in the trail" affordance is a `box-shadow`
+ * inset ring in the accent token. That is not a colour-only signal on its own
+ * either -- the ambient explorer already stamps a `.node-relation` chip on
+ * every related node with the recorded relationship in words -- and it moves
+ * no text-composition ratio, so nothing here needs a new ledger entry.
+ * `data-in-trail` is still emitted on every visible node when the trail is
+ * active, so the semantic hook screen-reader traversal, tests, and any future
+ * forced-colours refinement expect is present regardless of paint.
+ *
+ * The selector below explicitly excludes the selected node. The rule at line
+ * 577 -- `.release-node[data-relation="selected"] { box-shadow: 0 0 0 3px
+ * var(--cp-accent-soft) }` -- has the same `(0,2,0)` specificity as this rule,
+ * and this one sits later in source order, so an unqualified selector would
+ * shadow the selected node's outer accent glow the moment trail mode is on
+ * (the selected node is always `data-in-trail="true"`, since the explorer
+ * puts it there explicitly by id in `LineageExplorer.tsx`). Excluding the
+ * selected node here lets the earlier rule keep its outer glow and lets this
+ * one continue to mark every other trail member with the inset ring.
  */
-.release-node[data-in-trail='false'] {
-  opacity: 0.85;
-}
-.release-node[data-in-trail='true'] {
+.release-node[data-in-trail='true']:not([data-relation="selected"]) {
   box-shadow: inset 0 0 0 2px var(--cp-accent);
 }
 
@@ -7041,6 +7065,28 @@ html[data-theme="dark"] {
   opacity: 0.9;
 }
 
+/* Issue #39 adds an opt-in "trail" mode: the selection focuses the lineage view
+ * on its recorded ancestors, siblings, successors, and derivations, and every
+ * visible node stamps a `data-in-trail="true|false"` attribute (or none, when
+ * the trail is off). No new opacity value is introduced for the "false" case
+ * on purpose. Every non-trail node in trail mode also carries
+ * `data-relation="unrelated"`, since both are derived from the same
+ * `buildLineageHighlight` selection, so the rule immediately above already
+ * paints them -- with a value that ledger has recorded at 5.2:1 composited.
+ * A second opacity here would either be shadowed (this file is above that
+ * rule and would lose the source-order cascade at equal specificity) or, if
+ * moved below it, move a measured ratio without also moving the entry. The
+ * ledger discipline is the whole point of #14, so the trail defers to the
+ * existing rule rather than restating it.
+ *
+ * The affirmative "this node is in the trail" affordance is the inset
+ * `box-shadow` ring set higher up (`.release-node[data-in-trail='true']`). It
+ * paints on the border zone rather than compositing over any text, so no
+ * ratio recorded above moves. `.node-relation` continues to name the
+ * recorded relationship in words, so the ring is not the sole non-colour
+ * signal. The forced-colours block above redraws the ring as a system-colour
+ * `outline`, since shadows are dropped in that mode. */
+
 /* --- Visual system and brand mark (issue #31) --------------------------------
  *
  * Appended rather than merged into the rules above, following the convention
@@ -7150,18 +7196,23 @@ html[data-theme="dark"] {
     background: CanvasText;
   }
 
-  /* 7. Lineage trail (issue #39). The two `data-in-trail` states are painted
-   *    with `opacity` and an accent-coloured inset ring outside forced colours.
-   *    A forced palette ignores both, so the muted state is redrawn with the
-   *    system muted foreground (`GrayText`) and the trail-member state gets a
-   *    drawn outline in `CanvasText`. Border-style rather than colour, matching
-   *    the WCAG 1.4.1 constraint that the trail signal is never colour-only. */
-  .release-node[data-in-trail='false'] {
-    opacity: 1;
-    color: GrayText;
-    border-color: GrayText;
-  }
-  .release-node[data-in-trail='true'] {
+  /* 7. Lineage trail (issue #39). Trail members carry an accent-coloured inset
+   *    `box-shadow` outside forced colours. A forced palette drops shadows, so
+   *    the ring is redrawn as a system-colour outline in `CanvasText`. There is
+   *    deliberately no `[data-in-trail='false']` fallback here: the muting of
+   *    non-trail nodes is handled entirely by the existing
+   *    `.release-node[data-relation="unrelated"]` rules (both the ambient
+   *    opacity and this file's forced-colours entry for it), and duplicating
+   *    that here would risk two rules moving out of step.
+   *
+   *    The selected node is excluded for the same source-order reason spelled
+   *    out beside the non-forced rule above: painting the trail's outline on
+   *    the selected node here would give it the same visual treatment as every
+   *    other trail member, erasing whatever distinction the selected state
+   *    still carries (mainly `aria-current`, since forced colours also
+   *    repaints border-colour). The selected node relies on the same
+   *    affordances it does without the trail. */
+  .release-node[data-in-trail='true']:not([data-relation="selected"]) {
     box-shadow: none;
     outline: 2px solid CanvasText;
     outline-offset: 1px;
