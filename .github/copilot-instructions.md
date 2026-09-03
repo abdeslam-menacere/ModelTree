@@ -577,12 +577,27 @@ arbitrarily old. **Establish that your anchor is current, and if you cannot,
 say so rather than answering against it.**
 
 The reason this matters is that staleness does not degrade the answer evenly —
-it is safe in one direction and silently fatal in the other. Trunk only moves
-forward, so if your work is contained in a trunk that is an *ancestor* of the
-current one, it is still contained now; that inference is sound and you can rely
-on it. But the converse does not hold at all. Work absent from a stale anchor
-may simply have merged in the window that anchor cannot see, and the probe
-reports that absence with a clean exit 0 and nothing to flag it.
+which way it fails depends on what trunk has done since. Trunk's *history* only
+moves forward, but its **content** does not, so if your work is contained in a
+trunk that is an *ancestor* of the current one, it is still contained now **only
+while trunk still carries that content**. A stale ref errs toward "not landed"
+when trunk has only moved forward, and toward "landed" when trunk has since
+**dropped** the content — of which a revert is one cause among several,
+alongside a later refactor rewriting those lines and a plain file deletion. The
+condition is what trunk holds now and never which kind of commit put it there,
+so looking for a revert commit and not finding one settles nothing. And the
+converse of containment does not hold at all either. Work absent from a stale
+anchor may simply have merged in the window that anchor cannot see, and the
+probe reports that absence with a clean exit 0 and nothing to flag it.
+
+Both directions are live once content can be dropped, so which error is worse
+decides the rules below. A false `NOT LANDED` routes real work into a redundant
+re-check: wasteful, occasionally embarrassing, and **recoverable**, because the
+work still exists on trunk. A false `LANDED` says "done, stop", and what it
+stops may be the only copy of unmerged work — silent, and **unrecoverable**. So
+a false `LANDED` is the worse error. The cheap direction is cheap only because
+this section routes a stale `NOT LANDED` to `UNDETERMINED` rather than to
+action; weaken that routing and both directions lose work.
 
 Measured here, one merged branch judged at two anchors, where
 `f69ea8882a9c66ae339238a2d35248e21e603803` is an ancestor of
@@ -608,9 +623,12 @@ So: resolve trunk once into a variable, record which SHA you used, and check it.
 If you can reach the network, `git ls-remote origin main` gives the real tip to
 compare against. If you cannot, you may still conclude `LANDED` from an anchor
 you have shown to be an ancestor of something newer, by the monotonicity above —
-but you may **not** conclude `NOT LANDED` from a stale anchor at all. That
-reading is `UNDETERMINED`, and steps 0 and 2, which ask GitHub directly and
-so have no anchor to be stale, are how you resolve it.
+but only in the qualified form stated there, so ancestry alone does not license
+it and you must also have established that trunk still carries the content.
+Where you cannot establish that, the reading is `UNDETERMINED`. And you may
+**not** conclude `NOT LANDED` from a stale anchor at all. That reading is
+`UNDETERMINED` too, and steps 0 and 2, which ask GitHub directly and
+so have no anchor to be stale, are how you resolve both.
 
 ### Step 4 — content, the only step that sees somebody else's work
 
@@ -691,8 +709,12 @@ The file is on trunk and the content probe says it is not, at exit 1 — a clean
 "no match", indistinguishable from a real absence. It fails toward "absent",
 which is to say toward `NOT LANDED`, which is to say toward reassurance, in the
 direction everything else on this page fails. For a path your change adds, test
-the path with `git cat-file -e` (0 present, non-zero absent — a path that cannot
-exist exits 128) or `git ls-tree`, and keep `grep` for what it can actually see.
+the path with `git cat-file -e` (0 present, any non-zero absent — a path that
+cannot exist is non-zero as well, so the code separates present from everything
+else and nothing finer; read 0-versus-non-zero and never the number itself,
+which is not portable: measured 128 here on `git 2.53.0.windows.4`, and 1 for a
+bad ref on another agent's git) or `git ls-tree`, and keep `grep` for what it
+can actually see.
 
 Take the probe string from the branch's **newest** commit, or you prove
 something about round one and nothing about round two. Take it narrow. A string
@@ -710,14 +732,6 @@ For a dataset change, the assertion is an entity id and the probe is exact.
 `web/src/data/sources.json` and `web/src/data/refresh-runs.json`, while
 `zzz-not-a-real-creator-id` exits 1 in the same invocation — one query, run
 before the first commit, that would have saved a full implementation cycle.
-
-Step 3's difference control has a specific form here, and it is the one this
-probe most needs. A phrase that was already on trunk *before* your branch
-existed matches whether or not your work landed, so a match proves nothing —
-the content equivalent of comparing a file you never touched. Before trusting a
-match, establish that the phrase is yours: grep for it at the merge-base, where
-it must be **absent**, in the same invocation with the same quoting. A phrase
-present at the merge-base is not a probe, it is a constant.
 
 Step 3's difference control has a specific form here, and it is the one this
 probe most needs. A phrase that was already on trunk *before* your branch
