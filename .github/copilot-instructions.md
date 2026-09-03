@@ -493,17 +493,46 @@ each came back as written classify your own branch.
 - **Must classify anything except `LANDED`:** your own branch name with a suffix
   that cannot exist. It is derived rather than hard-coded, so it never goes
   stale and never needs maintaining.
-- **Must classify `SUPERSEDED`:** branch
-  `abdeslam-menacere-long-tail-breadth-re-bundle` at
-  `7ddbb27c0d16334416cff6c9757cca39a0cb7ae5`. Its issue,
-  abdeslam-menacere/ModelTree#689, is open; its branch never merged;
-  `merge-tree` against trunk exits 1 on all three data files; and both entities
-  it adds, `eleutherai-gpt-neo` and `ibm-granite-4-0`, are already on trunk. It
-  is the only control here that a branch-shaped probe gets *wrong while
-  answering correctly*, which is exactly the property to pin: a procedure that
-  reports "not landed, issue open" on this input has said something true and
-  useless, and would have cleared a dock that then spent a full cycle
-  reimplementing work already shipped.
+- **Must classify `SUPERSEDED`:** commit
+  `7ddbb27c0d16334416cff6c9757cca39a0cb7ae5`, which adds the entities
+  `eleutherai-gpt-neo` and `ibm-granite-4-0`. Pin it on content, the way the
+  fabricated-branch control above is derived rather than hard-coded, because
+  content is the only part of this fixture that holds still. Both ids are
+  present on trunk and absent at that commit's merge-base in
+  `web/src/data/families.json`, `web/src/data/releases.json` and
+  `web/src/data/sources.json`, so trunk asserts what the commit adds and the
+  commit did not put it there — which *is* supersession, and is the whole of
+  what step 4 asks. Grep both ends in one invocation with a fabricated id
+  alongside, so that the present and the absent readings each have a counterpart
+  that came back the other way; a run in which every id reads the same way has
+  measured nothing.
+
+  Do **not** restore the two legs this control used to carry. It asserted that
+  the branch was unmerged and that its issue was open, and both have since
+  decayed: `abdeslam-menacere-long-tail-breadth-re-bundle` merged as
+  abdeslam-menacere/ModelTree#742 on 2026-09-01 at tip `3f1bb51a`, which is not
+  the commit cited here, and abdeslam-menacere/ModelTree#689 closed on
+  2026-09-02. The split was total — every leg pinned on a state still in motion
+  died, and both content legs held — which is the selection rule for any fixture
+  you add: **pin on a terminal state or on content, never on a state still
+  moving.** `MERGED`, `CLOSED` and "this string is in this file at this SHA" are
+  stable; "open" and "not merged yet" are countdowns. That is also why the
+  teaching sentence here is structural rather than a prediction: the content
+  reached trunk by a route that is not this commit, so nothing keyed on this
+  commit's ancestry or on its issue's state can see it, whichever way those
+  probes come out on the day you run them. A control that predicts them does not
+  merely go quiet when it expires — it mis-tunes the instrument it exists to
+  validate, because an agent that sees the documented expectation fail is as
+  likely to adjust a working procedure as to distrust the fixture.
+
+  `merge-tree --write-tree` against trunk exits 1 here, conflicting on those
+  same three data files — measured at trunk
+  `4dd99cb72b11b1fe71107b66996aa7dfe2d236f6` on 2026-09-03. That leg is
+  trunk-relative rather than terminal, so re-measure it against the trunk you
+  resolved rather than trusting this line, and read a disagreement as trunk
+  having moved rather than as your instrument being broken. It corroborates and
+  never decides: a non-zero exit says nothing about landedness, so the verdict
+  on this input still comes from the content.
 - **Must detect difference:** run your comparison, in the same invocation with
   the same quoting and the same arguments, on a pair known to differ, and assert
   the result is non-empty:
