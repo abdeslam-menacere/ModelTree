@@ -17,6 +17,22 @@
 // Usage:
 //   node scripts/asset-report.mjs            build with the pinned deploy env, then report
 //   node scripts/asset-report.mjs <distDir>  report an existing build as-is (no build)
+//
+// -- Which tree these numbers describe (#832) --
+//
+// The environment is pinned; the SOURCE TREE is not, and it is the other half
+// of the same question. This script builds whatever is checked out, which on a
+// dock is the branch alone. CI builds `refs/pull/N/merge` -- the branch merged
+// with trunk -- so the two disagree whenever trunk has moved since the branch
+// left it.
+//
+// That matters here more than anywhere else, because this is the script the
+// drift guard's failure message sends you to. Told that a recorded figure is
+// stale, a dock runs this, writes the numbers into asset-budgets.json, and has
+// then recorded a description of a tree that never reaches `main`. So the
+// report states its own provenance before the table, and says so plainly when
+// the tree it just measured is not the tree that binds. It refuses nothing and
+// gates nothing: this is a report, and the reading is advisory.
 
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -25,6 +41,8 @@ import {
   globalTotals,
   groupWorst,
 } from './asset-budget.mjs';
+import { describeProvenance } from './asset-drift.mjs';
+import { probeTreeProvenance } from './tree-provenance.mjs';
 
 const webRoot = fileURLToPath(new URL('..', import.meta.url));
 
@@ -80,6 +98,15 @@ if (distArg) {
 } else {
   console.log('built at BASE_PATH=/ModelTree/ (the deploy base the gate measures)\n');
 }
+
+// Before the table, not after it: a reader who has already copied the numbers
+// out is past the point where this changes what they do. Printed on every run,
+// including the level one -- a warning that appears only sometimes is one a
+// reader learns to expect the absence of, and "level with trunk" is itself a
+// finding worth stating when you are about to record a figure.
+console.log(describeProvenance(probeTreeProvenance(webRoot)).join('\n'));
+console.log('');
+
 console.log('Fixed routes:');
 for (const [id, path] of FIXED) line(id, analyzeRoute(dist, path, caches).totals);
 

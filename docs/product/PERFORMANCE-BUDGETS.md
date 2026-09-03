@@ -396,6 +396,58 @@ escalate the row's design. `npm run budget:merged` tags every line `[shipped]`
 or `[UNSHIPPED]` and prints that instruction on an unshipped breach, so the
 distinction reaches you at the moment you would otherwise reach for the data.
 
+### Recording a measured figure when trunk has moved
+
+Everything above is about the **ceilings** and the `/compare` data budgets.
+The same staleness reaches the **recorded measurements** — `measuredRaw`,
+`measuredWorst*`, `*MeasuredRaw` in `web/asset-budgets.json` — and gets there by
+a route that is easy to miss, because the instruction that walks you into it is
+a correct one (#832).
+
+`asset-budgets.test.ts` checks every recorded figure against a locally built page
+weight and fails past `measuredDrift.maxFraction` (2%). Locally "the build" is
+**the branch alone**. `.github/workflows/web-ci.yml` checks out with no `ref:`
+override, so a `pull_request` run builds **`refs/pull/N/merge`** — the branch
+merged with trunk. Those are different trees whenever trunk has moved, so the 2%
+allowance silently absorbs two unrelated quantities: accumulated staleness in the
+recorded figure, which is what #813 sized it for, and the branch-vs-trunk build
+delta, which nothing sized it for.
+
+Measured, on PR #830: `/tree` drifted 10,340 bytes of a 10,647 allowance on the
+branch alone — **97.1% consumed, and passing** — while the merge CI built
+measured 11,994 and failed. No ceiling was near breached (`/tree` had 215,654
+bytes of headroom against 760,000). Neither #822 nor trunk's #826 is individually
+at fault; only their combination crosses the line, and the cost lands on whoever
+is unlucky enough to be next.
+
+**Two rules follow. Both are about what you record, never about the tolerance —
+2% is not the defect and widening it is refused.**
+
+1. **Read the provenance line before you record anything.** `npm run
+   assets:report` and the drift guard both print which tree they measured, and
+   `npm run test` now prints consumed-vs-available for every recorded figure on
+   success as well as failure, worst row first. A figure flagged `NEAR MISS`
+   (≥75% of its allowance) passes and is one trunk commit from red. That flag
+   fails nothing and permits nothing; it is the signal whose absence made this a
+   trap rather than a nuisance.
+2. **A dock behind trunk does not re-record.** If the provenance says `behind`,
+   the figures you just measured describe a tree that never reaches `main`, and
+   writing them into `asset-budgets.json` documents history. Docks do not merge,
+   rebase or switch branches to fix this — that prohibition stands. Report the
+   drift, the consumption and the provenance in your handoff summary and stop;
+   the figure is recorded by whoever can produce the merge, against the merge.
+   Where the provenance says `level`, the tree you measured **is** the tree CI
+   builds and you can record from it directly. Where it says `UNDETERMINED`, it
+   is not `level` — say `UNDETERMINED` and hand off.
+
+`npm run budget:merged` does **not** cover this. It measures the `/compare`
+payload and picker index through `scripts/comparison-budget.mjs`; page weight and
+the `_astro` totals are not among its metrics, and it will not tell you what the
+merge weighs. Extending its merge-tree machinery — which already materialises and
+measures the merged tree without checking anything out — to the asset budgets
+would let a dock measure the merged page weight without touching its branch. That
+is a genuine follow-up and is deliberately not done in #832.
+
 ## What is reported, not gated: lab metrics
 
 Measured by `npm run lab` (`web/scripts/lab-metrics.mjs`), which drives the
@@ -481,6 +533,9 @@ From `web/`:
   repositories (trunk consumed headroom, trunk freed headroom, trunk unmoved)
   and asserts it returns exit 1 for the first and exit 0 for the other two.
 - `npm run assets:report` — builds and prints the full per-route raw/gzip/brotli
-  breakdown (report only).
+  breakdown (report only). It states which tree it measured before the table: on
+  a branch trunk has moved past, the figures describe a tree that never reaches
+  `main`. See
+  [recording a measured figure when trunk has moved](#recording-a-measured-figure-when-trunk-has-moved).
 - `npm run lab` — prints the mobile lab metrics above (report only; requires a
   built `dist/`, e.g. after `npm run assets:report` or `npx astro build`).
