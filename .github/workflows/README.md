@@ -236,7 +236,7 @@ production of the check runs, which is evidenced from past runs rather than
 executed locally. `.github/scripts/ci-preflight.mjs` names the same limit in its
 `NOT_COVERED` list, so a green preflight does not silently claim it.
 
-
+### `skills-ci` is safe to require
 
 It was trigger-path-filtered until #294, which is why older text lists it with
 the three above as the same trap. That reason has stopped being true.
