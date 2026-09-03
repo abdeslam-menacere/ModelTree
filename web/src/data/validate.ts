@@ -161,6 +161,25 @@ function addEffectiveRangeIssues(
   }
 }
 
+/**
+ * The three recorded release-to-release relationships, and the one rule that no
+ * longer applies to all of them.
+ *
+ * `siblingIds` stays within a family, because siblinghood *is* a within-family
+ * statement: it says two releases were shipped alongside each other as variants
+ * of the same thing, which is only meaningful relative to the family that holds
+ * them. It is also the only one of the three the validator requires to be
+ * reciprocal, and the two rules work together.
+ *
+ * `predecessorIds`/`successorIds` do not, as of ADR 0014. Succession is a claim
+ * about generations, and whether two generations land in one family or in two is
+ * an entity-boundary choice this catalog makes differently for different
+ * creators: Google's Gemini 3.1 and 3.5 sit in one family, while Anthropic
+ * models each point release as its own. Requiring succession to stay inside a
+ * family made a sourced fact unrecordable for the second shape while recording
+ * the identical fact for the first. See `docs/adr/0014-*.md` for the full
+ * decision and for the three other sites that agreed with the old rule.
+ */
 function validateReleaseRelationships(
   release: ModelRelease,
   releaseById: Map<string, ModelRelease>,
@@ -178,7 +197,7 @@ function validateReleaseRelationships(
       if (relatedId === release.id) {
         issues.push(`release ${release.id}.${field} cannot reference itself`);
       }
-      if (related.familyId !== release.familyId) {
+      if (field === 'siblingIds' && related.familyId !== release.familyId) {
         issues.push(`release ${release.id}.${field} must stay within family ${release.familyId}`);
       }
       if (field === 'siblingIds' && !related.siblingIds.includes(release.id)) {
