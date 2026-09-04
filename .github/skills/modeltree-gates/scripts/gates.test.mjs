@@ -2588,7 +2588,8 @@ describe('gate-dataset', () => {
   // `--data` in its **absent** state. The test below is a different cell and
   // does not cover this one: it supplies `--data <a path that does not exist>`,
   // which is the *unknown* state. Absent means the flag is not passed at all,
-  // and the two take different branches at `gate-dataset.mjs:549`:
+  // and the two take different branches where `gate-dataset.mjs` resolves
+  // `dataDir`:
   //
   //     const dataDir = args.data ? resolve(args.data) : join(repoRoot(), ...);
   //

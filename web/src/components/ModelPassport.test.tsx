@@ -297,8 +297,9 @@ describe('the shipped dataset renders both branches across its releases', () => 
   });
 
   it('renders a table exactly when a deployment backs one', () => {
-    // Availability and pricing are the only sections built as tables
-    // (ModelPassport.tsx:291 and :350), and no release has a sourced price, so
+    // Availability and pricing are the only sections built as tables — they hold
+    // the only two `<table className="passport-table">` renders in
+    // ModelPassport.tsx — and no release has a sourced price, so
     // a deployment is the whole of what puts a table on the page.
     for (const release of dataset.releases) {
       const deployed = dataset.deployments.some((item) => item.releaseId === release.id);
