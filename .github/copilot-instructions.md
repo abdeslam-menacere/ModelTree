@@ -129,6 +129,123 @@ that says the table can't tell is the one that applies. Do not put the name
 `main` in place of the command: in a repository whose default branch was
 renamed, that reads the main-repo row as matching when it does not.
 
+## Before a dock is opened
+
+The row above that says *coordinate* is the one this section is for. It comes
+before a branch, a worktree or an agent exists, and a dock cannot usefully run
+it on its own behalf: by the time there is a dock to ask the question, the
+dispatch it would have prevented has already happened.
+
+**Two questions get confused for one here.** They have different instruments,
+they are asked at different moments, and neither answers the other:
+
+| question | asked when | instrument |
+|---|---|---|
+| is this issue still wanted? | before a dock is opened | one network call, below |
+| has this branch's content reached trunk? | during a dock's life, at hand-off | the procedure under **Finishing** |
+
+The second is genuinely hard, and most of this file's length goes on it. The
+first is one call, and leaving it unasked put three docks onto issues that were
+already closed inside a single day — abdeslam-menacere/ModelTree#495,
+abdeslam-menacere/ModelTree#548 and abdeslam-menacere/ModelTree#726. The last of
+those reimplemented from scratch a change that was already on trunk: four
+commits of good work with nowhere to go (abdeslam-menacere/ModelTree#796).
+
+### Condition 1 — is the issue still wanted?
+
+Before a branch, a worktree or an agent is created:
+
+```powershell
+gh issue view <n> --repo <owner>/<repo> --json state,stateReason,closedAt
+$cState = $LASTEXITCODE
+```
+
+- `CLOSED` ⇒ **do not open a dock.** Report which pull request or commit closed
+  it, rather than leaving the next reader to rediscover that. Any `stateReason`
+  counts, `NOT_PLANNED` included: an issue somebody deliberately closed is not
+  one to hand to an agent.
+- `OPEN` ⇒ this condition is discharged and no other one is. It records the
+  absence of a reason to stop, never a finding that the work still needs doing —
+  an umbrella issue stays open by design while the things inside it are finished
+  one at a time, which **Finishing** covers with a measured case.
+- `gh` failing, unauthenticated or offline ⇒ `UNDETERMINED`, and an unread probe
+  is not a passed one. Read the exit code rather than the output: a call that
+  failed prints nothing, and nothing is not `OPEN`. Resolve it before
+  dispatching.
+
+Control it in both directions in the same run — one issue you have
+independently established is closed, one you have independently established is
+open, both read through this same call. A one-sided control cannot catch a probe
+that answers the same thing to everything, which is the failure this condition
+exists to prevent. Establish both rather than trusting a state recorded
+anywhere, this file included: issue state is not monotonic, and `REOPENED`
+exists.
+
+### Condition 2 — does this issue already have a dock?
+
+Condition 1 cannot see a second dock on an issue that is legitimately open, so
+it is not the whole of the pre-dispatch question. Two docks were once opened on
+abdeslam-menacere/ModelTree#795: the second was dispatched while that issue was
+genuinely open, and the first closed it eighty minutes before the second
+finished. No probe available to either could have revealed that, because each
+one's own view was accurate at every moment. The duplicate dispatch was the
+defect, and it sits upstream of anything a dock can measure.
+
+Ask whether any session, **live or archived**, already declares this issue as
+its source. The session registry holds that as an explicit field
+(`source_issue_number`, beside `source_issue_repo`), which is what makes it
+answerable at all. Archived is the load-bearing word: the case that bit here is
+the one where the earlier dock had already merged and its worktree was gone.
+
+Do not key this on a name. Both naming keys were measured on 2026-09-03 and
+neither survives:
+
+| candidate key | why it fails |
+|---|---|
+| a worktree path carrying `issue-<n>` | a minority of paths carried it in that sweep, so the check passes in silence for all the rest |
+| a branch-name slug | the two abdeslam-menacere/ModelTree#795 branches shared one token and nothing structural, and a matcher loose enough to pair them pairs unrelated branches too |
+
+Naming conventions are not a namespace. Neither key would have caught that
+instance in any case: nothing of the first dock was still on disk by the time
+the second was dispatched.
+
+### Why a cleverer probe does not replace the cheap one
+
+The instinct is to answer "is there anything left to do here?" from the
+repository itself — ancestry, trees, blobs, line diffs. This repository squash
+merges, which defeats that entire family. The mechanism, and what each probe
+does under it, is set out under **Finishing** and is deliberately not restated
+here, so the two cannot drift apart.
+
+One consequence is worth naming at dispatch time, because it is what makes the
+network call the first thing rather than a formality. In a sweep of every local
+branch on 2026-09-03, 277 of the 293 branches carrying commits ahead of their
+merge-base — 94.5% — were the head branch of an already-merged pull request. A
+squash commit has no parent link to the branch it came from, so
+`git rev-list --count <merge-base>..<branch>` is structurally incapable of
+reaching zero after a merge and cannot distinguish the two states it appears to
+distinguish (abdeslam-menacere/ModelTree#796).
+
+Issue state and the session registry are read from live records rather than
+inferred from a local checkout, so neither inherits that problem, and neither
+goes stale the way a worktree's `refs/remotes/origin/main` does.
+
+### What these two conditions do not cover
+
+Saying they make a dock safe for its whole life would overstate them. An issue
+can stop being worth working after a correct dispatch, and that window belongs
+to a different check:
+
+| when the work stops being wanted | which check sees it |
+|---|---|
+| the issue was already closed at dispatch | condition 1 |
+| a dock already existed for it, live or archived | condition 2 |
+| it closes during the dock's life | the same question asked again at hand-off, under **Finishing** |
+
+The third row is why the question is asked twice rather than once. A dispatch
+cleared by both conditions above is still a dispatch whose issue can close while
+the work is in progress.
+
 ## Working in a dock
 
 1. **One issue only.** A bug, refactor, or missing test unrelated to your issue
