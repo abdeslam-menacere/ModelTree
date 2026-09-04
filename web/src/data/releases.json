@@ -451,7 +451,9 @@
       "claude-fable-5"
     ],
     "predecessorIds": [],
-    "successorIds": [],
+    "successorIds": [
+      "anthropic-claude-fable-5-1"
+    ],
     "siblingIds": [
       "anthropic-claude-mythos-5"
     ],
@@ -2481,7 +2483,9 @@
     "apiAliases": [
       "claude-fable-5-1"
     ],
-    "predecessorIds": [],
+    "predecessorIds": [
+      "anthropic-claude-fable-5"
+    ],
     "successorIds": [],
     "siblingIds": [
       "anthropic-claude-mythos-5-1"
