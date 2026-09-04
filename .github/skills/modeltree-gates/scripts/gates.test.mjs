@@ -2043,6 +2043,89 @@ describe('gate-dataset', () => {
     assertFailed(result, 'lineage');
   });
 
+  // Succession is a partial order over time, so a chain of successorIds can
+  // never lead back to where it began. The gate long walked the predecessor
+  // graph for cycles but not the successor graph, and the "each claim to
+  // precede the other" check reads only predecessorIds -- so a pure
+  // successorIds cycle, with predecessors left empty, was accepted (issue #868,
+  // a shape an unattended ADR-0003 refresh can produce by applying two
+  // successor-adding claims without their matching predecessor edges).
+  //
+  // These subjects are fixed rather than positional, and deliberately so. The
+  // issue's first probe picked releases that happened to be siblings, and every
+  // lineage edge between siblings is refused for that reason alone -- which made
+  // the broken gate look like it already refused the cycle. So each mutation
+  // arm below names releases verified lineage-free, in different families, and
+  // non-siblings in both directions, and the block carries an arm whose expected
+  // result is *pass* (`a consistent reciprocal edge still passes`): without it a
+  // fixture that failed everything would read as a working gate.
+  const CYCLE_A = 'openai-gpt-4-1-2025-04-14';
+  const CYCLE_B = 'openai-gpt-5-6-sol';
+  const CYCLE_C = 'anthropic-claude-opus-4-6';
+  const findRelease = (releases, id) => {
+    const release = releases.find((candidate) => candidate.id === id);
+    assert.ok(release, `fixture expected release "${id}" to exist`);
+    return release;
+  };
+  // The subjects have to stay the lineage-free, non-sibling, cross-family shape
+  // the arms below rely on; if the dataset ever entangles them, the mutation no
+  // longer isolates the cycle and the arms would mislead. Assert that here so the
+  // fixture fails loudly rather than silently testing the wrong thing.
+  test('the successor-cycle subjects are lineage-free non-siblings, so the mutations isolate the cycle', () => {
+    const releases = JSON.parse(readFileSync(join(DATA, 'releases.json'), 'utf8'));
+    const ids = [CYCLE_A, CYCLE_B, CYCLE_C];
+    const subjects = ids.map((id) => findRelease(releases, id));
+    for (const subject of subjects) {
+      for (const field of ['predecessorIds', 'successorIds', 'siblingIds', 'derivedFromIds']) {
+        const list = subject[field] ?? [];
+        for (const other of ids) {
+          assert.ok(
+            !list.includes(other),
+            `subject "${subject.id}" already lists "${other}" in ${field}; pick different subjects`,
+          );
+        }
+      }
+    }
+    const families = new Set(subjects.map((subject) => subject.familyId));
+    assert.equal(families.size, ids.length, 'successor-cycle subjects must be in different families');
+  });
+
+  test('a successor 2-cycle with empty predecessors is caught', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      findRelease(releases, CYCLE_A).successorIds = [CYCLE_B];
+      findRelease(releases, CYCLE_B).successorIds = [CYCLE_A];
+      write('releases.json', releases);
+    });
+    assertFailed(result, 'lineage', 'successor cycle');
+  });
+
+  test('a longer successor cycle (A -> B -> C -> A) is caught too, so the check is not 2-only', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      findRelease(releases, CYCLE_A).successorIds = [CYCLE_B];
+      findRelease(releases, CYCLE_B).successorIds = [CYCLE_C];
+      findRelease(releases, CYCLE_C).successorIds = [CYCLE_A];
+      write('releases.json', releases);
+    });
+    assertFailed(result, 'lineage', 'successor cycle');
+  });
+
+  // The passing arm. A consistent reciprocal edge -- one side names the other as
+  // successor, the other names it back as predecessor -- is legitimate and must
+  // keep passing. This is what stops the fix from being "refuse reciprocal
+  // lineage wholesale", and it is the arm that reveals a fixture failing for the
+  // wrong reason, because it fails with the same message as a real cycle would.
+  test('a consistent reciprocal successor/predecessor edge still passes', () => {
+    const result = gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      findRelease(releases, CYCLE_A).successorIds = [CYCLE_B];
+      findRelease(releases, CYCLE_B).predecessorIds = [CYCLE_A];
+      write('releases.json', releases);
+    });
+    assert.equal(result.code, 0, `expected exit 0, got ${result.code}:\n${result.stdout}`);
+  });
+
   test('a release attributed away from its family owner is caught', () => {
     const result = gateMutatedDataset(({ read, write }) => {
       const releases = read('releases.json');
