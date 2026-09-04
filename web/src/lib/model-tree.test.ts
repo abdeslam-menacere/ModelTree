@@ -56,8 +56,8 @@ function renderedReleaseIds(source: Dataset) {
  * The families `buildModelTree` shows for one creator, in render order, derived
  * from the dataset independently of the builder: the creator's families that
  * hold at least one release, newest release first with id ties broken lexically
- * (model-tree.ts:55-73). A family holding no release is dropped rather than
- * rendered empty.
+ * (the family sort and `hasRecordedRelease` filter in `buildCreators`). A family
+ * holding no release is dropped rather than rendered empty.
  */
 function renderedFamilies(source: Dataset, organizationId: string) {
   const newestReleaseDate = (familyId: string) => source.releases
@@ -81,8 +81,9 @@ function renderedFamilies(source: Dataset, organizationId: string) {
 
 describe('model tree', () => {
   it('features exactly the creators with a featured release and lists every release once', () => {
-    // `modelTreeReleaseIds` spans both branches (model-tree.ts:124-130 via
-    // :103-105), so comparing it against the featured creators' releases alone
+    // `modelTreeReleaseIds` spans both branches — it flattens
+    // `modelTreeCreators`, which concatenates featured and others — so comparing
+    // it against the featured creators' releases alone
     // held only while Others was empty. Both datasets are held to one rule, and
     // the fixture supplies the populated case.
     for (const source of [dataset, datasetWithOtherCreators]) {
@@ -96,8 +97,9 @@ describe('model tree', () => {
       expect(actualCreatorIds).toEqual(expectedCreatorIds);
       expect(actualReleaseIds).toEqual(renderedReleaseIds(source));
       // Reachability is all the builder promises; validateDataset is what makes
-      // it the whole catalog, refusing a release whose familyId is missing or
-      // whose organizationId disagrees with its family (validate.ts:503-513).
+      // it the whole catalog, refusing a release whose familyId is missing
+      // ("familyId references missing id") or whose organizationId disagrees
+      // with its family ("organization does not match family").
       // Asserted separately so a release silently vanishing from the tree is
       // caught rather than mirrored by the derivation above.
       expect(actualReleaseIds).toEqual(source.releases.map(({ id }) => id).sort());
@@ -500,7 +502,8 @@ describe("featured membership follows the site's editorial lead list", () => {
     }
 
     // And the criterion has not quietly emptied the other branch: the page
-    // invariant at tree.astro:21 needs a featured release to exist at all.
+    // invariant tree.astro guards — 'Model Tree requires at least one featured
+    // ecosystem release' — needs a featured release to exist at all.
     expect(dataset.releases.some(({ featured }) => featured)).toBe(true);
     expect(CREATORS_THE_SITE_LEADS_WITH.map(creatorName)).toEqual([
       'Anthropic',
@@ -517,7 +520,8 @@ describe('tree page source', () => {
 
   it('cannot throw its missing-featured-release guard against the real catalog', () => {
     // The page derives its passport link from tree.featured[0].families[0]
-    // .releases[0] and throws when that is absent (tree.astro:20-21). Reproduced
+    // .releases[0] and throws when that is absent — tree.astro's
+    // missing-featured-release guard. Reproduced
     // here rather than described, so a catalog that stopped satisfying it fails
     // a named test instead of a build step.
     const tree = buildModelTree(dataset);
@@ -537,7 +541,7 @@ describe('tree page source', () => {
   });
 
   it('names the branches that really start open, Others included', () => {
-    // ModelTreeExplorer.tsx:24-26 initialises rootOpen, featuredOpen and
+    // ModelTreeExplorer.tsx initialises rootOpen, featuredOpen and
     // othersOpen to true, so naming only two of the three understated the
     // disclosure state as soon as Others held anything.
     expect(page).toContain('AI Model Ecosystem, Featured ecosystems, and Others start open.');
@@ -594,7 +598,7 @@ describe('model tree Others branch', () => {
 
   it('orders others by creator name then id, families and releases newest first', () => {
     const otherIds = tree.others.map(({ organization }) => organization.id);
-    // The fixture derives from the live dataset (fixtures/model-tree-dataset.ts:1),
+    // The fixture derives from the live dataset (fixtures/model-tree-dataset.ts),
     // so a non-featured creator in the catalog joins Others alongside the
     // synthetic ones. Filtering to the synthetic ids keeps the claim exact
     // without assuming the catalog contributes none: ordering is a total order,
