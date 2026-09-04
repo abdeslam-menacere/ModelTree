@@ -223,10 +223,20 @@ splitting into two valid rev-specs, not a rev-spec rewritten into one different
 object, so an agent watching for "did my rev-spec become a different single
 commit" will not recognise it. `git rev-list --count` accepts multiple rev-specs
 and **unions** them, so both fragments resolve and it answers a different
-question — reporting `(trunk ∪ branch) − HEAD` rather than your commit count — at
-**exit 0**, with no warning and a plausible non-round number. Measured on one
-branch: the unquoted form returned **191**, the quoted `"$mb..HEAD"` form **4**;
-the wrong figure was reported as `188` before it was caught.
+question at **exit 0**, with no warning. What that different question is depends
+on the trailing rev-spec, and the case the rule mandates is the treacherous one:
+with `..HEAD` trailing, the split parses as `<merge-base> HEAD ^HEAD`, and a
+merge-base is by definition an ancestor of HEAD, so `^HEAD` cancels everything
+and the count is **0 on every branch in every repository** — do not measure some
+base against which it comes out otherwise, because there is none. Zero is not the
+harmless answer it looks like: a dock reporting **0** commits is reporting that
+it carries no work, which reads as already-landed, the exact
+abdeslam-menacere/ModelTree#584 failure the write-time measurement exists to
+prevent. Only when the trailing rev-spec is something other than HEAD — the
+issue's own `$(git merge-base $b refs/remotes/origin/main)..$b`, where `$b` is a
+branch name — does the union survive as a large plausible non-round number rather
+than collapsing to zero. Either way the reported figure is not the count of
+anything asked about, and nothing in the output says so.
 
 Do not read a loud failure from a neighbouring command as evidence this class
 announces itself. The *scope* line one paragraph of the summary away runs
