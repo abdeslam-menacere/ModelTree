@@ -804,7 +804,12 @@ export const benchmarkResultSchema = z.object({
   benchmarkVersion: z.string().min(1),
   releaseId: entityId,
   variantNote: z.string().min(1).optional(),
-  score: z.number().finite(),
+  // Bare `z.number()` already rejects `Infinity`, `-Infinity` and `NaN` in Zod 4,
+  // so the `.finite()` that used to be spelled out here was redundant as well as
+  // deprecated. The constraint is load-bearing on published benchmark data, so
+  // `benchmark-score-finite.test.ts` pins it directly rather than trusting this
+  // comment: widen this field and those assertions go red.
+  score: z.number(),
   unit: z.string().min(1),
   evaluationDate: partialDate,
   // Configuration that decides whether two results may be compared at all.
