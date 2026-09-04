@@ -76,6 +76,18 @@ describe('web-e2e.yml reports a conclusion on every pull request', () => {
     expect(triggers.pull_request).toBeNull();
   });
 
+  // The same argument on the event a merge queue uses. A required check absent
+  // from a queue entry never reports there, and an entry whose required check
+  // never reports is ejected -- so the queue would merge nothing
+  // (abdeslam-menacere/ModelTree#877). `merge_group` accepts no `paths:` filter,
+  // so an unfiltered key is the only shape available.
+  it('runs on merge groups, without which it could not be required on a queued merge', () => {
+    const triggers = mapping(workflow.on, 'on');
+
+    expect(Object.keys(triggers)).toContain('merge_group');
+    expect(triggers.merge_group).toBeNull();
+  });
+
   it('keeps the reported check name stable and matrix-free', () => {
     // A required status check is matched by job name. Renaming either the job id
     // or its name silently orphans any branch protection rule referencing it.
@@ -196,5 +208,36 @@ describe('web-e2e.yml scope detection tells a broken matcher from a clean miss',
     const outcome = runner.run('docs/product/BACKLOG.md\n', 2);
 
     expect(outcome.stdout).toContain('grep exited 2');
+  });
+
+  // The same fail-open shape one level up, at the event rather than at `grep`.
+  // The step's `case "$GITHUB_EVENT_NAME"` has a `*)` arm that runs the suite,
+  // so a `merge_group` entry -- which carries no `PR_BASE_SHA` to diff against
+  // -- runs everything rather than skipping (abdeslam-menacere/ModelTree#877).
+  // Pinned by a test rather than by a comment: a refactor turning that arm into
+  // a skip would make this required check report green on every queue entry
+  // without running a browser at all.
+  it('runs the suite on a merge group, which it has no changed-file list for', () => {
+    const queued = scopeStepRunner(scopeScript, {
+      GITHUB_EVENT_NAME: 'merge_group',
+      // Deliberately still present, exactly as a stale environment would leave
+      // them. The step must reach its `*)` arm on the event name alone.
+      PR_BASE_SHA: 'a1b2c3d',
+      PR_HEAD_SHA: 'e4f5a6b',
+      PUSH_BEFORE_SHA: 'c7d8e9f',
+      GITHUB_SHA: 'e4f5a6b',
+    });
+
+    try {
+      // A changed-file list the pull-request arm skips on, so `run=true` here
+      // can only have come from the event arm -- the case above is its control.
+      const outcome = queued.run('docs/product/BACKLOG.md\n');
+
+      expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+      expect(outcome.githubOutput ?? '').toContain('run=true');
+      expect(outcome.githubOutput ?? '').not.toContain('run=false');
+    } finally {
+      queued.cleanup();
+    }
   });
 });

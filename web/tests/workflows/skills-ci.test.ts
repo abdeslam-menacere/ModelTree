@@ -97,6 +97,16 @@ describe('skills-ci.yml reports on every pull request and on every push to main'
     expect(Object.keys(triggers)).toContain('workflow_dispatch');
   });
 
+  // The same argument as the `push` trigger below, on the event a merge queue
+  // uses. A required check that does not run on `merge_group` never reports on
+  // a queue entry, and an entry whose required check never reports is ejected,
+  // so the queue merges nothing (abdeslam-menacere/ModelTree#877). `merge_group`
+  // accepts no `paths:` filter, so an unfiltered key is the only shape there is.
+  it('runs on merge groups, without which it could not be required on a queued merge', () => {
+    expect(Object.keys(triggers)).toContain('merge_group');
+    expect(triggers.merge_group).toBeNull();
+  });
+
   // #639. The reported check only exists on a commit the workflow was triggered
   // for, so without this trigger a required `skills-ci` never ran on `main`: it
   // reported on the pull request, and nothing re-ran it on the merge commit.
@@ -442,5 +452,34 @@ describe('skills-ci.yml scope detection tells a broken matcher from a clean miss
     const outcome = runner.run('docs/product/BACKLOG.md\n', 2);
 
     expect(outcome.stdout).toContain('grep exited 2');
+  });
+
+  // The same fail-open shape one level up, at the event rather than at `grep`.
+  // The step's own guard is `[ "$GITHUB_EVENT_NAME" != "pull_request" ]`, so
+  // anything that is not a pull request runs the gates -- including a
+  // `merge_group` entry, which carries no base and head to diff
+  // (abdeslam-menacere/ModelTree#877). Pinned by a test rather than by a
+  // comment: narrowing that guard to name each event would make this required
+  // check report green on every queue entry with no gate run at all.
+  it('runs the gates on a merge group, which it has no changed-file list for', () => {
+    const queued = scopeStepRunner(scopeScript, {
+      GITHUB_EVENT_NAME: 'merge_group',
+      // Left populated on purpose: the step must reach its fail-open arm on the
+      // event name, not on an empty variable.
+      BASE_SHA: 'a1b2c3d',
+      HEAD_SHA: 'e4f5a6b',
+    });
+
+    try {
+      // A changed-file list the pull-request arm skips on, so `run=true` here
+      // can only have come from the event guard -- the case above is its control.
+      const outcome = queued.run('docs/product/BACKLOG.md\n');
+
+      expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+      expect(outcome.githubOutput ?? '').toContain('run=true');
+      expect(outcome.githubOutput ?? '').not.toContain('run=false');
+    } finally {
+      queued.cleanup();
+    }
   });
 });

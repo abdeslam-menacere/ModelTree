@@ -217,6 +217,19 @@ describe('web-ci.yml triggers', () => {
     expect(Object.keys(triggers)).toContain('push');
     expect(mapping(triggers.push, 'on.push').branches).toEqual(['main']);
   });
+
+  // A required context that does not run on `merge_group` never reports on a
+  // queue entry, and a queue entry with a required check that never reports is
+  // ejected -- so the queue would merge nothing (abdeslam-menacere/ModelTree#877).
+  // This is the same deadlock the `paths:` filter above would cause on pull
+  // requests, moved to the event the queue uses.
+  it('runs on merge groups, without which it could not be required on a queued merge', () => {
+    expect(Object.keys(triggers)).toContain('merge_group');
+    // `merge_group` accepts no `paths:` filter at all, so an unfiltered key is
+    // the only shape there is; asserting it pins that nobody adds one believing
+    // it works.
+    expect(triggers.merge_group).toBeNull();
+  });
 });
 
 describe('web-ci.yml check name', () => {
@@ -533,8 +546,12 @@ describe('web-ci.yml scope detection tells a broken matcher from a clean miss', 
    *
    * `grepExit` replaces `grep` with a stub returning that status. Left undefined,
    * the real `grep` runs against the real committed ERE.
+   *
+   * `eventName` is what the runner sets as `GITHUB_EVENT_NAME`, which is what
+   * the step branches on. It defaults to a pull request and is varied by the
+   * fail-open cases below.
    */
-  function runScopeStep(changed: string, grepExit?: number): ScopeOutcome {
+  function runScopeStep(changed: string, grepExit?: number, eventName = 'pull_request'): ScopeOutcome {
     const directory = mkdtempSync(join(tmpdir(), 'web-ci-scope-'));
     temporaryDirectories.push(directory);
 
@@ -570,7 +587,7 @@ grep() {
       cwd: directory,
       env: {
         ...process.env,
-        GITHUB_EVENT_NAME: 'pull_request',
+        GITHUB_EVENT_NAME: eventName,
         PR_BASE_SHA: 'a1b2c3d',
         PR_HEAD_SHA: 'e4f5a6b',
         PUSH_BEFORE_SHA: 'c7d8e9f',
@@ -656,6 +673,36 @@ grep() {
     expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
     expect(outcome.githubOutput ?? '').toContain('run=true');
     expect(outcome.githubOutput ?? '').not.toContain('run=false');
+  });
+
+  // The same fail-open shape, one level up: the step branches on the event name
+  // and its `*)` arm builds. `merge_group` reaches that arm, so a queue entry
+  // runs the full suite rather than deciding from a changed-file list it has no
+  // `PR_BASE_SHA` to compute (abdeslam-menacere/ModelTree#877). This is pinned
+  // by a test rather than asserted in a comment: a later refactor that turned
+  // the `*)` arm into a skip would make `web-ci` report green on every queue
+  // entry without running anything, and a required check that passes without
+  // testing is the failure this whole workflow exists to prevent.
+  it.each(['merge_group', 'some_event_that_does_not_exist_yet'])(
+    'builds rather than skips on a %s event, which it has no changed-file list for',
+    (eventName) => {
+      // The changed-file list is one the pull-request arm would skip on, so a
+      // `run=true` here can only come from the event arm.
+      const outcome = runScopeStep('docs/product/BACKLOG.md\n', undefined, eventName);
+
+      expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+      expect(outcome.githubOutput ?? '').toContain('run=true');
+      expect(outcome.githubOutput ?? '').not.toContain('run=false');
+    },
+  );
+
+  it('still skips on a pull request with the same changed files, so the case above is the event', () => {
+    // The control for the pair above. Without it, `run=true` on `merge_group`
+    // would be consistent with a step that had simply stopped skipping at all.
+    const outcome = runScopeStep('docs/product/BACKLOG.md\n', undefined, 'pull_request');
+
+    expect(outcome.status, `step failed: ${outcome.stdout}${outcome.stderr}`).toBe(0);
+    expect(outcome.githubOutput ?? '').toContain('run=false');
   });
 });
 

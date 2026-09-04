@@ -5,6 +5,17 @@ name: Updater tests
 # broken pyproject.toml fails here instead of at review time.
 # It uses no secrets and never reaches a model endpoint: the fixture providers
 # under tools/updater/fixtures keep the suite offline.
+#
+# It also runs on `merge_group`, unfiltered. GitHub does not support `paths:` on
+# that event, so a workflow either runs on every queue entry or on none, and a
+# queue enforces exactly the checks that report against each projected merge
+# (abdeslam-menacere/ModelTree#860). This suite asserts the structure of
+# adr-numbers.yml, instruction-references.yml and publish-updater-proposals.yml
+# as well as the updater itself, so it is one of the checks that can catch a
+# pair of pull requests that only conflict once merged -- which is the state
+# only the queue tests. Unfiltered means it also runs on entries that touch
+# nothing it covers; that costs an install and a short suite, which is the price
+# of the event not carrying a path filter.
 
 on:
   pull_request:
@@ -37,6 +48,7 @@ on:
       - 'tools/adr_numbers/**'
       - '.github/workflows/adr-numbers.yml'
       - 'docs/adr/**'
+  merge_group:
   push:
     branches:
       - main
