@@ -456,6 +456,7 @@ function extendedDataset(): Record<string, any> {
       name: 'SWE-bench Verified',
       domain: 'coding',
       owner: 'OpenAI',
+      appliesToCategories: ['coding', 'language-reasoning'],
       metric: 'tasks resolved',
       metricUnit: 'percent',
       direction: 'higher-is-better',

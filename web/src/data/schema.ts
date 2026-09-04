@@ -759,6 +759,36 @@ export const benchmarkDefinitionSchema = z.object({
     'operational',
   ]),
   owner: z.string().min(1),
+  /**
+   * The kinds of model this benchmark can meaningfully measure (issue #43).
+   *
+   * This is ModelTree's own comparability policy, not a sourced claim about the
+   * world, and it lives here for the reason issue #22 already gives in
+   * `comparability-policy.ts`: rules of this kind belong "with benchmark
+   * definitions or a versioned policy, not hardcoded per UI chart". A second
+   * copy inside a chart component would be free to drift from this one.
+   *
+   * **It constrains comparisons, never results.** A benchmark result is a
+   * sourced fact and stays valid whatever this says. The dataset already
+   * settles the question: `llama-4-scout-livecodebench` records a general model
+   * measured on a coding benchmark, which is legitimate and well sourced, so a
+   * rule requiring a result's benchmark to match its release's categories would
+   * reject real evidence. A release's `categories` say what a model is *for*;
+   * they never say what it may be *measured on*.
+   *
+   * What this field does say is that comparing an image generator against a
+   * language model on MMLU-Pro is not a comparison anyone can win, because the
+   * benchmark cannot be run against one of them at all. `benchmark-explorer.ts`
+   * refuses that selection rather than rendering an empty chart that looks like
+   * a score of zero.
+   *
+   * Kept deliberately tight. A category is listed only where the benchmark's
+   * own task can actually be performed by that kind of model — MMMU asks
+   * questions about images, so it is `multimodal-generalist` and not
+   * `language-reasoning`, even though the models carrying MMMU results here
+   * happen to be both.
+   */
+  appliesToCategories: z.array(modelCategory).min(1),
   metric: z.string().min(1),
   metricUnit: z.string().min(1),
   direction: z.enum(['higher-is-better', 'lower-is-better']),

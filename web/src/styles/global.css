@@ -1348,6 +1348,99 @@ main {
   color: var(--cp-text-muted);
 }
 
+/*
+ * Not applicable is not the same state as not recorded (issue #43), so it does
+ * not share the muted treatment that means "we are missing this". It is styled
+ * as a settled fact rather than a gap. Both states name themselves in the value
+ * text, so colour is never the only carrier of the difference.
+ */
+.passport-not-applicable {
+  color: var(--cp-text-muted);
+  font-style: italic;
+}
+
+/* -------------------------------------------------------------------------
+ * Category-specific record (issue #43)
+ * ---------------------------------------------------------------------- */
+
+.category-spec {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--cp-border);
+}
+
+.category-spec-heading {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.category-spec-note {
+  margin: 0 0 14px;
+  color: var(--cp-text-muted);
+  font-size: 13px;
+}
+
+.category-spec-facts {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+}
+
+.category-spec-facts dt {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cp-text-muted);
+}
+
+.category-spec-facts dd {
+  margin: 4px 0 0;
+}
+
+.category-spec-statement {
+  display: block;
+}
+
+.category-spec-quote {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--cp-border);
+  color: var(--cp-text-muted);
+  font-size: 13px;
+}
+
+.category-spec-quote p {
+  margin: 0;
+  font-style: italic;
+}
+
+.category-spec-quote footer {
+  margin-top: 6px;
+  font-size: 12px;
+  font-style: normal;
+}
+
+.category-spec-undocumented {
+  margin-top: 16px;
+}
+
+.category-spec-undocumented h4 {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+
+.category-spec-undocumented p {
+  margin: 0 0 6px;
+  color: var(--cp-text-muted);
+  font-size: 13px;
+}
+
+.category-spec-undocumented ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--cp-text-muted);
+  font-size: 13px;
+}
+
 .passport-stale {
   display: inline-flex;
   margin-top: 4px;

@@ -65,6 +65,13 @@ import {
   type FamilyVariantPositioningView,
 } from './variant-positioning';
 import type { VariantPositioning } from '../data/variant-positioning-schema';
+import { categorySpecs } from '../data/category-specs';
+import {
+  IMAGE_SPEC_DIMENSION_DEFINITIONS,
+  IMAGE_SPEC_DIMENSION_LABELS,
+  IMAGE_SPEC_DIMENSION_ORDER,
+  type CategorySpec,
+} from '../data/category-spec-schema';
 
 /**
  * How long a price or an availability record is shown without a staleness note.
@@ -248,12 +255,63 @@ export interface PassportFact {
   value: string;
   /** True when no record states this, so the page can mark it rather than blank it. */
   unknown: boolean;
+  /**
+   * True when the dimension cannot apply to this release at all, as distinct
+   * from applying and being unrecorded (issue #43).
+   *
+   * The two were one state until now, and they say opposite things. "Not
+   * recorded" is a gap in this repository — a fact the creator may well have
+   * published that nobody has entered yet, and an invitation to go and find it.
+   * "Not applicable" is a property of the model: a maximum output counted in
+   * tokens is not a missing number for `openai-gpt-image-2`, it is not a
+   * quantity that exists, and no amount of research would fill it in. Rendering
+   * the second as the first told every reader of an image passport that
+   * ModelTree had done sloppy work, when in truth the question was wrong.
+   *
+   * Mutually exclusive with `unknown`: an inapplicable dimension is not
+   * unknown, and `notApplicableFact` sets `unknown` to false deliberately so
+   * that the existing "count the unknown facts" reads do not inflate.
+   */
+  notApplicable: boolean;
 }
 
 export interface RelationshipLink {
   slug: string;
   displayName: string;
   href: string;
+}
+
+/** One documented category-specific fact, with the words that back it. */
+export interface CategorySpecFactView {
+  dimension: string;
+  label: string;
+  definition: string;
+  /** ModelTree's recording of what the quote says. */
+  statement: string;
+  /** The source's own words, so a reader can check the recording against them. */
+  quote: string;
+  source: PassportSourceView | null;
+}
+
+/**
+ * The category-specific block of a passport (issue #43).
+ *
+ * `undocumented` is derived here rather than stored in the dataset, and that is
+ * the whole reason this view exists instead of the page reading the record
+ * directly. A stored list of "dimensions nobody documented" would be a second
+ * copy of the same information — free to drift from `facts`, and asserting an
+ * absence as though it were sourced. Deriving it means the page can only ever
+ * say "no cited source states this", which is exactly what the absence
+ * licenses and no more.
+ */
+export interface CategorySpecView {
+  category: string;
+  categoryLabel: string;
+  /** When these facts were last checked against their sources. */
+  verifiedAt: string;
+  facts: CategorySpecFactView[];
+  /** Dimensions this category records, that no cited source states here. */
+  undocumented: { dimension: string; label: string; definition: string }[];
 }
 
 export interface RelationshipGroup {
@@ -416,6 +474,12 @@ export interface ModelPassportView {
   /** Names the release is also known by, excluding the display name. */
   otherNames: string[];
   technicalFacts: PassportFact[];
+  /**
+   * Facts that only this release's category has, or `null` where the category
+   * is not piloted or no source documented one. Never a substitute for the
+   * shared facts above — an addition to them.
+   */
+  categorySpec: CategorySpecView | null;
   categories: string[];
 
   relationships: RelationshipGroup[];
@@ -515,7 +579,39 @@ export type PassportDataset = Pick<
 
 function fact(term: string, value: string | null | undefined, unknownNote = 'Not recorded'): PassportFact {
   const known = value !== null && value !== undefined && value !== '';
-  return { term, value: known ? value : unknownNote, unknown: !known };
+  return { term, value: known ? value : unknownNote, unknown: !known, notApplicable: false };
+}
+
+/**
+ * A dimension this release cannot have, with the reason it cannot.
+ *
+ * The reason is always derived from a field the schema already validates —
+ * modalities, here — never from the release's `categories`. That matters: a
+ * category is an editorial judgement about what a model is for, while
+ * `outputModalities` is a sourced statement about what it emits, and only the
+ * second can carry the weight of telling a reader a question does not apply.
+ * It also means this asserts no new claim about the model and so needs no new
+ * source of its own.
+ */
+function notApplicableFact(term: string, reason: string): PassportFact {
+  return { term, value: `Not applicable — ${reason}`, unknown: false, notApplicable: true };
+}
+
+/**
+ * Whether a token-denominated reading of a release makes sense at all.
+ *
+ * Split into input and output because they fail independently, and collapsing
+ * them would be wrong in both directions. `openai-gpt-image-2` takes a text
+ * prompt and emits only pixels: a context window is a real quantity for it and
+ * a maximum output in tokens is not. A speech-to-text model is the mirror
+ * image. Reading one flag for both would suppress a fact that exists or publish
+ * one that cannot.
+ */
+function tokenDimensionApplicability(release: ModelRelease) {
+  return {
+    input: release.inputModalities.includes('text'),
+    output: release.outputModalities.includes('text'),
+  };
 }
 
 /**
@@ -537,6 +633,12 @@ export function buildModelPassport(
    * keeps `pages/models/[slug].astro` out of this change entirely.
    */
   positioningRecords?: VariantPositioning,
+  /**
+   * Defaulted for the same reason as `positioningRecords`: the page stays out
+   * of this change, and a test can still hand in a record the shipped dataset
+   * does not carry.
+   */
+  categorySpecRecords: readonly CategorySpec[] = categorySpecs,
 ): ModelPassportView {
   const release = dataset.releases.find((candidate) => candidate.id === releaseId);
   if (!release) throw new PassportError(`unknown release "${releaseId}"`);
@@ -795,21 +897,71 @@ export function buildModelPassport(
     fact('Record slug', release.slug),
   ];
 
+  const tokenDimensions = tokenDimensionApplicability(release);
+
   const technicalFacts: PassportFact[] = [
     fact('Input modalities', release.inputModalities.join(', ')),
     fact('Output modalities', release.outputModalities.join(', ')),
-    fact(
-      'Context window',
-      release.contextWindow ? `${formatNumber(release.contextWindow)} tokens` : null,
-    ),
-    fact(
-      'Maximum output',
-      release.maximumOutput ? `${formatNumber(release.maximumOutput)} tokens` : null,
-    ),
+    tokenDimensions.input
+      ? fact(
+        'Context window',
+        release.contextWindow ? `${formatNumber(release.contextWindow)} tokens` : null,
+      )
+      : notApplicableFact(
+        'Context window',
+        'this release takes no text input, so there is no token budget to state',
+      ),
+    tokenDimensions.output
+      ? fact(
+        'Maximum output',
+        release.maximumOutput ? `${formatNumber(release.maximumOutput)} tokens` : null,
+      )
+      : notApplicableFact(
+        'Maximum output',
+        'this release emits no text, so an output limit in tokens counts nothing',
+      ),
     fact('Parameters', parameterText),
   ];
 
   const otherNames = [release.canonicalName].filter((name) => name !== release.displayName);
+
+  // -------------------------------------------------------------------------
+  // Category-specific facts (issue #43). Rendered inside the technical section
+  // because they are the same kind of thing as the facts above — documented
+  // limits — and splitting them into a section of their own would suggest an
+  // image model's resolution is a lesser fact than a language model's context
+  // window rather than the same fact asked in the right unit.
+  // -------------------------------------------------------------------------
+
+  const spec = categorySpecRecords.find((candidate) => candidate.releaseId === release.id);
+  const categorySpec: CategorySpecView | null = spec
+    ? {
+      category: spec.category,
+      categoryLabel: categoryLabel(spec.category),
+      verifiedAt: formatDate(spec.verifiedAt),
+      facts: IMAGE_SPEC_DIMENSION_ORDER
+        .flatMap((dimension) => {
+          const entry = spec.facts.find((candidate) => candidate.dimension === dimension);
+          if (!entry) return [];
+
+          return [{
+            dimension,
+            label: IMAGE_SPEC_DIMENSION_LABELS[dimension],
+            definition: IMAGE_SPEC_DIMENSION_DEFINITIONS[dimension],
+            statement: entry.statement,
+            quote: entry.quote,
+            source: resolveSources([entry.sourceId])[0] ?? null,
+          }];
+        }),
+      undocumented: IMAGE_SPEC_DIMENSION_ORDER
+        .filter((dimension) => !spec.facts.some((entry) => entry.dimension === dimension))
+        .map((dimension) => ({
+          dimension,
+          label: IMAGE_SPEC_DIMENSION_LABELS[dimension],
+          definition: IMAGE_SPEC_DIMENSION_DEFINITIONS[dimension],
+        })),
+    }
+    : null;
 
   // -------------------------------------------------------------------------
   // Sections. Presence decides both what renders and what is named as missing,
@@ -957,6 +1109,7 @@ export function buildModelPassport(
     apiAliases: release.apiAliases,
     otherNames,
     technicalFacts,
+    categorySpec,
     categories: release.categories.map((category) => categoryLabel(category)),
 
     relationships,

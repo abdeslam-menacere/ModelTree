@@ -52,6 +52,7 @@ import {
 import { EVIDENCE_MODELS_PARAMETER } from './evidence-actions';
 import { MAX_COMPARISON_MODELS, MIN_COMPARISON_MODELS, compareUrl } from './compare-route';
 import { organizationLabel } from './organization-name';
+import { categoryLabel } from './format';
 
 // The parameter name and the ceiling are consumed, not redefined: importing them
 // is what keeps a URL the drawer writes readable by the route that resolves it.
@@ -103,7 +104,11 @@ export const VERDICT_LABELS: Record<ComparabilityVerdict, string> = {
 
 export type EvidenceRelease = Pick<
   ModelRelease,
-  'id' | 'slug' | 'canonicalName' | 'displayName' | 'organizationId' | 'familyId' | 'verifiedAt'
+  // `categories` travels because the cross-category refusal (issue #43) is
+  // decided here, in the browser, whenever the selection changes. It is a short
+  // array of enum members per release, which is the cheapest thing that can
+  // answer "could these models ever share a benchmark" without a round trip.
+  'id' | 'slug' | 'canonicalName' | 'displayName' | 'organizationId' | 'familyId' | 'verifiedAt' | 'categories'
 >;
 
 export type EvidenceSourceRecord = Pick<
@@ -139,6 +144,7 @@ export function buildBenchmarkExplorerPayload(
       organizationId: release.organizationId,
       familyId: release.familyId,
       verifiedAt: release.verifiedAt,
+      categories: release.categories,
     })),
     // Both recorded name forms travel: the label is what a creator is displayed
     // as, and the fuller recorded form has to stay available so neither this
@@ -450,12 +456,45 @@ export interface EvidenceNextAction {
 export type EvidenceEmptyStateCode =
   | 'no-selection'
   | 'no-evidence'
-  | 'no-filter-match';
+  | 'no-filter-match'
+  | 'cross-category'
+  | 'no-applicable-benchmark';
 
 export interface EvidenceEmptyState {
   code: EvidenceEmptyStateCode;
   heading: string;
   reason: string;
+  nextActions: EvidenceNextAction[];
+}
+
+/**
+ * Why a selection cannot be compared on any benchmark ModelTree records
+ * (issue #43, AC5).
+ *
+ * Two codes, and keeping them apart is the whole point of the field. They look
+ * identical from inside the view — no benchmark applies to everything selected —
+ * and they tell a reader opposite things:
+ *
+ * - `cross-category` is a refusal. An image generator and a language model
+ *   share no kind, and no benchmark here can be run against both. Recording
+ *   more evidence would never make this comparison possible, so the view
+ *   declines to draw it rather than showing an empty chart that reads as a
+ *   score of zero.
+ * - `no-applicable-benchmark` is a coverage gap. The models *are* the same kind
+ *   of thing, and ModelTree simply records no benchmark for that kind yet. That
+ *   is a fact about this repository, not about the models, and it invites
+ *   somebody to add one.
+ *
+ * Collapsing them into the existing `no-evidence` state would have said "no
+ * benchmark evidence recorded yet" about a comparison that is not merely
+ * unrecorded but incoherent.
+ */
+export interface EvidenceCategoryRefusal {
+  code: 'cross-category' | 'no-applicable-benchmark';
+  heading: string;
+  reason: string;
+  /** The category labels involved, so the page names them rather than gesturing. */
+  categoryLabels: string[];
   nextActions: EvidenceNextAction[];
 }
 
@@ -478,6 +517,12 @@ export interface BenchmarkExplorerView {
   totalResultCount: number;
   filteredResultCount: number;
   emptyState: EvidenceEmptyState | null;
+  /**
+   * Present when no benchmark here applies to everything selected. Rendered
+   * whether or not there are groups to show, because a single model's evidence
+   * being visible does not make the comparison the reader asked for a valid one.
+   */
+  categoryRefusal: EvidenceCategoryRefusal | null;
   comparabilityNotice: EvidenceComparabilityNotice | null;
   maxSelectedModels: number;
   benchmarksRoute: string;
@@ -746,6 +791,16 @@ export function buildBenchmarkExplorerView(
   const route = benchmarksRoute(base);
   const catalogAction: EvidenceNextAction = { label: 'Browse the model catalogue', href: `${normalizeBase(base)}models/` };
 
+  const categoryRefusal = buildCategoryRefusal({
+    selection,
+    releases: [...selectedReleaseIds]
+      .map((id) => releaseById.get(id))
+      .filter((release): release is EvidenceRelease => Boolean(release)),
+    benchmarks: dataset.benchmarks,
+    models,
+    catalogAction,
+  });
+
   const emptyState = buildEmptyState({
     selection,
     totalResultCount: selectedResults.length,
@@ -755,16 +810,21 @@ export function buildBenchmarkExplorerView(
     models,
     clearFiltersHref,
     catalogAction,
+    categoryRefusal,
   });
 
-  const comparabilityNotice = buildComparabilityNotice({
-    selection,
-    totalResultCount: selectedResults.length,
-    comparableGroupCount: comparableGroups.length,
-    filteredGroups,
-    base,
-    catalogAction,
-  });
+  const comparabilityNotice = categoryRefusal
+    // The refusal is the more precise explanation of the same silence, and two
+    // notices saying overlapping things is worse than one saying the right thing.
+    ? null
+    : buildComparabilityNotice({
+      selection,
+      totalResultCount: selectedResults.length,
+      comparableGroupCount: comparableGroups.length,
+      filteredGroups,
+      base,
+      catalogAction,
+    });
 
   return {
     selection,
@@ -780,11 +840,86 @@ export function buildBenchmarkExplorerView(
     totalResultCount: selectedResults.length,
     filteredResultCount,
     emptyState,
+    categoryRefusal,
     comparabilityNotice,
     maxSelectedModels: MAX_SELECTED_MODELS,
     benchmarksRoute: route,
     clearFiltersHref,
     policyVersion: allGroupViews[0]?.policyVersion ?? null,
+  };
+}
+
+/**
+ * Decide whether this selection can be compared on any benchmark at all
+ * (issue #43, AC5).
+ *
+ * Reads `appliesToCategories` from the benchmark definitions rather than
+ * anything in a chart, which is where issue #22 says a comparability rule
+ * belongs. The question asked is deliberately structural — *could* these models
+ * ever share a benchmark — not whether results happen to exist, so the answer
+ * does not change as evidence is added or removed.
+ *
+ * Nothing here touches results, and that is load-bearing: the dataset records a
+ * general model measured on a coding benchmark, and a rule keyed on results
+ * would have to call that invalid. Only the comparison is refused.
+ */
+function buildCategoryRefusal(input: {
+  selection: EvidenceSelection;
+  releases: readonly EvidenceRelease[];
+  benchmarks: readonly BenchmarkDefinition[];
+  models: EvidenceModelCard[];
+  catalogAction: EvidenceNextAction;
+}): EvidenceCategoryRefusal | null {
+  // A single model is never a comparison, so there is nothing to refuse. The
+  // reader is looking at one model's own evidence, which stands by itself.
+  if (input.selection.slugs.length < MIN_COMPARABLE_MODELS) return null;
+  if (input.releases.length < MIN_COMPARABLE_MODELS) return null;
+
+  const applicable = input.releases.map((release) =>
+    new Set(
+      input.benchmarks
+        .filter((benchmark) =>
+          benchmark.appliesToCategories.some((category) => release.categories.includes(category)))
+        .map((benchmark) => benchmark.id),
+    ));
+
+  const [first, ...rest] = applicable;
+  const shared = [...first].filter((id) => rest.every((set) => set.has(id)));
+  if (shared.length > 0) return null;
+
+  // Same question, two very different answers. Models that share no category
+  // are different kinds of thing; models that share one are the same kind of
+  // thing that nothing here measures yet.
+  const [firstCategories, ...otherCategories] = input.releases.map((release) => release.categories);
+  const sharedCategories = firstCategories
+    .filter((category) => otherCategories.every((categories) => categories.includes(category)));
+
+  const names = input.models.map((model) => model.displayName).join(' and ');
+  const passportActions = input.models
+    .map((model) => ({ label: `Open ${model.displayName}'s passport`, href: model.route }));
+
+  if (sharedCategories.length > 0) {
+    const labels = sharedCategories.map((category) => categoryLabel(category));
+    return {
+      code: 'no-applicable-benchmark',
+      heading: 'No benchmark recorded for this kind of model',
+      reason: `${names} are the same kind of model — ${labels.join(', ')} — but ModelTree records no benchmark that applies to them. That is a gap in this repository's coverage, not a statement about the models, and each one's passport still records everything that is known about it.`,
+      categoryLabels: labels,
+      nextActions: [...passportActions, input.catalogAction],
+    };
+  }
+
+  const labels = [
+    ...new Set(input.releases.flatMap((release) =>
+      release.categories.map((category) => categoryLabel(category)))),
+  ];
+
+  return {
+    code: 'cross-category',
+    heading: 'These models cannot be compared on a benchmark',
+    reason: `${names} are different kinds of model — ${labels.join(', ')} — and no benchmark ModelTree records can be run against all of them. ModelTree refuses this comparison rather than drawing an empty chart, which would read as a score of zero. Adding more evidence would not change it: the measurements simply do not exist for both.`,
+    categoryLabels: labels,
+    nextActions: [...passportActions, input.catalogAction],
   };
 }
 
@@ -797,6 +932,7 @@ function buildEmptyState(input: {
   models: EvidenceModelCard[];
   clearFiltersHref: string;
   catalogAction: EvidenceNextAction;
+  categoryRefusal: EvidenceCategoryRefusal | null;
 }): EvidenceEmptyState | null {
   if (input.filteredGroupCount > 0) return null;
 
@@ -807,6 +943,18 @@ function buildEmptyState(input: {
       reason:
         'This view reads the models to explain from the page address. Pick one or more releases and it will show what each was measured on, with every source and date.',
       nextActions: [input.catalogAction],
+    };
+  }
+
+  // Checked before `no-evidence` because it is the stronger statement. "No
+  // benchmark evidence recorded yet" invites somebody to go and find some; for
+  // a cross-category selection there is none to find.
+  if (input.categoryRefusal) {
+    return {
+      code: input.categoryRefusal.code,
+      heading: input.categoryRefusal.heading,
+      reason: input.categoryRefusal.reason,
+      nextActions: input.categoryRefusal.nextActions,
     };
   }
 

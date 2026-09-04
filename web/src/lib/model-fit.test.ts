@@ -142,6 +142,7 @@ const benchmarks: BenchmarkDefinition[] = [  {
     name: 'Bench A',
     domain: 'general-reasoning',
     owner: 'Bench Owner',
+    appliesToCategories: ['language-reasoning', 'coding'],
     metric: 'accuracy',
     metricUnit: '%',
     direction: 'higher-is-better',

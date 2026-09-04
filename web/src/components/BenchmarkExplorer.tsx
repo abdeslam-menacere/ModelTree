@@ -351,6 +351,32 @@ export default function BenchmarkExplorer({ dataset, initialSlugs, initialFilter
         </section>
       )}
 
+      {/*
+        Rendered only when the empty state is not already carrying it, so the
+        same refusal never appears twice. The empty state wins when there is
+        nothing else on the page; this branch covers the case where one selected
+        model does have evidence and its groups render, which must not be read
+        as the comparison the reader asked for.
+      */}
+      {view.categoryRefusal && !view.emptyState && (
+        <section
+          className="evidence-notice evidence-category-refusal"
+          data-code={view.categoryRefusal.code}
+          role="note"
+          aria-labelledby="evidence-category-refusal-heading"
+        >
+          <h2 id="evidence-category-refusal-heading">{view.categoryRefusal.heading}</h2>
+          <p>{view.categoryRefusal.reason}</p>
+          <ul className="evidence-next-actions">
+            {view.categoryRefusal.nextActions.map((action) => (
+              <li key={action.label}>
+                {action.href ? <a href={action.href}>{action.label}</a> : action.label}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {view.comparabilityNotice && (
         <section className="evidence-notice" role="note" aria-labelledby="evidence-notice-heading">
           <h2 id="evidence-notice-heading">No comparable evidence across these models</h2>

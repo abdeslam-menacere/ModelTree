@@ -16,6 +16,7 @@ import {
   toggleModel,
   type BenchmarkExplorerDataset,
   type EvidenceFilters,
+  type EvidenceRelease,
 } from './benchmark-explorer';
 
 const BASE = '/ModelTree/';
@@ -32,6 +33,7 @@ function makeDataset(overrides: Partial<BenchmarkResult>[] = []): BenchmarkExplo
       name: 'Reasoning Bench',
       domain: 'general-reasoning',
       owner: 'Bench Org',
+      appliesToCategories: ['language-reasoning', 'coding'],
       metric: 'Accuracy',
       metricUnit: 'percent',
       direction: 'higher-is-better',
@@ -44,6 +46,7 @@ function makeDataset(overrides: Partial<BenchmarkResult>[] = []): BenchmarkExplo
       name: 'Code Bench',
       domain: 'coding',
       owner: 'Bench Org',
+      appliesToCategories: ['language-reasoning', 'coding'],
       metric: 'pass@1',
       metricUnit: 'percent',
       direction: 'higher-is-better',
@@ -56,6 +59,7 @@ function makeDataset(overrides: Partial<BenchmarkResult>[] = []): BenchmarkExplo
       name: 'Math Bench',
       domain: 'mathematics',
       owner: 'Bench Org',
+      appliesToCategories: ['language-reasoning', 'coding'],
       metric: 'Accuracy',
       metricUnit: 'percent',
       direction: 'higher-is-better',
@@ -107,7 +111,7 @@ function makeDataset(overrides: Partial<BenchmarkResult>[] = []): BenchmarkExplo
   };
 }
 
-function release(slug: string, id: string, displayName: string) {
+function release(slug: string, id: string, displayName: string): EvidenceRelease {
   return {
     id,
     slug,
@@ -116,6 +120,7 @@ function release(slug: string, id: string, displayName: string) {
     organizationId: 'org-a',
     familyId: 'fam-a',
     verifiedAt: '2026-08-10',
+    categories: ['language-reasoning', 'coding'],
   };
 }
 
