@@ -160,7 +160,8 @@ export function describeProvenance(provenance) {
       `  ${ciMechanism}`,
       '  This is NOT read as "level with trunk". If trunk has moved, whatever those commits add',
       '  to a shared component, stylesheet or island is in the tree CI builds and is not in the',
-      '  figures above, so every drift here is a LOWER BOUND on what CI will measure.',
+      '  figures above, so merged drift is USUALLY at least the local drift here -- the exception',
+      '  is a route trunk has SHRUNK (as #813 cut /tree by 220,029 bytes), where CI measures less.',
     ];
   }
 
@@ -172,10 +173,11 @@ export function describeProvenance(provenance) {
       `  behind       ${provenance.behind} commit(s) -- trunk has moved since this branch left it`,
       `  ${ciMechanism}`,
       '  Whatever those commits add to a shared component, stylesheet or island is in CI\'s tree',
-      '  and is not in the figures above, so every drift here is a LOWER BOUND on what CI will',
-      '  measure. Re-running `npm run assets:report` on this tree records a figure describing a',
-      '  tree that never reaches `main`. See docs/product/PERFORMANCE-BUDGETS.md, "Recording a',
-      '  measured figure when trunk has moved".',
+      '  and is not in the figures above, so merged drift is USUALLY at least the local drift here.',
+      '  The exception is a route trunk has SHRUNK (as #813 cut /tree by 220,029 bytes), where CI',
+      '  measures less than this. Re-running `npm run assets:report` on this tree records a figure',
+      '  describing a tree that never reaches `main`. See docs/product/PERFORMANCE-BUDGETS.md,',
+      '  "Recording a measured figure when trunk has moved".',
     ];
   }
 
@@ -242,10 +244,12 @@ export function formatAllowanceReport(rows, provenance, maxFraction, nearMiss = 
   if (count('near-miss') > 0 || count('over') > 0) {
     lines.push(
       '',
-      '  A figure this close to its allowance is one trunk commit from red, and the commit that',
-      '  carries it over need not be yours: the guard is spent by accumulated staleness from every',
-      '  change since the figure was recorded. Re-record before handing off -- against the tree CI',
-      '  builds, which is not this one unless the provenance below says it is.',
+      '  A figure this close to its allowance may be within one trunk commit of red -- the flag is',
+      '  set at 75% of allowance, below the ~83% at which the incident that calibrated it (#826) was',
+      '  actually one commit from the edge, so it warns early. The commit that carries a near miss',
+      '  over need not be yours: the guard is spent by accumulated staleness from every change since',
+      '  the figure was recorded. Re-record before handing off -- against the tree CI builds, which',
+      '  is not this one unless the provenance below says it is.',
     );
   }
 

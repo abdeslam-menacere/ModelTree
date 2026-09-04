@@ -242,7 +242,11 @@ describe('tree provenance reaches the reader (#832)', () => {
     expect(text).toContain('NOT the tree CI measures');
     expect(text).toContain(mechanism);
     expect(text).toContain('3 commit(s)');
-    expect(text).toContain('LOWER BOUND');
+    // #847 finding 2: merged drift is USUALLY at least local drift, not an
+    // unconditional LOWER BOUND -- a route trunk has shrunk is the exception.
+    expect(text).toContain('USUALLY at least');
+    expect(text).toContain('SHRUNK');
+    expect(text).not.toContain('LOWER BOUND');
     // The specific trap the issue names: following "re-run assets:report"
     // literally on this tree records a figure describing a tree that never
     // reaches main. The reader must be told that here, where they are about to.
@@ -271,7 +275,10 @@ describe('tree provenance reaches the reader (#832)', () => {
     expect(text).toContain('no such ref');
     expect(text).toContain('NOT read as "level with trunk"');
     expect(text).toContain(mechanism);
-    expect(text).toContain('LOWER BOUND');
+    // #847 finding 2: reworded away from "LOWER BOUND" here too.
+    expect(text).toContain('USUALLY at least');
+    expect(text).toContain('SHRUNK');
+    expect(text).not.toContain('LOWER BOUND');
   });
 
   it('degrades to UNDETERMINED rather than throwing when handed nothing', () => {
@@ -291,6 +298,84 @@ describe('tree provenance reaches the reader (#832)', () => {
     expect(message).toContain('10,647');
     expect(message).toContain('do NOT widen measuredDrift.maxFraction');
     expect(message).toContain(mechanism);
+  });
+});
+
+describe('reworded strings that claimed a bound the code cannot establish (#847)', () => {
+  const behind = {
+    status: 'behind' as const,
+    ref: PUBLISHED_REF,
+    head: 'aaaaaaaaaa',
+    trunk: 'bbbbbbbbbb',
+    behind: 3,
+  };
+
+  // Finding 2: "every drift here is a LOWER BOUND on what CI will measure" is
+  // false when trunk SHRINKS a route (recorded R, branch B, merged M: |B-R| is
+  // not bounded above by |M-R|). #813 removed 220,029 bytes from /tree, so the
+  // repository's own history is the counter-example. Present in both the
+  // `behind` and `undetermined` provenance branches.
+  it('does not claim merged drift is an unconditional lower bound (behind branch)', () => {
+    const text = describeProvenance(behind).join('\n');
+    expect(text).not.toContain('LOWER BOUND');
+    expect(text).toContain('USUALLY at least');
+    expect(text).toContain('SHRUNK');
+    expect(text).toContain('220,029');
+  });
+
+  it('does not claim merged drift is an unconditional lower bound (undetermined branch)', () => {
+    const text = describeProvenance({
+      status: 'undetermined',
+      ref: PUBLISHED_REF,
+      reason: 'no such ref',
+    }).join('\n');
+    expect(text).not.toContain('LOWER BOUND');
+    expect(text).toContain('USUALLY at least');
+    expect(text).toContain('SHRUNK');
+  });
+
+  // Finding 3: the near-miss banner said a near miss "is one trunk commit from
+  // red" at the 75% flag point, while its own derivation puts that nearer ~83%.
+  // Reworded to a possibility ("may be within one trunk commit"), and to state
+  // the flag sits below the calibrating incident's ~83%.
+  it('does not assert a near miss IS one commit from red at the 75% flag', () => {
+    const rows = [
+      driftOf('tree measuredRaw', TREE_RECORDED, TREE_BRANCH_ONLY, MAX_FRACTION),
+      driftOf('updates measuredRaw', 443_966, 443_966 + 100, MAX_FRACTION),
+    ];
+    const report = formatAllowanceReport(rows, behind, MAX_FRACTION).join('\n');
+    expect(report).toContain('NEAR MISS');
+    expect(report).not.toContain('is one trunk commit from red');
+    expect(report).toContain('may be within one trunk commit of red');
+    expect(report).toContain('~83%');
+  });
+});
+
+describe('git absent from PATH gets its own remedy, not `git fetch` (#847 finding 4b)', () => {
+  // With git unrunnable, `spawnSync` sets `error` and the probe must surface
+  // that cause rather than advising `git fetch origin main`, which cannot fix a
+  // missing git. Run the probe in a child node process with a PATH that cannot
+  // resolve git, so `git` genuinely fails to launch.
+  it('reports the unrunnable-git cause and never advises `git fetch`', () => {
+    const probeUrl = new URL('./tree-provenance.mjs', import.meta.url).href;
+    const script =
+      `import { probeTreeProvenance } from ${JSON.stringify(probeUrl)};` +
+      'const p = probeTreeProvenance(process.cwd());' +
+      'process.stdout.write(JSON.stringify(p));';
+    const emptyDir = mkdtempSync(join(tmpdir(), 'modeltree-nogit-'));
+    repos.push(emptyDir);
+    const out = execFileSync(process.execPath, ['--input-type=module', '-e', script], {
+      cwd: emptyDir,
+      encoding: 'utf8',
+      // A PATH with nothing on it: git cannot be found, so spawnSync sets
+      // `error` (ENOENT) rather than a non-zero exit.
+      env: { ...process.env, PATH: emptyDir, Path: emptyDir },
+    });
+    const provenance = JSON.parse(out);
+    expect(provenance.status).toBe('undetermined');
+    expect(provenance.reason).toContain('could not run git');
+    expect(provenance.reason).not.toContain('git fetch origin main');
+    expect(provenance.reason).not.toContain('does not resolve');
   });
 });
 
