@@ -56,17 +56,18 @@ sources and are not required to be registered.
   extractor instead would make the gate's own prose true by widening its scope,
   which is the worse trade.
 
-## Known pre-existing gap
+## Standing exceptions to source registration
 
-`glossary.json` cites two source URLs that are **not** registered in
-`sources.json`:
+There are none. Every URL cited as a source in this directory is registered in
+`sources.json`, so `KNOWN_UNREGISTERED_CITATIONS` in
+`source-registration.test.ts` is empty and the rule that every important fact
+carries a primary source and a verification date holds across the whole data
+directory with no standing exception. That list is pinned by equality, so an
+exception cannot be added without the change being visible in that file, and
+registering the URL in `sources.json` is what removes an entry again.
 
-- `https://opensource.org/ai/open-source-ai-definition`
-- `https://huggingface.co/docs/hub/en/gguf`
-
-These are recorded as a documented baseline in `source-registration.test.ts`
-and reported as a finding (issue #669). They are **not** fixed by registering
-them, because issue #669 changes no data or fact claims; an uncovered URL found
-in committed data is a finding to report, not a licence to edit the dataset.
-The guard still reddens for any citation absent from `sources.json` beyond this
-exact set.
+Because `glossary.json` cites its sources inline by URL rather than by
+`sourceIds`, and sits outside `raw.ts`, the records backing those citations are
+reached by no `sourceIds` reference. `validate.test.ts` resolves the glossary's
+inline citations when it checks for orphaned sources, so a record cited only by
+the glossary counts as cited rather than reading as dead provenance.

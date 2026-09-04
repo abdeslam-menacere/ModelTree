@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * Every URL a data document cites as a *source* must be registered in
  * `sources.json`, because `sources.json` is the sole subject of the
  * `Source link health` sweep. A source cited anywhere else is verified by no
- * automated run — the gap issue #669 exists to close.
+ * automated run, which is the gap this guard exists to close.
  *
  * ## Why this walks the directory, not `raw.ts`
  *
@@ -33,16 +33,6 @@ import { describe, expect, it } from 'vitest';
  * level of each record — not inside a key named `sources` — so the registry is
  * never made a subject of itself, and prose URLs (in `quote`, `note`,
  * `references`, license fields, homepages) are not citations and are left out.
- *
- * ## Known pre-existing gap (issue #669 finding)
- *
- * The issue states coverage is complete; it measured only
- * `variant-positioning.json`. Measured across the whole directory,
- * `glossary.json` cites two source URLs absent from `sources.json`. Those are
- * recorded below as a documented baseline rather than fixed here — issue #669
- * changes no data or fact claims, and an uncovered URL found in committed data
- * is a finding to report, not a licence to edit the dataset. The guard still
- * reddens for any citation absent from `sources.json` beyond this exact set.
  */
 
 const dataDir = fileURLToPath(new URL('.', import.meta.url));
@@ -51,15 +41,16 @@ const dataDir = fileURLToPath(new URL('.', import.meta.url));
 const MIN_JSON_DOCUMENTS = 18;
 
 /**
- * Source URLs cited in committed data that are not registered in
- * `sources.json`. A pre-existing gap in `glossary.json`, reported as a finding
- * in issue #669 and left for separate resolution. Sorted so the comparison
- * below is order-independent.
+ * Source URLs cited in committed data that `sources.json` carries no record of.
+ *
+ * Empty, and that is the state to keep it in: every URL cited as a source in
+ * this directory is registered. An entry here is a standing exception to the
+ * rule that every important fact carries a primary source and a verification
+ * date, so it must name a URL some document cites while `sources.json` holds no
+ * record of it — and registering that URL there is what removes the entry
+ * again. Sorted so the comparison below is order-independent.
  */
-const KNOWN_UNREGISTERED_CITATIONS = [
-  'https://huggingface.co/docs/hub/en/gguf',
-  'https://opensource.org/ai/open-source-ai-definition',
-].sort();
+const KNOWN_UNREGISTERED_CITATIONS: string[] = [].sort();
 
 /** Collect `url` / `urls[]` strings that live inside a `sources` array. */
 function collectCitationUrls(node: unknown, insideSources: boolean, out: Set<string>): void {
@@ -150,25 +141,31 @@ describe('every source a data document cites is registered in sources.json', () 
     expect(result.jsonFiles.length).toBeGreaterThanOrEqual(MIN_JSON_DOCUMENTS);
     expect(result.jsonFiles).toContain('sources.json');
     // The two documents that carry inline citations must be reached. If the
-    // walk ever stops seeing them, this is the trap issue #669 warns about.
+    // walk ever stops seeing them, the guard has gone blind to precisely the
+    // documents that motivate it and would pass while checking nothing.
     expect(result.citationsByFile.has('variant-positioning.json')).toBe(true);
     expect(result.citationsByFile.has('glossary.json')).toBe(true);
     expect(result.registeredUrls.size).toBeGreaterThan(0);
     expect(result.citationUrls.size).toBeGreaterThan(0);
   });
 
-  it('registers every cited source URL, save a documented pre-existing gap', () => {
+  it('registers every cited source URL', () => {
     const unregistered = [...result.citationUrls]
       .filter((url) => !result.registeredUrls.has(url))
       .sort();
 
-    // Equality, not subset: a new unregistered citation is added to this set
-    // and reddens, and closing the documented gap forces this baseline to be
-    // shrunk deliberately rather than drifting.
+    // Equality, not subset: a newly unregistered citation reddens this, and an
+    // exception that has since been registered forces the baseline to be shrunk
+    // deliberately rather than left to drift.
     expect(
       unregistered,
-      'a data document cites a source URL that is absent from sources.json and ' +
-        'not among the pre-existing gaps recorded for issue #669',
+      'a data document cites a source URL that sources.json does not register. ' +
+        'Fix this where the citation is: add a record to web/src/data/sources.json ' +
+        'for each URL listed below, carrying a primary-source classification and ' +
+        'the date you read the page, or drop the citation from the document. ' +
+        'Adding the URL to KNOWN_UNREGISTERED_CITATIONS is not the fix — that ' +
+        'list is empty because every cited source is registered, and it exists ' +
+        'to stop the set of exceptions growing quietly',
     ).toEqual(KNOWN_UNREGISTERED_CITATIONS);
   });
 });
