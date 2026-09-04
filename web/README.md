@@ -596,6 +596,30 @@ reading and the disagreement is written down here rather than resolved silently.
   entirely rather than zeroed or estimated.
   <!-- claim: {"kind":"omits","entity":"releases","id":"xai-grok-4-6","field":"parameters"} -->
   <!-- claim: {"kind":"omits","entity":"releases","id":"xai-grok-4-5","field":"parameters"} -->
+- **Nine name-only parameter counts document their gap in `summary`, not
+  `intendedUse`.** These releases assert a parameter count in their identifier —
+  a `34B`, `7B`, `2B` and so on — but record no `parameters` block, because no
+  primary source states a total that could be cited; the "count" exists only in
+  the name. Each one explains that absence, and the explanation lives in
+  `summary` rather than `intendedUse` for a measurable reason:
+  `buildComparisonPayload` ships an allow-list that includes `intendedUse` and
+  excludes `summary`, so a note in `intendedUse` pays `/compare` payload bytes on
+  every render while the same note in `summary` costs zero (see the payload
+  budget in `src/lib/comparison.test.ts`). An explanation of an *absent* field is
+  editorial context and belongs in the editorial field; `intendedUse` is
+  reserved for what the model is for. `src/data/parameter-gap-field.test.ts`
+  pins the set and the field, so the tenth such record does not have to guess.
+  A model whose count appears only as approximate prose on a source, with no
+  count in its identifier, is a different case and is not one of these nine.
+  <!-- claim: {"kind":"omits","entity":"releases","id":"01-ai-yi-1-5-34b-chat","field":"parameters"} -->
+  <!-- claim: {"kind":"omits","entity":"releases","id":"01-ai-yi-34b-chat","field":"parameters"} -->
+  <!-- claim: {"kind":"omits","entity":"releases","id":"apple-fastvlm-7b","field":"parameters"} -->
+  <!-- claim: {"kind":"omits","entity":"releases","id":"zhipu-ai-cogvideox-2b","field":"parameters"} -->
+  <!-- claim: {"kind":"omits","entity":"releases","id":"lg-ai-research-exaone-4-0-32b","field":"parameters"} -->
+  <!-- claim: {"kind":"omits","entity":"releases","id":"maritaca-ai-sabia-7b","field":"parameters"} -->
+  <!-- claim: {"kind":"omits","entity":"releases","id":"nvidia-nemotron-nano-9b-v2","field":"parameters"} -->
+  <!-- claim: {"kind":"omits","entity":"releases","id":"ai2-molmo-7b-d","field":"parameters"} -->
+  <!-- claim: {"kind":"omits","entity":"releases","id":"nvidia-cosmos-1-0-diffusion-7b-text2world","field":"parameters"} -->
 - **Grok 4 anchors its family but is not itself a release record.** The Grok 4
   announcement is dated 9 July 2025 and that date is the family's
   `firstReleaseDate`, but the model's documentation page is no longer served, so
