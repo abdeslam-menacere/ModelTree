@@ -100,13 +100,38 @@ describe('validateDataset', () => {
     expect(() => validateDataset(input)).toThrow(/sibling relationship with .* is not reciprocal/);
   });
 
-  it('rejects a successor in another family', () => {
+  // Three neighbouring tests, read together: the one relationship that must stay
+  // inside a family, and the two that may leave it. `siblingIds` is a
+  // within-family statement and is refused; succession may cross a family
+  // boundary as of ADR 0014, and derivation always could. Keeping all three here
+  // is the point -- the contrast is what says the succession rule was narrowed
+  // deliberately rather than lost.
+  it('rejects a sibling in another family', () => {
+    const input = mutableDataset();
+    const source = findRelease(input, (release) => release.siblingIds?.length > 0);
+    const outsider = findRelease(input, (release) => release.familyId !== source.familyId);
+    // Written reciprocally on purpose: a one-sided mutation would also trip the
+    // reciprocity rule, and then the throw would not be evidence about this one.
+    source.siblingIds = [outsider.id];
+    outsider.siblingIds = [source.id];
+
+    expect(() => validateDataset(input)).toThrow(/must stay within family/);
+  });
+
+  it('allows a successor in another family', () => {
     const input = mutableDataset();
     const source = findRelease(input, (release) => release.successorIds?.length > 0);
     const outsider = findRelease(input, (release) => release.familyId !== source.familyId);
     source.successorIds = [outsider.id];
 
-    expect(() => validateDataset(input)).toThrow(/must stay within family/);
+    // Control: `findRelease` throws when nothing matches, so both records exist,
+    // but this pins the thing under test -- they really are in different
+    // families, so accepting the link is not a vacuous pass.
+    expect(outsider.familyId).not.toBe(source.familyId);
+
+    const parsed = validateDataset(input);
+    const kept = parsed.releases.find((release) => release.id === source.id);
+    expect(kept?.successorIds).toEqual([outsider.id]);
   });
 
   it('allows derivedFromIds to cross family boundaries', () => {

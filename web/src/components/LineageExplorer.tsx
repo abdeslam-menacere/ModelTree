@@ -30,6 +30,7 @@ import {
   lineageRelation,
   lineageReleaseSlugs,
   type LineageEcosystem,
+  type LineageExternalEdge,
   type LineageHighlight,
   type LineageNode,
   type LineageTrail,
@@ -307,6 +308,14 @@ export default function LineageExplorer({
                       </p>
                     )}
 
+                    {view.externalLinkCount > 0 && (
+                      <p className="lineage-note" data-external-links={String(view.externalLinkCount)}>
+                        {view.externalLinkCount === 1
+                          ? '1 recorded lineage link leaves this family, named on the release it belongs to.'
+                          : `${view.externalLinkCount} recorded lineage links leave this family, named on the releases they belong to.`}
+                      </p>
+                    )}
+
                     <p className="lineage-note lineage-positioning-note" data-coverage={view.positioning.coverage}>
                       {variantPositioningCoverageLine(view.positioning)}
                     </p>
@@ -436,6 +445,21 @@ function namesFor(ids: readonly string[], releaseLabels: Record<string, string>)
   return ids.map((id) => releaseLabels[id] ?? id).join(', ');
 }
 
+/**
+ * Names a succession edge that leaves the family being drawn, target family and
+ * all.
+ *
+ * The family goes in the label rather than being left to the trail, because
+ * without it the line reads as a connector the panel forgot to draw. Naming the
+ * family says the edge is real, says where it went, and says why nothing is
+ * drawn to it here -- the same three things `Also follows ...` says for a
+ * converging predecessor inside one family.
+ */
+function externalNamesFor(edges: readonly LineageExternalEdge[]) {
+  if (edges.length === 0) return undefined;
+  return edges.map(({ releaseName, familyName }) => `${releaseName} (${familyName})`).join(', ');
+}
+
 interface BranchProps {
   nodes: LineageNode[];
   /**
@@ -543,6 +567,8 @@ function LineageBranch({
       {nodes.map((node) => {
         const relation = lineageRelation(highlight, node.release.id);
         const alsoFollows = namesFor(node.additionalPredecessorIds, releaseLabels);
+        const continuesFrom = externalNamesFor(node.externalPredecessors);
+        const continuesInto = externalNamesFor(node.externalSuccessors);
         const inTrail = trailActive
           ? trailMemberIds.has(node.release.id) || node.release.id === selectedId
           : undefined;
@@ -578,6 +604,18 @@ function LineageBranch({
 
             {alsoFollows && (
               <p className="node-aside">Also follows {alsoFollows}, shown without a connector.</p>
+            )}
+
+            {continuesFrom && (
+              <p className="node-aside" data-external-lineage="predecessor">
+                Continues from {continuesFrom}, recorded in another family and shown without a connector.
+              </p>
+            )}
+
+            {continuesInto && (
+              <p className="node-aside" data-external-lineage="successor">
+                Continues into {continuesInto}, recorded in another family and shown without a connector.
+              </p>
             )}
 
             <LineageBranch
@@ -697,7 +735,7 @@ function LineageTrailPanel({
           </p>
           {trail.isEmpty ? (
             <p className="lineage-trail-empty">
-              No recorded relationships in this family, so the trail contains only this release.
+              No recorded relationships tie into this release, so the trail contains only this release.
             </p>
           ) : (
             <div className="lineage-trail-groups">

@@ -187,6 +187,26 @@ describe('unknown relationships do not create implied connecting lines', () => {
     expect(fixtureMarkup).toContain('shown without a connector');
   });
 
+  it('names a succession edge that leaves the family, and the family it enters', () => {
+    // The renderer half of ADR 0014. Relaxing the validator alone would have let
+    // this edge exist and still shown the reader nothing: `buildFamilyView` used
+    // to drop an endpoint outside the family silently.
+    expect(fixtureMarkup).toContain('data-external-lineage="successor"');
+    expect(fixtureMarkup).toContain('data-external-lineage="predecessor"');
+    expect(fixtureMarkup).toContain('Continues into Alpha Mark Two Release (Alpha Mark Two)');
+    expect(fixtureMarkup).toContain('Continues from Alpha Mark One Release (Alpha Mark One)');
+    expect(fixtureMarkup).toContain('Continues into Alpha Mark Three Release (Alpha Mark Three)');
+    expect(fixtureMarkup).toContain('Continues from Alpha Mark Two Release (Alpha Mark Two)');
+    expect(fixtureMarkup).toContain('recorded lineage link leaves this family');
+    expect(fixtureMarkup).toContain('recorded lineage links leave this family');
+
+    // Named, and still not a connector: no family draws a line to another
+    // family's release.
+    expect(fixtureMarkup).not.toContain('data-lineage-link="fixture-alpha-mark-one-release"');
+    expect(fixtureMarkup).not.toContain('data-lineage-link="fixture-alpha-mark-two-release"');
+    expect(fixtureMarkup).not.toContain('data-lineage-link="fixture-alpha-mark-three-release"');
+  });
+
   it('never draws a connector for a derivation, which may cross families', () => {
     const derived = lineageFixtureDataset.releases
       .filter(({ derivedFromIds }) => derivedFromIds.length > 0);
