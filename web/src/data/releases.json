@@ -5099,14 +5099,14 @@
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
-    "summary": "Ai2's open vision-language model based on Qwen2-7B with an OpenAI CLIP vision backbone, trained on the PixMo image-text data. Released as a preview checkpoint under Apache-2.0.",
+    "summary": "Ai2's open vision-language model based on Qwen2-7B with an OpenAI CLIP vision backbone, trained on the PixMo image-text data. Released as a preview checkpoint under Apache-2.0. No parameter count is recorded: the model card describes it only as \"based on Qwen2-7B\" and states no total in prose, and the announcement gives none, so any figure would be inferred from the name.",
     "intendedUse": "Open multimodal research: describing images and answering questions about them. The model card marks this checkpoint a preview of the Molmo release.",
     "sourceIds": [
       "ai2-molmo-announcement",
       "ai2-molmo-7b-d-model-card",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-04"
   },
   {
     "id": "stability-ai-svd-img2vid-xt",
@@ -5183,14 +5183,14 @@
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
-    "summary": "An open-weight world foundation model from NVIDIA's Cosmos platform that generates physics-aware video of a virtual environment from a text prompt. Released under the NVIDIA Open Model License, which permits commercial use.",
+    "summary": "An open-weight world foundation model from NVIDIA's Cosmos platform that generates physics-aware video of a virtual environment from a text prompt. Released under the NVIDIA Open Model License, which permits commercial use. No parameter count is recorded: the registered model card is gated but its readable prose states no parameter total, and the launch announcement states none, so no registered source gives a count and the \"7B\" appears only in the name.",
     "intendedUse": "Generating physics-based video for physical AI research and development, such as robotics and autonomous-vehicle simulation, and as a base for fine-tuning.",
     "sourceIds": [
       "nvidia-cosmos-announcement",
       "nvidia-cosmos-diffusion-7b-model-card",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-04"
   },
   {
     "id": "apple-fastvlm-7b",
