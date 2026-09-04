@@ -337,18 +337,32 @@ function assetBudgetsEnforcingDiff(base, cur, key, path, out) {
 }
 
 /**
- * Whether the change to `web/asset-budgets.json` qualifies, read at both ends of
- * the diff: the document at the anchor and the document in the working tree. It
- * qualifies only when every difference lands in a regenerable measurement or
+ * Whether the change to `web/asset-budgets.json` qualifies. It is measured from
+ * the anchor baseline against BOTH ends that could reach `main`, and qualifies
+ * only when every difference at every end lands in a regenerable measurement or
  * prose field.
  *
+ * Two ends are compared against the baseline, and a violation at EITHER refuses:
+ *
+ *   1. **HEAD** - `git show HEAD:<path>`, the committed tip. This is the state
+ *      that auto-merges, so it is the authoritative one. Reading it is what
+ *      closes the commit-then-revert fail-open: a ceiling raised in a commit and
+ *      then restored on disk leaves HEAD carrying the raise, which `web-ci` does
+ *      not catch because the raised ceiling makes its own assertion pass.
+ *   2. **Working tree** - the file on disk, covering staged and unstaged edits
+ *      that are not yet committed. This is the interactive-loop end: editing and
+ *      gating before committing is normal, and a raise sitting only on disk must
+ *      be caught too.
+ *
+ * This mirrors the union `changedPaths` already computes for the path check
+ * (`<anchor>...HEAD` unioned with the working tree); the content check must be no
+ * weaker than the path check it sits beside, or it becomes the way past it.
+ *
  * Anything the check cannot see the enforcing fields through is refused, never
- * passed. A file added with no baseline at the anchor, a deletion, or JSON that
- * will not parse at either end all mean the ceilings and the guard cannot be
- * compared -- and a guard that cannot compare them must assume they moved. The
- * working-tree copy is read from disk on purpose: it is the state that would
- * merge, reflecting committed, staged and unstaged edits alike, the same union
- * `changedPaths` measures.
+ * passed. No baseline at the anchor, a file that the anchor had but HEAD deleted,
+ * a deletion from the working tree, or JSON that will not parse at any end all
+ * mean the ceilings and the guard cannot be compared -- and a guard that cannot
+ * compare them must assume they moved.
  */
 function classifyAssetBudgets(cwd, anchor) {
   let baseText;
@@ -361,41 +375,69 @@ function classifyAssetBudgets(cwd, anchor) {
         + 'ceilings and the drift guard are unchanged',
     };
   }
-
-  const curPath = resolve(cwd, ASSET_BUDGETS_PATH);
-  if (!existsSync(curPath)) {
-    return { inClass: false, reason: 'is gone from the working tree' };
-  }
-  let curText;
-  try {
-    curText = readFileSync(curPath, 'utf8');
-  } catch (error) {
-    return { inClass: false, reason: `could not be read from the working tree: ${error.message}` };
-  }
-
   let base;
   try {
     base = JSON.parse(baseText);
   } catch {
     return { inClass: false, reason: `is not valid JSON at ${anchor.slice(0, 10)}` };
   }
-  let cur;
+
+  // The two merge-reachable ends, gathered as { label, text } before parsing so
+  // a hard refusal (deletion, unreadable) short-circuits with a precise reason.
+  let headText;
   try {
-    cur = JSON.parse(curText);
+    headText = git(cwd, 'show', `HEAD:${ASSET_BUDGETS_PATH}`);
   } catch {
-    return { inClass: false, reason: 'is not valid JSON in the working tree' };
+    // The baseline exists at the anchor, and the anchor is an ancestor of HEAD,
+    // so a missing file at HEAD is a committed deletion between them -- which
+    // drops all enforcement and must never auto-merge.
+    return {
+      inClass: false,
+      reason: `existed at ${anchor.slice(0, 10)} but is gone at HEAD, a committed deletion that `
+        + 'drops the ceilings and the drift guard',
+    };
   }
 
-  const diff = [];
-  assetBudgetsEnforcingDiff(base, cur, null, '', diff);
-  if (diff.length === 0) {
-    return { inClass: true, reason: 'only regenerable measurement and prose fields changed' };
+  const curPath = resolve(cwd, ASSET_BUDGETS_PATH);
+  if (!existsSync(curPath)) {
+    return { inClass: false, reason: 'is gone from the working tree' };
   }
-  const fields = [...new Set(diff)].sort();
+  let diskText;
+  try {
+    diskText = readFileSync(curPath, 'utf8');
+  } catch (error) {
+    return { inClass: false, reason: `could not be read from the working tree: ${error.message}` };
+  }
+
+  const ends = [
+    { label: 'HEAD', text: headText, badJson: 'is not valid JSON at HEAD' },
+    { label: 'the working tree', text: diskText, badJson: 'is not valid JSON in the working tree' },
+  ];
+
+  const offending = new Set();
+  for (const end of ends) {
+    let cur;
+    try {
+      cur = JSON.parse(end.text);
+    } catch {
+      return { inClass: false, reason: end.badJson };
+    }
+    const diff = [];
+    assetBudgetsEnforcingDiff(base, cur, null, '', diff);
+    for (const field of diff) offending.add(field);
+  }
+
+  if (offending.size === 0) {
+    return {
+      inClass: true,
+      reason: 'only regenerable measurement and prose fields changed at HEAD and in the working tree',
+    };
+  }
+  const fields = [...offending].sort();
   return {
     inClass: false,
-    reason: 'an enforced ceiling, the drift guard, or the document structure changed, which no '
-      + `refresh may do unattended: ${fields.join(', ')}`,
+    reason: 'an enforced ceiling, the drift guard, or the document structure changed at HEAD or in '
+      + `the working tree, which no refresh may do unattended: ${fields.join(', ')}`,
   };
 }
 

@@ -382,14 +382,18 @@ file also holds the enforced ceilings (`criticalMaxRaw`, `jsMaxRaw`, the
 whole-build `*MaxRaw`) and the drift guard itself (`measuredDrift.maxFraction`),
 and admitting the path wholesale would let an unattended run raise its own
 ceiling or widen the guard that caught it and auto-merge — a self-approving
-performance guard. So this is the gate's one content-aware check: it parses the
-document at both ends of the diff and admits the change only when every
-difference lands in a regenerable measurement figure or non-enforcing prose.
-Any move to a ceiling or the tolerance, any structural change such as adding or
-removing a route entry, and anything it cannot read — a deletion, JSON that will
-not parse, or the file appearing with no baseline at the anchor — is refused, so
-a permitted re-record can never launder a forbidden ceiling raise riding
-alongside it.
+performance guard. So this is the gate's one content-aware check: it reads the
+document at the merge base and compares it against both states that could reach
+`main` — the committed tip `HEAD`, which is what auto-merges, and the working
+tree — admitting the change only when every difference at both ends lands in a
+regenerable measurement figure or non-enforcing prose. Reading `HEAD` and not
+only the disk is deliberate: a ceiling raised in a commit and reverted on disk
+still merges on `HEAD`, so a disk-only read would be a fail-open. Any move to a
+ceiling or the tolerance, any structural change such as adding or removing a
+route entry, and anything it cannot read — a `HEAD` or working-tree deletion,
+JSON that will not parse, or the file appearing with no baseline at the anchor —
+is refused, so a permitted re-record can never launder a forbidden ceiling raise
+riding alongside it.
 
 It measures that change from a commit **it computes rather than one you pass**:
 `git merge-base HEAD refs/remotes/origin/main`, the point this branch left

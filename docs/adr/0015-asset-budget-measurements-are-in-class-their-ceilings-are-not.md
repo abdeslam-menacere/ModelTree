@@ -85,15 +85,23 @@ admission would put exactly that move inside the auto-merging class.
 regenerable measurement figures and non-enforcing prose, and give
 `gate-scope.mjs` its first content-aware check to enforce that bound.**
 
-The gate parses the document at both ends of the diff it already computes — the
-merge base with `refs/remotes/origin/main`, and the working-tree copy that would
-merge — and admits the change only when every difference between them lands in a
-field a refresh may move. Those fields are named explicitly: the measurement
-figures `measuredRaw`, `measuredWorstRaw`, `measuredWorstJsRaw`,
-`jsTotalMeasuredRaw`, `cssTotalMeasuredRaw`, `fontTotalMeasuredRaw` and
-`astroDirMeasuredRaw`; the per-entry `reason` prose; and the top-level
-`$schema-note`, `headroom-note` and `drift-note`. Any difference in any other
-field — every ceiling and the tolerance among them — makes the change out of
+The gate reads the document at the merge base with `refs/remotes/origin/main`
+and compares it against **both** states that could reach `main`: the committed
+tip `HEAD`, which is what an approved change auto-merges, and the working-tree
+copy, which covers staged and unstaged edits during the interactive loop. It
+admits the change only when every difference at both ends lands in a field a
+refresh may move. Reading `HEAD` and not only the disk is load-bearing: a
+ceiling raised in a commit and then reverted on disk leaves the raise on the
+commit that merges, where the build check cannot catch it because the raised
+ceiling makes its own assertion pass — so the disk-only read this replaced was
+a fail-open, and the content check must be no weaker than the path check beside
+it, which already unions `HEAD` with the working tree. The permitted fields are
+named explicitly: the measurement figures `measuredRaw`, `measuredWorstRaw`,
+`measuredWorstJsRaw`, `jsTotalMeasuredRaw`, `cssTotalMeasuredRaw`,
+`fontTotalMeasuredRaw` and `astroDirMeasuredRaw`; the per-entry `reason` prose;
+and the top-level `$schema-note`, `headroom-note` and `drift-note`. Any
+difference in any other field — every ceiling and the tolerance among them —
+makes the change out of
 class exactly as before.
 
 **The permitted set is named, not the forbidden set.** The check enumerates the
@@ -119,9 +127,11 @@ prose cannot launder a forbidden change: a ceiling raise riding alongside a
 re-record and a re-worded `reason` is still caught on the ceiling.
 
 **What cannot be read is refused, never passed.** A file that did not exist at
-the anchor, a deletion, or JSON that will not parse at either end all mean the
-enforcing fields cannot be compared. A guard that cannot see whether a ceiling
-moved must assume it did, so each of these exits out of class rather than green.
+the anchor, a file the anchor had but `HEAD` deleted, a deletion from the
+working tree, or JSON that will not parse at any of the three points all mean
+the enforcing fields cannot be compared. A guard that cannot see whether a
+ceiling moved must assume it did, so each of these exits out of class rather
+than green.
 
 ## Consequences
 
@@ -214,17 +224,25 @@ moved must assume it did, so each of these exits out of class rather than green.
   route-group entry, or renaming an identifier, is out of class. Do not relax the
   shape comparison to tolerate an added entry as "just more measurements": a new
   entry carries a new ceiling.
-- **Unreadable is refused, not passed.** A missing baseline, a deletion, or
-  unparseable JSON at either end is out of class. A guard that cannot compare the
-  enforcing fields must assume they moved; do not add a fallback that treats an
-  unreadable document as unchanged.
+- **Both merge-reachable ends are read, and the committed tip is authoritative.**
+  The check compares the baseline against `HEAD` as well as the working tree,
+  because `HEAD` is what auto-merges: a disk-only read is a fail-open, letting a
+  ceiling raised in a commit and reverted on disk merge unseen. Do not narrow the
+  check back to the working tree alone, and keep it no weaker than the path check
+  beside it, which already unions `HEAD` with the working tree.
+- **Unreadable is refused, not passed.** A missing baseline, a `HEAD` deletion, a
+  working-tree deletion, or unparseable JSON at any end is out of class. A guard
+  that cannot compare the enforcing fields must assume they moved; do not add a
+  fallback that treats an unreadable document as unchanged.
 - **The check is proved by mutation, not by a green suite.** The self-tests in
   `gates.test.mjs` drive the check to fail on each forbidden edit — a moved
   ceiling, a widened tolerance, a moved `jsMaxRaw`, a moved `globals` ceiling, a
-  combined permitted-plus-forbidden edit, malformed JSON, and a structural
-  add/remove — and to pass on a measurement-only re-record. A change that makes
-  the check pass unconditionally would leave those failing tests red; do not
-  weaken them to green it.
+  combined permitted-plus-forbidden edit, malformed JSON, a structural
+  add/remove, and — where `HEAD` and the working tree differ — a ceiling raised
+  in a commit and reverted on disk, with a pass-expected arm proving that
+  divergence alone does not refuse — and to pass on a measurement-only re-record.
+  A change that makes the check pass unconditionally would leave those failing
+  tests red; do not weaken them to green it.
 - **This widening is confined to `web/asset-budgets.json`.** The content-aware
   check is scoped to that one path. No other file is parsed by `gate-scope.mjs`,
   and admitting another file's contents to the class is a separate decision.

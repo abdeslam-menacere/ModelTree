@@ -5369,6 +5369,101 @@ describe('gate-scope', () => {
     assert.deepEqual(report.outOfClass, []);
     assert.deepEqual(report.inClass.sort(), [BUDGETS_PATH, 'web/src/data/releases.json'].sort());
   });
+
+  // HEAD != working tree. The content check must read the committed tip as well
+  // as the disk, because HEAD is what auto-merges: a ceiling raised in a commit
+  // and reverted on disk leaves the raise on HEAD, where `web-ci` cannot catch it
+  // (the raised ceiling makes its own assertion pass). These drive the tip and
+  // the disk apart deliberately. The suite did not exercise this axis before, so
+  // the fail-open lived under 390 green tests.
+
+  test('a committed criticalMaxRaw raise reverted on disk is refused (HEAD is what merges)', () => {
+    const { code, report } = gateBudgets(({ dir, git }) => {
+      const raised = JSON.parse(JSON.stringify(BUDGETS_BASELINE));
+      raised.fixedRoutes[0].criticalMaxRaw = 900000; // tree
+      writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(raised, null, 2));
+      git('add', '-A');
+      git('commit', '-qm', 'raise tree ceiling');
+      // Revert on disk only: HEAD still carries the raise.
+      writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(BUDGETS_BASELINE, null, 2));
+      return undefined;
+    });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, [BUDGETS_PATH]);
+    const note = report.assetBudgets.join('\n');
+    assert.match(note, /criticalMaxRaw/);
+    assert.match(note, /HEAD/);
+  });
+
+  test('a committed measuredDrift.maxFraction widening reverted on disk is refused', () => {
+    const { code, report } = gateBudgets(({ dir, git }) => {
+      const widened = JSON.parse(JSON.stringify(BUDGETS_BASELINE));
+      widened.measuredDrift.maxFraction = 0.05;
+      writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(widened, null, 2));
+      git('add', '-A');
+      git('commit', '-qm', 'widen drift guard');
+      writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(BUDGETS_BASELINE, null, 2));
+      return undefined;
+    });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, [BUDGETS_PATH]);
+    assert.match(report.assetBudgets.join('\n'), /maxFraction/);
+  });
+
+  test('a ceiling raise committed with a measurement and reverted on disk cannot launder past HEAD', () => {
+    const { code, report } = gateBudgets(({ dir, git }) => {
+      // Commit a permitted measurement edit AND a forbidden ceiling raise together.
+      const committed = JSON.parse(JSON.stringify(BUDGETS_BASELINE));
+      committed.fixedRoutes[0].measuredRaw = 540000;
+      committed.fixedRoutes[1].criticalMaxRaw = 900000; // compare
+      writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(committed, null, 2));
+      git('add', '-A');
+      git('commit', '-qm', 'measurement plus hidden ceiling raise');
+      // On disk, keep only the permitted measurement and put the ceiling back.
+      const disk = JSON.parse(JSON.stringify(BUDGETS_BASELINE));
+      disk.fixedRoutes[0].measuredRaw = 540000;
+      writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(disk, null, 2));
+      return undefined;
+    });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, [BUDGETS_PATH]);
+    assert.match(report.assetBudgets.join('\n'), /criticalMaxRaw/);
+  });
+
+  // The pass-expected arm (the discipline from #866/#868): a control that only
+  // ever fails cannot tell a real refusal from a fixture confounded for an
+  // unrelated reason. This proves HEAD != working tree does not itself refuse, so
+  // the refusals above are attributable to the enforcing-field move and not to
+  // the tip-reading machinery.
+  test('a measurement committed then further re-recorded on disk stays in class (HEAD != working tree)', () => {
+    const { code, report } = gateBudgets(({ dir, git }) => {
+      const committed = JSON.parse(JSON.stringify(BUDGETS_BASELINE));
+      committed.fixedRoutes[0].measuredRaw = 540000;
+      writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(committed, null, 2));
+      git('add', '-A');
+      git('commit', '-qm', 're-record tree measurement');
+      const disk = JSON.parse(JSON.stringify(BUDGETS_BASELINE));
+      disk.fixedRoutes[0].measuredRaw = 545000;
+      writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(disk, null, 2));
+      return undefined;
+    });
+    assert.equal(code, 0, JSON.stringify(report));
+    assert.deepEqual(report.inClass, [BUDGETS_PATH]);
+    assert.deepEqual(report.outOfClass, []);
+  });
+
+  test('a committed deletion restored on disk is refused (HEAD has no budgets file)', () => {
+    const { code, report } = gateBudgets(({ dir, git }) => {
+      git('rm', '-q', BUDGETS_PATH);
+      git('commit', '-qm', 'delete budgets');
+      // Restore on disk only: HEAD carries the deletion.
+      writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(BUDGETS_BASELINE, null, 2));
+      return undefined;
+    });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, [BUDGETS_PATH]);
+    assert.match(report.assetBudgets.join('\n'), /gone at HEAD|committed deletion/);
+  });
 });
 
 // ---------------------------------------------------------------------------
