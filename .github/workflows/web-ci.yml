@@ -193,6 +193,9 @@ jobs:
           #       src/data/organization-type-policy.test.ts
           #   docs/product/FRESHNESS-POLICY.md
           #       src/data/freshness-policy.test.ts
+          #   docs/product/LAUNCH-RUNBOOK.md
+          #       tests/workflows/launch-runbook.test.ts, which reads the runbook
+          #       and checks its claims about this repository against the repository
           #
           # Named files rather than whole directories wherever the directory
           # also holds files no web/ test reads. .github/skills/ is the case
@@ -227,7 +230,7 @@ jobs:
           # produce an answer. The three statuses are therefore separated, and
           # anything that is not a clean match-or-no-match builds (#609).
           set +e
-          grep -Eq '^(web/|\.github/workflows/|\.github/scripts/ci-preflight\.mjs$|\.github/skills/modeltree-gates/scripts/gate-(dataset|evidence|scope)\.mjs$|\.github/skills/modeltree-review/SKILL\.md$|\.github/ISSUE_TEMPLATE/|\.github/CODEOWNERS$|\.github/pull_request_template\.md$|CONTRIBUTING\.md$|docs/contributing/minimal-dataset-example\.json$|docs/product/INFORMATION-ARCHITECTURE\.md$|docs/product/FRESHNESS-POLICY\.md$|tools/updater/profiles/[^/]+\.[jJ][sS][oO][nN]$)' <<< "$changed"
+          grep -Eq '^(web/|\.github/workflows/|\.github/scripts/ci-preflight\.mjs$|\.github/skills/modeltree-gates/scripts/gate-(dataset|evidence|scope)\.mjs$|\.github/skills/modeltree-review/SKILL\.md$|\.github/ISSUE_TEMPLATE/|\.github/CODEOWNERS$|\.github/pull_request_template\.md$|CONTRIBUTING\.md$|docs/contributing/minimal-dataset-example\.json$|docs/product/INFORMATION-ARCHITECTURE\.md$|docs/product/FRESHNESS-POLICY\.md$|docs/product/LAUNCH-RUNBOOK\.md$|tools/updater/profiles/[^/]+\.[jJ][sS][oO][nN]$)' <<< "$changed"
           status=$?
           set -e
 

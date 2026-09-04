@@ -161,6 +161,7 @@ const CHECKS = [
         + '|docs/contributing/minimal-dataset-example\\.json$'
         + '|docs/product/INFORMATION-ARCHITECTURE\\.md$'
         + '|docs/product/FRESHNESS-POLICY\\.md$'
+        + '|docs/product/LAUNCH-RUNBOOK\\.md$'
         + '|tools/updater/profiles/[^/]+\\.[jJ][sS][oO][nN]$)',
     },
     // Three commands rather than one `npm run build`, matching the workflow's

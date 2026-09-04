@@ -399,6 +399,10 @@ describe('web-ci.yml scope detection', () => {
       'src/data/freshness-policy.test.ts',
     ],
     [
+      'docs/product/LAUNCH-RUNBOOK.md',
+      'tests/workflows/launch-runbook.test.ts',
+    ],
+    [
       'tools/updater/profiles/anthropic.json',
       'src/data/featured-creator-profile.test.ts, through the gate-evidence.mjs it imports',
     ],

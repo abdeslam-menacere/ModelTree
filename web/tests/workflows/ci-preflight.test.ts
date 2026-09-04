@@ -456,6 +456,15 @@ describe('selection follows the change', () => {
     ]);
   });
 
+  it('selects the web suite on a change to the launch runbook it now covers', () => {
+    // The gap this coverage closes: a docs/product/ runbook edit used to select
+    // no check at all (exit 2, zero groups). LAUNCH-RUNBOOK.md is now on web-ci's
+    // in-job scope allowlist, so an edit to it runs the web suite -- which is what
+    // runs tests/workflows/launch-runbook.test.ts, the test that reads it. Paired
+    // with the BACKLOG.md control below, still deliberately uncovered.
+    expect(selectionFor(['docs/product/LAUNCH-RUNBOOK.md'])).toEqual(['web-ci']);
+  });
+
   it('selects nothing for a change no pull-request check reads', () => {
     // The control. A selector that fires on everything carries no information,
     // so it has to be shown declining as well as firing.
