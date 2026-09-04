@@ -5140,6 +5140,330 @@ describe('gate-scope', () => {
     assert.equal(result.code, 2, result.stdout);
     assert.match(result.stdout, /unknown flag --force/);
   });
+
+  // -------------------------------------------------------------------------
+  // ADR 0015: `web/asset-budgets.json` is in class ONLY when the change is
+  // confined to the regenerable measurement figures and prose. A refresh that
+  // moves a ceiling (`criticalMaxRaw`, `jsMaxRaw`, a whole-build `*MaxRaw`) or
+  // widens the drift guard (`measuredDrift.maxFraction`) has left the class,
+  // because those are the fields `asset-budgets.test.ts` enforces and a
+  // self-approving performance guard is exactly the move an unattended pipeline
+  // must never have. Each mutation names the record it changes, never a count.
+  // -------------------------------------------------------------------------
+
+  const BUDGETS_BASELINE = {
+    '$schema-note': 'baseline schema note',
+    'headroom-note': 'baseline headroom note',
+    'drift-note': 'baseline drift note',
+    measuredDrift: { maxFraction: 0.02, reason: 'baseline guard reason' },
+    fixedRoutes: [
+      { id: 'tree', path: 'tree/index.html', criticalMaxRaw: 760000, measuredRaw: 532352, reason: 'tree reason' },
+      { id: 'compare', path: 'compare/index.html', criticalMaxRaw: 820000, measuredRaw: 749971, reason: 'compare reason' },
+    ],
+    routeGroups: [
+      {
+        id: 'passport', dir: 'models', criticalMaxRaw: 200000,
+        measuredWorstRaw: 171952, jsMaxRaw: 20000, measuredWorstJsRaw: 0, reason: 'passport reason',
+      },
+    ],
+    globals: {
+      jsTotalMaxRaw: 520000, jsTotalMeasuredRaw: 444484,
+      cssTotalMaxRaw: 125000, cssTotalMeasuredRaw: 106489,
+      fontTotalMaxRaw: 210000, fontTotalMeasuredRaw: 187036,
+      astroDirMaxRaw: 860000, astroDirMeasuredRaw: 738009,
+      reason: 'globals reason',
+    },
+  };
+  const BUDGETS_PATH = 'web/asset-budgets.json';
+
+  /**
+   * A scratch repo whose anchor carries `BUDGETS_BASELINE`, then `mutate` edits
+   * the working tree. `mutate` may return an object (written as JSON), a string
+   * (written verbatim, for malformed input), or undefined (it wrote the tree
+   * itself). It is handed a deep clone of the baseline to mutate in place.
+   */
+  function gateBudgets(mutate, { seed = true } = {}) {
+    const dir = mkdtempSync(join(tmpdir(), 'modeltree-budgets-'));
+    const git = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' });
+    try {
+      git('init', '-q');
+      git('config', 'user.email', 'gate@example.com');
+      git('config', 'user.name', 'Gate Test');
+      mkdirSync(join(dir, 'web', 'src', 'data'), { recursive: true });
+      writeFileSync(join(dir, 'web', 'src', 'data', 'releases.json'), '[]');
+      if (seed) {
+        writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(BUDGETS_BASELINE, null, 2));
+      }
+      writeFileSync(join(dir, 'README.md'), 'scratch\n');
+      git('add', '-A');
+      git('commit', '-qm', 'base');
+      git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+
+      const budgets = JSON.parse(JSON.stringify(BUDGETS_BASELINE));
+      const outcome = mutate({ dir, git, budgets });
+      if (outcome !== undefined) {
+        const text = typeof outcome === 'string' ? outcome : JSON.stringify(outcome, null, 2);
+        writeFileSync(join(dir, BUDGETS_PATH), text);
+      }
+      const result = run(GATE_SCOPE, ['--repo', dir, '--json']);
+      let report = null;
+      try {
+        report = JSON.parse(result.stdout);
+      } catch {
+        report = null;
+      }
+      return { ...result, report };
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  test('a measuredRaw-only re-record is in class (the whole point)', () => {
+    const { code, report } = gateBudgets(({ budgets }) => {
+      budgets.fixedRoutes[0].measuredRaw = 544346; // tree
+      return budgets;
+    });
+    assert.equal(code, 0, JSON.stringify(report));
+    assert.deepEqual(report.inClass, [BUDGETS_PATH]);
+    assert.deepEqual(report.outOfClass, []);
+  });
+
+  test('re-recording every measurement figure and prose field is in class', () => {
+    const { code, report } = gateBudgets(({ budgets }) => {
+      budgets.fixedRoutes[0].measuredRaw = 544346;
+      budgets.fixedRoutes[1].measuredRaw = 766171;
+      budgets.routeGroups[0].measuredWorstRaw = 173000;
+      budgets.routeGroups[0].measuredWorstJsRaw = 0;
+      budgets.globals.jsTotalMeasuredRaw = 450000;
+      budgets.globals.cssTotalMeasuredRaw = 107000;
+      budgets.globals.fontTotalMeasuredRaw = 187036;
+      budgets.globals.astroDirMeasuredRaw = 740000;
+      budgets.fixedRoutes[0].reason = 'rewritten to explain the re-record';
+      budgets.measuredDrift.reason = 'rewritten guard prose';
+      budgets['drift-note'] = 'RE-RECORDED against a newer trunk';
+      return budgets;
+    });
+    assert.equal(code, 0, JSON.stringify(report));
+    assert.deepEqual(report.inClass, [BUDGETS_PATH]);
+  });
+
+  test('raising a route criticalMaxRaw is out of class', () => {
+    const { code, report } = gateBudgets(({ budgets }) => {
+      budgets.fixedRoutes[0].criticalMaxRaw = 900000; // tree ceiling raised
+      return budgets;
+    });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, [BUDGETS_PATH]);
+    assert.match(report.assetBudgets.join('\n'), /criticalMaxRaw/);
+  });
+
+  test('widening measuredDrift.maxFraction from 0.02 is out of class', () => {
+    const { code, report } = gateBudgets(({ budgets }) => {
+      budgets.measuredDrift.maxFraction = 0.5;
+      return budgets;
+    });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, [BUDGETS_PATH]);
+    assert.match(report.assetBudgets.join('\n'), /measuredDrift\.maxFraction/);
+  });
+
+  test('changing a route-group jsMaxRaw tripwire is out of class', () => {
+    const { code, report } = gateBudgets(({ budgets }) => {
+      budgets.routeGroups[0].jsMaxRaw = 200000;
+      return budgets;
+    });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.match(report.assetBudgets.join('\n'), /jsMaxRaw/);
+  });
+
+  test('changing a whole-build globals ceiling is out of class', () => {
+    const { code, report } = gateBudgets(({ budgets }) => {
+      budgets.globals.jsTotalMaxRaw = 999999;
+      return budgets;
+    });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.match(report.assetBudgets.join('\n'), /jsTotalMaxRaw/);
+  });
+
+  test('a permitted measuredRaw edit cannot launder a forbidden ceiling raise', () => {
+    const { code, report } = gateBudgets(({ budgets }) => {
+      budgets.fixedRoutes[0].measuredRaw = 544346; // permitted
+      budgets.fixedRoutes[0].criticalMaxRaw = 900000; // forbidden, in the same diff
+      return budgets;
+    });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, [BUDGETS_PATH]);
+    assert.match(report.assetBudgets.join('\n'), /criticalMaxRaw/);
+  });
+
+  test('malformed asset-budgets JSON is refused, never passed', () => {
+    const { code, report } = gateBudgets(() => '{ this is not valid json');
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, [BUDGETS_PATH]);
+    assert.match(report.assetBudgets.join('\n'), /not valid JSON/);
+  });
+
+  test('adding a route entry is out of class (it adds an enforced ceiling)', () => {
+    const { code, report } = gateBudgets(({ budgets }) => {
+      budgets.fixedRoutes.push({
+        id: 'new', path: 'new/index.html', criticalMaxRaw: 300000, measuredRaw: 100000, reason: 'new route',
+      });
+      return budgets;
+    });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, [BUDGETS_PATH]);
+  });
+
+  test('removing a route entry is out of class (it drops enforcement)', () => {
+    const { code, report } = gateBudgets(({ budgets }) => {
+      budgets.fixedRoutes.pop();
+      return budgets;
+    });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, [BUDGETS_PATH]);
+  });
+
+  test('renaming a route id is out of class', () => {
+    const { code, report } = gateBudgets(({ budgets }) => {
+      budgets.fixedRoutes[0].id = 'renamed';
+      return budgets;
+    });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, [BUDGETS_PATH]);
+  });
+
+  test('adding the budgets file with no baseline at the anchor is refused', () => {
+    const { code, report } = gateBudgets(({ budgets }) => budgets, { seed: false });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, [BUDGETS_PATH]);
+    assert.match(report.assetBudgets.join('\n'), /no baseline/);
+  });
+
+  test('deleting the budgets file is refused', () => {
+    const { code, report } = gateBudgets(({ dir }) => {
+      rmSync(join(dir, BUDGETS_PATH));
+      return undefined;
+    });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, [BUDGETS_PATH]);
+  });
+
+  test('an out-of-class page change is still refused with budgets untouched', () => {
+    const { code, report } = gateBudgets(({ dir }) => {
+      mkdirSync(join(dir, 'web', 'src', 'pages'), { recursive: true });
+      writeFileSync(join(dir, 'web', 'src', 'pages', 'tree.astro'), '<html></html>\n');
+      return undefined; // budgets file untouched
+    });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, ['web/src/pages/tree.astro']);
+    assert.deepEqual(report.assetBudgets, []);
+  });
+
+  test('a measurement re-record alongside a dataset change is wholly in class', () => {
+    const { code, report } = gateBudgets(({ dir, budgets }) => {
+      writeFileSync(join(dir, 'web', 'src', 'data', 'releases.json'), '[{"id":"x"}]');
+      budgets.fixedRoutes[0].measuredRaw = 544346;
+      return budgets;
+    });
+    assert.equal(code, 0, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, []);
+    assert.deepEqual(report.inClass.sort(), [BUDGETS_PATH, 'web/src/data/releases.json'].sort());
+  });
+
+  // HEAD != working tree. The content check must read the committed tip as well
+  // as the disk, because HEAD is what auto-merges: a ceiling raised in a commit
+  // and reverted on disk leaves the raise on HEAD, where `web-ci` cannot catch it
+  // (the raised ceiling makes its own assertion pass). These drive the tip and
+  // the disk apart deliberately. The suite did not exercise this axis before, so
+  // the fail-open lived under 390 green tests.
+
+  test('a committed criticalMaxRaw raise reverted on disk is refused (HEAD is what merges)', () => {
+    const { code, report } = gateBudgets(({ dir, git }) => {
+      const raised = JSON.parse(JSON.stringify(BUDGETS_BASELINE));
+      raised.fixedRoutes[0].criticalMaxRaw = 900000; // tree
+      writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(raised, null, 2));
+      git('add', '-A');
+      git('commit', '-qm', 'raise tree ceiling');
+      // Revert on disk only: HEAD still carries the raise.
+      writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(BUDGETS_BASELINE, null, 2));
+      return undefined;
+    });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, [BUDGETS_PATH]);
+    const note = report.assetBudgets.join('\n');
+    assert.match(note, /criticalMaxRaw/);
+    assert.match(note, /HEAD/);
+  });
+
+  test('a committed measuredDrift.maxFraction widening reverted on disk is refused', () => {
+    const { code, report } = gateBudgets(({ dir, git }) => {
+      const widened = JSON.parse(JSON.stringify(BUDGETS_BASELINE));
+      widened.measuredDrift.maxFraction = 0.05;
+      writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(widened, null, 2));
+      git('add', '-A');
+      git('commit', '-qm', 'widen drift guard');
+      writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(BUDGETS_BASELINE, null, 2));
+      return undefined;
+    });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, [BUDGETS_PATH]);
+    assert.match(report.assetBudgets.join('\n'), /maxFraction/);
+  });
+
+  test('a ceiling raise committed with a measurement and reverted on disk cannot launder past HEAD', () => {
+    const { code, report } = gateBudgets(({ dir, git }) => {
+      // Commit a permitted measurement edit AND a forbidden ceiling raise together.
+      const committed = JSON.parse(JSON.stringify(BUDGETS_BASELINE));
+      committed.fixedRoutes[0].measuredRaw = 540000;
+      committed.fixedRoutes[1].criticalMaxRaw = 900000; // compare
+      writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(committed, null, 2));
+      git('add', '-A');
+      git('commit', '-qm', 'measurement plus hidden ceiling raise');
+      // On disk, keep only the permitted measurement and put the ceiling back.
+      const disk = JSON.parse(JSON.stringify(BUDGETS_BASELINE));
+      disk.fixedRoutes[0].measuredRaw = 540000;
+      writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(disk, null, 2));
+      return undefined;
+    });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, [BUDGETS_PATH]);
+    assert.match(report.assetBudgets.join('\n'), /criticalMaxRaw/);
+  });
+
+  // The pass-expected arm (the discipline from #866/#868): a control that only
+  // ever fails cannot tell a real refusal from a fixture confounded for an
+  // unrelated reason. This proves HEAD != working tree does not itself refuse, so
+  // the refusals above are attributable to the enforcing-field move and not to
+  // the tip-reading machinery.
+  test('a measurement committed then further re-recorded on disk stays in class (HEAD != working tree)', () => {
+    const { code, report } = gateBudgets(({ dir, git }) => {
+      const committed = JSON.parse(JSON.stringify(BUDGETS_BASELINE));
+      committed.fixedRoutes[0].measuredRaw = 540000;
+      writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(committed, null, 2));
+      git('add', '-A');
+      git('commit', '-qm', 're-record tree measurement');
+      const disk = JSON.parse(JSON.stringify(BUDGETS_BASELINE));
+      disk.fixedRoutes[0].measuredRaw = 545000;
+      writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(disk, null, 2));
+      return undefined;
+    });
+    assert.equal(code, 0, JSON.stringify(report));
+    assert.deepEqual(report.inClass, [BUDGETS_PATH]);
+    assert.deepEqual(report.outOfClass, []);
+  });
+
+  test('a committed deletion restored on disk is refused (HEAD has no budgets file)', () => {
+    const { code, report } = gateBudgets(({ dir, git }) => {
+      git('rm', '-q', BUDGETS_PATH);
+      git('commit', '-qm', 'delete budgets');
+      // Restore on disk only: HEAD carries the deletion.
+      writeFileSync(join(dir, BUDGETS_PATH), JSON.stringify(BUDGETS_BASELINE, null, 2));
+      return undefined;
+    });
+    assert.equal(code, 1, JSON.stringify(report));
+    assert.deepEqual(report.outOfClass, [BUDGETS_PATH]);
+    assert.match(report.assetBudgets.join('\n'), /gone at HEAD|committed deletion/);
+  });
 });
 
 // ---------------------------------------------------------------------------

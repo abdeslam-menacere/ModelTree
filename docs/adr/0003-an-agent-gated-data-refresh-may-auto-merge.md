@@ -6,9 +6,14 @@
 - Superseded by: nothing. **Widened by ADR 0006**, which adds
   `web/src/data/refresh-runs.json` to the qualifying class defined below so that a
   refresh run can record itself on the `/refresh` page in the pull request that
-  publishes it, and pairs that one-file widening with `gate-ledger.mjs`. Every
-  other bound in this decision is unchanged. Read that ADR before treating the
-  path list below as complete.
+  publishes it, and pairs that one-file widening with `gate-ledger.mjs`. Also
+  **amended by ADR 0015**, which admits `web/asset-budgets.json` to the class
+  for a named subset of its fields only — the regenerable measurement figures
+  and non-enforcing prose — while its enforced ceilings and the `measuredDrift`
+  tolerance stay out of class, and pairs that field-scoped widening with the
+  first content-aware check in `gate-scope.mjs`. Every other bound in this
+  decision is unchanged. Read both ADRs before treating the path list below as
+  complete.
 - Supersedes: nothing. It narrows the invariant stated in
   `.github/copilot-instructions.md` §"The invariant" for one class of change, and
   it reads ADR 0001's guardrail "Do not publish unreviewed facts from automation"
