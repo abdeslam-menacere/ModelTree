@@ -151,13 +151,71 @@ passport. That is what this change fixes.
 
 ### Costs
 
-- The rule is enforced over flagged `legacy` releases only. A `current` flagged
-  release whose rationale is equally generic is not caught, and two exist:
-  `google-gemini-3-6-flash`'s rationale is true as written of
-  `google-gemini-3-7-flash`, and the three GPT-4.1 seed rationales are identical
-  to one another. Widening the class would force edits to creators #788 places
-  out of scope, so the shortfall is recorded here rather than closed, and is
-  filed as a follow-up.
+- The rule was enforced over flagged `legacy` releases only, and this bullet
+  recorded that shortfall wrongly in two ways. Both are corrected here, on
+  2026-09-03, by #840 — which is also the change that closed the shortfall.
+
+  **Three cases existed, not two.** As first written this bullet named
+  `google-gemini-3-6-flash`, whose rationale was true as written of
+  `google-gemini-3-7-flash`, and the three GPT-4.1 seed rationales, which were
+  byte-identical to one another. It missed a third: `openai-gpt-5-6-terra` and
+  `openai-gpt-5-6-luna` also published one byte-identical sentence. It
+  understated the Gemini case as well — 3.6 Flash's sentence was true as written
+  of `google-gemini-3-5-flash` too, not only of 3.7 Flash.
+
+  **No follow-up had been filed.** As first written this bullet said the
+  shortfall "is filed as a follow-up". Nothing was filed, so that clause was
+  false from the moment it merged until #840 was opened against it. A record
+  reporting its own remedy as already in hand is worse than one reporting no
+  remedy at all, because it stops the next reader from looking.
+
+  The deferral's stated reason — "widening the class would force edits to
+  creators #788 places out of scope" — held only for the one way of widening it
+  had in view. #840 measured that way: applying `featured-policy.test.ts`'s
+  reference list to all 24 flagged records fails 9 of them, six being records
+  that already discriminate in substance, and it *passes* all three GPT-4.1
+  rationales outright, because "Seed release …" contains `seed`. So that list is
+  the proxy for this decision's *durability* clause, and it stays scoped to
+  superseded releases. The *discrimination* clause — "could not be written of
+  another release of the same creator" — is a different question, and it is now
+  enforced over every flagged release that has a flagged sibling to be tested
+  against, regardless of status, by the transplant test the Fable 5 case already
+  called decidable. It caught six rationales, which were rewritten.
+
+  That qualifier is exact rather than cautious, and it is worth stating plainly
+  because an enforcement claim wider than its enforcement is the defect this
+  bullet is already correcting once. The clause is a comparison between two
+  releases of one creator, so a creator holding a single flagged release forms
+  no pair and the rule says nothing about it. Today that is one creator of five
+  and one release of 24 — `microsoft-mai-thinking-1`. The exemption is pinned
+  in `featured-policy.test.ts` as a named set rather than left to be discovered,
+  so it is counted, and so a second creator falling into it goes red instead of
+  quietly widening the hole.
+
+  No `featured` flag changed, in either direction, and the featured totals are
+  unchanged at 24 of 117 releases: 18 `current`, 4 `legacy`, 2 `preview`. Only
+  the first of those figures is enforced, and the split is deliberate. #840
+  pins the featured set as a roster of ids reconciled by identity, because a
+  count cannot express the claim being made here: one release leaving the set
+  and another joining it holds every total in this paragraph constant. That set
+  is editorial, so pinning it is right and a refresh must never move it.
+
+  The denominator and the lifecycle shares are **reported here and not pinned**,
+  and the reason is this ADR's own holding. Both are sourced figures a refresh
+  moves on purpose — `refresh-runs.json` records the release count in its own
+  ledger — so asserting them would red the suite on the pipeline working.
+  Worse, `.github/skills/modeltree-gates/scripts/gate-scope.mjs` confines an
+  ADR 0003 refresh to the dataset JSON documents, and the test is not among
+  them, so such a failure could not be repaired by the change that caused it.
+  Pinning 18/4/2 would also re-couple lifecycle status to editorial featuring,
+  which is the coupling this ADR exists to break. What is enforced instead is
+  that the partition *covers* the featured set with nothing unclassified and
+  nothing double-counted, that every roster id resolves to a real release, and
+  that the population clears a floor. Read the figures above as measured on the
+  date in this ADR's metadata, not as invariants.
+
+  Stating which half is enforced is the point. The same sentence in this
+  section, claiming more enforcement than existed, is what #840 was filed about.
 - The discrimination check is a documented list of reference kinds, not a
   decision procedure for English. It can pass a rationale that happens to
   contain "only" incidentally. It fails safe — a false pass weakens the check,
