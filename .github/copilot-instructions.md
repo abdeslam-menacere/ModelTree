@@ -1062,6 +1062,107 @@ abdeslam-menacere/ModelTree#345 each fixed it for a single scanner without
 recording the property, so it regenerated against the next one — the
 landedness probe this section recommends.
 
+**Whitespace is not the only thing that hides a present phrase from a byte
+matcher. The same probe reads absent when inline markup crosses it — a
+backtick, a bold marker, an em-dash standing between two words the reader
+sees as adjacent.** That is the second member of the class above and it fails
+in the same direction: absent, so `NOT LANDED`, so reassurance. The
+instruments reach it by different mechanisms, which changes nothing —
+`git grep` is line-oriented, while `git log -S` is a byte-substring search
+over the whole blob — because markup is bytes sitting inside the phrase
+either way. Measured on this file at
+`8ac5ccd7259c5d1e27f8a5c44790cbd6edcfa348`: 395 inline code spans, 129 bold
+spans and 186 em-dashes, in the document that mandates the probe.
+
+Two phrases, written as somebody reading the rendered page would type them —
+`git grep matches within a single line`, and
+`fails toward NOT LANDED the reassuring direction`. Both are present, both
+read **absent** to a naive matcher, and — the part that makes this a defect
+the wrap-safe form does not already cover — both still read absent to that
+form, which collapses their line breaks correctly and leaves the markup where
+it is. Their shorter neighbour `matches within a single line` reads present to
+every matcher here and is a strict substring of the first, so no correct
+instrument can find it and miss its superset. The SHA pin carries those three
+readings, because quoting a phrase instantiates it: from this commit onward
+all three sit in this file as literal bytes. That is the same self-reference
+the paragraph above records for negative controls, arriving from the other
+side.
+
+**CRLF is not a residual here and needs nothing added.** `\s+` matches `\r`,
+so the wrap-safe form already collapses a `\r\n` exactly as it collapses a
+`\n`.
+
+The markup-safe form subsumes the wrap-safe one rather than replacing it —
+its last two steps are that form — and it reads the file's own backtick
+pairing as structure, so an asterisk is classified before it is touched:
+
+```js
+const norm = s => s
+  .split(/\u0060/)                        // \u0060 is the backtick
+  .map((t, i) => (i % 2 ? t : t.replace(/\*/g, '')))   // odd = code span
+  .join('')
+  .replace(/[\u2014\u2013]/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+norm(fileText).includes(norm(phrase));
+```
+
+**Which way the over-normalisation trade was made, and why.** A rule
+aggressive enough to erase backticks and asterisks can erase a distinction
+too, and a probe that matches too much is a false *positive* — trunk already
+says this, stop — which is the unrecoverable direction, where the false
+negative being fixed here is only the reassuring one. So the rule deletes a
+delimiter only where it cannot be content, and it separates the two by
+structure rather than by taste: outside a code span an asterisk is an emphasis
+marker, inside one it is a glob. Measured at the pinned SHA — 628 asterisks,
+624 outside code spans and 4 inside; **0** asterisk-bearing tokens outside a
+code span contain a path separator; and deleting those 624 leaves the count of
+alphanumeric words unchanged at 14,986, so no word is split or fused. The
+blunter rule that reaches for `.replace(/[\u0060*_]/g, '')` is rejected on
+measurement rather than on taste: it takes the 4 as well, and on the corpus
+below it turns 1,176 windows from a correct absent into a confident wrong
+present. Underscore is left alone on the same evidence — 13 occur, **0** of
+them as an emphasis delimiter, every one inside an identifier such as
+`source_issue_number`. An em-dash becomes a space rather than nothing, so a
+phrase typed without one still matches and no two tokens are ever fused; all
+186 are space-flanked today, so that costs nothing now and holds if one is
+not.
+
+**A literal is quoted, not normalised.** Backticked content survives verbatim,
+which is the escape hatch for the one case where an asterisk is content: put
+backticks round a probe that carries one, so `refs/heads/*` reaches `norm`
+already quoted. Bare, 1,134 of the 1,176 windows carrying a literal asterisk
+read absent — the recoverable direction, so the rule is safe without this and
+complete with it.
+
+**Demonstrated by search rather than asserted.** Take every contiguous window
+of 4 to 24 words of the rendered text — 16,042 words, **336,609** candidates —
+and read each one back. The naive byte matcher misses **284,816** of them, or
+84.6%; the wrap-safe form misses **167,159**, or 49.7%; the form above, with
+literals quoted, misses **0**. Then run those same 336,609 windows again with
+one interior word replaced by a nonce invented at the moment of use, and
+**336,609** read absent — 0 false positives, which is what makes the first
+number a finding rather than a matcher answering present to everything.
+673,218 candidates, 0 counterexamples.
+
+Keep a positive control in the same pass, or absent stays indistinguishable
+from broken: `merge-base` is a real word this document uses, so it must read
+present. The markup property needs a control that crosses markup, so derive
+that one rather than quoting it — take any phrase running from outside one of
+this file's inline code spans into it. It must read present to the form above
+and absent to the wrap-safe one, and a control reading present to both is not
+exercising the property at all.
+
+The general property, which is what stops the next instance rather than this
+one: **a phrase probe must reduce both sides to what the reader sees, and must
+reduce nothing the reader sees.** Whitespace was the first half of that and
+markup is the second. The rule's one precondition is the pairing it reads as
+structure — 1,002 backticks at the pinned SHA, even, across 70 paired fence
+runs — and where that is broken it treats the prose after the break as code
+and stops stripping emphasis, which under-reports. That is the recoverable
+direction as well, so a broken precondition costs a redundant check and never
+a discarded branch.
+
 Take the probe string from the branch's **newest** commit, or you prove
 something about round one and nothing about round two. Take it narrow. A string
 that is distinctive but over-specific produces a false negative in the same
