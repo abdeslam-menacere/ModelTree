@@ -1208,6 +1208,62 @@ match, establish that the phrase is yours: grep for it at the merge-base, where
 it must be **absent**, in the same invocation with the same quoting. A phrase
 present at the merge-base is not a probe, it is a constant.
 
+**Counting a filtered result is unsafe in PowerShell, and it fails toward the
+same false `absent` the wrap and markup hazards above do — it is the third
+member of that class.** abdeslam-menacere/ModelTree#870 fixed the line-wrap
+member and abdeslam-menacere/ModelTree#879 the inline-markup one; this one
+arrives through PowerShell's scalar/array polymorphism rather than through text
+matching, so it bites the moment you check presence by parsing the file and
+filtering — `($records | Where-Object { $_.id -eq $id }).Count -gt 0` —
+instead of grepping. A filter matching **exactly one** record returns that
+record, not a one-element array, and a scalar `PSCustomObject` has no `Count`,
+so `.Count` is `$null` and `.Count -gt 0` is `False` for a record that is
+present. Zero matches and one match are then indistinguishable, and the
+one-match case reports *absent* — toward re-doing landed work, the reassuring
+direction this whole page fails in. Measured here on
+`PSVersion 5.1.26100.9168` against `web/src/data/releases.json`, whose
+`lg-ai-research-exaone-4-0-32b` is present as exactly one record:
+
+| matches | result type | `.Count` | `.Count -gt 0` |
+|---|---|---|---|
+| 0 | `$null` | `0` | `False` |
+| 1 | `PSCustomObject` | *(empty)* | `False` |
+| 2+ | `Object[]` | the count | `True` |
+
+Re-measure that table against your own `$PSVersionTable.PSVersion` rather than
+trusting these three rows, and on a non-Windows shell say there is no `.Count`
+polymorphism to reproduce rather than asserting the rows hold.
+
+The safe forms are correct for 0, 1 and many, and each makes the subject and
+its control **differ** where the bare `.Count` makes them agree:
+
+```powershell
+@($records | Where-Object { $_.id -eq $id }).Count -gt 0             # array subexpression
+($records | Where-Object { $_.id -eq $id } | Measure-Object).Count  # pipe to Measure-Object
+[bool]($records | Where-Object { $_.id -eq $id })                   # cast to bool
+```
+
+`@(...)` is the idiomatic one and the shortest edit from what is already
+written. Measured on that same file: the bare form reads `subject=False` and
+`control=False`, so the fabricated id `zzz-not-a-real-id` cannot be told apart
+from the present one; each safe form reads `subject=True` and `control=False`,
+and `@(...).Count` returns 0, 1 and 2 for the fabricated id, the exaone-4 id and
+the `*exaone*` glob respectively.
+
+**Its sharper lesson is about controls, and it outlives the one bug: the
+fabricated-input control this page mandates everywhere cannot catch this,
+because that control exercises the zero-match path and the defect lives on the
+one-match path.** A control that returns the *same* value as the subject has
+discriminated nothing — two `False`s look like a passing control and are equally
+consistent with a wholly broken instrument. So the difference control of step 3
+gains one clause here: report both arms, require them to **differ**, and where a
+control cannot in principle come back the other way from the failure you fear —
+a zero-match control against a one-match bug — it is not a control for that bug,
+and you need one that lands on the failing path. The direction opposite to this
+is abdeslam-menacere/ModelTree#800, where a PowerShell array silently *joins*
+into one string: the same polymorphism, one-becomes-none here against
+one-becomes-many there, and neither supersedes the other.
+
 ### Step 5 — tree arithmetic, corroboration only and never the verdict
 
 Only after the steps above, and never as the thing you report. Fetch, then
