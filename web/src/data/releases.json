@@ -3989,8 +3989,8 @@
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
-    "summary": "The chat-tuned 34B member of 01.AI’s Yi-1.5 series, continuously pre-trained on Yi with a 500B-token corpus and fine-tuned on 3M samples, distributed under Apache 2.0.",
-    "intendedUse": "General conversation and instruction following. Neither a parameter count nor a context window is recorded: no 01.AI page read states a parameter count in prose, and the card’s context figures are given for the Yi-1.5 family as three alternatives rather than for this variant, so either would be an inference from the model’s name. Both omissions are explained on the model card and repository sources.",
+    "summary": "The chat-tuned 34B member of 01.AI’s Yi-1.5 series, continuously pre-trained on Yi with a 500B-token corpus and fine-tuned on 3M samples, distributed under Apache 2.0. Neither a parameter count nor a context window is recorded: no 01.AI page read states a parameter count in prose, and the card’s context figures are given for the Yi-1.5 family as three alternatives rather than for this variant, so either would be an inference from the model’s name. Both omissions are explained on the model card and repository sources.",
+    "intendedUse": "General conversation and instruction following.",
     "sourceIds": [
       "01-ai-yi-repository",
       "01-ai-yi-1-5-34b-chat-model-card",
@@ -4496,8 +4496,8 @@
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
-    "summary": "The chat-tuned 34B member of 01.AI’s original Yi series, opened to the public on 2023-11-23 alongside the rest of the chat models. Its card declares Apache 2.0; the repository README records a Yi Series Models Community License Agreement update on the same date, and both statements are kept on the sources rather than reconciled.",
-    "intendedUse": "General conversation and instruction following. Neither a parameter count nor a context window is recorded: no 01.AI page read states either in prose for this variant, so a figure would have to be inferred from the model’s name, and the same omission is already made for Yi-1.5-34B-Chat.",
+    "summary": "The chat-tuned 34B member of 01.AI’s original Yi series, opened to the public on 2023-11-23 alongside the rest of the chat models. Its card declares Apache 2.0; the repository README records a Yi Series Models Community License Agreement update on the same date, and both statements are kept on the sources rather than reconciled. Neither a parameter count nor a context window is recorded: no 01.AI page read states either in prose for this variant, so a figure would have to be inferred from the model’s name, and the same omission is already made for Yi-1.5-34B-Chat.",
+    "intendedUse": "General conversation and instruction following.",
     "sourceIds": [
       "01-ai-yi-repository",
       "01-ai-yi-34b-chat-model-card",
@@ -5226,8 +5226,8 @@
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
-    "summary": "The largest published FastVLM variant, a vision language model answering questions about high-resolution images, released with downloadable weights under a licence restricting use to non-commercial research.",
-    "intendedUse": "Research into efficient vision encoding for vision language models. The licence shipped with the weights limits use, and any derivative, to non-commercial scientific research, which is why the record carries research status. No Apple page read for this record states a parameter count for the model itself or a context window, so neither is recorded.",
+    "summary": "The largest published FastVLM variant, a vision language model answering questions about high-resolution images, released with downloadable weights under a licence restricting use to non-commercial research. No Apple page read for this record states a parameter count for the model itself or a context window, so neither is recorded.",
+    "intendedUse": "Research into efficient vision encoding for vision language models. The licence shipped with the weights limits use, and any derivative, to non-commercial scientific research, which is why the record carries research status.",
     "sourceIds": [
       "apple-fastvlm-model-card",
       "apple-fastvlm-license",
@@ -5270,8 +5270,8 @@
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
-    "summary": "The first published model of Zhipu AI’s CogVideoX series, an open-weight text-to-video model released with inference code and a 3D causal VAE.",
-    "intendedUse": "Video generation from text prompts using downloadable weights. The recorded Apache-2.0 licence is the one in force now: the creator’s repository records that the licence was changed to Apache 2.0 three weeks after this release, so it was not the licence at release. No source states an exact parameter count or a context window, so neither is recorded.",
+    "summary": "The first published model of Zhipu AI’s CogVideoX series, an open-weight text-to-video model released with inference code and a 3D causal VAE. No source states an exact parameter count or a context window, so neither is recorded.",
+    "intendedUse": "Video generation from text prompts using downloadable weights. The recorded Apache-2.0 licence is the one in force now: the creator’s repository records that the licence was changed to Apache 2.0 three weeks after this release, so it was not the licence at release.",
     "sourceIds": [
       "zhipu-ai-cogvideo-repository",
       "zhipu-ai-cogvideox-2b-model-card",
