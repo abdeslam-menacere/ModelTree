@@ -39,7 +39,13 @@ export const PUBLISHED_REF = 'refs/remotes/origin/main';
 
 function git(cwd, args) {
   const run = spawnSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
-  if (run.error) return { ok: false, reason: `could not run git: ${run.error.message}` };
+  // `spawnSync` sets `error` when git itself could not be launched -- most
+  // commonly not on PATH. That is a different cause from a ref that does not
+  // resolve, and it needs different advice, so it is flagged rather than folded
+  // into a generic failure (#847, finding 4b).
+  if (run.error) {
+    return { ok: false, unrunnable: true, reason: `could not run git: ${run.error.message}` };
+  }
   // The exit status is the whole of the discrimination and is read from an
   // unpiped invocation: empty output from a command that failed is not an empty
   // result.
@@ -64,6 +70,11 @@ export function probeTreeProvenance(cwd) {
   try {
     const trunk = git(cwd, ['rev-parse', '--verify', `${PUBLISHED_REF}^{commit}`]);
     if (!trunk.ok) {
+      // git absent from PATH is not a ref that fails to resolve, and `git fetch`
+      // cannot fix a missing git. Pass its own reason through for that cause
+      // (#847, finding 4b), and reserve the fetch advice for a genuinely
+      // unresolved ref -- a shallow or single-branch clone.
+      if (trunk.unrunnable) return undetermined(trunk.reason);
       return undetermined(
         `${PUBLISHED_REF} does not resolve here, so there is no published trunk to compare ` +
           'against; a shallow or single-branch clone does this. `git fetch origin main` fixes it',
