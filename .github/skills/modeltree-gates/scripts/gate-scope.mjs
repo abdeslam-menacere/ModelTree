@@ -62,7 +62,7 @@
 // runner could not run, which is never treated as a pass.
 
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -110,6 +110,43 @@ const ALLOWED_PATHS = new Set([
 // this working copy can move, and an anchor the run can move is not an anchor.
 // Identical to `gate-source-approval.mjs`'s, on purpose.
 const PUBLISHED_REF = 'refs/remotes/origin/main';
+
+// The one path that is in class only conditionally, and gate-scope's only
+// content-aware check. ADR 0015 admits `web/asset-budgets.json` to the qualifying
+// class so a refresh can re-record the measurement it moved -- adding a normal
+// data tranche shifts a page past the 2% `measuredDrift` guard, and the only fix
+// is to re-run `npm run assets:report` and write the new figure here. But this
+// file mixes three kinds of value under one path: regenerable measurements
+// (documentation), enforced ceilings that `asset-budgets.test.ts` asserts, and
+// the drift guard itself. Whole-path permission would let an unattended refresh
+// raise its own ceiling or widen the guard that caught it and auto-merge with no
+// human in the loop -- a self-approving performance guard, which is forbidden. So
+// the permission is field-scoped: the change is in class only when every
+// enforcing field is byte-identical across the diff.
+const ASSET_BUDGETS_PATH = 'web/asset-budgets.json';
+
+// The regenerable measurement figures `npm run assets:report` rewrites, plus the
+// non-enforcing prose (`reason` on any entry and the top-level `*-note` keys).
+// Any leaf whose key is NOT named here is treated as enforcing or structural and
+// may not move. Naming what MAY change, rather than the ceilings that may not,
+// fails safe: a ceiling a future entry introduces is protected by default, and
+// the check has nothing to keep in sync with `asset-budgets.test.ts`. The
+// enforcing fields this therefore refuses are every `criticalMaxRaw`, every
+// `jsMaxRaw`, the whole-build `*MaxRaw` ceilings under `globals`, and
+// `measuredDrift.maxFraction` -- exactly what that test asserts.
+const ASSET_BUDGETS_REGENERABLE_FIELDS = new Set([
+  'measuredRaw',
+  'measuredWorstRaw',
+  'measuredWorstJsRaw',
+  'jsTotalMeasuredRaw',
+  'cssTotalMeasuredRaw',
+  'fontTotalMeasuredRaw',
+  'astroDirMeasuredRaw',
+  'reason',
+  '$schema-note',
+  'headroom-note',
+  'drift-note',
+]);
 
 function parseArgs(argv) {
   // `base` starts as null, not `HEAD`: absence must not be the most permissive
@@ -244,6 +281,124 @@ function changedPaths(cwd, anchor) {
   return [...lines].sort();
 }
 
+/**
+ * Collects into `out` every difference between two parsed asset-budgets documents
+ * whose final key is not a regenerable measurement or prose field. A non-empty
+ * result means the change moved a ceiling, the drift guard, or the document's
+ * structure, and must face a human rather than auto-merge.
+ *
+ * Structure must match exactly. An object gaining or losing a key, an array
+ * changing length, or a value changing shape (scalar to object, and so on) is
+ * itself a violation. That is what refuses a route or route-group entry being
+ * added or removed -- which adds or drops an enforced ceiling -- without the
+ * check needing to know which ceiling. `key` is the immediate field name that led
+ * here and is what the regenerable-field decision is made on; `path` is the full
+ * dotted trail, for the human-readable report only.
+ */
+function assetBudgetsEnforcingDiff(base, cur, key, path, out) {
+  const label = path === '' ? '(root)' : path;
+  const baseArr = Array.isArray(base);
+  const curArr = Array.isArray(cur);
+  const baseObj = base !== null && typeof base === 'object' && !baseArr;
+  const curObj = cur !== null && typeof cur === 'object' && !curArr;
+
+  if (baseArr || curArr) {
+    if (!baseArr || !curArr || base.length !== cur.length) {
+      out.push(label);
+      return;
+    }
+    for (let i = 0; i < base.length; i += 1) {
+      assetBudgetsEnforcingDiff(base[i], cur[i], key, `${path}[${i}]`, out);
+    }
+    return;
+  }
+
+  if (baseObj || curObj) {
+    if (!baseObj || !curObj) {
+      out.push(label);
+      return;
+    }
+    const has = (object, name) => Object.prototype.hasOwnProperty.call(object, name);
+    const keys = new Set([...Object.keys(base), ...Object.keys(cur)]);
+    for (const childKey of keys) {
+      const childPath = path === '' ? childKey : `${path}.${childKey}`;
+      if (!has(base, childKey) || !has(cur, childKey)) {
+        out.push(childPath);
+        continue;
+      }
+      assetBudgetsEnforcingDiff(base[childKey], cur[childKey], childKey, childPath, out);
+    }
+    return;
+  }
+
+  if (base !== cur && !ASSET_BUDGETS_REGENERABLE_FIELDS.has(key)) {
+    out.push(label);
+  }
+}
+
+/**
+ * Whether the change to `web/asset-budgets.json` qualifies, read at both ends of
+ * the diff: the document at the anchor and the document in the working tree. It
+ * qualifies only when every difference lands in a regenerable measurement or
+ * prose field.
+ *
+ * Anything the check cannot see the enforcing fields through is refused, never
+ * passed. A file added with no baseline at the anchor, a deletion, or JSON that
+ * will not parse at either end all mean the ceilings and the guard cannot be
+ * compared -- and a guard that cannot compare them must assume they moved. The
+ * working-tree copy is read from disk on purpose: it is the state that would
+ * merge, reflecting committed, staged and unstaged edits alike, the same union
+ * `changedPaths` measures.
+ */
+function classifyAssetBudgets(cwd, anchor) {
+  let baseText;
+  try {
+    baseText = git(cwd, 'show', `${anchor}:${ASSET_BUDGETS_PATH}`);
+  } catch {
+    return {
+      inClass: false,
+      reason: `did not exist at ${anchor.slice(0, 10)}, so there is no baseline to prove the `
+        + 'ceilings and the drift guard are unchanged',
+    };
+  }
+
+  const curPath = resolve(cwd, ASSET_BUDGETS_PATH);
+  if (!existsSync(curPath)) {
+    return { inClass: false, reason: 'is gone from the working tree' };
+  }
+  let curText;
+  try {
+    curText = readFileSync(curPath, 'utf8');
+  } catch (error) {
+    return { inClass: false, reason: `could not be read from the working tree: ${error.message}` };
+  }
+
+  let base;
+  try {
+    base = JSON.parse(baseText);
+  } catch {
+    return { inClass: false, reason: `is not valid JSON at ${anchor.slice(0, 10)}` };
+  }
+  let cur;
+  try {
+    cur = JSON.parse(curText);
+  } catch {
+    return { inClass: false, reason: 'is not valid JSON in the working tree' };
+  }
+
+  const diff = [];
+  assetBudgetsEnforcingDiff(base, cur, null, '', diff);
+  if (diff.length === 0) {
+    return { inClass: true, reason: 'only regenerable measurement and prose fields changed' };
+  }
+  const fields = [...new Set(diff)].sort();
+  return {
+    inClass: false,
+    reason: 'an enforced ceiling, the drift guard, or the document structure changed, which no '
+      + `refresh may do unattended: ${fields.join(', ')}`,
+  };
+}
+
 function main() {
   const args = parseArgs(process.argv);
   if (args.help) {
@@ -268,8 +423,25 @@ function main() {
   }
   const anchorAt = anchor.anchor.slice(0, 10);
 
-  const outOfClass = paths.filter((path) => !ALLOWED_PATHS.has(path));
-  const inClass = paths.filter((path) => ALLOWED_PATHS.has(path));
+  // Classify every changed path once. Most are a pure path-membership test; the
+  // one content-aware exception is `web/asset-budgets.json`, which is in class
+  // only when the field-scoped check clears it (ADR 0015).
+  const assetBudgetsNotes = [];
+  const inClassOf = new Map();
+  for (const path of paths) {
+    if (ALLOWED_PATHS.has(path)) {
+      inClassOf.set(path, true);
+    } else if (path === ASSET_BUDGETS_PATH) {
+      const verdict = classifyAssetBudgets(cwd, anchor.anchor);
+      inClassOf.set(path, verdict.inClass);
+      assetBudgetsNotes.push(`${path} ${verdict.reason}`);
+    } else {
+      inClassOf.set(path, false);
+    }
+  }
+
+  const outOfClass = paths.filter((path) => !inClassOf.get(path));
+  const inClass = paths.filter((path) => inClassOf.get(path));
   const passed = outOfClass.length === 0;
 
   const result = {
@@ -291,6 +463,9 @@ function main() {
     outOfClass,
     passed,
     empty: paths.length === 0,
+    // Per-path notes for the one content-aware member of the class, so a reader
+    // can see why `web/asset-budgets.json` qualified or was refused.
+    assetBudgets: assetBudgetsNotes,
   };
 
   if (args.json) {
@@ -308,6 +483,7 @@ function main() {
       `gate-scope: in class - ${inClass.length} dataset document(s) changed since ${anchorAt}\n`,
     );
     for (const path of inClass) process.stdout.write(`  ${path}\n`);
+    for (const note of assetBudgetsNotes) process.stdout.write(`  note: ${note}\n`);
   } else {
     process.stdout.write(
       `gate-scope: OUT OF CLASS - ${outOfClass.length} file(s) outside the dataset documents `
@@ -315,6 +491,7 @@ function main() {
       + 'ADR 0003 does not authorise auto-merging this; stop and file an issue.\n',
     );
     for (const path of outOfClass) process.stdout.write(`  ${path}\n`);
+    for (const note of assetBudgetsNotes) process.stdout.write(`  note: ${note}\n`);
   }
 
   return passed ? 0 : 1;
