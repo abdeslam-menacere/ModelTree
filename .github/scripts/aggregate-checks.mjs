@@ -346,9 +346,11 @@ const MAX_CONSECUTIVE_API_FAILURES = 5;
 /**
  * The file ceiling the commit-comparison endpoint imposes.
  *
- * Documented by GitHub and not reported in the response, so a comparison at the
- * ceiling is indistinguishable from one that merely ended there. Used as the
- * pagination bound too, since a page past it can only be empty.
+ * Documented by GitHub and reported nowhere in the response: measured here, a
+ * 519-file comparison comes back with exactly 300 files and no field admitting
+ * to the truncation, so a comparison at the ceiling cannot be told apart from
+ * one merely ending there. Not a pagination bound -- the file list is not
+ * paginated at all, which `comparedPaths` explains.
  */
 const COMPARE_FILE_CAP = 300;
 
@@ -505,41 +507,45 @@ async function changedPaths(repo, number) {
  * would use, and on a queue entry the base is an ancestor of the head, so it is
  * the files that entry proposes to add to `main`.
  *
- * The comparison endpoint caps its file list at COMPARE_FILE_CAP and says so
- * nowhere in the response, which is the one shape that could silently shrink
- * the expected set. Since there is no declared total to check the list against
- * -- `changed_files` has no counterpart here -- a comparison that reaches the
- * cap without a short page ends the run instead. That refuses a handful of
- * genuinely 300-file merge groups along with every truncated one, which is the
- * direction this script always errs in.
+ * Deliberately not paginated, which is the opposite of the pull request path
+ * above and is a property of the endpoint rather than a preference. `per_page`
+ * and `page` here page the *commits*. The whole `files` array arrives on the
+ * first page however small `per_page` is -- measured against this repository, a
+ * 141-file comparison returns all 141 at `per_page=1` -- and every later page
+ * carries commits with no `files` key at all. So a reader that pages until a
+ * short page reads the complete list on page 1, asks for page 2, finds no array
+ * there and calls the response malformed: exit 2 for every merge group of 100
+ * files or more, which as a required context would eject the entry and rebuild
+ * the very deadlock this script exists to clear. Asking only for the page the
+ * files are on is what makes that unreachable.
+ *
+ * The cap is the one thing that must still stop the run, and it is a different
+ * condition from the end of the list rather than a special case of it. GitHub
+ * truncates the array at COMPARE_FILE_CAP and admits it nowhere: the comparison
+ * declares no file total, so unlike a pull request's `changed_files` there is
+ * nothing to check a short list against, and a comparison returning exactly the
+ * cap is indistinguishable from one truncated by it. Both end the run. That
+ * refuses the rare merge group that genuinely changes exactly COMPARE_FILE_CAP
+ * files along with every truncated one, which is the direction this script
+ * always errs in: a silently shortened list shrinks the expected set, and a
+ * check that should have run then reads as a legitimate absence, which is a
+ * false pass.
  */
 async function comparedPaths(repo, baseSha, headSha) {
-  const paths = [];
-  const perPage = 100;
-  const maxPages = COMPARE_FILE_CAP / perPage;
-  let complete = false;
+  const comparison = await api(`/repos/${repo}/compare/${baseSha}...${headSha}`);
 
-  for (let page = 1; page <= maxPages; page += 1) {
-    const comparison = await api(
-      `/repos/${repo}/compare/${baseSha}...${headSha}?per_page=${perPage}&page=${page}`,
-    );
-    const files = comparison.files;
-    if (!Array.isArray(files)) throw new Error('the compare endpoint returned no files array');
-    for (const file of files) paths.push(file.filename);
-    if (files.length < perPage) {
-      complete = true;
-      break;
-    }
-  }
+  const files = comparison.files;
+  if (!Array.isArray(files)) throw new Error('the compare endpoint returned no files array');
 
-  if (!complete) {
+  if (files.length >= COMPARE_FILE_CAP) {
     throw new Undetermined(
-      `the comparison ${baseSha}...${headSha} reached the ${COMPARE_FILE_CAP}-file ceiling the `
-      + 'endpoint imposes; the changed-file list cannot be shown to be complete',
+      `the comparison ${baseSha}...${headSha} returned ${files.length} changed files, which is the `
+      + `${COMPARE_FILE_CAP}-file ceiling the endpoint imposes; the comparison declares no file `
+      + 'total, so a list at the ceiling cannot be shown to be the whole list',
     );
   }
 
-  return paths;
+  return files.map((file) => file.filename);
 }
 
 /**

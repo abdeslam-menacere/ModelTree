@@ -168,6 +168,9 @@ interface ApiFixture {
    * How many files the comparison reports, when the fixture needs a list longer
    * than `files`. Filled with distinct synthetic paths, so a run that reaches
    * the endpoint's own ceiling can be measured without writing 300 names out.
+   *
+   * A count above COMPARE_FILE_CAP is served truncated to it, because that is
+   * what GitHub does and the truncation is the condition under test.
    */
   compareFileCount?: number;
 }
@@ -179,6 +182,23 @@ interface Outcome {
 }
 
 const CONFIGURATION_MARKER = 'aggregate-checks configuration: ';
+
+/**
+ * The file ceiling the commit-comparison endpoint imposes, mirrored from the
+ * script so the fixture truncates where GitHub truncates.
+ *
+ * Measured rather than assumed: a 519-file comparison in this repository comes
+ * back with exactly 300 files and nothing in the response admitting to it --
+ * the comparison declares no file total at all, so there is no counterpart to a
+ * pull request's `changed_files` to check a short list against.
+ */
+const COMPARE_FILE_CAP = 300;
+
+/**
+ * The page size a files-list endpoint would use, and the size the broken reader
+ * paged by. Only used to place a regression case either side of it.
+ */
+const COMPARE_PER_PAGE = 100;
 
 function configurationFrom(stdout: string): Configuration {
   const line = stdout.split(/\r?\n/).find((candidate) => candidate.startsWith(CONFIGURATION_MARKER));
@@ -214,13 +234,33 @@ function apiServer(fixture: ApiFixture): Promise<{ server: Server; origin: strin
         send(fixture.failCompareWith, { message: 'fixture compare failure' });
         return;
       }
-      const perPage = Number(url.searchParams.get('per_page') ?? '100');
+      // Measured against the live endpoint, because this shape is the whole
+      // subject of the merge-group cases below. `per_page` and `page` page the
+      // *commits*: the entire `files` array arrives on page 1 however small
+      // `per_page` is -- a 141-file comparison returns all 141 at `per_page=1`
+      // -- it is silently truncated at COMPARE_FILE_CAP, and every page after
+      // the first omits the `files` key altogether rather than ending the list
+      // with a short page.
+      //
+      // A fixture that sliced this by `per_page`, as a files-list endpoint
+      // would, hands the caller its own assumption back and then passes
+      // whatever the caller does with it. That is not a hypothetical: it is
+      // what let a reader that paged `files` until a short page look correct
+      // here while ending exit 2 against the real API for every merge group of
+      // COMPARE_PER_PAGE files or more.
       const page = Number(url.searchParams.get('page') ?? '1');
       const all = fixture.compareFileCount === undefined
         ? fixture.files
         : Array.from({ length: fixture.compareFileCount }, (_unused, index) => `web/src/generated/file-${index}.ts`);
-      const start = (page - 1) * perPage;
-      send(200, { files: all.slice(start, start + perPage).map((filename) => ({ filename })) });
+      if (page > 1) {
+        send(200, { total_commits: 1, commits: [] });
+        return;
+      }
+      send(200, {
+        total_commits: 1,
+        commits: [],
+        files: all.slice(0, COMPARE_FILE_CAP).map((filename) => ({ filename })),
+      });
       return;
     }
 
@@ -717,7 +757,7 @@ describe('a merge queue entry is read the same way, from the event it actually r
     // short list shrinks the expected set -- the one direction that turns an
     // absence into a false pass. So it ends the run instead.
     const outcome = await runAgainst(
-      { files: [], checkRuns: allGreen(), compareFileCount: 300 },
+      { files: [], checkRuns: allGreen(), compareFileCount: COMPARE_FILE_CAP },
       { ...MERGE_GROUP_ENV, AGGREGATE_CHECKS_TIMEOUT_SECONDS: '5' },
     );
 
@@ -725,16 +765,64 @@ describe('a merge queue entry is read the same way, from the event it actually r
     expect(outcome.stderr).toContain('300-file ceiling');
   });
 
-  it('reads a comparison that ends short of the ceiling', async () => {
-    // The control for the case above: paginating at all must still work, or
-    // that refusal is indistinguishable from a paginator that never terminates.
+  it('refuses to pass when the comparison was truncated by the ceiling', async () => {
+    // The case the ceiling exists for, as opposed to the one that merely sits on
+    // it: the fixture truncates at the cap exactly as GitHub does, so a genuinely
+    // larger comparison is indistinguishable from the one above and must refuse
+    // for the same reason. Reading it as 300 real files would drop 219 paths and
+    // silently shrink the expected set.
     const outcome = await runAgainst(
-      { files: [], checkRuns: allGreen(), compareFileCount: 150 },
+      { files: [], checkRuns: allGreen(), compareFileCount: 519 },
+      { ...MERGE_GROUP_ENV, AGGREGATE_CHECKS_TIMEOUT_SECONDS: '5' },
+    );
+
+    expect(outcome.status, outcome.stdout + outcome.stderr).toBe(2);
+    expect(outcome.stderr).toContain('300-file ceiling');
+  });
+
+  it('reads a comparison one file short of the ceiling', async () => {
+    // The tight edge of the refusal above. Without it the cap check could be off
+    // by one -- or could be refusing every large comparison -- and both cases
+    // would still show a green 150 and a red 300.
+    const outcome = await runAgainst(
+      { files: [], checkRuns: allGreen(), compareFileCount: COMPARE_FILE_CAP - 1 },
       MERGE_GROUP_ENV,
     );
 
     expect(outcome.status, outcome.stdout + outcome.stderr).toBe(0);
-    expect(outcome.stdout).toContain('Changed files: 150');
+    expect(outcome.stdout).toContain(`Changed files: ${COMPARE_FILE_CAP - 1}`);
+  });
+
+  it('reads a comparison longer than a files endpoint would page', async () => {
+    // The regression case, and the reason the fixture above models the real
+    // endpoint. The file list is not paginated: it arrives whole on page 1 and
+    // later pages carry no `files` key. A reader that paged it until a short
+    // page took the complete list, asked for page 2, found no array and called
+    // the response malformed -- exit 2 for every merge group at or above
+    // COMPARE_PER_PAGE files, which as a required context ejects the entry.
+    //
+    // 150 sits above that page size and well below the cap, so it separates the
+    // two failure modes: it must pass, while 300 must still refuse.
+    const outcome = await runAgainst(
+      { files: [], checkRuns: allGreen(), compareFileCount: COMPARE_PER_PAGE + 50 },
+      MERGE_GROUP_ENV,
+    );
+
+    expect(outcome.status, outcome.stdout + outcome.stderr).toBe(0);
+    expect(outcome.stdout).toContain(`Changed files: ${COMPARE_PER_PAGE + 50}`);
+  });
+
+  it('asks for the comparison once, and never for a second page of files', async () => {
+    // Pins the mechanism rather than the symptom. The endpoint pages commits,
+    // not files, so a second request is not a slower way to the same answer --
+    // it is a request whose response has no `files` key to read.
+    const outcome = await runAgainst(
+      { files: [], checkRuns: allGreen(), compareFileCount: COMPARE_PER_PAGE + 50 },
+      MERGE_GROUP_ENV,
+    );
+
+    expect(outcome.status, outcome.stdout + outcome.stderr).toBe(0);
+    expect(outcome.requested.filter((path) => path.includes('/compare/'))).toHaveLength(1);
   });
 
   it.each(['push', 'workflow_dispatch', 'schedule', 'issue_comment'])(
