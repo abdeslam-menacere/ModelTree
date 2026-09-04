@@ -90,7 +90,22 @@ the setting is right**, so a check does not depend on trusting the UI.
 - **Where.** Settings → Branches → Branch protection rules.
 - **Required.** A rule matching `main` that:
   - Requires a pull request before merging.
-  - Requires the `web-ci` status check to pass.
+  - Requires **all four** status checks to pass:
+    [`web-ci`](../../.github/workflows/web-ci.yml),
+    [`skills-ci`](../../.github/workflows/skills-ci.yml),
+    [`web-e2e`](../../.github/workflows/web-e2e.yml), and `aggregate-checks`.
+    Naming fewer is the specific failure this line exists to prevent, and it
+    is silent: the rule still goes green, over checks that never gated
+    anything. `skills-ci` is the leg that runs
+    [`gate-ledger.mjs`](../../.github/skills/modeltree-gates/scripts/gate-ledger.mjs)
+    with `--history`, and `aggregate-checks` is the roll-up that is red
+    whenever a path-filtered check on the same pull request is not green — so
+    a rule naming only `web-ci` merges pull requests that neither of them
+    gated. Add checks here only when they report on *every* pull request: a
+    path-filtered check reports nothing at all on a pull request that touches
+    none of its paths, and a required check that never reports leaves that
+    pull request pending forever. [`.github/workflows/README.md`](../../.github/workflows/README.md)
+    records which checks are which.
   - Requires branches to be up to date before merging.
   - Does **not** allow force pushes.
   - Does **not** allow deletions.
@@ -103,15 +118,36 @@ the setting is right**, so a check does not depend on trusting the UI.
   bypass list beyond that widens the trusted set silently; if it exists,
   record why in an ADR under [`docs/adr/`](../adr/) rather than in this
   runbook.
-- **Verify.**
+- **Verify.** Assert the **exact set**, not membership. An `include` test on a
+  single context passes on a rule that names only that one context, so it
+  returns green on precisely the misconfiguration this step exists to catch —
+  it cannot fail in the direction that matters. Compare both ways instead:
 
   ```sh
-  gh api repos/abdeslam-menacere/ModelTree/branches/main/protection \
-    --jq '.required_status_checks.contexts,.enforce_admins.enabled,.required_pull_request_reviews'
+  gh api repos/abdeslam-menacere/ModelTree/branches/main/protection --jq '
+    ["aggregate-checks","skills-ci","web-ci","web-e2e"] as $want
+    | (.required_status_checks.contexts // []) as $got
+    | { missing:    ($want - $got),
+        unexpected: ($got - $want),
+        up_to_date: .required_status_checks.strict,
+        reviews:    (.required_pull_request_reviews != null) }'
   ```
 
-  Read the JSON: `contexts` should include `web-ci`, and the pull-request
-  requirement should be non-null.
+  `missing` and `unexpected` must **both** be `[]`, and `up_to_date` and
+  `reviews` must both be `true`. Read each field, because they fail
+  differently:
+
+  - Anything in `missing` is a check that is **not** gating merges. This is
+    the failure mode that looks fine from the Settings UI.
+  - Anything in `unexpected` is a context the rule requires that this runbook
+    does not know about — either CI grew a check and this list is stale, or
+    the rule names a check that will never report, which leaves every pull
+    request pending forever.
+
+  To confirm the assertion is live rather than vacuously green, add a name
+  that cannot exist to the `$want` array and re-run: it must come back in
+  `missing`. A verification step that cannot be made to fail on demand is not
+  verifying anything.
 
 ### 1.5 Optional — custom domain
 
@@ -240,20 +276,39 @@ The Playwright end-to-end suite in [`web/e2e/`](../../web/e2e/) is not run
 by `npm run validate` (it drives a real Chromium and would put a browser
 download in the pre-merge path of every gate — see
 [`.github/workflows/README.md`](../../.github/workflows/README.md)). It is
-also the check that the paths-filter on `web-ci` does not select for a
-docs-only change: on a pull request that touches only `docs/`, `README.md`,
-`LICENSE`, or `SECURITY.md` / `SUPPORT.md`, the `web-e2e` workflow starts
-and then skips without executing anything. The mechanism is worth naming
-because a maintainer who checks and sees a green tick will otherwise
-assume it means what it usually means: `web-e2e.yml`'s first job step
-computes a `scope` output that is `run=false` when the diff touches only
-those paths, and every subsequent step is gated on
-`if: steps.scope.outputs.run == 'true'`. Skipped steps do not fail the
-job, so the job concludes **green having executed no accessibility test
-at all**. That is not the workflow failing quietly — it is the
-paths-filter design working as intended — but it does mean a green tick
-on `web-e2e` on a docs-only PR carries no accessibility signal. A launch
-check has to run the suite by hand:
+also the check that reports green over a change it never exercised: on a
+pull request that touches no file under `web/`, the `web-e2e` workflow
+starts and then skips without executing anything. That covers a docs-only
+pull request, but it is broader than docs — a change confined to `tools/`, to
+`.github/` (with `web-e2e.yml` itself the one exception, below), or to any
+root file skips the browser suite for the same reason. The mechanism is worth
+naming because a maintainer who checks and sees a green tick will otherwise
+assume it means what it usually means.
+
+The skip is **not** a trigger paths-filter.
+[`web-e2e.yml`](../../.github/workflows/web-e2e.yml) is deliberately not
+filtered by `on.pull_request.paths` — its own header records why, and
+`web-ci.yml` has the same shape for the same reason: a trigger filter is
+all-or-nothing, so a filtered check reports nothing at all on a pull request
+that touches none of its paths, and a required check that never reports
+leaves that pull request pending forever. Both therefore start on every pull
+request. Instead, `web-e2e.yml`'s first job step computes the changed-file
+list and matches it:
+
+```sh
+grep -Eq '^(web/|\.github/workflows/web-e2e\.yml$)' <<< "$changed"
+```
+
+The suite runs when some changed file is under `web/` **or** is
+`web-e2e.yml` itself, and is skipped only when neither matches. Every
+subsequent step is gated on `if: steps.scope.outputs.run == 'true'`. Skipped
+steps do not fail the job, so the job concludes **green having executed no
+accessibility test at all**. That is not the workflow failing quietly — the
+step separates `grep`'s three exit statuses and runs the suite whenever it
+cannot compute a clean answer, so the skip is only ever a real no-match —
+but it does mean a green tick on `web-e2e` on a pull request that touched no
+`web/` file carries no accessibility signal. A launch check has to run the
+suite by hand:
 
 ```sh
 cd web
