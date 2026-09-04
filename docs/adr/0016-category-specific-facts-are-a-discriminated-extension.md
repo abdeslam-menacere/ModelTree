@@ -1,4 +1,4 @@
-# ADR 0013: Category-Specific Facts Are a Discriminated Extension
+# ADR 0016: Category-Specific Facts Are a Discriminated Extension
 
 - Status: Accepted
 - Date: 2026-09-02

@@ -16,7 +16,7 @@ import {
  * would widen ADR 0003's qualifying class — a decision that belongs to an ADR
  * rather than to a data change. It also carries ModelTree's own `statement`
  * prose beside each quote, which is the kind of writing a person should have to
- * accept. `docs/adr/0013-category-specific-facts-are-a-discriminated-extension.md`
+ * accept. `docs/adr/0016-category-specific-facts-are-a-discriminated-extension.md`
  * records both reasons.
  *
  * This module deliberately imports nothing but its own document. The passport

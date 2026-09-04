@@ -29,7 +29,7 @@ import { isoDate, modelCategory } from './schema';
  * > go [...] This is accepted deliberately, and it is the gap #43 closes.
  *
  * This document is that gap's floor, for one category.
- * `docs/adr/0013-category-specific-facts-are-a-discriminated-extension.md`
+ * `docs/adr/0016-category-specific-facts-are-a-discriminated-extension.md`
  * records the split and the reasoning behind every constraint below.
  *
  * ## One category is piloted, and the union is what makes that safe
