@@ -318,6 +318,19 @@ describe('deterministic asset budgets on the production build', () => {
     });
 
     function expectWithinTolerance(label: string, recorded: number, measured: number) {
+      // A recorded value that is not a number means the field this subject reads
+      // was renamed or removed in asset-budgets.json (a `globals.*` subject reads
+      // a hardcoded key, so a rename leaves `recorded` undefined). Fail on that
+      // with the reconciliation message rather than letting `driftOf` carry the
+      // undefined into `toLocaleString` and throw a `TypeError` -- issue #847,
+      // finding 4a. The report test below names the exact key mismatch; this
+      // keeps the per-figure arm from crashing before it gets there.
+      expect(
+        typeof recorded,
+        `${label}: asset-budgets.json has no numeric recorded figure for this subject, so the ` +
+          'field was renamed or removed. Reconcile the subject `key` with the file (see the drift ' +
+          'allowance reconciliation below) rather than leaving a subject reading a missing field.',
+      ).toBe('number');
       // A fraction of the recorded value, with no absolute floor: a recorded 0
       // (the passport static-hydration tripwire) therefore means exactly 0. The
       // arithmetic lives in scripts/asset-drift.mjs so the report below computes
@@ -334,22 +347,39 @@ describe('deterministic asset budgets on the production build', () => {
     // the assertion set by construction rather than by two lists happening to
     // agree. `measure` is a thunk: nothing is measured until the row is needed,
     // and every measurement goes through the caches above.
-    type DriftSubject = { label: string; recorded: number; measure: () => number };
+    // `key` is the dotted path of the JSON field this subject reconciles to,
+    // written to match `recordedFigureKeys` below exactly (arrays contribute no
+    // index, so every fixedRoutes entry shares `fixedRoutes.measuredRaw`). It is
+    // what makes the reconciliation a set comparison on KEYS rather than a count:
+    // deleting or renaming a recorded field changes the declared key set and no
+    // longer merely its size, so a removal is caught the same way an addition is.
+    type DriftSubject = { key: string; label: string; recorded: number; measure: () => number };
 
     const driftSubjects: DriftSubject[] = [
       ...budgets.fixedRoutes.map((route: any) => ({
+        key: 'fixedRoutes.measuredRaw',
         label: `${route.id} (${route.path}) measuredRaw`,
         recorded: route.measuredRaw,
         measure: () => analyzeRoute(outDir, route.path, caches).totals.critical.raw,
       })),
       ...budgets.routeGroups.map((group: any) => ({
+        key: 'routeGroups.measuredWorstRaw',
         label: `${group.id} measuredWorstRaw`,
         recorded: group.measuredWorstRaw,
         measure: () => analyzeGroup(group.dir).worstCritical.totals.critical.raw,
       })),
       ...budgets.routeGroups
-        .filter((group: any) => typeof group.measuredWorstJsRaw === 'number')
+        // Keyed on `jsMaxRaw`, not on `measuredWorstJsRaw`: a group with a JS
+        // tripwire MUST carry its recorded drift companion, so this subject is
+        // built whenever the tripwire exists. Deleting `measuredWorstJsRaw` then
+        // leaves a subject whose `recorded` is undefined -- caught by the
+        // per-figure guard's numeric check and by the key reconciliation below --
+        // rather than silently dropping both the subject and the declared key and
+        // staying green (#847, finding 1). Filtering on `measuredWorstJsRaw`
+        // itself is what made a removal invisible.
+        .filter((group: any) => typeof group.jsMaxRaw === 'number')
         .map((group: any) => ({
+          key: 'routeGroups.measuredWorstJsRaw',
           label: `${group.id} measuredWorstJsRaw`,
           recorded: group.measuredWorstJsRaw,
           measure: () => analyzeGroup(group.dir).worstJs.totals.js.raw,
@@ -362,6 +392,7 @@ describe('deterministic asset budgets on the production build', () => {
           ['astroDir', 'astroDirMeasuredRaw'],
         ] as const
       ).map(([kind, key]) => ({
+        key: `globals.${key}`,
         label: `globals.${key}`,
         recorded: budgets.globals[key],
         measure: () => globalTotals(outDir)[kind],
@@ -385,10 +416,17 @@ describe('deterministic asset budgets on the production build', () => {
     // It asserts rather than merely printing, because a report is only worth
     // reading if its denominator reconciles. `recordedFigureKeys` walks
     // asset-budgets.json itself and finds every numeric field whose name says it
-    // records a measurement; the report must cover exactly that many. Add a new
-    // `measured*` field to the file without adding it to `driftSubjects` and
-    // this fails -- which is the accumulation this guard exists to prevent,
-    // caught at the point a figure stops being checked rather than months later.
+    // records a measurement; the guard must cover exactly that SET of keys.
+    //
+    // The reconciliation is on the key SET, not on the count -- issue #847. A
+    // count comparison (`driftSubjects.length === declared.length`) catches an
+    // ADDED figure but not a REMOVED one: deleting `passport.measuredWorstJsRaw`
+    // drops both sides to the same smaller number and stays green, silently
+    // disarming the exact-zero static-hydration tripwire that recorded figure
+    // is. Comparing the sets catches both directions and names the offending
+    // key: a declared key with no subject (a figure free to rot, or a tripwire
+    // deleted) and a subject key with no declaration (a stale subject) each fail
+    // with the missing key in the message.
     it('reports how much of the drift allowance each recorded figure has consumed', () => {
       const recordedFigureKeys = (node: unknown, trail: string[] = []): string[] => {
         if (Array.isArray(node)) return node.flatMap((item) => recordedFigureKeys(item, trail));
@@ -400,19 +438,35 @@ describe('deterministic asset budgets on the production build', () => {
         );
       };
 
-      const declared = recordedFigureKeys(budgets);
+      const declared = [...new Set(recordedFigureKeys(budgets))].sort();
+      const covered = [...new Set(driftSubjects.map((subject) => subject.key))].sort();
+      const declaredSet = new Set(declared);
+      const coveredSet = new Set(covered);
+
       expect(
         declared.length,
         'asset-budgets.json declares no recorded measurement at all, so this report and the ' +
           'assertions above are both measuring nothing. The key scan is the broken part, not the file.',
       ).toBeGreaterThan(0);
+
+      const uncovered = declared.filter((key) => !coveredSet.has(key));
+      const orphaned = covered.filter((key) => !declaredSet.has(key));
       expect(
-        driftSubjects.length,
-        `asset-budgets.json declares ${declared.length} recorded figure(s) (${declared.join(', ')}) ` +
-          `and the drift guard covers ${driftSubjects.length}. A recorded figure that no subject ` +
-          'measures is a figure free to rot unnoticed -- add it to `driftSubjects` above rather ' +
-          'than removing it from the file.',
-      ).toBe(declared.length);
+        { uncovered, orphaned },
+        `asset-budgets.json declares recorded figure key(s) [${declared.join(', ')}] and the drift ` +
+          `guard covers key(s) [${covered.join(', ')}]. ` +
+          (uncovered.length
+            ? `Declared but unguarded: [${uncovered.join(', ')}] -- a recorded figure that no ` +
+              'subject measures is a figure free to rot unnoticed (and deleting one, e.g. the ' +
+              '`passport.measuredWorstJsRaw` exact-zero tripwire, would otherwise pass silently). ' +
+              'Add it to `driftSubjects` above rather than removing it from the file. '
+            : '') +
+          (orphaned.length
+            ? `Guarded but not declared: [${orphaned.join(', ')}] -- a subject key that no field in ` +
+              'asset-budgets.json declares, so a figure was renamed or removed. Fix the `key` on the ' +
+              'matching subject, or restore the field to the file. '
+            : ''),
+      ).toEqual({ uncovered: [], orphaned: [] });
 
       const rows = driftSubjects.map((subject) =>
         driftOf(subject.label, subject.recorded, subject.measure(), maxFraction),
