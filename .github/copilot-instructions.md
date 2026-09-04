@@ -1023,79 +1023,90 @@ which is not portable: measured 128 here on `git 2.53.0.windows.4`, and 1 for a
 bad ref on another agent's git) or `git ls-tree`, and keep `grep` for what it
 can actually see.
 
-**`git grep` matches within a single line, and so does every other
-line-oriented matcher you might reach for here — `git log -S`, `grep`, and
-`String.includes` over file text alongside it. This repository's instruction and
-ADR prose is hard-wrapped near 78 columns, so a probe phrase distinctive enough
-to be worth running is long enough to straddle a line break, and when it does
-the matcher reports it absent while it is present.** That fails toward
-`NOT LANDED` — the reassuring direction this whole page fails in — and it is
-self-confirming, because a phrase you predicted absent reads absent whether or
-not the instrument works. Measured on this file at
-`03536f05fe2ddc1c955b478bc8f7272b966e0255`, one phrase a strict prefix of the
-other: `steps 0 and 2 between them establish` reads **absent** to a naive
-matcher and **present** to a wrap-safe one, while its own prefix
-`steps 0 and 2 between` reads present to both — no correct instrument can find
-the short form and miss its superset, and the long one wraps across a line
-break, `between` ending one line and `them establish` beginning the next. The
-general property, which is what stops the next instance rather than this one:
-**a phrase probe over hard-wrapped prose must normalise whitespace on both
-sides, or it can only under-report.** The one-line wrap-safe form:
+**A matcher that cannot see content which is present reports it as absent, and
+every way that happens is one defect rather than a family of them.** That is
+where this step's false `absent` comes from; it is the reassuring direction —
+`NOT LANDED`, so redo work that already landed — and it is self-confirming,
+because a phrase you predicted absent reads absent whether or not the instrument
+works. The path-name blindness recorded immediately above is one member of it,
+reached by a matcher that reads blob contents and never names. The property is
+stated once, here; the mechanisms after it are worked examples of it and not the
+list you check yourself against:
 
-```js
-const norm = s => s.replace(/\s+/g, ' ').trim();
-norm(fileText).includes(norm(phrase));
-```
+> **A probe that reports absence is only as trustworthy as its matcher's ability
+> to see the thing when it is present.** Reduce both sides to what the reader
+> sees, and reduce nothing the reader sees. Then pair the check with a
+> **positive control that lands on the failing path** — an input the matcher
+> must find, chosen so that a matcher blind in the way you fear *fails* it — run
+> in the same pass with the same quoting, and required to come back
+> **differing** from the subject. A control that exercises only the zero-match
+> path cannot detect a matcher that is blind on the present path, because both
+> answer absent.
 
-Run it against a positive control expected to be **present** in the same
-pass — `merge-base` is a real word this document genuinely uses, so its
-presence is a property of the subject and not of the probe — and a negative
-control expected to be **absent**. Take that negative control from a string
-you invent at the moment of use, never one this file supplies: a document
-cannot name its own negative control, because naming it instantiates it and
-the string then reads present against the very file the probe runs on. The two
-arms must differ or they are one control, because an absent-reading probe and a
-broken probe are otherwise indistinguishable, which is the whole reason a bare
-absent reading is never a verdict. This is the fourth turn of one defect class:
+That adds one clause to step 3's difference control, and the added clause is the
+load-bearing one: the two arms differing is not enough, the control must differ
+*on the path where the matcher fails*. It is also why the examples below
+are not the rule. Enumerating instances is what regenerates this defect —
 abdeslam-menacere/ModelTree#406, abdeslam-menacere/ModelTree#350 and
-abdeslam-menacere/ModelTree#345 each fixed it for a single scanner without
-recording the property, so it regenerated against the next one — the
-landedness probe this section recommends.
+abdeslam-menacere/ModelTree#345 each fixed it for one scanner without recording
+the property, so it came back against the next one, which is this probe — and
+every instance added since has made the list look more complete than it is.
 
-**Whitespace is not the only thing that hides a present phrase from a byte
-matcher. The same probe reads absent when inline markup crosses it — a
-backtick, a bold marker, an em-dash standing between two words the reader
-sees as adjacent.** That is the second member of the class above and it fails
-in the same direction: absent, so `NOT LANDED`, so reassurance. The
-instruments reach it by different mechanisms, which changes nothing —
-`git grep` is line-oriented, while `git log -S` is a byte-substring search
-over the whole blob — because markup is bytes sitting inside the phrase
-either way. Measured on this file at
-`8ac5ccd7259c5d1e27f8a5c44790cbd6edcfa348`: 396 inline code spans by the same
-backtick parity the rule reads, 131 bold spans and 186 em-dashes, in the
-document that mandates the probe.
+Derive both controls at the moment of use and never take one from a document,
+because quoting instantiates. Keep a positive control that must read present —
+`merge-base` is a real word this document uses, so its presence is a property of
+the subject and not of the probe — and a negative one you invent as you go.
+Measured at trunk `c8c1ff7f72609b2f4bfaaf280e925d840e95bfbe`, all three phrases
+this section had pinned as reading *absent* to a naive matcher read **present**,
+each found in the sentence that had quoted it rather than in the prose it was
+taken from, while a string invented in the same invocation exited 1. Those
+quotations went with the text they annotated, so the readings are historical and
+the property they demonstrate is not — which is why no probe phrase is quoted
+below.
 
-Two phrases, written as somebody reading the rendered page would type them —
-`git grep matches within a single line`, and
-`fails toward NOT LANDED the reassuring direction`. Both are present, both
-read **absent** to a naive matcher, and — the part that makes this a defect
-the wrap-safe form does not already cover — both still read absent to that
-form, which collapses their line breaks correctly and leaves the markup where
-it is. Their shorter neighbour `matches within a single line` reads present to
-every matcher here and is a strict substring of the first, so no correct
-instrument can find it and miss its superset. The SHA pin carries those three
-readings, because quoting a phrase instantiates it: from this commit onward
-all three sit in this file as literal bytes. That is the same self-reference
-the paragraph above records for negative controls, arriving from the other
-side.
+Three mechanisms have been recorded here. They differ only in what the matcher
+cannot see:
 
-**CRLF is not a residual here and needs nothing added.** `\s+` matches `\r`,
-so the wrap-safe form already collapses a `\r\n` exactly as it collapses a
-`\n`.
+| mechanism | what the matcher cannot see |
+|---|---|
+| **line wrap**, abdeslam-menacere/ModelTree#870 | this prose hard-wraps near 78 columns, so a phrase distinctive enough to be worth running straddles a line break, and `git grep`, `git log -S`, `grep` and `String.includes` over file text all miss it there |
+| **inline markup**, abdeslam-menacere/ModelTree#879 | a backtick, a bold marker or an em-dash standing between two words the reader sees as adjacent; markup is bytes inside the phrase, so a byte-substring search over the whole blob is defeated exactly as a line-oriented matcher is |
+| **scalar/array polymorphism**, abdeslam-menacere/ModelTree#858 | no text matching in it at all: a PowerShell filter matching **exactly one** record returns that record rather than a one-element array, and a scalar `PSCustomObject` has no `Count`, so the value is `$null` and `.Count -gt 0` is `False` for a record that is present |
 
-The markup-safe form subsumes the wrap-safe one rather than replacing it —
-its last two steps are that form — and it reads the file's own backtick
-pairing as structure, so an asterisk is classified before it is touched:
+Measured at `8ac5ccd7259c5d1e27f8a5c44790cbd6edcfa348`, the document that
+mandates this probe carries 396 inline code spans by the same backtick parity
+the rule below reads, 131 bold spans and 186 em-dashes, all 186 space-flanked;
+the line-wrap reading was first taken at
+`03536f05fe2ddc1c955b478bc8f7272b966e0255`, and the polymorphism on
+`PSVersion 5.1.26100.9168`:
+
+| matches | result type | `.Count` | `.Count -gt 0` |
+|---|---|---|---|
+| 0 | `$null` | `0` | `False` |
+| 1 | `PSCustomObject` | *(empty)* | `False` |
+| 2+ | `Object[]` | the count | `True` |
+
+Re-measure those rows against your own `$PSVersionTable.PSVersion` rather than
+trusting them, and on a non-Windows shell say there is no `.Count` polymorphism
+to reproduce rather than asserting they hold. The direction opposite to that
+third mechanism is abdeslam-menacere/ModelTree#800, where a PowerShell array
+silently *joins* into one string — one-becomes-none here against
+one-becomes-many there, and neither supersedes the other.
+
+Each mechanism's control has to land on its own failing path. For the wrap, a
+phrase that wraps: one that fits on a line passes while the probe is blind. For
+markup, a phrase running from outside one of this file's code spans into it,
+which must read present to the normaliser below and absent to its last two steps
+taken alone — a control reading present to both is not exercising the property
+at all. For the filter, an id present exactly once: the fabricated id this page mandates
+everywhere exercises the zero-match path while the defect lives on the one-match
+path, so both arms read `False` and a control that looks like it passed has
+discriminated nothing.
+
+**The safe forms.** For a phrase probe over this prose, one normaliser applied
+to both sides. It subsumes the wrap-safe form rather than replacing it — the
+wrap-safe form is its last two steps, which are also why CRLF is not a residual
+and needs nothing added, since `\s+` matches `\r`:
 
 ```js
 const norm = s => s
@@ -1103,85 +1114,72 @@ const norm = s => s
   .map((t, i) => (i % 2 ? t : t.replace(/\*/g, '')))   // odd = code span
   .join('')
   .replace(/[\u2014\u2013]/g, ' ')
-  .replace(/\s+/g, ' ')
+  .replace(/\s+/g, ' ')    // these last two steps alone are the wrap-safe form
   .trim();
 norm(fileText).includes(norm(phrase));
 ```
 
-**Which way the over-normalisation trade was made, and why.** A rule
-aggressive enough to erase backticks and asterisks can erase a distinction
-too, and a probe that matches too much is a false *positive* — trunk already
-says this, stop — which is the unrecoverable direction, where the false
-negative being fixed here is only the reassuring one. So the rule deletes a
-delimiter only where it cannot be content, and it separates the two by
-structure rather than by taste: outside a code span an asterisk is an emphasis
-marker, inside one it is a glob. Measured at the pinned SHA — 628 asterisks,
-624 outside code spans and 4 inside; **0** asterisk-bearing tokens outside a
-code span contain a path separator; and deleting those 624 leaves the count of
-alphanumeric words unchanged at 14,986, so no word is split or fused. The
-blunter rule that reaches for `.replace(/[\u0060*_]/g, '')` is rejected on
-measurement rather than on taste — but not on the corpus below, which cannot
-reject it: every window there is cut from the rendered text, so **present**
-is the correct answer for all of them, and the blunt rule returns present for
-all of them. What rejects it is the opposite corpus. Take a window carrying
-an interior underscore or a code-span asterisk, delete that one character,
-and the result is a string the reader never sees, so **absent** is the
-correct answer now. **3,276** such twins exist at the pinned SHA, and the
-blunt rule reads every one of them present — 3,276 false positives, all in
-the unrecoverable direction — where the rule above reads **0**. The control
-is two-sided in the same pass: the 2,688 undeleted originals all read present
-under the rule above, so that **0** is a discrimination and not blindness.
-It is the underscore rather than the asterisk that carries the decision —
-blunt deletes it from both sides, so a probe spelling `NOT_PLANNED` without
-its underscore matches the real one, and nothing tells them apart again. A
-further 588 twins delete an asterisk at the edge of a word and are excluded,
-because a glob stripped from the end of `refs/heads/*` leaves a genuine
-substring of it, so present is correct there and the case tests neither
-rule. The twins themselves are not written
-out here, because quoting one would instantiate it and cost every later
-reader the measurement. Underscore is therefore left alone — 13 occur, **0**
-of them as an emphasis delimiter, every one inside an identifier such as
-`source_issue_number`. An em-dash becomes a space rather than nothing, so a
-phrase typed without one still matches and no two tokens are ever fused; all
-186 are space-flanked today, so that costs nothing now and holds if one is
-not.
-
 **A literal is quoted, not normalised.** Backticked content survives verbatim,
 which is the escape hatch for the one case where an asterisk is content: put
 backticks round a probe that carries one, so `refs/heads/*` reaches `norm`
-already quoted. Bare, 1,134 of the 1,176 windows carrying a literal asterisk
-are missed — read absent where present is the correct answer, which is the
+already quoted. Bare, 1,134 of the 1,176 windows carrying a literal asterisk are
+missed — read absent where present is the correct answer, which is the
 recoverable direction, so the rule is safe without this and complete with it.
 
-**Demonstrated by search rather than asserted.** Take every contiguous window
-of 4 to 24 words of the rendered text — 16,042 words, **336,609** candidates —
-and read each one back. The naive byte matcher misses **284,816** of them, or
-84.6%; the wrap-safe form misses **167,159**, or 49.7%; the form above, with
-literals quoted, misses **0**. Then run those same 336,609 windows again with
-one interior word replaced by a nonce invented at the moment of use, and
-**336,609** read absent — 0 false positives, which is what makes the first
-number a finding rather than a matcher answering present to everything. A
-third arm reads the 3,276 delimiter-deleted twins, which must come back
-absent, and **0** of them read present. 676,494 candidates, 0
-counterexamples.
+For a presence check written as a filter, any form that is correct for 0, 1 and
+many — each makes the subject and its control **differ** where the bare `.Count`
+makes them agree:
 
-Keep a positive control in the same pass, or absent stays indistinguishable
-from broken: `merge-base` is a real word this document uses, so it must read
-present. The markup property needs a control that crosses markup, so derive
-that one rather than quoting it — take any phrase running from outside one of
-this file's inline code spans into it. It must read present to the form above
-and absent to the wrap-safe one, and a control reading present to both is not
-exercising the property at all.
+```powershell
+@($records | Where-Object { $_.id -eq $id }).Count -gt 0             # array subexpression
+($records | Where-Object { $_.id -eq $id } | Measure-Object).Count  # pipe to Measure-Object
+[bool]($records | Where-Object { $_.id -eq $id })                   # cast to bool
+```
 
-The general property, which is what stops the next instance rather than this
-one: **a phrase probe must reduce both sides to what the reader sees, and must
-reduce nothing the reader sees.** Whitespace was the first half of that and
-markup is the second. The rule's one precondition is the pairing it reads as
-structure — 1,002 backticks at the pinned SHA, even, across 70 paired fence
-runs — and where that is broken it treats the prose after the break as code
-and stops stripping emphasis, which under-reports. That is the recoverable
-direction as well, so a broken precondition costs a redundant check and never
-a discarded branch.
+`@(...)` is the idiomatic one and the shortest edit from what is already
+written. Measured against `web/src/data/releases.json`, whose
+`lg-ai-research-exaone-4-0-32b` is present as exactly one record: the bare form
+reads `subject=False` and `control=False`, so the fabricated id
+`zzz-not-a-real-id` cannot be told apart from the present one; each safe form
+reads `subject=True` and `control=False`, and `@(...).Count` returns 0, 1 and 2
+for the fabricated id, the exaone-4 id and the `*exaone*` glob respectively.
+
+**Which way the over-normalisation trade was made, and why.** A rule aggressive
+enough to erase delimiters can erase a distinction too, and a probe that matches
+too much is a false *positive* — trunk already says this, stop — which is the
+unrecoverable direction, where the false negative being fixed here is only the
+reassuring one. So the rule deletes a delimiter only where it cannot be content,
+and it separates the two by structure rather than by taste: outside a code span
+an asterisk is an emphasis marker, inside one it is a glob. The underscore
+carries the decision and is left alone entirely, because blunt deletion of it
+from both sides lets a probe spelling `NOT_PLANNED` without its underscore match
+the real one and nothing tells them apart again; an em-dash becomes a space
+rather than nothing, so a phrase typed without one still matches and no two
+tokens are ever fused, which costs nothing while they are space-flanked and
+holds if one is not. Rejected on measurement rather than on taste, and
+demonstrated by search rather than asserted, at the SHA pinned above:
+
+| measured | figure |
+|---|---|
+| asterisks — outside code spans / inside | 628 — 624 / 4 |
+| asterisk-bearing tokens outside a code span holding a path separator | **0** |
+| alphanumeric words, before and after deleting those 624 | 14,986 both, so no word is split or fused |
+| underscores — of them emphasis delimiters | 13 — **0**, every one inside an identifier such as `source_issue_number` |
+| twins: one interior underscore or code-span asterisk deleted, so **absent** is now the correct answer | **3,276** |
+| those twins read *present* by the blunt `.replace(/[\u0060*_]/g, '')` / by the rule above | 3,276, every one a false positive in the unrecoverable direction / **0** |
+| the 2,688 undeleted originals read present by the rule above | all of them, so that **0** is a discrimination and not blindness |
+| twins excluded because the asterisk sat at a word edge, a glob stripped from `refs/heads/*` leaving a genuine substring | 588 |
+| windows of 4 to 24 contiguous words of the rendered text, from 16,042 words | **336,609** |
+| of those, missed by the naive byte matcher / the wrap-safe form / the form above with literals quoted | 284,816 (84.6%) / 167,159 (49.7%) / **0** |
+| the same windows with one interior word replaced by a nonce invented at the moment of use, read absent | **336,609**, so 0 false positives |
+| candidates over all three arms — counterexamples | 676,494 — **0** |
+| backticks, even, across paired fence runs: the rule's one precondition | 1,002 across 70 |
+
+The twins themselves are not written out here, because quoting one would
+instantiate it and cost every later reader the measurement. Where the backtick
+pairing is broken the rule treats the prose after the break as code and stops
+stripping emphasis, which under-reports — the recoverable direction again, so a
+broken precondition costs a redundant check and never a discarded branch.
 
 Take the probe string from the branch's **newest** commit, or you prove
 something about round one and nothing about round two. Take it narrow. A string
@@ -1207,62 +1205,6 @@ the content equivalent of comparing a file you never touched. Before trusting a
 match, establish that the phrase is yours: grep for it at the merge-base, where
 it must be **absent**, in the same invocation with the same quoting. A phrase
 present at the merge-base is not a probe, it is a constant.
-
-**Counting a filtered result is unsafe in PowerShell, and it fails toward the
-same false `absent` the wrap and markup hazards above do — it is the third
-member of that class.** abdeslam-menacere/ModelTree#870 fixed the line-wrap
-member and abdeslam-menacere/ModelTree#879 the inline-markup one; this one
-arrives through PowerShell's scalar/array polymorphism rather than through text
-matching, so it bites the moment you check presence by parsing the file and
-filtering — `($records | Where-Object { $_.id -eq $id }).Count -gt 0` —
-instead of grepping. A filter matching **exactly one** record returns that
-record, not a one-element array, and a scalar `PSCustomObject` has no `Count`,
-so `.Count` is `$null` and `.Count -gt 0` is `False` for a record that is
-present. Zero matches and one match are then indistinguishable, and the
-one-match case reports *absent* — toward re-doing landed work, the reassuring
-direction this whole page fails in. Measured here on
-`PSVersion 5.1.26100.9168` against `web/src/data/releases.json`, whose
-`lg-ai-research-exaone-4-0-32b` is present as exactly one record:
-
-| matches | result type | `.Count` | `.Count -gt 0` |
-|---|---|---|---|
-| 0 | `$null` | `0` | `False` |
-| 1 | `PSCustomObject` | *(empty)* | `False` |
-| 2+ | `Object[]` | the count | `True` |
-
-Re-measure that table against your own `$PSVersionTable.PSVersion` rather than
-trusting these three rows, and on a non-Windows shell say there is no `.Count`
-polymorphism to reproduce rather than asserting the rows hold.
-
-The safe forms are correct for 0, 1 and many, and each makes the subject and
-its control **differ** where the bare `.Count` makes them agree:
-
-```powershell
-@($records | Where-Object { $_.id -eq $id }).Count -gt 0             # array subexpression
-($records | Where-Object { $_.id -eq $id } | Measure-Object).Count  # pipe to Measure-Object
-[bool]($records | Where-Object { $_.id -eq $id })                   # cast to bool
-```
-
-`@(...)` is the idiomatic one and the shortest edit from what is already
-written. Measured on that same file: the bare form reads `subject=False` and
-`control=False`, so the fabricated id `zzz-not-a-real-id` cannot be told apart
-from the present one; each safe form reads `subject=True` and `control=False`,
-and `@(...).Count` returns 0, 1 and 2 for the fabricated id, the exaone-4 id and
-the `*exaone*` glob respectively.
-
-**Its sharper lesson is about controls, and it outlives the one bug: the
-fabricated-input control this page mandates everywhere cannot catch this,
-because that control exercises the zero-match path and the defect lives on the
-one-match path.** A control that returns the *same* value as the subject has
-discriminated nothing — two `False`s look like a passing control and are equally
-consistent with a wholly broken instrument. So the difference control of step 3
-gains one clause here: report both arms, require them to **differ**, and where a
-control cannot in principle come back the other way from the failure you fear —
-a zero-match control against a one-match bug — it is not a control for that bug,
-and you need one that lands on the failing path. The direction opposite to this
-is abdeslam-menacere/ModelTree#800, where a PowerShell array silently *joins*
-into one string: the same polymorphism, one-becomes-none here against
-one-becomes-many there, and neither supersedes the other.
 
 ### Step 5 — tree arithmetic, corroboration only and never the verdict
 
