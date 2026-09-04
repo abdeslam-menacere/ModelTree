@@ -461,9 +461,10 @@
     "sourceIds": [
       "anthropic-models-overview",
       "anthropic-fable-5-mythos-5-docs",
-      "anthropic-fable-5-docs"
+      "anthropic-fable-5-docs",
+      "anthropic-api-release-notes"
     ],
-    "verifiedAt": "2026-09-02"
+    "verifiedAt": "2026-09-03"
   },
   {
     "id": "anthropic-claude-mythos-5",
