@@ -275,16 +275,32 @@ describe('the script run as a process', () => {
   // Both halves of the control together, because either alone proves less: a
   // wrapper that accepted everything would pass the first two and fail the
   // third, and one that refused everything would pass the third and fail the
-  // first two. The two real checks are awaited concurrently -- one full check is
-  // ~30s and the pair costs about the same wall clock as one.
+  // first two.
+  //
+  // The two real checks are run one after another rather than together. They
+  // used to be awaited concurrently, on the reasoning that one full check is
+  // ~30s and the overlapped pair costs about the same wall clock as one. That
+  // holds on an idle machine and inverts under load, which is the failure #786
+  // and #885 are about: each `astro check --root .` is a full astro/vite/tsc
+  // pass, and two of them running at the same instant on a contended box do not
+  // finish in one check's time -- they starve each other for CPU and memory and
+  // finish later than back-to-back would, or one of the spawned astro processes
+  // dies outright and exits non-zero (observed here as `code 1` under load,
+  // which trips the exit-0 assertion below), or the whole test overruns its
+  // 180 s cap (observed here at 180064 ms under load). Two heavy subprocesses
+  // fired at once from a single test is self-inflicted amplification of exactly
+  // the contention that makes this suite flaky; serialising them halves this
+  // test's peak real-process count while changing nothing it asserts. The stray
+  // refusal spawns no astro pass -- it refuses before starting one -- so it
+  // stays alongside the first check at no cost.
   it(
     'runs `--root .` and `--root=.` for real and still refuses a real stray path',
     async () => {
-      const [spaced, equals, stray] = await Promise.all([
+      const [spaced, stray] = await Promise.all([
         runScript(['--root', '.']),
-        runScript(['--root=.']),
         runScript([SWALLOWED_PATH]),
       ]);
+      const equals = await runScript(['--root=.']);
 
       for (const [form, result] of [
         ['--root .', spaced],
@@ -306,6 +322,30 @@ describe('the script run as a process', () => {
       expect(stray.stderr).toContain('refusing to run');
       expect(stray.code).not.toBe(0);
     },
+    // -- Why the cap stays at 180 s (#786/#885) --
+    //
+    // 180 s was sized in #679 against this test's *standalone* runtime, ~108 s,
+    // a ~1.7x margin. That margin was real standalone but thin in the concurrent
+    // suite, where the test actually runs (inside `npm run test`, alongside ~125
+    // other files, which is how CI, `npm run validate` and the Pages deploy all
+    // reach it): before this change the body reached 130-229 s in-suite and hit
+    // the cap under load.
+    //
+    // The two companion changes cut this test's own runtime rather than its
+    // budget: the two `astro check` passes above now run back-to-back rather than
+    // via `Promise.all`, and `vitest.config.ts` bounds the fork pool. Re-measured
+    // with both in place, this test's body took ~53 s standalone, 53056 ms in the
+    // full suite under light load, and 94612 ms under heavy sibling-dock load,
+    // across repeated runs on an unchanged tree -- all green, none of the timeout,
+    // `Failed to start forks worker` or astro `code 1` signatures recurring.
+    //
+    // So the fix restores the margin the old number claimed: the realistic
+    // in-suite worst case is now ~95 s, which is ~1.9x under the existing 180 s
+    // cap -- better than #679's ~1.7x, by the same methodology. The cap therefore
+    // does not need to move, and is deliberately left where it is: raising it with
+    // no measured need would be exactly the timeout-suppression #786 forbids. The
+    // ceiling stays finite so a truly hung `astro check` is still killed and
+    // surfaced rather than hanging the suite.
     180_000,
   );
 });

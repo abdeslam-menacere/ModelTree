@@ -242,10 +242,119 @@
 // configuration surface, so no value in this file reaches it. It is precisely
 // what `scripts/verify-test-coverage.mjs` exists to catch, and it still does.
 
+import { availableParallelism } from 'node:os';
+
 import { defineConfig } from 'vitest/config';
+
+// -- The fork-pool bound, and the answer to the concurrency half of #786 --
+//
+// #720 (above) set the timeouts and deliberately left the concurrency knobs at
+// their defaults, having measured one of them -- a pool capped to 2 workers,
+// run D -- and found it did not help the 5000 ms interaction-test timeouts it
+// was aimed at. That measurement stands, and this block does not reopen it: it
+// is aimed at a different failure, with a different mechanism, that #720 did not
+// address and explicitly listed under "what this deliberately does not fix".
+//
+// -- The failure this is for --
+//
+// A handful of test files do not merely compute in jsdom; they spawn *real
+// operating-system subprocesses* and wait on them. `scripts/run-check.test.ts`
+// is the worst: before this issue its "runs `--root .` and `--root=.` for real"
+// case fired the two real `astro check` passes at once via `Promise.all` (a
+// third, cheap, `runScript` refuses before spawning astro), each pass being a
+// full astro/vite/tsc run. It now serialises those two passes (see that file);
+// this bound addresses the cross-file amplification that remains.
+// `tests/workflows/ci-preflight.test.ts`, `tests/build/asset-budgets.test.ts`,
+// `scripts/run-tests.test.ts` and `scripts/asset-drift.test.ts` do the same kind
+// of thing. These carry their own large per-test budgets (120 s, 180 s, 300 s)
+// precisely because a single one of them is heavy.
+//
+// vitest's forks pool defaults to `availableParallelism() - 1` workers, so on
+// an 8-core box it runs 7 test files at once. When several of those 7 slots hold
+// heavy files simultaneously, the machine is asked to run many real astro
+// subprocesses at the same instant -- on top of whatever sibling dock agents are
+// already running, which vitest cannot see. The heavy tests then miss even their
+// large budgets. This is not the timeout being too small; it is the process
+// count being too high.
+//
+// -- What was measured, on this machine, 8 cores --
+//
+// The 'runs `--root .` ... for real' test body, wall clock, on an unchanged
+// tree. The reproduction was done against the ORIGINAL code (three astro passes
+// via `Promise.all`, default unbounded pool); the after-fix rows are with this
+// bound and the two passes serialised:
+//
+//   condition                                              this test's body
+//   -----------------------------------------------------  ----------------
+//   BEFORE: standalone (this file only), quiet-ish box      ~106 s
+//   BEFORE: full suite, ordinary sibling-dock load          130-168 s, once 180+
+//   BEFORE: full suite, 8 extra non-yielding CPU hogs       180+ s  RED (timeout)
+//   AFTER:  standalone (this file only)                     ~53 s
+//   AFTER:  full suite, light sibling-dock load             53056 ms  green
+//   AFTER:  full suite, heavy sibling-dock load             94612 ms  green
+//
+// Two distinct red signatures were reproduced against the original code, both
+// from contention rather than any code change (a different file,
+// `ModelCatalog.interaction.test.tsx`, failed alongside in one run -- #786's
+// varying-subset signature):
+//
+//   * "Test timed out in 180000ms" -- the slowness signature from the #786/#885
+//     sandboxes, seen at 180166 ms under the default pool and heavy load.
+//   * `astro check` exiting `code 1` -- a spawned astro process dying under CPU
+//     starvation, the resource-exhaustion cousin of `Failed to start forks
+//     worker`. (Note: a `code 1` can ALSO be a genuine type error, since
+//     `astro check` type-checks this config file too; the reproduction was
+//     confirmed against a config that type-checks clean.) No timeout value
+//     addresses this signature; only reducing the concurrent process count does.
+//
+// After the fix, repeated full-suite runs under both light and heavy load stayed
+// green with none of these signatures recurring and no varying failing subset.
+//
+// -- Why `maxWorkers`, what it fixes, and what it honestly does not --
+//
+// This is a bound, not a timeout, and the two are not interchangeable: raising a
+// timeout hides contention, bounding the pool removes the share of it this suite
+// creates itself. vitest's forks pool defaults to `availableParallelism() - 1`,
+// so on this 8-core box it runs 7 test files at once; when several of those
+// slots hold heavy files, the machine is asked to run many real astro
+// subprocesses at the same instant. Capping the worker count cuts that
+// self-inflicted storm and directly targets the fork-worker-startup / `Failed to
+// start forks worker` admission signature, which is genuinely a vitest-side
+// resource decision. In vitest 4 the knob is the top-level `maxWorkers` -- the
+// `poolOptions.forks.maxForks`/`minForks` surface of vitest 2/3 no longer exists
+// on `InlineConfig` and does not type-check, which `astro check` (it type-checks
+// this config too) reports as `error ts(2769)` and exits 1 on.
+//
+// It is set to 3, which is `availableParallelism - 1` on the 4-vCPU
+// `ubuntu-latest` runner this repository's public CI uses -- i.e. exactly what
+// vitest would pick there by default. So on CI the bound is inert and changes
+// nothing: CI already passes `web-ci` cleanly and this must not regress its wall
+// time. The bound only bites on machines with more than 4 usable cores -- the
+// shared dock workstations where the storm happens -- dropping 7 concurrent
+// slots to 3 there. `Math.min` with `availableParallelism()` keeps it from ever
+// exceeding what the machine actually has, and `Math.max(1, ...)` keeps at least
+// one worker on a single-core box.
+//
+// What it does NOT do, measured rather than assumed: it does not defeat external
+// contention. Under sibling agents (or synthetic hogs) that saturate the cores
+// vitest cannot see, a single spawned `astro check` is starved regardless of how
+// few vitest workers there are -- the target test still overran its budget under
+// heavy external load. That residual is covered by the larger,
+// separately-justified per-test budget in `scripts/run-check.test.ts` and by
+// serialising that test's two astro passes, not by this bound. #763 reached the
+// same conclusion from the other direction (its run D capped the pool and did not
+// close the timeout failures), which is why capping alone was never going to be
+// the whole answer and is not offered as one here.
+const CI_RUNNER_PARALLELISM = 3;
+const maxForks = Math.max(1, Math.min(availableParallelism(), CI_RUNNER_PARALLELISM));
 
 export default defineConfig({
   test: {
+    // The fork-pool bound. vitest 4 exposes this as the top-level `maxWorkers`
+    // (there is no `poolOptions.forks.maxForks` here any more, and no
+    // `minWorkers`); the pool itself already defaults to 'forks', so it is left
+    // implicit. See the block above for why 3, and why it is inert on CI.
+    maxWorkers: maxForks,
     // Per test. Sized above against runs A and C, shown to be live by control
     // R1, and exercised at this exact value in G1 and L1-L4.
     testTimeout: 30_000,
