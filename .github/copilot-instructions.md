@@ -330,6 +330,51 @@ the first of its three commits, and read against that SHA its record looked
 strictly *worse* than trunk's, because everything that improved it sat in the
 two commits it did not name.
 
+The commit-count line has a second failure mode that is quieter than a stale
+SHA, and it is specific to the command the rule mandates. Written in PowerShell
+with the merge-base substituted inline and left unquoted —
+`git rev-list --count $(git merge-base HEAD refs/remotes/origin/main)..HEAD` —
+PowerShell splits that one rev-spec into **two arguments at the subexpression
+boundary**, the merge-base SHA and a separate `..HEAD`. This is argument
+splitting into two valid rev-specs, not a rev-spec rewritten into one different
+object, so an agent watching for "did my rev-spec become a different single
+commit" will not recognise it. `git rev-list --count` accepts multiple rev-specs
+and **unions** them, so both fragments resolve and it answers a different
+question at **exit 0**, with no warning. What that different question is depends
+on the trailing rev-spec, and the case the rule mandates is the treacherous one:
+with `..HEAD` trailing, the split parses as `<merge-base> HEAD ^HEAD`, and a
+merge-base is by definition an ancestor of HEAD, so `^HEAD` cancels everything
+and the count is **0 on every branch in every repository** — do not measure some
+base against which it comes out otherwise, because there is none. Zero is not the
+harmless answer it looks like: a dock reporting **0** commits is reporting that
+it carries no work, which reads as already-landed, the exact
+abdeslam-menacere/ModelTree#584 failure the write-time measurement exists to
+prevent. Only when the trailing rev-spec is something other than HEAD — the
+issue's own `$(git merge-base $b refs/remotes/origin/main)..$b`, where `$b` is a
+branch name — does the union survive as a large plausible non-round number rather
+than collapsing to zero. Either way the reported figure is not the count of
+anything asked about, and nothing in the output says so.
+
+Do not read a loud failure from a neighbouring command as evidence this class
+announces itself. The *scope* line one paragraph of the summary away runs
+`git diff --stat`, and `git diff` **rejects** the same split two-argument form
+outright — **exit 129**, usage message — where `git rev-list --count` swallows it
+at exit 0. So the identical shell defect is loud in the command you would test
+your quoting habit against and silent in the one that actually feeds a reported
+figure. The safe form is the same in PowerShell and bash: assign the merge-base
+to a variable, then double-quote the range (single quotes would defeat the
+interpolation of a computed merge-base):
+
+```powershell
+$mb = (git merge-base HEAD refs/remotes/origin/main).Trim()
+git rev-list --count "$mb..HEAD"
+git --no-pager diff --stat "$mb...HEAD"
+```
+
+This is the same subexpression-boundary hazard the rev-range note below records;
+the point here is that `rev-list --count` is on its *silent* side, and that the
+loud sibling next to it in the very same summary is not a warning system for it.
+
 **Establish that there is still a reason to open a gate, before you post.** A
 dock can be redundant in three structurally different ways. They fail
 independently, each has cost this repository whole cycles, and — the part that
