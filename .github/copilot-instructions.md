@@ -213,6 +213,41 @@ the first of its three commits, and read against that SHA its record looked
 strictly *worse* than trunk's, because everything that improved it sat in the
 two commits it did not name.
 
+The commit-count line has a second failure mode that is quieter than a stale
+SHA, and it is specific to the command the rule mandates. Written in PowerShell
+with the merge-base substituted inline and left unquoted —
+`git rev-list --count $(git merge-base HEAD refs/remotes/origin/main)..HEAD` —
+PowerShell splits that one rev-spec into **two arguments at the subexpression
+boundary**, the merge-base SHA and a separate `..HEAD`. This is argument
+splitting into two valid rev-specs, not a rev-spec rewritten into one different
+object, so an agent watching for "did my rev-spec become a different single
+commit" will not recognise it. `git rev-list --count` accepts multiple rev-specs
+and **unions** them, so both fragments resolve and it answers a different
+question — reporting `(trunk ∪ branch) − HEAD` rather than your commit count — at
+**exit 0**, with no warning and a plausible non-round number. Measured on one
+branch: the unquoted form returned **191**, the quoted `"$mb..HEAD"` form **4**;
+the wrong figure was reported as `188` before it was caught.
+
+Do not read a loud failure from a neighbouring command as evidence this class
+announces itself. The *scope* line one paragraph of the summary away runs
+`git diff --stat`, and `git diff` **rejects** the same split two-argument form
+outright — **exit 129**, usage message — where `git rev-list --count` swallows it
+at exit 0. So the identical shell defect is loud in the command you would test
+your quoting habit against and silent in the one that actually feeds a reported
+figure. The safe form is the same in PowerShell and bash: assign the merge-base
+to a variable, then double-quote the range (single quotes would defeat the
+interpolation of a computed merge-base):
+
+```powershell
+$mb = (git merge-base HEAD refs/remotes/origin/main).Trim()
+git rev-list --count "$mb..HEAD"
+git --no-pager diff --stat "$mb...HEAD"
+```
+
+This is the same subexpression-boundary hazard the rev-range note below records;
+the point here is that `rev-list --count` is on its *silent* side, and that the
+loud sibling next to it in the very same summary is not a warning system for it.
+
 **Establish that there is still a reason to open a gate, before you post.** A
 dock can be redundant in three structurally different ways. They fail
 independently, each has cost this repository whole cycles, and — the part that
