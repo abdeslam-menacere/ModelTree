@@ -1071,8 +1071,9 @@ instruments reach it by different mechanisms, which changes nothing —
 `git grep` is line-oriented, while `git log -S` is a byte-substring search
 over the whole blob — because markup is bytes sitting inside the phrase
 either way. Measured on this file at
-`8ac5ccd7259c5d1e27f8a5c44790cbd6edcfa348`: 395 inline code spans, 129 bold
-spans and 186 em-dashes, in the document that mandates the probe.
+`8ac5ccd7259c5d1e27f8a5c44790cbd6edcfa348`: 396 inline code spans by the same
+backtick parity the rule reads, 131 bold spans and 186 em-dashes, in the
+document that mandates the probe.
 
 Two phrases, written as somebody reading the rendered page would type them —
 `git grep matches within a single line`, and
@@ -1119,10 +1120,27 @@ marker, inside one it is a glob. Measured at the pinned SHA — 628 asterisks,
 code span contain a path separator; and deleting those 624 leaves the count of
 alphanumeric words unchanged at 14,986, so no word is split or fused. The
 blunter rule that reaches for `.replace(/[\u0060*_]/g, '')` is rejected on
-measurement rather than on taste: it takes the 4 as well, and on the corpus
-below it turns 1,176 windows from a correct absent into a confident wrong
-present. Underscore is left alone on the same evidence — 13 occur, **0** of
-them as an emphasis delimiter, every one inside an identifier such as
+measurement rather than on taste — but not on the corpus below, which cannot
+reject it: every window there is cut from the rendered text, so **present**
+is the correct answer for all of them, and the blunt rule returns present for
+all of them. What rejects it is the opposite corpus. Take a window carrying
+an interior underscore or a code-span asterisk, delete that one character,
+and the result is a string the reader never sees, so **absent** is the
+correct answer now. **3,276** such twins exist at the pinned SHA, and the
+blunt rule reads every one of them present — 3,276 false positives, all in
+the unrecoverable direction — where the rule above reads **0**. The control
+is two-sided in the same pass: the 2,688 undeleted originals all read present
+under the rule above, so that **0** is a discrimination and not blindness.
+It is the underscore rather than the asterisk that carries the decision —
+blunt deletes it from both sides, so a probe spelling `NOT_PLANNED` without
+its underscore matches the real one, and nothing tells them apart again. A
+further 588 twins delete an asterisk at the edge of a word and are excluded,
+because a glob stripped from the end of `refs/heads/*` leaves a genuine
+substring of it, so present is correct there and the case tests neither
+rule. The twins themselves are not written
+out here, because quoting one would instantiate it and cost every later
+reader the measurement. Underscore is therefore left alone — 13 occur, **0**
+of them as an emphasis delimiter, every one inside an identifier such as
 `source_issue_number`. An em-dash becomes a space rather than nothing, so a
 phrase typed without one still matches and no two tokens are ever fused; all
 186 are space-flanked today, so that costs nothing now and holds if one is
@@ -1132,8 +1150,8 @@ not.
 which is the escape hatch for the one case where an asterisk is content: put
 backticks round a probe that carries one, so `refs/heads/*` reaches `norm`
 already quoted. Bare, 1,134 of the 1,176 windows carrying a literal asterisk
-read absent — the recoverable direction, so the rule is safe without this and
-complete with it.
+are missed — read absent where present is the correct answer, which is the
+recoverable direction, so the rule is safe without this and complete with it.
 
 **Demonstrated by search rather than asserted.** Take every contiguous window
 of 4 to 24 words of the rendered text — 16,042 words, **336,609** candidates —
@@ -1142,8 +1160,10 @@ and read each one back. The naive byte matcher misses **284,816** of them, or
 literals quoted, misses **0**. Then run those same 336,609 windows again with
 one interior word replaced by a nonce invented at the moment of use, and
 **336,609** read absent — 0 false positives, which is what makes the first
-number a finding rather than a matcher answering present to everything.
-673,218 candidates, 0 counterexamples.
+number a finding rather than a matcher answering present to everything. A
+third arm reads the 3,276 delimiter-deleted twins, which must come back
+absent, and **0** of them read present. 676,494 candidates, 0
+counterexamples.
 
 Keep a positive control in the same pass, or absent stays indistinguishable
 from broken: `merge-base` is a real word this document uses, so it must read
