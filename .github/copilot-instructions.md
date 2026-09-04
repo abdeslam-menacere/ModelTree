@@ -1023,6 +1023,45 @@ which is not portable: measured 128 here on `git 2.53.0.windows.4`, and 1 for a
 bad ref on another agent's git) or `git ls-tree`, and keep `grep` for what it
 can actually see.
 
+**`git grep` matches within a single line, and so does every other
+line-oriented matcher you might reach for here — `git log -S`, `grep`, and
+`String.includes` over file text alongside it. This repository's instruction and
+ADR prose is hard-wrapped near 78 columns, so a probe phrase distinctive enough
+to be worth running is long enough to straddle a line break, and when it does
+the matcher reports it absent while it is present.** That fails toward
+`NOT LANDED` — the reassuring direction this whole page fails in — and it is
+self-confirming, because a phrase you predicted absent reads absent whether or
+not the instrument works. Measured on this file at
+`03536f05fe2ddc1c955b478bc8f7272b966e0255`, one phrase a strict prefix of the
+other: `steps 0 and 2 between them establish` reads **absent** to a naive
+matcher and **present** to a wrap-safe one, while its own prefix
+`steps 0 and 2 between` reads present to both — no correct instrument can find
+the short form and miss its superset, and the long one wraps across a line
+break, `between` ending one line and `them establish` beginning the next. The
+general property, which is what stops the next instance rather than this one:
+**a phrase probe over hard-wrapped prose must normalise whitespace on both
+sides, or it can only under-report.** The one-line wrap-safe form:
+
+```js
+const norm = s => s.replace(/\s+/g, ' ').trim();
+norm(fileText).includes(norm(phrase));
+```
+
+Run it against a positive control expected to be **present** in the same
+pass — `merge-base` is a real word this document genuinely uses, so its
+presence is a property of the subject and not of the probe — and a negative
+control expected to be **absent**. Take that negative control from a string
+you invent at the moment of use, never one this file supplies: a document
+cannot name its own negative control, because naming it instantiates it and
+the string then reads present against the very file the probe runs on. The two
+arms must differ or they are one control, because an absent-reading probe and a
+broken probe are otherwise indistinguishable, which is the whole reason a bare
+absent reading is never a verdict. This is the fourth turn of one defect class:
+abdeslam-menacere/ModelTree#406, abdeslam-menacere/ModelTree#350 and
+abdeslam-menacere/ModelTree#345 each fixed it for a single scanner without
+recording the property, so it regenerated against the next one — the
+landedness probe this section recommends.
+
 Take the probe string from the branch's **newest** commit, or you prove
 something about round one and nothing about round two. Take it narrow. A string
 that is distinctive but over-specific produces a false negative in the same
