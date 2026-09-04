@@ -1,0 +1,184 @@
+[
+  {
+    "runId": "2026-08-31-b7c2d9",
+    "withheldId": "eleutherai-family-gpt-neo-add",
+    "collection": "families",
+    "recordId": "eleutherai-gpt-neo",
+    "landedVia": "#742 (d9c5c403)",
+    "recordedOn": "2026-09-03",
+    "objections": [
+      {
+        "summary": "status:'current' is unsourced; the attached quotes state a release event and a family definition, neither of which states a lifecycle or availability state.",
+        "disposition": "answered",
+        "evidence": "The record no longer makes the claim. It carries status 'unknown', and its description says so in terms: \"The status is recorded as unknown: no source consulted states a lifecycle for the GPT-Neo weights.\" That member did not exist when the panel sat — the run's own caveat records that the schema then \"offers preview, current, legacy, deprecated and research and no unknown member\" — and #707 added it under ADR 0008. The objection was answered by dropping the unsupported claim rather than by finding a quote for it, which is the outcome the objection asked for."
+      },
+      {
+        "summary": "Whole-dataset coherence: the family's only proposed release was schema-invalid (open-weight with no license) and had to be dropped, which would have left this family with zero releases and failed validateDataset.",
+        "disposition": "answered",
+        "evidence": "The paired release eleutherai-gpt-neo-2-7b landed in the same change carrying the license object the objection said was missing (MIT, spdxId MIT, osiApproved true), so the family has a release and the pair validates. The panel's own suggested fix was \"add the missing license to the release and re-submit family+release together\", which is what happened."
+      }
+    ],
+    "note": "This run rejected all 15 of its family and release claims, and the reason was near-uniform: a required status field with no sourceable value and no 'unknown' member to record the absence. Four creators' records later returned by the ordinary reviewed path once that member existed. Nine of those reversals are annotated in this file. Nine is the number gate-reversals.mjs can see, not the number that exist: only 18 of the 62 rejected-by-panel entries across all runs name their record in a form the gate reads, and 17 of the other 44 also name a record that is in web/src/data today. That gap is measured in the gate's header and is deliberately left open rather than closed by loosening the extractor."
+  },
+  {
+    "runId": "2026-08-31-b7c2d9",
+    "withheldId": "eleutherai-release-gpt-neo-2-7b-add",
+    "collection": "releases",
+    "recordId": "eleutherai-gpt-neo-2-7b",
+    "landedVia": "#742 (d9c5c403)",
+    "recordedOn": "2026-09-03",
+    "objections": [
+      {
+        "summary": "status:'current' is unsourced; the attached quotes describe architecture, parameter count and training data, none of them a lifecycle or availability state.",
+        "disposition": "answered",
+        "evidence": "The record carries status 'unknown' and its summary states \"the status is unknown because no source states a lifecycle\". See the family entry above for why that member exists now and did not then (#707, ADR 0008)."
+      },
+      {
+        "summary": "accessType:'open-weight' rests on a bare labelled link to the checkpoint; the page's preceding 'The weights can be freely downloaded' sentence was not in the attached quote, so read alone the link does not state that weights are downloadable.",
+        "disposition": "answered",
+        "evidence": "The record's summary now rests the claim on the sentence itself rather than on the link: \"The repository’s release note states that \\\"the weights and configs can be freely downloaded\\\" and links the 2.7B checkpoint directly, which is what the open-weight access type and the downloadable-weights flag rest on.\" The missing quote is the one the objection named."
+      },
+      {
+        "summary": "accessType is 'open-weight' but the record carries no license object, which releaseSchema.superRefine requires; the dataset would fail Zod validation.",
+        "disposition": "answered",
+        "evidence": "The record carries license { name MIT, spdxId MIT, weightsDownloadable true, osiApproved true }, and its summary records that the only statement of it is the card's machine-readable YAML front matter — \"The licence is the card’s own machine-readable declaration, \\\"license: mit\\\", in its YAML front matter; no prose sentence on the card names a licence\" — rather than smoothing that over."
+      }
+    ]
+  },
+  {
+    "runId": "2026-08-31-b7c2d9",
+    "withheldId": "ai2-family-molmo-add",
+    "collection": "families",
+    "recordId": "ai2-molmo",
+    "landedVia": "#809 (fb189231)",
+    "recordedOn": "2026-09-03",
+    "objections": [
+      {
+        "summary": "firstReleaseDate rests on the page's 'September 25, 2024' dateline, which the bundle itself says is not carried as a quote; a publication timestamp is not a stated release date, and no attached quote states any date.",
+        "disposition": "unanswered",
+        "wouldAnswer": "A verbatim quote from a primary Ai2 source stating when Molmo was first released. Failing that, recording the absence rather than the dateline: ADR 0013 (#837) made that expressible after this record landed, by letting a family carry datePrecision 'unstated' and no firstReleaseDate. The record still carries firstReleaseDate 2024-09-25 at day precision, and nothing in it states a basis for that date other than the dateline the panel ruled out. This entry does not change the record; it records that the objection is still open."
+      },
+      {
+        "summary": "status:'current' has no attached availability quote, and the family's own released checkpoint is a 'preview', so more than one enum member could fit.",
+        "disposition": "answered",
+        "evidence": "The record carries status 'unknown', so it no longer asserts the lifecycle the objection said was unsupported. That member was added by #707 under ADR 0008, after this run."
+      }
+    ],
+    "note": "This is the reversal abdeslam-menacere/ModelTree#835 was filed about, and the issue's reading of it is confirmed here: of the objections raised, the status one was answered and the date one was not. The same run also recorded ai2-molmo-announcement and ai2-molmo-7b-d-model-card under withheld[] as 'dropped-after-acceptance' — dropped, in the ledger's words, because \"every record that would have cited it was rejected\" — and both sources are in sources.json today and are cited by both Molmo records. Their return needs no separate annotation: they were accepted unanimously on all three rubrics and dropped only as collateral, so nothing about them was ever refused on its merits."
+  },
+  {
+    "runId": "2026-08-31-b7c2d9",
+    "withheldId": "ai2-release-molmo-7b-d-add",
+    "collection": "releases",
+    "recordId": "ai2-molmo-7b-d",
+    "landedVia": "#809 (fb189231)",
+    "recordedOn": "2026-09-03",
+    "objections": [
+      {
+        "summary": "accessType:'open-weight' and license.weightsDownloadable:true have no supporting quote: 'This model is licensed under Apache 2.0' is a licence name, not a statement that weights are downloadable, and 'open vision-language models' does not distinguish open-weight from source-available.",
+        "disposition": "unanswered",
+        "wouldAnswer": "A verbatim quote from the model card or the announcement stating that the weights may be downloaded, cited on the record. Two records annotated in this same file show what that looks like for the same objection: nvidia-nemotron-nano-9b-v2 rests the claim on a Hugging Face Hub API record reporting the repository ungated and listing its safetensors shards, and ibm-granite-4-0-h-small rests it on IBM stating it \"open sourced\" the models plus the launch post's \"Download the models\" link. The Molmo record has neither. It still asserts accessType 'open-weight' and license.weightsDownloadable true, and its summary says only \"Released as a preview checkpoint under Apache-2.0\", which is the licence name the panel already ruled insufficient. The claim is very probably true; it is not shown."
+      },
+      {
+        "summary": "releaseDate rests on the unquoted page dateline rather than a stated release date.",
+        "disposition": "unanswered",
+        "wouldAnswer": "A verbatim quote stating the release date, of the kind the Granite 4.0 and Nemotron Nano 2 cards supply for their own records (\"- **Release Date**: October 2nd, 2025\", \"### Release Date: 08/18/2025\"). The record still carries releaseDate 2024-09-25 at day precision on the same dateline basis the panel rejected."
+      },
+      {
+        "summary": "status:'preview' is correctly sourced.",
+        "disposition": "answered",
+        "evidence": "Not an objection. The panel said so explicitly — \"status:'preview' is correctly sourced ('This checkpoint is a **preview** of the Molmo release.')\" — and the record still carries status 'preview'. Recorded so that the count of objections here matches the count the panel actually raised."
+      }
+    ]
+  },
+  {
+    "runId": "2026-08-31-b7c2d9",
+    "withheldId": "nvidia-family-nemotron-nano-2-add",
+    "collection": "families",
+    "recordId": "nvidia-nemotron-nano-2",
+    "landedVia": "#775 (be72a5db)",
+    "recordedOn": "2026-09-03",
+    "objections": [
+      {
+        "summary": "status:'current' is unsourced; 'We are releasing the following three models on Hugging Face...' is an announcement verb, not a lifecycle or availability term.",
+        "disposition": "answered",
+        "evidence": "The record carries status 'unknown' and its description states the reason: \"Status is recorded as unknown because the card states no lifecycle term for the line.\" The release date the panel accepted as sourced (\"### Release Date: 08/18/2025\") is unchanged at 2025-08-18."
+      }
+    ]
+  },
+  {
+    "runId": "2026-08-31-b7c2d9",
+    "withheldId": "nvidia-release-nemotron-nano-9b-v2-add",
+    "collection": "releases",
+    "recordId": "nvidia-nemotron-nano-9b-v2",
+    "landedVia": "#775 (be72a5db)",
+    "recordedOn": "2026-09-03",
+    "objections": [
+      {
+        "summary": "status:'current' has no attached lifecycle or availability quote.",
+        "disposition": "answered",
+        "evidence": "The record carries status 'unknown', and its summary states \"Status is unknown because the card states no lifecycle term.\""
+      },
+      {
+        "summary": "accessType:'open-weight' rests on 'Governing Terms: Use of this model is governed by the NVIDIA Open Model License Agreement' — a licence name despite the word 'Open', not a statement that weights are downloadable.",
+        "disposition": "answered",
+        "evidence": "The record rests the claim on different evidence and says so: \"Weights are recorded as downloadable on the Hugging Face Hub API record, which reports the repository as ungated and enabled and lists its safetensors shards; the licence name alone was not treated as establishing that.\" A source record for that Hub API response, hugging-face-nemotron-nano-9b-v2-hub-record, is cited by the release and is registered in sources.json."
+      }
+    ]
+  },
+  {
+    "runId": "2026-08-31-b7c2d9",
+    "withheldId": "ibm-family-granite-4-0-add",
+    "collection": "families",
+    "recordId": "ibm-granite-4-0",
+    "landedVia": "#742 (d9c5c403)",
+    "recordedOn": "2026-09-03",
+    "objections": [
+      {
+        "summary": "status:'current' is unsourced; the collection description states no lifecycle state, and no attached quote forces 'current' over 'legacy' given that a newer Granite 4.2 exists.",
+        "disposition": "answered",
+        "evidence": "The record carries status 'unknown' and its description gives the panel's own reasoning back: \"IBM states no lifecycle for the generation, and a newer Granite 4.2 is separately recorded in this dataset, so \\\"current\\\" would be an inference rather than a sourced fact.\" The description also separates the date basis the panel cared about elsewhere, noting that IBM's launch post \"carries the same date only as a publication dateline, which is not what this record rests on\" — the record rests on the model cards' own stated \"Release Date\"."
+      }
+    ]
+  },
+  {
+    "runId": "2026-08-31-b7c2d9",
+    "withheldId": "ibm-release-granite-4-0-h-small-add",
+    "collection": "releases",
+    "recordId": "ibm-granite-4-0-h-small",
+    "landedVia": "#742 (d9c5c403)",
+    "recordedOn": "2026-09-03",
+    "objections": [
+      {
+        "summary": "status:'current' has no attached lifecycle or availability quote.",
+        "disposition": "answered",
+        "evidence": "The record carries status 'unknown': \"The status is unknown because IBM states no lifecycle for the model.\""
+      },
+      {
+        "summary": "accessType:'open-weight' rests only on '- **License:** Apache 2.0' — a licence name, not a statement that weights are downloadable.",
+        "disposition": "answered",
+        "evidence": "The record rests the claim on statements of availability and says so explicitly: \"The open-weight access type rests on IBM stating that it \\\"open sourced\\\" these offerings \\\"under a standard Apache 2.0 license\\\" and listing Hugging Face among the channels the models are available through, alongside the launch post’s own \\\"Download the models\\\" link to huggingface.co/ibm-granite; it does not rest on the licence name alone.\""
+      }
+    ]
+  },
+  {
+    "runId": "2026-08-31-b7c2d9",
+    "withheldId": "ibm-release-granite-4-0-h-tiny-add",
+    "collection": "releases",
+    "recordId": "ibm-granite-4-0-h-tiny",
+    "landedVia": "#742 (d9c5c403)",
+    "recordedOn": "2026-09-03",
+    "objections": [
+      {
+        "summary": "status:'current' has no attached availability quote.",
+        "disposition": "answered",
+        "evidence": "The record carries status 'unknown': \"The status is unknown because IBM states no lifecycle for the model.\""
+      },
+      {
+        "summary": "accessType:'open-weight' rests only on the Apache licence name, not a downloadable-weights statement.",
+        "disposition": "answered",
+        "evidence": "As with H-Small, the record rests the claim on IBM's statement that it \"open sourced\" the Granite 4.0 offerings under Apache 2.0 and on the launch post's \"Download the models\" link to huggingface.co/ibm-granite, which its summary records in those terms."
+      }
+    ]
+  }
+]

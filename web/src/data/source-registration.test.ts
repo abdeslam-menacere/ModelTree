@@ -27,7 +27,7 @@ import { describe, expect, it } from 'vitest';
  * A `url` (or a member of a `urls` array) that appears inside a `sources`
  * array anywhere in a document. That is the inline-citation shape used by the
  * two documents that carry raw source URLs — `variant-positioning.json` and
- * `glossary.json`. The other 16 documents cite by `sourceIds` referencing
+ * `glossary.json`. Every other document cites by `sourceIds` referencing
  * `sources.json` by id, so they carry no inline citation URLs and are covered
  * by construction. `sources.json`'s own records hold their `url` at the top
  * level of each record — not inside a key named `sources` — so the registry is
