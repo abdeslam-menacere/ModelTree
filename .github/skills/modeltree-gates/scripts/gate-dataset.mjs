@@ -584,6 +584,29 @@ function gateLineage(docs) {
   };
   for (const release of docs.releases) walk(release.id, []);
 
+  // The same, over the successor graph. Succession is a partial order over time,
+  // so following successorIds can never lead back to where it started. The
+  // "each claim to precede the other" check above reads only predecessorIds, so
+  // it catches a predecessor 2-cycle but is blind to a pure successorIds cycle
+  // where predecessors stay empty -- two releases each naming the other as its
+  // successor, or a longer A -> B -> C -> A ring. A cycle of any length is a
+  // contradiction regardless of how many releases it spans, so this walks the
+  // full graph rather than special-casing length two.
+  const successorState = new Map();
+  const walkSuccessors = (id, trail) => {
+    if (successorState.get(id) === 'done') return;
+    if (successorState.get(id) === 'open') {
+      fail('lineage', `successor cycle: ${[...trail, id].join(' -> ')}`, `releases:${id}`);
+      return;
+    }
+    successorState.set(id, 'open');
+    for (const next of byId.get(id)?.successorIds ?? []) {
+      if (byId.has(next)) walkSuccessors(next, [...trail, id]);
+    }
+    successorState.set(id, 'done');
+  };
+  for (const release of docs.releases) walkSuccessors(release.id, []);
+
   // A release must belong to its family's organization. Attributing a model to
   // a family owned by someone else is the entity-boundary failure that matters
   // most here, because it silently reassigns authorship.
