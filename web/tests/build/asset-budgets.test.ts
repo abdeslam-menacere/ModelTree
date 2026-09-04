@@ -59,9 +59,116 @@ import { probeTreeProvenance } from '../../scripts/tree-provenance.mjs';
 // path CORRECTNESS -- that every root-relative link is actually prefixed -- is
 // `tests/build/base-path.test.ts`'s job, not this file's.
 
+// The reconciliation failure message, shared by the build-driven report arm and
+// the committed reconciliation test so both diagnose an offending key the same
+// way. Names the exact declared/covered keys and, for each side, why it is wrong.
+function driftReconciliationMessage(
+  declared: string[],
+  covered: string[],
+  uncovered: string[],
+  orphaned: string[],
+): string {
+  return (
+    `asset-budgets.json declares recorded figure key(s) [${declared.join(', ')}] and the drift ` +
+    `guard covers key(s) [${covered.join(', ')}]. ` +
+    (uncovered.length
+      ? `Declared but unguarded: [${uncovered.join(', ')}] -- a recorded figure that no ` +
+        'subject measures is a figure free to rot unnoticed. This includes the ' +
+        '`passport.measuredWorstJsRaw` exact-zero tripwire (deleting it would otherwise pass ' +
+        'silently) and a `routeGroups.<id>.measuredWorstJsRaw` on a group that has no `jsMaxRaw` ' +
+        'ceiling, so no subject measures it (#882). Add the missing ceiling/subject rather than ' +
+        'leaving the figure unguarded. '
+      : '') +
+    (orphaned.length
+      ? `Guarded but not declared: [${orphaned.join(', ')}] -- a subject key that no field in ` +
+        'asset-budgets.json declares, so a figure was renamed or removed. Fix the `key` on the ' +
+        'matching subject, or restore the field to the file. '
+      : '')
+  );
+}
+
 const budgets = JSON.parse(
   readFileSync(fileURLToPath(new URL('../../asset-budgets.json', import.meta.url)), 'utf8'),
 );
+
+// --- Drift-coverage reconciliation, as pure functions (#847, extended #882) ---
+//
+// The reconciliation compares the SET of recorded-figure keys asset-budgets.json
+// declares against the SET of keys the drift subjects cover. #847 established the
+// set (not count) comparison; #882 makes the routeGroups JS figure group-scoped
+// so a collapsed array index can no longer hide an unguarded group. These live
+// at module scope, and take their inputs as arguments, so the committed test
+// below can drive them over an in-memory mutated budgets clone WITHOUT a full
+// production build -- pinning the reconciliation itself, which #847 only proved
+// by hand in a gate transcript (#882, finding 2).
+
+// Walk asset-budgets.json and return every numeric field whose name records a
+// measurement, as a dotted path. Arrays contribute no index, so sibling entries
+// collapse onto one path -- correct for `fixedRoutes.measuredRaw` and
+// `routeGroups.measuredWorstRaw`, where every entry carries the figure and a
+// per-index key would be noise.
+function recordedFigureKeys(node: unknown, trail: string[] = []): string[] {
+  if (Array.isArray(node)) return node.flatMap((item) => recordedFigureKeys(item, trail));
+  if (node === null || typeof node !== 'object') return [];
+  return Object.entries(node as Record<string, unknown>).flatMap(([key, value]) =>
+    typeof value === 'number' && /measured/i.test(key)
+      ? [[...trail, key].join('.')]
+      : recordedFigureKeys(value, [...trail, key]),
+  );
+}
+
+// The declared key set. It is the generic scan, EXCEPT the collapsed
+// `routeGroups.measuredWorstJsRaw` is expanded into one key per group that
+// declares `measuredWorstJsRaw` -- `routeGroups.<id>.measuredWorstJsRaw`. Only
+// the JS figure is expanded: unlike `measuredWorstRaw`, which every group
+// carries, `measuredWorstJsRaw` is a per-group JS tripwire that a group is free
+// NOT to have, so collapsing it hides a group that declares the figure without
+// the `jsMaxRaw` ceiling that would make it measured (#882, finding 1).
+function declaredDriftKeys(b: any): string[] {
+  const generic = recordedFigureKeys(b).filter((k) => k !== 'routeGroups.measuredWorstJsRaw');
+  const perGroupJs = (b.routeGroups ?? [])
+    .filter((group: any) => typeof group.measuredWorstJsRaw === 'number')
+    .map((group: any) => `routeGroups.${group.id}.measuredWorstJsRaw`);
+  return [...new Set([...generic, ...perGroupJs])].sort();
+}
+
+// The covered key set: the distinct `key` of every drift subject.
+function coveredDriftKeys(subjects: { key: string }[]): string[] {
+  return [...new Set(subjects.map((subject) => subject.key))].sort();
+}
+
+// The covered key set derived straight from a budgets object -- the same keys the
+// `driftSubjects` list produces, but as pure data with no `measure` thunks, so a
+// committed test can reconcile a mutated budgets clone without a build. This MUST
+// mirror the subject construction in the describe block below; the build-driven
+// arm reconciles the real subjects, so a drift between the two is caught there.
+function subjectKeysFor(b: any): string[] {
+  const keys: string[] = [];
+  (b.fixedRoutes ?? []).forEach(() => keys.push('fixedRoutes.measuredRaw'));
+  (b.routeGroups ?? []).forEach(() => keys.push('routeGroups.measuredWorstRaw'));
+  (b.routeGroups ?? [])
+    .filter((group: any) => typeof group.jsMaxRaw === 'number')
+    .forEach((group: any) => keys.push(`routeGroups.${group.id}.measuredWorstJsRaw`));
+  (['jsTotalMeasuredRaw', 'cssTotalMeasuredRaw', 'fontTotalMeasuredRaw', 'astroDirMeasuredRaw']).forEach(
+    (key) => keys.push(`globals.${key}`),
+  );
+  return [...new Set(keys)].sort();
+}
+
+// Reconcile the two sets. `uncovered` is a declared figure no subject measures
+// (a figure free to rot, a deleted tripwire, or -- the #882 case -- a group's JS
+// figure with no `jsMaxRaw`, so no subject is built for it). `orphaned` is a
+// subject key no field declares (a renamed or removed field). Both name the
+// offending key, so the message points at the exact group/field.
+function reconcileDriftKeys(declared: string[], covered: string[]) {
+  const declaredSet = new Set(declared);
+  const coveredSet = new Set(covered);
+  return {
+    uncovered: declared.filter((key) => !coveredSet.has(key)),
+    orphaned: covered.filter((key) => !declaredSet.has(key)),
+  };
+}
+
 
 const outDir = mkdtempSync(join(tmpdir(), 'modeltree-asset-budgets-'));
 
@@ -379,7 +486,17 @@ describe('deterministic asset budgets on the production build', () => {
         // itself is what made a removal invisible.
         .filter((group: any) => typeof group.jsMaxRaw === 'number')
         .map((group: any) => ({
-          key: 'routeGroups.measuredWorstJsRaw',
+          // Keyed PER GROUP ID, not by the collapsed path `routeGroups.
+          // measuredWorstJsRaw`. `routeGroups` is an array, so the generic key
+          // scan drops the index and collapses every group's JS figure onto one
+          // path -- which meant a `measuredWorstJsRaw` added to a group with no
+          // `jsMaxRaw` (e.g. `providers`) was never a distinct declared key and
+          // reconciled green against the figure `passport` supplies (#882,
+          // finding 1). `declaredDriftKeys` below expands the same collapse on
+          // the declared side, so a group carrying the JS figure without the
+          // ceiling that builds this subject surfaces as an uncovered
+          // `routeGroups.<id>.measuredWorstJsRaw` naming that group.
+          key: `routeGroups.${group.id}.measuredWorstJsRaw`,
           label: `${group.id} measuredWorstJsRaw`,
           recorded: group.measuredWorstJsRaw,
           measure: () => analyzeGroup(group.dir).worstJs.totals.js.raw,
@@ -428,20 +545,8 @@ describe('deterministic asset budgets on the production build', () => {
     // deleted) and a subject key with no declaration (a stale subject) each fail
     // with the missing key in the message.
     it('reports how much of the drift allowance each recorded figure has consumed', () => {
-      const recordedFigureKeys = (node: unknown, trail: string[] = []): string[] => {
-        if (Array.isArray(node)) return node.flatMap((item) => recordedFigureKeys(item, trail));
-        if (node === null || typeof node !== 'object') return [];
-        return Object.entries(node as Record<string, unknown>).flatMap(([key, value]) =>
-          typeof value === 'number' && /measured/i.test(key)
-            ? [[...trail, key].join('.')]
-            : recordedFigureKeys(value, [...trail, key]),
-        );
-      };
-
-      const declared = [...new Set(recordedFigureKeys(budgets))].sort();
-      const covered = [...new Set(driftSubjects.map((subject) => subject.key))].sort();
-      const declaredSet = new Set(declared);
-      const coveredSet = new Set(covered);
+      const declared = declaredDriftKeys(budgets);
+      const covered = coveredDriftKeys(driftSubjects);
 
       expect(
         declared.length,
@@ -449,23 +554,10 @@ describe('deterministic asset budgets on the production build', () => {
           'assertions above are both measuring nothing. The key scan is the broken part, not the file.',
       ).toBeGreaterThan(0);
 
-      const uncovered = declared.filter((key) => !coveredSet.has(key));
-      const orphaned = covered.filter((key) => !declaredSet.has(key));
+      const { uncovered, orphaned } = reconcileDriftKeys(declared, covered);
       expect(
         { uncovered, orphaned },
-        `asset-budgets.json declares recorded figure key(s) [${declared.join(', ')}] and the drift ` +
-          `guard covers key(s) [${covered.join(', ')}]. ` +
-          (uncovered.length
-            ? `Declared but unguarded: [${uncovered.join(', ')}] -- a recorded figure that no ` +
-              'subject measures is a figure free to rot unnoticed (and deleting one, e.g. the ' +
-              '`passport.measuredWorstJsRaw` exact-zero tripwire, would otherwise pass silently). ' +
-              'Add it to `driftSubjects` above rather than removing it from the file. '
-            : '') +
-          (orphaned.length
-            ? `Guarded but not declared: [${orphaned.join(', ')}] -- a subject key that no field in ` +
-              'asset-budgets.json declares, so a figure was renamed or removed. Fix the `key` on the ' +
-              'matching subject, or restore the field to the file. '
-            : ''),
+        driftReconciliationMessage(declared, covered, uncovered, orphaned),
       ).toEqual({ uncovered: [], orphaned: [] });
 
       const rows = driftSubjects.map((subject) =>
@@ -534,3 +626,110 @@ describe('deterministic asset budgets on the production build', () => {
     });
   });
 }, 300_000);
+
+// #882: pin the drift-coverage RECONCILIATION itself, with no production build.
+//
+// #847 moved the guard from a count comparison to a key-SET comparison, and
+// proved it worked by running mutations by hand in a gate transcript -- delete a
+// key, rename a key, both go red. A transcript is not a regression test: nothing
+// committed would notice if the reconciliation regressed to counting, or if the
+// routeGroups JS figure went back to collapsing every group onto one path.
+//
+// These arms drive the pure reconciliation functions (`declaredDriftKeys`,
+// `subjectKeysFor`, `reconcileDriftKeys`) directly over an in-memory clone of
+// asset-budgets.json, so they need no build and run in milliseconds. They assert
+// the reconciliation VERDICT (green/red) and, on the red arms, the offending key
+// the message names -- which is what turns "the check refuses something" into
+// "the check refuses the right something for the right reason".
+//
+// The suite deliberately carries a PASS-EXPECTED arm alongside the failing ones
+// (#882, criterion 5): a suite where every arm expects refusal cannot tell a
+// correct check from one that refuses everything.
+describe('drift-coverage reconciliation (build-free, pins the key-set logic)', () => {
+  const realBudgets = JSON.parse(
+    readFileSync(fileURLToPath(new URL('../../asset-budgets.json', import.meta.url)), 'utf8'),
+  );
+  const clone = () => JSON.parse(JSON.stringify(realBudgets));
+  const reconcile = (b: any) =>
+    reconcileDriftKeys(declaredDriftKeys(b), subjectKeysFor(b));
+
+  // PASS-EXPECTED. The real, valid document reconciles clean. Without this arm a
+  // reconciliation hardwired to `{ uncovered: ['x'], orphaned: [] }` would pass
+  // every failing arm below and be worthless.
+  it('accepts the real asset-budgets.json (nothing uncovered, nothing orphaned)', () => {
+    expect(reconcile(realBudgets)).toEqual({ uncovered: [], orphaned: [] });
+  });
+
+  // PART 1. A routeGroup carrying `measuredWorstJsRaw` with no `jsMaxRaw` builds
+  // no drift subject, so its figure is measured by nothing. Under the collapsed
+  // key path this reconciled GREEN because `passport` supplied the shared path;
+  // group-scoped keys surface it as uncovered and NAME the group.
+  it('refuses a routeGroup JS figure that has no jsMaxRaw ceiling, naming the group', () => {
+    const b = clone();
+    const providers = b.routeGroups.find((g: any) => g.id === 'providers');
+    expect(typeof providers.jsMaxRaw, 'fixture premise: providers has no jsMaxRaw').not.toBe(
+      'number',
+    );
+    providers.measuredWorstJsRaw = 999999999;
+
+    const { uncovered, orphaned } = reconcile(b);
+    expect(uncovered).toContain('routeGroups.providers.measuredWorstJsRaw');
+    expect(orphaned).toEqual([]);
+    expect(
+      driftReconciliationMessage(declaredDriftKeys(b), subjectKeysFor(b), uncovered, orphaned),
+    ).toContain('providers');
+  });
+
+  // #847 finding preserved: deleting the passport exact-zero JS tripwire leaves a
+  // subject (built from `jsMaxRaw`, which is still present) whose declared key is
+  // gone -> orphaned, red. A count check would drop both sides equally and pass.
+  it('refuses when the passport.measuredWorstJsRaw tripwire is deleted', () => {
+    const b = clone();
+    delete b.routeGroups.find((g: any) => g.id === 'passport').measuredWorstJsRaw;
+    const { uncovered, orphaned } = reconcile(b);
+    expect(orphaned).toContain('routeGroups.passport.measuredWorstJsRaw');
+    expect(uncovered).toEqual([]);
+  });
+
+  // #847 finding preserved: a renamed field must produce the reconciliation
+  // diagnosis (uncovered + orphaned), not a TypeError. This is ALSO the Part 2
+  // proof -- a rename keeps the declared COUNT identical (one key removed, one
+  // added) while changing the SET, so a count-equality reconciliation stays green
+  // here. Reverting reconcileDriftKeys to a count check turns THIS arm red-less,
+  // i.e. it fails to refuse, and the assertion below fails.
+  it('refuses a renamed recorded key (and would pass a count check, pinning the set logic)', () => {
+    const b = clone();
+    b.globals.jsGrandTotalMeasuredRaw = b.globals.jsTotalMeasuredRaw;
+    delete b.globals.jsTotalMeasuredRaw;
+
+    const declared = declaredDriftKeys(b);
+    const covered = subjectKeysFor(b);
+    // The count is unchanged by a rename -- this is what a count check sees, and
+    // why a count check would (wrongly) pass. Asserted so the pin is explicit.
+    expect(declared.length, 'a rename must leave the declared count unchanged').toBe(
+      declaredDriftKeys(realBudgets).length,
+    );
+
+    const { uncovered, orphaned } = reconcileDriftKeys(declared, covered);
+    expect(uncovered).toContain('globals.jsGrandTotalMeasuredRaw');
+    expect(orphaned).toContain('globals.jsTotalMeasuredRaw');
+  });
+
+  // The difference control for this build-free suite: the reconciler must be able
+  // to return BOTH sides empty (proven by the pass arm) AND non-empty (proven by
+  // the red arms). A reconciler that always returned `{uncovered:[],orphaned:[]}`
+  // would pass the first arm and fail every red arm -- so the suite as a whole
+  // cannot be satisfied by a check that refuses nothing OR one that refuses all.
+  it('the reconciler distinguishes valid from invalid (not vacuous in either direction)', () => {
+    const valid = reconcile(realBudgets);
+    const invalid = (() => {
+      const b = clone();
+      b.routeGroups.find((g: any) => g.id === 'providers').measuredWorstJsRaw = 1;
+      return reconcile(b);
+    })();
+    const isEmpty = (r: { uncovered: string[]; orphaned: string[] }) =>
+      r.uncovered.length === 0 && r.orphaned.length === 0;
+    expect(isEmpty(valid)).toBe(true);
+    expect(isEmpty(invalid)).toBe(false);
+  });
+});
