@@ -28,8 +28,8 @@
       "id": "benchmarks",
       "path": "benchmarks/index.html",
       "criticalMaxRaw": 520000,
-      "measuredRaw": 469100,
-      "reason": "Benchmark evidence explorer (#23). Ceiling unchanged: #634 head markup + BASE_PATH pin + #665's +2782 of long-tail family HTML + #674's +115 (shared css +117, HTML net ~0), all absorbed by headroom. Re-measured 463101 at 8e8ae6f9 (#813): the recorded 445132 was 17969 stale, absorbed by headroom -- ceiling unchanged. +12.3% headroom. Re-recorded 469100 at the #822 merge (trunk 34e78d1a): the 463101 was 5999 stale (mostly #826's +1509 shared css and small shared-js re-chunk; benchmarks renders no tranche data), absorbed by headroom, ceiling unchanged. +9.8% headroom."
+      "measuredRaw": 488562,
+      "reason": "Benchmark evidence explorer (#23). Ceiling unchanged: #634 head markup + BASE_PATH pin + #665's +2782 of long-tail family HTML + #674's +115 (shared css +117, HTML net ~0), all absorbed by headroom. Re-measured 463101 at 8e8ae6f9 (#813): the recorded 445132 was 17969 stale, absorbed by headroom -- ceiling unchanged. +12.3% headroom. Re-recorded 469100 at the #822 merge (trunk 34e78d1a): the 463101 was 5999 stale (mostly #826's +1509 shared css and small shared-js re-chunk; benchmarks renders no tranche data), absorbed by headroom, ceiling unchanged. +9.8% headroom. Re-recorded 488562 on this branch (#43, image category pilot) rebased level with trunk 03536f05 -- HEAD is level with the merge base so this is CI's authoritative figure. The 469100 was 19462 stale: #43 adds category-comparability guards to BenchmarkExplorer.tsx (+26 lines rendered on the benchmarks route) plus ~+1051 of shared css on every route from the category-spec pilot's additions to global.css. Absorbed by headroom, ceiling unchanged. +6.4% headroom."
     },
     {
       "id": "tree",
@@ -42,8 +42,8 @@
       "id": "compare",
       "path": "compare/index.html",
       "criticalMaxRaw": 820000,
-      "measuredRaw": 766171,
-      "reason": "Comparison view ships the heaviest JS graph (ModelComparison + schema). Ceiling unchanged: #647 lineage/tier data + #634 markup + BASE_PATH pin + #665's +7790 of long-tail family HTML + #674's +617 (multi-source HTML +500, shared css +117), all absorbed by headroom. Re-measured 749971 at 8e8ae6f9 (#813): the recorded 727180 was 22791 stale, absorbed by headroom -- ceiling unchanged. 229 of that is #816's two rewritten `featuredRationale` sentences. Like home, this route still inlines whole records into island props and is a candidate for the same projection; out of #813's scope. +9.3% headroom. Re-recorded 766171 on this branch merged with trunk 34e78d1a (#822 + #826) -- CI's authoritative figure. The 749971 was 16200 stale: #822 inlined records into island props (compare still inlines whole records) plus #826's additions to the heaviest lineage graph. Absorbed by headroom, ceiling unchanged. +6.6% headroom."
+      "measuredRaw": 783252,
+      "reason": "Comparison view ships the heaviest JS graph (ModelComparison + schema). Ceiling unchanged: #647 lineage/tier data + #634 markup + BASE_PATH pin + #665's +7790 of long-tail family HTML + #674's +617 (multi-source HTML +500, shared css +117), all absorbed by headroom. Re-measured 749971 at 8e8ae6f9 (#813): the recorded 727180 was 22791 stale, absorbed by headroom -- ceiling unchanged. 229 of that is #816's two rewritten `featuredRationale` sentences. Like home, this route still inlines whole records into island props and is a candidate for the same projection; out of #813's scope. +9.3% headroom. Re-recorded 766171 on this branch merged with trunk 34e78d1a (#822 + #826) -- CI's authoritative figure. The 749971 was 16200 stale: #822 inlined records into island props (compare still inlines whole records) plus #826's additions to the heaviest lineage graph. Absorbed by headroom, ceiling unchanged. +6.6% headroom. Re-recorded 783252 on this branch (#43, image category pilot) rebased level with trunk 03536f05 -- CI's authoritative figure. The 766171 was 17081 stale: #43's category-comparability guard reaches the compare route's incompatibility refusal plus ~+1051 of shared css on every route from the category-spec pilot's additions to global.css. Absorbed by headroom, ceiling unchanged. +4.7% headroom."
     },
     {
       "id": "updates",
