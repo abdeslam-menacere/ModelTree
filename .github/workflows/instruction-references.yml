@@ -13,6 +13,15 @@ name: Instruction references
 # pull request that does not touch the file: it must not be added to branch
 # protection, because a required check that never reports leaves a pull request
 # pending forever. See .github/workflows/README.md.
+#
+# It also runs on `merge_group`, unfiltered. GitHub does not support `paths:` on
+# that event, so a workflow either runs on every queue entry or on none of them,
+# and a queue tests each projected merge with the checks that report there --
+# a check absent from the queue is a check the queue does not enforce
+# (abdeslam-menacere/ModelTree#860). A reference can break in a merged result
+# that holds in both branches separately: one pull request cites a document
+# another deletes or renames, each green alone. Running unfiltered here costs a
+# few seconds per entry, since the checker installs nothing.
 
 on:
   pull_request:
@@ -21,6 +30,7 @@ on:
       - '.github/skills/**'
       - 'tools/instruction_refs/**'
       - '.github/workflows/instruction-references.yml'
+  merge_group:
   push:
     branches:
       - main

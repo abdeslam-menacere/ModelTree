@@ -10,7 +10,9 @@ import { parse } from 'yaml';
 /**
  * `.github/workflows/aggregate-checks.yml` is the one status check that reports
  * on every pull request and is red whenever a path-filtered check on the same
- * pull request is not green (abdeslam-menacere/ModelTree#710).
+ * pull request is not green (abdeslam-menacere/ModelTree#710). It reports on
+ * every merge queue entry too, for the same reason and by the same reading
+ * (abdeslam-menacere/ModelTree#877).
  *
  * Its whole value rests on one distinction: a check that was *skipped* and a
  * check that *never triggered* are both green, while a check that failed, was
@@ -19,7 +21,7 @@ import { parse } from 'yaml';
  * it launders a real failure into a required green.
  *
  * So the behaviour is not read off the source here, it is executed. Each case
- * below stands up a local HTTP server that answers the two GitHub endpoints the
+ * below stands up a local HTTP server that answers the GitHub endpoints the
  * script reads, runs the real script against it, and asserts the real exit
  * code. The fixtures are shaped after real measurements: pull request 715,
  * whose rollup carries seven checks and no `adr-numbers` at all because it
@@ -35,7 +37,11 @@ import { parse } from 'yaml';
  * GitHub's infrastructure, so it verifies the script's reading of check-run
  * JSON and not GitHub's production of it. The claim that a non-triggered
  * workflow reports no check run at all is measured from real pull requests
- * above, not asserted here.
+ * above, not asserted here. The merge-group cases are further from their
+ * subject still: no merge queue exists on this repository yet, so no
+ * `merge_group` event has ever reached this script. They run it with the
+ * environment GitHub documents for that event; the first live queue entry is
+ * the integration test, which is why every path below fails closed.
  */
 
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
@@ -94,16 +100,16 @@ function matrixLegs(job: YamlMapping, label: string): Record<string, string>[] {
 }
 
 /**
- * Every status check a committed workflow can report on a pull request, under
- * the name GitHub reports it. A job skipped by its own `if:` still reports, so
- * it counts here and has to be accounted for one way or the other.
+ * Every status check a committed workflow can report on one event, under the
+ * name GitHub reports it. A job skipped by its own `if:` still reports, so it
+ * counts here and has to be accounted for one way or the other.
  */
-function reportedPullRequestChecks(): { check: string; workflowFile: string }[] {
+function reportedChecksFor(event: string): { check: string; workflowFile: string }[] {
   const reported: { check: string; workflowFile: string }[] = [];
 
   for (const [file, parsed] of workflows) {
     const triggers = mapping(parsed.on, `${file}.on`);
-    if (!Object.hasOwn(triggers, 'pull_request')) continue;
+    if (!Object.hasOwn(triggers, event)) continue;
 
     for (const [jobId, rawJob] of Object.entries(mapping(parsed.jobs, `${file}.jobs`))) {
       const job = mapping(rawJob, `${file}.jobs.${jobId}`);
@@ -117,12 +123,21 @@ function reportedPullRequestChecks(): { check: string; workflowFile: string }[] 
   return reported;
 }
 
+function reportedPullRequestChecks(): { check: string; workflowFile: string }[] {
+  return reportedChecksFor('pull_request');
+}
+
 interface WatchedEntry {
   workflow: string;
   job: string;
   checks: string[];
-  trigger: { kind: 'workflow-paths'; paths: string[] } | { kind: 'always' };
+  triggers: Record<string, WatchedTrigger | undefined>;
 }
+
+type WatchedTrigger =
+  | { kind: 'workflow-paths'; paths: string[] }
+  | { kind: 'always' }
+  | { kind: 'not-triggered' };
 
 interface Configuration {
   watched: WatchedEntry[];
@@ -147,6 +162,17 @@ interface ApiFixture {
   failWith?: number;
   /** Which status only the check-runs endpoint answers with, leaving the rest healthy. */
   failCheckRunsWith?: number;
+  /** Which status only the commit-comparison endpoint answers with. */
+  failCompareWith?: number;
+  /**
+   * How many files the comparison reports, when the fixture needs a list longer
+   * than `files`. Filled with distinct synthetic paths, so a run that reaches
+   * the endpoint's own ceiling can be measured without writing 300 names out.
+   *
+   * A count above COMPARE_FILE_CAP is served truncated to it, because that is
+   * what GitHub does and the truncation is the condition under test.
+   */
+  compareFileCount?: number;
 }
 
 interface Outcome {
@@ -157,6 +183,23 @@ interface Outcome {
 
 const CONFIGURATION_MARKER = 'aggregate-checks configuration: ';
 
+/**
+ * The file ceiling the commit-comparison endpoint imposes, mirrored from the
+ * script so the fixture truncates where GitHub truncates.
+ *
+ * Measured rather than assumed: a 519-file comparison in this repository comes
+ * back with exactly 300 files and nothing in the response admitting to it --
+ * the comparison declares no file total at all, so there is no counterpart to a
+ * pull request's `changed_files` to check a short list against.
+ */
+const COMPARE_FILE_CAP = 300;
+
+/**
+ * The page size a files-list endpoint would use, and the size the broken reader
+ * paged by. Only used to place a regression case either side of it.
+ */
+const COMPARE_PER_PAGE = 100;
+
 function configurationFrom(stdout: string): Configuration {
   const line = stdout.split(/\r?\n/).find((candidate) => candidate.startsWith(CONFIGURATION_MARKER));
   if (line === undefined) {
@@ -165,10 +208,16 @@ function configurationFrom(stdout: string): Configuration {
   return JSON.parse(line.slice(CONFIGURATION_MARKER.length)) as Configuration;
 }
 
-/** The fixture API, serving the two endpoints the script reads and nothing else. */
-function apiServer(fixture: ApiFixture): Promise<{ server: Server; origin: string }> {
+/** The fixture API, serving the endpoints the script reads and nothing else. */
+function apiServer(fixture: ApiFixture): Promise<{ server: Server; origin: string; requested: string[] }> {
+  // Recorded so a test can assert *which* commit the check runs were read for,
+  // rather than only that the exit code came out right. On a merge group the
+  // head SHA is the whole of what makes the reading about the projected merge.
+  const requested: string[] = [];
+
   const server = createServer((request: IncomingMessage, response: ServerResponse) => {
     const url = new URL(request.url ?? '/', 'http://127.0.0.1');
+    requested.push(url.pathname);
 
     const send = (status: number, body: unknown): void => {
       response.writeHead(status, { 'content-type': 'application/json' });
@@ -177,6 +226,41 @@ function apiServer(fixture: ApiFixture): Promise<{ server: Server; origin: strin
 
     if (fixture.failWith !== undefined) {
       send(fixture.failWith, { message: 'fixture failure' });
+      return;
+    }
+
+    if (url.pathname.includes('/compare/')) {
+      if (fixture.failCompareWith !== undefined) {
+        send(fixture.failCompareWith, { message: 'fixture compare failure' });
+        return;
+      }
+      // Measured against the live endpoint, because this shape is the whole
+      // subject of the merge-group cases below. `per_page` and `page` page the
+      // *commits*: the entire `files` array arrives on page 1 however small
+      // `per_page` is -- a 141-file comparison returns all 141 at `per_page=1`
+      // -- it is silently truncated at COMPARE_FILE_CAP, and every page after
+      // the first omits the `files` key altogether rather than ending the list
+      // with a short page.
+      //
+      // A fixture that sliced this by `per_page`, as a files-list endpoint
+      // would, hands the caller its own assumption back and then passes
+      // whatever the caller does with it. That is not a hypothetical: it is
+      // what let a reader that paged `files` until a short page look correct
+      // here while ending exit 2 against the real API for every merge group of
+      // COMPARE_PER_PAGE files or more.
+      const page = Number(url.searchParams.get('page') ?? '1');
+      const all = fixture.compareFileCount === undefined
+        ? fixture.files
+        : Array.from({ length: fixture.compareFileCount }, (_unused, index) => `web/src/generated/file-${index}.ts`);
+      if (page > 1) {
+        send(200, { total_commits: 1, commits: [] });
+        return;
+      }
+      send(200, {
+        total_commits: 1,
+        commits: [],
+        files: all.slice(0, COMPARE_FILE_CAP).map((filename) => ({ filename })),
+      });
       return;
     }
 
@@ -209,9 +293,14 @@ function apiServer(fixture: ApiFixture): Promise<{ server: Server; origin: strin
     server.once('error', reject);
     server.listen(0, '127.0.0.1', () => {
       const address = server.address() as AddressInfo;
-      resolve({ server, origin: `http://127.0.0.1:${address.port}` });
+      resolve({ server, origin: `http://127.0.0.1:${address.port}`, requested });
     });
   });
+}
+
+interface RunOutcome extends Outcome {
+  /** Every API path the run asked for, in order. */
+  requested: string[];
 }
 
 /**
@@ -220,18 +309,26 @@ function apiServer(fixture: ApiFixture): Promise<{ server: Server; origin: strin
  * `spawn` rather than `spawnSync` is load-bearing: the fixture server lives in
  * this process, and a synchronous spawn blocks the event loop that would have
  * answered it.
+ *
+ * `GITHUB_EVENT_NAME` is set here rather than left to the ambient environment,
+ * and that is not tidiness. The env is inherited from the process running the
+ * suite, and `web-ci` now runs on `merge_group` too -- so on a queue entry the
+ * real `GITHUB_EVENT_NAME=merge_group` would leak into every case below and the
+ * pull-request ones would all end undetermined, inside the queue only. Pinning
+ * it makes each case say which event it is about.
  */
-async function runAgainst(fixture: ApiFixture, overrides: Record<string, string> = {}): Promise<Outcome> {
-  const { server, origin } = await apiServer(fixture);
+async function runAgainst(fixture: ApiFixture, overrides: Record<string, string> = {}): Promise<RunOutcome> {
+  const { server, origin, requested } = await apiServer(fixture);
 
   try {
-    return await new Promise<Outcome>((resolve, reject) => {
+    const outcome = await new Promise<Outcome>((resolve, reject) => {
       const child = spawn(process.execPath, [script], {
         env: {
           ...process.env,
           GITHUB_API_URL: origin,
           GITHUB_REPOSITORY: 'abdeslam-menacere/ModelTree',
           GITHUB_TOKEN: 'fixture-token',
+          GITHUB_EVENT_NAME: 'pull_request',
           PR_NUMBER: '710',
           PR_HEAD_SHA: '0cc77e908785ba8e8277229cb81a4c0b4cf963a7',
           // Kept off, so nothing here writes to a summary file the runner owns.
@@ -251,10 +348,26 @@ async function runAgainst(fixture: ApiFixture, overrides: Record<string, string>
       child.once('error', reject);
       child.once('close', (status) => resolve({ status, stdout, stderr }));
     });
+
+    return { ...outcome, requested };
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
 }
+
+/** The head and base a merge-group case runs under, and the event that selects them. */
+const MERGE_GROUP_HEAD = 'f2f0f9b1c3a24d5e6f708192a3b4c5d6e7f80912';
+const MERGE_GROUP_BASE = '216bdaed488595c6ab6b25e4568d59507079f1c5';
+const MERGE_GROUP_ENV = {
+  GITHUB_EVENT_NAME: 'merge_group',
+  MERGE_GROUP_HEAD_SHA: MERGE_GROUP_HEAD,
+  MERGE_GROUP_BASE_SHA: MERGE_GROUP_BASE,
+  // Present and ignored, exactly as they are on a real queue entry where the
+  // pull-request context interpolates to nothing. Set here to something valid
+  // so that a case which passes only because they are absent cannot pass.
+  PR_NUMBER: '710',
+  PR_HEAD_SHA: '0cc77e908785ba8e8277229cb81a4c0b4cf963a7',
+};
 
 const WATCHED_NAMES = [
   'adr-numbers',
@@ -509,6 +622,236 @@ describe('a run that could not answer is never a pass', () => {
   });
 });
 
+describe('a merge queue entry is read the same way, from the event it actually ran under', () => {
+  // Nothing here runs on a real merge queue, and nothing can until one exists:
+  // a `merge_group` event is produced by the queue, and the queue cannot safely
+  // be enabled while a required context is unable to answer on that event
+  // (abdeslam-menacere/ModelTree#877). So these cases run the real script with
+  // the environment GitHub sets on that event and assert the real exit code.
+  // What they establish is the script's reading; what they cannot establish is
+  // GitHub's production of the event, which the first live queue entry tests.
+
+  it('passes when every watched check reported and succeeded on the queue entry', async () => {
+    // The positive control for this event, matching the pull-request one above.
+    const outcome = await runAgainst({ files: ADR_FILES, checkRuns: allGreen() }, MERGE_GROUP_ENV);
+
+    expect(outcome.status, outcome.stdout + outcome.stderr).toBe(0);
+    expect(outcome.stdout).toContain('Event: merge_group');
+    expect(outcome.stdout).toContain('Every watched check passed, was skipped, or was never triggered.');
+  });
+
+  it('reads the check runs of the merge group head, not of any pull request', async () => {
+    // The reading is only about the projected merge if it is anchored to the
+    // commit GitHub built for it. Both SHAs are in the environment, so an
+    // implementation that kept using the pull-request one would still come out
+    // green above -- this is what separates them.
+    const outcome = await runAgainst({ files: ADR_FILES, checkRuns: allGreen() }, MERGE_GROUP_ENV);
+
+    expect(outcome.status, outcome.stdout + outcome.stderr).toBe(0);
+    expect(outcome.stdout).toContain(`Head commit: ${MERGE_GROUP_HEAD}`);
+    expect(outcome.requested.some((path) => path === `/repos/abdeslam-menacere/ModelTree/commits/${MERGE_GROUP_HEAD}/check-runs`)).toBe(true);
+    expect(outcome.requested.some((path) => path.includes('/pulls/710'))).toBe(false);
+  });
+
+  it('takes the changed files from the base..head comparison', async () => {
+    const outcome = await runAgainst({ files: ADR_FILES, checkRuns: allGreen() }, MERGE_GROUP_ENV);
+
+    expect(outcome.requested).toContain(
+      `/repos/abdeslam-menacere/ModelTree/compare/${MERGE_GROUP_BASE}...${MERGE_GROUP_HEAD}`,
+    );
+  });
+
+  it('fails when a watched check failed on the queue entry', async () => {
+    // Every failure the pull-request path closes has to stay closed here, or
+    // the queue becomes a way to merge a red commit.
+    const outcome = await runAgainst(
+      { files: ADR_FILES, checkRuns: withCheck('adr-numbers', { conclusion: 'failure' }) },
+      MERGE_GROUP_ENV,
+    );
+
+    expect(outcome.status, outcome.stdout + outcome.stderr).toBe(1);
+    expect(outcome.stdout).toContain('FAIL  adr-numbers: concluded failure');
+  });
+
+  it('refuses to pass while a watched check is still running on the queue entry', async () => {
+    const outcome = await runAgainst(
+      { files: ADR_FILES, checkRuns: withCheck('adr-numbers', { status: 'in_progress', conclusion: null }) },
+      { ...MERGE_GROUP_ENV, AGGREGATE_CHECKS_TIMEOUT_SECONDS: '5' },
+    );
+
+    expect(outcome.status, outcome.stdout + outcome.stderr).toBe(2);
+    expect(outcome.stderr).toContain('still running: adr-numbers');
+  });
+
+  it('expects the unfiltered-in-a-queue checks even when the change touches none of their paths', async () => {
+    // The load-bearing difference between the two events, and the reason #860
+    // is closed by a queue at all. `merge_group` supports no `paths:` filter,
+    // so `adr-numbers` runs on every entry. Reading its absence through the
+    // pull-request filter would call it never-triggered and pass -- which is
+    // exactly the ADR collision walking through the queue unexamined.
+    const files = WEB_ONLY_FILES;
+    const checkRuns = withoutChecks(['adr-numbers', 'instruction-references', 'pytest (Python 3.11)', 'pytest (Python 3.13)']);
+
+    const inQueue = await runAgainst({ files, checkRuns }, { ...MERGE_GROUP_ENV, AGGREGATE_CHECKS_TIMEOUT_SECONDS: '5' });
+    const onPullRequest = await runAgainst({ files, checkRuns });
+
+    // The pair is the control: the same fixture is a legitimate green on a pull
+    // request, so the red below is the event and not the fixture.
+    expect(onPullRequest.status, onPullRequest.stdout + onPullRequest.stderr).toBe(0);
+    expect(inQueue.status, inQueue.stdout + inQueue.stderr).toBe(2);
+    expect(inQueue.stderr).toContain('expected and never reported: adr-numbers');
+  });
+
+  it('passes when a workflow that has no merge_group trigger reports nothing', async () => {
+    // `source-link-health.yml` is deliberately left off the queue: it requests
+    // third-party URLs, and a network sweep must never be able to eject a merge.
+    // Its absence there is legitimate, and the message says which reason it is.
+    const outcome = await runAgainst(
+      { files: WEB_ONLY_FILES, checkRuns: withoutChecks(['source-link-health-tests']) },
+      MERGE_GROUP_ENV,
+    );
+
+    expect(outcome.status, outcome.stdout + outcome.stderr).toBe(0);
+    expect(outcome.stdout).toContain(
+      'PASS  source-link-health-tests: its workflow has no merge_group trigger, so it does not run here',
+    );
+  });
+
+  it('still fails a check that did report, from a workflow it does not expect to run there', async () => {
+    // The absence rule above must not become an excuse. If the sweep does
+    // report on a queue entry, its own conclusion decides.
+    const outcome = await runAgainst(
+      { files: WEB_ONLY_FILES, checkRuns: withCheck('source-link-health-tests', { conclusion: 'failure' }) },
+      MERGE_GROUP_ENV,
+    );
+
+    expect(outcome.status, outcome.stdout + outcome.stderr).toBe(1);
+    expect(outcome.stdout).toContain('FAIL  source-link-health-tests: concluded failure');
+  });
+
+  it.each([
+    ['MERGE_GROUP_HEAD_SHA', { MERGE_GROUP_HEAD_SHA: '' }],
+    ['MERGE_GROUP_BASE_SHA', { MERGE_GROUP_BASE_SHA: '' }],
+  ])('refuses to pass when %s is not set', async (name, missing) => {
+    const outcome = await runAgainst(
+      { files: ADR_FILES, checkRuns: allGreen() },
+      { ...MERGE_GROUP_ENV, ...missing, AGGREGATE_CHECKS_TIMEOUT_SECONDS: '5' },
+    );
+
+    expect(outcome.status, outcome.stdout + outcome.stderr).toBe(2);
+    expect(outcome.stderr).toContain(`${name} is not set`);
+  });
+
+  it('refuses to pass when the comparison cannot be read', async () => {
+    const outcome = await runAgainst(
+      { files: ADR_FILES, checkRuns: allGreen(), failCompareWith: 500 },
+      { ...MERGE_GROUP_ENV, AGGREGATE_CHECKS_TIMEOUT_SECONDS: '5' },
+    );
+
+    expect(outcome.status, outcome.stdout + outcome.stderr).toBe(2);
+    expect(outcome.stderr).toContain('could not read the changed-file list');
+  });
+
+  it('refuses to pass when the comparison reached the ceiling the endpoint imposes', async () => {
+    // The compare endpoint caps its file list at 300 and does not say so, and a
+    // short list shrinks the expected set -- the one direction that turns an
+    // absence into a false pass. So it ends the run instead.
+    const outcome = await runAgainst(
+      { files: [], checkRuns: allGreen(), compareFileCount: COMPARE_FILE_CAP },
+      { ...MERGE_GROUP_ENV, AGGREGATE_CHECKS_TIMEOUT_SECONDS: '5' },
+    );
+
+    expect(outcome.status, outcome.stdout + outcome.stderr).toBe(2);
+    expect(outcome.stderr).toContain('300-file ceiling');
+  });
+
+  it('refuses to pass when the comparison was truncated by the ceiling', async () => {
+    // The case the ceiling exists for, as opposed to the one that merely sits on
+    // it: the fixture truncates at the cap exactly as GitHub does, so a genuinely
+    // larger comparison is indistinguishable from the one above and must refuse
+    // for the same reason. Reading it as 300 real files would drop 219 paths and
+    // silently shrink the expected set.
+    const outcome = await runAgainst(
+      { files: [], checkRuns: allGreen(), compareFileCount: 519 },
+      { ...MERGE_GROUP_ENV, AGGREGATE_CHECKS_TIMEOUT_SECONDS: '5' },
+    );
+
+    expect(outcome.status, outcome.stdout + outcome.stderr).toBe(2);
+    expect(outcome.stderr).toContain('300-file ceiling');
+  });
+
+  it('reads a comparison one file short of the ceiling', async () => {
+    // The tight edge of the refusal above. Without it the cap check could be off
+    // by one -- or could be refusing every large comparison -- and both cases
+    // would still show a green 150 and a red 300.
+    const outcome = await runAgainst(
+      { files: [], checkRuns: allGreen(), compareFileCount: COMPARE_FILE_CAP - 1 },
+      MERGE_GROUP_ENV,
+    );
+
+    expect(outcome.status, outcome.stdout + outcome.stderr).toBe(0);
+    expect(outcome.stdout).toContain(`Changed files: ${COMPARE_FILE_CAP - 1}`);
+  });
+
+  it('reads a comparison longer than a files endpoint would page', async () => {
+    // The regression case, and the reason the fixture above models the real
+    // endpoint. The file list is not paginated: it arrives whole on page 1 and
+    // later pages carry no `files` key. A reader that paged it until a short
+    // page took the complete list, asked for page 2, found no array and called
+    // the response malformed -- exit 2 for every merge group at or above
+    // COMPARE_PER_PAGE files, which as a required context ejects the entry.
+    //
+    // 150 sits above that page size and well below the cap, so it separates the
+    // two failure modes: it must pass, while 300 must still refuse.
+    const outcome = await runAgainst(
+      { files: [], checkRuns: allGreen(), compareFileCount: COMPARE_PER_PAGE + 50 },
+      MERGE_GROUP_ENV,
+    );
+
+    expect(outcome.status, outcome.stdout + outcome.stderr).toBe(0);
+    expect(outcome.stdout).toContain(`Changed files: ${COMPARE_PER_PAGE + 50}`);
+  });
+
+  it('asks for the comparison once, and never for a second page of files', async () => {
+    // Pins the mechanism rather than the symptom. The endpoint pages commits,
+    // not files, so a second request is not a slower way to the same answer --
+    // it is a request whose response has no `files` key to read.
+    const outcome = await runAgainst(
+      { files: [], checkRuns: allGreen(), compareFileCount: COMPARE_PER_PAGE + 50 },
+      MERGE_GROUP_ENV,
+    );
+
+    expect(outcome.status, outcome.stdout + outcome.stderr).toBe(0);
+    expect(outcome.requested.filter((path) => path.includes('/compare/'))).toHaveLength(1);
+  });
+
+  it.each(['push', 'workflow_dispatch', 'schedule', 'issue_comment'])(
+    'refuses to answer at all on a %s event',
+    async (eventName) => {
+      // The exit-2 floor under the whole change: an event this script cannot
+      // measure gets no verdict, rather than the green that an empty expected
+      // set would otherwise produce.
+      const outcome = await runAgainst(
+        { files: ADR_FILES, checkRuns: allGreen() },
+        { GITHUB_EVENT_NAME: eventName, AGGREGATE_CHECKS_TIMEOUT_SECONDS: '5' },
+      );
+
+      expect(outcome.status, outcome.stdout + outcome.stderr).toBe(2);
+      expect(outcome.stderr).toContain(`cannot measure a ${eventName} event`);
+    },
+  );
+
+  it('refuses to answer when the event name is missing entirely', async () => {
+    const outcome = await runAgainst(
+      { files: ADR_FILES, checkRuns: allGreen() },
+      { GITHUB_EVENT_NAME: '', AGGREGATE_CHECKS_TIMEOUT_SECONDS: '5' },
+    );
+
+    expect(outcome.status, outcome.stdout + outcome.stderr).toBe(2);
+    expect(outcome.stderr).toContain('GITHUB_EVENT_NAME is not set');
+  });
+});
+
 describe('the aggregate check always reports, which is what makes it requirable', () => {
   function aggregate(): YamlMapping {
     const parsed = workflows.get('aggregate-checks.yml');
@@ -532,6 +875,39 @@ describe('the aggregate check always reports, which is what makes it requirable'
     if (pullRequest !== null) {
       expect(Object.hasOwn(mapping(pullRequest, 'on.pull_request'), 'paths')).toBe(false);
     }
+  });
+
+  it('starts on a merge group too, or the queue it is required on would never see it', () => {
+    // A required context that does not run on `merge_group` never reports
+    // there, and a queue entry with a required check that never reports is
+    // ejected. That is the same deadlock the path-filtered workflows have on
+    // pull requests, moved into the queue.
+    expect(Object.keys(mapping(aggregate().on, 'on'))).toContain('merge_group');
+  });
+
+  it('passes both events head commits to the script, and nothing else', () => {
+    // A `${{ }}` interpolation for an event that did not fire yields the empty
+    // string, so both pairs are always present and the script decides between
+    // them by event name. What matters here is that the merge-group pair is
+    // passed at all: without it the script has no head commit to read on a
+    // queue entry and every entry ends undetermined.
+    const step = sequence(aggregateJob().steps, 'steps')
+      .map((raw, index) => mapping(raw, `steps[${index}]`))
+      .find((candidate) => typeof candidate.run === 'string');
+    if (step === undefined) throw new Error('the job runs nothing');
+
+    const environment = mapping(step.env, 'steps[].env');
+    expect(String(environment.MERGE_GROUP_HEAD_SHA)).toContain('github.event.merge_group.head_sha');
+    expect(String(environment.MERGE_GROUP_BASE_SHA)).toContain('github.event.merge_group.base_sha');
+    expect(String(environment.PR_HEAD_SHA)).toContain('github.event.pull_request.head.sha');
+  });
+
+  it('does not cancel a merge group run in progress', () => {
+    // Cancellation is a non-verdict, and a required check with no verdict
+    // ejects the entry. The guard is already written for pull requests only;
+    // this pins it, because widening it would break the queue silently.
+    const concurrency = mapping(aggregate().concurrency, 'concurrency');
+    expect(String(concurrency['cancel-in-progress'])).toContain("github.event_name == 'pull_request'");
   });
 
   it('reports under a name branch protection can be given, with no matrix to vary it', () => {
@@ -580,7 +956,7 @@ describe('the watched set is the workflows own triggers, not a restatement of th
 
   it('copies the path filter of every watched path-filtered workflow exactly', async () => {
     const { watched } = await readConfiguration();
-    const filtered = watched.filter((entry) => entry.trigger.kind === 'workflow-paths');
+    const filtered = watched.filter((entry) => entry.triggers.pull_request?.kind === 'workflow-paths');
     expect(filtered.length).toBeGreaterThan(0);
 
     for (const entry of filtered) {
@@ -590,8 +966,9 @@ describe('the watched set is the workflows own triggers, not a restatement of th
       const pullRequest = mapping(mapping(parsed.on, 'on').pull_request, `${entry.workflow} on.pull_request`);
       const paths = sequence(pullRequest.paths, `${entry.workflow} on.pull_request.paths`).map(String);
 
+      const trigger = entry.triggers.pull_request;
       expect(
-        entry.trigger.kind === 'workflow-paths' ? entry.trigger.paths : [],
+        trigger !== undefined && trigger.kind === 'workflow-paths' ? trigger.paths : [],
         `${entry.workflow} filter must be copied exactly, or an absent check is misread`,
       ).toEqual(paths);
     }
@@ -599,7 +976,7 @@ describe('the watched set is the workflows own triggers, not a restatement of th
 
   it('claims no filter for a workflow that has one, and none for one that has not', async () => {
     const { watched } = await readConfiguration();
-    const always = watched.filter((entry) => entry.trigger.kind === 'always');
+    const always = watched.filter((entry) => entry.triggers.pull_request?.kind === 'always');
     expect(always.length).toBeGreaterThan(0);
 
     for (const entry of always) {
@@ -611,6 +988,57 @@ describe('the watched set is the workflows own triggers, not a restatement of th
 
       expect(hasPaths, `${entry.workflow} is treated as unfiltered and must be one`).toBe(false);
     }
+  });
+
+  it('records a trigger for both events for every watched workflow', async () => {
+    // An entry with nothing to say about an event is not a green there, it is
+    // an undetermined run -- so a new watched workflow cannot be added with
+    // only half its reading filled in and quietly pass in a queue.
+    const { watched } = await readConfiguration();
+
+    for (const entry of watched) {
+      for (const event of ['pull_request', 'merge_group']) {
+        expect(entry.triggers[event], `${entry.workflow} records no ${event} trigger`).toBeDefined();
+      }
+    }
+  });
+
+  it('reads every watched workflow that carries a merge_group trigger as unconditional there', async () => {
+    // `merge_group` supports no `paths:` filter, so a workflow triggered on it
+    // runs on every entry. Claiming a filter there would read a running check
+    // as never-triggered, which launders a pending failure into a green.
+    const { watched } = await readConfiguration();
+
+    for (const entry of watched) {
+      const parsed = workflows.get(entry.workflow.replace('.github/workflows/', ''));
+      if (parsed === undefined) throw new Error(`no committed workflow at ${entry.workflow}`);
+
+      const triggered = Object.hasOwn(mapping(parsed.on, 'on'), 'merge_group');
+      const trigger = entry.triggers.merge_group;
+
+      expect(
+        trigger?.kind,
+        `${entry.workflow} ${triggered ? 'runs' : 'does not run'} on merge_group and must be read that way`,
+      ).toBe(triggered ? 'always' : 'not-triggered');
+    }
+  });
+
+  it('watches every check the queue can eject an entry over', async () => {
+    // The merge-group counterpart of the accounting property below: a workflow
+    // that reports in a queue and is neither watched nor excluded is a check
+    // the aggregate cannot see, on the one event where an unseen red check is
+    // what stops the merge.
+    const { watched, excluded } = await readConfiguration();
+    const accounted = new Set([...watched.flatMap((entry) => entry.checks), ...excluded.map((entry) => entry.check)]);
+
+    const unaccounted = reportedChecksFor('merge_group')
+      .map(({ check }) => check)
+      .filter((check) => !accounted.has(check));
+
+    expect(
+      unaccounted,
+      'a workflow reports a merge-group check that aggregate-checks neither watches nor excludes',
+    ).toEqual([]);
   });
 
   it('watches only check names a committed workflow actually reports', async () => {

@@ -15,6 +15,22 @@ name: ADR numbers
 # pull request that does not touch docs/adr/: it must not be added to branch
 # protection, because a required check that never reports leaves a pull request
 # pending forever. See .github/workflows/README.md.
+#
+# It also runs on `merge_group`, unfiltered, and that trigger is the point of
+# the merge queue rather than a detail of it. The collision this refuses is a
+# *race*: two pull requests each green against a `main` that does not yet carry
+# the other's ADR, both merging, and the pair colliding only in the merged
+# result -- which is the state a merge queue exists to test, by re-running the
+# checks against each projected merge before it lands
+# (abdeslam-menacere/ModelTree#860). A queue that tested each entry with only
+# the four required contexts, none of which reads an ADR number, would pass the
+# collision straight through and close nothing.
+#
+# GitHub does not support `paths:` on `merge_group`, so the choice there is
+# unfiltered or absent, and absent is the option that reopens the race. The cost
+# is that this job runs on every queue entry, including entries that touch no
+# ADR: it is standard library only and finishes in seconds, so the queue pays
+# almost nothing for it.
 
 on:
   pull_request:
@@ -22,6 +38,7 @@ on:
       - 'docs/adr/**'
       - 'tools/adr_numbers/**'
       - '.github/workflows/adr-numbers.yml'
+  merge_group:
   push:
     branches:
       - main

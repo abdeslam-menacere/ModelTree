@@ -1,7 +1,8 @@
 name: Aggregate checks
 
-# One status check that reports on every pull request and is red whenever a
-# path-filtered check on the same pull request is not green.
+# One status check that reports on every pull request -- and on every merge
+# queue entry, once a queue exists -- and is red whenever a path-filtered check
+# on the same commit is not green.
 #
 # Branch protection on `main` requires `web-ci`, `skills-ci` and `web-e2e`.
 # `adr-numbers`, `instruction-references` and the two `pytest` legs are not
@@ -15,32 +16,41 @@ name: Aggregate checks
 # This job is deliberately NOT filtered by `on.pull_request.paths`, the same
 # shape and for the same reason as `web-ci` and `skills-ci`: it starts on every
 # pull request, so its check always reports, so it can be required without
-# deadlocking anything. It reads the checks API for the pull request's head
-# commit and is red unless every watched check passed, was skipped, or was never
-# triggered. `.github/scripts/aggregate-checks.mjs` holds that reading, states
-# which checks it watches and which it deliberately does not, and explains why
-# `needs:` cannot express any of it -- `needs` names jobs in the same workflow,
-# and every check aggregated here lives in a different one.
+# deadlocking anything. It reads the checks API for the head commit and is red
+# unless every watched check passed, was skipped, or was never triggered.
+# `.github/scripts/aggregate-checks.mjs` holds that reading, states which checks
+# it watches and which it deliberately does not, and explains why `needs:`
+# cannot express any of it -- `needs` names jobs in the same workflow, and every
+# check aggregated here lives in a different one.
 #
 # Adding `aggregate-checks` to the required contexts is a branch-protection
 # change and an owner action. Until that happens this workflow reports and
 # blocks nothing, which is the prerequisite rather than the outcome.
 #
-# It runs on pull requests only. There is no pull request on a push or a
-# dispatch, so there is no head commit whose checks could be aggregated and no
-# changed-file list from which to work out what should have run; the watched
-# workflows carry their own `push` triggers for `main`, and reporting a green
-# aggregate for an event this cannot measure is the unearned green the whole job
-# exists to remove.
+# It runs on pull requests and on merge groups. A merge queue re-tests each
+# projected merge on a `merge_group` event, and a required context that cannot
+# answer there reddens every queue entry and the queue merges nothing --
+# abdeslam-menacere/ModelTree#877 measures that this script could not answer,
+# because `github.event.pull_request` does not exist on that event and its
+# absence is an undetermined run, which is red by design. Both events carry a
+# head commit whose check runs can be read and a comparison from which the
+# changed-file list follows, so both can be measured; the script decides from
+# `GITHUB_EVENT_NAME` which, and refuses anything else. That refusal is why
+# there is still no `push` or `workflow_dispatch` trigger here: neither carries
+# a pull request or a merge group, so there is nothing to aggregate, and
+# reporting a green aggregate for an event this cannot measure is the unearned
+# green the whole job exists to remove.
 #
 # The script installs nothing, reads only, and holds no write scope of any kind.
 
 on:
   pull_request:
+  merge_group:
 
 # Least privilege, set at the top so no job can start from a wider default.
 permissions:
-  # The checkout, which is how the script itself arrives.
+  # The checkout, which is how the script itself arrives -- and, on a merge
+  # group, the commit comparison the changed-file list comes from.
   contents: read
   # The check runs on the head commit.
   checks: read
@@ -53,7 +63,9 @@ concurrency:
   # Superseded pull request runs are cancelled, matching every sibling workflow.
   # It matters more here than elsewhere: the checks this job reads belong to one
   # head commit, so a run left polling an abandoned commit would report about a
-  # commit nobody is merging.
+  # commit nobody is merging. A merge group is not cancelled: each queue entry
+  # has its own `gh-readonly-queue` ref and its own verdict to report, and a
+  # cancelled required check ejects that entry from the queue.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -85,17 +97,26 @@ jobs:
           # lockfile to cache.
           node-version: 22
 
-      - name: Aggregate the checks that report on this pull request
+      - name: Aggregate the checks that report on this commit
         env:
           # The job token, scoped by the permissions block above to reads.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Event data reaches the script as environment variables, never
-          # interpolated into a command line.
+          # interpolated into a command line. The pair for the event that did
+          # not fire interpolates to the empty string, which the script reads as
+          # unset -- so which pair is authoritative is decided by
+          # `GITHUB_EVENT_NAME` rather than by which one happens to be filled.
           PR_NUMBER: ${{ github.event.pull_request.number }}
           # The head commit, which is where check runs are reported. Measured
           # against pull request 715: the check-runs endpoint for its head SHA
           # returned exactly the entries `statusCheckRollup` shows.
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          # The merge group's own pair: the commit GitHub built for the projected
+          # merge, and the commit it was projected onto. Their comparison is the
+          # changed-file list, and the head is where a queue entry's check runs
+          # are reported.
+          MERGE_GROUP_HEAD_SHA: ${{ github.event.merge_group.head_sha }}
+          MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}
         # No arguments: there is no flag that skips, forces or relaxes a check,
         # so the job cannot be pointed at an easier question than the real one.
         run: node .github/scripts/aggregate-checks.mjs

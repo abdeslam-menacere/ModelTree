@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * One status check that reports on every pull request and is red whenever a
- * path-filtered check on the same pull request is not green.
+ * One status check that reports on every pull request -- and on every merge
+ * queue entry, once a queue exists -- and is red whenever a path-filtered check
+ * on the same commit is not green.
  *
  * -- What this closes --
  *
@@ -49,6 +50,50 @@
  * 715, that endpoint returned exactly the seven entries GitHub also shows in
  * `statusCheckRollup` -- same names, same conclusions -- so the head SHA is the
  * right anchor and this is the same list a reviewer sees.
+ *
+ * -- Which event it is running under --
+ *
+ * Two events reach this script, and they answer its two inputs -- the head
+ * commit, and the changed-file list -- from different places. `GITHUB_EVENT_NAME`
+ * decides which, and anything else is refused rather than guessed at
+ * (abdeslam-menacere/ModelTree#877):
+ *
+ *   - `pull_request`: the head commit is `github.event.pull_request.head.sha`
+ *     and the changed files come from the pull request's own files endpoint,
+ *     which is the list GitHub itself compares against a `paths:` filter.
+ *   - `merge_group`: there is no pull request in the payload at all, so both
+ *     `PR_NUMBER` and `PR_HEAD_SHA` arrive empty. The head commit is
+ *     `github.event.merge_group.head_sha` -- the commit GitHub built for the
+ *     projected merge, and the commit every check run in the queue is reported
+ *     against -- and the changed files come from comparing
+ *     `github.event.merge_group.base_sha...head_sha`.
+ *
+ * The expectation model differs between them, and that difference is the part
+ * that must not be flattened. **`paths:` filters do not apply on a
+ * `merge_group` event**: a workflow carrying a `merge_group` trigger runs on
+ * every queue entry whatever the change touched. So on that event a watched
+ * check is expected whenever its workflow triggers there, full stop, and the
+ * changed-file list decides nothing about it. Applying the pull request's
+ * path-filter reading to a merge group would mark a check that really is
+ * running as "never triggered", and an absence read that way is exactly the
+ * laundering of a pending failure into a required green that the whole job
+ * exists to prevent.
+ *
+ * A watched check whose workflow carries no `merge_group` trigger is not
+ * expected there and its absence is green -- for the same reason a
+ * never-triggered check is green on a pull request, and with the same limit: if
+ * it does report, its own conclusion is read and nothing about it is assumed.
+ *
+ * The changed-file list is still read on both events. On a merge group it feeds
+ * no expectation, and it is not decoration either: it is what turns a head or
+ * base SHA that names nothing into a 404 and an undetermined run, rather than
+ * an empty check-run list quietly read as a settled one.
+ *
+ * An event this script has no way to measure -- a push, a dispatch, anything
+ * added later -- is undetermined and red. That is not a gap to be filled with a
+ * default; it is the same refusal as everywhere else here, because reporting a
+ * green aggregate for an event whose checks it never read is the unearned green
+ * this job exists to remove.
  *
  * -- The distinction the whole job turns on --
  *
@@ -132,38 +177,56 @@ import { setTimeout as sleep } from 'node:timers/promises';
  * The checks this job is red for.
  *
  * `checks` holds the status-check names GitHub reports, which are job `name:`
- * values with each matrix leg expanded. `trigger` is a copy of how the
- * committed workflow decides to run:
+ * values with each matrix leg expanded. `triggers` is a copy of how the
+ * committed workflow decides to run, one entry per event this script can
+ * measure, because the same workflow decides differently on each:
  *
- *   - `workflow-paths`: the workflow's own `on.pull_request.paths` list. The
- *     check is expected only when a changed file matches one of them.
- *   - `always`: the workflow carries no `on.pull_request.paths`, so it starts
- *     on every pull request and its check always reports. Always expected.
+ *   - `workflow-paths`: the workflow's own `on.<event>.paths` list. The check is
+ *     expected only when a changed file matches one of them. Only a
+ *     `pull_request` trigger can carry this, because GitHub does not support
+ *     `paths:` on `merge_group` at all.
+ *   - `always`: the workflow starts on every event of that kind, so its check
+ *     always reports. Always expected.
+ *   - `not-triggered`: the workflow carries no trigger for that event, so it
+ *     never starts and never reports there. Never expected, and its absence is
+ *     read the same way a never-triggered check is on a pull request.
  *
- * Both forms are compared against the committed YAML by the tests.
+ * Every form is compared against the committed YAML by the tests, on both
+ * events, so a trigger that changes in one place turns that test red rather
+ * than quietly narrowing what this expects.
  */
 const WATCHED = [
   {
     workflow: '.github/workflows/adr-numbers.yml',
     job: 'adr-numbers',
     checks: ['adr-numbers'],
-    trigger: {
-      kind: 'workflow-paths',
-      paths: ['docs/adr/**', 'tools/adr_numbers/**', '.github/workflows/adr-numbers.yml'],
+    triggers: {
+      pull_request: {
+        kind: 'workflow-paths',
+        paths: ['docs/adr/**', 'tools/adr_numbers/**', '.github/workflows/adr-numbers.yml'],
+      },
+      // Unconditional in a merge queue, which is the whole point of
+      // abdeslam-menacere/ModelTree#860: two pull requests each claiming the
+      // same ADR number do not touch, so nothing else in the queue looks at
+      // decision-record numbering.
+      merge_group: { kind: 'always' },
     },
   },
   {
     workflow: '.github/workflows/instruction-references.yml',
     job: 'instruction-references',
     checks: ['instruction-references'],
-    trigger: {
-      kind: 'workflow-paths',
-      paths: [
-        '.github/copilot-instructions.md',
-        '.github/skills/**',
-        'tools/instruction_refs/**',
-        '.github/workflows/instruction-references.yml',
-      ],
+    triggers: {
+      pull_request: {
+        kind: 'workflow-paths',
+        paths: [
+          '.github/copilot-instructions.md',
+          '.github/skills/**',
+          'tools/instruction_refs/**',
+          '.github/workflows/instruction-references.yml',
+        ],
+      },
+      merge_group: { kind: 'always' },
     },
   },
   {
@@ -173,30 +236,40 @@ const WATCHED = [
     // leg. Both are watched, because a failure on either interpreter is a
     // failure of the suite.
     checks: ['pytest (Python 3.11)', 'pytest (Python 3.13)'],
-    trigger: {
-      kind: 'workflow-paths',
-      paths: [
-        'tools/updater/**',
-        '.github/workflows/updater-tests.yml',
-        '.github/workflows/publish-updater-proposals.yml',
-        'tools/instruction_refs/**',
-        '.github/skills/**',
-        '.github/workflows/instruction-references.yml',
-        'tools/adr_numbers/**',
-        '.github/workflows/adr-numbers.yml',
-        'docs/adr/**',
-      ],
+    triggers: {
+      pull_request: {
+        kind: 'workflow-paths',
+        paths: [
+          'tools/updater/**',
+          '.github/workflows/updater-tests.yml',
+          '.github/workflows/publish-updater-proposals.yml',
+          'tools/instruction_refs/**',
+          '.github/skills/**',
+          '.github/workflows/instruction-references.yml',
+          'tools/adr_numbers/**',
+          '.github/workflows/adr-numbers.yml',
+          'docs/adr/**',
+        ],
+      },
+      merge_group: { kind: 'always' },
     },
   },
   {
     workflow: '.github/workflows/source-link-health.yml',
     job: 'source-link-health-tests',
     checks: ['source-link-health-tests'],
-    // Unfiltered at the trigger and scoped inside the job, so it reports on
-    // every pull request and is always expected. `.github/workflows/README.md`
-    // already records it as safe to require and not required; watching it here
-    // is what makes that reachable without a second required context.
-    trigger: { kind: 'always' },
+    triggers: {
+      // Unfiltered at the trigger and scoped inside the job, so it reports on
+      // every pull request and is always expected. `.github/workflows/README.md`
+      // already records it as safe to require and not required; watching it here
+      // is what makes that reachable without a second required context.
+      pull_request: { kind: 'always' },
+      // That workflow carries no `merge_group` trigger, so it does not run in a
+      // queue and reports nothing there. Read as never-triggered rather than as
+      // missing -- and if it ever does report, the run's own conclusion decides,
+      // so this line cannot excuse a failure.
+      merge_group: { kind: 'not-triggered' },
+    },
   },
 ];
 
@@ -270,6 +343,17 @@ const DEFAULT_TIMEOUT_SECONDS = 20 * 60;
 /** How many consecutive API failures are tolerated before the run is undetermined. */
 const MAX_CONSECUTIVE_API_FAILURES = 5;
 
+/**
+ * The file ceiling the commit-comparison endpoint imposes.
+ *
+ * Documented by GitHub and reported nowhere in the response: measured here, a
+ * 519-file comparison comes back with exactly 300 files and no field admitting
+ * to the truncation, so a comparison at the ceiling cannot be told apart from
+ * one merely ending there. Not a pagination bound -- the file list is not
+ * paginated at all, which `comparedPaths` explains.
+ */
+const COMPARE_FILE_CAP = 300;
+
 class Undetermined extends Error {}
 
 /**
@@ -298,10 +382,37 @@ function globMatches(glob, path) {
   return path === glob;
 }
 
-/** Whether a watched entry's workflow is triggered by this change. */
-function isExpected(entry, changedPaths) {
-  if (entry.trigger.kind === 'always') return true;
-  return entry.trigger.paths.some((glob) => changedPaths.some((path) => globMatches(glob, path)));
+/**
+ * Whether a watched entry's workflow is triggered by this change, on this event.
+ *
+ * The event decides which trigger copy is read, and an entry that records
+ * nothing for the event it is asked about stops the run rather than defaulting
+ * either way: an unrecorded trigger is an unknown, and an unknown that resolved
+ * to "not expected" would turn a pending failure into a green.
+ */
+function isExpected(entry, eventName, changedPaths) {
+  const trigger = entry.triggers[eventName];
+  if (trigger === undefined) {
+    throw new Undetermined(`${entry.workflow} records no ${eventName} trigger for this script to read`);
+  }
+
+  if (trigger.kind === 'not-triggered') return false;
+  if (trigger.kind === 'always') return true;
+  return trigger.paths.some((glob) => changedPaths.some((path) => globMatches(glob, path)));
+}
+
+/**
+ * Why an absent check is not expected, in the words of the event it ran under.
+ *
+ * The two reasons are genuinely different -- a filter that did not match, and a
+ * workflow that does not run on this event at all -- and a log that conflates
+ * them sends its reader to the wrong file.
+ */
+function absenceDetail(entry, eventName) {
+  const trigger = entry.triggers[eventName];
+  return trigger !== undefined && trigger.kind === 'not-triggered'
+    ? `its workflow has no ${eventName} trigger, so it does not run here`
+    : 'no changed file matches its path filter';
 }
 
 function env(name) {
@@ -390,6 +501,92 @@ async function changedPaths(repo, number) {
 }
 
 /**
+ * Every path a merge group changes, as GitHub compares them.
+ *
+ * `base_sha...head_sha` is the same three-dot comparison a `paths:` filter
+ * would use, and on a queue entry the base is an ancestor of the head, so it is
+ * the files that entry proposes to add to `main`.
+ *
+ * Deliberately not paginated, which is the opposite of the pull request path
+ * above and is a property of the endpoint rather than a preference. `per_page`
+ * and `page` here page the *commits*. The whole `files` array arrives on the
+ * first page however small `per_page` is -- measured against this repository, a
+ * 141-file comparison returns all 141 at `per_page=1` -- and every later page
+ * carries commits with no `files` key at all. So a reader that pages until a
+ * short page reads the complete list on page 1, asks for page 2, finds no array
+ * there and calls the response malformed: exit 2 for every merge group of 100
+ * files or more, which as a required context would eject the entry and rebuild
+ * the very deadlock this script exists to clear. Asking only for the page the
+ * files are on is what makes that unreachable.
+ *
+ * The cap is the one thing that must still stop the run, and it is a different
+ * condition from the end of the list rather than a special case of it. GitHub
+ * truncates the array at COMPARE_FILE_CAP and admits it nowhere: the comparison
+ * declares no file total, so unlike a pull request's `changed_files` there is
+ * nothing to check a short list against, and a comparison returning exactly the
+ * cap is indistinguishable from one truncated by it. Both end the run. That
+ * refuses the rare merge group that genuinely changes exactly COMPARE_FILE_CAP
+ * files along with every truncated one, which is the direction this script
+ * always errs in: a silently shortened list shrinks the expected set, and a
+ * check that should have run then reads as a legitimate absence, which is a
+ * false pass.
+ */
+async function comparedPaths(repo, baseSha, headSha) {
+  const comparison = await api(`/repos/${repo}/compare/${baseSha}...${headSha}`);
+
+  const files = comparison.files;
+  if (!Array.isArray(files)) throw new Error('the compare endpoint returned no files array');
+
+  if (files.length >= COMPARE_FILE_CAP) {
+    throw new Undetermined(
+      `the comparison ${baseSha}...${headSha} returned ${files.length} changed files, which is the `
+      + `${COMPARE_FILE_CAP}-file ceiling the endpoint imposes; the comparison declares no file `
+      + 'total, so a list at the ceiling cannot be shown to be the whole list',
+    );
+  }
+
+  return files.map((file) => file.filename);
+}
+
+/**
+ * The head commit and the changed-file reader for the event this run is under.
+ *
+ * Every branch here either returns both, or throws. There is no default event
+ * and no fallback set of environment variables: an event whose inputs this
+ * cannot obtain is undetermined, which is exit 2 and a red job.
+ */
+function resolveEvent() {
+  const eventName = env('GITHUB_EVENT_NAME');
+  if (eventName === null) throw new Undetermined('GITHUB_EVENT_NAME is not set');
+
+  if (eventName === 'pull_request') {
+    const number = env('PR_NUMBER');
+    const headSha = env('PR_HEAD_SHA');
+    if (number === null) throw new Undetermined('PR_NUMBER is not set');
+    if (headSha === null) throw new Undetermined('PR_HEAD_SHA is not set');
+
+    return { eventName, headSha, readChangedPaths: (repo) => changedPaths(repo, number) };
+  }
+
+  if (eventName === 'merge_group') {
+    // Both arrive empty on any other event, because `github.event.merge_group`
+    // exists only here -- which is why the event name decides, rather than
+    // whichever variables happen to be populated.
+    const headSha = env('MERGE_GROUP_HEAD_SHA');
+    const baseSha = env('MERGE_GROUP_BASE_SHA');
+    if (headSha === null) throw new Undetermined('MERGE_GROUP_HEAD_SHA is not set');
+    if (baseSha === null) throw new Undetermined('MERGE_GROUP_BASE_SHA is not set');
+
+    return { eventName, headSha, readChangedPaths: (repo) => comparedPaths(repo, baseSha, headSha) };
+  }
+
+  throw new Undetermined(
+    `this script cannot measure a ${eventName} event: it reads a pull request and a merge group, `
+    + 'and an aggregate reported green over checks it never read is worse than no aggregate at all',
+  );
+}
+
+/**
  * The check runs on one commit, latest run per name.
  *
  * `filter=latest` is the endpoint's own default and is passed explicitly so the
@@ -434,7 +631,7 @@ async function checkRuns(repo, sha) {
  * Pure, and the whole of the decision: the poll loop decides *when* to call
  * this, never what it answers.
  */
-function classify(expectedChecks, runsByName) {
+function classify(expectedChecks, runsByName, eventName) {
   const verdicts = [];
 
   for (const entry of WATCHED) {
@@ -446,7 +643,7 @@ function classify(expectedChecks, runsByName) {
         verdicts.push(
           expected
             ? { check, state: 'never-reported', passed: false, detail: 'expected from the changed files and never reported' }
-            : { check, state: 'not-triggered', passed: true, detail: 'no changed file matches its path filter' },
+            : { check, state: 'not-triggered', passed: true, detail: absenceDetail(entry, eventName) },
         );
         continue;
       }
@@ -507,26 +704,26 @@ function report(lines) {
 
 async function main() {
   const repo = env('GITHUB_REPOSITORY');
-  const number = env('PR_NUMBER');
-  const headSha = env('PR_HEAD_SHA');
 
   // Printed first, before anything can fail, so that every run -- including one
   // that ends undetermined -- says exactly which checks it holds itself
   // responsible for and which it does not. The limits travel with the result
   // rather than living in a document the reader of the result may never open,
   // and `web/tests/workflows/aggregate-checks.test.ts` reads this line to
-  // compare the path filters below against the committed workflows they copy.
+  // compare the triggers below against the committed workflows they copy.
   console.log(`${CONFIGURATION_MARKER}${JSON.stringify({ watched: WATCHED, excluded: EXCLUDED })}`);
 
   if (repo === null) throw new Undetermined('GITHUB_REPOSITORY is not set');
-  if (number === null) throw new Undetermined('PR_NUMBER is not set');
-  if (headSha === null) throw new Undetermined('PR_HEAD_SHA is not set');
+
+  // Before the deadline is computed, because an event with no inputs has
+  // nothing to wait for.
+  const { eventName, headSha, readChangedPaths } = resolveEvent();
 
   const deadline = Date.now() + timeoutMs();
 
   let changed;
   try {
-    changed = await changedPaths(repo, number);
+    changed = await readChangedPaths(repo);
   } catch (error) {
     // An expectation set that could not be computed is the one input whose
     // absence turns a missing check into a false pass, so it ends the run
@@ -536,7 +733,7 @@ async function main() {
   }
 
   const expectedChecks = new Set(
-    WATCHED.filter((entry) => isExpected(entry, changed)).flatMap((entry) => entry.checks),
+    WATCHED.filter((entry) => isExpected(entry, eventName, changed)).flatMap((entry) => entry.checks),
   );
 
   const started = Date.now();
@@ -580,10 +777,11 @@ async function main() {
     await sleep(Math.min(POLL_MS, remaining));
   }
 
-  const verdicts = classify(expectedChecks, runsByName);
+  const verdicts = classify(expectedChecks, runsByName, eventName);
   const failed = verdicts.filter((verdict) => !verdict.passed);
 
   const lines = [
+    `Event: ${eventName}`,
     `Head commit: ${headSha}`,
     `Changed files: ${changed.length}`,
     '',
