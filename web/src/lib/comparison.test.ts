@@ -824,6 +824,253 @@ describe('comparison payload', () => {
     expect(dataset.benchmarkResults.some((r) => r.caveats !== undefined)).toBe(true);
   });
 
+  it('drops slug, sourceIds and verifiedAt from benchmarks (#967)', () => {
+    // Nothing on this surface reads them. `comparison.ts` reaches a benchmark
+    // definition only for `name`, `metric`, `metricUnit` and `direction`, and
+    // `comparability.ts` types its own view as
+    // `Pick<BenchmarkDefinition, 'id' | 'name' | 'direction' | 'metric'>`, so the
+    // comparability engine cannot see the other three either.
+    //
+    // `sourceIds` is the one that looks like provenance and is not:
+    // buildComparisonPayload derives its cited-source set from releases,
+    // deployments, pricing and benchmark *results*, never from benchmark
+    // definitions. The ids therefore point at records this payload does not
+    // carry. That is asserted below rather than left as prose, because it is the
+    // whole reason dropping them costs no provenance.
+    for (const benchmark of payload.benchmarks) {
+      expect(benchmark).not.toHaveProperty('slug');
+      expect(benchmark).not.toHaveProperty('sourceIds');
+      expect(benchmark).not.toHaveProperty('verifiedAt');
+    }
+
+    // Positive control: each field is present upstream, so its absence
+    // downstream is a projection effect and not an empty dataset.
+    for (const field of ['slug', 'sourceIds', 'verifiedAt'] as const) {
+      expect(
+        dataset.benchmarks.some((benchmark) => field in benchmark),
+        `dataset.benchmarks must carry \`${field}\` for its absence above to mean anything`,
+      ).toBe(true);
+    }
+
+    // The dangling-id claim, measured rather than asserted. Every benchmark
+    // sourceId must be unresolvable against the shipped source table — if one
+    // ever resolves, dropping the field would start costing real provenance and
+    // this guard should be reconsidered rather than deleted.
+    const shippedSourceIds = new Set(payload.sources.map((source) => source.id));
+    const benchmarkSourceIds = dataset.benchmarks.flatMap((benchmark) => benchmark.sourceIds);
+    expect(benchmarkSourceIds.length).toBeGreaterThan(0);
+    expect(
+      benchmarkSourceIds.filter((id) => shippedSourceIds.has(id)),
+      'a benchmark sourceId now resolves against the shipped payload, so these ids are no longer '
+      + 'dead weight. Re-open the question in #967 before relying on this trim.',
+    ).toEqual([]);
+    // Control for that emptiness: release sourceIds must all resolve, or
+    // "unresolvable" above is a fact about the lookup rather than about
+    // benchmarks.
+    const releaseSourceIds = payload.releases.flatMap((release) => release.sourceIds);
+    expect(releaseSourceIds.length).toBeGreaterThan(0);
+    expect(releaseSourceIds.filter((id) => !shippedSourceIds.has(id))).toEqual([]);
+  });
+
+  it('ships no field that nothing on the comparison surface consumes (#967)', () => {
+    // Criterion 1 of #967, as an executable sweep rather than an inspection.
+    //
+    // For every field of every shipped record: strip it from the payload,
+    // rebuild the whole comparison surface, and compare. A field whose removal
+    // moves nothing is not carrying its bytes. The one exception this repository
+    // has measured is a field consumed by code that today's *data* never
+    // exercises — those must be named below with the code path that reads them,
+    // so "inert" is never confused with "unread".
+    //
+    // This is the second of the two tests #967 insists on: "not rendered
+    // directly" and "not consumed" are different questions, and only the second
+    // licenses a trim. A strip sweep alone would have licensed removing both
+    // entries in the allow-list, and both would have been wrong.
+    const CONSUMED_BUT_DATA_INERT: Record<string, string> = {
+      'benchmarkResults.id': 'comparability.ts orders results by `a.id.localeCompare(b.id)` — the '
+        + 'score tie-break, and the whole fallback ordering. Inert only while no two results tie.',
+      'deployments.id': 'comparison.ts `pricingFor` joins `pricing.deploymentId` against these ids, '
+        + 'and builds `deploymentById` from them. Inert only while pricing.json is empty.',
+    };
+
+    // Keep the selection set small enough for the suite but derived so that it
+    // provably exercises every collection. A selection set that never picks a
+    // release carrying a deployment makes every `deployments.*` field read inert
+    // for want of a selection rather than for want of a reader — a degenerate
+    // subject wearing a finding's clothes. The coverage preconditions below are
+    // asserted, not assumed.
+    const slugById = new Map(dataset.releases.map((release) => [release.id, release.slug]));
+    const slugsOf = (ids: string[]) => [...new Set(ids)]
+      .map((id) => slugById.get(id))
+      .filter((slug): slug is string => slug !== undefined);
+
+    const benchmarked = slugsOf(payload.benchmarkResults.map((result) => result.releaseId));
+    const deployed = slugsOf(payload.deployments.map((deployment) => deployment.releaseId));
+    // One release per distinct date precision, so `datePrecision` has something
+    // to differ about.
+    const byPrecision = new Map<string, string>();
+    for (const release of payload.releases) {
+      if (!byPrecision.has(release.datePrecision)) byPrecision.set(release.datePrecision, release.slug);
+    }
+    const precisions = [...byPrecision.values()];
+
+    expect(
+      benchmarked.length,
+      'this sweep needs at least two benchmark-bearing releases or the benchmark and comparability '
+      + 'fields read inert for want of data rather than for want of a reader',
+    ).toBeGreaterThanOrEqual(2);
+    expect(
+      deployed.length,
+      'this sweep needs at least one release carrying a deployment or every `deployments.*` and '
+      + '`servingPlatforms.*` field reads inert because nothing selected them',
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      precisions.length,
+      'this sweep needs at least two distinct date precisions or `releases.datePrecision` reads '
+      + 'inert because every selected release agreed',
+    ).toBeGreaterThanOrEqual(2);
+
+    // Pad a one-element group with a distinct release so it still forms a pair.
+    const pad = (slugs: string[]) => (slugs.length >= 2
+      ? [slugs[0]!, slugs[1]!]
+      : [slugs[0]!, seedSlugs.find((slug) => slug !== slugs[0])!]);
+
+    const selections: string[][] = [
+      pad(benchmarked),
+      pad(deployed),
+      precisions.slice(0, 4),
+      [seedSlugs[0]!, seedSlugs[1]!],
+      [benchmarked[0]!, deployed[0]!, seedSlugs[0]!],
+    ];
+
+    const surfaceOf = (data: ComparisonDataset) => {
+      try {
+        return JSON.stringify(selections.map((slugs) => [
+          buildModelComparison(data, slugs, seedBase, today),
+          buildComparisonCandidates(data, slugs, seedBase),
+        ]));
+      } catch (error) {
+        // A throw is consumption: the field was reached for and required.
+        return `THREW: ${(error as Error).message}`;
+      }
+    };
+
+    const strip = (collection: string, field: string): ComparisonDataset => ({
+      ...payload,
+      [collection]: (payload as unknown as Record<string, Record<string, unknown>[]>)[collection]!
+        .map((record) => {
+          const { [field]: _dropped, ...rest } = record;
+          return rest;
+        }),
+    }) as ComparisonDataset;
+
+    const baseline = surfaceOf(payload);
+
+    // Positive control: a field the table plainly renders must move the surface,
+    // or this sweep is blind and every "inert" below is meaningless.
+    expect(
+      surfaceOf(strip('releases', 'displayName')),
+      'stripping releases.displayName must change the comparison surface',
+    ).not.toBe(baseline);
+    // Negative control: stripping a field that was never there must not move it,
+    // or the sweep is noisy and every "consumed" below is meaningless.
+    expect(
+      surfaceOf(strip('releases', 'zzzFabricatedFieldThatCannotExist')),
+      'stripping a fabricated field must leave the comparison surface untouched',
+    ).toBe(baseline);
+
+    const inert: string[] = [];
+    let swept = 0;
+    for (const [collection, records] of Object.entries(payload)) {
+      if (!Array.isArray(records) || records.length === 0) continue;
+      const fields = [...new Set(records.flatMap((record) => Object.keys(record)))];
+      for (const field of fields) {
+        swept += 1;
+        if (surfaceOf(strip(collection, field)) === baseline) inert.push(`${collection}.${field}`);
+      }
+    }
+
+    // Guard the denominator too: a sweep that examined nothing would report no
+    // inert fields and look like a pass.
+    expect(swept, 'the sweep must actually examine the shipped fields').toBeGreaterThan(40);
+
+    expect(
+      inert.filter((field) => !(field in CONSUMED_BUT_DATA_INERT)).sort(),
+      `${swept} shipped fields swept. The fields above changed nothing on the comparison surface `
+      + 'when removed. Either drop them from buildComparisonPayload, or — if code does read them '
+      + 'and only today\'s data leaves them inert — add them to CONSUMED_BUT_DATA_INERT above with '
+      + 'the file and line that reads them.',
+    ).toEqual([]);
+
+    // And the allow-list must not rot: an entry that has stopped being inert is
+    // an entry that should be deleted, so require every one of them to still be.
+    for (const field of Object.keys(CONSUMED_BUT_DATA_INERT)) {
+      expect(
+        inert,
+        `${field} is no longer inert, so its CONSUMED_BUT_DATA_INERT entry is stale — delete it`,
+      ).toContain(field);
+    }
+  });
+
+  it('computes the same comparability verdict from the payload as from the dataset (#967)', () => {
+    // Criterion 3 of #967. /compare resolves comparability client-side from the
+    // shipped payload, so a projection that drops a policy input changes the
+    // verdicts readers see without touching any column the eye checks first.
+    // The known instance is `variantNote`, whose removal multiplies the rendered
+    // `Model variant` findings over a benchmark-bearing pair. That failure is
+    // silent, which is why it is pinned by a test and not by inspection.
+    const slugById = new Map(dataset.releases.map((release) => [release.id, release.slug]));
+    const benchmarked = [...new Set(payload.benchmarkResults.map((result) => result.releaseId))]
+      .map((id) => slugById.get(id))
+      .filter((slug): slug is string => slug !== undefined);
+    expect(
+      benchmarked.length,
+      'without two benchmark-bearing releases there is no comparability verdict to compare',
+    ).toBeGreaterThanOrEqual(2);
+    const slugs = [benchmarked[0]!, benchmarked[1]!];
+
+    const evidenceOf = (data: ComparisonDataset) => buildModelComparison(data, slugs, seedBase, today)
+      .groups
+      .flatMap((group) => group.rows)
+      .map((row) => row.evidence)
+      .filter((evidence): evidence is NonNullable<typeof evidence> => Boolean(evidence));
+
+    const fromPayload = evidenceOf(payload);
+    const fromDataset = evidenceOf(dataset);
+
+    // Positive control: this pair must actually reach the comparability engine,
+    // or every equality below holds vacuously — which is exactly how a
+    // variantNote regression would slip past a green suite.
+    expect(
+      fromPayload.length,
+      'the benchmark-bearing pair must produce comparability evidence for this guard to bite',
+    ).toBeGreaterThan(0);
+
+    expect(fromPayload.map((evidence) => evidence.verdict))
+      .toEqual(fromDataset.map((evidence) => evidence.verdict));
+    expect(JSON.stringify(fromPayload)).toBe(JSON.stringify(fromDataset));
+
+    // And the trap itself, demonstrated rather than described: strip
+    // `variantNote` from the payload and the rendered `Model variant` findings
+    // must move. If this stops failing, the dimension has gone quiet and the
+    // guard above no longer protects anything.
+    const variantFindings = (evidence: ReturnType<typeof evidenceOf>) => evidence
+      .flatMap((entry) => entry.notes)
+      .filter((note) => note.includes('Model variant'));
+
+    const stripped = {
+      ...payload,
+      benchmarkResults: payload.benchmarkResults.map(({ variantNote: _dropped, ...rest }) => rest),
+    } as ComparisonDataset;
+
+    expect(
+      variantFindings(evidenceOf(stripped)).length,
+      'stripping benchmarkResults.variantNote must change the rendered `Model variant` findings. '
+      + 'That it does is the whole reason the field is shipped, and this is the control proving '
+      + 'the equality assertions above are not vacuous.',
+    ).not.toBe(variantFindings(fromPayload).length);
+  });
+
   it('counts UTF-8 bytes rather than UTF-16 code units', () => {
     // Criterion 3 of #621. The guard is pinned against a fixture whose byte
     // length is hand-derivable, rather than against the live dataset, because
