@@ -26,10 +26,12 @@
  * It converts *skipped* and *not triggered* into one green signal without ever
  * converting *failed* into one.
  *
- * Requiring it is a branch-protection change and an owner action. This script
- * makes the check requirable and cannot make it required; until someone adds
- * `aggregate-checks` to the required contexts, this changes nothing about what
- * can merge.
+ * Requiring it was a branch-protection change and an owner action, and that
+ * action has been taken: `aggregate-checks` is one of the required contexts on
+ * `main` -- measured 2026-09-04. So what this script concludes now decides what
+ * can merge. Requirable and required stay separate facts, and only the second
+ * lives outside this tree, so that reading is a dated measurement rather than a
+ * standing guarantee.
  *
  * -- Why it reads the API rather than `needs` --
  *
