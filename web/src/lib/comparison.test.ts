@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { dataset } from '../data/dataset';
+import { benchmarkResultSchema } from '../data/schema';
 import {
   COMPARE_QUERY_PARAMETER,
   COMPARISON_GROUP_ORDER,
@@ -1078,6 +1079,94 @@ describe('comparison payload', () => {
         }
       }
     }
+  });
+
+  it('compacts every key a benchmark result CAN carry, not just the ones data sets (#977)', () => {
+    // Why this exists next to "compacts every key" above rather than inside it.
+    // That guard reads the real dataset, so the only keys it can examine are the
+    // ones the data happens to populate. `reasoningMode`, `toolsEnabled` and
+    // `harness` are schema-optional, are projected into the payload, and are set
+    // by none of the benchmark results in `benchmark-results.json` — so for the
+    // life of that guard it passed without once reaching the three keys it
+    // exists to protect. A check whose coverage is decided by the data cannot
+    // detect an omission for a field the data omits; that tautology is what hid
+    // this. This test supplies the missing case instead of waiting for a refresh
+    // to supply it, at which point the repair would be out of the ADR 0003
+    // qualifying class and the run that needed it could not ship it.
+    //
+    // Structural rather than a list of three names: the field universe is read
+    // off `benchmarkResultSchema`, so a fourth optional added there fails the
+    // maximality assertion below until this fixture populates it, and then fails
+    // the compaction assertion until it is either given a code or dropped from
+    // the projection. A test naming today's three would go stale on the fourth,
+    // which is the same defect one level up.
+    const seed = dataset.benchmarkResults[0];
+    expect(seed, 'the dataset must carry a benchmark result to build the fixture from').toBeDefined();
+
+    const maximal = {
+      ...seed!,
+      variantNote: 'maximal fixture — every optional populated',
+      reasoningMode: 'extended-thinking',
+      toolsEnabled: true,
+      harness: 'lm-evaluation-harness v0.4.2',
+      caveats: 'maximal fixture — every optional populated',
+    };
+
+    expect(
+      Object.keys(maximal).sort(),
+      'this fixture must populate every field benchmarkResultSchema declares, or the '
+      + 'compaction assertion below is vacuous for whatever it leaves out — which is '
+      + 'exactly the failure #977 records',
+    ).toEqual(Object.keys(benchmarkResultSchema.shape).sort());
+    // The values must be ones the schema would accept, or the fixture proves
+    // something about a record that could never reach the payload.
+    expect(() => benchmarkResultSchema.parse(maximal)).not.toThrow();
+
+    const maximalPayload = buildComparisonPayload({
+      ...dataset,
+      benchmarkResults: dataset.benchmarkResults.map(
+        (result) => (result.id === seed!.id ? maximal : result),
+      ),
+    });
+    const projected = maximalPayload.benchmarkResults.find((result) => result.id === seed!.id);
+    expect(projected, 'the maximal record must survive the projection').toBeDefined();
+
+    const compact = compactComparisonPayload(maximalPayload);
+    const shipped = compact.E.find((record) => record.i === seed!.id);
+    expect(shipped, 'the maximal record must survive compaction').toBeDefined();
+
+    for (const key of Object.keys(shipped!)) {
+      expect(
+        key,
+        `unmapped key "${key}" on a fully populated benchmark result — add it to `
+        + 'BENCHMARK_RESULT_KEY_TO_SHORT in comparison.ts',
+      ).toHaveLength(1);
+    }
+
+    // Collisions, which the length check above cannot see: two long keys sharing
+    // one code both land in the same slot and one value is lost silently. Key
+    // count is preserved exactly when the codes are distinct.
+    expect(
+      Object.keys(shipped!).length,
+      'two keys share a short code in BENCHMARK_RESULT_KEY_TO_SHORT — one value was overwritten',
+    ).toBe(Object.keys(projected!).length);
+
+    // And losslessly, which is the collision check restated as behaviour.
+    expect(expandComparisonPayload(compact)).toEqual(maximalPayload);
+
+    // Negative control on the guard itself. If the fixture emitted no key the
+    // real dataset already emits, this test would be measuring the same thing
+    // the guard above measures and #977 would still be invisible. At least one
+    // shipped key must be unreachable from the live data.
+    const fromRealData = new Set(
+      compactComparisonPayload(payload).E.flatMap((record) => Object.keys(record)),
+    );
+    const beyondRealData = Object.keys(shipped!).filter((key) => !fromRealData.has(key));
+    expect(
+      beyondRealData.length,
+      'the fixture reaches no key the real dataset misses, so it adds no coverage over '
+      + '"compacts every key" and cannot see an omitted entry',
+    ).toBeGreaterThan(0);
   });
 });
 
