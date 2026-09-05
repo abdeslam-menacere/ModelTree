@@ -2484,5 +2484,23 @@
     "publishedDate": "2024-12-02",
     "lastCheckedDate": "2026-09-01",
     "notes": "Cohere's own changelog release announcement for Rerank v3.5, titled \"Announcing Rerank-v3.5\". Cohere's changelog index dates this entry December 2, 2024, and the sibling \"Rerank v3.5 on Azure AI Foundry\" changelog corroborates the month in body text: \"In December 2024, Cohere released Rerank v3.5 model.\" Cited for the release date at day precision and the model identity rerank-v3.5. On the family's first release: Cohere's changelog index lists five Rerank entries, so its silence about a family launch is informative rather than an absence of coverage, and none of the five announces the family's introduction -- this entry announces v3.5 only. Cited also for that absence, which is the basis for the family's datePrecision unstated under ADR 0013."
+  },
+  {
+    "id": "osi-open-source-ai-definition",
+    "url": "https://opensource.org/ai/open-source-ai-definition",
+    "title": "The Open Source AI Definition, version 1.0",
+    "type": "official-docs",
+    "publisherId": "open-source-initiative",
+    "lastCheckedDate": "2026-09-04",
+    "notes": "The Open Source Initiative's own page for version 1.0 of the Open Source AI Definition, on OSI's own origin. Read 2026-09-04: the page is headed \"version 1.0\" and grants four freedoms it names \"Use\", \"Study\", \"Modify\" and \"Share\", stating that \"A precondition to exercising these freedoms is to have access to the preferred form to make modifications to the system\"; it lists that preferred form for a machine-learning system as Data Information, Code and Parameters. The sentence glossary.json quotes is present verbatim under the heading \"Open Source models and Open Source weights\": \"“Open Source models” and “Open Source weights” must include the data information and code used to derive those parameters.\" Cited by the glossary term open-source-ai for what the definition itself requires, and for nothing about any particular release. Whether OSI approved a named licence is a separate question, answered by osi-license-index and osi-approved-licenses; this page is not evidence of the approval status of any licence, and a licence identifier appearing on a model card remains no evidence of approval. The page states no publication date for version 1.0, so publishedDate is withheld rather than inferred from the version number."
+  },
+  {
+    "id": "hugging-face-gguf-docs",
+    "url": "https://huggingface.co/docs/hub/en/gguf",
+    "title": "GGUF",
+    "type": "official-docs",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-09-04",
+    "notes": "Hugging Face's own Hub documentation for the GGUF format. Read 2026-09-04: the page is headed \"GGUF\" and describes the format as \"a binary format that is optimized for quick loading and saving of models\" which, unlike tensor-only formats, \"encodes both the tensors and a standardized set of metadata\". Its \"Quantization Types\" table carries the Q6_K row glossary.json quotes verbatim: \"6-bit quantization (`q`). Super-blocks with 16 blocks, each block has 16 weights. Weight formula: `w = q * block_scale(8-bit)`, resulting in 6.5625 bits-per-weight.\" The filename the glossary reads as an example, mixtral-8x7b-instruct-v0.1.Q4_0.gguf, appears on this same page as the tensor-viewer example. Cited by the glossary term quantization for the quantization tag vocabulary and the bits-per-weight figures it documents. The page states no publication date, so publishedDate is withheld."
   }
 ]

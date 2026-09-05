@@ -1,7 +1,30 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { precisionOf } from './partial-date';
 import { rawDataset } from './raw';
 import { validateDataset } from './validate';
+
+/**
+ * Every URL `glossary.json` cites as a source, in the inline shape that file
+ * uses (`url` inside an entry's `sources` array) — the same definition
+ * `source-registration.test.ts` applies. Read from disk rather than imported,
+ * so nothing is added to `raw.ts`'s module graph and the ADR-0003 qualifying
+ * class is left exactly as it was.
+ */
+function glossaryCitationUrls(): Set<string> {
+  const path = fileURLToPath(new URL('./glossary.json', import.meta.url));
+  const entries: Array<{ sources?: Array<{ url?: string }> }> = JSON.parse(
+    readFileSync(path, 'utf8'),
+  );
+  const urls = new Set<string>();
+  for (const entry of entries) {
+    for (const source of entry.sources ?? []) {
+      if (typeof source.url === 'string') urls.add(source.url);
+    }
+  }
+  return urls;
+}
 
 function copyDataset() {
   return structuredClone(rawDataset);
@@ -84,6 +107,23 @@ describe('validateDataset', () => {
     ]) {
       for (const sourceId of record.sourceIds) cited.add(sourceId);
     }
+    // `glossary.json` is provenance-bearing too, but it sits outside `raw.ts`'s
+    // module graph and cites its sources inline by URL rather than by
+    // `sourceIds`, so the enumeration above cannot see it. A source the glossary
+    // cites is live provenance, not dead, and reading it here is what lets a
+    // record cited only there be registered in `sources.json` at all.
+    const glossaryUrls = glossaryCitationUrls();
+    const idByUrl = new Map(dataset.sources.map((source) => [source.url, source.id]));
+    const glossaryCited = [...glossaryUrls]
+      .map((url) => idByUrl.get(url))
+      .filter((id): id is string => id !== undefined);
+    // Non-vacuity on both readings. A glossary that parsed to nothing, or whose
+    // citations resolved to no source at all, would quietly weaken this back to
+    // the enumeration above and let a genuinely dead record pass as cited.
+    expect(glossaryUrls.size).toBeGreaterThan(0);
+    expect(glossaryCited.length).toBeGreaterThan(0);
+    for (const id of glossaryCited) cited.add(id);
+
     const orphaned = dataset.sources
       .map((source) => source.id)
       .filter((id) => !cited.has(id));
