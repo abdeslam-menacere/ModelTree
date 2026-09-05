@@ -310,6 +310,60 @@ core of the product.
   restating its algorithm here, so the two cannot drift. Do not review your own
   work.
 
+  **What "issue text" admits, and what it excludes.** The permitted input is the
+  issue **body** — the issue as filed. Its **comments** are not, and the
+  developer's summary is precisely what lives there, put there on purpose by the
+  durable-record rule under **Finishing**, which requires every dock to post its
+  summary, its real test output and its exit codes to the issue. So the two
+  commands are not interchangeable: `gh issue view <n>` returns the body alone,
+  while `gh issue view <n> --comments` returns the body plus every one of those
+  summaries. The independence this bullet asserts therefore rests, today, on a
+  gate not passing one flag — and it holds by default only because the default
+  happens to be the safe one, which is not a guarantee and is why it is written
+  down here. Measured at 21e9ab87dae0083041ef800ea4d98258de7d89f9 across the
+  five most recently gated issues, the second form returned between 1.5× and
+  11.2× the characters of the first, and on all five the difference carried the
+  developer's own verification output — `exit 0`, `merge-base` or
+  `npm run validate` — present in the comments view and absent from the body.
+
+  **State it as a property, because the flag is a route and not the violation: a
+  gate reads the issue as filed, not the conversation that followed it.** The
+  comments REST endpoint reached with `gh api`, a GraphQL timeline query, a
+  `--json comments` projection, the issue's page in a browser, and the review
+  thread on a linked pull request all deliver the same material by other names,
+  and each is the same violation as the flag. Recognise a route by what it
+  returns rather than by what it is called: if it can hand you something written
+  after the issue was filed, it is outside the permitted input, whether or not
+  anybody has enumerated it. Naming only the flag would age this into a footnote
+  about one spelling, on the same ground this file takes elsewhere — sweeping
+  for a known-bad command finds instances, and only the property finds the class.
+
+  This is a property to apply rather than a control to install, and that is a
+  decision rather than an omission. A gate agent can run any command and there
+  is no sandbox here to take a flag away from, so a checker sweeping for one
+  spelling would report green while another route returned the same bytes. A
+  rule no code enforces is one an unattended run breaks silently — which argues
+  for stating the property so an agent can apply it to a route nobody has
+  thought of yet, and against dressing prose up as enforcement it cannot
+  perform.
+
+  **The durable-record rule stands, unweakened, and the material is meant to be
+  there.** The tempting misreading is that summaries should stop going to issues
+  so that a gate cannot trip over them. They should not: `git ls-files DOCK.md`
+  prints nothing, so the issue comment is the only record of a dock's work that
+  outlives its worktree, and the gates are oversight over that record rather
+  than a reason to stop keeping it. Its presence is deliberate and permanent —
+  not an accident to be corrected at the source. The obligation this creates
+  falls on the reader and never on the writer: keep posting summaries in full,
+  and when you are gating, read the body only.
+
+  The failure mode to know is that breaking this looks like diligence and
+  reports nothing. An agent that reaches for the conversation is being thorough,
+  gets more context, and receives no signal that it has just read the exit codes
+  and conclusions it was meant to reproduce independently. A verdict that then
+  "confirms" the developer's figures has confirmed nothing, and it is
+  indistinguishable from one that did the work.
+
 ## Finishing
 
 Post a summary containing: what changed in one paragraph, every file touched and
