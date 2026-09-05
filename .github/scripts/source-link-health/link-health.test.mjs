@@ -28,8 +28,9 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
@@ -58,6 +59,7 @@ import {
   selectChanged,
   slashNormalisation,
   summarise,
+  summariseDryRun,
 } from './link-health.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -1540,4 +1542,129 @@ test('the CLI offers no data, exclusions, or today override', () => {
 
   assert.ok(flags.includes('--dry-run'));
   assert.ok(flags.includes('--baseline'));
+});
+
+/* -------------------------------------------------------------------------- */
+/* Why a non-zero exit happened, readable the same way on both paths (#698)    */
+/* -------------------------------------------------------------------------- */
+//
+// The checker exits 1 for two unrelated reasons -- an actionable URL, or a
+// record whose URL cannot be turned into a request at all -- and the exit code
+// deliberately does not separate them. The payload has to, and until #698 the
+// dry-run payload could not: `actionableUrls` was absent rather than zero, and
+// the malformed count travelled under a different name from the one the sweep
+// uses. A caller applying the sweep's own reading to a dry run therefore read
+// `0` and `0` from a run that had just exited 1.
+//
+// These tests read both payloads the way the workflow reads the sweep one, and
+// they are two-sided throughout: an arm that must report a cause and an arm that
+// must report none. A single arm would pass just as happily against a builder
+// that hard-wired every count to zero, which is the defect being fixed wearing a
+// test's clothes.
+
+/** The reading `source-link-health.yml` already applies to the sweep payload. */
+function explainNonZero(summary) {
+  return {
+    actionable: summary.actionableUrls ?? 0,
+    malformed: summary.malformedRecords ?? 0,
+  };
+}
+
+const dryRunPayload = (malformed) =>
+  summariseDryRun({ recordCount: 9, uniqueUrls: 4, licenceUrls: 2, wouldRequest: 3, excluded: 1, malformed });
+
+test('a dry run with malformed records says so under the name the sweep uses', () => {
+  const explained = explainNonZero(dryRunPayload(3));
+
+  assert.equal(explained.malformed, 3, 'the reason for the exit must survive the reading');
+  assert.equal(explained.actionable, 0, 'nothing was requested, so nothing can be broken');
+});
+
+test('a dry run with nothing malformed reports no cause at all', () => {
+  // The negative control for the test above. Together they establish that the
+  // field tracks the input rather than being a constant: a builder returning a
+  // fixed 3, or a fixed 0, fails exactly one of this pair.
+  const explained = explainNonZero(dryRunPayload(0));
+
+  assert.equal(explained.malformed, 0);
+  assert.equal(explained.actionable, 0);
+});
+
+test('one reading tells the two causes apart across both payloads', () => {
+  // The whole of #698 in one assertion: the same reader, three payloads that
+  // exit non-zero for different reasons, three different answers. Before the
+  // fix the first row read `{actionable: 0, malformed: 0}` -- indistinguishable
+  // from a run that found nothing, on a run that had just exited 1.
+  const malformedOnly = explainNonZero(dryRunPayload(2));
+  const brokenOnly = explainNonZero(
+    summarise([{ state: BROKEN, canonical: 'https://a.test/x', recordIds: ['r1'], titles: [] }], {
+      malformedRecords: 0,
+    }),
+  );
+  const clean = explainNonZero(summarise([], { malformedRecords: 0 }));
+
+  assert.deepEqual(malformedOnly, { actionable: 0, malformed: 2 });
+  assert.deepEqual(brokenOnly, { actionable: 1, malformed: 0 });
+  assert.deepEqual(clean, { actionable: 0, malformed: 0 });
+
+  assert.notDeepEqual(malformedOnly, brokenOnly, 'the two causes must not read alike');
+  assert.notDeepEqual(malformedOnly, clean, 'a cause must not read like no cause');
+});
+
+test('the dry-run payload states that it requested nothing, so its zero is not a clean bill of health', () => {
+  // `actionableUrls: 0` is only honest next to `checkedUrls: 0`. The pair reads
+  // "0 of 0 requested", which no caller can mistake for a swept-and-clean
+  // verdict -- and `wouldRequest` stays separate precisely so the difference
+  // between "would have asked" and "asked" is visible.
+  const payload = dryRunPayload(0);
+
+  assert.equal(payload.dryRun, true);
+  assert.equal(payload.checkedUrls, 0, 'a dry run requests nothing, so it checked nothing');
+  assert.equal(payload.actionableUrls, 0);
+  assert.equal(payload.wouldRequest, 3, 'what it would have asked is not what it asked');
+  assert.notEqual(payload.wouldRequest, payload.checkedUrls, 'these must never be conflated');
+});
+
+test('the existing dry-run keys keep their names and their values', () => {
+  // Additive only. Renaming `malformed` would return 0 to any caller still
+  // reading it, which is the same false all-clear this change exists to remove,
+  // pointed the other way.
+  const payload = dryRunPayload(5);
+
+  assert.equal(payload.malformed, 5, 'the original key must not have been renamed away');
+  assert.equal(payload.malformedRecords, payload.malformed, 'the two names must never disagree');
+  for (const key of ['dryRun', 'recordCount', 'uniqueUrls', 'licenceUrls', 'wouldRequest', 'excluded', 'malformed']) {
+    assert.ok(key in payload, `${key} was part of the payload before #698 and stays`);
+  }
+});
+
+test('the CLI emits the discriminator over the committed dataset', () => {
+  // End to end, because a builder that is correct in isolation is worth nothing
+  // if the CLI still writes its own object literal. The committed dataset is
+  // expected to be clean, so this arm pins the zero case; the malformed case is
+  // pinned above, where a fixture can supply one without a flag that would let a
+  // caller aim this tool at easier data.
+  const dir = mkdtempSync(resolve(tmpdir(), 'link-health-dry-run-'));
+  const out = resolve(dir, 'dry.json');
+
+  try {
+    const run = runCli(['--dry-run', '--json', out]);
+    assert.equal(run.status, 0, run.stderr);
+
+    const payload = JSON.parse(readFileSync(out, 'utf8'));
+
+    assert.equal(payload.actionableUrls, 0, 'absent was the defect; zero is the fix');
+    assert.equal(payload.malformedRecords, 0);
+    assert.equal(payload.malformedRecords, payload.malformed);
+    assert.equal(payload.checkedUrls, 0);
+
+    // The positive control, and the reason this test cannot pass against a tool
+    // that has quietly stopped extracting anything: a dry run over the real
+    // dataset must have found records and something it would request. Without
+    // these two, every assertion above is satisfied by an empty run.
+    assert.ok(payload.recordCount > 0, 'the committed dataset is expected to hold source records at all');
+    assert.ok(payload.wouldRequest > 0, 'a dry run over the real dataset must have something to request');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

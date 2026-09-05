@@ -19,6 +19,17 @@
 // Exit 0 = ran, nothing actionable. Exit 1 = ran, found something actionable.
 // Exit 2 = the checker itself could not run, which is never treated as a pass.
 //
+// Exit 1 has two unrelated causes -- a URL that is broken, or a record whose URL
+// cannot be turned into a request at all -- and the exit code deliberately does
+// not separate them: both are this repository's to fix, and every caller today
+// correctly treats any non-zero as failure. A caller that does want to know
+// which reads `--json` and looks at `actionableUrls` and `malformedRecords`,
+// which now mean the same thing in the dry-run payload as in the sweep one
+// (#698). Neither field is a verdict on its own: the sweep exits 1 with
+// `actionableUrls` at 0 when a record is malformed (#632), and a dry run reports
+// `checkedUrls: 0` because it requested nothing at all. The exit code is the
+// authority on whether a run found something; the payload only says what.
+//
 // ## Why licence URLs are swept here and not on a pull request (ADR 0017, #931)
 //
 // A release's `license.url` is not a citation, so no registration rule covers
@@ -80,6 +91,7 @@ import {
   renderReport,
   selectChanged,
   summarise,
+  summariseDryRun,
 } from './link-health.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -262,15 +274,14 @@ async function main() {
       write(
         args.json,
         `${JSON.stringify(
-          {
-            dryRun: true,
+          summariseDryRun({
             recordCount: records.length,
             uniqueUrls: targets.length,
             licenceUrls,
             wouldRequest: checked.length,
             excluded: excluded.length,
             malformed: malformed.length,
-          },
+          }),
           null,
           2,
         )}\n`,
@@ -278,6 +289,9 @@ async function main() {
       );
     }
 
+    // Unchanged, and deliberately so: the workflow step that invokes this path
+    // treats any non-zero as failure, which is correct for both meanings. What
+    // #698 asked for was a payload that says *which* meaning, not a new code.
     return malformed.length > 0 ? 1 : 0;
   }
 

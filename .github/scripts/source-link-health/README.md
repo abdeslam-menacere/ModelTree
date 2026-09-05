@@ -247,6 +247,41 @@ author is answerable for the sources they changed and not for the rest — and
 would be a bypass on the scheduled sweep, so the workflow passes it on pull
 requests only, and the script says on stderr when it is narrowing.
 
+## Exit codes, and which key says why (#698)
+
+`0` ran and found nothing to act on, `1` ran and found something, `2` could not
+run and is never a pass.
+
+Exit `1` has **two unrelated causes**: a URL that is genuinely broken, or a
+record whose URL cannot be turned into a request at all. The exit code does not
+separate them, deliberately — both are this repository's to fix, and every
+caller today treats any non-zero as failure, which is correct for both. A caller
+that wants to know *which* reads `--json` and looks at two keys:
+
+| Key | Cause it carries |
+|---|---|
+| `actionableUrls` | URLs the sweep proved broken, permanently moved, or covered by an expired exclusion |
+| `malformedRecords` | records whose URL could not be turned into a request at all |
+
+Both keys mean the same thing in the `--dry-run` payload as in the sweep one, so
+one reading serves both. Until #698 they did not: `actionableUrls` was **absent**
+rather than zero on a dry run, and the malformed count travelled under a
+different name (`malformed`), so the sweep's own reading returned `0` and `0`
+from a dry run that had just exited `1` and could not explain it. `malformed` is
+still emitted alongside `malformedRecords`, because renaming it would return `0`
+to any caller still reading the old key — the same false all-clear pointed the
+other way.
+
+**Neither key is a verdict, and neither may be used to derive one.** The sweep
+exits `1` with `actionableUrls` at `0` whenever a record is malformed, and
+closing the standing maintenance issue on that field posted an all-clear over a
+finding the checker had just raised (#632). A dry run reports `checkedUrls: 0`
+because it requested nothing at all, which is what stops its `actionableUrls: 0`
+reading as a clean bill of health: the pair says "0 of 0 requested", and
+`wouldRequest` stays separate so that "would have asked" is never mistaken for
+"asked". The exit code is the authority on whether a run found something; the
+payload only says what.
+
 ## Tests
 
 ```
