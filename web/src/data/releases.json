@@ -3615,8 +3615,8 @@
     "predecessorIds": [],
     "successorIds": [],
     "siblingIds": [],
-    "summary": "Tencent’s open-weight video foundation model, released with inference code and weights under Tencent’s own community licence, which does not apply in the European Union, United Kingdom or South Korea.",
-    "intendedUse": "Video generation from text prompts. The card describes the model as having over 13 billion parameters without stating an exact count, so no parameter count is recorded.",
+    "summary": "Tencent’s open-weight video foundation model, released with inference code and weights under Tencent’s own community licence, which does not apply in the European Union, United Kingdom or South Korea. The card describes the model as having over 13 billion parameters without stating an exact count, so no parameter count is recorded.",
+    "intendedUse": "Video generation from text prompts.",
     "sourceIds": [
       "tencent-hunyuan-video-model-card",
       "tencent-hunyuan-community-license",

@@ -610,7 +610,8 @@ reading and the disagreement is written down here rather than resolved silently.
   reserved for what the model is for. `src/data/parameter-gap-field.test.ts`
   pins the set and the field, so the tenth such record does not have to guess.
   A model whose count appears only as approximate prose on a source, with no
-  count in its identifier, is a different case and is not one of these nine.
+  count in its identifier, is not one of these nine — but it follows the same
+  field convention, which the next bullet records.
   <!-- claim: {"kind":"omits","entity":"releases","id":"01-ai-yi-1-5-34b-chat","field":"parameters"} -->
   <!-- claim: {"kind":"omits","entity":"releases","id":"01-ai-yi-34b-chat","field":"parameters"} -->
   <!-- claim: {"kind":"omits","entity":"releases","id":"apple-fastvlm-7b","field":"parameters"} -->
@@ -620,6 +621,29 @@ reading and the disagreement is written down here rather than resolved silently.
   <!-- claim: {"kind":"omits","entity":"releases","id":"nvidia-nemotron-nano-9b-v2","field":"parameters"} -->
   <!-- claim: {"kind":"omits","entity":"releases","id":"ai2-molmo-7b-d","field":"parameters"} -->
   <!-- claim: {"kind":"omits","entity":"releases","id":"nvidia-cosmos-1-0-diffusion-7b-text2world","field":"parameters"} -->
+- **The `summary` convention follows the absent count, not the identifier.** The
+  bullet above is gated on the identifier stating a count, which left one
+  question open: does a record that documents an absent count *without* one
+  belong to the same convention, or is it correctly outside it?
+  `tencent-hunyuan-video-t2v` was the case — its card says the model has "over
+  13 billion parameters" and states no exact figure, so nothing is citable, and
+  its identifier says `t2v` rather than `13b`. It belongs. The identifier gate
+  describes how such a record gets *noticed*; it never described where the note
+  goes, and the catalogue had already outgrown it. Measured for #943: of the
+  fifteen releases that record no `parameters` block and explain the absence in
+  prose, five state no count in their identifier — both Grok releases,
+  `deepseek-v3-2`, `kyutai-moshiko-pytorch-bf16` and this one — and four of
+  those five already carried the explanation in `summary`, which left this
+  record the only one in the catalogue explaining a missing count in the field
+  that ships. So the convention was never really conditional on the name, and
+  the boundary that mattered is the absence itself. Its sentence moved to
+  `summary` verbatim; `intendedUse` keeps what the model is for.
+  `src/data/parameter-gap-field.test.ts` pins all fifteen, and pins that the
+  widened filter still refuses records that record the count they discuss — a
+  guard that stops widening from turning into a tautology. No `parameters` block
+  was added: no primary source states an exact total, and that absence is the
+  finding rather than a gap to fill.
+  <!-- claim: {"kind":"omits","entity":"releases","id":"tencent-hunyuan-video-t2v","field":"parameters"} -->
 - **Grok 4 anchors its family but is not itself a release record.** The Grok 4
   announcement is dated 9 July 2025 and that date is the family's
   `firstReleaseDate`, but the model's documentation page is no longer served, so
