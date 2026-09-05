@@ -632,11 +632,10 @@ of abdeslam-menacere/ModelTree#878, merged the day before: flagless `[]`,
 result is not evidence of anything, and it fails toward `NOT LANDED`, the
 reassuring direction. Its control has to come from the state the default
 suppresses — a **merged** branch; one whose pull request is open is returned by
-both forms, so it passes while the instrument is broken. The general form, worth
-carrying past this one flag: **a probe whose documented form is sound can still
-be void when paraphrased, so the qualifier that makes it sound must be labelled
-load-bearing where it appears** — the flag was already written above, and the
-label is what was missing.
+both forms, so it passes while the instrument is broken. The general form, past
+this one flag: **a probe whose documented form is sound can still be void when
+paraphrased, so the qualifier that makes it sound must be labelled load-bearing
+where it appears** — the flag was already there; the label was not.
 
 Read it this way, checking the exit code of every call and never inferring a
 failure from empty output:
@@ -647,12 +646,13 @@ failure from empty output:
   resolved every case tree equality could not answer.
 - The same with a count **above** 0 ⇒ `PARTIALLY LANDED`. The commits after
   `headRefOid` are the only unlanded part; name them.
-- An empty list with `gh` exiting **0** ⇒ no record *for that head name*. This
-  is **not a verdict**: it settles only that your branch did not merge, which is
-  one of the three ways you can be redundant. A branch renamed after its pull
-  request was opened also hides its own record, so query the old name too before
-  relying on the silence. Either way you continue to step 4, which is the step
-  that can turn this into `NOT LANDED` or into `SUPERSEDED`.
+- An empty list with `gh` exiting **0** ⇒ no record *for that head name*, but
+  only from the `--state all` form: the flagless one returns that for a merged
+  branch too. This is **not a verdict**: it settles only that your branch did
+  not merge, which is one of the three ways you can be redundant. A branch
+  renamed after its pull request was opened also hides its own record, so query
+  the old name too. Either way you continue to step 4, which can turn this into
+  `NOT LANDED` or into `SUPERSEDED`.
 - `gh` failing, unauthenticated or offline ⇒ `UNDETERMINED`. An empty string
   from a command that failed is not an empty result, which is why the exit code
   is read rather than the output.
