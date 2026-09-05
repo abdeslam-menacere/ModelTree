@@ -2548,6 +2548,105 @@ describe('gate-dataset', () => {
     }
   });
 
+  // -------------------------------------------------------------------------
+  // The ordering half of the same remap (abdeslam-menacere/ModelTree#596).
+  //
+  // #586 fixed `isRealDate` and, in doing so, *widened* what reaches the rules
+  // below it: a year in 0001-0099 used to be classified unreal and so never got
+  // as far as an ordering comparison. It does now. `startOf` and `endOf` were
+  // still building with `Date.UTC`, which maps a year in 0-99 to 1900-1999, so
+  // every such value was silently relocated by nineteen centuries *for the
+  // purpose of comparison only* -- the floor still refused it, so nothing got
+  // through and nothing here changes which datasets the gate accepts.
+  //
+  // What it changed is what the gate *says*. A family dated 0050-01-01 read as
+  // 1950-01-01, so a release dated 1200-01-01 -- genuinely eight centuries
+  // later -- was reported as predating its own family. The floor refuses both
+  // values either way, so this is a wrong message sitting beside a right one,
+  // which is the same defect #586 fixed one rule earlier.
+  // -------------------------------------------------------------------------
+
+  /** The `dates` messages that accuse a release of predating its family. */
+  const familyOrderingMessages = (result) => JSON.parse(result.stdout).failures
+    .filter((failure) => failure.gate === 'dates'
+      && failure.message.includes("precedes its family's firstReleaseDate"))
+    .map((failure) => failure.message);
+
+  /** A dataset whose first release and its family carry the given dates. */
+  const withFamilyAndRelease = (familyDate, releaseDate) => gateMutatedDataset(({ read, write }) => {
+    const releases = read('releases.json');
+    const families = read('families.json');
+    const family = families.find((entry) => entry.id === releases[0].familyId);
+    assert.ok(family, 'the first release must belong to a family for this fixture to mean anything');
+    // Asserted rather than assigned. Both are already day-precision, so writing
+    // `day` back would be an inert component -- the harness refuses those, and
+    // rightly: it would look like part of the mutation while changing nothing.
+    // Stated as a precondition instead, so that a dataset which stops meeting
+    // it fails here rather than quietly making these fixtures mean something
+    // else. Day precision is what makes `endOf` equal `startOf`, which is what
+    // keeps this a test about the year rather than about interval width.
+    assert.equal(family.datePrecision, 'day', 'this fixture assumes a day-precision family');
+    assert.equal(releases[0].datePrecision, 'day', 'this fixture assumes a day-precision release');
+    family.firstReleaseDate = familyDate;
+    releases[0].releaseDate = releaseDate;
+    write('families.json', families);
+    write('releases.json', releases);
+  }, ['changed 1 families.firstReleaseDate', 'changed 1 releases.releaseDate']);
+
+  test('a release is not accused of predating a family whose year is in the 0001-0099 band', () => {
+    // The issue's own pair. Both values are refused by the 1950 floor, so the
+    // run fails either way and the exit code says nothing; what is measured is
+    // whether the ordering accusation appears *beside* the floor's refusal.
+    assert.deepEqual(
+      familyOrderingMessages(withFamilyAndRelease('0050-01-01', '1200-01-01')),
+      [],
+      'a release in 1200 is eight centuries after a family in 0050 and must not be reported as preceding it',
+    );
+
+    // The control, and the reason the assertion above carries information. An
+    // empty result proves nothing unless the same filter, on the same rule,
+    // can be shown to find the message when it belongs there -- otherwise a
+    // mistyped fragment reads exactly like a fixed bug.
+    assert.deepEqual(
+      familyOrderingMessages(withFamilyAndRelease('2023-01-01', '2022-01-01')),
+      ['releaseDate "2022-01-01" precedes its family\'s firstReleaseDate "2023-01-01"'],
+      'a release genuinely before its family must still be caught',
+    );
+
+    // And the same contradiction stated wholly inside the band, which is the
+    // half that a fix could break by making the comparison unconditionally
+    // false rather than correct.
+    assert.deepEqual(
+      familyOrderingMessages(withFamilyAndRelease('0050-01-01', '0040-01-01')),
+      ['releaseDate "0040-01-01" precedes its family\'s firstReleaseDate "0050-01-01"'],
+      'ordering must still work inside the band, not merely stop firing there',
+    );
+  });
+
+  test('the floor still refuses the band, so the ordering fix accepts nothing new', () => {
+    // The other direction, and the one that would notice if correcting the
+    // comparison had quietly become a relaxation. #596 asks for the helpers to
+    // compute the right instant; it does not ask for any value to become
+    // acceptable that was not acceptable before.
+    const banded = withFamilyAndRelease('0050-01-01', '1200-01-01');
+    assert.equal(banded.code, 1, `the band must still be refused:\n${banded.stdout}`);
+    const messages = dateMessages(banded);
+    assert.ok(
+      messages.some((message) => message.includes('firstReleaseDate "0050-01-01" predates 1950')),
+      `the floor must still speak for the family:\n${messages.join('\n')}`,
+    );
+    assert.ok(
+      messages.some((message) => message.includes('releaseDate "1200-01-01" predates 1950')),
+      `the floor must still speak for the release:\n${messages.join('\n')}`,
+    );
+
+    // The control: the identical fixture with both years above the floor is
+    // accepted, so the refusal above came from the dates and not from the
+    // fixture being malformed in some way the assertions do not name.
+    const modern = withFamilyAndRelease('2023-01-01', '2024-01-01');
+    assert.equal(modern.code, 0, `a well-ordered modern pair must pass:\n${modern.stdout}`);
+  });
+
   test('a release that predates its predecessor is still caught when stated as a year', () => {
     const result = gateMutatedDataset(({ read, write }) => {
       const releases = read('releases.json');

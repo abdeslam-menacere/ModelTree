@@ -323,6 +323,14 @@ export function selectChanged(targets, baselineRecords) {
 function isRealDate(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const [y, m, d] = value.split('-').map(Number);
+  // Left on `Date.UTC` on purpose (#596). The remap that makes a year in 0-99
+  // read as 1900-1999 is a defect, but it is also the only thing here that
+  // refuses such a year: this tool carries no 1950 floor, so unlike
+  // `gate-dataset.mjs` there is no second rule to catch the value once this
+  // one stops rejecting it. Measured, committed against patched, an exclusion
+  // dated `reviewedOn "0049-12-31"` moves from refused-as-unreal to accepted.
+  // Removing the remap is therefore a decision about what an exclusion may be
+  // dated, which #596 does not ask for and did not decide.
   const date = new Date(Date.UTC(y, m - 1, d));
   return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
 }

@@ -193,10 +193,32 @@ function isRealPartialDate(value) {
   return isRealDate(value);
 }
 
+/**
+ * `Date.UTC` without its two-digit-year remap (#596).
+ *
+ * `Date.UTC` maps a year in 0-99 to 1900-1999, so `Date.UTC(49, 11, 31)` is
+ * 1949 rather than year 49. Writing the stated year in with `setUTCFullYear`
+ * carries it through unchanged, which is the same construction `isRealDate`
+ * above uses and for the same reason (#586).
+ *
+ * The signature mirrors `Date.UTC` exactly -- year, **zero-based** month, day
+ * -- so a call site changes only the name. That is deliberate rather than
+ * tidy: `endOf` depends on the normalisation of a day of `0` meaning the last
+ * day of the previous month, and of a month of `12` rolling into the next
+ * year, and `setUTCFullYear` normalises both identically. Measured over years
+ * 100-2400 against months -2..13 and days 0..32, the two agree on every
+ * triple, so the band is the only behaviour this changes.
+ */
+function utcMs(year, monthIndex, day) {
+  const date = new Date(0);
+  date.setUTCFullYear(year, monthIndex, day);
+  return date.getTime();
+}
+
 /** Compares dates of possibly different precision by their earliest instant. */
 function startOf(value) {
   const [y, m = 1, d = 1] = String(value).split('-').map(Number);
-  return Date.UTC(y, m - 1, d);
+  return utcMs(y, m - 1, d);
 }
 
 /**
@@ -211,10 +233,10 @@ function startOf(value) {
  */
 function endOf(value) {
   const [y, m, d] = String(value).split('-').map(Number);
-  if (d !== undefined) return Date.UTC(y, m - 1, d);
+  if (d !== undefined) return utcMs(y, m - 1, d);
   // Day 0 of the following month is the last day of this one.
-  if (m !== undefined) return Date.UTC(y, m, 0);
-  return Date.UTC(y, 11, 31);
+  if (m !== undefined) return utcMs(y, m, 0);
+  return utcMs(y, 11, 31);
 }
 
 // ---------------------------------------------------------------------------
