@@ -514,8 +514,9 @@ export type ComparisonSourceRecord = Pick<
 >;
 
 // The /compare payload ships benchmark records trimmed to only the fields the
-// comparison surface actually reads (issue #906). The dataset keeps every field
-// and /benchmarks still renders them; only this wire projection narrows.
+// comparison surface actually reads (issue #906, extended by #967). The dataset
+// keeps every field and /benchmarks still renders them; only this wire
+// projection narrows.
 //
 // Six fields measured inert against the rendered comparison view were dropped —
 // `domain`, `owner`, `appliesToCategories`, `datasetVersion` and
@@ -523,13 +524,29 @@ export type ComparisonSourceRecord = Pick<
 // stripping harness in comparison.test.ts pins that verdict with positive and
 // negative controls, so "inert" here is a finding rather than an assumption.
 //
+// #967 dropped three more — `slug`, `sourceIds` and `verifiedAt` on the
+// benchmark — after reading every consumer rather than only re-running the
+// harness. Nothing on this surface reads them: `comparison.ts` reaches a
+// benchmark definition only for `name`, `metric`, `metricUnit` and `direction`,
+// and `comparability.ts` types its own context as
+// {@link ComparabilityBenchmark} = `id | name | direction | metric`, so the
+// engine cannot see the other three either. `sourceIds` is the one that looks
+// like provenance and is not: `buildComparisonPayload` builds its cited-source
+// set from releases, deployments, pricing and benchmark *results*, never from
+// benchmark definitions, so those ids resolve against nothing this payload
+// carries. Measured at trunk 82582b6c, all 4 benchmarks' sourceIds were
+// unresolvable against the shipped source table, against 0 of 360 release
+// sourceIds dangling in the same run — the control that the probe can see
+// resolution where it exists. They are dead ids on the wire, and the records
+// that carry them for real are `web/src/data/sources.json` and /benchmarks.
+//
 // `variantNote` is deliberately KEPT. It is a comparability-policy dimension
 // (`comparability-policy.ts`), and /compare computes comparability client-side
 // from this payload, so dropping it would silently change the verdict a reader
 // sees. That trap is what the earlier "seven fields" figure got wrong.
 export type ComparisonBenchmark = Pick<
   BenchmarkDefinition,
-  'id' | 'slug' | 'name' | 'metric' | 'metricUnit' | 'direction' | 'sourceIds' | 'verifiedAt'
+  'id' | 'name' | 'metric' | 'metricUnit' | 'direction'
 >;
 
 export type ComparisonBenchmarkResult = Pick<
@@ -1535,16 +1552,13 @@ export function buildComparisonPayload(dataset: ComparisonDataset): ComparisonDa
     pricing: dataset.pricing,
     // Trim benchmark records to the fields the comparison surface reads. See
     // ComparisonBenchmark / ComparisonBenchmarkResult for the measured-inert
-    // fields dropped and why `variantNote` is kept (issue #906).
+    // fields dropped and why `variantNote` is kept (issues #906 and #967).
     benchmarks: dataset.benchmarks.map((benchmark) => ({
       id: benchmark.id,
-      slug: benchmark.slug,
       name: benchmark.name,
       metric: benchmark.metric,
       metricUnit: benchmark.metricUnit,
       direction: benchmark.direction,
-      sourceIds: benchmark.sourceIds,
-      verifiedAt: benchmark.verifiedAt,
     })),
     benchmarkResults: dataset.benchmarkResults.map((result) => {
       // Required fields, always present. Optionals are added below only when
@@ -1638,9 +1652,16 @@ const DEPLOYMENT_KEY_TO_SHORT: Record<string, string> = {
   regions: 'g', effectiveFrom: 'e', sourceIds: 's', verifiedAt: 'v',
 };
 
-const BENCHMARK_KEY_TO_SHORT: Record<string, string> = {
-  id: 'i', slug: 's', name: 'n', metric: 'm',
-  metricUnit: 'u', direction: 'r', sourceIds: 'S', verifiedAt: 'V',
+// Typed against the projection rather than as a bare `Record<string, string>`,
+// on the same terms as `BENCHMARK_RESULT_KEY_TO_SHORT` below and for the reason
+// #977 records: `rekey` falls back to `map[key] ?? key`, so an unmapped field
+// reaches the wire under its long key and only a lucky test would see it. With
+// `Record<keyof ComparisonBenchmark, string>` a field added to that `Pick` and
+// projected stops compiling here until it is given a code. #967 removed the
+// codes for `slug`, `sourceIds` and `verifiedAt` alongside the projection, so
+// the map and the `Pick` cannot drift apart.
+const BENCHMARK_KEY_TO_SHORT: Record<keyof ComparisonBenchmark, string> = {
+  id: 'i', name: 'n', metric: 'm', metricUnit: 'u', direction: 'r',
 };
 
 const PRICING_KEY_TO_SHORT: Record<string, string> = {
