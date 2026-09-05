@@ -2169,6 +2169,245 @@ describe('gate-dataset', () => {
     assertFailed(result, 'references', 'does not resolve to a source');
   });
 
+  // -------------------------------------------------------------------------
+  // The singular label a `references` failure names its target by (#549)
+  //
+  // The message used to build that label by stripping a trailing `s` from the
+  // collection name, which is right for six of the eight collections a failure
+  // can name and renders `families` as "familie". The failure text is the
+  // entire product of a gate that fires, and it is read by somebody who is
+  // already debugging broken data, so a word that looks like a fourth entity
+  // kind costs exactly the reader who can least afford it.
+  //
+  // Three things are asserted here and they fail for different reasons:
+  //
+  //   1. the rendered message, whole, for every target a failure can name;
+  //   2. that the table below still lists every such target, scraped from the
+  //      gate rather than recalled -- so a new reference edge cannot add a
+  //      ninth target whose label nobody checked;
+  //   3. that the gate's map covers exactly the collections it loads, which is
+  //      what makes a sixteenth document arrive as a red suite rather than as
+  //      a mangled word in an operator's terminal.
+  //
+  // The messages are compared **whole** rather than by `includes`. That is not
+  // fastidiousness: `"...a familie".includes("...a famil")` is true, so a
+  // fragment assertion is satisfied by a superstring and would have passed
+  // against the very defect this block exists to pin. `assertFailed` is still
+  // called for its exit-code and attribution discipline, with its fragment
+  // argument omitted because the equality below is strictly stronger.
+  // -------------------------------------------------------------------------
+
+  /** Every `references` message in a gate report, exactly as rendered. */
+  function referenceMessages(result) {
+    return JSON.parse(result.stdout).failures
+      .filter((failure) => failure.gate === 'references')
+      .map((failure) => failure.message);
+  }
+
+  // One row per target a `references` failure can name. Every row's `alsoFails`
+  // was measured against the live dataset rather than assumed: only the
+  // `publishers.organizationId` edge disturbs a second gate, because an
+  // unresolvable owner is also an entity-boundary violation.
+  //
+  // Six of these eight labels are unchanged by #549 and are pinned precisely so
+  // that they stay that way -- a fix that quietly improved a label that was
+  // already right would be a regression, and without these rows nothing would
+  // say so. `organization` is the sharpest of them: the article in front of it
+  // reads "a organization", which is wrong English and is deliberately pinned
+  // as-is, because correcting an article is a different change from correcting
+  // a plural and this issue is scoped to the plural.
+  const REFERENCE_LABELS = [
+    {
+      target: 'sources',
+      singular: 'source',
+      file: 'releases.json',
+      field: 'sourceIds',
+      mutate: (entries) => { entries[0].sourceIds = ['no-such-source']; },
+      message: 'sourceIds "no-such-source" does not resolve to a source',
+    },
+    {
+      target: 'publishers',
+      singular: 'publisher',
+      file: 'sources.json',
+      field: 'publisherId',
+      mutate: (entries) => { entries[0].publisherId = 'no-such-publisher'; },
+      message: 'publisherId "no-such-publisher" does not resolve to a publisher',
+    },
+    {
+      target: 'organizations',
+      singular: 'organization',
+      file: 'publishers.json',
+      field: 'organizationId',
+      mutate: (entries) => { entries[0].organizationId = 'no-such-organization'; },
+      message: 'organizationId "no-such-organization" does not resolve to a organization',
+      alsoFails: ['entity-boundary'],
+    },
+    {
+      // The defect. `families`.replace(/s$/, '') is "familie".
+      target: 'families',
+      singular: 'family',
+      file: 'releases.json',
+      field: 'familyId',
+      mutate: (entries) => { entries[0].familyId = 'no-such-family'; },
+      message: 'familyId "no-such-family" does not resolve to a family',
+    },
+    {
+      target: 'releases',
+      singular: 'release',
+      file: 'usage-observations.json',
+      field: 'releaseId',
+      mutate: (entries) => { entries[0].releaseId = 'no-such-release'; },
+      message: 'releaseId "no-such-release" does not resolve to a release',
+    },
+    {
+      target: 'servingPlatforms',
+      singular: 'servingPlatform',
+      file: 'deployments.json',
+      field: 'platformId',
+      mutate: (entries) => { entries[0].platformId = 'no-such-platform'; },
+      message: 'platformId "no-such-platform" does not resolve to a servingPlatform',
+    },
+    {
+      target: 'benchmarks',
+      singular: 'benchmark',
+      file: 'benchmark-results.json',
+      field: 'benchmarkId',
+      mutate: (entries) => { entries[0].benchmarkId = 'no-such-benchmark'; },
+      message: 'benchmarkId "no-such-benchmark" does not resolve to a benchmark',
+    },
+    {
+      target: 'usageObservations',
+      singular: 'usageObservation',
+      file: 'usage-observations.json',
+      field: 'conflictsWithIds',
+      mutate: (entries) => { entries[0].conflictsWithIds = ['no-such-observation']; },
+      message: 'conflictsWithIds "no-such-observation" does not resolve to a usageObservation',
+    },
+  ];
+
+  for (const edge of REFERENCE_LABELS) {
+    test(`a dangling ${edge.file}.${edge.field} calls its target a "${edge.singular}"`, () => {
+      const result = gateMutatedDataset(({ read, write }) => {
+        const entries = read(edge.file);
+        edge.mutate(entries);
+        write(edge.file, entries);
+      }, [`changed 1 ${documentLabel(edge.file)}.${edge.field}`]);
+
+      assertFailed(result, 'references', undefined, { alsoFails: edge.alsoFails ?? [] });
+      assert.deepEqual(
+        referenceMessages(result),
+        [edge.message],
+        `the "${edge.target}" reference failure must name its target "${edge.singular}"`,
+      );
+    });
+  }
+
+  test('the table above still names every collection a references failure can name', () => {
+    // `check(collection, entry, field, value, target)` and
+    // `checkList(collection, entry, field, target)` both take the target last,
+    // and both are always written on one line in this gate. Read the last
+    // string literal of each call rather than counting commas, so a call that
+    // gains a comment or a differently-spelled argument still parses.
+    const targetsFrom = (source) => {
+      const targets = new Set();
+      for (const line of source.split(/\r?\n/)) {
+        for (const call of line.matchAll(/\bcheck(?:List)?\(([^)]*)\)/g)) {
+          const literals = [...call[1].matchAll(/'([^']*)'/g)].map((m) => m[1]);
+          const commas = call[1].split(',').length;
+          // 5 arguments for `check`, 4 for `checkList`; anything else is not one
+          // of these two calls and must not contribute a target.
+          if ((commas === 5 || commas === 4) && literals.length > 0) {
+            targets.add(literals[literals.length - 1]);
+          }
+        }
+      }
+      if (targets.size === 0) throw new Error('no reference targets found');
+      return [...targets].sort();
+    };
+
+    const reachable = targetsFrom(readFileSync(GATE_DATASET, 'utf8'));
+    const pinned = REFERENCE_LABELS.map((edge) => edge.target).sort();
+    assert.deepEqual(
+      reachable,
+      pinned,
+      'gate-dataset.mjs can name a collection in a references failure that no row above pins. '
+        + `Reachable from the gate: ${reachable.join(', ')}; pinned here: ${pinned.join(', ')}. `
+        + 'Add a row rather than leaving the new label unread.',
+    );
+
+    // The scrape reads what it claims to, and fails closed when it does not --
+    // two empty lists compare equal, so a parser that silently matched nothing
+    // would leave the assertion above green while checking nothing.
+    assert.deepEqual(
+      targetsFrom("check('a', b, 'c', d, 'releases');\ncheckList('a', b, 'c', 'sources');\n"),
+      ['releases', 'sources'],
+    );
+    assert.throws(() => targetsFrom('const OTHER = 1;'), /no reference targets/);
+  });
+
+  test('the gate maps every collection it loads to an explicit singular label', () => {
+    const objectLiteral = (source, name) => {
+      const decl = new RegExp(`const\\s+${name}\\s*=\\s*\\{([\\s\\S]*?)\\n\\}\\s*;`).exec(source);
+      if (!decl) throw new Error(`no ${name} = { ... } declaration found`);
+      const pairs = [...decl[1].matchAll(/^\s*([A-Za-z][A-Za-z0-9]*)\s*:\s*'([^']*)'/gm)];
+      if (pairs.length === 0) throw new Error(`${name} declaration names no entries`);
+      return Object.fromEntries(pairs.map((m) => [m[1], m[2]]));
+    };
+
+    const source = readFileSync(GATE_DATASET, 'utf8');
+    const singulars = objectLiteral(source, 'COLLECTION_SINGULAR');
+    const documents = objectLiteral(source, 'DOCUMENTS');
+
+    // Exact equality in both directions. A document with no label is the defect
+    // this pins; a label for a document the gate does not load is dead weight
+    // that would make the "closed set" claim false.
+    assert.deepEqual(
+      Object.keys(singulars).sort(),
+      Object.keys(documents).sort(),
+      'COLLECTION_SINGULAR and DOCUMENTS disagree about what the collections are. '
+        + 'Every document the gate loads needs a singular label written out, so that a '
+        + 'references failure naming it cannot fall back to guessing.',
+    );
+
+    // The two irregular plurals, named. `usageSyntheses` is not reachable as a
+    // reference target today -- no field points at that collection, and
+    // `usage-syntheses.json` is empty -- so it has no row in REFERENCE_LABELS
+    // and cannot be asserted through a rendered message. It is asserted here
+    // instead, because the moment an edge does point at it the naive rule would
+    // have rendered "usageSynthese".
+    assert.equal(singulars.families, 'family');
+    assert.equal(singulars.usageSyntheses, 'usageSynthesis');
+
+    // No label may be its collection's key verbatim, which is what a plural
+    // pasted in as its own singular looks like.
+    //
+    // The check here was first written as "no label ends in `s`" and that was
+    // wrong on its first contact with the data: `usageSyntheses` is correctly
+    // labelled `usageSynthesis`, which ends in `s` because the English singular
+    // does. The heuristic is left recorded rather than quietly deleted, because
+    // it is the same mistake as the defect being fixed, made a second time by
+    // somebody who had just finished arguing against it -- an inflection rule
+    // reads as obviously right until it meets the word it is wrong about. The
+    // replacement asserts a structural property that cannot be wrong about any
+    // English word, which is the only kind of rule that belongs here.
+    for (const [collection, singular] of Object.entries(singulars)) {
+      assert.ok(singular.length > 0, `${collection} has an empty singular label`);
+      assert.notEqual(
+        singular,
+        collection,
+        `${collection} is labelled with its own plural key rather than a singular`,
+      );
+    }
+
+    // The parser holds to its claim, positively and negatively.
+    assert.deepEqual(
+      objectLiteral("const X = {\n  a: 'one',\n  b: 'two',\n};\n", 'X'),
+      { a: 'one', b: 'two' },
+    );
+    assert.throws(() => objectLiteral('const OTHER = 1;', 'X'), /no X = \{ \.\.\. \} declaration/);
+    assert.throws(() => objectLiteral('const X = {\n};\n', 'X'), /names no entries/);
+  });
+
   test('a verification date in the future is caught', () => {
     // Computed from the real clock, not written as a literal: under the live
     // clock a fixed date stops being "the future" the moment it arrives, so

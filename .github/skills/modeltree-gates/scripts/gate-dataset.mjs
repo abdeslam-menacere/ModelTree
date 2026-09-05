@@ -61,6 +61,77 @@ const DOCUMENTS = {
   modelFitEvidenceGaps: 'model-fit-evidence-gaps.json',
 };
 
+// The singular label a `references` failure names its target by, written out
+// rather than inflected (#549).
+//
+// This replaces `target.replace(/s$/, '')`, which rendered `families` as
+// "familie". The tempting repair is a cleverer rule -- strip `ies`, add `y`,
+// special-case `es` -- and that is the same mistake with a longer regex. A rule
+// guesses about the name it has not been shown, and it guesses *silently*, which
+// is exactly how the first one survived to reach an operator's terminal. Every
+// inflection rule is wrong about some English word; the only question is which
+// one, and nobody finds out until a gate fires at the worst possible moment.
+//
+// A map cannot guess. The keys are a closed set fixed at authoring time -- they
+// are exactly the keys of DOCUMENTS above, since a reference can only ever point
+// into a collection this gate loads -- so there is no unknown case for a rule to
+// be clever about. `gates.test.mjs` pins that equality in both directions, which
+// is what turns "somebody adds a sixteenth document" from a mangled word into a
+// red suite at the moment the document is added.
+//
+// Six of these labels are byte-identical to what the old rule produced and are
+// written out anyway, deliberately: the point is that the label is *stated*, not
+// that it is stated only where the rule went wrong. `servingPlatform`,
+// `benchmarkResult` and friends keep their camelCase because they are the
+// collection's own name in the singular, which is what the reader is being
+// pointed at; prettifying them to "serving platform" would change six correct
+// messages to fix one wrong one.
+const COLLECTION_SINGULAR = {
+  sources: 'source',
+  publishers: 'publisher',
+  organizations: 'organization',
+  families: 'family',
+  releases: 'release',
+  products: 'product',
+  servingPlatforms: 'servingPlatform',
+  deployments: 'deployment',
+  benchmarks: 'benchmark',
+  benchmarkResults: 'benchmarkResult',
+  releaseEvents: 'releaseEvent',
+  usageObservations: 'usageObservation',
+  usageSyntheses: 'usageSynthesis',
+  modelFitStatements: 'modelFitStatement',
+  modelFitEvidenceGaps: 'modelFitEvidenceGap',
+};
+
+/**
+ * The singular label for `collection`, or a refusal.
+ *
+ * Exit 2 rather than a mangled string, and rather than exit 1: a target with no
+ * label means this gate has been extended without its message being extended
+ * with it, so the gate cannot honestly report on what it just read. That is
+ * "could not run" in the vocabulary `SKILL.md` fixes for these scripts, where 2
+ * is never a pass -- the same reading `parseArgs` above already takes of a flag
+ * with no value.
+ *
+ * This cannot fire on any dataset. Every target is a string literal at a call
+ * site in `gateReferences`, so reaching it requires editing this file, and
+ * `gates.test.mjs` fails first by scraping those literals and checking each has
+ * an entry here. It is the backstop for a reader who deletes the test, not a
+ * branch any data can take.
+ */
+function singularOf(collection) {
+  const singular = COLLECTION_SINGULAR[collection];
+  if (singular === undefined) {
+    process.stderr.write(
+      `gate-dataset: no singular label for collection "${collection}". `
+        + 'Add one to COLLECTION_SINGULAR rather than letting the message guess at it.\n',
+    );
+    process.exit(2);
+  }
+  return singular;
+}
+
 // Field names that would express a composite or universal ranking. The product
 // forbids one outright and #67 is blocked pending a decision, so the cheapest
 // enforcement is to refuse the vocabulary anywhere in the dataset. Matched
@@ -331,7 +402,7 @@ function gateReferences(docs, ids) {
     if (value === undefined || value === null) return;
     const set = ids[target] ?? new Set();
     if (!set.has(value)) {
-      fail('references', `${field} "${value}" does not resolve to a ${target.replace(/s$/, '')}`, `${collection}:${entry.id}`);
+      fail('references', `${field} "${value}" does not resolve to a ${singularOf(target)}`, `${collection}:${entry.id}`);
     }
   };
   const checkList = (collection, entry, field, target) => {
