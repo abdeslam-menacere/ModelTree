@@ -48,10 +48,32 @@
 // Python side's `is_newly_discovered` does. A creator announcing a new model on
 // a new page of its own newsroom is the ordinary case and the whole point of the
 // refresh; a source appearing on a host nobody ever stood behind is the case
-// this gate exists to refuse. `sources.json` records one entry per page - 47 of
-// them across 13 hosts - so a rule phrased as "no new source record" would stop
-// the refresh recording any release at all, while a rule phrased as "no new
-// origin" stops precisely the substitution that matters.
+// this gate exists to refuse. `sources.json` records one entry per page, and
+// those pages outnumber the hosts they sit on several times over, so a rule
+// phrased as "no new source record" would stop the refresh recording any release
+// at all, while a rule phrased as "no new origin" stops precisely the
+// substitution that matters.
+//
+// How many entries that is, and how many origins they resolve to, this comment
+// does not say. Both are readings of a file every breadth tranche rewrites, so a
+// figure here goes stale the moment the next one lands and no test can see it go
+// wrong: this paragraph asserted "47 of them across 13 hosts" until #948
+// measured 285 across 46, understating the entries 6.1x and the hosts 3.5x while
+// reading as though it had been checked. That is worth more than tidiness here,
+// because this is where a run looks to judge how exceptional it would be to
+// propose a new host, and a boundary described at under a third of its real
+// width invites the wrong answer. So the figures are derived rather than
+// restated: the
+// run reports `datasetSources` for the entry count, and `approvedOrigins` for the
+// origins themselves, each read from the anchor that run was actually given, and
+// `--json` prints both. Note what the second one is, because it is the wider of
+// the two and answers a different question: `approvedOrigins` unions the dataset
+// anchor with the reviewed catalogues, so it exceeds the host count of
+// `sources.json` alone by however many origins only a profile stands behind. A
+// reader who needs the live width runs the gate. Measured on `8d4fcd9f`, that was
+// 285 entries resolving to 46 dataset origins - a little over six pages per host
+// - against 51 in `approvedOrigins` once the catalogue anchor was folded in: an
+// illustration of the ratio, not a count this comment undertakes to keep true.
 //
 // This is deliberately **stricter** than `gates.py`, which also approves a newly
 // discovered source on an unknown origin once the panel votes for it. Under ADR
@@ -585,7 +607,7 @@ function main() {
       // `profilesUnreadable` is the damaged case, and it stays a skip rather
       // than becoming a refusal. This anchor is additive: a wholly absent
       // profile tree is already tolerated a few lines up, so one corrupt file
-      // being fatal while losing all five is fine would be incoherent, and it
+      // being fatal while losing the whole tree is fine would be incoherent, and it
       // would hand any single unparseable profile a veto over runs that never
       // cited it. The skip also fails in the safe direction - it can only
       // withhold trust, never extend it, so it cannot approve anything it
