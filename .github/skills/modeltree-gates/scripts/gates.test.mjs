@@ -13,7 +13,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, readFileSync, cpSync, mkdirSync, rmSync, realpathSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, readdirSync, cpSync, mkdirSync, rmSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -99,30 +99,456 @@ function run(script, args) {
  * clock. The copy is still the live data, so its dates are still claims about
  * the real world; see the clock note above. Use `gateDatasetAt` when a test
  * means to simulate a particular day.
+ *
+ * `touches` is the mutation's declared footprint and is not optional; see the
+ * note on `assertTouched` for the grammar and for why it has to be stated.
  */
-function gateMutatedDataset(edit) {
-  return gateDatasetCopy(edit, []);
+function gateMutatedDataset(edit, touches) {
+  return gateDatasetCopy(edit, touches, []);
 }
 
 /**
  * As `gateMutatedDataset`, but judged on a stated day. Only for tests that
  * simulate a specific date on purpose -- never as a stand-in for "today".
  */
-function gateDatasetAt(today, edit) {
-  return gateDatasetCopy(edit, ['--today', today]);
+function gateDatasetAt(today, edit, touches) {
+  return gateDatasetCopy(edit, touches, ['--today', today]);
 }
 
-function gateDatasetCopy(edit, clockArgs) {
+function gateDatasetCopy(edit, touches, clockArgs) {
   const dir = mkdtempSync(join(tmpdir(), 'modeltree-gate-'));
   try {
     cpSync(DATA, dir, { recursive: true });
+    const before = snapshotDocuments(dir);
     const read = (file) => JSON.parse(readFileSync(join(dir, file), 'utf8'));
     const write = (file, value) => writeFileSync(join(dir, file), JSON.stringify(value, null, 2));
     edit({ read, write });
+    assertTouched(datasetFootprint(before, snapshotDocuments(dir)), touches, documentSizes(before));
     return run(GATE_DATASET, ['--data', dir, ...clockArgs, '--json']);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+}
+
+// ---------------------------------------------------------------------------
+// The input side of attribution (#866)
+//
+// `assertFailed` below closes the *output* side: it refuses a test whose result
+// carries a gate failure the test never declared. It cannot close the input
+// side, because it never sees the mutation -- `edit({ read, write })` reaches
+// the harness as an opaque closure and may change one field or fifty.
+//
+// The gap that leaves is precise. If a mutation changes two things and both
+// provoke the same declared gate, the report is clean, `alsoFails` is empty and
+// correct, every assertion passes -- and the test still has not established
+// which component caused the failure. The output-side check is satisfied
+// exactly as well by an attributable test as by an unattributable one, because
+// it inspects the wrong end. Worse, a bundle with an *inert* component is
+// byte-identical in its output to the sole effective component, so nothing in
+// the report distinguishes them at all. That is what happened on #840: a probe
+// reported as a truncation test whose truncation removed zero flagged records,
+// so its exit 1 came entirely from a deletion bundled beside it.
+//
+// So the mutation declares its own footprint, and the footprint is measured
+// rather than trusted: `gateDatasetCopy` already holds the dataset immediately
+// before and immediately after `edit` runs, so the measurement is a diff of two
+// in-memory states and no new machinery. The declaration is checked in **both**
+// directions for the same reason `alsoFails` is -- a declaration that only had
+// to be an upper bound would decay into a wildcard, which is the defect this is
+// modelled on rather than a defect to re-introduce on the other side.
+//
+// There is deliberately no way to opt out. `touches` is a required argument, an
+// omitted one is refused, and `[]` is not a bypass but the strictest possible
+// declaration: it says the edit changed nothing, and any change at all then
+// fails.
+// ---------------------------------------------------------------------------
+
+/**
+ * A JSON value in a form that two structurally equal values always render
+ * identically, so an object whose keys were rewritten in a different order does
+ * not read as a change. Arrays keep their order, because for these documents
+ * order is content.
+ *
+ * `undefined` renders distinctly from `null` and from a missing key rendering
+ * as anything else, which is what lets `delete entry.status` be a change rather
+ * than silence.
+ */
+function stableJson(value) {
+  if (value === undefined) return 'undefined';
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (isJsonRecord(value)) {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function isJsonRecord(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * Every leaf path at which two records differ, as dotted field paths.
+ *
+ * Plain objects are recursed into so that `parameters.overallScore` is reported
+ * rather than `parameters`; arrays and scalars are leaves compared whole, so
+ * `sourceIds` is one path rather than one path per member. That asymmetry is
+ * the useful one: a nested object is a namespace, where an array is a value.
+ */
+function changedFieldPaths(before, after, prefix = '') {
+  const keys = [
+    ...new Set([
+      ...(isJsonRecord(before) ? Object.keys(before) : []),
+      ...(isJsonRecord(after) ? Object.keys(after) : []),
+    ]),
+  ].sort();
+  const paths = [];
+  for (const key of keys) {
+    const a = isJsonRecord(before) ? before[key] : undefined;
+    const b = isJsonRecord(after) ? after[key] : undefined;
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (isJsonRecord(a) && isJsonRecord(b)) {
+      paths.push(...changedFieldPaths(a, b, path));
+      continue;
+    }
+    if (stableJson(a) !== stableJson(b)) paths.push(path);
+  }
+  return paths;
+}
+
+/** A sentinel for a document that is present but did not parse. */
+const UNPARSEABLE = Symbol('unparseable');
+
+/** Every `*.json` document in `dir`, parsed, keyed by file name. */
+function snapshotDocuments(dir) {
+  const snapshot = new Map();
+  for (const entry of readdirSync(dir)) {
+    if (!entry.endsWith('.json')) continue;
+    try {
+      snapshot.set(entry, JSON.parse(readFileSync(join(dir, entry), 'utf8')));
+    } catch {
+      snapshot.set(entry, UNPARSEABLE);
+    }
+  }
+  return snapshot;
+}
+
+/** How many records each document held, keyed by the label a descriptor uses. */
+function documentSizes(snapshot) {
+  const sizes = new Map();
+  for (const [file, value] of snapshot) {
+    sizes.set(documentLabel(file), Array.isArray(value) ? value.length : null);
+  }
+  return sizes;
+}
+
+function documentLabel(file) {
+  return file.replace(/\.json$/, '');
+}
+
+/**
+ * The records of `entries` keyed by id, or `null` when they cannot be: a
+ * non-object, a missing id, or a duplicate id all defeat identity matching.
+ *
+ * Matching on id rather than on position is what keeps a declaration stable as
+ * the dataset grows. A test that edits `entries[0]` declares the same thing
+ * next month; a test that removes one record declares one removal rather than a
+ * path for every index the removal shifted.
+ */
+function recordsById(entries) {
+  const byId = new Map();
+  for (const entry of entries) {
+    if (!isJsonRecord(entry) || typeof entry.id !== 'string' || byId.has(entry.id)) return null;
+    byId.set(entry.id, entry);
+  }
+  return byId;
+}
+
+function tallied(verb, label, counts) {
+  return [...counts]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([path, count]) => `${verb} ${count} ${label}${path ? `.${path}` : ''}`);
+}
+
+/** What one document's before/after states say the edit did to it. */
+function documentFootprint(label, before, after) {
+  if (before === UNPARSEABLE || after === UNPARSEABLE || !Array.isArray(before) || !Array.isArray(after)) {
+    return stableJson(before) === stableJson(after) ? [] : [`replaced ${label}`];
+  }
+
+  const beforeById = recordsById(before);
+  const afterById = recordsById(after);
+  // Identity matching is the readable case and the one every gate document
+  // admits today. Where it is unavailable the footprint degrades to a single
+  // coarse descriptor rather than to silence: a mutation that duplicates an id
+  // still has to be declared, it just cannot be described finely.
+  if (!beforeById || !afterById) {
+    return stableJson(before) === stableJson(after) ? [] : [`replaced ${label}`];
+  }
+
+  const removed = [...beforeById.keys()].filter((id) => !afterById.has(id));
+  const added = [...afterById.keys()].filter((id) => !beforeById.has(id));
+  const surviving = [...beforeById.keys()].filter((id) => afterById.has(id));
+  const stillOrdered = [...afterById.keys()].filter((id) => beforeById.has(id));
+
+  const paths = new Map();
+  for (const id of surviving) {
+    for (const path of changedFieldPaths(beforeById.get(id), afterById.get(id))) {
+      paths.set(path, (paths.get(path) ?? 0) + 1);
+    }
+  }
+
+  const descriptors = tallied('changed', label, paths);
+  if (removed.length > 0) descriptors.push(`removed ${removed.length} ${label}`);
+  if (added.length > 0) descriptors.push(`added ${added.length} ${label}`);
+  if (stableJson(surviving) !== stableJson(stillOrdered)) descriptors.push(`reordered ${label}`);
+  return descriptors;
+}
+
+/** What the whole dataset's before/after states say the edit did. */
+function datasetFootprint(before, after) {
+  const files = [...new Set([...before.keys(), ...after.keys()])].sort();
+  const descriptors = [];
+  for (const file of files) {
+    const label = documentLabel(file);
+    if (!before.has(file)) descriptors.push(`added document ${label}`);
+    else if (!after.has(file)) descriptors.push(`removed document ${label}`);
+    else descriptors.push(...documentFootprint(label, before.get(file), after.get(file)));
+  }
+  return descriptors.sort();
+}
+
+/**
+ * The grammar a declared descriptor has to be written in. Anything else is
+ * refused rather than ignored: a typo that silently matched nothing would be an
+ * over-declaration reported against the wrong name, and a declaration nobody
+ * can parse is the one shape that could quietly become permission.
+ */
+const DESCRIPTOR = new RegExp(
+  '^(?:'
+  + 'changed (?:\\d+|all) [a-z0-9-]+\\.[A-Za-z0-9_.[\\]-]+'
+  + '|added \\d+ [a-z0-9-]+'
+  + '|removed (?:\\d+|all) [a-z0-9-]+'
+  + '|reordered [a-z0-9-]+'
+  + '|replaced [a-z0-9-]+'
+  + '|(?:added|removed) document [a-z0-9-]+'
+  + ')$',
+);
+
+/**
+ * `all` in a declaration, resolved against how many records the document
+ * actually held before the edit.
+ *
+ * `all` is not a wildcard. It is the claim that the change reached every record
+ * in the collection, and it is expanded to that number and then compared
+ * exactly, so a mutation that reached all but one fails. It exists because the
+ * alternative for a whole-collection edit is a literal count that a data
+ * refresh would have to keep re-editing, which is a rule the dataset would
+ * break rather than a rule the test would keep.
+ *
+ * A document that held no records is refused outright. `removed all X` over an
+ * empty X is a component that did nothing, and an inert component is precisely
+ * what this check exists to make visible.
+ */
+function expandDeclared(descriptor, sizes) {
+  const match = /^(changed|removed) all ([a-z0-9-]+)((?:\.[A-Za-z0-9_.[\]-]+)?)$/.exec(descriptor);
+  if (!match) return descriptor;
+  const [, verb, label, path] = match;
+  const size = sizes.get(label);
+  assert.ok(
+    typeof size === 'number',
+    `touches declares "${descriptor}", but ${label} is not a dataset document that holds records. `
+      + `Documents: ${[...sizes.keys()].sort().join(', ')}.`,
+  );
+  assert.ok(
+    size > 0,
+    `touches declares "${descriptor}", but ${label} held no records before the edit, so "all" of it is `
+      + 'nothing. A component that cannot change anything is an inert component, and naming one here is '
+      + 'the declaration claiming work the mutation did not do.',
+  );
+  return `${verb} ${size} ${label}${path}`;
+}
+
+/**
+ * Asserts the edit changed exactly what the test said it would change.
+ *
+ * The declaration is a list of descriptors in one of these forms, where the
+ * label is a dataset document's file name without `.json`:
+ *
+ *   changed <n|all> <label>.<field.path>   n records changed at that path
+ *   removed <n|all> <label>                n records left the collection
+ *   added <n> <label>                      n records joined it
+ *   reordered <label>                      the surviving records moved
+ *   replaced <label>                       the document changed in a way
+ *                                          identity matching cannot describe
+ *   added|removed document <label>         the file itself appeared or vanished
+ *
+ * Both directions are checked, and the symmetry is the point rather than
+ * politeness. Under-declaring is the failure this exists to catch -- a second
+ * component riding along unnamed. Over-declaring is checked because a
+ * declaration that only had to be an upper bound would decay into a wildcard,
+ * which is exactly what `alsoFails` was hardened against on the output side; it
+ * also happens to be the only thing that can see an inert component, since a
+ * component that changed nothing leaves nothing in the footprint to match.
+ *
+ * A wrong *count* under a right name is reported as its own third thing rather
+ * than as one of those two, because it is neither and reading it as either
+ * misdirects: "changed 1 releases.verifiedAt" against a mutation that changed
+ * two of them is a component that did more than it said, not a component that
+ * did nothing and not a component nobody named.
+ */
+function assertTouched(touched, declared, sizes) {
+  assert.ok(
+    Array.isArray(declared),
+    'every mutated-dataset run must declare what its mutation touches, as an array of descriptors. '
+      + `This one declared ${JSON.stringify(declared) ?? 'nothing'}. `
+      + `The edit touched: ${touched.join(', ') || '(nothing)'}.`,
+  );
+  for (const descriptor of declared) {
+    assert.ok(
+      typeof descriptor === 'string' && DESCRIPTOR.test(descriptor),
+      `touches contains ${JSON.stringify(descriptor)}, which is not a descriptor this harness can read. `
+        + 'Use "changed <n|all> <document>.<field.path>", "removed <n|all> <document>", '
+        + '"added <n> <document>", "reordered <document>", "replaced <document>", '
+        + 'or "added|removed document <document>".',
+    );
+  }
+
+  const expanded = declared.map((descriptor) => expandDeclared(descriptor, sizes));
+  const touchedBy = new Map(touched.map((descriptor) => [descriptorName(descriptor), descriptor]));
+  const declaredBy = new Map(expanded.map((descriptor) => [descriptorName(descriptor), descriptor]));
+  assert.equal(
+    declaredBy.size,
+    expanded.length,
+    `touches names the same component twice: ${expanded.join(', ')}. One descriptor per component.`,
+  );
+
+  const stale = expanded.filter((descriptor) => !touchedBy.has(descriptorName(descriptor)));
+  assert.deepEqual(
+    stale,
+    [],
+    `touches declares ${stale.join(', ')}, but the edit did nothing under that name. `
+      + `What it did touch: ${touched.join(', ') || '(nothing)'}. `
+      + 'A declared component that changes nothing is an inert component: the mutation and the '
+      + 'component that is actually doing the work produce identical output, so nothing downstream '
+      + 'can tell them apart. Delete it, or make it do something.',
+  );
+
+  const undeclared = touched.filter((descriptor) => !declaredBy.has(descriptorName(descriptor)));
+  assert.deepEqual(
+    undeclared,
+    [],
+    `the edit made ${undeclared.length} change(s) this test never declared, so its result is not `
+      + 'attributable to a single component of its own mutation:\n'
+      + undeclared.map((descriptor) => `  ${descriptor}`).join('\n')
+      + `\nDeclared: ${expanded.join(', ') || '(nothing)'}.`
+      + `\nTouched: ${touched.join(', ') || '(nothing)'}.`
+      + '\nIf the mutation is genuinely meant to be a bundle, declare every component in touches -- and '
+      + 'run each component alone first, so you know which one the result came from.',
+  );
+
+  const miscounted = touched.filter(
+    (descriptor) => declaredBy.get(descriptorName(descriptor)) !== descriptor,
+  );
+  assert.deepEqual(
+    miscounted,
+    [],
+    'the edit reached a different number of records than this test declared, so the result is not '
+      + 'attributable to the component the test names:\n'
+      + miscounted
+        .map((descriptor) => `  touched "${descriptor}", declared "${declaredBy.get(descriptorName(descriptor))}"`)
+        .join('\n')
+      + `\nDeclared: ${expanded.join(', ') || '(nothing)'}.`
+      + `\nTouched: ${touched.join(', ') || '(nothing)'}.`,
+  );
+}
+
+/**
+ * A descriptor with its count removed, so that two descriptors about the same
+ * component compare equal however many records each reached. `removed document
+ * families` keeps its shape, since `document` is not a count.
+ */
+function descriptorName(descriptor) {
+  return descriptor.replace(/^(changed|added|removed) \d+ /, '$1 ');
+}
+
+/** A committed dataset document, read straight from `web/src/data`. */
+function committedDocument(file) {
+  return JSON.parse(readFileSync(join(DATA, file), 'utf8'));
+}
+
+/**
+ * The documents among `files` that hold at least one record today.
+ *
+ * Used by the mutations that empty a set of documents at once. The set is
+ * derived from the committed data rather than written out because
+ * `usage-syntheses.json` is legitimately empty, so emptying it is a component
+ * that does nothing and `removed all usage-syntheses` would be a declaration of
+ * work never done. Deriving it from the *input* keeps the declaration true as
+ * the dataset grows, and constrains nothing about what else the edit may do --
+ * every other change still has to be declared.
+ */
+function documentsHoldingRecords(files) {
+  const holding = files.filter((file) => committedDocument(file).length > 0);
+  assert.ok(
+    holding.length > 0,
+    'no document in this set holds a record, so emptying them all would change nothing',
+  );
+  return holding;
+}
+
+/** The footprint of writing `[]` over each of `files` that holds anything. */
+function emptied(files) {
+  return documentsHoldingRecords(files).map((file) => `removed all ${documentLabel(file)}`);
+}
+
+/**
+ * The footprint of writing `value` at `field` on every record of each of
+ * `files`, as the diff will actually see it.
+ *
+ * A whole-collection assignment is not a whole-collection *change*: a record
+ * that already carries the value is untouched, and 66 of the 117 releases
+ * already read `current`. So the count is derived from the committed data
+ * rather than declared as `all`, and a document where every record already
+ * carries the value contributes no descriptor at all -- which is the honest
+ * reading, since for that document the mutation is inert.
+ */
+function assignedEverywhere(files, field, value) {
+  return files
+    .map((file) => [file, committedDocument(file).filter((entry) => entry[field] !== value).length])
+    .filter(([, count]) => count > 0)
+    .map(([file, count]) => `changed ${count} ${documentLabel(file)}.${field}`);
+}
+
+/**
+ * The footprint of applying `reverified` to every record of every document.
+ *
+ * Which documents carry which stamp is a property of the committed data and not
+ * of any test: `sources.json` carries `lastCheckedDate` and no `verifiedAt`,
+ * `publishers.json` carries `control.verifiedAt` on a minority of its records
+ * and no top-level `verifiedAt`, and `usage-syntheses.json` is empty and so is
+ * touched by nothing. Writing that out by hand would be a fourth copy of the
+ * dataset's shape, kept correct by whoever next refreshes the data; counting it
+ * from the *input* keeps it true without loosening it, because every change the
+ * edit makes outside this footprint still has to be declared beside it.
+ */
+function reverifiedFootprint(day) {
+  const stamps = [
+    ['verifiedAt', (entry) => entry.verifiedAt],
+    ['lastCheckedDate', (entry) => entry.lastCheckedDate],
+    ['control.verifiedAt', (entry) => (isJsonRecord(entry.control) ? entry.control.verifiedAt : undefined)],
+  ];
+  return DATASET_DOCUMENTS.flatMap((file) => {
+    const records = committedDocument(file);
+    return stamps
+      .map(([path, valueAt]) => [path, records.filter((entry) => {
+        const value = valueAt(entry);
+        return value !== undefined && value !== day;
+      }).length])
+      .filter(([, count]) => count > 0)
+      .map(([path, count]) => (count === records.length
+        ? `changed all ${documentLabel(file)}.${path}`
+        : `changed ${count} ${documentLabel(file)}.${path}`));
+  });
 }
 
 /**
@@ -436,8 +862,155 @@ describe('gate-dataset', () => {
   });
 
   test('an unchanged copy of the dataset also passes, so the harness itself is honest', () => {
-    const result = gateMutatedDataset(() => {});
+    const result = gateMutatedDataset(() => {}, []);
     assert.equal(result.code, 0, result.stdout);
+  });
+
+  // -------------------------------------------------------------------------
+  // The input side of attribution, proved to discriminate (#866).
+  //
+  // `assertFailed` refuses a *result* that is not attributable to the test's own
+  // mutation. It cannot refuse a *mutation* that is not attributable to one
+  // component, because it never sees the mutation. `touches` is that second
+  // guarantee, and it is held to the standard `assertFailed` itself is held to:
+  // a guard shown only by tests that pass has not been shown to discriminate,
+  // so both directions are exercised here and both are exercised on the same
+  // fixture, one argument apart.
+  //
+  // The first two tests are the whole argument. They run the same assertion,
+  // against the same gate, with the same message fragment, and `assertFailed`
+  // is satisfied identically by both -- one release dated 1823 and two releases
+  // dated 1823 trip `dates` and nothing else either way. Only the input side can
+  // tell them apart, and it does.
+  // -------------------------------------------------------------------------
+  describe('a mutation is attributable to one component, not merely its result', () => {
+    /**
+     * One release backdated below the 1950 floor, plus whatever `also` adds.
+     * The bundle arms differ from the single arm in `also` and in `touches`,
+     * and in nothing else, so what the guard reacts to is not in doubt.
+     */
+    const backdate = (touches, also = () => {}) => gateMutatedDataset(({ read, write }) => {
+      const releases = read('releases.json');
+      releases[0].verifiedAt = '1823-04-05';
+      also(releases);
+      write('releases.json', releases);
+    }, touches);
+
+    /** Trips nothing on its own: two untouched records swap places. */
+    const inert = (releases) => {
+      const last = releases.length - 1;
+      [releases[last - 1], releases[last]] = [releases[last], releases[last - 1]];
+    };
+
+    const failuresOf = (result) => JSON.parse(result.stdout).failures;
+
+    test('a single-component mutation, declared, is accepted', () => {
+      const result = backdate(['changed 1 releases.verifiedAt']);
+      assertFailed(result, 'dates', 'predates 1950');
+    });
+
+    test('an inert component leaves the report identical, which is why the output side cannot see it', () => {
+      // #840 in miniature: a bundle whose second component provokes nothing.
+      // Declared honestly, so the harness admits it -- and what comes back is
+      // indistinguishable from the single-component run above, gate for gate and
+      // record for record. Everything downstream of the report is blind here,
+      // `assertFailed` included, and that is the gap `touches` closes.
+      const bundled = backdate(['changed 1 releases.verifiedAt', 'reordered releases'], inert);
+      assertFailed(bundled, 'dates', 'predates 1950');
+      assert.deepEqual(
+        failuresOf(bundled),
+        failuresOf(backdate(['changed 1 releases.verifiedAt'])),
+        'the inert component must leave the report untouched, or this is not the case #840 hit',
+      );
+    });
+
+    test('that same bundle, declared as the single component it looks like, is refused', () => {
+      assert.throws(
+        () => backdate(['changed 1 releases.verifiedAt'], inert),
+        (error) => {
+          assert.match(error.message, /never declared/);
+          assert.match(error.message, /reordered releases/);
+          return true;
+        },
+      );
+    });
+
+    test('a second component that provokes the same gate is refused too, though nothing in the report shows it', () => {
+      // The sharper half of the same defect: both components trip `dates`, so
+      // `alsoFails` is empty and correct and every output-side assertion passes.
+      const second = (releases) => { releases[1].verifiedAt = '1823-04-05'; };
+      assertFailed(
+        backdate(['changed 2 releases.verifiedAt'], second),
+        'dates',
+        'predates 1950',
+      );
+      assert.throws(
+        () => backdate(['changed 1 releases.verifiedAt'], second),
+        (error) => {
+          assert.match(error.message, /a different number of records than this test declared/);
+          assert.match(error.message, /touched "changed 2 releases\.verifiedAt", declared "changed 1 releases\.verifiedAt"/);
+          return true;
+        },
+      );
+    });
+
+    test('over-declaring is refused as well, so the declaration cannot decay into a wildcard', () => {
+      // Same component, overstated reach.
+      assert.throws(
+        () => backdate(['changed 2 releases.verifiedAt']),
+        (error) => {
+          assert.match(error.message, /a different number of records than this test declared/);
+          assert.match(error.message, /touched "changed 1 releases\.verifiedAt", declared "changed 2 releases\.verifiedAt"/);
+          return true;
+        },
+      );
+      // A component that is not there at all.
+      assert.throws(
+        () => backdate(['changed 1 releases.verifiedAt', 'removed 3 families']),
+        /touches declares removed 3 families, but the edit did nothing under that name/,
+      );
+    });
+
+    test('a component in another document is named rather than absorbed', () => {
+      assert.throws(
+        () => gateMutatedDataset(({ read, write }) => {
+          const releases = read('releases.json');
+          releases[0].verifiedAt = '1823-04-05';
+          write('releases.json', releases);
+          write('benchmarks.json', read('benchmarks.json').slice(1));
+        }, ['changed 1 releases.verifiedAt']),
+        /removed 1 benchmarks/,
+      );
+    });
+
+    test('"all" is a counted claim about every record, not a wildcard', () => {
+      // True, so accepted: every release moves.
+      assertFailed(
+        gateMutatedDataset(({ read, write }) => {
+          write('releases.json', read('releases.json').map((entry) => ({ ...entry, verifiedAt: '1823-04-05' })));
+        }, ['changed all releases.verifiedAt']),
+        'dates',
+        'predates 1950',
+      );
+      // False, so refused: one release moved, and `all` is expanded to the
+      // collection's real size before it is compared.
+      assert.throws(
+        () => backdate(['changed all releases.verifiedAt']),
+        /a different number of records than this test declared/,
+      );
+    });
+
+    test('a declaration the harness cannot parse is refused rather than ignored', () => {
+      // A typo would otherwise match nothing and be reported as an
+      // over-declaration against a name that does not exist, which is the one
+      // shape of declaration that could quietly become permission.
+      assert.throws(
+        () => backdate(['releases.verifiedAt']),
+        /not a descriptor this harness can read/,
+      );
+      assert.throws(() => backdate('changed 1 releases.verifiedAt'), /must declare what its mutation touches/);
+      assert.throws(() => backdate(undefined), /must declare what its mutation touches/);
+    });
   });
 
   // #318 in one assertion: a record verified *today* is not the future. The
@@ -451,7 +1024,7 @@ describe('gate-dataset', () => {
       const releases = read('releases.json');
       releases[0].verifiedAt = today;
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.verifiedAt']);
     assert.equal(result.code, 0, result.stdout);
   });
 
@@ -515,7 +1088,7 @@ describe('gate-dataset', () => {
       for (const file of DATASET_DOCUMENTS) {
         write(file, read(file).map((entry) => reverified(entry, laterDay)));
       }
-    });
+    }, reverifiedFootprint(laterDay));
     assert.equal(result.code, 0, result.stdout);
   });
 
@@ -531,7 +1104,7 @@ describe('gate-dataset', () => {
       for (const file of DATASET_DOCUMENTS) {
         write(file, []);
       }
-    });
+    }, emptied(DATASET_DOCUMENTS));
     assertFailed(result, 'non-empty', 'found 0');
   });
 
@@ -583,7 +1156,7 @@ describe('gate-dataset', () => {
     );
     const result = gateMutatedDataset(({ write }) => {
       for (const file of optional) write(file, []);
-    });
+    }, emptied(optional));
     assert.equal(result.code, 0, result.stdout);
   });
 
@@ -626,7 +1199,7 @@ describe('gate-dataset', () => {
     );
     const result = gateMutatedDataset(({ write }) => {
       for (const file of wiped) write(file, []);
-    });
+    }, emptied(wiped));
     // No `alsoFails`: the point of the case is that nothing else can see it.
     assertFailed(result, 'non-empty', 'families holds no records');
     const report = JSON.parse(result.stdout);
@@ -651,7 +1224,7 @@ describe('gate-dataset', () => {
   };
   for (const [collection, file] of Object.entries(LOAD_BEARING)) {
     test(`an empty ${file} is refused, and the refusal names ${collection}`, () => {
-      const result = gateMutatedDataset(({ write }) => write(file, []));
+      const result = gateMutatedDataset(({ write }) => write(file, []), [`removed all ${documentLabel(file)}`]);
       assertFailed(result, 'non-empty', `${collection} holds no records`, {
         alsoFails: alsoBrokenBy[collection],
       });
@@ -912,7 +1485,7 @@ describe('gate-dataset', () => {
         broken = entries[0].id;
         entries[0].status = 'active';
         write(file, entries);
-      });
+      }, [`changed 1 ${collection}.status`]);
       assertFailed(
         result,
         'vocabulary',
@@ -938,7 +1511,7 @@ describe('gate-dataset', () => {
         const entries = read(file);
         delete entries[0].status;
         write(file, entries);
-      });
+      }, [`changed 1 ${collection}.status`]);
       assertFailed(result, 'vocabulary', 'status undefined is not a member of lifecycleStatus');
     });
   }
@@ -954,7 +1527,7 @@ describe('gate-dataset', () => {
         for (const file of ['families.json', 'releases.json']) {
           write(file, read(file).map((entry) => ({ ...entry, status: member })));
         }
-      });
+      }, assignedEverywhere(['families.json', 'releases.json'], 'status', member));
       assert.equal(result.code, 0, `"${member}" is a declared member and must be accepted:\n${result.stdout}`);
     });
   }
@@ -991,7 +1564,7 @@ describe('gate-dataset', () => {
       broken = entries[0].id;
       entries[0].accessType = 'api-only';
       write('releases.json', entries);
-    });
+    }, ['changed 1 releases.accessType']);
     assertFailed(
       result,
       'vocabulary',
@@ -1011,7 +1584,7 @@ describe('gate-dataset', () => {
       const entries = read('releases.json');
       delete entries[0].accessType;
       write('releases.json', entries);
-    });
+    }, ['changed 1 releases.accessType']);
     assertFailed(result, 'vocabulary', 'accessType undefined is not a member of accessType');
   });
 
@@ -1023,7 +1596,7 @@ describe('gate-dataset', () => {
     test(`"${member}" is accepted as an access type on every release, so the gate is not simply refusing`, () => {
       const result = gateMutatedDataset(({ read, write }) => {
         write('releases.json', read('releases.json').map((entry) => ({ ...entry, accessType: member })));
-      });
+      }, assignedEverywhere(['releases.json'], 'accessType', member));
       assert.equal(result.code, 0, `"${member}" is a declared member and must be accepted:\n${result.stdout}`);
     });
   }
@@ -1368,7 +1941,10 @@ describe('gate-dataset', () => {
 
       write('families.json', families);
       write('releases.json', releases);
-    });
+    }, [
+      `added ${EMPTIED_BY_417.length} families`,
+      ...(attachRelease ? [`added ${EMPTIED_BY_417.length} releases`] : []),
+    ]);
   }
 
   test('a family that no release points at is refused', () => {
@@ -1589,7 +2165,7 @@ describe('gate-dataset', () => {
       const releases = read('releases.json');
       releases[0].sourceIds = ['a-source-that-was-never-added'];
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.sourceIds']);
     assertFailed(result, 'references', 'does not resolve to a source');
   });
 
@@ -1603,7 +2179,7 @@ describe('gate-dataset', () => {
       const releases = read('releases.json');
       releases[0].verifiedAt = future;
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.verifiedAt']);
     assertFailed(result, 'dates', 'is in the future');
   });
 
@@ -1612,7 +2188,7 @@ describe('gate-dataset', () => {
       const releases = read('releases.json');
       releases[0].releaseDate = '2026-02-30';
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.releaseDate']);
     // `releaseDate` is a partial-date field since #468, so the message no longer
     // names the `YYYY-MM-DD` shape. What it rejects is unchanged: 30 February is
     // not a real day at any precision.
@@ -1624,7 +2200,7 @@ describe('gate-dataset', () => {
       const releases = read('releases.json');
       releases[0].releaseDate = releases[0].releaseDate.slice(0, 7);
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.releaseDate']);
     // The record still says `day` while carrying only a month, so a reader would
     // be told a day exists that the value does not contain.
     assertFailed(result, 'dates', 'does not state the precision "day" recorded beside it');
@@ -1635,7 +2211,7 @@ describe('gate-dataset', () => {
       const releases = read('releases.json');
       releases[0].datePrecision = 'month';
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.datePrecision']);
     // The invented-day path in the direction that actually ships: a full day
     // sitting behind a `month` claim. Nothing in the old gate could see this,
     // because `datePrecision` was never compared to anything.
@@ -1647,7 +2223,7 @@ describe('gate-dataset', () => {
       const families = read('families.json');
       families[0].datePrecision = 'year';
       write('families.json', families);
-    });
+    }, ['changed 1 families.datePrecision']);
     assertFailed(result, 'dates', 'does not state the precision "year" recorded beside it');
   });
 
@@ -1656,7 +2232,7 @@ describe('gate-dataset', () => {
       const releases = read('releases.json');
       releases[0].datePrecision = 'quarter';
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.datePrecision']);
     assertFailed(result, 'dates', 'is not one of year, month, day');
   });
 
@@ -1676,7 +2252,7 @@ describe('gate-dataset', () => {
       delete families[0].dateBasis;
       families[0].datePrecision = 'unstated';
       write('families.json', families);
-    });
+    }, ['changed 1 families.datePrecision', 'changed 1 families.firstReleaseDate']);
     // The point of the change, and simultaneously the false-positive control
     // for the collection scoping: release events carry `date` beside their own
     // `datePrecision`, and releases carry `releaseDate` beside theirs, so a rule
@@ -1690,7 +2266,7 @@ describe('gate-dataset', () => {
       const families = read('families.json');
       delete families[0].firstReleaseDate;
       write('families.json', families);
-    });
+    }, ['changed 1 families.firstReleaseDate']);
     // Absence is never self-authorising. A record that simply loses its date
     // looks from the outside exactly like one nobody checked, which is the
     // state `unstated` exists to be distinguishable from.
@@ -1702,7 +2278,7 @@ describe('gate-dataset', () => {
       const families = read('families.json');
       families[0].datePrecision = 'unstated';
       write('families.json', families);
-    });
+    }, ['changed 1 families.datePrecision']);
     // The contradiction guard. The record asserts that no source states this
     // date, beside the date, and a reader cannot tell which half to believe.
     assertFailed(result, 'dates', 'datePrecision "unstated" is recorded beside a firstReleaseDate');
@@ -1713,7 +2289,7 @@ describe('gate-dataset', () => {
       const releases = read('releases.json');
       releases[0].datePrecision = 'unstated';
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.datePrecision']);
     // The scope of the member, enforced rather than described. A release is an
     // event, and a record of an event nobody can date at all is not a release.
     assertFailed(result, 'dates', 'is not one of year, month, day');
@@ -1724,7 +2300,7 @@ describe('gate-dataset', () => {
       const events = read('release-events.json');
       events[0].datePrecision = 'unstated';
       write('release-events.json', events);
-    });
+    }, ['changed 1 release-events.datePrecision']);
     assertFailed(result, 'dates', 'is not one of year, month, day');
   });
 
@@ -1733,7 +2309,7 @@ describe('gate-dataset', () => {
       const events = read('release-events.json');
       delete events[0].date;
       write('release-events.json', events);
-    });
+    }, ['changed 1 release-events.date']);
     // The same absence rule where `unstated` is not admissible, which is what
     // keeps the field required for the two collections that never gained it.
     assertFailed(result, 'dates', 'date is absent while datePrecision');
@@ -1745,7 +2321,7 @@ describe('gate-dataset', () => {
       releases[0].releaseDate = releases[0].releaseDate.slice(0, 7);
       releases[0].datePrecision = 'month';
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.datePrecision', 'changed 1 releases.releaseDate']);
     // The point of the whole change. A month the source actually stated is a
     // recordable fact, where before it could only reach the dataset wearing an
     // invented day.
@@ -1775,7 +2351,7 @@ describe('gate-dataset', () => {
       // thing this mutation can provoke is the floor.
       releases[0].verifiedAt = '1823-04-05';
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.verifiedAt']);
     assertFailed(result, 'dates', 'predates 1950');
 
     // The whole message, not a fragment. The acceptance criteria ask for all
@@ -1800,7 +2376,7 @@ describe('gate-dataset', () => {
         assert.ok(observations.length > 0, 'usage-observations.json must load as a non-empty array');
         observations[0].windowStart = value;
         write('usage-observations.json', observations);
-      });
+      }, ['changed 1 usage-observations.windowStart']);
       assertFailed(result, 'dates', `windowStart "${value}" predates 1950`);
     }
   });
@@ -1815,7 +2391,7 @@ describe('gate-dataset', () => {
       releases[0].releaseDate = '1823';
       releases[0].datePrecision = 'year';
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.datePrecision', 'changed 1 releases.releaseDate']);
     assertFailed(release, 'dates', 'releaseDate "1823" predates 1950');
 
     const family = gateMutatedDataset(({ read, write }) => {
@@ -1823,7 +2399,7 @@ describe('gate-dataset', () => {
       families[0].firstReleaseDate = '1823';
       families[0].datePrecision = 'year';
       write('families.json', families);
-    });
+    }, ['changed 1 families.datePrecision', 'changed 1 families.firstReleaseDate']);
     assertFailed(family, 'dates', 'firstReleaseDate "1823" predates 1950');
   });
 
@@ -1835,14 +2411,14 @@ describe('gate-dataset', () => {
       const releases = read('releases.json');
       releases[0].verifiedAt = '1949-12-31';
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.verifiedAt']);
     assertFailed(refused, 'dates', 'verifiedAt "1949-12-31" predates 1950');
 
     const accepted = gateMutatedDataset(({ read, write }) => {
       const releases = read('releases.json');
       releases[0].verifiedAt = '1950-01-01';
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.verifiedAt']);
     assert.equal(accepted.code, 0, accepted.stdout);
 
     // And the same boundary on the partial path, where the year *is* the whole
@@ -1853,7 +2429,7 @@ describe('gate-dataset', () => {
       families[0].firstReleaseDate = '1950';
       families[0].datePrecision = 'year';
       write('families.json', families);
-    });
+    }, ['changed 1 families.datePrecision', 'changed 1 families.firstReleaseDate']);
     assert.equal(partial.code, 0, partial.stdout);
   });
 
@@ -1866,7 +2442,7 @@ describe('gate-dataset', () => {
       const releases = read('releases.json');
       releases[0].control = { verifiedAt };
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.control']);
 
     assertFailed(mutate('1823-01-01'), 'dates', 'control.verifiedAt "1823-01-01" predates 1950');
     // The control: an identical fixture differing only in the year. It proves
@@ -1907,14 +2483,14 @@ describe('gate-dataset', () => {
     assert.ok(sources.length > 0, 'sources.json must load as a non-empty array');
     sources[0].publishedDate = value;
     write('sources.json', sources);
-  });
+  }, ['changed 1 sources.publishedDate']);
 
   const withPartialDate = (value) => gateMutatedDataset(({ read, write }) => {
     const observations = read('usage-observations.json');
     assert.ok(observations.length > 0, 'usage-observations.json must load as a non-empty array');
     observations[0].windowStart = value;
     write('usage-observations.json', observations);
-  });
+  }, ['changed 1 usage-observations.windowStart']);
 
   test('an early full date is refused by the floor rather than reported as malformed', () => {
     const result = withExactDate('0049-12-31');
@@ -1979,7 +2555,7 @@ describe('gate-dataset', () => {
       releases[1].releaseDate = '2000';
       releases[1].datePrecision = 'year';
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.datePrecision', 'changed 1 releases.predecessorIds', 'changed 1 releases.releaseDate']);
     // The ordering check reads intervals now, so this proves the relaxation did
     // not buy its breadth by going blind: every day the year 2000 could mean is
     // before the predecessor, so it is still a contradiction and still caught.
@@ -1996,7 +2572,7 @@ describe('gate-dataset', () => {
       releases[1].releaseDate = releases[0].releaseDate.slice(0, 4);
       releases[1].datePrecision = 'year';
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.datePrecision', 'changed 1 releases.predecessorIds', 'changed 1 releases.releaseDate']);
     const report = JSON.parse(result.stdout);
     const ordering = report.failures.filter(
       (failure) => failure.gate === 'dates' && failure.message.includes('precedes predecessor'),
@@ -2011,7 +2587,7 @@ describe('gate-dataset', () => {
       releases[1].predecessorIds = [releases[0].id];
       releases[1].releaseDate = '2000-01-01';
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.predecessorIds', 'changed 1 releases.releaseDate']);
     assertFailed(result, 'dates', 'precedes predecessor', {
       // Declared rather than tolerated (#369). Backdating the second release is
       // not a single-gate mutation: it also makes that release a lineage
@@ -2029,7 +2605,7 @@ describe('gate-dataset', () => {
       const releases = read('releases.json');
       releases[0].predecessorIds = [releases[0].id];
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.predecessorIds']);
     assertFailed(result, 'lineage', 'contains the release itself');
   });
 
@@ -2039,7 +2615,7 @@ describe('gate-dataset', () => {
       releases[0].predecessorIds = [releases[1].id];
       releases[1].predecessorIds = [releases[0].id];
       write('releases.json', releases);
-    });
+    }, ['changed 2 releases.predecessorIds']);
     assertFailed(result, 'lineage');
   });
 
@@ -2096,7 +2672,7 @@ describe('gate-dataset', () => {
       findRelease(releases, CYCLE_A).successorIds = [CYCLE_B];
       findRelease(releases, CYCLE_B).successorIds = [CYCLE_A];
       write('releases.json', releases);
-    });
+    }, ['changed 2 releases.successorIds']);
     assertFailed(result, 'lineage', 'successor cycle');
   });
 
@@ -2107,7 +2683,7 @@ describe('gate-dataset', () => {
       findRelease(releases, CYCLE_B).successorIds = [CYCLE_C];
       findRelease(releases, CYCLE_C).successorIds = [CYCLE_A];
       write('releases.json', releases);
-    });
+    }, ['changed 3 releases.successorIds']);
     assertFailed(result, 'lineage', 'successor cycle');
   });
 
@@ -2122,7 +2698,7 @@ describe('gate-dataset', () => {
       findRelease(releases, CYCLE_A).successorIds = [CYCLE_B];
       findRelease(releases, CYCLE_B).predecessorIds = [CYCLE_A];
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.predecessorIds', 'changed 1 releases.successorIds']);
     assert.equal(result.code, 0, `expected exit 0, got ${result.code}:\n${result.stdout}`);
   });
 
@@ -2133,7 +2709,7 @@ describe('gate-dataset', () => {
       const other = organizations.find((organization) => organization.id !== releases[0].organizationId);
       releases[0].organizationId = other.id;
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.organizationId']);
     assertFailed(result, 'entity-boundary', 'belongs to');
   });
 
@@ -2143,7 +2719,7 @@ describe('gate-dataset', () => {
       const impostor = publishers.find((publisher) => publisher.organizationId);
       delete impostor.organizationId;
       write('publishers.json', publishers);
-    });
+    }, ['changed 1 publishers.organizationId']);
     assertFailed(result, 'entity-boundary', 'without declaring organizationId');
   });
 
@@ -2152,7 +2728,7 @@ describe('gate-dataset', () => {
       const sources = read('sources.json');
       sources[0].url = 'http://openai.com/news/';
       write('sources.json', sources);
-    });
+    }, ['changed 1 sources.url']);
     assertFailed(result, 'urls', 'is not https');
   });
 
@@ -2161,7 +2737,7 @@ describe('gate-dataset', () => {
       const sources = read('sources.json');
       sources[0].url = 'https://localhost/news/';
       write('sources.json', sources);
-    });
+    }, ['changed 1 sources.url']);
     assertFailed(result, 'urls', 'cannot stand behind a public fact');
   });
 
@@ -2170,7 +2746,7 @@ describe('gate-dataset', () => {
       const families = read('families.json');
       families[0].sourceIds = [];
       write('families.json', families);
-    });
+    }, ['changed 1 families.sourceIds']);
     assertFailed(result, 'evidence', 'no primary source');
   });
 
@@ -2179,7 +2755,7 @@ describe('gate-dataset', () => {
       const releases = read('releases.json');
       releases[0].parameters = { ...releases[0].parameters, overallScore: 91 };
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.parameters']);
     assertFailed(result, 'no-composite-score', 'ranking or composite score');
   });
 
@@ -2221,7 +2797,7 @@ describe('gate-dataset', () => {
         const entries = read(file);
         entries[0][field] = list ? ['no-such-thing'] : 'no-such-thing';
         write(file, entries);
-      });
+      }, [`changed 1 ${documentLabel(file)}.${field}`]);
       assertFailed(result, 'references', `does not resolve to a ${target}`);
     });
   }
@@ -2240,7 +2816,7 @@ describe('gate-dataset', () => {
         const entries = read(file);
         entries[0].sourceIds = [];
         write(file, entries);
-      });
+      }, [`changed 1 ${documentLabel(file)}.sourceIds`]);
       assertFailed(result, 'evidence', 'no primary source');
     });
 
@@ -2249,7 +2825,7 @@ describe('gate-dataset', () => {
         const entries = read(file);
         entries[0].verifiedAt = 'sometime in April';
         write(file, entries);
-      });
+      }, [`changed 1 ${documentLabel(file)}.verifiedAt`]);
       // `verifiedAt` is an exact-date field as well as the evidence rule's
       // freshness stamp, so one unparseable value is genuinely two faults. Both
       // are declared rather than the assertion being loosened, because losing
@@ -2263,7 +2839,7 @@ describe('gate-dataset', () => {
       const platforms = read('serving-platforms.json');
       platforms[0].website = 'http://ai.azure.com/';
       write('serving-platforms.json', platforms);
-    });
+    }, ['changed 1 serving-platforms.website']);
     assertFailed(result, 'urls', 'is not https');
   });
 
@@ -2272,7 +2848,7 @@ describe('gate-dataset', () => {
       const platforms = read('serving-platforms.json');
       platforms[0].website = 'https://console.internal/';
       write('serving-platforms.json', platforms);
-    });
+    }, ['changed 1 serving-platforms.website']);
     assertFailed(result, 'urls', 'cannot stand behind a public fact');
   });
 
@@ -2284,7 +2860,7 @@ describe('gate-dataset', () => {
       const events = read('release-events.json');
       events[0].date = '2026-13-45';
       write('release-events.json', events);
-    });
+    }, ['changed 1 release-events.date']);
     assertFailed(result, 'dates', 'is not a real date');
   });
 
@@ -2293,7 +2869,7 @@ describe('gate-dataset', () => {
       const events = read('release-events.json');
       events[0].date = '2026-06-01';
       write('release-events.json', events);
-    });
+    }, ['changed 1 release-events.date']);
     // Every other date in the live dataset is judged against the same stated
     // day, and the dataset holds records later than it, so the declaration is
     // the clock's doing rather than this mutation's.
@@ -2306,7 +2882,7 @@ describe('gate-dataset', () => {
       events[0].date = '2026-08';
       events[0].datePrecision = 'day';
       write('release-events.json', events);
-    });
+    }, ['changed 1 release-events.date']);
     assertFailed(result, 'dates', 'does not state the precision');
   });
 
@@ -2337,7 +2913,7 @@ describe('gate-dataset', () => {
       const results = read('benchmark-results.json');
       delete results[0].benchmarkId;
       write('benchmark-results.json', results);
-    });
+    }, ['changed 1 benchmark-results.benchmarkId']);
     assertFailed(result, 'no-composite-score', 'carries no benchmarkId and unit to bind it');
   });
 
@@ -2346,7 +2922,7 @@ describe('gate-dataset', () => {
       const results = read('benchmark-results.json');
       delete results[0].unit;
       write('benchmark-results.json', results);
-    });
+    }, ['changed 1 benchmark-results.unit']);
     assertFailed(result, 'no-composite-score', 'carries no benchmarkId and unit to bind it');
   });
 
@@ -2355,7 +2931,7 @@ describe('gate-dataset', () => {
       const results = read('benchmark-results.json');
       results[0].benchmarkId = 42;
       write('benchmark-results.json', results);
-    });
+    }, ['changed 1 benchmark-results.benchmarkId']);
     // `references` is the same fault seen from the other side: a non-string id
     // resolves to no benchmark either. Both firing is the binding being checked
     // rather than assumed, which is why the admission can rest on it.
@@ -2369,7 +2945,7 @@ describe('gate-dataset', () => {
       const results = read('benchmark-results.json');
       results[0].overallScore = 91;
       write('benchmark-results.json', results);
-    });
+    }, ['changed 1 benchmark-results.overallScore']);
     assertFailed(result, 'no-composite-score', 'reads as a ranking or composite score');
   });
 
@@ -2379,7 +2955,7 @@ describe('gate-dataset', () => {
         const results = read('benchmark-results.json');
         results[0][field] = 1;
         write('benchmark-results.json', results);
-      });
+      }, [`changed 1 benchmark-results.${field}`]);
       assertFailed(result, 'no-composite-score', 'reads as a ranking or composite score');
     });
   }
@@ -2389,7 +2965,7 @@ describe('gate-dataset', () => {
       const results = read('benchmark-results.json');
       results[0].summary = { score: 91 };
       write('benchmark-results.json', results);
-    });
+    }, ['changed 1 benchmark-results.summary']);
     assertFailed(result, 'no-composite-score', 'field "summary.score" reads as a ranking');
   });
 
@@ -2398,7 +2974,7 @@ describe('gate-dataset', () => {
       const results = read('benchmark-results.json');
       results[0].runs = [{ score: 91 }];
       write('benchmark-results.json', results);
-    });
+    }, ['changed 1 benchmark-results.runs']);
     assertFailed(result, 'no-composite-score', 'field "runs[0].score" reads as a ranking');
   });
 
@@ -2412,7 +2988,7 @@ describe('gate-dataset', () => {
       releases[0].benchmarkId = 'mmlu-pro';
       releases[0].unit = 'percent';
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.benchmarkId', 'changed 1 releases.score', 'changed 1 releases.unit']);
     assertFailed(result, 'no-composite-score', 'field "score" reads as a ranking or composite score');
   });
 
@@ -2422,7 +2998,7 @@ describe('gate-dataset', () => {
       benchmarks[0].score = 91;
       benchmarks[0].unit = 'percent';
       write('benchmarks.json', benchmarks);
-    });
+    }, ['changed 1 benchmarks.score', 'changed 1 benchmarks.unit']);
     assertFailed(result, 'no-composite-score', 'reads as a ranking or composite score');
   });
 
@@ -2432,7 +3008,7 @@ describe('gate-dataset', () => {
       const dated = sources.find((source) => source.publishedDate);
       dated.lastCheckedDate = '2000-01-01';
       write('sources.json', sources);
-    });
+    }, ['changed 1 sources.lastCheckedDate']);
     assertFailed(result, 'dates', 'precedes publishedDate');
   });
 
@@ -2566,7 +3142,7 @@ describe('gate-dataset', () => {
       const releases = read('releases.json');
       releases[0].verifiedAt = '2099-01-01';
       write('releases.json', releases);
-    });
+    }, ['changed 1 releases.verifiedAt']);
     assertFailed(future, 'dates', 'is in the future');
   });
 
