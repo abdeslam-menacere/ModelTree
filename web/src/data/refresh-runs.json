@@ -5215,5 +5215,430 @@
       }
     ],
     "recordedAt": "2026-09-05"
+  },
+  {
+    "id": "2026-09-05-df67a5",
+    "title": "Targeted GPT-6 Astra refresh 2026-09-05",
+    "ranOn": "2026-09-05",
+    "outcome": "stopped",
+    "summary": "Scouted OpenAI alone, re-fetching and re-hashing every byte rather than inheriting run 2026-09-05-ad1a1f evidence. Proposed 4 claims, all of which reached the 2-of-3 pilot threshold, and passed every deterministic data gate: evidence, source-approval, dataset (626 records) and scope. The run then stopped at publish and applied nothing. Adding the release and its family breaks two assertions that hard-code a dataset population count -- the datesCoarserThanADay inventory in web/src/data/validate.test.ts and the reordered-population count in web/src/lib/release-source.test.ts -- and both files are outside the ADR 0003 qualifying class. gate-scope adjudicated the repaired diff directly and refused it at exit 1, naming both paths as outOfClass. The page-weight blockers that stopped the previous run were measured and are no longer binding: the /compare payload now sits at 143,543 of 174,080 bytes with 30,537 spare, and the two asset-budget figures that drift are inside the class ADR 0015 admits, so they were re-recordable and were simply not reached.",
+    "scope": "One creator, OpenAI, chosen because the scheduled refresh had missed GPT-6 Astra. The remaining 43 creators in organizations.json were deliberately not scouted and are named individually in found.unswept, so that \"we did not look\" is not reported as \"we looked and nothing had changed\".",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Clean tree, gh authenticated, node v24.14.0. Bare `npm` is refused by this machine's PowerShell execution policy while `npm.cmd` runs, so the toolchain is installed-and-blocked rather than absent; the policy was not changed. Trunk moved mid-run from 1f5d89e5 to 5e344962, a docs-and-ADR-only commit; web/ was confirmed byte-identical across that range with a difference control, so the local build is the tree CI measures."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "14 URLs fetched and hashed against a 40-page budget. Three returned 403 and were recorded rather than worked around. platform.openai.com/docs/models redirects to developers.openai.com/api/docs/models and returned a byte-identical body (both artefacts exactly 364,123 bytes); both ends are approved origins, so the redirect crosses no trust boundary. The HTML model page is JS-hydrated and does not carry the specification lines as text, so the .md twin is cited instead, following the committed openai-gpt-daybreak-blue-docs convention."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Three blind reviewers on different model families, launched in parallel, none shown the scout reasoning, the running tally or another reviewer's verdict. 12 verdicts cast over 4 claims. All 4 reached the 2-of-3 pilot threshold. Two provenance rejections were recorded rather than overruled, and no reviewer was re-run."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "check-bundle-pairing, gate-evidence, gate-source-approval, gate-dataset and gate-scope all passed on the dataset-only change. The full web/ validation then failed on two out-of-class population controls, which is what stopped the run."
+      },
+      {
+        "stage": "publish",
+        "status": "not-run",
+        "note": "No data was applied, so no data pull request was opened. The accepted claims were reverted and the tree left clean. This ledger entry is published on its own, as run 2026-09-05-ad1a1f did."
+      },
+      {
+        "stage": "deploy",
+        "status": "not-applicable",
+        "note": "No data change reached main, so there is no data deployment to verify for this run."
+      }
+    ],
+    "found": {
+      "scouts": 1,
+      "pagesFetched": 14,
+      "claimsProposed": 4,
+      "bundles": [
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 4
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "add",
+          "count": 3,
+          "effect": "One source record for the GPT-6 Astra documentation page, one GPT-6 family, and one GPT-6 Astra release. The family and release travel together because gate-dataset fails a family holding no release."
+        },
+        {
+          "kind": "change",
+          "count": 1,
+          "effect": "Advance openai-news-rss lastCheckedDate from 2026-08-31 to 2026-09-05 after a confirmed re-fetch at HTTP 200."
+        }
+      ],
+      "notCovered": [
+        "No benchmark result was proposed. No sourced figure on an approved origin required reasoningMode, toolsEnabled or harness, so nothing was withheld on that ground; those fields were not populated because they pass gate-dataset but break the /compare key-compaction guard, whose repair touches web/src/lib/comparison.ts, a path outside the qualifying class.",
+        "No lineage claim was proposed. No consulted source states that GPT-6 Astra succeeds any GPT-5.6 release, and succession was not inferred from version numbers.",
+        "No safety or evaluation claim was attempted, because the safety overview page returned 403."
+      ],
+      "unswept": [
+        {
+          "creator": "anthropic",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "google-deepmind",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "meta",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "xai",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "mistral-ai",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "deepseek",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "alibaba-cloud",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "microsoft",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "amazon",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "cohere",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "ai2",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "tii",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "nvidia",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "ai21-labs",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "zhipu-ai",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "moonshot-ai",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "eleutherai",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "lg-ai-research",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "snowflake",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "upstage",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "ibm",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "baidu",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "tencent",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "bytedance-seed",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "stability-ai",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "databricks",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "minimax",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "apple",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "hugging-face",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "01-ai",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "sakana-ai",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "sarvam-ai",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "naver",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "aleph-alpha",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "reka-ai",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "nous-research",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "liquid-ai",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "xiaomi",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "ai-singapore",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "kyutai",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "lelapa-ai",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "maritaca-ai",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        },
+        {
+          "creator": "openbmb",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to re-verify GPT-6 Astra. Not looked at this pass; no inference is available about whether it changed. lastScouted is omitted because it is not establishable from the committed ledger, whose previous entry records scouts: 44 against only 6 bundles."
+        }
+      ],
+      "degradedChannels": [
+        {
+          "creator": "openai",
+          "source": "official-announcement",
+          "detail": "openai.com/news/ returned HTTP 403, reproducing the failure reported for 2026-09-04, so the profile's catalogued announcement channel is dark. Discovery survived only because openai.com/news/rss.xml still served HTTP 200. openai.com/index/gpt-6-astra and openai.com/index/safety-overview-gpt-6-astra also returned 403. No workaround was attempted: no scraping, no user-agent spoofing, no mirror and no press coverage as evidence."
+        }
+      ]
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 12,
+      "acceptedByPanel": 4,
+      "rejectedByPanel": 0,
+      "dissents": [
+        {
+          "claimId": "openai-gpt-6-family-add",
+          "rubric": "provenance",
+          "objection": "Held that the quotes describe GPT-6 Astra rather than a GPT-6 family: neither states that GPT-6 is a model generation nor that the categories apply family-wide. Outvoted 2-of-3 under the pilot policy and recorded rather than overruled."
+        },
+        {
+          "claimId": "openai-gpt-6-astra-release-add",
+          "rubric": "provenance",
+          "objection": "Accepted the modalities, token limits, alias, uses, pricing and endpoints as directly quoted, but held that the feed item's pubDate states the item's publication time rather than the model's release date, and that API availability does not force proprietary-hosted over both because it does not state that weights are unavailable. Outvoted 2-of-3 under the pilot policy and recorded rather than overruled."
+        }
+      ],
+      "gates": [
+        {
+          "gate": "check-bundle-pairing",
+          "scope": "openai claim bundle",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "The family add and the release add travel together in one bundle."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "openai claim bundle",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "4 claims admissible under the pilot policy. Form only; ADR 0005 records that this gate does not re-fetch remote content."
+        },
+        {
+          "gate": "gate-source-approval",
+          "scope": "openai claim bundle",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "passed: true with 0 failures. anchor.commit 1f5d89e59f849e89c61a3cf3a4957bae36e2049b, selectedBy merge-base with refs/remotes/origin/main. Inherited source openai-news-rss; proposed source openai-gpt-6-astra-docs on the already-approved developers.openai.com origin."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "web/src/data with the 4 accepted claims applied",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "All gates passed over 626 records. Counts would have been sources 286, families 86, releases 121."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "the dataset-only diff",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "changed 3, all in class (families.json, releases.json, sources.json), empty false. In class but insufficient: this diff cannot produce a green CI on its own."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "the diff that green CI actually requires",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": true,
+          "detail": "changed 5, outOfClass web/src/data/validate.test.ts and web/src/lib/release-source.test.ts, passed false. The repairs were verified to make those tests pass (73/73) and were then reverted. Note that validate.test.ts sits inside web/src/data/ yet is not in class: ALLOWED_PATHS is an exact list of 16 JSON files, not a directory prefix. This is the stop."
+        },
+        {
+          "gate": "npm run budget:compare",
+          "scope": "the /compare payload with the release applied",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "143,543 of 174,080 bytes with 30,537 spare, and 1,186 of 1,600 bytes per release. The ceiling raise and the payload trim between them cleared the blocker that stopped run 2026-09-05-ad1a1f; this limb was measured rather than assumed."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "web/ with the 4 accepted claims applied",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": true,
+          "detail": "5 failures over 2,860 tests. Two are the out-of-class population controls that stopped the run. Two are asset-budget measuredDrift failures inside the class ADR 0015 admits, so they were re-recordable and were not reached. One, web/scripts/run-check.test.ts, failed on a 180s timeout rather than an assertion and contains zero references to the dataset, so it is environmental and unrelated."
+        },
+        {
+          "gate": "asset-budgets.test.ts",
+          "scope": "a clean trunk tree, as a control",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": false,
+          "detail": "41/41 passed with no claims applied, establishing that the recorded figures are within tolerance on trunk itself and that the drift this run measured is caused by the tranche rather than inherited. Nothing in web/asset-budgets.json was touched, so the measuredWorstJsRaw exact-zero tripwire on routeGroups[0] was not moved, and no ceiling and no measuredDrift.maxFraction was changed."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 0,
+      "documents": [],
+      "records": []
+    },
+    "withheld": [
+      {
+        "id": "openai-gpt-6-astra-docs-source-add",
+        "category": "blocked-by-policy",
+        "detail": "Accepted 3-of-3 and not applied. It is cited by the release record, so it cannot land without it, and an uncited source is dead provenance that validate.test.ts refuses.",
+        "blockedBy": [
+          "web/src/data/validate.test.ts datesCoarserThanADay exact inventory",
+          "web/src/lib/release-source.test.ts reordered-population count",
+          "gate-scope.mjs ALLOWED_PATHS (ADR 0003 qualifying class)"
+        ]
+      },
+      {
+        "id": "openai-news-rss-lastchecked",
+        "category": "blocked-by-policy",
+        "detail": "Accepted 3-of-3 and not applied. Advancing a verification date alone would assert that the feed was checked for a tranche that did not land, so it was reverted with the rest.",
+        "blockedBy": [
+          "web/src/data/validate.test.ts datesCoarserThanADay exact inventory",
+          "web/src/lib/release-source.test.ts reordered-population count",
+          "gate-scope.mjs ALLOWED_PATHS (ADR 0003 qualifying class)"
+        ]
+      },
+      {
+        "id": "openai-gpt-6-family-add",
+        "category": "blocked-by-policy",
+        "detail": "Accepted 2-of-3 over a recorded provenance objection and not applied. Its datePrecision unstated adds a ninth entry to the exact datesCoarserThanADay inventory in validate.test.ts. The unstated value is the honest one: no primary states a first release date for the family, and dating a family from one member's announcement is the step the provenance rubric names as a defect not to be extended.",
+        "blockedBy": [
+          "web/src/data/validate.test.ts datesCoarserThanADay exact inventory",
+          "web/src/lib/release-source.test.ts reordered-population count",
+          "gate-scope.mjs ALLOWED_PATHS (ADR 0003 qualifying class)"
+        ]
+      },
+      {
+        "id": "openai-gpt-6-astra-release-add",
+        "category": "blocked-by-policy",
+        "detail": "Accepted 2-of-3 over a recorded provenance objection and not applied. It cites two sources, taking the reordered population in release-source.test.ts from 110 to 111. Citing one source instead would leave the release date unsourced, so the count cannot be avoided honestly.",
+        "blockedBy": [
+          "web/src/data/validate.test.ts datesCoarserThanADay exact inventory",
+          "web/src/lib/release-source.test.ts reordered-population count",
+          "gate-scope.mjs ALLOWED_PATHS (ADR 0003 qualifying class)"
+        ]
+      }
+    ],
+    "caveats": [
+      "This run did not find nothing to do. It found a real, sourced, panel-accepted release it was not permitted to publish, and the obstruction is not the one the previous stopped run named.",
+      "The obstruction is structural rather than specific to GPT-6. Any release citing two or more sources moves the release-source.test.ts population, and any record whose date precision is not day moves the validate.test.ts inventory. Both are exact by design, and both are outside the class a refresh may touch, so an unattended refresh cannot add a release of either shape.",
+      "Two claims carried on 2-of-3 over a recorded provenance objection. The release date rests on a news-feed item pubDate rather than on prose, disclosed in the record summary exactly as the committed openai-gpt-5-6-cyber discloses its own announcement-derived date. A reader who holds that objection to be correct should read those two records as unsupported on that point.",
+      "The panel is three model families reading the same pages. 2-of-3 buys independence of reasoning, not independence of training, and a source that is itself wrong can carry all three.",
+      "OpenAI's catalogued official-announcement channel returned 403 throughout, so this run saw the announcement only through the RSS feed. Anything stated in the announcement prose and not in the feed or the documentation was invisible to it.",
+      "43 of 44 creators were not scouted at all. This run says nothing whatever about whether any of them changed.",
+      "gate-evidence verifies the form of evidence, not remote content. That a quote matches its page was established by this run fetching and hashing the page itself, and is not something the gate re-checks."
+    ],
+    "followUps": [
+      "The two exact-population controls are the single highest-value fix for refresh throughput: either they should derive their figures from the dataset while keeping the anti-blindness property that made them exact, or they need admitting to the qualifying class. Filed as the follow-up in this run's summary issue rather than fixed here, because fixing them is itself the out-of-class change that stopped the run.",
+      "OpenAI's official-announcement source is dark at 403 while its RSS feed still serves 200. The profile currently depends on the feed alone for discovery, which no gate would report if the feed also went quiet.",
+      "The previous stopped run's conclusion that web/asset-budgets.json lies outside the scope a refresh may touch is wrong for that file: ADR 0015 admits it, field-scoped, and both figures it named are in ASSET_BUDGETS_REGENERABLE_FIELDS. The conclusion was right about comparison.test.ts. Recording the correction here so the next run does not inherit the whole-path reading."
+    ],
+    "references": [
+      {
+        "kind": "issue",
+        "label": "#986 — this run's summary, left open because the run hit an out-of-class change",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/986",
+        "state": "open"
+      },
+      {
+        "kind": "issue",
+        "label": "#935 — the previous stopped run, whose named page-weight blockers this run measured as no longer binding",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/935",
+        "state": "closed"
+      },
+      {
+        "kind": "commit",
+        "label": "anchor.commit this run was judged against, selected by merge-base with refs/remotes/origin/main",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/1f5d89e59f849e89c61a3cf3a4957bae36e2049b",
+        "state": "merged"
+      }
+    ],
+    "recordedAt": "2026-09-05"
   }
 ]
