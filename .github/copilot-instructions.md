@@ -624,17 +624,19 @@ gh pr list --state all --head $branch --json number,state,mergedAt,headRefOid
 
 `--state all` is load-bearing, and dropping it is invisible in the output.
 `gh pr list` defaults to `--state open`, so a **merged** pull request is not
-listed: the flagless form returns an empty list at exit 0, which is the result a
-branch that never had a pull request also produces. Measured on 2026-09-05 on
-`abdeslam-menacere-wrap-safe-landedness-probe`, merged as
-abdeslam-menacere/ModelTree#878 — flagless `[]`, `--state all` naming that pull
-request, and `--state all` on a fabricated branch `[]`, all at exit 0, the first
-and third byte-identical. An empty result from the flagless form is therefore
-not evidence of anything, and it fails toward `NOT LANDED`, the reassuring
-direction. The general form, worth carrying past this one flag: **a probe whose
-documented form is sound can still be void when paraphrased, so the qualifier
-that makes it sound must be labelled load-bearing where it appears** — the flag
-is already written above, and the label is what was missing.
+listed: the flagless form returns an empty list at exit 0 — the result a branch
+that never had a pull request also produces. Measured on 2026-09-05 on the head
+of abdeslam-menacere/ModelTree#878, merged the day before: flagless `[]`,
+`--state all` naming that pull request, the same flag on a fabricated branch
+`[]`, all at exit 0, the first and third byte-identical. So an empty flagless
+result is not evidence of anything, and it fails toward `NOT LANDED`, the
+reassuring direction. Its control has to come from the state the default
+suppresses — a **merged** branch; one whose pull request is open is returned by
+both forms, so it passes while the instrument is broken. The general form, worth
+carrying past this one flag: **a probe whose documented form is sound can still
+be void when paraphrased, so the qualifier that makes it sound must be labelled
+load-bearing where it appears** — the flag was already written above, and the
+label is what was missing.
 
 Read it this way, checking the exit code of every call and never inferring a
 failure from empty output:
@@ -1391,10 +1393,9 @@ output.
 
 **Exit 0 with a different OID.** Trunk does not carry your branch's text as
 written. That corroborates `NOT LANDED` and never establishes it: after a squash
-the same content can sit on trunk reworded or relocated, so re-adding text trunk
-moved on from is what landed-then-edited work produces too. Equality stays a
-sound positive test; inequality is not a sound negative one. Report it alongside
-step 2's record rather than instead of it.
+the same content can sit on trunk reworded or relocated, so a differing tree is
+what landed-then-edited work produces too. Equality stays a sound positive test;
+inequality is not a sound negative one. Report it alongside step 2's record.
 
 **Any non-zero exit ⇒ `UNDETERMINED`.** Do not compare the tree, do not print
 its OID, and do not diff it. A conflicted tree holds conflict markers, so it
