@@ -5,13 +5,17 @@ import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import {
+  CEILING_NEAR_MISS_FRACTION,
   NEAR_MISS_FRACTION,
   classifyDrift,
+  classifyHeadroom,
   describeProvenance,
   driftFailureMessage,
   driftOf,
   formatAllowanceReport,
   formatConsumed,
+  formatHeadroomReport,
+  headroomOf,
 } from './asset-drift.mjs';
 import { PUBLISHED_REF, probeTreeProvenance } from './tree-provenance.mjs';
 
@@ -409,5 +413,249 @@ describe('the provenance probe against real git (#832)', () => {
     expect(probeTreeProvenance(join(tmpdir(), 'modeltree-does-not-exist-zzz')).status).toBe(
       'undetermined',
     );
+  });
+});
+
+// abdeslam-menacere/ModelTree#939 -- the SECOND wall.
+//
+// Everything above this line is the DRIFT axis: how stale a recorded figure is
+// against a fresh build. These figures are the CEILING axis: how much room a
+// measured figure has left before the budget assertion reddens. The two are
+// unrelated, and #874 conflated them, which is why every assertion below names
+// its axis.
+//
+// -- Why these numbers are pinned to a commit --
+//
+// Read from `web/asset-budgets.json` at trunk b44c63d6 with a KEY-LEVEL JSON
+// parse (never a line regex: field names occur inside `reason` prose, so a
+// regex hit is not a field change and a regex miss is not absence). Each pair
+// is `measuredRaw`/`measuredWorst*`/`*MeasuredRaw` against the `criticalMaxRaw`
+// /`jsMaxRaw`/`globals.*MaxRaw` the budget assertions in
+// `tests/build/asset-budgets.test.ts` compare it to.
+//
+// They are pinned as a HISTORICAL snapshot at a named commit, which is a
+// terminal fact and stays true, rather than re-read from the live file. Two
+// reasons, and the second is the load-bearing one:
+//
+//   1. #987 re-recorded eleven of the thirteen the day this was written, so a
+//      live read pins the fixture on a state still in motion.
+//   2. An assertion on the LIVE file's classification counts would make this
+//      instrument fail a build as entries approach their ceilings -- exactly
+//      the "permits nothing, fails nothing" discipline it is required to keep.
+//      The classifier is proven here on fixed inputs; nothing asserts anything
+//      about today's file.
+const LIVE_CEILING_FIGURES: ReadonlyArray<readonly [string, number, number]> = [
+  ['compare', 785_784, 820_000],
+  ['home', 1_058_558, 1_105_000],
+  ['catalog', 629_471, 660_000],
+  ['benchmarks', 491_766, 520_000],
+  ['providers', 650_936, 720_000],
+  ['updates', 447_249, 495_000],
+  ['globals.fontTotalMeasuredRaw', 187_036, 210_000],
+  ['globals.jsTotalMeasuredRaw', 452_844, 520_000],
+  ['globals.astroDirMeasuredRaw', 747_420, 860_000],
+  ['passport', 173_003, 200_000],
+  ['globals.cssTotalMeasuredRaw', 107_540, 125_000],
+  ['tree', 560_418, 760_000],
+  ['passport measuredWorstJsRaw', 0, 20_000],
+];
+
+const liveRows = () => LIVE_CEILING_FIGURES.map(([label, m, c]) => headroomOf(label, m, c));
+
+describe('ceiling headroom accounting (#939)', () => {
+  // The report's comparison must be the assertion's comparison. The budget
+  // tests assert `measured <= criticalMaxRaw`; if `within` ever computed
+  // something else, this report would be a confident description of a guard
+  // that is not the one running.
+  it('computes the same comparison the budget assertion binds on', () => {
+    const row = headroomOf('compare', 785_784, 820_000);
+    expect(row.within).toBe(785_784 <= 820_000);
+    expect(row.headroom).toBe(34_216);
+    expect(row.used).toBe(785_784 / 820_000);
+    expect(formatConsumed(row.used)).toBe('95.8%');
+  });
+
+  // THE MUTATION TEST the issue asks for. An entry pushed above the threshold
+  // must flip the classification; one below must not. Both arms run here, and
+  // the two are asserted to DIFFER -- a classifier that answered the same thing
+  // to everything would satisfy either arm alone.
+  //
+  // Note where the mutation happens: across the FLAG, never across the ceiling.
+  // Both rows PASS. That is what makes this an instrument rather than a guard.
+  it('flips an entry pushed above the threshold, and does not flip one below (mutation)', () => {
+    const ceiling = 720_000;
+    const atFlag = ceiling * CEILING_NEAR_MISS_FRACTION;
+    expect(atFlag, 'fixture premise: the flag lands on a whole byte here').toBe(666_000);
+
+    const below = headroomOf('providers', atFlag - 1, ceiling);
+    const above = headroomOf('providers', atFlag, ceiling);
+
+    expect(below.within, 'the mutation must stay under the ceiling on both arms').toBe(true);
+    expect(above.within, 'the mutation must stay under the ceiling on both arms').toBe(true);
+
+    expect(classifyHeadroom(below)).toBe('ok');
+    expect(classifyHeadroom(above)).toBe('near-ceiling');
+    expect(classifyHeadroom(below)).not.toBe(classifyHeadroom(above));
+  });
+
+  // The negative case, stated as the issue states it: a green suite that would
+  // also be green with the check deleted proves nothing. So delete it -- a stub
+  // classifier that always says `ok` -- and require the real one to disagree
+  // with the stub on the real figures.
+  it('disagrees with the check deleted: an always-ok classifier is not this one', () => {
+    const rows = liveRows();
+    const real = rows.map((row) => classifyHeadroom(row));
+    const deleted = rows.map(() => 'ok');
+
+    expect(real).not.toEqual(deleted);
+
+    // ... and it is not the opposite stub either: it must fire on some rows and
+    // stay silent on others, or it carries no information in the other
+    // direction.
+    const fired = real.filter((verdict) => verdict === 'near-ceiling');
+    expect(fired.length).toBeGreaterThan(0);
+    expect(fired.length).toBeLessThan(rows.length);
+  });
+
+  // The discrimination criterion, measured. A 0.75 borrowed from the drift axis
+  // fires on 11 of these 13 and so tells a reader nothing -- which is the whole
+  // finding #939 was filed on, and the reason the threshold is derived rather
+  // than copied across axes.
+  it('discriminates where a borrowed 0.75 would not (trunk b44c63d6)', () => {
+    const rows = liveRows();
+    const firesAt = (t: number) =>
+      rows.filter((row) => classifyHeadroom(row, t) === 'near-ceiling').map((row) => row.label);
+
+    expect(firesAt(NEAR_MISS_FRACTION)).toHaveLength(11);
+    expect(firesAt(0.85)).toHaveLength(11);
+    expect(firesAt(0.9)).toHaveLength(6);
+    expect(firesAt(CEILING_NEAR_MISS_FRACTION)).toEqual([
+      'compare',
+      'home',
+      'catalog',
+      'benchmarks',
+    ]);
+
+    // The threshold sits inside a real gap rather than mid-cluster: the lowest
+    // flagged figure and the highest unflagged one are 4.16 points apart, so
+    // small movement either way does not change the reading.
+    const used = Object.fromEntries(rows.map((row) => [row.label, row.used]));
+    expect(used.benchmarks - CEILING_NEAR_MISS_FRACTION).toBeGreaterThan(0);
+    expect(CEILING_NEAR_MISS_FRACTION - used.providers).toBeGreaterThan(0.02);
+  });
+
+  // "It permits nothing", mechanically rather than as a claim in prose: `over`
+  // is decided by `within` alone, so no value of the threshold -- including the
+  // degenerate ones -- can turn a failing row into a passing one.
+  it('permits nothing: no threshold turns an over-ceiling row into a passing one', () => {
+    const over = headroomOf('compare', 820_001, 820_000);
+    expect(over.within).toBe(false);
+    expect(over.headroom).toBe(-1);
+    for (const t of [0, 0.5, 0.925, 1, 2, Infinity]) {
+      expect(classifyHeadroom(over, t), `threshold ${t} must not excuse an over-ceiling row`).toBe(
+        'over',
+      );
+    }
+
+    // And the converse: the binding comparison never depends on the threshold,
+    // so tightening or loosening the flag cannot redden a passing row either.
+    const passing = headroomOf('compare', 785_784, 820_000);
+    for (const t of [0, 0.5, 0.925, 1]) {
+      expect(classifyHeadroom(passing, t)).not.toBe('over');
+    }
+  });
+
+  // The conflation #874 made, refuted in both directions with real figures.
+  it('is a different axis from the drift near-miss, and the two do not track each other', () => {
+    expect(CEILING_NEAR_MISS_FRACTION).not.toBe(NEAR_MISS_FRACTION);
+
+    // Direction 1 -- PR #830's /tree: 97.1% of its DRIFT allowance, a near
+    // miss, while sitting at 71% of its ceiling with 217,308 bytes to spare.
+    const drifted = driftOf('tree', TREE_RECORDED, TREE_BRANCH_ONLY, MAX_FRACTION);
+    expect(classifyDrift(drifted)).toBe('near-miss');
+    expect(classifyHeadroom(headroomOf('tree', TREE_BRANCH_ONLY, 760_000))).toBe('ok');
+
+    // Direction 2 -- the #939 case itself, and the sharper one. A figure
+    // re-recorded to the byte has spent 0% of its drift allowance and reads
+    // perfect on the only instrument that existed, while sitting at 95.8% of
+    // the ceiling that actually gates growth. Re-recording resets the first
+    // axis completely and moves the second not one byte.
+    const freshlyRecorded = driftOf('compare', 785_784, 785_784, MAX_FRACTION);
+    expect(classifyDrift(freshlyRecorded)).toBe('ok');
+    expect(freshlyRecorded.consumed).toBe(0);
+    expect(classifyHeadroom(headroomOf('compare', 785_784, 820_000))).toBe('near-ceiling');
+  });
+
+  it('treats a zero ceiling as admitting nothing', () => {
+    const clean = headroomOf('passport measuredWorstJsRaw', 0, 0);
+    expect(clean.within).toBe(true);
+    expect(clean.used).toBe(0);
+    expect(classifyHeadroom(clean)).toBe('ok');
+
+    const tripped = headroomOf('passport measuredWorstJsRaw', 1, 0);
+    expect(tripped.within).toBe(false);
+    expect(formatConsumed(tripped.used)).toBe('OVER');
+    expect(classifyHeadroom(tripped)).toBe('over');
+  });
+});
+
+describe('the headroom report (#939)', () => {
+  const report = formatHeadroomReport(liveRows()).join('\n');
+
+  // The report is printed directly beneath the drift allowance report, so the
+  // one thing it must never do is read as more of the same table.
+  it('names its axis so it cannot be read as the drift allowance', () => {
+    expect(report).toContain('CEILING HEADROOM');
+    expect(report).toContain('DIFFERENT axis');
+    expect(report).toContain('Near-ceiling flag at 92.5%');
+    expect(report).toContain('it fails nothing, permits nothing and changes no exit code');
+  });
+
+  // Control on that printed denominator: a hardcoded "92.5%" would satisfy the
+  // assertion above while describing a threshold the report is not using. The
+  // two arms must DIFFER, or the header is decoration rather than a reading.
+  it('prints the threshold it actually used, not a hardcoded one', () => {
+    const borrowed = formatHeadroomReport(liveRows(), NEAR_MISS_FRACTION).join('\n');
+    expect(borrowed).toContain('Near-ceiling flag at 75.0%');
+    expect(borrowed).not.toContain('Near-ceiling flag at 92.5%');
+    expect(borrowed).not.toEqual(report);
+  });
+
+  it('flags the figures with under two ordinary spans of room, and only those', () => {
+    expect(report).toContain('NEAR CEILING');
+    expect(report).toContain(
+      '13 measured figure(s) checked against a ceiling: 0 over ceiling, 4 near ceiling, 9 clear.',
+    );
+  });
+
+  // The denominator, printed and reconciled -- "0 over" is worthless unless the
+  // total is visible and adds up.
+  it('reconciles its own counts against the number of rows', () => {
+    const counts = [...report.matchAll(/(\d+) over ceiling, (\d+) near ceiling, (\d+) clear/g)];
+    expect(counts).toHaveLength(1);
+    const [, over, near, clear] = counts[0].map(Number);
+    expect(over + near + clear).toBe(LIVE_CEILING_FIGURES.length);
+  });
+
+  it('names the row closest to its ceiling rather than leaving it to be found', () => {
+    expect(report).toContain('Closest to its ceiling: compare at 95.8% of 820,000 (34,216 bytes left).');
+  });
+
+  it('sorts worst-first so the row that matters is the first one read', () => {
+    const compareAt = report.indexOf('  compare ');
+    const providersAt = report.indexOf('  providers ');
+    const treeAt = report.indexOf('  tree ');
+    expect(compareAt).toBeGreaterThan(-1);
+    expect(compareAt).toBeLessThan(providersAt);
+    expect(providersAt).toBeLessThan(treeAt);
+  });
+
+  // Control on the flagging: a report that printed the warning unconditionally
+  // would satisfy every assertion above while telling a reader nothing.
+  it('omits the trim advice when nothing is near a ceiling', () => {
+    const calm = formatHeadroomReport([headroomOf('tree', 560_418, 760_000)]).join('\n');
+    expect(calm).toContain('0 over ceiling, 0 near ceiling, 1 clear.');
+    expect(calm).not.toContain('NEAR CEILING');
+    expect(calm).not.toContain('TRIMMING');
   });
 });
