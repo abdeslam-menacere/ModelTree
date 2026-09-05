@@ -256,6 +256,20 @@ function startOf(value) {
   return utcMs(y, m - 1, d);
 }
 
+/**
+ * What a parsed JSON value is, phrased for a refusal that names what it found
+ * rather than only what it wanted. `JSON.parse` can return exactly null, a
+ * boolean, a number, a string, an array or an object, so the branches below are
+ * the whole reachable set; the fallback exists so an unforeseen input is still
+ * described rather than reported as `undefined`.
+ */
+function jsonTypeOf(value) {
+  if (value === null) return 'null';
+  if (Array.isArray(value)) return 'an array';
+  const named = { string: 'a string', number: 'a number', boolean: 'a boolean', object: 'an object' };
+  return named[typeof value] ?? `a ${typeof value}`;
+}
+
 // ---------------------------------------------------------------------------
 // Gate: the evidence behind a claim is well-formed and declares a fetch.
 // ---------------------------------------------------------------------------
@@ -440,6 +454,35 @@ function main() {
     bundle = JSON.parse(readFileSync(path, 'utf8'));
   } catch (error) {
     process.stderr.write(`gate-evidence: ${path} is not valid JSON: ${error.message}\n`);
+    return 2;
+  }
+
+  // Valid JSON is not yet a bundle. This sits immediately after the parse, and
+  // so before the `--today` check and before every field read below, because the
+  // value it guards is produced here and the first read of it -- `Object.hasOwn`
+  // at the policy check -- is already too late. `gate-source-approval.mjs`
+  // guards its own claim bundle in the same place and the same shape; this makes
+  // the two claim-bundle gates agree rather than introducing a new pattern.
+  //
+  // Only `null` reaches this as a crash today (#186). `Object.hasOwn` coerces
+  // its first argument, so an array, a string, a number and a boolean all box
+  // harmlessly, report a genuinely absent `policy` and already exit 2 -- while
+  // `Object.hasOwn(null, ...)` throws, uncaught, and node exits **1**. That is
+  // the defect: exit 1 is this gate's verdict channel, so a crash claims the
+  // bundle was read and judged when it was never read at all, and it claims it
+  // in the more authoritative direction. `undefined` is not a case here, since
+  // `JSON.parse` never returns it.
+  //
+  // The guard is worth having for the other four regardless of the exit code
+  // they already produce, on two counts. Their refusal is *accidental*: it rests
+  // on a coercion nobody chose and no test pins, so a later refactor reading
+  // `bundle.policy` directly would turn all four into crashes at once. And it
+  // names the wrong cause -- it tells whoever handed over a JSON array that
+  // their bundle has no `policy`, which sends them off to add one to an array.
+  if (bundle === null || typeof bundle !== 'object' || Array.isArray(bundle)) {
+    process.stderr.write(
+      `gate-evidence: ${path} is not a claim bundle: expected a JSON object, found ${jsonTypeOf(bundle)}\n`,
+    );
     return 2;
   }
 
