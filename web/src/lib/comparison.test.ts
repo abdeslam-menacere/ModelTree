@@ -779,6 +779,50 @@ describe('comparison payload', () => {
     expect(payload.releases[0]).not.toHaveProperty('predecessorIds');
   });
 
+  it('keeps variantNote on results — it feeds the comparability verdict (#906)', () => {
+    // variantNote is NOT inert. comparability-policy.ts reads it
+    // (`read: (result) => result.variantNote`) and /compare computes
+    // comparability client-side from this shipped payload, so trimming it would
+    // silently change comparability verdicts for readers. asset-budgets.json
+    // once listed it among the never-rendered fields; that entry was wrong, and
+    // this guard is what stops it being trimmed by a future projection edit.
+    const withVariantNote = dataset.benchmarkResults.filter(
+      (result) => result.variantNote !== undefined,
+    );
+    // Positive control: a dataset carrying no variantNote would pass the
+    // preservation check below vacuously.
+    expect(withVariantNote.length).toBeGreaterThan(0);
+    for (const source of withVariantNote) {
+      const shipped = payload.benchmarkResults.find((result) => result.id === source.id);
+      expect(shipped?.variantNote).toBe(source.variantNote);
+    }
+  });
+
+  it('drops the six benchmark fields the comparison never renders (#906)', () => {
+    // Measured inert for /compare: rebuilding the comparison view with each of
+    // these stripped changes no rendered output over benchmark-bearing groups.
+    // They remain fully available on /benchmarks, which reads the dataset
+    // directly rather than this narrowed wire payload.
+    for (const benchmark of payload.benchmarks) {
+      expect(benchmark).not.toHaveProperty('domain');
+      expect(benchmark).not.toHaveProperty('owner');
+      expect(benchmark).not.toHaveProperty('appliesToCategories');
+      expect(benchmark).not.toHaveProperty('datasetVersion');
+      expect(benchmark).not.toHaveProperty('methodologyNotes');
+    }
+    for (const result of payload.benchmarkResults) {
+      expect(result).not.toHaveProperty('caveats');
+    }
+    // Positive control: the source dataset carries every one of these fields, so
+    // their absence in the payload is a projection effect and not empty inputs.
+    expect(dataset.benchmarks.some((b) => b.domain !== undefined)).toBe(true);
+    expect(dataset.benchmarks.some((b) => b.owner !== undefined)).toBe(true);
+    expect(dataset.benchmarks.some((b) => b.appliesToCategories !== undefined)).toBe(true);
+    expect(dataset.benchmarks.some((b) => b.datasetVersion !== undefined)).toBe(true);
+    expect(dataset.benchmarks.some((b) => b.methodologyNotes !== undefined)).toBe(true);
+    expect(dataset.benchmarkResults.some((r) => r.caveats !== undefined)).toBe(true);
+  });
+
   it('counts UTF-8 bytes rather than UTF-16 code units', () => {
     // Criterion 3 of #621. The guard is pinned against a fixture whose byte
     // length is hand-derivable, rather than against the live dataset, because

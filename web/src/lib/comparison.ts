@@ -513,6 +513,43 @@ export type ComparisonSourceRecord = Pick<
   'id' | 'url' | 'title' | 'publisherId' | 'lastCheckedDate'
 >;
 
+// The /compare payload ships benchmark records trimmed to only the fields the
+// comparison surface actually reads (issue #906). The dataset keeps every field
+// and /benchmarks still renders them; only this wire projection narrows.
+//
+// Six fields measured inert against the rendered comparison view were dropped —
+// `domain`, `owner`, `appliesToCategories`, `datasetVersion` and
+// `methodologyNotes` on the benchmark, and `caveats` on the result. The
+// stripping harness in comparison.test.ts pins that verdict with positive and
+// negative controls, so "inert" here is a finding rather than an assumption.
+//
+// `variantNote` is deliberately KEPT. It is a comparability-policy dimension
+// (`comparability-policy.ts`), and /compare computes comparability client-side
+// from this payload, so dropping it would silently change the verdict a reader
+// sees. That trap is what the earlier "seven fields" figure got wrong.
+export type ComparisonBenchmark = Pick<
+  BenchmarkDefinition,
+  'id' | 'slug' | 'name' | 'metric' | 'metricUnit' | 'direction' | 'sourceIds' | 'verifiedAt'
+>;
+
+export type ComparisonBenchmarkResult = Pick<
+  BenchmarkResult,
+  | 'id'
+  | 'benchmarkId'
+  | 'benchmarkVersion'
+  | 'releaseId'
+  | 'variantNote'
+  | 'score'
+  | 'unit'
+  | 'evaluationDate'
+  | 'reasoningMode'
+  | 'toolsEnabled'
+  | 'harness'
+  | 'resultType'
+  | 'sourceIds'
+  | 'verifiedAt'
+>;
+
 /**
  * Printed under the takeaways, and the reason it is a constant rather than
  * prose in a component: the non-goal it states is a repository policy, so it
@@ -535,8 +572,8 @@ export type ComparisonDataset = {
   servingPlatforms: Array<Pick<ServingPlatform, 'id' | 'name' | 'type' | 'organizationId'>>;
   deployments: Deployment[];
   pricing: PricingRecord[];
-  benchmarks: BenchmarkDefinition[];
-  benchmarkResults: BenchmarkResult[];
+  benchmarks: ComparisonBenchmark[];
+  benchmarkResults: ComparisonBenchmarkResult[];
 };
 
 // ---------------------------------------------------------------------------
@@ -1496,8 +1533,46 @@ export function buildComparisonPayload(dataset: ComparisonDataset): ComparisonDa
     })),
     deployments: dataset.deployments,
     pricing: dataset.pricing,
-    benchmarks: dataset.benchmarks,
-    benchmarkResults: dataset.benchmarkResults,
+    // Trim benchmark records to the fields the comparison surface reads. See
+    // ComparisonBenchmark / ComparisonBenchmarkResult for the measured-inert
+    // fields dropped and why `variantNote` is kept (issue #906).
+    benchmarks: dataset.benchmarks.map((benchmark) => ({
+      id: benchmark.id,
+      slug: benchmark.slug,
+      name: benchmark.name,
+      metric: benchmark.metric,
+      metricUnit: benchmark.metricUnit,
+      direction: benchmark.direction,
+      sourceIds: benchmark.sourceIds,
+      verifiedAt: benchmark.verifiedAt,
+    })),
+    benchmarkResults: dataset.benchmarkResults.map((result) => {
+      // Required fields, always present. Optionals are added below only when
+      // set, so an absent optional stays absent rather than becoming an
+      // `undefined`-valued key — the compact wire format asserts every shipped
+      // key maps to a short code, and a materialized `undefined` key would
+      // break that invariant (and never round-trips anyway).
+      const projected: ComparisonBenchmarkResult = {
+        id: result.id,
+        benchmarkId: result.benchmarkId,
+        benchmarkVersion: result.benchmarkVersion,
+        releaseId: result.releaseId,
+        score: result.score,
+        unit: result.unit,
+        evaluationDate: result.evaluationDate,
+        resultType: result.resultType,
+        sourceIds: result.sourceIds,
+        verifiedAt: result.verifiedAt,
+      };
+      // Comparability dimensions — kept on purpose (issue #906): comparability
+      // is computed client-side from this payload, so dropping any of these
+      // would silently change comparability verdicts.
+      if (result.variantNote !== undefined) projected.variantNote = result.variantNote;
+      if (result.reasoningMode !== undefined) projected.reasoningMode = result.reasoningMode;
+      if (result.toolsEnabled !== undefined) projected.toolsEnabled = result.toolsEnabled;
+      if (result.harness !== undefined) projected.harness = result.harness;
+      return projected;
+    }),
   };
 }
 
@@ -1564,10 +1639,8 @@ const DEPLOYMENT_KEY_TO_SHORT: Record<string, string> = {
 };
 
 const BENCHMARK_KEY_TO_SHORT: Record<string, string> = {
-  id: 'i', slug: 's', name: 'n', domain: 'd', owner: 'o', metric: 'm',
-  metricUnit: 'u', direction: 'r', datasetVersion: 'v',
-  methodologyNotes: 'y', sourceIds: 'S', verifiedAt: 'V',
-  appliesToCategories: 'c',
+  id: 'i', slug: 's', name: 'n', metric: 'm',
+  metricUnit: 'u', direction: 'r', sourceIds: 'S', verifiedAt: 'V',
 };
 
 const PRICING_KEY_TO_SHORT: Record<string, string> = {
@@ -1579,7 +1652,7 @@ const PRICING_KEY_TO_SHORT: Record<string, string> = {
 const BENCHMARK_RESULT_KEY_TO_SHORT: Record<string, string> = {
   id: 'i', benchmarkId: 'b', benchmarkVersion: 'v', releaseId: 'r',
   variantNote: 'n', score: 's', unit: 'u', evaluationDate: 'e',
-  resultType: 't', caveats: 'c', sourceIds: 'S', verifiedAt: 'V',
+  resultType: 't', sourceIds: 'S', verifiedAt: 'V',
 };
 
 // --- key maps: short → long (derived) -------------------------------------
