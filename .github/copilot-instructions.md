@@ -1499,21 +1499,27 @@ web/src/lib/comparison.test.ts   tip 734c225e   trunk 51cccbf2   differ
 ```
 
 At scale that second break produces something worse than a wrong answer, which
-is a *plausible* one. Measured on the branch for
+is a *plausible* one. Re-measured 2026-09-05 against trunk
+`f721b3b1a20d970072d820201793d7b330cd225f`, on the branch for
 abdeslam-menacere/ModelTree#650, whose work is on trunk and whose issue closed
 `COMPLETED` on 2026-08-31:
 
 ```
-tip bd56e242   merge-base 356989e9
+tip bd56e242   merge-base 356989e9   1 commit
 merge-tree --write-tree <trunk> <tip>      exit 1   inconclusive, so the fallback is invoked
-11 changed paths:   identical 5   differ 6
+paths from   git diff --name-only '<merge-base>...<tip>'
+11 paths:  identical 2   differ 9   absent 0
 ```
 
-Read by the withdrawn rule that is `NOT LANDED`, and the six differing files are
-simply the ones trunk edited after absorbing the squash. Note what the split
-invites: an all-differ result at least looks like a definite answer, whereas
-five-identical-six-differ tempts a reader to average it into `PARTIALLY LANDED`
-— a third wrong answer, about a branch that is wholly present. The two prescribed
+Read by the withdrawn rule that is `NOT LANDED`, and the nine differing files
+are simply the ones trunk edited after absorbing the squash. Note what the split
+invites: an all-differ result at least looks like a definite answer, whereas a
+mixed two-identical-nine-differ reading tempts a reader to average it into
+`PARTIALLY LANDED` — a third wrong answer, about a branch that is wholly
+present. The derivation is quoted alongside the anchor because it is equally
+load-bearing: the three merge-base-rooted forms agree at these 11 paths, while
+the two-dot `git diff --name-only <trunk> <tip>` answers a different question
+and returned 198 paths against the same trunk. The two prescribed
 methods here, primary and fallback, fail on the same input class, so a dock
 doing the documented thing after an inconclusive first probe is misled twice in
 a row. That is why the fallback is gone rather than annotated, and it is the
@@ -1523,7 +1529,7 @@ unit needing repair is the section rather than any one command.
 **Both breaks fall on the differing answer, and neither licenses the stronger
 claim this passage used to make — that the probe can only ever return
 "differ".** The section falsifies that claim itself: the split immediately
-above reads `identical 5   differ 6`, and the comparand table below records a
+above reads `identical 2   differ 9`, and the comparand table below records a
 run of `identical 8   differing 0`. A reader who adopts the universal meets its
 counter-example a paragraph later and then has to decide how much of an
 otherwise load-bearing section to keep — and the bill arrives at the worst
