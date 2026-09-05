@@ -5466,5 +5466,122 @@
       "cohere-rerank-v3-5-changelog"
     ],
     "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "amazon-titan-text-express",
+    "slug": "titan-text-express",
+    "canonicalName": "Amazon Titan Text Express",
+    "displayName": "Amazon Titan Text Express",
+    "organizationId": "amazon",
+    "familyId": "amazon-titan",
+    "version": "1",
+    "variant": "Express",
+    "releaseDate": "2023-11-29",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 8000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The larger of the two Amazon Titan Text models made generally available in Amazon Bedrock in November 2023, described by AWS as a large language model for a wide range of text tasks with a context length of up to 8,000 tokens.",
+    "intendedUse": "General language tasks through Amazon Bedrock, including open-ended text generation, conversational chat and retrieval-augmented generation. No AWS page read for this record states a licence or offers weights, so none is recorded. No approved-origin page states the model’s lifecycle today — the only such wording is the 2023 launch announcement — so status is unknown rather than current.",
+    "sourceIds": [
+      "amazon-titan-text-express-lite-announcement"
+    ],
+    "verifiedAt": "2026-09-05"
+  },
+  {
+    "id": "ai21-labs-jurassic-1-jumbo",
+    "slug": "jurassic-1-jumbo",
+    "canonicalName": "Jurassic-1 Jumbo",
+    "displayName": "Jurassic-1 Jumbo",
+    "organizationId": "ai21-labs",
+    "familyId": "ai21-labs-jurassic",
+    "version": "1",
+    "variant": "Jumbo",
+    "releaseDate": "2021-08-04",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "parameters": {
+      "totalBillions": 178
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The larger of the two Jurassic-1 models AI21 Labs launched alongside AI21 Studio in 2021, described by AI21 as a 178B-parameter model queried through its API rather than distributed as weights.",
+    "intendedUse": "Text generation and language tasks such as question answering and text classification, through the AI21 Studio API and web environment. No AI21 page read for this record states a licence, so none is recorded, and no page states a context window — the model’s 250,000-token vocabulary is a vocabulary size and was deliberately not mapped to one.",
+    "sourceIds": [
+      "ai21-labs-jurassic-1-announcement"
+    ],
+    "verifiedAt": "2026-09-05"
+  },
+  {
+    "id": "moonshot-ai-kimi-audio-7b-instruct",
+    "slug": "kimi-audio-7b-instruct",
+    "canonicalName": "Kimi-Audio-7B-Instruct",
+    "displayName": "Kimi-Audio 7B Instruct",
+    "organizationId": "moonshot-ai",
+    "familyId": "moonshot-ai-kimi-audio",
+    "version": "1",
+    "variant": "7B Instruct",
+    "releaseDate": "2025-04-25",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "audio-speech"
+    ],
+    "inputModalities": [
+      "audio",
+      "text"
+    ],
+    "outputModalities": [
+      "audio",
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "MIT License",
+      "spdxId": "MIT",
+      "url": "https://huggingface.co/moonshotai/Kimi-Audio-7B-Instruct",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "The instruction-tuned member of Moonshot AI’s Kimi-Audio family, released with inference code and weights, handling speech recognition, audio question answering and end-to-end speech conversation in one model. No source read for this record states an exact parameter count — the \"7B\" appears only inside the model name, and a name is not a source — so no parameters block is recorded, and no source states a context window either.",
+    "intendedUse": "Audio understanding, audio generation and speech conversation from downloadable weights. The card’s front matter declares MIT while its prose licence section scopes licences to code rather than weights; that disagreement is recorded on the model card source rather than resolved here.",
+    "sourceIds": [
+      "moonshot-ai-kimi-audio-repository",
+      "moonshot-ai-kimi-audio-model-card",
+      "osi-license-mit"
+    ],
+    "verifiedAt": "2026-09-05"
   }
 ]

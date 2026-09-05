@@ -1552,5 +1552,59 @@
       "cohere-rerank-v3-5-changelog"
     ],
     "verifiedAt": "2026-09-01"
+  },
+  {
+    "id": "amazon-titan",
+    "slug": "titan",
+    "organizationId": "amazon",
+    "name": "Amazon Titan",
+    "description": "Amazon’s Titan line of foundation models, announced by AWS and served through Amazon Bedrock rather than as downloadable weights.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2023-09-28",
+    "datePrecision": "day",
+    "status": "unknown",
+    "sourceIds": [
+      "amazon-titan-embeddings-ga-announcement",
+      "amazon-titan-text-express-lite-announcement"
+    ],
+    "verifiedAt": "2026-09-05"
+  },
+  {
+    "id": "ai21-labs-jurassic",
+    "slug": "jurassic",
+    "organizationId": "ai21-labs",
+    "name": "Jurassic",
+    "description": "AI21 Labs’ Jurassic line of general-purpose language models, served through the AI21 Studio platform and API rather than as downloadable weights.",
+    "categories": [
+      "language-reasoning"
+    ],
+    "firstReleaseDate": "2021-08-04",
+    "datePrecision": "day",
+    "status": "unknown",
+    "sourceIds": [
+      "ai21-labs-jurassic-1-announcement",
+      "ai21-labs-jurassic-2-announcement"
+    ],
+    "verifiedAt": "2026-09-05"
+  },
+  {
+    "id": "moonshot-ai-kimi-audio",
+    "slug": "kimi-audio",
+    "organizationId": "moonshot-ai",
+    "name": "Kimi-Audio",
+    "description": "Moonshot AI’s Kimi-Audio family of open-source audio foundation models for audio understanding, generation and speech conversation.",
+    "categories": [
+      "audio-speech"
+    ],
+    "firstReleaseDate": "2025-04-25",
+    "datePrecision": "day",
+    "status": "unknown",
+    "sourceIds": [
+      "moonshot-ai-kimi-audio-repository",
+      "moonshot-ai-kimi-audio-model-card"
+    ],
+    "verifiedAt": "2026-09-05"
   }
 ]
