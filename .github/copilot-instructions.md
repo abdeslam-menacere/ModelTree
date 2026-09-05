@@ -98,6 +98,68 @@ way — reviewer and QA agents run the gates and record their verdicts on the
 issue — so it is never you who gates your own work. The posture described in
 this file is the one in force.
 
+## A reading is a fact about its instrument
+
+Almost everything below this line is a probe, and a probe returns a fact about
+itself and about where it was standing before it returns one about the subject.
+It becomes a fact about the subject only once the instrument has been shown able
+to return something else. The general form is representational: **"I did not
+look" must never share a representation with "I looked and nothing was there."**
+
+This file already applies the negative half of that inside the landedness
+procedure — a negative result is a claim, and a claim needs a control that would
+have come back positive. The property is wider than that procedure and governs
+any gate, sweep, checker or report you write here. It is recorded as a decision,
+with its instances and the measurements behind them, in
+`docs/adr/0018-not-looking-and-finding-nothing-are-separately-representable.md`.
+Read it before adding a probe to this file, to a gate, or to a refresh report.
+
+Four obligations follow, and they are what make it checkable:
+
+- **Discrimination before evidence.** A control earns its keep by *differing*
+  from the subject, in the same run with the same quoting. Establish that the
+  arms came back different; one arm returning the shape you had in mind shows
+  nothing. Two forms agreeing on a single input does not establish that they
+  answer the same question either. A control has two limits no further control
+  repairs: it cannot show the instrument is pointed at the present, and it
+  cannot show the instrument measures the quantity you named for it. So name the
+  quantity the tool returns in its own terms before naming the one you wanted —
+  a tool answering a neighbouring question does so at a clean exit with a
+  well-formed value. Adopt an instrument on its own measured behaviour; a
+  rival's failure is a fact about the rival.
+- **A value covering several outcomes is not evidence on its own.** Where one
+  exit status, one empty result or one output value can be produced by more than
+  one distinct outcome, read something alongside it that separates them and say
+  which outcome you observed. A degenerate subject belongs here: where an empty
+  or zero-sized input yields the same value as a real one, establish the
+  subject's size before reading the value.
+- **A reading carries the vantage it was taken from, in space and in time.** An
+  observer that cannot see a state is not evidence about that state, so where
+  your own vantage point is what is being asked about, the answer comes from an
+  instrument standing elsewhere. And a comparison against a cached or mirrored
+  reference is only as current as whatever last refreshed it: report the anchor
+  you measured against, not only the verdict, and take the reading at the moment
+  you report it rather than earlier in the session. A control cannot cover
+  either half — it shows the instrument discriminates, never where or when it
+  was pointed.
+- **Not-looked stays separately representable from looked-and-found-nothing.** A
+  check that was not selected is not a check that passed; a scan covering part
+  of a set has not reported on the set; a probe that refused has not returned a
+  finding. Carry the distinction into what you report, with the denominator, in
+  a form the next reader can see.
+
+Two readings that cannot both be true — an index beyond a reported extent, a
+total its own parts overrun — are a finding rather than a discrepancy to
+reconcile, and they catch a mismeasured quantity that no control reaches. Note
+also that a derived figure is not a check on its inputs: where an error shifts
+several inputs equally, differences computed from them survive it unchanged.
+
+`web/scripts/asset-drift.mjs` is the working example to copy rather than an
+invented one: it publishes the tree it measured, the reference it compared
+against, how current that leaves the answer, and a third state that is never
+rounded into either of the other two. Read it rather than restating it here, so
+the two cannot drift apart.
+
 ## Where am I
 
 `drydock status` answers this at any time, from anywhere in the repo, when the
