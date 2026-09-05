@@ -25,7 +25,7 @@ function run(id: string, ranOn: string, outcome: RefreshRun['outcome'] = 'no-cha
     summary: 'Summary.',
     scope: 'Every creator',
     stages: [{ stage: 'preflight', status: 'ran', note: 'Clean tree.' }],
-    found: { scouts: 1, pagesFetched: 4, claimsProposed: 0, bundles: [], claimsByKind: [], notCovered: [] },
+    found: { scouts: 1, pagesFetched: 4, claimsProposed: 0, bundles: [], claimsByKind: [], notCovered: [], unswept: [], degradedChannels: [] },
     evaluated: {
       reviewers: 0,
       verdictsCast: 0,

@@ -29,7 +29,7 @@ function run(overrides: Partial<RefreshRun> = {}): RefreshRun {
     summary: 'Nothing to change.',
     scope: 'Every creator',
     stages: [{ stage: 'preflight', status: 'ran', note: 'Clean tree.' }],
-    found: { scouts: 1, pagesFetched: 4, claimsProposed: 0, bundles: [], claimsByKind: [], notCovered: [] },
+    found: { scouts: 1, pagesFetched: 4, claimsProposed: 0, bundles: [], claimsByKind: [], notCovered: [], unswept: [], degradedChannels: [] },
     evaluated: {
       reviewers: 0,
       verdictsCast: 0,
@@ -192,13 +192,13 @@ describe('logTotals', () => {
       run({
         id: '2026-01-01-aaaaaa',
         ranOn: '2026-01-01',
-        found: { scouts: 1, pagesFetched: 10, claimsProposed: 4, bundles: [], claimsByKind: [], notCovered: [] },
+        found: { scouts: 1, pagesFetched: 10, claimsProposed: 4, bundles: [], claimsByKind: [], notCovered: [], unswept: [], degradedChannels: [] },
       }),
       run({
         id: '2026-05-05-bbbbbb',
         ranOn: '2026-05-05',
         outcome: 'published',
-        found: { scouts: 2, pagesFetched: 20, claimsProposed: 6, bundles: [], claimsByKind: [], notCovered: [] },
+        found: { scouts: 2, pagesFetched: 20, claimsProposed: 6, bundles: [], claimsByKind: [], notCovered: [], unswept: [], degradedChannels: [] },
         posted: { editsApplied: 30, documents: [], records: [] },
         withheld: [{ id: 'a', category: 'not-covered', detail: 'Out of reach.', blockedBy: [] }],
       }),

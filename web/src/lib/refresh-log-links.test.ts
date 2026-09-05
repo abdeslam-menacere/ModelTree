@@ -56,7 +56,7 @@ function run(overrides: Partial<RefreshRun> = {}): RefreshRun {
     summary: 'Nothing to change.',
     scope: 'Every creator',
     stages: [{ stage: 'preflight', status: 'ran', note: 'Clean tree.' }],
-    found: { scouts: 1, pagesFetched: 4, claimsProposed: 0, bundles: [], claimsByKind: [], notCovered: [] },
+    found: { scouts: 1, pagesFetched: 4, claimsProposed: 0, bundles: [], claimsByKind: [], notCovered: [], unswept: [], degradedChannels: [] },
     evaluated: {
       reviewers: 0,
       verdictsCast: 0,

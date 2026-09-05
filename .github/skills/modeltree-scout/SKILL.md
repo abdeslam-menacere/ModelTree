@@ -89,7 +89,13 @@ For each creator, in this order:
 2. Load the profile and the current dataset for that creator.
 3. Fetch each catalogued source. Record `sourceId`, `url`, `contentHash`,
    `fetchedAt`, and `status` in `sourcesConsulted` — including failures, which
-   go in `incomplete` rather than being dropped.
+   go in `incomplete` rather than being dropped. When the source that fails is a
+   creator's `official-announcement` — its authoritative feed for new releases,
+   as OpenAI's `openai.com/news/` has been with a persistent 403 — flag it as a
+   *degraded discovery channel for that creator*, so the refresh loop can record
+   it against the creator (`found.degradedChannels`) rather than burying it as
+   one line among unrelated fetch errors. Report the failure honestly; never
+   scrape around it or spoof a user agent.
 4. Follow links **only** where the profile's `allowed_paths` permits. A link off
    the creator's own domain is not a source you can use: `gate-source-approval.mjs`
    refuses a citation to any origin the committed dataset and the profile
