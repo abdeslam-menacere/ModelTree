@@ -1068,6 +1068,48 @@ export function summarise(results, extra = {}) {
   };
 }
 
+/**
+ * The machine summary for an extraction dry run, which requests nothing.
+ *
+ * This exists so that one reading works across both payloads this tool emits.
+ * The checker returns 1 for two unrelated reasons -- a URL that is genuinely
+ * broken, or a record whose URL cannot be turned into a request at all -- and a
+ * caller that wants to tell them apart reads `actionableUrls` and
+ * `malformedRecords`. The sweep payload carries both. The dry-run payload used
+ * to carry neither: `actionableUrls` was absent rather than zero, and the
+ * malformed count travelled under a *different name* (`malformed`), so a caller
+ * applying the sweep's own reading to a dry run read `0` and `0` from a run that
+ * had just exited 1, and could not explain the exit at all (#698).
+ *
+ * `actionableUrls` is 0 rather than null or absent because nothing was
+ * requested, so nothing can be actionable -- and that zero is safe to state only
+ * because `checkedUrls: 0` is stated beside it. The pair says "0 of 0 requested",
+ * which is not a clean bill of health and cannot be read as one. It is the exit
+ * code that remains the authority on whether the run found anything, exactly as
+ * it already is on the sweep path, where `actionableUrls` is likewise 0 on a run
+ * that exits 1 over a malformed record (#632). This function does not decide an
+ * exit code and must never be used to derive one.
+ *
+ * `malformed` is retained alongside `malformedRecords` rather than renamed.
+ * Renaming would silently return 0 to any caller still reading the old key,
+ * which is the same false all-clear in the other direction.
+ */
+export function summariseDryRun({ recordCount, uniqueUrls, licenceUrls, wouldRequest, excluded, malformed }) {
+  return {
+    dryRun: true,
+    recordCount,
+    uniqueUrls,
+    licenceUrls,
+    wouldRequest,
+    excluded,
+    malformed,
+    // Named as the sweep names them, so one reading serves both payloads.
+    checkedUrls: 0,
+    actionableUrls: 0,
+    malformedRecords: malformed,
+  };
+}
+
 /** A human label for a URL, never the bare URL on its own (accessibility requirement). */
 function label(result) {
   if (Array.isArray(result.titles) && result.titles.length > 0) return result.titles[0];
