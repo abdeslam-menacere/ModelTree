@@ -484,7 +484,7 @@ describe('route resolution and payload budget', () => {
   });
 
   it('lists every release regardless of whether it is featured', () => {
-    // `buildCatalogIndex` never reads `featured` (catalog.ts:193-222), and
+    // `buildCatalogIndex` never reads `featured`, and
     // nothing downstream of it may start to. Moving a creator between the Model
     // Tree's Featured and Others branches changes which releases carry the flag;
     // the catalog at /models must be untouched by that, because a reader would
@@ -511,7 +511,8 @@ describe('route resolution and payload budget', () => {
   it('indexes a dataset in which no release is featured at all', () => {
     // The catalog does not depend on a featured release existing, so the flag
     // cannot become a filter by accident. The Model Tree page keeps its own
-    // separate guard for that (tree.astro:21); this one must not.
+    // separate guard for that — tree.astro throws 'Model Tree requires at least
+    // one featured ecosystem release'; this one must not.
     const index = buildCatalogIndex(makeDataset());
 
     expect(makeDataset().releases.every((release) => !release.featured)).toBe(true);

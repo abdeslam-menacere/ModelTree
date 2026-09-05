@@ -870,21 +870,33 @@ describe('comparison payload', () => {
     // What to count when you apply that rule: cited sources, not records and not
     // note prose. buildComparisonPayload ships exactly five identity fields per
     // cited source (id, url, title, publisherId, lastCheckedDate) and ships only
-    // the ~168 of 202 sources that something in the payload cites; it drops
-    // `notes`, `type` and `publishedDate` entirely. So the two axes pull apart:
-    // a new cited source costs bytes, while longer, more verbatim note prose
-    // costs nothing. Provenance breadth is what moves this total; provenance
-    // quality is free. Trimming a note therefore buys no bytes and spends the
-    // one audience notes have — the reviewer reading the versioned JSON — so do
-    // not reach for it.
+    // those sources that something in the payload cites; it drops `notes`,
+    // `type` and `publishedDate` entirely. So the two axes pull apart: a new
+    // cited source costs bytes, while longer, more verbatim note prose costs
+    // nothing. Provenance breadth is what moves this total; provenance quality
+    // is free. Trimming a note therefore buys no bytes and spends the one
+    // audience notes have — the reviewer reading the versioned JSON — so do not
+    // reach for it.
     //
-    // Why there are no historical byte figures in this comment any more: they
-    // were a measurement of a dataset that keeps changing, so every breadth
-    // tranche left one of them stale and no test could see it go wrong. They
-    // justified past raises; git history holds that. The only figures that
-    // belong here are ones a reader can re-derive by running the test, which is
-    // why the failure message below prints the measured value rather than
-    // repeating it in prose.
+    // That projection is asserted rather than merely described: "ships only the
+    // sources something in the payload cites" below pins both the five shipped
+    // fields and the three dropped ones, so a change that quietly starts
+    // shipping `notes` fails there instead of leaving this paragraph wrong. How
+    // many sources ship, and how many exist, are deliberately not written here.
+    // They move with every breadth tranche, and the previous prose figure had
+    // already drifted by 72 and 75 respectively before anything noticed (#527).
+    // `npm run budget:compare` prints the live counts, and the assertion below
+    // names them in its failure message.
+    //
+    // Why no figure in this comment is measured from the current dataset: such a
+    // figure is a reading of something that keeps changing, so every breadth
+    // tranche leaves one stale and no test can see it go wrong. The historical
+    // figures above are exempt because each is pinned to a named past state —
+    // #621's unit correction, #726's compaction — which no later data change can
+    // falsify; git history holds the raises they justified. A figure about *this*
+    // tree belongs here only when a reader can re-derive it by running the test,
+    // which is why the failure message below prints the measured value rather
+    // than repeating it in prose.
     expect(
       size.bytesPerRelease,
       '/compare PAYLOAD (SHIPPED) — a record got fatter, so trim the payload rather than '
@@ -917,6 +929,33 @@ describe('comparison payload', () => {
     expect(payload.sources.every((source) => cited.has(source.id))).toBe(true);
     for (const id of cited) {
       expect(payload.sources.some((source) => source.id === id), `source ${id}`).toBe(true);
+    }
+
+    // The budget comment above reasons about the total in terms of this
+    // projection — provenance breadth costs bytes, provenance quality is free —
+    // and that only holds while the five identity fields are all that ships.
+    // Asserted here rather than left as prose, because a projection change lands
+    // in `comparison.ts` and would never bring a reader past that comment
+    // (#527). The counts go in the failure message rather than in the comment:
+    // they move with every breadth tranche, which is exactly what made the
+    // previous prose figure stale.
+    const shipped = new Set(payload.sources.flatMap((source) => Object.keys(source)));
+    expect(
+      [...shipped].sort(),
+      `/compare ships ${payload.sources.length} of ${dataset.sources.length} sources. The fields `
+      + 'per source are what the payload budget above reasons about, so a field added here is a '
+      + 'page-weight decision multiplied by every cited source.',
+    ).toEqual(['id', 'lastCheckedDate', 'publisherId', 'title', 'url']);
+
+    // The drop claim needs a positive control or it passes vacuously: a dataset
+    // that never carried `notes` would satisfy "it drops notes" while proving
+    // nothing. Each field must be present upstream and absent downstream, so the
+    // two arms come back opposite ways in the same run.
+    for (const field of ['notes', 'publishedDate', 'type']) {
+      const carried = dataset.sources.some((source) => field in source);
+      expect(carried, `dataset.sources must carry \`${field}\` for its absence below to mean anything`)
+        .toBe(true);
+      expect(shipped.has(field), `/compare must not ship source.${field}`).toBe(false);
     }
   });
 
