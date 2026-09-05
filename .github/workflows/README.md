@@ -361,18 +361,53 @@ This is the only place in this file that states #169's scope. The `adr-numbers`
 and `skills-ci` sections above defer to it, so the question has one answer here
 rather than two that can drift apart.
 
-Issue #169 is **two specific gaps** in branch protection on `main`:
+Issue #169 names **two specific gaps** in branch protection on `main`. They are
+no longer in the same state: both premises still hold, but only one of the two
+consequences does.
 
-1. the `pytest` legs are not required contexts, so a pull request that breaks
-   the Python suite while leaving `web-ci` green still satisfies protection; and
+1. the `pytest` legs are not required contexts — premise true, **consequence no
+   longer follows**: a required check watches those legs, so the coverage is
+   indirect rather than absent; and
 2. `strict: false` lets two individually-green pull requests merge into a
-   combination neither was tested in.
+   combination neither was tested in — **still open, unchanged**.
 
-Both gaps were still open when the live settings were read on 2026-09-04:
+Both premises were true when the live settings were read on 2026-09-04:
 `required_status_checks.contexts` was `["web-ci", "skills-ci", "web-e2e",
 "aggregate-checks"]` — no `pytest` leg among them — and `strict` was `false`.
 
-**That scope is stated in a comment on #169, not in its body** — [comment
+**Gap 1 — covered indirectly.** The premise is kept because it is still true and
+still load-bearing: no `pytest` leg is a required context, and making one
+required would be the wrong repair rather than the fix. Each leg is
+path-filtered at its trigger, so on a pull request touching none of those paths
+it reports no check at all, and a required check that never reports leaves that
+pull request pending forever — `aggregate-checks.yml` states exactly this in its
+own header. What does **not** follow from that premise is the consequence this
+section used to draw, that a pull request breaking the Python suite while
+leaving `web-ci` green still satisfies protection. It does not.
+`aggregate-checks` is a required context in the same dated reading above; it
+watches `pytest (Python 3.11)` and `pytest (Python 3.13)`, named in the
+`WATCHED` array in `.github/scripts/aggregate-checks.mjs`; and it reads the
+checks API rather than `needs:`, so it sees a leg that ran in a different
+workflow. A red `pytest` leg therefore reddens `aggregate-checks`, and
+`aggregate-checks` stops the merge. Reading the required-contexts list on its
+own under-reports what actually gates: indirect coverage is not no coverage.
+This is the same chain the **`aggregate-checks` makes the three above
+countable** section states from the other end, and the two passages must move
+together.
+
+The indirection has a cost, and it is the part that can change with nothing in
+this tree changing. All of that coverage rests on `aggregate-checks` remaining a
+required context — a repository setting, which is why the reading above is a
+dated measurement. Drop it from `contexts` and gap 1's original consequence
+returns immediately, with no file here edited and no test able to notice. That
+is why the premise is preserved rather than struck out.
+
+**Gap 2 — open.** `strict` was `false` in that same reading, so branches need
+not be up to date before merging, and nothing above narrows it.
+`aggregate-checks` does not reach it either: it reads the checks reported on one
+head commit, and gap 2 is about a combination that was never any head commit.
+
+**That two-gap scope is stated in a comment on #169, not in its body** — [comment
 5416970971](https://github.com/abdeslam-menacere/ModelTree/issues/169#issuecomment-5416970971),
 under a `### Not in scope here` heading, which is also where `skills-ci` is
 excluded by name. The body instead carries a differently-worded `## Out of
