@@ -44,11 +44,11 @@ name: Skills CI
 # Whether it *is* required is a branch-protection setting that lives outside the
 # repository tree, which no workflow file can observe and this one therefore does
 # not assert: read it with
-# `gh api "repos/{owner}/{repo}/branches/main/protection"`. Measured 2026-08-31
-# the required contexts were `web-ci`, `skills-ci` and `web-e2e`, and `strict`
-# was false, dated because an undated claim about that setting has no way to
-# learn it has gone false — which is how the sentence this replaces came to say
-# the opposite of the truth (#471).
+# `gh api "repos/{owner}/{repo}/branches/main/protection"`. Measured 2026-09-04
+# the required contexts were `web-ci`, `skills-ci`, `web-e2e` and
+# `aggregate-checks`, and `strict` was false, dated because an undated claim
+# about that setting has no way to learn it has gone false — which is how the
+# sentence this replaces came to say the opposite of the truth (#471).
 #
 # The scope decision should cover everything the gates read, and one part of it
 # is pinned to its source: `gate-dataset.mjs` reads exactly one directory —

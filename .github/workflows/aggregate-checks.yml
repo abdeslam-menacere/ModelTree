@@ -4,7 +4,9 @@ name: Aggregate checks
 # queue entry, once a queue exists -- and is red whenever a path-filtered check
 # on the same commit is not green.
 #
-# Branch protection on `main` requires `web-ci`, `skills-ci` and `web-e2e`.
+# Branch protection on `main` requires `web-ci`, `skills-ci`, `web-e2e` and
+# `aggregate-checks` -- measured 2026-09-04, and dated because which checks are
+# required is a repository setting no workflow file can observe.
 # `adr-numbers`, `instruction-references` and the two `pytest` legs are not
 # required, and `adr-numbers.yml` records why in its own header: each is
 # filtered at its trigger, so it reports no check at all on a pull request that
@@ -23,9 +25,13 @@ name: Aggregate checks
 # cannot express any of it -- `needs` names jobs in the same workflow, and every
 # check aggregated here lives in a different one.
 #
-# Adding `aggregate-checks` to the required contexts is a branch-protection
-# change and an owner action. Until that happens this workflow reports and
-# blocks nothing, which is the prerequisite rather than the outcome.
+# Adding `aggregate-checks` to the required contexts was a branch-protection
+# change and an owner action, and that action has been taken. This workflow
+# therefore blocks rather than merely reporting: a run that ends in exit 1 or
+# exit 2 stops the merge. That is the outcome, no longer the prerequisite.
+# Requirable and required stay separate facts, and only the second of them lives
+# outside this tree -- which is why the line above is a dated measurement rather
+# than a standing guarantee.
 #
 # It runs on pull requests and on merge groups. A merge queue re-tests each
 # projected merge on a `merge_group` event, and a required context that cannot

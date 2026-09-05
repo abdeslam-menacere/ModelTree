@@ -273,11 +273,19 @@ for. Its exit codes are 0 passed, 1 a watched check did not pass, 2 the question
 could not be answered — and 2 is a failing job, the same rule the gate scripts
 hold: a check that could not run has not passed.
 
-**Merging this workflow changes nothing on its own.** It reports, and a report
-nobody requires is a report. Adding `aggregate-checks` to the required set on
-`main` is a branch-protection change and needs the repository owner; until that
-happens the hole #710 measured is still open, with one more green check beside
-it.
+**This workflow blocks.** `aggregate-checks` is a required context on `main` —
+read live on 2026-09-04, when `required_status_checks.contexts` was `["web-ci",
+"skills-ci", "web-e2e", "aggregate-checks"]`. So the hole
+[#710](https://github.com/abdeslam-menacere/ModelTree/issues/710) measured is
+**closed**: a red `adr-numbers`, `instruction-references` or `pytest` leg now
+reddens this check, and this check stops the merge. Requiring it was a
+branch-protection change and an owner action, and that action has been taken —
+the outcome rather than the prerequisite. The reading is dated for the reason
+every other protection reading in this file is dated: which checks are required
+is a repository setting this tree cannot read, so what is written here is a
+measurement and not a standing guarantee. Requirable and required remain
+separate claims; the **Safe to require?** table above states the first and never
+the second.
 
 Its decision logic is covered by `web/tests/workflows/aggregate-checks.test.ts`,
 which runs the real script against a fixture checks API and asserts real exit
@@ -308,13 +316,14 @@ It also runs on **every push to `main`**, added by
 its triggers named no push event, so the check reported on the pull request and
 then nothing re-ran it on the commit that merged — a required context that never
 appeared on `main`. That matters because `strict` is false — read live on
-2026-08-31, when `required_status_checks.contexts` was `["web-ci", "skills-ci",
-"web-e2e"]`, and dated for the reason every other protection reading in this file
-is dated. Branches need not be up to date before merging, so two pull requests
-can each be green against different bases, merge with no textual conflict, and
-combine into a gate suite that is broken on `main`. `web-ci` and `web-e2e` re-run
-on `main` and would catch their own equivalent of that; this one could not, and
-what it guards is the ADR 0003 path from an unattended refresh to Pages.
+2026-09-04, when `required_status_checks.contexts` was `["web-ci", "skills-ci",
+"web-e2e", "aggregate-checks"]`, and dated for the reason every other protection
+reading in this file is dated. Branches need not be up to date before merging, so
+two pull requests can each be green against different bases, merge with no
+textual conflict, and combine into a gate suite that is broken on `main`.
+`web-ci` and `web-e2e` re-run on `main` and would catch their own equivalent of
+that; this one could not, and what it guards is the ADR 0003 path from an
+unattended refresh to Pages.
 
 The push trigger carries no path filter either, and — unlike `web-ci`, whose
 scope step diffs a push's own range — the in-job decision runs the gates outright
@@ -359,8 +368,9 @@ Issue #169 is **two specific gaps** in branch protection on `main`:
 2. `strict: false` lets two individually-green pull requests merge into a
    combination neither was tested in.
 
-Both gaps were still open when the live settings were read on 2026-08-26:
-`required_status_checks.contexts` was `["web-ci"]` and `strict` was `false`.
+Both gaps were still open when the live settings were read on 2026-09-04:
+`required_status_checks.contexts` was `["web-ci", "skills-ci", "web-e2e",
+"aggregate-checks"]` — no `pytest` leg among them — and `strict` was `false`.
 
 **That scope is stated in a comment on #169, not in its body** — [comment
 5416970971](https://github.com/abdeslam-menacere/ModelTree/issues/169#issuecomment-5416970971),
@@ -402,9 +412,10 @@ checker's own suite, which stubs `fetch` and touches no network. It behaves like
 decides inside the job whether anything it covers changed, and says so in its job
 summary when it skips. It always reports, so requiring it could not deadlock a
 pull request. It is genuinely not required: when the live settings were read on
-2026-08-30, `required_status_checks.contexts` was `["web-ci", "skills-ci",
-"web-e2e"]`, which does not include it. That it is requirable but unrequired is a
-branch-protection decision an owner takes, and this change does not take it.
+2026-09-04, `required_status_checks.contexts` was `["web-ci", "skills-ci",
+"web-e2e", "aggregate-checks"]`, which does not include it. That it is requirable
+but unrequired is a branch-protection decision an owner takes, and this change
+does not take it.
 
 Both job ids and both `name:` values are the literal strings above, and neither
 job has a `strategy.matrix`, so the reported names never vary per leg or per run.
