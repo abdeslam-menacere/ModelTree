@@ -896,7 +896,7 @@ describe('comparison payload', () => {
     // project exists to do, so raising it every time it binds measures nothing
     // but how recently someone last raised it. abdeslam-menacere/ModelTree#602
     // is the decision to stop treating that raise as routine. The total is kept
-    // — 143,360 bytes shipped to /compare is a real cost on a slow connection,
+    // — 174,080 bytes shipped to /compare is a real cost on a slow connection,
     // and a page-weight ceiling is a real acceptance criterion here — but it is
     // now a ratchet with a stated stopping rule rather than a number that moves
     // on sight.
@@ -941,6 +941,45 @@ describe('comparison payload', () => {
     // tree belongs here only when a reader can re-derive it by running the test,
     // which is why the failure message below prints the measured value rather
     // than repeating it in prose.
+    //
+    // The raises this ratchet has taken. Each is pinned to a named past state,
+    // per the paragraph above, so no later data change can falsify one, and each
+    // records how its size was chosen — a raise whose size a later reader cannot
+    // re-derive is the thing abdeslam-menacere/ModelTree#602 refuses.
+    //
+    // 143,360 -> 174,080 (140 KiB -> 170 KiB), abdeslam-menacere/ModelTree#935.
+    // Measured at merge-base 8d4fcd9f, the payload sat at 142,972 of 143,360 —
+    // 388 bytes spare, under a third of one release — so the auto-merging
+    // refresh pipeline could not add a single release from any creator, and run
+    // 2026-09-05-ad1a1f stopped holding a panel-accepted, gate-clean tranche it
+    // could not publish. That run measured both live conditions of the rule
+    // above and both held: the catalogue simply grew, 120 -> 121 releases, and
+    // the per-release figure held under its own ceiling — it improved, 1,191 ->
+    // 1,188 of 1,600. The third condition is discharged by the rule's own text
+    // above: no trim closes this gap without dropping a cited source, and
+    // provenance outranks page weight here.
+    //
+    // Why 170 KiB rather than one 1,024-byte step. A raise that clears the
+    // blocking figure by a few hundred bytes re-blocks on the very next release
+    // and buys one run of relief, so the size is chosen in releases of headroom
+    // rather than in bytes. What one release costs was measured at that same
+    // merge-base by dropping each of the 120 releases in turn and re-measuring
+    // the payload — which counts the sources only that release cites — giving
+    // min 328, median 1,065, mean 1,059, p90 1,384, max 2,069 bytes. 174,080
+    // leaves 31,108 bytes over the 142,972 measured there: about 26 releases at
+    // the 1,191/release the tool reported, or about 22 at that p90. That target
+    // is ADR 0010's own yardstick rather than a fresh one — it rejected a raise
+    // to ~150,000 as buying "~8 releases" and kicking the conflict down the
+    // road, and accepted a trim that took headroom to ~25.9 releases. This
+    // restores the posture ADR 0010 called adequate; it does not improve on it.
+    //
+    // And it does not leave the total vestigial, which is what to check before
+    // raising any ceiling. The total still binds tighter than the 1,600
+    // instrument for any catalogue of 109 releases or more (174,080 / 1,600),
+    // and the catalogue was past that at the merge-base above — so this stays
+    // the guard that fires first, and it tightens as the catalogue grows. The
+    // 1,600 instrument itself is untouched: abdeslam-menacere/ModelTree#584
+    // refused that trade and it stays refused.
     expect(
       size.bytesPerRelease,
       '/compare PAYLOAD (SHIPPED) — a record got fatter, so trim the payload rather than '
@@ -951,14 +990,14 @@ describe('comparison payload', () => {
     expect(
       size.totalBytes,
       `/compare PAYLOAD (SHIPPED) — /compare ships ${size.totalBytes} UTF-8 bytes for ${payload.releases.length} releases `
-      + `(${size.bytesPerRelease}/release, budget 143,360). The #584-era anchors — 124,410 over 83 `
+      + `(${size.bytesPerRelease}/release, budget 174,080). The #584-era anchors — 124,410 over 83 `
       + 'releases at 1,499 each, against 121,916 over 82 at its 7ca5802 merge-base — are '
       + 'verbose-key UTF-16 code-unit counts taken before #621 corrected the unit and #726 '
       + 'compacted the keys, so they differ in both unit and key format and are not comparable '
       + 'with the figure above. If the '
       + 'catalogue simply grew and the per-release figure held, raising this is a deliberate '
       + 'page-weight decision; if the per-release figure moved too, trim instead.',
-    ).toBeLessThanOrEqual(143_360);
+    ).toBeLessThanOrEqual(174_080);
   });
 
   it('ships only the sources something in the payload cites', () => {
