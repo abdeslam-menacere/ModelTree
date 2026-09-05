@@ -19,6 +19,15 @@ authorises that, defines exactly which changes qualify, and is honest about what
 it costs. Read it before changing anything here:
 [`../../../docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md`](../../../docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md).
 
+**ADR 0003 alone is not the current bound.** ADR 0015 amends it, admitting
+`web/asset-budgets.json` to the qualifying class for its regenerable measurement
+figures and non-enforcing prose only, so the party that moved a page's byte size
+can re-record it. Read it alongside ADR 0003:
+[`../../../docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md`](../../../docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md).
+A run that reads only ADR 0003 concludes that file is untouchable and stops on
+something the gate would have let through — which is what refresh run
+2026-09-05-ad1a1f (abdeslam-menacere/ModelTree#942) did.
+
 ## Run it
 
 ```
@@ -129,6 +138,23 @@ the run's own writes whether the run's own sources are trustworthy. Keep its JSO
 `transcription` field must be `false` for a publishing run: `true` means the entry
 was written on a branch with no data change, so nothing verified it.
 
+**If `npm run validate` fails on asset-budget drift, re-record and carry on.** A
+tranche inlines records into island props, which moves a page's raw byte size.
+Move it past the recorded `measuredDrift` tolerance and
+`web/tests/build/asset-budgets.test.ts` fails; the repair that failing test
+itself prescribes is to re-run `npm run assets:report` from `web/`, write the
+regenerated figures into `web/asset-budgets.json`, and revalidate. ADR 0015 puts
+exactly that write in class, so this is not a stop. It is a tightening and never
+a bypass: it permits no extra byte, and a route genuinely over its **ceiling**
+still fails on the ceiling — which is out of class, so the run stops and files an
+issue rather than raising it. Do not drop a good claim to duck the drift, and
+never touch a ceiling or `measuredDrift.maxFraction` to make the failure go away;
+that is the self-approving performance guard ADR 0015 exists to refuse. Commit
+the re-recorded file together with the data, then re-run `gate-scope.mjs`: its
+content-aware check reads the committed tip `HEAD` as well as the working tree,
+because `HEAD` is what auto-merges, and a re-record left only on disk is not the
+thing that merges.
+
 Exit 2 is a failure, never a pass. A gate that could not run has not run.
 
 ### 4. Publish — `modeltree-publish`
@@ -154,14 +180,27 @@ files its summary and closes it immediately.
 
 ## Non-negotiable
 
-- **Only dataset documents may change.** The fifteen JSON files that
-  `web/src/data/raw.ts` composes, plus the run's own ledger
-  `web/src/data/refresh-runs.json`, and nothing else. One file outside that list
-  disqualifies the whole change — `gate-scope.mjs` enforces it mechanically, and
-  every path it admits is a document `gate-dataset.mjs` validates or the ledger
-  `gate-ledger.mjs` covers instead.
+- **Only dataset documents may change**, plus one file that is in class
+  conditionally. The fifteen JSON files that `web/src/data/raw.ts` composes, the
+  run's own ledger `web/src/data/refresh-runs.json`, and
+  `web/asset-budgets.json` on the terms in the next bullet — nothing else. One
+  file outside that list disqualifies the whole change — `gate-scope.mjs`
+  enforces it mechanically, and every path it admits is a document
+  `gate-dataset.mjs` validates or the ledger `gate-ledger.mjs` covers instead.
   A refresh needing a schema, component, or workflow change stops and files an
   issue.
+- **`web/asset-budgets.json` is in class for measurements and prose, never for
+  limits.** ADR 0015 admits it so a run can re-record the figure it moved. The
+  fields a run may move are named in `ASSET_BUDGETS_REGENERABLE_FIELDS` in
+  `.github/skills/modeltree-gates/scripts/gate-scope.mjs` — read them there, not
+  from a list in this document, so the two cannot drift apart. What stays **out**
+  of class: every `criticalMaxRaw`, every `jsMaxRaw`, the whole-build `*MaxRaw`
+  ceilings under `globals`, and `measuredDrift.maxFraction`. Structure is out of
+  class too — adding or removing a route or route-group entry, or renaming an
+  identifier, carries a new ceiling or drops enforcement, so both are a human's
+  call. Never invert the permitted set into a blacklist of ceilings, and never
+  relax the structure comparison to admit an added entry as "just more
+  measurements"; both trade a check that fails closed for one that fails open.
 - **No bypass, ever.** No `--force`, no skipped gate, no lowered threshold, no
   `gh pr merge --admin`, no direct push to `main`. If a gate blocks the run, the
   gate has done its job.
@@ -185,7 +224,8 @@ files its summary and closes it immediately.
 Stop, publish nothing, and report — these are correct outcomes, not failures:
 
 - a previous refresh's pull request is still open;
-- the change leaves the qualifying class;
+- the change leaves the qualifying class — asset-budget drift on its own does
+  **not**, so re-record it and continue rather than stopping (stage 3);
 - `npm run validate` fails on something you did not introduce, so `main` was
   already red;
 - `gh` is not authenticated, or the network is unreachable;
