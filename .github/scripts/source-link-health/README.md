@@ -1,9 +1,16 @@
 # Source link health
 
-Checks that every primary source URL in `web/src/data/sources.json` still
-resolves, and reports what it finds. It reads source records and **writes
-nothing back** — not a replacement URL, not a `lastCheckedDate`. Both of those
-are claims that a human verified something, and a link checker is not a human.
+Checks that recorded URLs still resolve, and reports what it finds. It reads the
+dataset and **writes nothing back** — not a replacement URL, not a
+`lastCheckedDate`. Both of those are claims that a human verified something, and
+a link checker is not a human.
+
+Two kinds of URL are swept, and they are kept apart end to end:
+
+| kind | lives in | requested on |
+|---|---|---|
+| a **primary source** cited as evidence | `record.url` in `web/src/data/sources.json` | every run — narrowed to what the diff introduced on a pull request |
+| a **licence pointer** | `record.license.url` in `web/src/data/releases.json` | the scheduled sweep and the manual dispatch only |
 
 ```
 node .github/scripts/source-link-health/check-source-links.mjs --dry-run
@@ -11,6 +18,38 @@ node .github/scripts/source-link-health/check-source-links.mjs --report report.m
 ```
 
 Run by [`.github/workflows/source-link-health.yml`](../../workflows/source-link-health.yml).
+
+## Licence URLs, and why only the clock asks about them
+
+See [ADR 0017](../../../docs/adr/0017-licence-urls-are-swept-on-the-clock-not-on-the-diff.md).
+The short version, because it is easy to read the asymmetry as an oversight:
+
+A `license.url` is not a citation. Nothing registers it, nothing ties it to a
+source record, and until #931 nothing fetched it — 57 releases asserted where a
+licence lived and no instrument had ever asked. Two of those URLs had rotted by
+the time anybody looked.
+
+Both rotted *upstream*, after a human had verified them, with no change in this
+repository involved. A diff-scoped check inspects what a diff touches, so it
+cannot see that: it would have been green before the URL died and green after.
+Only a run on a clock re-asks the question, which is why licence URLs are
+requested on the schedule and never on a pull request.
+
+The scope is derived from the absence of `--baseline` rather than from a flag of
+its own, so there is no way to spell "sweep, but skip the licence URLs". Both
+directions are pinned by tests.
+
+`--dry-run` is the exception and it is free: the workflow runs it with no
+baseline on pull requests too, so a licence URL that cannot be turned into a
+request *at all* fails on the pull request that introduced it. Wellformedness is
+about this repository's own data and is answerable from a diff; reachability is
+about somebody else's server and is not.
+
+Measured when this was added: 57 releases carry a `license.url`, those reduce to
+41 unique URLs, and 21 of the 41 are already cited as a source — so the widening
+costs **20 net new requests** per weekly sweep, against a baseline of 285. The
+merge is what keeps that number down and what stops one rotted link being
+reported as two.
 
 ## The states, and why two of them are not findings
 

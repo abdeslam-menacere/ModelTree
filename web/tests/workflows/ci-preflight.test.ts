@@ -436,8 +436,19 @@ describe('selection follows the change', () => {
     ]);
   });
 
-  it('selects the site and the gates on a dataset change, and nothing Python', () => {
-    expect(selectionFor(['web/src/data/releases.json'])).toEqual(['skills-ci', 'web-ci']);
+  it('selects the site, the gates and the link-health tests on a release change', () => {
+    // `source-link-health-tests` joined this list in #931: a `license.url`
+    // lives in `releases.json` and nowhere else, and the dry run in that job
+    // is what catches one that cannot be turned into a request at all.
+    expect(selectionFor(['web/src/data/releases.json'])).toEqual([
+      'skills-ci',
+      'source-link-health-tests',
+      'web-ci',
+    ]);
+  });
+
+  it('selects nothing Python on a dataset change', () => {
+    expect(selectionFor(['web/src/data/releases.json'])).not.toContain('updater-pytest');
   });
 
   it('selects the ADR checks on a decision record', () => {

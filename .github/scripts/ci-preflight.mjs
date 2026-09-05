@@ -379,7 +379,7 @@ const CHECKS = [
     trigger: {
       kind: 'in-job-scope',
       pattern:
-        '^(\\.github/scripts/source-link-health/|\\.github/workflows/source-link-health\\.yml$|web/src/data/sources\\.json$)',
+        '^(\\.github/scripts/source-link-health/|\\.github/workflows/source-link-health\\.yml$|web/src/data/(sources|releases)\\.json$)',
     },
     // The hermetic half of that workflow. `--dry-run` makes no request, so this
     // stays offline; the half that reaches the network is in NOT_COVERED.

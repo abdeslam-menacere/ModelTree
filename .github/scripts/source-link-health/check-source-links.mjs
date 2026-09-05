@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Reports the health of every primary source URL in the ModelTree dataset.
+// Reports the health of every primary source URL in the ModelTree dataset, and
+// on a full sweep every `license.url` a release records as well.
 //
 //   node .github/scripts/source-link-health/check-source-links.mjs [flags]
 //
@@ -17,6 +18,35 @@
 //
 // Exit 0 = ran, nothing actionable. Exit 1 = ran, found something actionable.
 // Exit 2 = the checker itself could not run, which is never treated as a pass.
+//
+// ## Why licence URLs are swept here and not on a pull request (ADR 0017, #931)
+//
+// A release's `license.url` is not a citation, so no registration rule covers
+// it, and until #931 nothing in the repository fetched one: 57 records asserted
+// a licence URL that no instrument had ever requested, and one of them had been
+// a 404 since before it was recorded.
+//
+// The failure that produced that is *upstream decay* -- a URL that was live
+// when a human verified it and died afterwards, with no change in this
+// repository involved. A pull-request-scoped check inspects what a diff
+// touches, so it is structurally incapable of catching decay: it would have
+// been green on every run before the URL died and green on every run after.
+// Only a check that re-asks the question on a clock closes that. So licence
+// URLs are *requested* on the scheduled sweep and the manual dispatch, and on
+// neither of those does a finding fail anything -- it is reported and filed.
+//
+// The mechanism is deliberately the absence of `--baseline` rather than a flag
+// of its own. `--baseline` is passed on pull requests only and only ever
+// narrows, so keying on it means there is no way to spell "sweep, but skip the
+// licence URLs" -- the same reasoning that keeps `--data` and `--exclusions`
+// off this CLI. A run that narrows is answerable for what the change
+// introduced; a run that does not is answerable for everything.
+//
+// `--dry-run` is the exception, and it costs nothing. The workflow invokes it
+// with no baseline, so it takes the full-sweep branch and extracts licence URLs
+// on every run including a pull request -- which is safe precisely because it
+// issues no request at all. That is what makes a malformed licence URL a
+// pull-request-time failure while an unreachable one is not.
 //
 // There is deliberately no `--data`, no `--exclusions`, and no `--today`. Each
 // would let a caller aim this at an emptier dataset, a more permissive
@@ -43,7 +73,9 @@ import { fileURLToPath } from 'node:url';
 import {
   applyExclusions,
   checkAll,
+  extractLicenceTargets,
   extractTargets,
+  mergeTargets,
   parseExclusions,
   renderReport,
   selectChanged,
@@ -55,6 +87,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '..', '..', '..');
 const DATA_DIR = resolve(REPO_ROOT, 'web', 'src', 'data');
 const SOURCES_FILE = resolve(DATA_DIR, 'sources.json');
+const RELEASES_FILE = resolve(DATA_DIR, 'releases.json');
 const EXCLUSIONS_FILE = resolve(HERE, 'exclusions.json');
 
 function die(message) {
@@ -154,18 +187,38 @@ async function main() {
   const records = readJson(SOURCES_FILE, 'the source records');
   if (!Array.isArray(records)) die(`${SOURCES_FILE} is not a JSON array`);
 
-  const { targets, malformed } = extractTargets(records);
+  const { targets: sourceTargets, malformed } = extractTargets(records);
 
   let scope = 'the full seed dataset';
-  let selected = targets;
+  let targets = sourceTargets;
+  let selected;
+  let licenceUrls = 0;
 
-  if (args.baseline !== null) {
+  if (args.baseline === null) {
+    // A full sweep, so the licence URLs join it. See the note at the head of
+    // this file for why they are here and nowhere else.
+    const releases = readJson(RELEASES_FILE, 'the release records');
+    if (!Array.isArray(releases)) die(`${RELEASES_FILE} is not a JSON array`);
+
+    const licence = extractLicenceTargets(releases);
+    malformed.push(...licence.malformed);
+    targets = mergeTargets(sourceTargets, licence.targets);
+    licenceUrls = licence.targets.length;
+    selected = targets;
+    scope = 'the full seed dataset, including every licence URL a release records';
+
+    process.stderr.write(
+      `check-source-links: ${sourceTargets.length} source URL(s) and ${licenceUrls} licence URL(s) ` +
+        `merge to ${targets.length} unique URL(s)\n`,
+    );
+  } else {
     const baseline = readJson(resolve(process.cwd(), args.baseline), 'the baseline source records');
     if (!Array.isArray(baseline)) die('the baseline source records file is not a JSON array');
-    selected = selectChanged(targets, baseline);
+    selected = selectChanged(sourceTargets, baseline);
     scope = 'the source URLs this change added or re-pointed';
     process.stderr.write(
-      `check-source-links: narrowed by --baseline to ${selected.length} of ${targets.length} URL(s); this run is not a full sweep\n`,
+      `check-source-links: narrowed by --baseline to ${selected.length} of ${sourceTargets.length} URL(s); ` +
+        'this run is not a full sweep and requests no licence URL\n',
     );
   }
 
@@ -188,7 +241,7 @@ async function main() {
     const lines = [
       '## Source link health — extraction dry run',
       '',
-      `${records.length} source record(s) reduce to ${targets.length} unique URL(s).`,
+      `${records.length} source record(s) and ${licenceUrls} licence URL(s) reduce to ${targets.length} unique URL(s).`,
       `${checked.length} would be requested; ${excluded.length} are covered by a live reviewed exclusion.`,
       '',
     ];
@@ -213,6 +266,7 @@ async function main() {
             dryRun: true,
             recordCount: records.length,
             uniqueUrls: targets.length,
+            licenceUrls,
             wouldRequest: checked.length,
             excluded: excluded.length,
             malformed: malformed.length,
@@ -244,6 +298,7 @@ async function main() {
     scope,
     recordCount: records.length,
     uniqueUrls: targets.length,
+    licenceUrls,
     excludedUrls: excluded.length,
     malformedRecords: malformed.length,
     generatedAt: new Date().toISOString(),
@@ -255,6 +310,11 @@ async function main() {
         status: result.status,
         finalUrl: result.finalUrl,
         recordIds: result.recordIds,
+        // The subset of `recordIds` that named this URL as `license.url` rather
+        // than citing it as a source. Kept separate so the maintenance issue
+        // can label each provenance correctly instead of calling a release a
+        // source record.
+        licenceRecordIds: result.licenceRecordIds ?? [],
         title: result.titles[0] ?? null,
         exclusionExpiredOn: result.expiredExclusion?.expiresOn ?? null,
       })),

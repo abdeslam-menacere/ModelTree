@@ -50,7 +50,9 @@ import {
   classifyObservation,
   classifyStatus,
   extractTargets,
+  extractLicenceTargets,
   fabricateControlUrl,
+  mergeTargets,
   parseExclusions,
   renderReport,
   selectChanged,
@@ -61,6 +63,7 @@ import {
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '..', '..', '..');
 const SOURCES_FILE = resolve(REPO_ROOT, 'web', 'src', 'data', 'sources.json');
+const RELEASES_FILE = resolve(REPO_ROOT, 'web', 'src', 'data', 'releases.json');
 const CLI = resolve(HERE, 'check-source-links.mjs');
 
 /* -------------------------------------------------------------------------- */
@@ -213,6 +216,185 @@ test('extractTargets reports a record whose url is unusable rather than dropping
 
 test('extractTargets refuses a document that is not an array', () => {
   assert.throws(() => extractTargets({ sources: [] }), TypeError);
+});
+
+/* -------------------------------------------------------------------------- */
+/* Licence URLs (#931)                                                        */
+/* -------------------------------------------------------------------------- */
+//
+// `license.url` is not a citation. Nothing registers it, nothing linked it to a
+// source record, and until #931 nothing fetched it -- which is how a release
+// came to assert a licence URL that had been a 404 for weeks. These tests hold
+// the two halves of the fix apart: extraction must read the field where it
+// actually lives, and merging must not let a licence URL that is also a cited
+// source be requested twice or reported as two rotted links.
+
+test('extractLicenceTargets reads license.url and ignores a release that has none', () => {
+  const { targets, malformed } = extractLicenceTargets([
+    { id: 'has-one', license: { name: 'Apache-2.0', url: 'https://example.test/apache' } },
+    { id: 'has-none', license: { name: 'Proprietary' } },
+    { id: 'no-license-block-at-all' },
+  ]);
+
+  assert.equal(malformed.length, 0, 'an absent license.url is optional, not a defect');
+  assert.deepEqual(
+    targets.map((target) => target.canonical),
+    ['https://example.test/apache'],
+  );
+  assert.deepEqual(targets[0].recordIds, ['has-one']);
+  assert.deepEqual(targets[0].licenceRecordIds, ['has-one']);
+});
+
+test('extractLicenceTargets reports a present-but-unusable licence url rather than dropping it', () => {
+  const { targets, malformed } = extractLicenceTargets([
+    { id: 'fine', license: { url: 'https://example.test/ok' } },
+    { id: 'empty', license: { url: '   ' } },
+    { id: 'relative', license: { url: '/LICENSE' } },
+    { id: 'wrong-scheme', license: { url: 'ftp://example.test/LICENSE' } },
+  ]);
+
+  assert.equal(targets.length, 1);
+  assert.deepEqual(
+    malformed.map((entry) => entry.id),
+    ['empty', 'relative', 'wrong-scheme'],
+  );
+});
+
+test('extractLicenceTargets groups releases that share one licence url', () => {
+  const { targets } = extractLicenceTargets([
+    { id: 'a', license: { url: 'https://example.test/apache' } },
+    { id: 'b', license: { url: 'https://example.test/apache' } },
+    { id: 'c', license: { url: 'https://example.test/mit' } },
+  ]);
+
+  assert.equal(targets.length, 2, 'two releases naming one licence are one request');
+  const apache = targets.find((target) => target.canonical === 'https://example.test/apache');
+  assert.deepEqual(apache.licenceRecordIds, ['a', 'b']);
+});
+
+test('extractLicenceTargets refuses a document that is not an array', () => {
+  assert.throws(() => extractLicenceTargets({ releases: [] }), TypeError);
+});
+
+test('mergeTargets unions a URL that is both a cited source and a licence', () => {
+  const { targets: sources } = extractTargets([
+    { id: 'apache-license-text', url: 'https://example.test/apache', title: 'Apache 2.0' },
+  ]);
+  const { targets: licences } = extractLicenceTargets([
+    { id: 'some-release', license: { url: 'https://example.test/apache' } },
+  ]);
+
+  const merged = mergeTargets(sources, licences);
+
+  assert.equal(merged.length, 1, 'one URL is one request, however many records name it');
+  assert.deepEqual(merged[0].recordIds, ['apache-license-text', 'some-release']);
+  assert.deepEqual(
+    merged[0].licenceRecordIds,
+    ['some-release'],
+    'the licence subset must not swallow the citing source record',
+  );
+  assert.deepEqual(merged[0].titles, ['Apache 2.0'], 'the source title survives the merge');
+});
+
+test('mergeTargets leaves a source-only target with an empty licence subset', () => {
+  const { targets: sources } = extractTargets([{ id: 'only-a-source', url: 'https://example.test/a' }]);
+
+  const merged = mergeTargets(sources, []);
+
+  assert.deepEqual(merged[0].recordIds, ['only-a-source']);
+  assert.deepEqual(merged[0].licenceRecordIds, []);
+});
+
+test('mergeTargets does not mutate the lists it is given', () => {
+  const { targets: sources } = extractTargets([{ id: 'src', url: 'https://example.test/a' }]);
+  const { targets: licences } = extractLicenceTargets([
+    { id: 'rel', license: { url: 'https://example.test/a' } },
+  ]);
+
+  mergeTargets(sources, licences);
+
+  assert.deepEqual(sources[0].recordIds, ['src'], 'the source list is an input, not a scratch buffer');
+  assert.deepEqual(licences[0].recordIds, ['rel']);
+});
+
+test('the report separates a licence pointer from a source citation', () => {
+  const results = [
+    {
+      canonical: 'https://example.test/apache',
+      host: 'example.test',
+      recordIds: ['apache-license-text', 'some-release'],
+      licenceRecordIds: ['some-release'],
+      titles: ['Apache 2.0'],
+      rawUrls: ['https://example.test/apache'],
+      state: BROKEN,
+      status: 404,
+      finalUrl: 'https://example.test/apache',
+      attempts: 1,
+      observations: [],
+    },
+  ];
+
+  const report = renderReport(results);
+
+  assert.ok(
+    report.includes('Affected source records: `apache-license-text`'),
+    'the citing source record keeps its own label',
+  );
+  assert.ok(
+    report.includes('Named as `license.url` by: `some-release`'),
+    'a release is never presented as a source record',
+  );
+  assert.ok(
+    !/Affected source records:[^\n]*some-release/.test(report),
+    'the release id must not appear under the source-record label',
+  );
+});
+
+test('every committed release with a license.url yields a checkable target', () => {
+  const releases = JSON.parse(readFileSync(RELEASES_FILE, 'utf8'));
+  const withUrl = releases.filter((release) => typeof release?.license?.url === 'string');
+
+  const { targets, malformed } = extractLicenceTargets(releases);
+
+  assert.equal(malformed.length, 0, `licence URLs that could not be requested: ${JSON.stringify(malformed)}`);
+  assert.ok(withUrl.length > 0, 'the dataset is expected to record licence URLs at all');
+  assert.ok(targets.length > 0);
+  assert.ok(
+    targets.length <= withUrl.length,
+    'de-duplication can only ever reduce the count, never grow it',
+  );
+
+  const named = new Set(targets.flatMap((target) => target.licenceRecordIds));
+  for (const release of withUrl) {
+    assert.ok(named.has(release.id), `${release.id} records a licence URL that extraction dropped`);
+  }
+});
+
+test('merging the committed dataset requests each shared URL once', () => {
+  const sources = JSON.parse(readFileSync(SOURCES_FILE, 'utf8'));
+  const releases = JSON.parse(readFileSync(RELEASES_FILE, 'utf8'));
+
+  const { targets: sourceTargets } = extractTargets(sources);
+  const { targets: licenceTargets } = extractLicenceTargets(releases);
+  const merged = mergeTargets(sourceTargets, licenceTargets);
+
+  const shared = sourceTargets.length + licenceTargets.length - merged.length;
+
+  assert.equal(
+    merged.length,
+    new Set(merged.map((target) => target.canonical)).size,
+    'the merged list must carry each canonical URL exactly once',
+  );
+  assert.ok(
+    merged.length >= sourceTargets.length,
+    'merging must not lose a source URL',
+  );
+  // Reported, never asserted as a count. The dataset grows every week and a
+  // hard number here would fail on a data change that is entirely correct.
+  console.log(
+    `# ${licenceTargets.length} licence URL(s), ${shared} already cited as a source, ` +
+      `${merged.length - sourceTargets.length} net new request(s)`,
+  );
 });
 
 /* -------------------------------------------------------------------------- */
@@ -1310,6 +1492,42 @@ test('the CLI refuses to write its output inside the dataset', () => {
 
   assert.equal(run.status, 2);
   assert.match(run.stderr, /never mutates the dataset/);
+});
+
+/* -------------------------------------------------------------------------- */
+/* The scope discriminator (ADR 0017)                                         */
+/* -------------------------------------------------------------------------- */
+//
+// The whole of #931 rests on one condition: a run with no baseline sweeps
+// licence URLs, a run with a baseline does not. That is not a flag anybody can
+// read off the command line, so it is pinned here in both directions. A test
+// that only checked the full sweep would pass just as happily if licence URLs
+// leaked into every pull request, which is the failure this pair exists to
+// catch.
+
+test('a full sweep covers licence URLs as well as source URLs', () => {
+  const run = runCli(['--dry-run']);
+
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stderr, /source URL\(s\) and \d+ licence URL\(s\) merge to \d+ unique URL\(s\)/);
+
+  const [, licences] = run.stderr.match(/and (\d+) licence URL\(s\) merge/) ?? [];
+  assert.ok(Number(licences) > 0, 'the committed dataset is expected to record licence URLs at all');
+});
+
+test('a run narrowed by --baseline requests no licence URL', () => {
+  // The dataset as its own baseline: nothing is new, so a correctly narrowed run
+  // asks for nothing. The assertion that matters is the licence count, which
+  // must be zero however the narrowing turns out.
+  const run = runCli(['--dry-run', '--baseline', SOURCES_FILE]);
+
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stderr, /this run is not a full sweep and requests no licence URL/);
+  assert.match(
+    run.stdout,
+    /and 0 licence URL\(s\) reduce to/,
+    'a pull-request run must not extract a licence URL at all',
+  );
 });
 
 test('the CLI offers no data, exclusions, or today override', () => {

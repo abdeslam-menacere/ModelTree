@@ -316,10 +316,31 @@ describe('source-link-health.yml runs the checker the way it is meant to be run'
   it('watches the source records, so a new record cannot slip past the tests', () => {
     const scope = steps(testsJob, 'jobs.source-link-health-tests').find((step) => step.id === 'scope');
 
-    expect(String(scope?.run)).toContain('web/src/data/sources\\.json');
+    expect(String(scope?.run)).toContain('web/src/data/(sources|releases)\\.json');
     expect(String(scope?.run)).toContain('\\.github/scripts/source-link-health/');
     // A change to this workflow is verified by the workflow it changes.
     expect(String(scope?.run)).toContain('\\.github/workflows/source-link-health\\.yml');
+  });
+
+  it('watches the release records too, because a licence URL lives there and nowhere else', () => {
+    // #931. The dry run below is the only thing that catches a `license.url`
+    // that cannot be turned into a request at all, and a pull request that
+    // edits `releases.json` alone would not otherwise run it.
+    const scope = String(
+      steps(testsJob, 'jobs.source-link-health-tests').find((step) => step.id === 'scope')?.run,
+    );
+
+    // Assert the alternation admits each name, not merely that both strings
+    // appear somewhere in the script: a comment naming `releases.json` would
+    // satisfy a bare `toContain` while the grep still ignored the file.
+    const pattern = /grep -Eq '(\^\([^']+)'/.exec(scope)?.[1];
+    if (pattern === undefined) throw new Error('no scope grep found');
+
+    const matcher = new RegExp(pattern);
+    expect(matcher.test('web/src/data/releases.json')).toBe(true);
+    expect(matcher.test('web/src/data/sources.json')).toBe(true);
+    // The negative control: a neighbouring data file the suite does not read.
+    expect(matcher.test('web/src/data/families.json')).toBe(false);
   });
 
   it('narrows a pull request run to the URLs that pull request introduced', () => {
@@ -327,6 +348,21 @@ describe('source-link-health.yml runs the checker the way it is meant to be run'
     // data change and start flaking on sources nobody touched.
     expect(checkScript).toContain('--baseline');
     expect(checkScript).toContain('git show "$PR_BASE_SHA:web/src/data/sources.json"');
+  });
+
+  it('leaves the networked pull request job keyed on the source records alone', () => {
+    // ADR 0017. The licence sweep is scheduled-only, so a pull request that
+    // touches `releases.json` must not start requesting licence URLs: the
+    // defect that sweep exists to catch is upstream decay, which no
+    // diff-scoped run can see. Widening this grep would be the bypass.
+    const scope = String(steps(checkJob, 'jobs.source-link-health').find((step) => step.id === 'scope')?.run);
+
+    // Read the grep, not the prose around it. The step's own comment names
+    // `releases.json` to explain why it is excluded, so a textual assertion
+    // here would fail on the very sentence that documents the rule.
+    const greps = [...scope.matchAll(/^\s*grep -[A-Za-z]*\s+'([^']+)'/gm)].map((match) => match[1]);
+
+    expect(greps).toEqual(['web/src/data/sources.json']);
   });
 
   it('treats a checker that cannot run as a failure rather than a clean sweep', () => {
