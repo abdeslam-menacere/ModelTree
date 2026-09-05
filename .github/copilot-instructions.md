@@ -1724,6 +1724,169 @@ Then stop and hand off to the review gate. Whether that gate is run by a human
 or by a reviewer agent is set by this repo's configuration; either way it is not
 you, and you do not run it against your own work.
 
+### The anchor at report time, because a reading ages while you write it up
+
+The routing paragraph above says what to report. This says *when* the reading it
+reports on was taken, and it is the last thing you do before that hand-off. The
+anchor section further up guards the anchor at the moment you **measure**, which
+is the only moment at which that guard can pass — and it is not the moment the
+claim is read. A verdict is drafted, posted and consumed asynchronously; gate
+agents and docks here have run for hours between starting and reporting, one
+review returning its verdict fourteen hours after it began. So an anchor
+established current before step 4 can stop being current while the summary is
+still being written, and nothing in steps 0 to 5 runs a second time to notice.
+
+This is a different failure from the stale-anchor case that section covers, and
+the difference is what makes it invisible. That one *reads* an anchor that was
+already old, and its guard fires on the way in. This one starts correct and
+decays, so by the time the decay begins the guard has already passed. Nothing
+is done wrong, which is exactly why no instrument reports anything.
+
+The instance is abdeslam-menacere/ModelTree#714. That dock did what the anchor
+section asks: it resolved its anchor, checked it against the remote, recorded it
+current, and only then measured. Its conclusion — that the work had landed — is
+still correct. What decayed is the supporting evidence it published,
+byte-identity with trunk for one path. Each reading below is named with the
+anchor it was taken against, which is the whole of the discipline this section
+and the next one add:
+
+```
+blob of .github/copilot-instructions.md
+  acc34248   the anchor that dock verified   3c6110a8e5beecb36c090831a09ec28d44d436ea
+  b35fb45e   that dock's branch tip          3c6110a8e5beecb36c090831a09ec28d44d436ea
+  34e78d1a   a later trunk                   ded554e55d97dd4b8a03c500350e1a54d2517a90
+```
+
+The verdict outlived its evidence. A reader who re-runs the published check and
+disagrees with the published figure cannot tell whether the report was wrong or
+merely old, because the report does not say which trunk it was true against.
+
+**So take the reading again at the moment you write the verdict down.** Not the
+value you resolved into a variable at step 5 — that is a record of where trunk
+was *then*, which is the quantity under test rather than a check on it. Read the
+remote again, unpiped, so the exit status survives:
+
+```powershell
+$lsr  = git ls-remote origin 'refs/heads/main'; $cLsr = $LASTEXITCODE
+$live = (@($lsr)[0] -split '\s+')[0]
+```
+
+`ls-remote` needs no local object and has no local ref to go stale, which is why
+it is the instrument here rather than a second `rev-parse` of
+`refs/remotes/origin/main`. That ref is shared mutable state across every
+worktree in this setup, so re-reading it samples whatever another session's
+fetch last left there rather than what the remote holds now. The `@(...)` and
+the unpiped status read are this file's own rules applied rather than restated:
+a capture of one line is a String while a capture of several is an array, and a
+pipeline stage that stops early kills the process before the shell can read a
+real status.
+
+Guard the value before you compare it, the way the per-path readings above are
+guarded. Require the 40-character hex shape, because a call that failed can put
+something non-empty on stdout, and run that shape test in the same invocation
+against a second value you have independently established is not an OID —
+derive that second value as you go rather than taking one from this document.
+One arm accepted and one rejected is what makes the accepted arm a reading
+rather than an instrument that says yes to everything. A non-zero `$cLsr`, or a
+value that fails the shape test, means you could not establish the report-time
+anchor: say that in those words, and publish the verdict with the anchor it
+*was* measured against alongside the fact that the re-check did not run.
+Not-checked is not checked-and-unchanged, which is the property
+`docs/adr/0018-not-looking-and-finding-nothing-are-separately-representable.md`
+records.
+
+Then read the comparison, routing by verdict and never by the comparison alone:
+
+- **The report-time reading is the same anchor every step above was measured
+  against.** Name that SHA in the summary and post. The claim and its evidence
+  are anchored to one trunk, which is the only case in which they cannot come
+  apart afterwards without a reader seeing that they have.
+- **They differ, and the verdict is `LANDED` or `PARTIALLY LANDED`.** The
+  conclusion rests on trunk still *carrying* content. The anchor section above
+  states the one qualified form in which a forward-only move preserves that, and
+  states what defeats it; apply it there rather than re-deriving it here. A move
+  you have not read that way leaves the reading `UNDETERMINED`.
+- **They differ, and the verdict is `NOT LANDED` or `SUPERSEDED`.** Both rest on
+  step 4, which asked what trunk asserts — and asked it of the older anchor. Run
+  step 4 again against the anchor you are now reporting, or write
+  `UNDETERMINED`. The anchor section forbids concluding `NOT LANDED` from an
+  anchor you have not shown current, and one shown current earlier is not one
+  shown current now.
+- **They differ, and the verdict is `ISSUE CLOSED`.** Step 0 is a network read
+  with no anchor to go stale, so a trunk move does not reach it. What can have
+  changed is the issue, whose state is not monotonic: re-read step 0 rather than
+  the anchor.
+- **They differ, and the verdict is `UNDETERMINED`.** It stays `UNDETERMINED`. A
+  moved anchor resolves nothing.
+
+Do not settle a disagreement by quietly re-running the procedure and publishing
+the second answer as though it were the first. Both readings are facts, and the
+anchor each was taken against is what makes them comparable at all: report the
+anchor you measured against, the anchor you read at report time, and what you
+did about the difference.
+
+### A claim about trunk carries the anchor it was measured against
+
+The re-check above keeps one report honest at the moment it is posted, and does
+nothing for it afterwards, because a later reader has only what the text says.
+So the other half of the remedy is a property of the text: **every claim about
+trunk state that crosses a session boundary names the SHA it was measured
+against.** A claim that names its anchor cannot decay silently — a later reader
+sees at once that it was taken against a different trunk, and knows to
+re-measure rather than to doubt. This is the discipline gate verdicts already
+follow by binding to a commit SHA and going stale on any new commit, and the
+anchor is measured as you write, never recalled, exactly like the two figures
+mandated under **Finishing**.
+
+**It binds more than a verdict.** A landedness verdict, a trunk SHA quoted to
+another session, and a "trunk currently has X" statement are one kind of
+artefact here: each asserts something about a moving ref, and each is read
+asynchronously by somebody who cannot tell a correct claim from an obsolete one
+unless it says which trunk it was true against. Issue comments and cross-session
+messages are both such boundaries.
+
+**Blast radius is not symmetric, and it runs against the coordinator.** A dock's
+undated claim misinforms one reader, the session it replied to. A coordinating
+session broadcasts trunk state to every dock it is steering, so one undated
+coordinator claim about trunk misinforms every active dock at once, and each of
+them may branch, measure or decide against it. Recorded in this pipeline: a
+coordinator handed a dock a trunk SHA and called it current, and three minutes
+later a read of `refs/remotes/origin/main` named a different commit. The dock
+branched from the ref rather than from either SHA, which is the version of that
+exchange that stays correct.
+
+**The recipient's obligation is the stronger half.** A recipient handed a dated
+SHA re-reads the ref, and branches, measures and decides against their own
+reading; the sender's SHA is then the thing they compare that reading to and not
+the thing they adopt. The anchor is what tells a recipient that re-reading is
+necessary at all — an undated SHA carries no signal that it could be old, so it
+gets adopted, which is the whole failure. A claim about trunk that arrives with
+no anchor is `UNDETERMINED` about trunk: re-measure, or ask the sender which
+anchor it was taken against. Do not round "no anchor was given" into "current",
+for the reason the ADR cited above gives — not looking and looking and finding
+nothing stay separately representable, and an unanchored claim is the first of
+those wearing the second's clothes.
+
+**Arrival time is a property of the transport, not of the state described.** A
+message that arrives now may describe a trunk from an hour ago, so neither the
+send time nor the arrival time dates the claim. A claim reconstructed from
+memory is worse: it arrives with no age signal at all, laundering old content
+into apparent news, which is harder to catch than a visibly stale report because
+nothing about it looks old. The SHA survives both, so date a claim by its anchor
+and never by when it was sent, when it arrived, or how fresh it reads.
+
+Put the anchor in a clause beside the claim rather than in a footnote, so that
+quoting the claim carries the anchor with it:
+
+```
+LANDED, measured against refs/remotes/origin/main = <40-hex anchor>,
+re-read at report time = <40-hex anchor>
+```
+
+Where the two differ, the clause names both and says what you did about the
+difference. Where the re-check could not run, it says that, rather than leaving
+a reader to read silence as a re-check that passed.
+
 ### Your issue is closed — what happens to the branch in your hands
 
 Everything above is a *detector*. It ends by naming a state of the world, and
