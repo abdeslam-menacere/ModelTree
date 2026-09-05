@@ -366,6 +366,34 @@ minutes after that last pre-merge sentence. No probe available when any of those
 sentences was written could have reached the event that falsified them. A
 writer-side assertion that passes is not evidence about a class it cannot see.
 
+**"Fetch before probing" is not the remedy here, and that is measured rather
+than argued.** The natural diagnosis of this family is a stale anchor, which is
+class 1 and already covered; it was tried against these instances and does not
+fit. The abdeslam-menacere/ModelTree#880 dock committed at 2026-09-04T16:24:39Z,
+inside a window in which trunk was static for seven minutes and fifty-three
+seconds — `f72a7b28` landed at 16:21:44Z and trunk's next first-parent move,
+`def74474`, at 16:29:37Z. That dock's anchor was genuinely current and its
+`NOT LANDED` was correct. What falsified it was
+abdeslam-menacere/ModelTree#888, created at 18:40:14Z, whose head commit is that
+dock's own tip. Measuring each dock's tip against the creation of the pull
+request that carried it, abdeslam-menacere/ModelTree#893 was opened 1h52m36s
+after the commit it carries, abdeslam-menacere/ModelTree#895 2h18m29s, and
+abdeslam-menacere/ModelTree#888 2h15m35s. No freshness on the writer's side
+reaches a pull request that will not exist for another two hours.
+
+The symmetry, in one line, because this file already carries the other half:
+
+> A remembered SHA under-reports work; an unstamped verdict over-reports its
+> own shelf life. Same class, opposite end.
+
+**Finishing** mandates measuring `git rev-parse HEAD` as you write for the sake
+of the first half — a SHA recalled from mid-session names a commit you have
+since built on, so it under-reports your own work, which is the
+abdeslam-menacere/ModelTree#584 case. Class 3 is that same defect read from the
+other end: the verdict was true when written, and nothing in it says how long it
+stays true. The first is repairable at write time; the second is not, which is
+what the two rules below are for.
+
 So do not answer class 3 with another assertion for the writer. **The reader
 re-reads, at the moment of acting** — keyed on the issue or the branch ref, and
 never on a SHA quoted in the hand-off, because a quoted SHA is the very thing
