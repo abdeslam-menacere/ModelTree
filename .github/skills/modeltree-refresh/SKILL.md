@@ -28,6 +28,42 @@ refresh ModelTree data
 Scope defaults to every creator in `web/src/data/organizations.json` plus the
 long-tail profile. `refresh ModelTree data for meta` narrows it to one.
 
+## Choosing scope, and reporting what you skipped
+
+Narrowing is permitted and often right — but a narrowed run must not let a
+creator go silently unscouted, and must not report "we did not look" in the same
+shape as "we looked and nothing had changed". That confusion is the
+abdeslam-menacere/ModelTree#903 defect:
+run `2026-09-04-3a907e` closed `no-change` having examined 3 of 44 creators, and
+nothing downstream carried the difference, so a run that did not look was
+indistinguishable from one that looked and found nothing — and the
+indistinguishable one is green.
+
+- **Weigh per-creator staleness, not only gap-signal strength.** Before
+  narrowing, look at how long each creator has gone unscouted — the ledger's
+  `found.bundles[].creator` across recent runs tells you. A creator last scouted
+  long ago is a reason to sweep it *regardless* of whether a gap signal ranks it
+  in. OpenAI went unscouted across the exact window GPT-6 launched precisely
+  because staleness was not weighed.
+- **The Hugging Face / gap signal cannot rank a closed-weight creator.** A
+  creator that ships no open weights produces no Hub rows, so a scope chosen only
+  from that signal will never *rank it into* a narrowed pass — even though a full
+  sweep sees it fine. Do not let a signal that is structurally blind to a creator
+  be the sole reason that creator is skipped.
+- **Name the creators you did not scout, in `found.unswept`.** Each entry carries
+  the creator, its `lastScouted` date if known, and why it was skipped this pass.
+  This is a *different field* from a scouted-and-unchanged creator (a
+  `found.bundles` entry with `claimsFound: 0`), and the schema refuses to list a
+  creator as both. A run that narrows and leaves `found.unswept` empty is
+  claiming it swept everyone; do not make that claim falsely.
+- **A degraded discovery channel is a per-creator condition.** When a creator's
+  catalogued `official-announcement` source fails to fetch — OpenAI's
+  `openai.com/news/` has returned a persistent 403 — record it in
+  `found.degradedChannels` against that creator, not only as one line in a flat
+  fetch-failure list. A creator's primary feed going dark is a fact about that
+  creator's discovery, and burying it hides which creator you can no longer hear
+  from. Report the 403 honestly; do not scrape around it or spoof a user agent.
+
 ## Stages
 
 ### 0. Preflight
