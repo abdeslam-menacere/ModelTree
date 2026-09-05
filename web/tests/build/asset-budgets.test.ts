@@ -411,16 +411,23 @@ describe('deterministic asset budgets on the production build', () => {
 
     // The tolerance is the guard's own budget, so it gets the same treatment
     // the byte ceilings get: it is not for the party it constrains to widen
-    // quietly. Measured drift on the 2026-09-02 re-baseline ran 0.62%-11.1%,
-    // and four of the eight recorded figures were stale by 4.0%-4.9%, so a
-    // tolerance above 5% would have called that day's rot compliant.
+    // quietly. Every figure quoted here and in the failure message below is a
+    // restatement of `measuredDrift.reason` in asset-budgets.json, which is the
+    // authoritative record of the 2026-09-02 re-baseline and lists all eight
+    // staleness figures (11.17, 4.92, 4.83, 4.66, 4.04, 3.13, 2.89, 0.93) --
+    // re-derive the counts from there rather than trusting this restatement.
+    // Drift that day ran 0.93%-11.17%, and four of the eight recorded figures
+    // were stale by 4.0%-4.9%, so a tolerance above 5% would have called that
+    // day's rot compliant.
     it('keeps a tolerance tight enough to have caught the drift it exists for', () => {
       expect(typeof maxFraction, 'measuredDrift.maxFraction must be a number').toBe('number');
       expect(maxFraction).toBeGreaterThan(0);
       expect(
         maxFraction,
-        'a tolerance above 5% would have passed four of the eight figures that were ' +
-          'stale on 2026-09-02; widening it that far defeats the guard',
+        'a tolerance above 5% would have passed seven of the eight figures that ' +
+          'were stale on 2026-09-02, and six of those seven are figures the 2% in ' +
+          'force catches; widening it that far defeats the guard. The eight ' +
+          'figures are recorded in `measuredDrift.reason` in asset-budgets.json',
       ).toBeLessThanOrEqual(0.05);
     });
 
