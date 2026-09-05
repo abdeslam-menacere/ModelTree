@@ -1,12 +1,15 @@
 import type {
   ClaimKind,
+  DegradedChannel,
   GateOutcome,
   RefreshLog,
   RefreshRun,
   ReviewRubric,
   RunOutcome,
   RunStage,
+  ScoutBundle,
   StageStatus,
+  UnsweptCreator,
   WithheldCategory,
   WithheldItem,
 } from '../data/refresh-log-schema';
@@ -231,6 +234,63 @@ export function runLedger(run: RefreshRun): RunLedger {
     posted: run.posted.editsApplied,
     withheld: run.withheld.length,
     reportsWithheld: run.withheld.length > 0,
+  };
+}
+
+/**
+ * A creator this run scouted and that yielded nothing: it was looked at, and the
+ * look found no change. This is *not* the same as a creator the run did not
+ * scout — see `unsweptCreators` — and the two are read from different fields on
+ * purpose so a narrowed run cannot report the second as the first.
+ */
+export function unchangedCreators(run: RefreshRun): ScoutBundle[] {
+  return run.found.bundles.filter((bundle) => bundle.claimsFound === 0);
+}
+
+/** Every creator the run scouted this pass, whatever its claim count. */
+export function scoutedCreators(run: RefreshRun): ScoutBundle[] {
+  return run.found.bundles;
+}
+
+/** Creators the run did not scout this pass, each carrying why and when it was last seen. */
+export function unsweptCreators(run: RefreshRun): UnsweptCreator[] {
+  return run.found.unswept;
+}
+
+/** Creators whose catalogued discovery channel failed to fetch this run. */
+export function degradedChannels(run: RefreshRun): DegradedChannel[] {
+  return run.found.degradedChannels;
+}
+
+export interface CoverageSummary {
+  /** Creators looked at this run. */
+  scouted: number;
+  /** Of those, the ones that yielded no claim: looked at, found nothing. */
+  unchanged: number;
+  /** Creators not looked at this run: a distinct state, never folded into `unchanged`. */
+  unswept: number;
+  /** Creators whose discovery channel was degraded this run. */
+  degraded: number;
+  /** True when the run named at least one creator it did not scout. */
+  reportsUnswept: boolean;
+}
+
+/**
+ * The coverage a run is claiming, with "did not look" and "looked and found
+ * nothing" counted separately. This is the reading the #903 guard exists to make
+ * possible: `unchanged` and `unswept` are derived from different fields and can
+ * never be the same number for the same creator, so a `no-change` run that
+ * skipped creators reports differently from one that swept them and found
+ * nothing.
+ */
+export function coverageSummary(run: RefreshRun): CoverageSummary {
+  const unswept = run.found.unswept.length;
+  return {
+    scouted: run.found.bundles.length,
+    unchanged: unchangedCreators(run).length,
+    unswept,
+    degraded: run.found.degradedChannels.length,
+    reportsUnswept: unswept > 0,
   };
 }
 

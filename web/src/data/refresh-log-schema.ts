@@ -79,6 +79,42 @@ export const scoutBundleSchema = z.object({
   claimsFound: count,
 });
 
+/**
+ * A creator the run deliberately did **not** scout this pass.
+ *
+ * This is the load-bearing distinction of #903. A creator here was not looked
+ * at; a creator in `found.bundles` with `claimsFound: 0` was looked at and
+ * yielded nothing. "We did not look" and "we looked and nothing had changed"
+ * are different observations, and the schema keeps them in different fields so
+ * that a narrowed run reporting `no-change` cannot silently pass the first off
+ * as the second. `lastScouted` is what a staleness-aware scope choice weighs —
+ * how long a creator has gone unscouted — and is optional only because a run
+ * may not know it for a creator never yet scouted.
+ */
+export const unsweptCreatorSchema = z.object({
+  creator: nonEmpty,
+  /** When this creator was last scouted, if the run knew. Absent means never, or not established. */
+  lastScouted: isoDate.optional(),
+  /** Why this run did not scout it this pass. */
+  reason: nonEmpty,
+});
+
+/**
+ * A creator whose catalogued discovery channel failed to fetch this run.
+ *
+ * Reported per creator rather than only as a line in a flat "fetch failures"
+ * list (#903): a dark `official-announcement` feed degrades discovery *for that
+ * creator specifically*, and burying it among unrelated fetch errors hides
+ * which creator's primary signal went quiet.
+ */
+export const degradedChannelSchema = z.object({
+  creator: nonEmpty,
+  /** The catalogued source that failed, e.g. `official-announcement`. */
+  source: nonEmpty,
+  /** What went wrong, e.g. `openai.com/news/ returned 403`. */
+  detail: nonEmpty,
+});
+
 export const claimTallySchema = z.object({
   kind: claimKind,
   count,
@@ -153,6 +189,15 @@ export const foundSchema = z.object({
   claimsByKind: z.array(claimTallySchema).default([]),
   /** What the run did not reach. Published rather than hidden. */
   notCovered: z.array(nonEmpty).default([]),
+  /**
+   * Creators the run did not scout this pass, named individually. Distinct from
+   * a scouted creator that yielded nothing (a zero-claim bundle) and from the
+   * free-text `notCovered`, so "we did not look" is a separately representable
+   * state rather than prose folded in among everything else a run missed.
+   */
+  unswept: z.array(unsweptCreatorSchema).default([]),
+  /** Creators whose catalogued discovery channel failed to fetch this run. */
+  degradedChannels: z.array(degradedChannelSchema).default([]),
 });
 
 export const evaluatedSchema = z.object({
@@ -259,6 +304,33 @@ export const refreshRunSchema = z.object({
     });
   }
 
+  // The #903 invariant: "we did not look" and "we looked and found nothing"
+  // must never be the same reported state. A creator is either scouted (a
+  // bundle, whatever its claim count) or unswept, never both, and never listed
+  // as unswept twice. This is what makes the distinction structural rather than
+  // a matter of prose in a note nobody can test.
+  const unsweptCreators = run.found.unswept.map(({ creator }) => creator);
+  const duplicateUnswept = unsweptCreators.find(
+    (creator, index) => unsweptCreators.indexOf(creator) !== index,
+  );
+  if (duplicateUnswept) {
+    context.addIssue({
+      code: 'custom',
+      path: ['found', 'unswept'],
+      message: `lists ${duplicateUnswept} as unswept twice`,
+    });
+  }
+
+  const scoutedCreators = new Set(run.found.bundles.map(({ creator }) => creator));
+  const collapsed = unsweptCreators.find((creator) => scoutedCreators.has(creator));
+  if (collapsed) {
+    context.addIssue({
+      code: 'custom',
+      path: ['found', 'unswept'],
+      message: `reports ${collapsed} as both scouted and unswept; a creator was either looked at or it was not`,
+    });
+  }
+
   const published = run.outcome === 'published';
 
   if (!published && run.posted.editsApplied > 0) {
@@ -324,6 +396,8 @@ export type GateOutcome = z.infer<typeof gateOutcome>;
 export type WithheldCategory = z.infer<typeof withheldCategory>;
 export type StageRecord = z.infer<typeof stageRecordSchema>;
 export type ScoutBundle = z.infer<typeof scoutBundleSchema>;
+export type UnsweptCreator = z.infer<typeof unsweptCreatorSchema>;
+export type DegradedChannel = z.infer<typeof degradedChannelSchema>;
 export type ClaimTally = z.infer<typeof claimTallySchema>;
 export type Dissent = z.infer<typeof dissentSchema>;
 export type GateRun = z.infer<typeof gateRunSchema>;

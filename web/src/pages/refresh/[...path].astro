@@ -9,6 +9,7 @@ import { buildModelTree, modelTreeReleaseIds } from '../../lib/model-tree';
 import {
 	claimKindLabel,
 	countLabel,
+	degradedChannels,
 	gateOutcomeLabel,
 	gateTally,
 	logTotals,
@@ -18,6 +19,7 @@ import {
 	rubricLabel,
 	stageLabel,
 	stageStatusLabel,
+	unsweptCreators,
 	withheldGroups,
 } from '../../lib/refresh-log';
 import { postedDocumentLinks, postedRecordLinks } from '../../lib/refresh-log-links';
@@ -199,6 +201,38 @@ const refreshCanonicalPath = `${base}refresh/`;
 										<div class="log-note">
 											<h4>Not covered</h4>
 											<ul>{run.found.notCovered.map((item) => <li>{item}</li>)}</ul>
+										</div>
+									)}
+
+									{unsweptCreators(run).length > 0 && (
+										<div class="log-note">
+											<h4>Not scouted this run</h4>
+											<p>Creators this run did not look at, kept distinct from a creator that was scouted and found unchanged.</p>
+											<table class="log-table">
+												<thead>
+													<tr><th scope="col">Creator</th><th scope="col">Last scouted</th><th scope="col">Why skipped</th></tr>
+												</thead>
+												<tbody>
+													{unsweptCreators(run).map((entry) => (
+														<tr>
+															<th scope="row">{entry.creator}</th>
+															<td>{entry.lastScouted ? formatDate(entry.lastScouted) : 'Not established'}</td>
+															<td>{entry.reason}</td>
+														</tr>
+													))}
+												</tbody>
+											</table>
+										</div>
+									)}
+
+									{degradedChannels(run).length > 0 && (
+										<div class="log-note">
+											<h4>Degraded discovery channels</h4>
+											<ul>
+												{degradedChannels(run).map((channel) => (
+													<li><strong>{channel.creator}</strong> — {channel.source}: {channel.detail}</li>
+												))}
+											</ul>
 										</div>
 									)}
 								</section>
