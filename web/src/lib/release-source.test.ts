@@ -30,6 +30,96 @@ import {
  * closes that (#936). Both guards are needed; neither can see the other's hole.
  */
 
+/**
+ * The releases that were order-dependent when this was pinned, and the ones
+ * that cited exactly one source. Both lists are read by the CONTROL blocks
+ * below; both are exact; neither is a population count.
+ *
+ * That distinction is the whole of #992. The quantity these replace --
+ * "how many releases are there of shape X" -- moves whenever a release is
+ * added, and this file sits outside the class `gate-scope.mjs` admits, so an
+ * agent-gated refresh cannot edit it. Pinning a growing quantity in an
+ * unreachable file meant no normally-sourced release could be published at
+ * all: two runs researched one, passed every data gate, and stopped here
+ * (#935, #986). What is pinned instead is the side that does not grow.
+ *
+ * Regenerating either list is a deliberate act, not routine maintenance. Both
+ * describe releases that already exist, so a change to one means an existing
+ * release's sourcing changed -- which is worth a human reading, and is exactly
+ * why it costs an edit to a file a refresh cannot reach.
+ */
+const ORDER_DEPENDENT_AT_PIN: readonly string[] = [
+  'openai-gpt-5-6-sol',
+  'anthropic-claude-fable-5',
+  'anthropic-claude-mythos-5',
+  'google-gemini-3-1-pro-preview',
+  'google-gemini-3-1-flash-lite',
+  'google-gemini-3-5-flash-lite',
+  'google-gemini-2-5-pro',
+  'google-gemini-2-5-flash',
+  'openai-gpt-5-6-cyber',
+  'openai-gpt-image-2',
+  'anthropic-claude-sonnet-5',
+  'google-gemini-3-5-flash',
+  'google-gemini-3-6-flash',
+  'google-gemini-3-7-flash',
+  'xai-grok-4-6',
+  'xai-grok-4-5',
+  'anthropic-claude-opus-4-8',
+  'anthropic-claude-fable-5-1',
+  'anthropic-claude-mythos-5-1',
+  'alibaba-qwen3-8-flash-next',
+  'cohere-command-a-plus-05-2026',
+  'nvidia-nemotron-4-340b-base',
+  'ai21-labs-jamba-v0-1',
+  'zhipu-ai-glm-4-5-air',
+  'tencent-hunyuan-video-t2v',
+  'databricks-dbrx-instruct',
+  'apple-openelm-3b-instruct',
+  'minimax-text-01-456b',
+  'sakana-ai-evollm-jp-v1-7b',
+  'naver-hyperclova-x-seed-text-instruct-1-5b',
+  'kyutai-moshiko-pytorch-bf16',
+  'maritaca-ai-sabia-7b',
+  'apple-fastvlm-7b',
+];
+
+/**
+ * Releases citing exactly one source: the standing exception, and the
+ * complement of the population the guard below is about.
+ *
+ * A release usually needs one source for its specifications and another for
+ * its date, so citing one is the unusual shape -- 10 of 120 when pinned -- and
+ * it is the quantity that does NOT move when a normally-sourced release is
+ * added. Pinning it anchors the population size exactly, without pinning the
+ * population.
+ */
+const CITING_ONE_SOURCE_AT_PIN: readonly string[] = [
+  'openai-gpt-5',
+  'openai-gpt-5-1',
+  'openai-gpt-5-2',
+  'meta-muse-spark',
+  'meta-muse-spark-1-1',
+  'meta-muse-image',
+  'meta-muse-video',
+  'microsoft-mai-thinking-1',
+  'amazon-titan-text-express',
+  'ai21-labs-jurassic-1-jumbo',
+];
+
+/**
+ * A release repeating a source id, which no release does and none should.
+ *
+ * Both derivations below assume it: an array of two or more entries is a
+ * palindrome only if it repeats one, so "the reversal differs" and "there are
+ * two or more entries" name the same set only while this is empty. Asserted
+ * rather than assumed, so that a repeat fails as itself instead of surfacing
+ * as an unexplained disagreement between two set derivations.
+ */
+const releasesRepeatingASourceId = () => dataset.releases.filter(
+  (release) => new Set(release.sourceIds).size !== release.sourceIds.length,
+);
+
 const permutations = (ids: readonly string[]): readonly string[][] => [
   [...ids].reverse(),
   [...ids].sort(),
@@ -78,29 +168,88 @@ describe('release source selection is permutation-invariant', () => {
     // guard would be asserting invariance over a population that cannot vary,
     // and its green would mean nothing.
     //
-    // Exact, not `> 0`. A floor reddens only on an empty population and passes
-    // for any non-zero one, so an instrument that has gone half-blind reads as
-    // confirmation: a simulated 16 of the true 33 passes `> 0` and fails
-    // `toBe(33)`. If this number moves, the population changed -- re-read it
-    // and write the new figure down here. That is the signal this assertion
-    // exists to give; it is not a nuisance to silence by loosening the bound
-    // back to a floor, which would be `> 0` with extra steps.
+    // Two assertions, because the two blindnesses they catch are independent
+    // and neither sees the other's hole.
+    //
+    // **The pin.** Every release that was order-dependent when the list was
+    // taken must still be. Exact, not `> 0`: a floor reddens only on an empty
+    // population and passes for any non-zero one, so an instrument that has
+    // gone half-blind reads as confirmation. It is also strictly stronger than
+    // the `toBe(33)` it replaces, because a count cannot see a swap: five of
+    // these going quiet while five other releases turned order-dependent held
+    // that count at 33 and is red here. What it is not is a count of the
+    // population, so adding a release never moves it; that is the fix (#992).
+    // A red here means a named release changed how it cites sources: find
+    // which, and either restore the sourcing or move the id out with a note
+    // saying why. It is not a nuisance to silence by loosening the bound back
+    // to a floor, which would be `> 0` with extra steps.
+    //
+    // **The invariant**, which the pin cannot state because it cannot name a
+    // release that does not exist yet. `legacySelect` reads the first
+    // `official-docs` source and otherwise falls back to the first id, so it
+    // is order-dependent exactly when a release cites two or more sources and
+    // the number of `official-docs` among them is not one. That equality is a
+    // property of the selector rather than of the corpus, so it holds over
+    // records added after the pin and catches a selector that has gone
+    // half-blind on them.
+    expect(releasesRepeatingASourceId().map(({ id }) => id)).toEqual([]);
+
     const orderDependent = dataset.releases.filter(
       (release) => legacySelect(release.sourceIds)?.id
         !== legacySelect([...release.sourceIds].reverse())?.id,
     );
-    expect(orderDependent.length).toBe(33);
+    const stillOrderDependent = new Set(orderDependent.map(({ id }) => id));
+    const wentQuiet = ORDER_DEPENDENT_AT_PIN.filter((id) => !stillOrderDependent.has(id));
+    expect(wentQuiet).toEqual([]);
+
+    const citingSeveralWithoutOneDoc = dataset.releases.filter((release) => {
+      const officialDocs = release.sourceIds.filter(
+        (sourceId) => sourceById.get(sourceId)?.type === 'official-docs',
+      );
+      return release.sourceIds.length >= 2 && officialDocs.length !== 1;
+    });
+    expect(orderDependent.map(({ id }) => id))
+      .toEqual(citingSeveralWithoutOneDoc.map(({ id }) => id));
   });
 
   it('CONTROL: reordering actually changes the input array for some release', () => {
     // Exact for the same reason as above: a floor cannot tell a shrinking
-    // population from a healthy one. A change here means releases gained or
-    // lost sources, so re-read the population and update the figure rather
-    // than relaxing the assertion.
+    // population from a healthy one. What changed is which side is pinned.
+    //
+    // `reordered` is every release citing two or more sources, which was 110 of
+    // 120 when this was written -- 91.7% of the corpus, and the normal shape of
+    // a well-sourced record here rather than an edge case. Pinning it made
+    // adding any normally-sourced release require an edit to this file, and
+    // this file is outside the class `gate-scope.mjs` admits, so the only way
+    // for a refresh to avoid the edit was to cite a single source and leave a
+    // fact unsourced. The dodge is unavailable by design, which is what made
+    // the deadlock total rather than occasional (#992).
+    //
+    // So the **complement** is pinned instead. The releases citing exactly one
+    // source are the standing exception set, and adding a normally-sourced
+    // release does not move it. It anchors the population size exactly: a
+    // half-loaded dataset drops ids the pin names and reddens, which is the
+    // shrinkage a floor could not see. A red here means a release gained or
+    // lost sources -- read the population and fix the sourcing, or move the id
+    // in or out with a note.
+    //
+    // The equality is again the half the pin cannot state, and it is strictly
+    // stronger than `toBe(110)`: a count is blind to a filter that misses five
+    // releases while over-reporting five others, and a named set is not.
+    expect(releasesRepeatingASourceId().map(({ id }) => id)).toEqual([]);
+
     const reordered = dataset.releases.filter(
       (release) => release.sourceIds.join() !== [...release.sourceIds].reverse().join(),
     );
-    expect(reordered.length).toBe(110);
+    const citingOneSource = dataset.releases.filter(
+      (release) => release.sourceIds.length === 1,
+    );
+    expect(citingOneSource.map(({ id }) => id)).toEqual(CITING_ONE_SOURCE_AT_PIN);
+
+    const citingSeveralSources = dataset.releases.filter(
+      (release) => release.sourceIds.length >= 2,
+    );
+    expect(reordered.map(({ id }) => id)).toEqual(citingSeveralSources.map(({ id }) => id));
   });
 });
 
