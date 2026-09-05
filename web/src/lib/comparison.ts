@@ -1649,9 +1649,28 @@ const PRICING_KEY_TO_SHORT: Record<string, string> = {
   sourceIds: 'S', verifiedAt: 'V',
 };
 
-const BENCHMARK_RESULT_KEY_TO_SHORT: Record<string, string> = {
+// Typed against the projection rather than as a bare `Record<string, string>`,
+// which is what makes coverage a compile error instead of a silent pass-through
+// (#977). `Record<K, string>` is not homomorphic, so every key of
+// `ComparisonBenchmarkResult` — optionals included — is required here: add a
+// field to that `Pick` and project it, and this object stops compiling until it
+// is given a code. `rekey` falls back to `map[key] ?? key`, so without this the
+// only thing standing between an unmapped field and a long key on the wire is a
+// test that has to be lucky enough to see the field populated.
+//
+// `reasoningMode`, `toolsEnabled` and `harness` were exactly that case: schema-
+// optional, projected since #906, unmapped, and unpopulated by all 8 records in
+// `benchmark-results.json`, so the runtime guard passed without ever reaching
+// them. Their codes follow the neighbouring maps' convention — lowercase
+// initial where it is free (`m` mode, `h` harness), uppercase where the
+// lowercase is already taken (`T` tools, since `t` is `resultType`), matching
+// how `RELEASE_KEY_TO_SHORT` reaches for `P`, `A`, `I` and `F`. Codes are
+// per-map, but a within-map collision is silent in `rekey`; the round-trip over
+// a fully populated result in comparison.test.ts is what proves there is none.
+const BENCHMARK_RESULT_KEY_TO_SHORT: Record<keyof ComparisonBenchmarkResult, string> = {
   id: 'i', benchmarkId: 'b', benchmarkVersion: 'v', releaseId: 'r',
   variantNote: 'n', score: 's', unit: 'u', evaluationDate: 'e',
+  reasoningMode: 'm', toolsEnabled: 'T', harness: 'h',
   resultType: 't', sourceIds: 'S', verifiedAt: 'V',
 };
 
