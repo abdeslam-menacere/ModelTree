@@ -55,7 +55,9 @@ For each creator, in this order:
    reason the refresh exists — abdeslam-menacere/ModelTree#86 records the dataset
    going sixteen months stale on exactly this.
 2. **Changed facts on existing releases.** Status moving to `legacy` or
-   `deprecated`, a corrected context window, a new API alias, a licence change.
+   `deprecated`, a corrected context window, a new API alias, a licence change —
+   the one item here that obliges you to fetch a *second* publisher's page, and
+   only while you are still fetching at all; see **Boundaries**.
 3. **Stale verifications.** Entries whose `verifiedAt` is oldest. Re-checking a
    fact that still holds is a real finding: record it as `kind: "unchanged"`
    with fresh evidence, so `verifiedAt` can move forward honestly.
@@ -162,6 +164,36 @@ One creator failing does not stop the others. Record the failure and continue.
   `gate-source-approval.mjs` refuses anything else — including a source you
   propose and cite in the same run, which is the run vouching for itself. A
   genuinely new publisher is a follow-up for a human, not a claim.
+- **A `license` block is a claim about what OSI decided, so it rests on a page
+  OSI published — and only a fetch obtains one.** `licenseSchema` makes
+  `osiApproved` required, so every licence block carries the field and owes that
+  source at *either* value; `validateDataset` refuses a release whose
+  `sourceIds` cite none. The rule itself is stated in the `provenance` rubric of
+  [`../modeltree-review/SKILL.md`](../modeltree-review/SKILL.md), under
+  "Licence name is not OSI status", and in the note beside `licenseSchema` in
+  `web/src/data/schema.ts`. Read one of those; this bullet deliberately does not
+  restate them, because a third copy is a third thing to drift. What is yours is
+  the **retrieval**, and it is yours because no later stage can perform it:
+  evidence carries a `contentHash` of what you read, so a reviewer cannot cite a
+  page nobody fetched. A licence claim that arrives with no OSI page is
+  therefore dropped rather than improved, and the release it belongs to goes
+  with it. When a card states a licence, fetch OSI as well as the card. Which
+  page depends on the value, and both conventions are pinned over the committed
+  data by `web/src/data/osi-approved-citations.test.ts`, in the cases named
+  `rests every osiApproved: false on the exhaustive approved-licence index` and
+  `never rests an osiApproved: true on the index alone standing in for a licence page`.
+  Four OSI sources are already committed, so cite one rather than
+  proposing a duplicate: `osi-license-index` (`https://opensource.org/licenses`)
+  is the exhaustive list a `false` rests on; `osi-license-mit` and
+  `osi-approved-licenses` (Apache-2.0, despite the id) are per-licence pages;
+  `osi-open-source-ai-definition` defines the term and records no licence's
+  approval, so it stands for neither value alone. A `true` naming a licence none
+  of those pages covers is the ordinary paired source-add of item 4 above rather
+  than a human hand-off — `opensource.org` is an approved origin already, and
+  what stops a run is a new *host*, never a new page. Capture the `spdxId` or
+  licence `url` while the page is open: `releaseSchema` requires one for a
+  `true`, as a structural floor that identifies the licence and not as evidence
+  of its status.
 - **Never write to `web/src/data`.** You produce a bundle. Applying it is
   `modeltree-publish`'s job, after the gates.
 
