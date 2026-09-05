@@ -4597,5 +4597,623 @@
       }
     ],
     "recordedAt": "2026-09-03"
+  },
+  {
+    "id": "2026-09-05-ad1a1f",
+    "title": "Data refresh 2026-09-05",
+    "ranOn": "2026-09-05",
+    "outcome": "stopped",
+    "summary": "Scouted all 44 creators, extracted 26 claims across 6, ran the three-rubric panel (16 accepted, 10 rejected) and passed every deterministic data gate — then stopped at the publish stage and applied nothing. OpenAI GPT-6 Astra was accepted and gate-clean, but adding one release takes the shipped /compare payload 424 bytes past a ceiling held in web/src/lib/comparison.test.ts and pushes two recorded measurements in web/asset-budgets.json past their drift allowance. Both files are outside the scope ADR 0003 permits a refresh to touch, so the run filed #935 and published no dataset record. The working tree was returned to clean.",
+    "scope": "Every creator in organizations.json (44), plus the long-tail profile sweep. Six creators were taken to claim depth: openai, moonshot-ai, upstage, minimax, liquid-ai, xiaomi.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Clean tree, gh authenticated as abdeslam-menacere, node v24.14.0, no open refresh pull request. Bare `npm` is refused by this machine's PowerShell execution policy while `npm.cmd` runs — recorded as installed-and-blocked, and the policy was not changed."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "111 pages fetched and content-hashed across the 51 approved origins; 56 quotes verified verbatim against the exact hashed bytes with positive and negative controls. A Hugging Face gap sweep covered 36 organisations, matching 197 records and surfacing 395 leads."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Three rubrics run as independent parallel agents, each blind to the others and to the scout's reasoning. 78 verdicts cast over 26 claims. 16 met their bundle's own threshold, 10 did not."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-evidence passed on the only bundle contributing records and failed on five whose claims the panel had already rejected; gate-source-approval passed on all six; gate-dataset passed on the applied tree. The site's own npm run validate then failed on three page-weight assertions, which is what stopped the run."
+      },
+      {
+        "stage": "publish",
+        "status": "not-run",
+        "note": "Nothing was published. The four accepted claims were reverted rather than committed, because landing them requires editing files outside the permitted scope. No branch content, no pull request carrying a dataset record."
+      },
+      {
+        "stage": "deploy",
+        "status": "not-applicable",
+        "note": "Nothing merged, so nothing deployed."
+      }
+    ],
+    "found": {
+      "scouts": 44,
+      "pagesFetched": 111,
+      "claimsProposed": 26,
+      "bundles": [
+        {
+          "creator": "liquid-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "minimax",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "moonshot-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "upstage",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "xiaomi",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "add",
+          "count": 26,
+          "effect": "Every claim this run proposed was an addition — 14 sources, 6 families, 6 releases. None reached the dataset."
+        }
+      ],
+      "notCovered": [
+        "The 395 Hugging Face leads surfaced by the gap sweep were not converted into claims. The sweep ranks candidates; it does not establish that a repository is a creator's own release, and each lead still needs a primary source read before it can become a claim.",
+        "zhipu-ai GLM-5.3 was seen but deferred: the pages reachable this run did not carry a primary statement clean enough to quote for a dated release record.",
+        "No release was removed, superseded or marked legacy this run. The run looked for additions and did not audit existing records for lifecycle drift.",
+        "Four creators have never been scouted by any recorded run: kyutai, lelapa-ai, maritaca-ai, openbmb."
+      ],
+      "unswept": [
+        {
+          "creator": "01-ai",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "ai-singapore",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "ai2",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "ai21-labs",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "aleph-alpha",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "alibaba-cloud",
+          "lastScouted": "2026-09-03",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "amazon",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "anthropic",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "apple",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "baidu",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "bytedance-seed",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "cohere",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "databricks",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "deepseek",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "eleutherai",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "google-deepmind",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "hugging-face",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "ibm",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "kyutai",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "lelapa-ai",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "lg-ai-research",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "maritaca-ai",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "meta",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "microsoft",
+          "lastScouted": "2026-09-03",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "mistral-ai",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "naver",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "nous-research",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "nvidia",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "openbmb",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "reka-ai",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "sakana-ai",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "sarvam-ai",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "snowflake",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "stability-ai",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "tencent",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "tii",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "xai",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        },
+        {
+          "creator": "zhipu-ai",
+          "lastScouted": "2026-09-01",
+          "reason": "Swept for discovery only — Hugging Face organisation listing and catalogued channels compared against the committed dataset — and not carried to claim depth this pass. Leads surfaced for this creator were left unconverted because the run stopped at the publish stage."
+        }
+      ],
+      "degradedChannels": [
+        {
+          "creator": "openai",
+          "source": "official-announcement",
+          "detail": "openai.com/news/ returned 403 to this run, so OpenAI's announcement channel was dark. GPT-6 Astra was found instead through platform.openai.com primary documentation and the API changelog."
+        },
+        {
+          "creator": "xai",
+          "source": "official-announcement",
+          "detail": "x.ai/news returned 403 to this run, so xAI's announcement channel was dark and this run is not evidence that xAI shipped nothing."
+        }
+      ]
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 78,
+      "acceptedByPanel": 16,
+      "rejectedByPanel": 10,
+      "dissents": [
+        {
+          "claimId": "openai-family-gpt-6",
+          "rubric": "provenance",
+          "objection": "Held that status: 'current' rests on no quoted lifecycle statement — the documentation lists the model without describing its lifecycle — so the value is a reasonable reading rather than a recorded fact. Outvoted 2-of-3 under the pilot policy and recorded rather than overruled."
+        },
+        {
+          "claimId": "openai-release-gpt-6-astra",
+          "rubric": "provenance",
+          "objection": "Held that the 2026-09-03 release date rests on a changelog heading ('## September, 2026' / '### Sep 3') that never names GPT-6 Astra in the same breath, so attributing that date to this release adds a scope the source does not state. Outvoted 2-of-3 under the pilot policy and recorded rather than overruled."
+        }
+      ],
+      "gates": [
+        {
+          "gate": "gate-evidence",
+          "scope": "openai.claims.json — the only bundle contributing records",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "passed: true, 0 failures over 4 applicable claims. Every quote matched the hashed bytes and every claim carried exactly three verdicts, one per rubric."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "the five long-tail bundles (moonshot-ai, upstage, minimax, liquid-ai, xiaomi)",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": false,
+          "detail": "Ten claims failed the review threshold, which is the gate agreeing with the panel rather than a defect: each is a family or release that reached 1 or 2 of the 3 accepts a long-tail creator requires. Zero evidence failures across all 56 quotes. None of these claims was applied, so no failure here reached the dataset."
+        },
+        {
+          "gate": "gate-source-approval",
+          "scope": "all six claim bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Every cited URL resolved to one of the 51 origins a reviewed profile catalogue or the committed dataset already stands behind. No run-approved source."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "the working tree with the four accepted claims applied",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "passed: true, failures: []. Counts with the change applied — sources 287, publishers 52, organizations 44, families 86, releases 121, products 1, servingPlatforms 3, deployments 3, benchmarks 4, benchmarkResults 8, releaseEvents 7, usageObservations 2, usageSyntheses 0, modelFitStatements 7, modelFitEvidenceGaps 2."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "the working tree with the four accepted claims applied",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": true,
+          "detail": "Four tests failed against a baseline of 2856/2856 passing on the same tree without the change, so the failures are caused by the dataset change and nothing else. /compare ships 143,784 bytes against a 143,360 ceiling (424 over) while the per-release figure improved 1,191 to 1,188 of 1,600; catalog measuredRaw drifted 13,527 against a 12,350 allowance; providers measuredWorstRaw drifted 19,666 against 12,884. This is the gate that stopped the run."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 0,
+      "documents": [],
+      "records": []
+    },
+    "withheld": [
+      {
+        "id": "liquid-family-lfm2-5",
+        "category": "rejected-by-panel",
+        "detail": "Reached 2 of 3 required accepts under the long-tail policy, so it was not applied. provenance: status: 'current' is unsupported — 'LFM2.5-8B-A1B is a general-purpose text-only model' and the createdAt quote state no lifecycle term. The required status field filled from no quote is a rejection.",
+        "blockedBy": [
+          "rubric:provenance"
+        ]
+      },
+      {
+        "id": "liquid-release-lfm25-8b-a1b",
+        "category": "rejected-by-panel",
+        "detail": "Reached 1 of 3 required accepts under the long-tail policy, so it was not applied. provenance: status: 'current' has no lifecycle quote, and accessType: 'open-weight' with weightsDownloadable: true rest on the 'LFM Open License v1.0' name line, which states a licence name rather than downloadability. Either unsourced field is an independent rejection under the standing open-weight and status precedents. consistency: The release asserts license.osiApproved false but cites only Liquid AI and Hugging Face sources. No sourceId resolves to publisher open-source-initiative, violating the dataset's structural rule for every recorded OSI approval value.",
+        "blockedBy": [
+          "rubric:provenance",
+          "rubric:consistency"
+        ]
+      },
+      {
+        "id": "minimax-family-m3",
+        "category": "rejected-by-panel",
+        "detail": "Reached 2 of 3 required accepts under the long-tail policy, so it was not applied. provenance: status: 'current' has no supporting quote — the card quote ('native multimodal model with 1M context...') and the createdAt quote state nothing about lifecycle. The unsourced required status field is a rejection regardless of the otherwise sound date basis.",
+        "blockedBy": [
+          "rubric:provenance"
+        ]
+      },
+      {
+        "id": "minimax-release-m3",
+        "category": "rejected-by-panel",
+        "detail": "Reached 1 of 3 required accepts under the long-tail policy, so it was not applied. provenance: Modalities are properly backed by the '\"pipeline_tag\":\"image-text-to-text\"' quote, but status: 'current' has no lifecycle quote, and accessType: 'open-weight' with weightsDownloadable: true are supported only by the 'MINIMAX COMMUNITY LICENSE' name line, not by any statement that weights are downloadable (mi4/open-weight precedent). Reject on the unsourced status and access fields. consistency: The release carries license.osiApproved false while citing only MiniMax and Hugging Face publishers. It omits an Open Source Initiative-published source such as osi-license-index, so validateDataset would reject the complete record.",
+        "blockedBy": [
+          "rubric:provenance",
+          "rubric:consistency"
+        ]
+      },
+      {
+        "id": "moonshot-family-kimi-k3",
+        "category": "rejected-by-panel",
+        "detail": "Reached 2 of 3 required accepts under the long-tail policy, so it was not applied. provenance: status: 'current' has no supporting lifecycle quote — the card quote states modalities/context and the hub quote states createdAt, neither of which states a lifecycle state (the mi4 precedent rejects exactly this). The firstReleaseDate/dateBasis pairing is sound, but the unsourced required status field sinks the whole record.",
+        "blockedBy": [
+          "rubric:provenance"
+        ]
+      },
+      {
+        "id": "moonshot-release-kimi-k3",
+        "category": "rejected-by-panel",
+        "detail": "Reached 1 of 3 required accepts under the long-tail policy, so it was not applied. provenance: status: 'current' has no lifecycle quote, and accessType: 'open-weight' with weightsDownloadable: true rest only on the licence line 'Kimi K3 License Copyright (c) 2026 Moonshot AI', which states a licence name, not that weights are downloadable — the standing open-weight rejection. categories also includes 'coding' with no supporting quote. Any one of these is a rejection. consistency: The release records license.osiApproved as false but cites only moonshot-ai-kimi-k3-model-card and hugging-face-kimi-k3-hub-record. Neither source is published by open-source-initiative, which validateDataset requires for every osiApproved value, so this record would invalidate the dataset.",
+        "blockedBy": [
+          "rubric:provenance",
+          "rubric:consistency"
+        ]
+      },
+      {
+        "id": "upstage-family-solar-open-2",
+        "category": "rejected-by-panel",
+        "detail": "Reached 2 of 3 required accepts under the long-tail policy, so it was not applied. provenance: status: 'current' is unsupported — the only quotes are the licence-distribution sentence and the createdAt, neither stating any lifecycle term. A required controlled-vocabulary field mapped from no quote is a rejection.",
+        "blockedBy": [
+          "rubric:provenance"
+        ]
+      },
+      {
+        "id": "upstage-release-solar-open2-250b",
+        "category": "rejected-by-panel",
+        "detail": "Reached 1 of 3 required accepts under the long-tail policy, so it was not applied. provenance: Multiple fields lack quote support: inputModalities/outputModalities ['text'] have no attached quote (the pipeline tag is described in notes but never quoted), status: 'current' has no lifecycle quote, and accessType: 'open-weight' rests on 'distributed under the Upstage Solar License' — a licence name that does not state downloadable weights. Each is an independent rejection. consistency: The release asserts license.osiApproved false but its sourceIds contain only Upstage and Hugging Face sources. Because no Open Source Initiative-published source is cited, it violates validateDataset's mandatory OSI evidence-reference rule.",
+        "blockedBy": [
+          "rubric:provenance",
+          "rubric:consistency"
+        ]
+      },
+      {
+        "id": "xiaomi-family-mimo-v2-5",
+        "category": "rejected-by-panel",
+        "detail": "Reached 2 of 3 required accepts under the long-tail policy, so it was not applied. provenance: status: 'current' has no supporting lifecycle quote — the modalities quote and the createdAt quote state none. The required status field mapped from no quote is a rejection, independent of the otherwise sound modality and date evidence.",
+        "blockedBy": [
+          "rubric:provenance"
+        ]
+      },
+      {
+        "id": "xiaomi-release-mimo-v2-5",
+        "category": "rejected-by-panel",
+        "detail": "Reached 2 of 3 required accepts under the long-tail policy, so it was not applied. provenance: osiApproved: true is properly evidenced by the opensource.org MIT page title, but status: 'current' has no lifecycle quote, and accessType: 'open-weight' with weightsDownloadable: true have no quote stating weights are downloadable (the 'license: mit' front matter states a name only). The unsourced status and access fields sink the whole record.",
+        "blockedBy": [
+          "rubric:provenance"
+        ]
+      },
+      {
+        "id": "liquid-source-lfm25-card",
+        "category": "dropped-after-acceptance",
+        "detail": "nothing cites source liquid-ai-lfm2-5-8b-a1b-model-card once the panel's rejections are applied, and an uncited source is dead provenance that validate.test.ts refuses",
+        "blockedBy": [
+          "web/src/data/validate.test.ts orphaned-source assertion"
+        ]
+      },
+      {
+        "id": "liquid-source-lfm25-hub",
+        "category": "dropped-after-acceptance",
+        "detail": "nothing cites source hugging-face-lfm2-5-8b-a1b-hub-record once the panel's rejections are applied, and an uncited source is dead provenance that validate.test.ts refuses",
+        "blockedBy": [
+          "web/src/data/validate.test.ts orphaned-source assertion"
+        ]
+      },
+      {
+        "id": "liquid-source-lfm-open-license",
+        "category": "dropped-after-acceptance",
+        "detail": "nothing cites source liquid-ai-lfm-open-license once the panel's rejections are applied, and an uncited source is dead provenance that validate.test.ts refuses",
+        "blockedBy": [
+          "web/src/data/validate.test.ts orphaned-source assertion"
+        ]
+      },
+      {
+        "id": "minimax-source-m3-card",
+        "category": "dropped-after-acceptance",
+        "detail": "nothing cites source minimax-m3-model-card once the panel's rejections are applied, and an uncited source is dead provenance that validate.test.ts refuses",
+        "blockedBy": [
+          "web/src/data/validate.test.ts orphaned-source assertion"
+        ]
+      },
+      {
+        "id": "minimax-source-m3-hub",
+        "category": "dropped-after-acceptance",
+        "detail": "nothing cites source hugging-face-minimax-m3-hub-record once the panel's rejections are applied, and an uncited source is dead provenance that validate.test.ts refuses",
+        "blockedBy": [
+          "web/src/data/validate.test.ts orphaned-source assertion"
+        ]
+      },
+      {
+        "id": "minimax-source-m3-license",
+        "category": "dropped-after-acceptance",
+        "detail": "nothing cites source minimax-m3-license once the panel's rejections are applied, and an uncited source is dead provenance that validate.test.ts refuses",
+        "blockedBy": [
+          "web/src/data/validate.test.ts orphaned-source assertion"
+        ]
+      },
+      {
+        "id": "moonshot-source-kimi-k3-card",
+        "category": "dropped-after-acceptance",
+        "detail": "nothing cites source moonshot-ai-kimi-k3-model-card once the panel's rejections are applied, and an uncited source is dead provenance that validate.test.ts refuses",
+        "blockedBy": [
+          "web/src/data/validate.test.ts orphaned-source assertion"
+        ]
+      },
+      {
+        "id": "moonshot-source-kimi-k3-hub",
+        "category": "dropped-after-acceptance",
+        "detail": "nothing cites source hugging-face-kimi-k3-hub-record once the panel's rejections are applied, and an uncited source is dead provenance that validate.test.ts refuses",
+        "blockedBy": [
+          "web/src/data/validate.test.ts orphaned-source assertion"
+        ]
+      },
+      {
+        "id": "upstage-source-solar-open2-card",
+        "category": "dropped-after-acceptance",
+        "detail": "nothing cites source upstage-solar-open2-250b-model-card once the panel's rejections are applied, and an uncited source is dead provenance that validate.test.ts refuses",
+        "blockedBy": [
+          "web/src/data/validate.test.ts orphaned-source assertion"
+        ]
+      },
+      {
+        "id": "upstage-source-solar-open2-hub",
+        "category": "dropped-after-acceptance",
+        "detail": "nothing cites source hugging-face-solar-open2-250b-hub-record once the panel's rejections are applied, and an uncited source is dead provenance that validate.test.ts refuses",
+        "blockedBy": [
+          "web/src/data/validate.test.ts orphaned-source assertion"
+        ]
+      },
+      {
+        "id": "xiaomi-source-mimo-v25-card",
+        "category": "dropped-after-acceptance",
+        "detail": "nothing cites source xiaomi-mimo-v2-5-model-card once the panel's rejections are applied, and an uncited source is dead provenance that validate.test.ts refuses",
+        "blockedBy": [
+          "web/src/data/validate.test.ts orphaned-source assertion"
+        ]
+      },
+      {
+        "id": "xiaomi-source-mimo-v25-hub",
+        "category": "dropped-after-acceptance",
+        "detail": "nothing cites source hugging-face-mimo-v2-5-hub-record once the panel's rejections are applied, and an uncited source is dead provenance that validate.test.ts refuses",
+        "blockedBy": [
+          "web/src/data/validate.test.ts orphaned-source assertion"
+        ]
+      },
+      {
+        "id": "openai-source-gpt-6-astra-docs",
+        "category": "blocked-by-policy",
+        "detail": "Panel-accepted and clean through gate-evidence, gate-source-approval and gate-dataset, then withheld at the publish stage. Applying it takes the /compare shipped payload to 143,784 bytes against a 143,360 ceiling in web/src/lib/comparison.test.ts, and moves two recorded measurements in web/asset-budgets.json past their 2% drift allowance. Both files sit outside the fifteen dataset documents plus the ledger that gate-scope.mjs admits, so ADR 0003 stops the run rather than letting it edit them.",
+        "blockedBy": [
+          "ADR 0003 scope guardrail",
+          "web/src/lib/comparison.test.ts",
+          "web/asset-budgets.json",
+          "#935"
+        ]
+      },
+      {
+        "id": "openai-source-api-changelog",
+        "category": "blocked-by-policy",
+        "detail": "Panel-accepted and clean through gate-evidence, gate-source-approval and gate-dataset, then withheld at the publish stage. Applying it takes the /compare shipped payload to 143,784 bytes against a 143,360 ceiling in web/src/lib/comparison.test.ts, and moves two recorded measurements in web/asset-budgets.json past their 2% drift allowance. Both files sit outside the fifteen dataset documents plus the ledger that gate-scope.mjs admits, so ADR 0003 stops the run rather than letting it edit them.",
+        "blockedBy": [
+          "ADR 0003 scope guardrail",
+          "web/src/lib/comparison.test.ts",
+          "web/asset-budgets.json",
+          "#935"
+        ]
+      },
+      {
+        "id": "openai-family-gpt-6",
+        "category": "blocked-by-policy",
+        "detail": "Panel-accepted and clean through gate-evidence, gate-source-approval and gate-dataset, then withheld at the publish stage. Applying it takes the /compare shipped payload to 143,784 bytes against a 143,360 ceiling in web/src/lib/comparison.test.ts, and moves two recorded measurements in web/asset-budgets.json past their 2% drift allowance. Both files sit outside the fifteen dataset documents plus the ledger that gate-scope.mjs admits, so ADR 0003 stops the run rather than letting it edit them.",
+        "blockedBy": [
+          "ADR 0003 scope guardrail",
+          "web/src/lib/comparison.test.ts",
+          "web/asset-budgets.json",
+          "#935"
+        ]
+      },
+      {
+        "id": "openai-release-gpt-6-astra",
+        "category": "blocked-by-policy",
+        "detail": "Panel-accepted and clean through gate-evidence, gate-source-approval and gate-dataset, then withheld at the publish stage. Applying it takes the /compare shipped payload to 143,784 bytes against a 143,360 ceiling in web/src/lib/comparison.test.ts, and moves two recorded measurements in web/asset-budgets.json past their 2% drift allowance. Both files sit outside the fifteen dataset documents plus the ledger that gate-scope.mjs admits, so ADR 0003 stops the run rather than letting it edit them.",
+        "blockedBy": [
+          "ADR 0003 scope guardrail",
+          "web/src/lib/comparison.test.ts",
+          "web/asset-budgets.json",
+          "#935"
+        ]
+      }
+    ],
+    "caveats": [
+      "This run did not find \"nothing to do\". It found a real, sourced, panel-accepted release it was not permitted to publish, which is why #935 was filed and left open.",
+      "Publishing GPT-6 Astra is blocked by page-weight artefacts, not by any doubt about the data. The /compare stopping rule was measured as met on both limbs: the catalogue grew and the per-release figure improved rather than merely holding.",
+      "The blocker is structural and not about this release. The baseline had 410 bytes of /compare headroom against roughly 834 bytes for a release and its two cited sources, so any new release from any creator now tips the same ceiling.",
+      "Thirty-eight creators were swept for discovery only and not carried to claim depth, so this run is not evidence that those creators shipped nothing. It is evidence that the discovery sweep surfaced no candidate strong enough to chase before the run stopped.",
+      "OpenAI's and xAI's announcement channels both returned 403, so neither creator's primary announcement signal was readable this run.",
+      "The 395 Hugging Face leads remain unconverted. A future run should expect them, not treat them as new.",
+      "New families were proposed with featured: false throughout. Promoting a family to the front page is an editorial decision this run did not make.",
+      "gate-dataset passing shows the applied dataset was internally coherent. It has no network and does not check that a source still says what it said when it was hashed."
+    ],
+    "followUps": [
+      "#935 — the blocker this run filed: an auto-merging refresh cannot add a release while the /compare total and the asset-budget measurements live outside its permitted scope.",
+      "Xiaomi MiMo v2.5 cited an OSI licence source but its model card carried no LICENSE file this run, so the licence block could not be completed from a primary source.",
+      "Four creators (kyutai, lelapa-ai, maritaca-ai, openbmb) have never been scouted by any recorded run and should be prioritised by staleness on a future pass.",
+      "The four long-tail releases rejected on license.osiApproved would each have needed an opensource.org citation alongside the model card; a scout pass that fetches the OSI licence page up front would convert them."
+    ],
+    "references": [
+      {
+        "kind": "issue",
+        "label": "#935 — refresh blocked by page-weight artefacts outside web/src/data/",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/935",
+        "state": "open"
+      },
+      {
+        "kind": "commit",
+        "label": "merge-base this run measured against",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/9d5f27ac52",
+        "state": "merged"
+      }
+    ],
+    "recordedAt": "2026-09-05"
   }
 ]
