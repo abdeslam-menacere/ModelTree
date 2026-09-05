@@ -13,6 +13,18 @@ ADR 0003 authorises this and bounds it. Read
 [`../../../docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md`](../../../docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md)
 before changing anything here.
 
+**ADR 0015 amends that bound, and a run that reads ADR 0003 alone will stop on
+something it is authorised to do.** `web/asset-budgets.json` is in class for its
+regenerable measurement figures and non-enforcing prose, and out of class for
+every ceiling — `criticalMaxRaw`, `jsMaxRaw`, the whole-build `*MaxRaw` under
+`globals` — and for `measuredDrift.maxFraction`. The fields a run may move are
+named in `ASSET_BUDGETS_REGENERABLE_FIELDS` in
+`.github/skills/modeltree-gates/scripts/gate-scope.mjs`; read them there rather
+than from a list here, so this document cannot drift from the gate that enforces
+it. Read
+[`../../../docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md`](../../../docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md)
+alongside ADR 0003.
+
 ## Preconditions — all six, no exceptions
 
 **How to invoke what follows.** Commands here are written by name — what to run,
@@ -69,9 +81,28 @@ If **4** fails, you have a claim that is valid on its own and invalid in context
 Drop it, record why, and revalidate. Never edit a claim to make it pass; that is
 the run overruling its own gates.
 
+One failure under **4** is not a claim problem at all, and dropping a good claim
+to duck it is the wrong repair: `web/tests/build/asset-budgets.test.ts` failing
+on `measuredDrift` means the tranche moved a page's raw byte size and the
+recorded figure is now stale. Re-run `npm run assets:report` from `web/`, write
+the regenerated figures into `web/asset-budgets.json`, revalidate, and continue —
+ADR 0015 puts exactly that write in class, and it is a tightening rather than a
+bypass, permitting no extra byte. A route over its **ceiling** is a different
+failure with a different answer: the ceiling is out of class, so raising it is
+forbidden, and the run stops and files an issue.
+
 If **5** fails, the refresh needs a schema, component, or workflow change. That
 is not a failure — it is the run correctly finding work for a human. Stop, file
 an issue describing what it needed and why, and publish nothing.
+
+Read the report before concluding that, in the one case where the gate refuses a
+path it can also admit. `web/asset-budgets.json` is judged on its contents, not
+its name: it is refused when a difference at either merge-reachable end falls
+outside the permitted set — a moved ceiling, a moved `measuredDrift.maxFraction`,
+an added or removed route entry, a renamed identifier, or a document the gate
+could not read. Each of those names something a human must decide. The answer is
+never to widen the permitted set, invert it into a blacklist of ceilings, or
+relax the structure comparison so an added entry passes as more measurements.
 
 If **6** fails, the entry disagrees with the change it describes. Correct the
 entry to match what the diff actually did — never the reverse. The gate counts
@@ -146,6 +177,8 @@ rather than being presented as measured.
 ```bash
 git switch -c data/refresh-2026-08-25
 git add web/src/data
+# only when the run re-recorded asset budgets (ADR 0015):
+git add web/asset-budgets.json
 git commit -m "data(refresh): add GPT-5.7 and refresh four creator datasets (run 2026-08-25-a1b2c3)"
 git push -u origin data/refresh-2026-08-25
 gh pr create --title "..." --body-file .modeltree-refresh/runs/<run-id>/pr-body.md
@@ -153,7 +186,11 @@ gh pr merge <number> --auto --squash --delete-branch
 ```
 
 `git add web/src/data` stages the ledger along with the data, which is the point:
-the entry and the change it describes land in one commit and revert as one.
+the entry and the change it describes land in one commit and revert as one. It
+does **not** reach `web/asset-budgets.json`, which sits outside that directory,
+so a run that re-recorded a measurement has to stage it by name — same commit,
+same reasoning: the measurement and the tranche that moved it revert together,
+and `gate-scope.mjs` reads the committed tip as well as the working tree.
 
 Conventional messages: `feat(data):` for new entities, `fix(data):` for
 corrections, `chore(data):` for verification dates moving with no fact changing.
@@ -367,4 +404,7 @@ merge entirely.
   the entry, never the data.
 - **Never approve a source to make a claim pass.** If
   `gate-source-approval.mjs` refuses a citation, the claim goes, not the gate.
+- **Never move a ceiling or `measuredDrift.maxFraction` to make a build pass.**
+  Re-recording a measurement ADR 0015 admits is in class; changing the limit that
+  caught you is not, and it is the one move an unattended run must never have.
 - **Never leave a failed deploy standing.** Revert, then report.
