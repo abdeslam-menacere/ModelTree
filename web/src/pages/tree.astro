@@ -4,19 +4,12 @@ import { dataset, sourceById } from '../data/dataset';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { formatDate } from '../lib/format';
 import { buildModelTree, projectModelTree } from '../lib/model-tree';
+import { buildReleaseSourceIndex } from '../lib/release-source';
 
 // Projected, not whole: this becomes a serialised island prop, so it ships to
 // every visitor. See `projectModelTree` (abdeslam-menacere/ModelTree#813).
 const tree = projectModelTree(buildModelTree(dataset));
-const sourceByReleaseId = Object.fromEntries(dataset.releases.map((release) => {
-	const source = release.sourceIds
-		.map((sourceId) => sourceById.get(sourceId))
-		.find((candidate) => candidate?.type === 'official-docs')
-		?? sourceById.get(release.sourceIds[0]);
-
-	if (!source) throw new Error(`No source found for ${release.id}`);
-	return [release.id, { title: source.title, url: source.url }];
-}));
+const sourceByReleaseId = buildReleaseSourceIndex(dataset.releases, sourceById);
 const latestVerification = [...dataset.releases.map(({ verifiedAt }) => verifiedAt)].sort().at(-1)!;
 const base = import.meta.env.BASE_URL;
 const firstRelease = tree.featured[0]?.families[0]?.releases[0];
