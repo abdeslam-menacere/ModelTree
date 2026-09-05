@@ -11,10 +11,13 @@ import {
   groupRoutes,
 } from '../../scripts/asset-budget.mjs';
 import {
+  CEILING_NEAR_MISS_FRACTION,
   NEAR_MISS_FRACTION,
   driftFailureMessage,
   driftOf,
   formatAllowanceReport,
+  formatHeadroomReport,
+  headroomOf,
 } from '../../scripts/asset-drift.mjs';
 import { probeTreeProvenance } from '../../scripts/tree-provenance.mjs';
 
@@ -467,19 +470,34 @@ describe('deterministic asset budgets on the production build', () => {
     // what makes the reconciliation a set comparison on KEYS rather than a count:
     // deleting or renaming a recorded field changes the declared key set and no
     // longer merely its size, so a removal is caught the same way an addition is.
-    type DriftSubject = { key: string; label: string; recorded: number; measure: () => number };
+    // `ceiling` is the enforcing figure the budget assertions above compare
+    // this same measurement against -- `criticalMaxRaw`, `jsMaxRaw` or a
+    // `globals.*MaxRaw`. It is carried on the SAME subject as the drift fields
+    // so the headroom report and the drift report share one enumeration, and so
+    // the headroom figure is measured-against-ceiling using exactly the
+    // measurement the ceiling assertion binds on (#939). Nothing reads it as an
+    // assertion here; it is reported only.
+    type DriftSubject = {
+      key: string;
+      label: string;
+      recorded: number;
+      ceiling: number;
+      measure: () => number;
+    };
 
     const driftSubjects: DriftSubject[] = [
       ...budgets.fixedRoutes.map((route: any) => ({
         key: 'fixedRoutes.measuredRaw',
         label: `${route.id} (${route.path}) measuredRaw`,
         recorded: route.measuredRaw,
+        ceiling: route.criticalMaxRaw,
         measure: () => analyzeRoute(outDir, route.path, caches).totals.critical.raw,
       })),
       ...budgets.routeGroups.map((group: any) => ({
         key: 'routeGroups.measuredWorstRaw',
         label: `${group.id} measuredWorstRaw`,
         recorded: group.measuredWorstRaw,
+        ceiling: group.criticalMaxRaw,
         measure: () => analyzeGroup(group.dir).worstCritical.totals.critical.raw,
       })),
       ...budgets.routeGroups
@@ -506,19 +524,21 @@ describe('deterministic asset budgets on the production build', () => {
           key: `routeGroups.${group.id}.measuredWorstJsRaw`,
           label: `${group.id} measuredWorstJsRaw`,
           recorded: group.measuredWorstJsRaw,
+          ceiling: group.jsMaxRaw,
           measure: () => analyzeGroup(group.dir).worstJs.totals.js.raw,
         })),
       ...(
         [
-          ['js', 'jsTotalMeasuredRaw'],
-          ['css', 'cssTotalMeasuredRaw'],
-          ['font', 'fontTotalMeasuredRaw'],
-          ['astroDir', 'astroDirMeasuredRaw'],
+          ['js', 'jsTotalMeasuredRaw', 'jsTotalMaxRaw'],
+          ['css', 'cssTotalMeasuredRaw', 'cssTotalMaxRaw'],
+          ['font', 'fontTotalMeasuredRaw', 'fontTotalMaxRaw'],
+          ['astroDir', 'astroDirMeasuredRaw', 'astroDirMaxRaw'],
         ] as const
-      ).map(([kind, key]) => ({
+      ).map(([kind, key, ceilingKey]) => ({
         key: `globals.${key}`,
         label: `globals.${key}`,
         recorded: budgets.globals[key],
+        ceiling: budgets.globals[ceilingKey],
         measure: () => globalTotals(outDir)[kind],
       })),
     ];
@@ -575,6 +595,43 @@ describe('deterministic asset budgets on the production build', () => {
       console.log(
         formatAllowanceReport(rows, provenance, maxFraction, NEAR_MISS_FRACTION).join('\n'),
       );
+
+      // The SECOND wall, printed beside the first -- #939. Until this, the only
+      // instrument in the repository was the drift near-miss above, which is
+      // 75% of the 2% ALLOWANCE and says nothing whatever about how close a
+      // route is to the ceiling that actually gates dataset growth. A figure
+      // could sit at 95% of its enforced ceiling and trip nothing; four did, at
+      // trunk b44c63d6, while the allowance report beside them read 0.0%
+      // because #987 had just re-recorded every one of them.
+      //
+      // It is built from the SAME `driftSubjects` enumeration and the SAME
+      // measurements the rows above used -- `rows[i].measured`, not a second
+      // call to the thunk -- so the denominator reconciles by construction and
+      // no route is measured twice. `subject.ceiling` is the enforcing figure
+      // the budget assertions earlier in this file compare that measurement
+      // against, so this report describes the guard that binds rather than a
+      // neighbouring one.
+      //
+      // This PERMITS NOTHING and asserts nothing: it prints. The ceiling
+      // assertions above are unchanged and still fail at exactly the ceiling.
+      const headroomRows = driftSubjects.map((subject, index) =>
+        headroomOf(subject.label, rows[index].measured, subject.ceiling),
+      );
+
+      // eslint-disable-next-line no-console -- the report IS the deliverable here.
+      console.log(formatHeadroomReport(headroomRows, CEILING_NEAR_MISS_FRACTION).join('\n'));
+
+      // Non-vacuous, for the headroom half specifically: a subject whose
+      // `ceiling` came back undefined would render `NaN%` and quietly report
+      // nothing, which is the failure mode this whole file is built against.
+      // Every checked figure has an enforcing ceiling; if one does not, the
+      // subject list and the budget assertions have diverged.
+      expect(
+        headroomRows.filter((row) => !Number.isFinite(row.ceiling)).map((row) => row.label),
+        'a drift subject carries no numeric ceiling, so the headroom report is describing ' +
+          'nothing for it. Reconcile `ceiling` on that subject with the *MaxRaw field the ' +
+          'budget assertions above compare it against.',
+      ).toEqual([]);
 
       // Non-vacuous: a report built from thunks that all returned 0 would print
       // a clean table and mean nothing. Every route ships a non-trivial number
