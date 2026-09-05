@@ -9,7 +9,7 @@ import {
   BOREALIS_AIR,
   COMPARABLE_BENCHMARK,
   COMPARISON_BASE,
-  comparisonFixtures,
+  benchmarkExplorerFixtures,
 } from '../../tests/fixtures/comparison-dataset';
 import BenchmarkExplorer from './BenchmarkExplorer';
 import { NO_FILTERS } from '../lib/benchmark-explorer';
@@ -19,7 +19,7 @@ const ROUTE = '/ModelTree/benchmarks/';
 function renderExplorer() {
   return render(
     <BenchmarkExplorer
-      dataset={comparisonFixtures}
+      dataset={benchmarkExplorerFixtures}
       initialSlugs={[]}
       initialFilters={NO_FILTERS}
       base={COMPARISON_BASE}
@@ -208,7 +208,7 @@ describe('links this page did not invent', () => {
 
     // Positive control: an empty candidate list would pass every per-link
     // assertion below vacuously.
-    expect(links.length).toBe(comparisonFixtures.releases.length);
+    expect(links.length).toBe(benchmarkExplorerFixtures.releases.length);
     expect(links.length).toBeGreaterThan(0);
     for (const link of links) {
       expect(link.getAttribute('href')).toContain('/ModelTree/benchmarks/');

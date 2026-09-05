@@ -56,6 +56,7 @@ import type {
   SourceReference,
 } from '../../src/data/schema';
 import type { ComparisonDataset } from '../../src/lib/comparison';
+import type { BenchmarkExplorerDataset } from '../../src/lib/benchmark-explorer';
 import { precisionOf } from '../../src/data/partial-date';
 
 /** The build date every fixture-driven expectation is computed against. */
@@ -562,6 +563,18 @@ export const comparisonFixtures: ComparisonDataset = {
   servingPlatforms,
   deployments,
   pricing,
+  benchmarks,
+  benchmarkResults,
+};
+
+/**
+ * The same records as a full evidence dataset for the `/benchmarks` explorer,
+ * which reads benchmark fields the `/compare` payload trims (issue #906). The
+ * comparison fixtures narrow `benchmarks`/`benchmarkResults` to the compare
+ * projection, so the explorer takes the full-typed records here instead.
+ */
+export const benchmarkExplorerFixtures: BenchmarkExplorerDataset = {
+  ...comparisonFixtures,
   benchmarks,
   benchmarkResults,
 };

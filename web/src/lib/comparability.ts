@@ -167,8 +167,21 @@ export interface ComparabilityTable {
   notes: string[];
 }
 
+/**
+ * The benchmark fields the comparability engine actually reads: `name`,
+ * `direction`, `metric`, and `id` for the lookup. The context is typed to this
+ * projection rather than a full {@link BenchmarkDefinition} so that `/compare`,
+ * which ships benchmarks trimmed to the comparison surface (issue #906), can
+ * pass its narrowed records directly. A full `BenchmarkDefinition` still
+ * satisfies it, so every existing caller is unaffected.
+ */
+export type ComparabilityBenchmark = Pick<
+  BenchmarkDefinition,
+  'id' | 'name' | 'direction' | 'metric'
+>;
+
 export interface ComparabilityContext {
-  benchmarks?: BenchmarkDefinition[];
+  benchmarks?: ComparabilityBenchmark[];
   releases?: ModelRelease[];
   sources?: SourceReference[];
   publishers?: Publisher[];
@@ -177,7 +190,7 @@ export interface ComparabilityContext {
 
 interface ResolvedContext {
   policy: ComparabilityPolicy;
-  benchmarkById: Map<string, BenchmarkDefinition>;
+  benchmarkById: Map<string, ComparabilityBenchmark>;
   releaseById: Map<string, ModelRelease>;
   sourceById: Map<string, SourceReference>;
   publisherById: Map<string, Publisher>;
