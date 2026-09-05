@@ -3967,6 +3967,94 @@ describe('gate-evidence', () => {
   });
 
   // -------------------------------------------------------------------------
+  // Valid JSON is not yet a bundle (#186). These are written as three separate
+  // blocks rather than one table because they do not fail the same way at the
+  // merge-base, and collapsing them would hide which of them is evidence for the
+  // change and which is only a pin on what was already true.
+  // -------------------------------------------------------------------------
+
+  // **The regression, and the only one.** `null` is the single input the guard
+  // repairs. The first read of the bundle is `Object.hasOwn(bundle, 'policy')`;
+  // `Object.hasOwn` throws on `null`, nothing catches it, and node exits **1**.
+  //
+  // Exit 1 is this gate's verdict channel -- "the bundle was read and a claim in
+  // it is not admissible" -- so a crash arriving there reports a could-not-run
+  // as a decided verdict, in the direction that looks more authoritative rather
+  // than less. `modeltree-publish` reads this exit code as a precondition, and
+  // its rules say never to treat a 2 as a pass; nobody wrote a rule for a 1 that
+  // is really a stack trace, because nobody expected one.
+  //
+  // This test fails at the merge-base on the code assertion, with the trace in
+  // the output. It is the load-bearing case for the change.
+  test('a null bundle exits 2 rather than stack-tracing to the verdict code 1', () => {
+    const result = gateBundleWithArgs(null, ['--today', TODAY]);
+    assert.equal(
+      result.code,
+      2,
+      `a bundle that was never read cannot have produced a verdict:\n${result.stdout}`,
+    );
+    assert.match(result.stdout, /is not a claim bundle: expected a JSON object, found null/);
+    assert.ok(
+      !/TypeError|\bat main \(/.test(result.stdout),
+      `every other refusal here names what was wrong; a stack trace is not a diagnosis:\n${result.stdout}`,
+    );
+  });
+
+  // **Pins on existing behaviour, plus one genuine correction.** An array, a
+  // string, a number and a boolean were *not* broken before the guard, and this
+  // block must not be read as evidence that they were. `Object.hasOwn` coerces
+  // its first argument, so each of them boxed harmlessly, found `policy`
+  // genuinely absent, and exited 2 already. The code assertion below therefore
+  // holds at the merge-base exactly as it holds here, and proves nothing about
+  // this change.
+  //
+  // The message assertion is the half that is new. At the merge-base each of
+  // these four is told its bundle has no `policy` and offered the two acceptable
+  // policy values -- which sends whoever handed over a JSON array off to add a
+  // `policy` field to an array. Naming the actual fault is the correction.
+  //
+  // The guard is worth having for them even so, because their old refusal was
+  // accidental rather than chosen: it rested on a coercion nobody selected and
+  // no test pinned, so a refactor reading `bundle.policy` directly -- an
+  // ordinary, well-intentioned change -- would have turned all four into crashes
+  // at once, and the suite would not have noticed.
+  for (const [label, bundle, found] of [
+    ['an array', [], 'an array'],
+    ['a string', 'x', 'a string'],
+    ['a number', 0, 'a number'],
+    ['a boolean', true, 'a boolean'],
+  ]) {
+    test(`${label} bundle keeps its exit 2 (a pin) and names the type as the cause (new)`, () => {
+      const result = gateBundleWithArgs(bundle, ['--today', TODAY]);
+      assert.equal(result.code, 2, result.stdout);
+      assert.match(result.stdout, new RegExp(`is not a claim bundle: expected a JSON object, found ${found}`));
+      assert.ok(
+        !result.stdout.includes('bundle has no policy'),
+        `a value that was never an object must not be reported as an object missing a field:\n${result.stdout}`,
+      );
+    });
+  }
+
+  // The boundary control, without which the block above is unreadable. Exit 2
+  // does not discriminate here: a well-formed object carrying no `policy`
+  // produces exit 2 and always did. So a guard wrong in the other direction --
+  // one that swallowed real objects -- would leave every assertion above still
+  // passing. This pins the far side: an object goes to the policy refusal and
+  // never to the type refusal.
+  //
+  // It holds at the merge-base too, so it is a pin and not evidence for the
+  // change. That is exactly what a control is for.
+  test('an empty object is a bundle, so it reaches the policy refusal and not the type guard', () => {
+    const result = gateBundleWithArgs({}, ['--today', TODAY]);
+    assert.equal(result.code, 2, result.stdout);
+    assert.match(result.stdout, /gate-evidence: bundle has no policy/);
+    assert.ok(
+      !result.stdout.includes('is not a claim bundle'),
+      `an object must never be refused as a non-object:\n${result.stdout}`,
+    );
+  });
+
+  // -------------------------------------------------------------------------
   // `--today`, across its three states (#312). Every other test in this block
   // pins the clock through `gateBundle`, which covers the **present-but-stale**
   // cell -- a day supplied on purpose that is not the real one -- and leaves the
