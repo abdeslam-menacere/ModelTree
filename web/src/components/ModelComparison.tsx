@@ -12,7 +12,6 @@ import {
   type CompactComparisonPayload,
   type ComparisonCandidate,
   type ComparisonCell,
-  type ComparisonDataset,
   type ComparisonGroup,
   type ComparisonRow,
   type ComparisonSourceView,

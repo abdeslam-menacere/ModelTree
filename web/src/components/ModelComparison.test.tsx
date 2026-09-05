@@ -17,7 +17,6 @@ import {
   MAX_COMPARISON_MODELS,
   NO_RANKING_NOTE,
   VALUE_STATE_LABELS,
-  type CompactComparisonPayload,
   type ComparisonDataset,
 } from '../lib/comparison';
 import ModelComparison from './ModelComparison';
