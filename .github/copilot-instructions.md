@@ -120,7 +120,13 @@ Four obligations follow, and they are what make it checkable:
   from the subject, in the same run with the same quoting. Establish that the
   arms came back different; one arm returning the shape you had in mind shows
   nothing. Two forms agreeing on a single input does not establish that they
-  answer the same question either.
+  answer the same question either. A control has two limits no further control
+  repairs: it cannot show the instrument is pointed at the present, and it
+  cannot show the instrument measures the quantity you named for it. So name the
+  quantity the tool returns in its own terms before naming the one you wanted —
+  a tool answering a neighbouring question does so at a clean exit with a
+  well-formed value. Adopt an instrument on its own measured behaviour; a
+  rival's failure is a fact about the rival.
 - **A value covering several outcomes is not evidence on its own.** Where one
   exit status, one empty result or one output value can be produced by more than
   one distinct outcome, read something alongside it that separates them and say
@@ -141,6 +147,12 @@ Four obligations follow, and they are what make it checkable:
   of a set has not reported on the set; a probe that refused has not returned a
   finding. Carry the distinction into what you report, with the denominator, in
   a form the next reader can see.
+
+Two readings that cannot both be true — an index beyond a reported extent, a
+total its own parts overrun — are a finding rather than a discrepancy to
+reconcile, and they catch a mismeasured quantity that no control reaches. Note
+also that a derived figure is not a check on its inputs: where an error shifts
+several inputs equally, differences computed from them survive it unchanged.
 
 `web/scripts/asset-drift.mjs` is the working example to copy rather than an
 invented one: it publishes the tree it measured, the reference it compared

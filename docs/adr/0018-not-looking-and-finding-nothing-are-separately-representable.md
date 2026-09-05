@@ -80,7 +80,8 @@ argument that this needs a document rather than a memory:
     conflict markers were written into the printed tree, which supports no
     comparison at all — printed under a heading asserting they were live.
 
-They share one structure:
+They share one structure, and so do the further instances recorded in the two
+subsections below:
 
 | Instrument or vantage fact | Reported as a subject fact |
 |---|---|
@@ -91,11 +92,15 @@ They share one structure:
 | a check that was not selected | "the check passed" |
 | a reference ref last refreshed hours ago | "trunk is at this commit" |
 | an empty branch merging cleanly | "this work already shipped" |
+| a merge that would change trunk | "this branch never landed" |
+| a count that excludes blank lines | "the file is this long" |
+| an instant re-expressed in local time | "this happened at this UTC time" |
 
 ### The sharpest instance: a control proves discrimination, not currency
 
-The last two rows were added on 2026-09-05 and they are the reason this ADR has
-four obligations rather than three. Two docks handed back `NOT LANDED` about
+The stale-reference and empty-branch rows above were added on 2026-09-05 and
+they are the reason this ADR has four obligations rather than three. Two docks
+handed back `NOT LANDED` about
 work already on `main`, and neither failed for want of a control.
 
 **abdeslam-menacere/ModelTree#709** reported both conjuncts with a positive
@@ -136,6 +141,89 @@ commits — freshly created docks, one of them the dock that wrote this document
 An empty branch merges into trunk trivially, so "no work yet" and "work already
 shipped" came out as the same value, in the very measurement gathering support
 for a rule that says to keep them apart.
+
+### The second limit of a control: which quantity is being measured
+
+The currency case above is one thing a control cannot reach. There is a second,
+and it is worse because it survives every remedy in this document up to this
+point:
+
+> **A control proves that an instrument discriminates between inputs. It cannot
+> reveal that the instrument measures a different quantity than the one you
+> named.**
+
+A two-arm control passes perfectly against an instrument of this kind, because a
+larger subject really does return a larger number and a different input really
+does return a different value. The call succeeds, the value is well-formed,
+nothing is refused, and the answer is to a question nobody asked.
+
+**The instance that lands on this document's own probe.** Tree equality asks
+*would merging this branch change trunk?* Landedness asks *did this branch's
+work reach trunk?* Those are different questions, and they diverge the moment a
+later commit **edits** the landed content: re-merging would reintroduce the
+superseded wording, so the resulting tree legitimately differs from trunk. That
+is a correct answer to the question the command asks and a wrong answer to the
+question a dock is asking. It therefore fails hardest exactly where a project
+edits its own documents most, which in this repository is the instructions file.
+
+Measured here at trunk `04b233dd5363f07a4f7b382cf49ec6a465e398fe` on 2026-09-05,
+on two branches whose pull requests the record reports as merged —
+abdeslam-menacere/ModelTree#891 and abdeslam-menacere/ModelTree#895:
+
+| branch tip | record | `merge-tree --write-tree` vs trunk | equals trunk tree |
+|---|---|---|---|
+| `f6dbed39` | MERGED 2026-09-04T19:35:06Z | status 0 | no |
+| `a17d4ae2` | MERGED 2026-09-04T22:06:02Z | status 0 | no |
+
+Status 0 on both: no conflict, no error, nothing for a control to catch. The
+control that makes those readings findings rather than an instrument saying one
+thing to everything was run in the same session — the same invocation against
+trunk itself returned status 0 and printed trunk's own tree. Both tips also
+reported as non-ancestors of trunk, which is the squash-merge behaviour recorded
+elsewhere in these documents rather than a further finding.
+
+The coordinating session, which took the sweep this ADR quotes for scale,
+reported on 2026-09-05 that across 430 local branches the tree-equality reading
+answered cleanly for 27.2% and that 4 of its 9 *differs* answers named branches
+whose pull requests had merged, while a single query of the merged-pull-request
+record answered for 82.6% with no error found. Those are that session's dated
+readings quoted for the order of the cost, not constants, and a decision turning
+on them must re-measure. The mechanism is what carries forward: **a content
+probe measures wording and a tree comparison measures would-merging-change-
+anything, so post-merge editing defeats both — the same hazard reaching two
+structurally different instruments, because both infer a historical event from
+the repository's present state.** The record does not infer it; it is a record
+of the event, which is why later rewording cannot touch it. That session also
+recorded honestly what the record does not do: a rename defeats a lookup keyed
+on the branch name, and it correctly says nothing about a branch that has no
+merged pull request.
+
+**How that instrument came to be trusted is itself an instance.** It was
+promoted on the strength of watching a rival instrument fail once, and its own
+error rate was never measured until the sweep above. **Comparative evidence
+about instrument B is not a measurement of instrument A**, and "the alternative
+failed" is a fact about the alternative.
+
+**Two cheap instances of the same shape**, both measured here on 2026-09-05 on
+`PSVersion 5.1.26100.9168`:
+
+*A count that names one quantity and returns another.* On this branch's copy of
+the instructions file, the line-counting measurement returned 1711 while the
+file held 1996 lines, the difference being its 285 blank lines, which that
+measurement does not count; 1711 + 285 recovered 1996 exactly. The number is
+plausible on its own and no control detects it. What detected it was a
+**contradiction between two readings that cannot both be true**: a heading
+located at line 1927 in a file reported to have 1711 lines. That, and not the
+implausibility of any single figure, is the tell worth generalising.
+
+*A cast that silently changes the quantity's frame.* Casting an ISO instant
+bearing `Z` to a date type on this host produced a value in local time —
+`2026-09-04T19:35:06Z` became `15:35:06` at offset `-04:00`, with the value's own
+kind field reading `Local`. The sharpest part is where the error hides: the
+interval between two such values came out **identical** whether computed from the
+shifted values or from the correctly parsed instants, so the derived column that
+a careful reader cross-checks is invariant under the error. Cross-checking a
+derived quantity is therefore not a check on the quantity it was derived from.
 
 ### What makes the class expensive rather than merely untidy
 
@@ -206,6 +294,12 @@ must not produce that tree printed a different OID at status 0, and an
 unresolvable operand was refused. This ADR is not an argument for distrusting
 instruments. It is an argument for reading what they actually say.
 
+Read that reading for exactly what it is, because the subsection above measures
+the limit of the same command. What was established is that the probe computes a
+real post-merge tree, which is a fact about *merging*. It is not an endorsement
+of tree equality as an answer to *did this land*, and the two branches measured
+above are why: both landed, and both returned a differing tree at status 0.
+
 ### The rule already implemented here, which is the shape to copy
 
 Nothing in this decision is novel to the repository — one script already does
@@ -265,6 +359,17 @@ success. The same reasoning forbids the tempting shortcut of validating a
 questionable form by agreeing with a sound one: two forms returning the same
 answer on one input does not establish that they answer the same question, and a
 coincidence is indistinguishable from equivalence at a single point.
+
+A control has two limits, and neither is repaired by adding more controls.
+**It cannot show that the instrument is pointed at the present** — obligation 3
+— and **it cannot show that the instrument measures the quantity you named for
+it.** A control passes cleanly against an instrument that answers a neighbouring
+question, because a different input really does return a different value. So
+name the quantity the instrument returns, in its own terms, before naming the
+quantity you wanted; where the two differ, establish what makes them diverge and
+report the reading in the terms it was actually taken. Comparative evidence is
+not a substitute: watching a rival instrument fail is a fact about the rival,
+and it measures nothing about the one adopted in its place.
 
 **2. A value covering several outcomes is not evidence on its own.** Where one
 exit status, one empty result or one output value can be produced by more than
@@ -332,6 +437,10 @@ will be found.
   rule here covered. Two docks with complete control apparatus were wrong on the
   same day for the same reason, and neither would have been caught by a further
   control.
+- **The quantity an instrument measures is separated from the quantity it is
+  asked for.** This is the limit of a control that survives every other remedy
+  here, and stating it protects the reader from the specific mistake of reading
+  this document's own positive result about `merge-tree` as a landedness test.
 - Reporting the anchor makes a stale reading detectable by a later reader rather
   than only by the reader who took it — the property the tree-provenance block in
   `web/scripts/asset-drift.mjs` already demonstrates.
@@ -413,7 +522,9 @@ every instrument, in both directions, and were wrong about the same thing for
 the same reason: their controls were as stale as their subject, because a
 control run against a stale anchor is stale too. Control density is orthogonal
 to currency, and a rule that asks for more of the first while saying nothing
-about the second buys effort and no accuracy.
+about the second buys effort and no accuracy. The same holds for the second
+limit: a control passes cleanly against an instrument answering a neighbouring
+question, so control density does not reach that either.
 
 **Add a checker that enforces it.** Rejected here as out of scope and doubted on
 the merits. Out of scope because abdeslam-menacere/ModelTree#974 explicitly
@@ -465,6 +576,22 @@ already knows it exists, which is the retrieval model that failed eight times.
   was examined and out of what set. An unselected check is recorded as
   unselected; a partial scan states its denominator. This is what keeps a claim
   about a sample from being published as a claim about the population.
+- **A reading is reported in the terms the instrument returns it.** Name the
+  quantity the tool actually produces before naming the quantity that was
+  wanted, and where they differ, say what makes them diverge. A tool that
+  answers a neighbouring question does so at a clean exit with a well-formed
+  value, so nothing downstream will raise it.
+- **Two readings that cannot both be true are a finding, not a discrepancy to
+  reconcile.** An index beyond a reported extent, a total that its own parts
+  overrun, a member outside a reported set: these detect a mismeasured quantity
+  that no control and no plausibility check will reach. Where a second reading
+  of the same subject is available cheaply, take it for this reason.
+- **A derived quantity is not a check on what it was derived from.** Where an
+  error shifts several inputs equally, differences and ratios computed from them
+  survive it unchanged, so agreement in a derived column is not evidence about
+  the column it came from.
+- **An instrument is adopted on its own measured behaviour, never on a rival's
+  failure.** "The alternative was wrong" is a fact about the alternative.
 - **No text added under this decision names a probe and predicts its result.**
   Measurements are pinned to an anchor and a date and marked as readings.
   Guidance says how to find out.
