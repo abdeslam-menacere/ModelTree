@@ -253,6 +253,152 @@ def test_a_fixture_creator_missing_a_required_field_is_refused_by_name(
     assert missing in message
 
 
+def test_a_malformed_fixture_document_is_refused_naming_the_file(tmp_path) -> None:
+    """Invalid JSON is refused naming the file, not dumped as a bare traceback (#166).
+
+    This was the last of the three loaders parsing bare. `json.loads` raises
+    `JSONDecodeError`, a `ValueError`, which is not in the CLI's handled set — so a
+    stray comma in a hand-edited fixture exited **1** with a stack trace whose message
+    named a line and column but *not which file*. With a directory of documents on
+    disk, that sends the reader hunting through every one of them.
+
+    The refusal is the wording the two reviewed sets already use, so the neighbouring
+    missing-fixtures case (#139) and this one now read alike instead of one refusing
+    cleanly and the other crashing. The keeper file proves the refusal is about the
+    malformed document rather than about the directory being unloadable in general.
+    """
+    _fixture_file(tmp_path / "keeper.json", creator_id="keeper")
+    (tmp_path / "acme.json").write_text('{"creator": ,}', encoding="utf-8")
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    message = str(error.value)
+    assert "acme.json" in message
+    assert "could not be read" in message
+
+
+def test_a_malformed_fixture_refusal_keeps_the_parser_s_line_and_column(
+    tmp_path,
+) -> None:
+    """The wrap does not swallow the detail it wraps: line and column survive.
+
+    `JSONDecodeError` already carries where the document went wrong, and replacing it
+    with something vaguer would trade a traceback that at least said "line 41 column 5"
+    for a refusal that says only "bad file". The point of #166 is to *add* the file
+    name to what the parser already knew, so both halves are asserted together: the
+    exact line and column the parser reports, and the name of the document carrying it.
+    """
+    document = '{\n  "creator": {\n    "creator_id": "acme-labs"\n    "creator_name": "Acme"\n  }\n}'
+    (tmp_path / "acme.json").write_text(document, encoding="utf-8")
+
+    with pytest.raises(json.JSONDecodeError) as raw:
+        json.loads(document)
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    message = str(error.value)
+    assert f"line {raw.value.lineno} column {raw.value.colno}" in message
+    assert str(raw.value) in message
+    assert "acme.json" in message
+
+
+def test_an_unreadable_fixture_document_is_refused_the_same_way(
+    tmp_path, monkeypatch
+) -> None:
+    """A file that cannot be read at all shares the malformed file's refusal.
+
+    #166 asks this explicitly: an unreadable file is the same shape of problem from the
+    reader's side as an unparseable one, and `OSError` costs nothing extra in the same
+    clause. `read_text` is patched rather than a real permission being set, because the
+    filesystem semantics of an unreadable file differ across the platforms this suite
+    runs on while the loader's answer to `OSError` should not.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id="acme-labs")
+    real_read_text = Path.read_text
+
+    def refuse(self: Path, *args: Any, **kwargs: Any) -> str:
+        if self.name == "acme.json":
+            raise PermissionError(13, "Permission denied")
+        return real_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", refuse)
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    message = str(error.value)
+    assert "acme.json" in message
+    assert "could not be read" in message
+    assert "Permission denied" in message
+
+
+def test_a_fixture_removed_mid_scan_is_refused_without_the_wrong_hint(
+    tmp_path, monkeypatch
+) -> None:
+    """A read-time `FileNotFoundError` is folded in rather than re-raised, deliberately.
+
+    The two reviewed loaders re-raise `FileNotFoundError` untouched, because there the
+    path is one the *caller named* and "not found" is the precise answer. Here every
+    path comes from scanning a directory that has already been found, so this can only
+    be a file removed between the listing and the read — and `_fixture_library` appends
+    the "pass `--fixtures` with a path to the repository's fixtures" hint to every
+    `FileNotFoundError` it catches. That hint would answer a question the reader did not
+    ask, their `--fixtures` having been right. This pins the divergence so it reads as a
+    decision rather than as an oversight.
+    """
+    _fixture_file(tmp_path / "acme.json", creator_id="acme-labs")
+    real_read_text = Path.read_text
+
+    def vanish(self: Path, *args: Any, **kwargs: Any) -> str:
+        if self.name == "acme.json":
+            raise FileNotFoundError(2, "No such file or directory")
+        return real_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", vanish)
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    assert "acme.json" in str(error.value)
+
+
+def test_a_valid_fixture_directory_is_completely_unaffected(tmp_path) -> None:
+    """The guard changes nothing a well-formed directory produces.
+
+    #166 requires that valid fixtures parse exactly as before, so this hashes everything
+    the loaded library carries rather than counting it — a count agrees with itself
+    while the contents change underneath, which is what a parsing change would break.
+    """
+    _fixture_file(tmp_path / "alpha.json", creator_id="alpha", creator_name="Alpha Co")
+    _fixture_file(tmp_path / "beta.json", creator_id="beta", creator_name="Beta Co")
+
+    library = load_fixture_library(tmp_path)
+
+    assert library.creator_ids == ("alpha", "beta")
+    assert _deep_hash(
+        {creator_id: dict(document) for creator_id, document in library.documents.items()}
+    ) == _deep_hash(
+        {
+            "alpha": json.loads((tmp_path / "alpha.json").read_text(encoding="utf-8")),
+            "beta": json.loads((tmp_path / "beta.json").read_text(encoding="utf-8")),
+        }
+    )
+
+
+def test_the_real_reviewed_fixture_directory_still_loads(fixture_dir) -> None:
+    """The shipped fixtures are not collateral of the guard.
+
+    The unit tests above all build their own directories, so none of them would notice
+    a guard that refused every real document. This drives the actual reviewed set.
+    """
+    library = load_fixture_library(fixture_dir)
+
+    assert "contoso-ai" in library.creator_ids
+    assert len(library.creator_ids) > 1
+
+
 def test_a_duplicate_creator_id_is_refused_and_names_both_files(tmp_path) -> None:
     """Two files, one id: refused by name, where before the second quietly won.
 

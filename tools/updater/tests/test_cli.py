@@ -126,6 +126,80 @@ def test_unknown_creator_is_a_usage_error(fixture_dir) -> None:
     assert "unknown creator id(s): nobody" in output
 
 
+@pytest.mark.parametrize("command", ["run", "creators"])
+def test_a_malformed_fixture_exits_cleanly_naming_the_file(
+    tmp_path, fixture_dir, command
+) -> None:
+    """Exit 2 and a sentence naming the file, like the missing-fixtures case (#166).
+
+    At the merge base this exited **1** with a `JSONDecodeError` traceback that named a
+    line and column but not which document carried them. `--fixtures` is the offline
+    path CI and the gates run, and the path a contributor hand-edits, so it is where a
+    syntax error is likeliest and where a stack trace helps least. The good neighbour
+    proves the refusal identifies the offending document rather than merely failing.
+    """
+    fixtures = tmp_path / "fixtures"
+    fixtures.mkdir()
+    (fixtures / "keeper.json").write_text(
+        (fixture_dir / "contoso-ai.json").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    (fixtures / "broken.json").write_text('{"creator": {,}}', encoding="utf-8")
+
+    code, output = _run([command, "--fixtures", str(fixtures)])
+
+    assert code == EXIT_USAGE
+    assert "error: broken.json: could not be read" in output
+    assert "line 1 column" in output
+    assert "Traceback" not in output
+    assert "keeper.json" not in output
+
+
+def test_a_malformed_fixture_writes_nothing(tmp_path, fixture_dir) -> None:
+    """The refusal happens before any output directory is touched.
+
+    `run --output` is the invocation that writes, so "nothing is written" is only
+    meaningful when asserted against it. The library loads first, so the directory is
+    never created — asserted rather than assumed, since a refusal that had already
+    written a partial artefact would leave the next run reading it.
+    """
+    fixtures = tmp_path / "fixtures"
+    fixtures.mkdir()
+    (fixtures / "broken.json").write_text('{"creator": {,}}', encoding="utf-8")
+    output_dir = tmp_path / "proposals"
+
+    code, output = _run(
+        ["run", "--fixtures", str(fixtures), "--output", str(output_dir)]
+    )
+
+    assert code == EXIT_USAGE
+    assert "broken.json" in output
+    assert not output_dir.exists()
+
+
+def test_a_valid_fixture_directory_still_runs_unchanged(tmp_path, fixture_dir) -> None:
+    """The guard is invisible to a well-formed run: same exit, same proposal written."""
+    output_dir = tmp_path / "proposals"
+    code, _ = _run(
+        [
+            "run",
+            "--creator",
+            "contoso-ai",
+            "--fixtures",
+            str(fixture_dir),
+            "--output",
+            str(output_dir),
+            "--run-id",
+            "run-166",
+            "--timestamp",
+            "2026-06-01T00:00:00+00:00",
+        ]
+    )
+
+    assert code == EXIT_OK
+    assert (output_dir / "run-166" / "report.json").exists()
+    assert (output_dir / "run-166" / "contoso-ai.json").exists()
+
+
 @pytest.mark.parametrize(
     "flag,value,expected",
     [
