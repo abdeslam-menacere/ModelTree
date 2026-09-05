@@ -1078,7 +1078,7 @@
     "title": "Qwen Community License 1.0 (Qwen3.8-Flash-Next)",
     "type": "official-docs",
     "publisherId": "alibaba-cloud",
-    "lastCheckedDate": "2026-09-03",
+    "lastCheckedDate": "2026-09-05",
     "notes": "The licence text the model card’s license_link points at, read this run at the raw file endpoint on the same origin. Its first line is \"Qwen Community License 1.0\" and it grants permission over \"the model weights, parameters, configuration files, inference code and associated documentation\", which is what the release’s weightsDownloadable value rests on. It is a licence of the creator’s own drafting; whether OSI approved it is not a question this document can answer, and the release cites osi-license-index for that."
   },
   {
@@ -1605,7 +1605,7 @@
     "title": "Tencent Hunyuan Community License Agreement",
     "type": "official-docs",
     "publisherId": "tencent",
-    "lastCheckedDate": "2026-09-01",
+    "lastCheckedDate": "2026-09-05",
     "notes": "Tencent's own licence file shipped with the weights. Its heading is \"TENCENT HUNYUAN COMMUNITY LICENSE AGREEMENT\", which is the licence name the release records, and its second line is \"Tencent HunyuanVideo Release Date: December 3, 2024\", which agrees with the model card's News entry. It states \"THIS LICENSE AGREEMENT DOES NOT APPLY IN THE EUROPEAN UNION, UNITED KINGDOM AND SOUTH KOREA AND IS EXPRESSLY LIMITED TO THE TERRITORY\", which is why the licence is recorded as not OSI-approved. It also defines \"'Tencent,' 'We' or 'Us' shall mean THL A29 Limited\" — the entity that grants the licence, not a fuller recorded form of the creator's name, so the organization record keeps \"Tencent\"."
   },
   {
@@ -1725,7 +1725,7 @@
     "title": "Apple licence shipped with the OpenELM weights",
     "type": "official-docs",
     "publisherId": "apple",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-05",
     "notes": "The licence file the card links. Its opening sentence is the strongest attribution any Apple page read for this record makes: \"Disclaimer: IMPORTANT: This Apple Machine Learning Research Model is specifically developed and released by Apple Inc. (\"Apple\") for the sole purpose of scientific research of artificial intelligence and machine-learning technology.\" The file is hard-wrapped, so the line breaks inside quoted passages are rendered here as single spaces; no other character is changed. That sentence is the source of the recorded organization name \"Apple Inc.\" and of this release's research status. The file has no title line, opening instead on that disclaimer, but it does name itself, in the attribution notice its redistribution clause requires third parties to carry: “Apple Machine Learning Research Model is licensed under the Apple Machine Learning Research Model License Agreement.” The typographic quotation marks around that sentence are the file's own, not delimiters added here. The licence name recorded on the release is that self-stated title, quoted from this file rather than constructed. It is the third of three labels this release has for one licence, and all three are quoted rather than the tidiest being chosen: the card's front matter also gives the short identifier \"license: apple-amlr\" and the different \"license_name: apple-sample-code-license\". That \"apple-amlr\" abbreviates the title above is an inference no page states, so it is not relied on; \"apple-sample-code-license\" names a different Apple licence and does not match this file's text at all. The recorded value is the name the governing document, which the card's \"license_link\" points at, applies to itself. These terms are not published by the Open Source Initiative, so osiApproved is false."
   },
   {
@@ -1816,7 +1816,7 @@
     "title": "MiniMax Model License",
     "type": "official-docs",
     "publisherId": "minimax",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-05",
     "notes": "The licence covering the weights, served at LICENSE-MODEL; a plain LICENSE path on the same repository returns 404, so the file name matters. Its heading is \"MINIMAX MODEL LICENSE\" and it names itself in its attribution clause as \"the MiniMax Model License\", which is the licence name recorded on the release. It states \"Model Release Date: 15 January 2025\", which is the recorded release date and the only creator statement of a date found for this model. It defines the company in a clause that carries its own quotation marks, reproduced here exactly: \"MiniMax\" or \"we\" means MiniMax AI. The recorded organization name is \"MiniMax\" rather than the \"MiniMax AI\" named here, so this clause is not the source of that name; it is quoted because both forms appear in the creator's own text and that difference should stay visible rather than be smoothed to match the record. Read strictly, the clause defines the term \"MiniMax\" as denoting the entity MiniMax AI, which makes the \"distributed by MiniMax\" in the clause quoted next a use of that defined term rather than an independent second name. Nothing in this file settles which form is the company's legal name, and none is inferred. It also states where the company distributes the model, in a definition quoted here in part: \"distributed by MiniMax at https://huggingface.co/MiniMaxAI and https://github.com/MiniMax-AI.\" These terms are not published by the Open Source Initiative, so osiApproved is false."
   },
   {
@@ -1852,7 +1852,7 @@
     "title": "Microsoft Research License Terms shipped with EvoLLM-JP-v1-7B",
     "type": "official-docs",
     "publisherId": "sakana-ai",
-    "lastCheckedDate": "2026-08-29",
+    "lastCheckedDate": "2026-09-05",
     "notes": "The licence file shipped in Sakana AI's repository. Its heading is \"MICROSOFT RESEARCH LICENSE TERMS\" and it opens \"These license terms are an agreement between you and Microsoft Corporation (or one of its affiliates).\" Recorded as an entity-boundary caution: the terms are Microsoft's and apply because Sakana AI merged a Microsoft model into this one, as the card states. They say nothing about who created EvoLLM-JP-v1-7B, which the card attributes to Sakana AI, and this dataset records Sakana AI as its creator. These terms are not published by the Open Source Initiative, so osiApproved is false. The source is filed under the Sakana AI publisher because Sakana AI is who ships this file with these weights, not because Sakana AI wrote the terms."
   },
   {
@@ -1926,7 +1926,7 @@
     "title": "HyperCLOVA X SEED Model License Agreement",
     "type": "official-docs",
     "publisherId": "naver",
-    "lastCheckedDate": "2026-09-01",
+    "lastCheckedDate": "2026-09-05",
     "notes": "The model’s licence agreement, and a NAVER document rather than a Hugging Face one: it titles itself “HyperCLOVA X SEED Model License Agreement” on its first line, which is the licence name this dataset records. Reading it needs no credentials, and the endpoint matters — the url recorded here is the repository’s blob page for the file, which is what a reader should open: this repository is gated (the Hub record reports gated “auto”), and /raw/main/LICENSE does return HTTP 401, but /resolve/main/LICENSE serves the agreement itself as text/plain to an unauthenticated request — 12,560 bytes, sha256:38ecac78adef21eceff609f917f3cf904b3381ee9a6c83f824b89f4f9d28bbb4, with no gate interstitial. Anyone re-checking this record should use that path rather than concluding from a 401 on /raw/ that the document is unreadable. It settles three things no other source read here states. First, the relation between the two NAVER entities: “NAVER Corp., as the holder of the intellectual property of the Model, and its affiliate, NAVER Cloud Corp., as the exclusive business operator of HyperCLOVA X, enter into this Agreement with you.” Section 9.2 adds “NAVER Corp. owns the Model”. Second, it corroborates the recorded release date from a second NAVER document, independently of the newsroom’s forward-looking “will make history on April 24” phrasing: its third line reads “Model Release Date: April 24, 2025”. That line is a statement about the model rather than about this document, so it is recorded as corroboration for releaseDate and is deliberately not used as this source’s publishedDate, which no part of the document states. Third, it is why osiApproved is false and no SPDX id is recorded: these are bespoke NAVER terms, not a standard licence. They carry conditions an OSI-approved licence would not, including a Section 4 requirement that a licensee above ten million monthly active users “must request a license from NAVER”, and Section 3.1 redistribution conditions requiring the attribution notice, a “Powered by HyperCLOVA X” display, and that derived model names begin with “HyperCLOVA X”. weightsDownloadable stays true on the separate evidence of the announcement and the Section 2.2 grant to “access, download, install, copy, use, reproduce, distribute, create derivative works of, and make modifications to the Model”."
   },
   {
@@ -2391,7 +2391,7 @@
     "title": "Apple licence shipped with the FastVLM weights",
     "type": "official-docs",
     "publisherId": "apple",
-    "lastCheckedDate": "2026-09-02",
+    "lastCheckedDate": "2026-09-05",
     "notes": "The licence file shipped in the artefact's own repository, and the source of both the recorded licence name and the research status. The file is hard-wrapped, so line breaks inside quoted passages are rendered here as single spaces; no other character is changed. It opens \"Disclaimer: IMPORTANT: This Apple Machine Learning Research Model is specifically developed and released by Apple Inc. (\"Apple\") for the sole purpose of scientific research of artificial intelligence and machine-learning technology\", and defines its subject as covering the weights themselves: \"\"Apple Machine Learning Research Model\" means the model, including but not limited to algorithms, formulas, trained model weights, parameters, configurations, checkpoints, and any related materials (including documentation).\" The grant is limited to \"\"Research Purposes\" means non-commercial scientific research and academic development activities, such as experimentation, analysis, testing conducted by You with the sole intent to advance scientific knowledge and research. \"Research Purposes\" does not include any commercial exploitation, product development or use in any commercial product or service.\" That restriction is a lifecycle statement about the artefact and is why this release records research rather than unknown — the status is sourced, not inferred from the absence of other wording. The recorded licence name is the file's own self-description, quoted from the attribution notice its redistribution clause requires: \"Apple Machine Learning Research Model is licensed under the Apple Machine Learning Research Model License Agreement.\" The typographic quotation marks are the file's own. That \"apple-amlr\" in the card front matter abbreviates this title is an inference no page states and is not relied on. These terms are not published by the Open Source Initiative, so osiApproved is false, cited to osi-license-index."
   },
   {
