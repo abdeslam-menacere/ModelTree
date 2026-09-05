@@ -352,7 +352,7 @@ remediating a gate failure. The rigour was real, and it is not what failed.
 | # | what is stale | can the writer assert it away? |
 |---|---|---|
 | 1 | the **anchor** — `refs/remotes/origin/main` is hours old | yes, by re-reading the remote before measuring: the trunk-anchor section under **Finishing** |
-| 2 | the **subject** — the tip advanced past the SHA reported | yes, by measuring `git rev-parse HEAD` as you write rather than recalling it, and asserting it against `refs/heads/<branch>`: **Finishing** |
+| 2 | the **subject** — the tip advanced past the SHA reported | yes, by measuring `git rev-parse HEAD` as you write rather than recalling it, which **Finishing** mandates; asserting it against `refs/heads/<branch>` is a further check that section does not require |
 | 3 | the claim's standing against **events that postdate the write** | **no** |
 
 Classes 1 and 2 are writer-side and already covered, which is why they are named
@@ -450,9 +450,18 @@ $cCmt = $LASTEXITCODE
 @($c).Count
 ```
 
-`@(...)` for the reason the scalar/array polymorphism row in step 4 gives: a
-result of exactly one comment comes back as a bare object whose `.Count` is
-empty, so the naive form reports a hand-off that exists as no hand-off at all.
+`@(...)` is right, and so is the assignment above it — but not for the reason
+the scalar/array polymorphism row in step 4 gives. That row describes a
+`Where-Object` filter matching exactly one record, and `ConvertFrom-Json` does
+not behave that way: measured on `PSVersion 5.1.26100.9168`, a JSON array parses
+to `System.Object[]` at every arity, its bare `.Count` reading 0, 1 and 2. What
+bites here is collapsing those two lines into one. `ConvertFrom-Json` emits the
+whole array as a single pipeline item, so the inline form counts that one item
+and returns **1** for an empty, a one-comment and a two-comment issue alike — a
+constant wearing the shape of a measurement, and it read 1 against this file's
+own issue where the assigned form read 5. Assign, then count, and re-measure
+both against your own `$PSVersionTable.PSVersion` rather than trusting these
+figures.
 
 Several hand-offs on one issue is the norm here rather than an edge case.
 Counting the comments that are not gate-agent posts — those open `### Drydock` —
