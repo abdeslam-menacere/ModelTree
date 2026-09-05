@@ -388,7 +388,11 @@ const CHECKS = [
         label: 'Run the link-health tests',
         cwd: '.',
         bin: 'node',
-        args: ['--test', '.github/scripts/source-link-health/link-health.test.mjs'],
+        args: [
+          '--test',
+          '.github/scripts/source-link-health/link-health.test.mjs',
+          '.github/scripts/source-link-health/check-licence-links.test.mjs',
+        ],
       },
       {
         label: 'Dry-run extraction over the seed dataset',
@@ -486,6 +490,14 @@ const NOT_COVERED = [
       'it requests every recorded source URL. It is advisory, never required, and reports only '
       + 'about URLs the pull request itself introduced; running it here would make a preflight '
       + 'depend on the network and on other people\'s uptime.',
+  },
+  {
+    check: 'licence-link-introduction',
+    what: 'the `licence-link-introduction` check',
+    why:
+      'it requests the licence URLs the pull request introduced or re-pointed. Like the sweep '
+      + 'beside it, it is advisory, never required, and network-bound, so running it here would '
+      + 'make a preflight depend on other people\'s uptime (ADR 0019).',
   },
   {
     check: 'Open or update the link-health issue',
