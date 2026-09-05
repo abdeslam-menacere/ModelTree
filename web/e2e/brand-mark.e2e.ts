@@ -47,7 +47,7 @@ async function inkCoverage(page: Page, svg: string, size: number): Promise<numbe
   return page.evaluate(
     async ({ svg, size, plate }) => {
       const img = new Image();
-      img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+      img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 
       // A standalone `.svg` is parsed as XML, which is strict: an unescaped `&`
       // or a `--` inside a comment makes the whole file undecodable and the icon
@@ -112,7 +112,7 @@ test.describe('the brand mark renders at favicon scale', () => {
 
     const coverage = await page.evaluate(async (svg) => {
       const img = new Image();
-      img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+      img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
       await img.decode();
 
       const canvas = document.createElement('canvas');
