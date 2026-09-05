@@ -5044,7 +5044,7 @@
     "accessType": "open-weight",
     "license": {
       "name": "Falcon 180B TII License",
-      "url": "https://huggingface.co/tiiuae/falcon-180B",
+      "url": "https://huggingface.co/tiiuae/falcon-180B/blob/main/LICENSE.txt",
       "weightsDownloadable": true,
       "osiApproved": false
     },
@@ -5062,7 +5062,7 @@
       "tii-falcon-180b-model-card",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "ai2-molmo-7b-d",
