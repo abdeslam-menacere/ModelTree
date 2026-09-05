@@ -226,13 +226,34 @@ export function reviewedCreatorIds(repo) {
 function isRealDate(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const [y, m, d] = value.split('-').map(Number);
+  // Left on `Date.UTC` on purpose (#596). Removing the remap here is not a
+  // neutral correction the way it is in `startOf` below: this round-trip is
+  // the only thing in this file that refuses a year in 0001-0099, because
+  // unlike `gate-dataset.mjs` this gate carries no 1950 floor at the call
+  // site. Measured, committed against patched, `fetchedAt "0049-12-31"` moves
+  // from refused-as-unreal to accepted -- a change to what the gate admits,
+  // which #596 explicitly does not ask for. Whoever removes it owes a decision
+  // about the floor, not just an edit.
   const date = new Date(Date.UTC(y, m - 1, d));
   return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
 }
 
+/**
+ * `Date.UTC` without its two-digit-year remap (#596), as in `gate-dataset.mjs`.
+ *
+ * `Date.UTC` maps a year in 0-99 to 1900-1999, so `Date.UTC(49, 11, 31)` is
+ * 1949 rather than year 49. The signature mirrors `Date.UTC` -- year,
+ * **zero-based** month, day -- so the call site changes only the name.
+ */
+function utcMs(year, monthIndex, day) {
+  const date = new Date(0);
+  date.setUTCFullYear(year, monthIndex, day);
+  return date.getTime();
+}
+
 function startOf(value) {
   const [y, m = 1, d = 1] = String(value).split('-').map(Number);
-  return Date.UTC(y, m - 1, d);
+  return utcMs(y, m - 1, d);
 }
 
 // ---------------------------------------------------------------------------

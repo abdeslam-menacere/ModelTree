@@ -12,6 +12,25 @@ import {
 const entityId = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 const slug = entityId;
 
+/*
+ * The two round-trips below still build with `Date.UTC`, which maps a year in
+ * 0-99 to 1900-1999 (#596). That is a defect, and it is deliberately still
+ * here: removing it would change what these schemas accept, and they are the
+ * final authority on the dataset's shape.
+ *
+ * Measured as committed: `0049-12-31` is refused by both, while `0049` and
+ * `0049-12` are already accepted, because `partialDate` returns at year and
+ * month precision without reaching the round-trip at all. So the band is
+ * half-admitted today, and the remap is what refuses the other half. Removing
+ * it admits `0049-12-31` too. `gate-dataset.mjs` can drop the same remap
+ * safely because its `EARLIEST_YEAR = 1950` floor refuses the whole band at
+ * the call site; there is no such floor here.
+ *
+ * Whoever removes it should decide the floor question first, and keep year
+ * 0000 refused explicitly -- it is refused today only as a side effect of the
+ * remap, exactly as #586 found in `gate-dataset.mjs`.
+ */
+
 export const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => {
   const [year, month, day] = value.split('-').map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
