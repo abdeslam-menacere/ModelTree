@@ -2069,7 +2069,7 @@
       "mistral-devstral-2-123b-model-card",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "mistral-devstral-small-2-24b-instruct",
@@ -2226,7 +2226,7 @@
       "hugging-face-deepseek-v4-pro-hub-record",
       "osi-license-mit"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "deepseek-v4-flash",
@@ -2279,7 +2279,7 @@
       "hugging-face-deepseek-v4-flash-hub-record",
       "osi-license-mit"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "deepseek-v3-2",
@@ -2325,7 +2325,7 @@
       "hugging-face-deepseek-v3-2-hub-record",
       "osi-license-mit"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "anthropic-claude-opus-4-6",
@@ -2697,7 +2697,7 @@
       "qwen3-8-flash-next-license",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-03"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "microsoft-mai-thinking-1",
@@ -3258,7 +3258,7 @@
       "hugging-face-kimi-k2-instruct-hub-record",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "eleutherai-pythia-12b",
@@ -3349,7 +3349,7 @@
       "lg-ai-research-exaone-3-5-repository",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "lg-ai-research-exaone-4-0-32b",
@@ -3393,7 +3393,7 @@
       "lgai-exaone-4-0-repository",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "snowflake-arctic-instruct",
@@ -3622,7 +3622,7 @@
       "tencent-hunyuan-community-license",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "bytedance-seed-oss-36b-instruct",
@@ -3905,7 +3905,7 @@
       "hugging-face-openelm-3b-instruct-hub-record",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "hugging-face-smollm3-3b",
@@ -4044,7 +4044,7 @@
       "hugging-face-minimax-text-01-hub-record",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "sakana-ai-evollm-jp-v1-7b",
@@ -4091,7 +4091,7 @@
       "hugging-face-evollm-jp-hub-record",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "sarvam-ai-sarvam-m-v1",
@@ -4186,7 +4186,7 @@
       "naver-hyperclova-x-seed-license",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "aleph-alpha-pharia-1-llm-7b-control",
@@ -4368,7 +4368,7 @@
       "liquid-lfm2-1-2b-model-card",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "xiaomi-mimo-7b-rl-0530",
@@ -4555,7 +4555,7 @@
       "qwen3-8-repository",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-08-31"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "alibaba-qwen3-6-35b-a3b",
@@ -4607,7 +4607,7 @@
       "qwen3-8-repository",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-08-31"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "eleutherai-gpt-neo-2-7b",
@@ -5234,7 +5234,7 @@
       "apple-fastvlm-announcement",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-02"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "zhipu-ai-cogvideox-2b",
