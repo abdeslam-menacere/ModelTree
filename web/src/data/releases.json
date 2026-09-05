@@ -4396,7 +4396,7 @@
     "license": {
       "name": "MIT License",
       "spdxId": "MIT",
-      "url": "https://huggingface.co/XiaomiMiMo/MiMo-7B-RL-0530/blob/main/LICENSE",
+      "url": "https://huggingface.co/XiaomiMiMo/MiMo-7B-RL-0530",
       "weightsDownloadable": true,
       "osiApproved": true
     },
@@ -4414,7 +4414,7 @@
       "xiaomi-mimo-7b-rl-0530-model-card",
       "osi-license-mit"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "ai-singapore-llama-sea-lion-v3-8b",
