@@ -14,7 +14,7 @@
   ],
   "source_catalog": [
     {
-      "id": "osi-approved-licenses",
+      "id": "osi-license-index",
       "owner": "Open Source Initiative",
       "url": "https://opensource.org/licenses",
       "kind": "licence-authority-list",
