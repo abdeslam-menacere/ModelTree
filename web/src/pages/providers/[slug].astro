@@ -9,6 +9,7 @@ import { formatDate } from '../../lib/format';
 import { buildCreatorEcosystems } from '../../lib/lineage-view';
 import { buildProviderProfile } from '../../lib/provider-profile';
 import { organizationFullNameIfDistinct, organizationLabel } from '../../lib/organization-name';
+import { buildReleaseSourceIndex } from '../../lib/release-source';
 import { providerStaticPaths } from '../../lib/routes';
 import { absoluteUrl } from '../../lib/seo';
 import { buildBreadcrumbJsonLd, buildOrganizationJsonLd } from '../../lib/structured-data';
@@ -38,14 +39,7 @@ if (!ecosystem) throw new Error(`No recorded ecosystem for ${organizationId}`);
 const releaseLabels = Object.fromEntries(
   dataset.releases.map((release) => [release.id, release.displayName]),
 );
-const sourceByReleaseId = Object.fromEntries(dataset.releases.map((release) => {
-  const source = release.sourceIds
-    .map((sourceId) => sourceById.get(sourceId))
-    .find((candidate) => candidate?.type === 'official-docs')
-    ?? sourceById.get(release.sourceIds[0]);
-  if (!source) throw new Error(`No source found for ${release.id}`);
-  return [release.id, { title: source.title, url: source.url }];
-}));
+const sourceByReleaseId = buildReleaseSourceIndex(dataset.releases, sourceById);
 
 const { organization } = profile;
 const roleText = profile.operatesServingPlatform
