@@ -7,6 +7,15 @@
 // evaporates while the site goes on asserting the fact -- a silent failure, and
 // the worst kind for a source-backed product.
 //
+// Two kinds of URL are swept, and they are kept apart end to end. A source
+// record's `url` is a citation. A release's `license.url` is a pointer to the
+// terms a model is published under, which is not a citation -- the registration
+// rule in `web/src/data/source-registration.test.ts` excludes it on exactly
+// that ground -- but rots identically and, until #931, was fetched by nothing at
+// all. `extractTargets` reads the first, `extractLicenceTargets` the second, and
+// `mergeTargets` unions them so a URL serving both roles is requested once and
+// reported once, naming both provenances.
+//
 // Why it is built defensively: a naive checker that reddens on a rate limit is
 // worse than no checker, because it teaches people to ignore it. The dataset's
 // two largest host groups are exactly the ones that rate-limit and serve
@@ -286,6 +295,117 @@ export function extractTargets(records) {
   }
 
   return { targets: [...byUrl.values()], malformed };
+}
+
+/**
+ * Collapse release records into the licence URLs worth requesting.
+ *
+ * Separate from `extractTargets` rather than folded into it, because the two
+ * read different documents and make different claims. A source record's `url`
+ * is a citation: evidence that some fact is true. A release's `license.url` is
+ * a pointer to the terms a model is published under. Both rot the same way and
+ * neither was being fetched, but a report that called a release id a "source
+ * record" would send a maintainer looking for a citation that does not exist,
+ * so the two are tracked apart all the way through to the rendered report.
+ *
+ * A release with no `license.url` is skipped in silence and is not malformed.
+ * The field is `optional()` in `licenseSchema`, and the schema's own reasoning
+ * says a bespoke non-OSI licence carrying no canonical URL is a legitimate
+ * record rather than a gap. Only a value that is present and unusable is
+ * reported, because that one is a pointer nobody can follow.
+ */
+export function extractLicenceTargets(records) {
+  if (!Array.isArray(records)) {
+    throw new TypeError('extractLicenceTargets expects an array of release records');
+  }
+
+  const byUrl = new Map();
+  const malformed = [];
+
+  for (const [index, record] of records.entries()) {
+    const id = typeof record?.id === 'string' ? record.id : null;
+    const where = id ?? `record at index ${index}`;
+    const raw = record?.license?.url;
+
+    if (raw === undefined || raw === null) continue;
+
+    if (typeof raw !== 'string' || raw.trim().length === 0) {
+      malformed.push({ id, url: null, reason: 'release records a licence url that is not a non-empty string', where });
+      continue;
+    }
+
+    const canonical = canonicaliseUrl(raw);
+    if (canonical === null) {
+      malformed.push({ id, url: raw, reason: 'licence url is not an absolute http(s) URL', where });
+      continue;
+    }
+
+    let target = byUrl.get(canonical);
+    if (target === undefined) {
+      target = {
+        canonical,
+        host: new URL(canonical).host,
+        recordIds: [],
+        licenceRecordIds: [],
+        titles: [],
+        rawUrls: [],
+      };
+      byUrl.set(canonical, target);
+    }
+
+    if (id !== null) {
+      if (!target.recordIds.includes(id)) target.recordIds.push(id);
+      if (!target.licenceRecordIds.includes(id)) target.licenceRecordIds.push(id);
+    }
+    if (!target.rawUrls.includes(raw)) target.rawUrls.push(raw);
+  }
+
+  return { targets: [...byUrl.values()], malformed };
+}
+
+/**
+ * Union several target lists on the canonical URL.
+ *
+ * This is not a nicety. Measured on the committed dataset when licence sweeping
+ * was added: 57 releases carry a `license.url`, those reduce to 41 unique URLs,
+ * and 21 of the 41 are already cited as a source somewhere in `sources.json`.
+ * Concatenating the two lists instead of merging them would issue those 21
+ * requests twice — half again as much traffic aimed at the hosts this checker
+ * is most careful with — and report one URL under two entries, so a maintainer
+ * reading the report could not tell one rotted link from two.
+ *
+ * The merged entry keeps both provenances. `recordIds` stays the union, which
+ * is what `summarise` reports as affected; `licenceRecordIds` is the subset
+ * that named the URL as a licence.
+ */
+export function mergeTargets(...lists) {
+  const byUrl = new Map();
+
+  for (const list of lists) {
+    for (const target of Array.isArray(list) ? list : []) {
+      const existing = byUrl.get(target.canonical);
+
+      if (existing === undefined) {
+        byUrl.set(target.canonical, {
+          ...target,
+          recordIds: [...target.recordIds],
+          licenceRecordIds: [...(target.licenceRecordIds ?? [])],
+          titles: [...target.titles],
+          rawUrls: [...target.rawUrls],
+        });
+        continue;
+      }
+
+      for (const id of target.recordIds) if (!existing.recordIds.includes(id)) existing.recordIds.push(id);
+      for (const id of target.licenceRecordIds ?? []) {
+        if (!existing.licenceRecordIds.includes(id)) existing.licenceRecordIds.push(id);
+      }
+      for (const title of target.titles) if (!existing.titles.includes(title)) existing.titles.push(title);
+      for (const raw of target.rawUrls) if (!existing.rawUrls.includes(raw)) existing.rawUrls.push(raw);
+    }
+  }
+
+  return [...byUrl.values()];
 }
 
 /**
@@ -994,7 +1114,25 @@ function section(heading, results, note) {
 
   for (const result of results) {
     lines.push(`- [${label(result)}](${result.canonical}) — ${detail(result)}`);
-    lines.push(`  - Affected source records: ${recordList(result)}`);
+
+    // One URL can carry two different claims, and they are not interchangeable:
+    // a source record cites it as evidence for a fact, a release names it as
+    // where its licence terms live. Printing a release id under "source
+    // records" would send a maintainer hunting for a citation that was never
+    // made. Targets that carry no licence provenance keep the original line
+    // exactly, including its "no source record id" fallback.
+    const licenceIds = result.licenceRecordIds ?? [];
+    const sourceIds = result.recordIds.filter((id) => !licenceIds.includes(id));
+
+    if (licenceIds.length === 0) {
+      lines.push(`  - Affected source records: ${recordList(result)}`);
+    } else {
+      if (sourceIds.length > 0) {
+        lines.push(`  - Affected source records: ${sourceIds.map((id) => `\`${id}\``).join(', ')}`);
+      }
+      lines.push(`  - Named as \`license.url\` by: ${licenceIds.map((id) => `\`${id}\``).join(', ')}`);
+    }
+
     if (result.expiredExclusion !== undefined) {
       lines.push(
         `  - Its exclusion expired on ${result.expiredExclusion.expiresOn} and needs re-reviewing: ${result.expiredExclusion.reason}`,

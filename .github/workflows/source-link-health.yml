@@ -1,11 +1,18 @@
 name: Source link health
 
-# Reports primary source URLs in `web/src/data/sources.json` that no longer
-# resolve as recorded, and never changes them.
+# Reports recorded URLs that no longer resolve as recorded, and never changes
+# them. Two kinds are swept: every primary source URL in
+# `web/src/data/sources.json`, and -- on the scheduled sweep only, since #931 --
+# every `license.url` in `web/src/data/releases.json`.
 #
 # ModelTree's claim is that every important fact carries a primary source and a
 # verification date. When a link rots the evidence evaporates while the site goes
-# on asserting the fact, which is a silent failure and the worst kind here.
+# on asserting the fact, which is a silent failure and the worst kind here. A
+# licence URL is the same failure with no citation machinery behind it: nothing
+# registers it, nothing linked it to a source record, and until #931 nothing
+# fetched it, so 57 releases asserted a licence location that no instrument had
+# ever asked about and one of them had been a 404 for weeks. ADR 0017 records why
+# the scheduled sweep is the only run that requests them.
 #
 # The reason this workflow is shaped the way it is: a naive link check reddens on
 # a rate limit, and a check that reddens on things nobody can fix is one people
@@ -160,8 +167,16 @@ jobs:
 
           # What the suite reads: the checker and its own tests, this workflow
           # file so a change to it is verified by the workflow it changes, and
-          # `sources.json`, because one test extracts targets from the committed
-          # dataset and would not otherwise notice a record it cannot use.
+          # `sources.json` and `releases.json`, because tests extract targets
+          # from the committed dataset and would not otherwise notice a record
+          # they cannot use.
+          #
+          # `releases.json` joined that list in #931, when licence sweeping was
+          # added. It is load-bearing rather than tidy: the dry-run step below
+          # is the only thing that catches a `license.url` which cannot be
+          # turned into a request at all, and a pull request that edits only
+          # `releases.json` would otherwise skip this whole job and introduce
+          # one unchallenged.
           #
           # A here-string rather than a pipe: `grep -q` exits on its first match,
           # which can leave the left of a pipe killed by SIGPIPE and the whole
@@ -178,7 +193,7 @@ jobs:
           # statuses are therefore separated, and anything that is not a clean
           # match-or-no-match runs the tests (#691, after #609).
           set +e
-          grep -Eq '^(\.github/scripts/source-link-health/|\.github/workflows/source-link-health\.yml$|web/src/data/sources\.json$)' <<< "$changed"
+          grep -Eq '^(\.github/scripts/source-link-health/|\.github/workflows/source-link-health\.yml$|web/src/data/(sources|releases)\.json$)' <<< "$changed"
           status=$?
           set -e
 
@@ -215,6 +230,14 @@ jobs:
       # The extraction dry run over the committed dataset, which issue #29 asks
       # for by name. It makes no request; it proves every source record reduces
       # to a URL something could be asked about.
+      #
+      # It is invoked with no baseline, so since #931 it covers every
+      # `license.url` a release records as well. That is deliberate and it is
+      # free: a licence URL that cannot be turned into a request at all is a
+      # defect in this repository's own data, so it fails here on the pull
+      # request that introduced it. Whether a licence URL still *resolves* is a
+      # different question and stays on the scheduled sweep, because it asks
+      # somebody else's server (ADR 0017).
       - name: Dry-run extraction over the seed dataset
         if: steps.scope.outputs.run == 'true'
         run: node .github/scripts/source-link-health/check-source-links.mjs --dry-run
@@ -305,6 +328,15 @@ jobs:
           # and the base revision intact, so the baseline still narrows this run
           # to the URLs the pull request introduced; if `sources.json` is in fact
           # untouched that set is empty and the run asks nothing of anyone.
+          # Keyed on `sources.json` alone, deliberately, and not widened to
+          # `releases.json` when licence sweeping arrived in #931. This step
+          # gates the half of the workflow that makes network requests, and a
+          # pull-request run never requests a licence URL (ADR 0017): the
+          # question it could answer -- did this diff introduce a URL that is
+          # already dead -- is introduction-time error, whereas the defect #931
+          # documents is upstream decay, which no diff-scoped run can see. The
+          # dry-run step in the tests job above is what covers `releases.json`
+          # on a pull request, and it asks nothing of anyone.
           set +e
           grep -Fxq 'web/src/data/sources.json' <<< "$changed"
           status=$?
@@ -511,9 +543,27 @@ jobs:
 
           findings="${FINDINGS:-[]}"
 
+          # One jq definition, used by all three sections below, so the three
+          # cannot drift into labelling provenance differently. `recordIds` is
+          # the union of both kinds; subtracting the licence ids leaves the
+          # source citations. A finding with neither -- possible only for a URL
+          # carrying no record id at all -- renders as the bare link, which is
+          # what the previous single-line form did too.
+          JQ_AFFECTED='
+            def affected:
+              (.licenceRecordIds // []) as $lic
+              | ((.recordIds // []) - $lic) as $src
+              | (if ($src | length) > 0
+                 then "\n  - Affected source records: " + ($src | map("`\(.)`") | join(", "))
+                 else "" end)
+                + (if ($lic | length) > 0
+                   then "\n  - Named as `license.url` by: " + ($lic | map("`\(.)`") | join(", "))
+                   else "" end);
+          '
+
           {
-            echo "The source link-health sweep found $ACTIONABLE primary source URL(s) that no"
-            echo "longer resolve as recorded, and $MALFORMED source record(s) whose URL could not"
+            echo "The source link-health sweep found $ACTIONABLE recorded URL(s) that no"
+            echo "longer resolve as recorded, and $MALFORMED record(s) whose URL could not"
             echo "be turned into a request at all. **Nothing in the dataset has been changed** -"
             echo "replacing a source URL is a reviewed human edit, and this workflow never makes"
             echo "one."
@@ -525,28 +575,34 @@ jobs:
             echo "here. They say nothing about whether a source still exists, so they stay in the"
             echo "report and out of this issue."
             echo
+            echo "Each finding names its provenance. A URL under **Affected source records** is"
+            echo "cited as evidence by those \`sources.json\` records; a URL under **Named as"
+            echo "\`license.url\` by** is where those releases say their licence terms live. One"
+            echo "URL can be both. The two are not interchangeable and a fix for one is not"
+            echo "automatically a fix for the other."
+            echo
             echo "## Definitively broken"
             echo
-            printf '%s' "$findings" | jq -r '
+            printf '%s' "$findings" | jq -r "$JQ_AFFECTED"'
               [.[] | select(.state == "broken")]
               | if length == 0 then "None."
-                else .[] | "- [\(.title // .url)](\(.url)) - HTTP \(.status)\n  - Affected source records: \(.recordIds | map("`\(.)`") | join(", "))"
+                else .[] | "- [\(.title // .url)](\(.url)) - HTTP \(.status)" + affected
                 end'
             echo
             echo "## Permanently moved"
             echo
-            printf '%s' "$findings" | jq -r '
+            printf '%s' "$findings" | jq -r "$JQ_AFFECTED"'
               [.[] | select(.state == "redirected")]
               | if length == 0 then "None."
-                else .[] | "- [\(.title // .url)](\(.url)) - now at \(.finalUrl)\n  - Affected source records: \(.recordIds | map("`\(.)`") | join(", "))"
+                else .[] | "- [\(.title // .url)](\(.url)) - now at \(.finalUrl)" + affected
                 end'
             echo
             echo "## Expired exclusions"
             echo
-            printf '%s' "$findings" | jq -r '
+            printf '%s' "$findings" | jq -r "$JQ_AFFECTED"'
               [.[] | select(.exclusionExpiredOn != null)]
               | if length == 0 then "None."
-                else .[] | "- [\(.title // .url)](\(.url)) - exclusion expired \(.exclusionExpiredOn)\n  - Affected source records: \(.recordIds | map("`\(.)`") | join(", "))"
+                else .[] | "- [\(.title // .url)](\(.url)) - exclusion expired \(.exclusionExpiredOn)" + affected
                 end'
             echo
             echo "## Records with an unusable URL"

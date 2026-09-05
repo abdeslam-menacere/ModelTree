@@ -4213,7 +4213,7 @@
     "accessType": "open-weight",
     "license": {
       "name": "Open Aleph License",
-      "url": "https://github.com/Aleph-Alpha/.github/blob/main/oal.pdf",
+      "url": "https://huggingface.co/Aleph-Alpha/Pharia-1-LLM-7B-control/blob/main/LICENSE",
       "weightsDownloadable": true,
       "osiApproved": false
     },
@@ -4231,7 +4231,7 @@
       "aleph-alpha-pharia-1-llm-7b-control-model-card",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-05"
   },
   {
     "id": "reka-flash-3-1",
