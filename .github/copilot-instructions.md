@@ -322,7 +322,7 @@ their own right.
 Two of those lines are measurements taken as you write, never facts recalled
 from earlier in the session: the commit you are standing on now,
 `git rev-parse HEAD`, and how many commits your branch carries,
-`git rev-list --count <merge-base>..HEAD`, with the merge-base computed the way
+`git rev-list --count "<merge-base>..HEAD"`, with the merge-base computed the way
 the gates compute it. A SHA remembered from mid-session names a commit you have
 since built on top of, so it under-reports your own work — the quiet direction,
 and the one nobody checks. The dock for abdeslam-menacere/ModelTree#584 reported
