@@ -27,6 +27,7 @@ from ..contracts import (
     content_hash,
 )
 from ..profiles import (
+    ProfileError,
     _DuplicateIdGuard,
     _refuse_padded_id,
     _require,
@@ -136,6 +137,39 @@ def load_fixture_library(directory: Path) -> FixtureLibrary:
     hand-edited fixture that drops a required field fails as a named refusal rather than
     a traceback, and nothing is written.
 
+    A **syntactically invalid** document is refused the same way, with the wording the
+    two reviewed sets already use — ``could not be read``, wrapping the parser's own
+    sentence rather than replacing it, so the line and column ``JSONDecodeError`` carries
+    survive into the refusal (#166). This was the last unguarded parse of the three: at
+    the merge base ``json.loads`` ran bare here, so a hand-edited fixture with a stray
+    comma exited **1** with a traceback whose message named a line and column but *not
+    which file*, which is the one thing the reader needs when a directory holds a dozen
+    documents. ``--fixtures`` is the offline path — CI, the gates, and anyone reproducing
+    a run without credentials — and so also the path a contributor hand-edits, which is
+    exactly when a syntax error is likeliest. The neighbouring missing-fixtures case has
+    refused cleanly since #139; this makes the two consistent instead of one refusing and
+    the other dumping a stack.
+
+    ``OSError`` shares that clause for the reason #166 raises it: an unreadable file is
+    the same shape of problem from the reader's side, so a permission denial is a named
+    refusal too and costs nothing extra. One divergence from the two reviewed loaders is
+    deliberate rather than inherited: they re-raise ``FileNotFoundError`` untouched,
+    because there the path is one the *caller named* and "not found" is the precise
+    answer. Here every path comes from scanning a directory that has already been found,
+    so a read-time ``FileNotFoundError`` is a file removed mid-scan — and re-raising it
+    would reach :func:`~modeltree_updater.cli._fixture_library`, which appends the "pass
+    ``--fixtures`` with a path to the repository's fixtures" hint to every
+    ``FileNotFoundError``. That hint answers a question the reader did not ask: their
+    ``--fixtures`` was right and the directory was there. Folding it into the named
+    refusal says what actually happened.
+
+    What is *not* handled here, deliberately: a file whose bytes are not valid UTF-8
+    raises ``UnicodeDecodeError`` from ``read_text``, which is a ``ValueError`` and so
+    not caught by either clause. That gap is identical in all three loaders, and closing
+    it in this one alone would recreate exactly the "one rule, three copies" divergence
+    #108, #151, #199 and #204 each spent a fix removing. It belongs in a change that
+    moves all three together.
+
     One wording divergence is inherited, not chosen: the shared refusal for a
     case-variant extension says "the reviewed set", which here names the set of
     fixtures being discovered. Fixtures are not a reviewed set, but the reason the
@@ -165,7 +199,10 @@ def load_fixture_library(directory: Path) -> FixtureLibrary:
         ),
     )
     for path in _reviewed_profile_paths(directory, kind="a creator fixture"):
-        document = json.loads(path.read_text(encoding="utf-8"))
+        try:
+            document = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise ProfileError(f"{path.name}: could not be read: {error}") from error
         creator = _require(document, "creator", path=path)
         request = CreatorRequest(
             creator_id=_refuse_padded_id(
