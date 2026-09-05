@@ -1466,10 +1466,11 @@ not that OID: it is whichever trunk you resolved.
 not softened.** It said to compare every path your branch changed against trunk
 with `git rev-parse <ref>:<path>` on each side and to read identical OIDs as
 the same finding reached without the conflicted tree. It is broken two
-independent ways, both of which return "differ", so it can only ever produce
-one answer and cannot deliver the verdict it was added to deliver. A dock
-following it exactly, with a clean transcript and no error visible, concludes
-"genuinely unmerged" about merged work.
+independent ways, and both break it in the same direction: each turns content
+that is present into a "differ". That is what stops it delivering the verdict it
+was added to deliver, because "differ" is the half the rule converted into
+`NOT LANDED`, and a dock following it exactly — clean transcript, no error
+visible — can conclude "genuinely unmerged" about merged work.
 
 First, on a path missing from one side it exits 128 and prints the rev-spec
 back **on stdout** — non-empty, stable, different per path, and opening with a
@@ -1518,6 +1519,64 @@ doing the documented thing after an inconclusive first probe is misled twice in
 a row. That is why the fallback is gone rather than annotated, and it is the
 strongest evidence for the position in abdeslam-menacere/ModelTree#652 that the
 unit needing repair is the section rather than any one command.
+
+**Both breaks fall on the differing answer, and neither licenses the stronger
+claim this passage used to make — that the probe can only ever return
+"differ".** The section falsifies that claim itself: the split immediately
+above reads `identical 5   differ 6`, and the comparand table below records a
+run of `identical 8   differing 0`. A reader who adopts the universal meets its
+counter-example a paragraph later and then has to decide how much of an
+otherwise load-bearing section to keep — and the bill arrives at the worst
+possible moment, because this passage is reached exactly when `merge-tree` has
+conflicted and the fallback is the only instrument left.
+
+Re-derived 2026-09-05 against trunk `61077fb0dc4045680e3f65c7786959b7647f89ad`,
+on two branches in that situation — `merge-tree --write-tree` exited 1 on both,
+so the printed tree was not a comparable artefact and the fallback was all that
+remained:
+
+```
+abdeslam-menacere-issue-26-release-timeline-changelog   4 commits
+  merge-tree exit 1    14 paths:  identical  8   differ  6   absent 0
+abdeslam-menacere-ideal-invention                       3 commits
+  merge-tree exit 1    26 paths:  identical 11   differ 15   absent 0
+```
+
+Nineteen identical readings across forty paths, none of which the withdrawn rule
+could produce if it answered "differ" unconditionally. Quote the anchor whenever
+you report a split like that: the comparison is against a trunk, and a split
+reported without its comparand stops reproducing without announcing it.
+
+**So carry the asymmetry rather than the universal.** A *differing* path
+establishes nothing at all — both breaks land there, and the two paragraphs
+above are why. *Identical on every changed path* does establish that trunk holds
+that content, which is what blob identity means, subject to step 1's commit
+count: a branch with no commits of its own has an empty path list and satisfies
+the rule vacuously. What it still does not establish is that **your** branch put
+it there, which is the whole of the `LANDED` versus `SUPERSEDED` distinction and
+is answered in steps 2 and 4 rather than here.
+
+**And it reads as nothing in either direction unless both guards are on.** Break
+one arrives on stdout, so a caller has to read the exit status **and** require
+the output to match `^[0-9a-f]{40}$`; testing for emptiness or reading a prefix
+accepts the echo, which is exactly what makes that break silent. Measured at the
+same trunk on `git 2.53.0.windows.4`, a real path and an invented one in the
+same invocation:
+
+```
+.github/copilot-instructions.md        exit   0   95b032160aeb2ad71287e6c1cec49518b406ba94   hex yes   accepted
+web/src/data/zzz-not-a-real-path.json  exit 128   61077fb0...:web/src/data/zzz-not-a-real-path.json   hex no    rejected
+```
+
+The invented path is the control and it earns its keep: it is non-empty and it
+opens with a real 40-character SHA, so it passes both of the tests a careless
+caller writes, and only the hex shape tells it from an OID. One arm accepted and
+one rejected in the same run is what makes the accepted arm a reading rather
+than an instrument that says yes to everything.
+
+None of this reinstates the fallback. It stays withdrawn as a verdict; what is
+corrected here is the reason given for withdrawing it, which was stated more
+broadly than the two breaks support.
 
 **The obvious repair — compare against the squash commit instead of against
 trunk — does not work either, and it fails on the same input.** It is the first
