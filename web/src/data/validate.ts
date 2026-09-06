@@ -18,6 +18,27 @@ import {
   type FamilyDatePrecision,
 } from './partial-date';
 
+/**
+ * Which source types count as primary evidence.
+ *
+ * The question this set answers: **is this source primary at all?** It is a
+ * membership test, not a ranking — nothing here says an announcement outranks a
+ * model card, only that both clear the bar.
+ *
+ * It is one of three source-type lists in this repository, and they disagree on
+ * purpose because each answers a different question:
+ *
+ * - here — a membership set, whether a source is primary at all;
+ * - `SOURCE_TYPE_PRIORITY` in `../lib/release-pulse.ts` — an order, which
+ *   source best reports an *event*, so `official-announcement` leads;
+ * - `RELEASE_SOURCE_TYPE_PRIORITY` in `../lib/release-source.ts` — an order,
+ *   which source best *describes the model*, so `official-docs` leads.
+ *
+ * Nothing in the code relates the three, so the disagreement reads like an
+ * oversight and is not one. Do not reconcile them into a single list: this one
+ * is not even the same shape as the other two, and collapsing the two orders
+ * would silently re-rank one of the surfaces that reads them.
+ */
 export const PRIMARY_SOURCE_TYPES = new Set<SourceReference['type']>([
   'official-announcement',
   'official-docs',
