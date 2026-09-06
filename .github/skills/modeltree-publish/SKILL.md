@@ -327,22 +327,86 @@ reader can confirm which deploy was checked.
 
 To confirm the command itself is working — that an empty result means "no run"
 rather than "the command is broken" — run it against a commit **known to have a
-Pages run**:
+Pages run** and **known not to be the run you are verifying**. Both halves are
+load-bearing, and the second is the one that is easy to lose: a control that
+resolves to `$MERGE_SHA` asks the identical question the subject query has just
+asked, so it returns a run for the same reason the subject does and
+discriminates nothing.
+
+That collision is structural rather than an unlucky ordering, which is why the
+control has to be selected against `$MERGE_SHA` rather than merely expected to
+differ from it. `--branch main --limit 1` selects the newest Pages run on
+`main`; the publish step has just merged to `main` and triggered exactly that
+run. So in the success case the newest run *is* the subject, guaranteed, and the
+only way that recipe picks a different commit is if somebody else merged in the
+interval — the control would work only when the reading is being disturbed by
+unrelated activity, which is when it is least interpretable
+(abdeslam-menacere/ModelTree#1025).
+
+Select the newest Pages run on `main` whose `headSha` differs from
+`$MERGE_SHA`, so the exclusion is part of the query rather than an assumption
+about ordering:
 
 ```bash
-# Pick any recent merge commit that deployed successfully:
-CONTROL_SHA="$(gh run list --workflow=pages.yml --branch main --limit 1 \
-  --json headSha --jq '.[0].headSha')"
+CONTROL_SHA="$(gh run list --workflow=pages.yml --branch main --limit 20 \
+  --json headSha \
+  --jq "[.[].headSha] | map(select(. != \"$MERGE_SHA\")) | .[0] // empty")"
+printf 'Control SHA: %s (length %d)\n' "$CONTROL_SHA" "${#CONTROL_SHA}"
+```
+
+The window is widened past one run because the subject is now being filtered out
+of it. `// empty` states the exhausted-window case in the query rather than
+leaving it to how the client renders a JSON `null` — measured on `gh 2.96.0`,
+`--jq` prints nothing for a null result, so the two forms agree there today, and
+the guard below is what enforces the case either way rather than depending on
+that rendering holding.
+
+**Check `$CONTROL_SHA` before reading either arm below.** It must be exactly 40
+characters and must differ from `$MERGE_SHA`. If it is empty, is not 40
+characters, or equals `$MERGE_SHA`, **the control has not been established, and
+the deploy result is `undetermined` regardless of what the subject query
+returned** — a subject reading with no working instrument behind it is not
+evidence in either direction, and an unestablished control is not a passed one.
+
+Then run both arms, in the same session, with the same command:
+
+```bash
+# Positive arm: a commit known to have a run, known not to be the subject.
 gh run list --workflow=pages.yml --commit "$CONTROL_SHA" \
+  --json headSha,status,conclusion,databaseId
+
+# Negative arm: a full 40-character SHA that cannot name a commit.
+gh run list --workflow=pages.yml \
+  --commit 0000000000000000000000000000000000000000 \
   --json headSha,status,conclusion,databaseId
 ```
 
-This must return at least one run. If it returns `[]`, the command itself is
-malfunctioning — do not trust any result from it and report the deploy status as
-**undetermined**. This control works because `$CONTROL_SHA` is a full 40-char SHA
-obtained from a run that already exists; `[]` from it cannot mean "no run" and
-cannot mean "abbreviated SHA" — it can only mean the instrument is broken. That
-is the discrimination the control exists to provide.
+The instrument counts as verified only when the two arms **disagree**:
+
+| positive arm | negative arm | reading |
+|---|---|---|
+| at least one run | `[]` | Verified. The command can find a run that exists and can return empty for one that does not, so an empty subject result means "no run yet" and the decision table above applies. |
+| `[]` | `[]` | The command cannot find a run it is known to have. Report the deploy as **undetermined**. |
+| at least one run | at least one run | The command returns runs for a commit that has none, so a non-empty subject result establishes nothing. Report the deploy as **undetermined**. |
+
+A single arm cannot reach that reading. One arm returning what you expected is
+consistent with a command that answers the same thing to everything, and the
+fabricated-SHA arm is free — it needs no run, no merge and no waiting — so there
+is no reason to run one arm alone.
+
+This control works because `$CONTROL_SHA` is a full 40-char SHA obtained from a
+run that already exists **and selected to be a different commit from the one
+under verification**; on that condition, `[]` from it cannot mean "no run",
+cannot mean "abbreviated SHA", and cannot mean "the subject's run has not been
+created yet" — it can only mean the instrument is broken. That is the
+discrimination the control exists to provide, and it is exactly what the
+collided form loses: with control and subject on one commit, an empty subject
+result and an empty control result arrive together, and the run reports a broken
+instrument at the moment its deploy is merely a few seconds late.
+
+Record `$CONTROL_SHA` and both arms' results in the summary issue beside the
+verified run's `databaseId` and `headSha`, so a later reader can see that the
+control was established rather than assumed.
 
 **If the deploy failed, revert.** A red `main` does not break the site, it
 freezes it on the previous build — stale content, healthy appearance, no signal
