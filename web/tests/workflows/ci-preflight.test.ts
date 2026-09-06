@@ -639,15 +639,16 @@ describe('the preflight cannot be talked into a pass', () => {
     try {
       const git = (...args: string[]) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' });
 
-      // These four are published rather than changed, so they stand in for
+      // These five are published rather than changed, so they stand in for
       // commands that exist without widening the diff: the change itself is the
-      // one file under .github/scripts/, which selects skills-ci alone. All five
+      // one file under .github/scripts/, which selects skills-ci alone. All six
       // of the job's commands have to stand in, or the assertion below reads "a
       // command could not start" as the failure it is meant to rule out.
       for (const stub of [
         '.github/skills/modeltree-gates/scripts/gates.test.mjs',
         '.github/skills/modeltree-gates/scripts/gate-dataset.mjs',
         '.github/scripts/check-shell-invocations.mjs',
+        '.github/scripts/check-gate-independence.mjs',
         '.github/scripts/check-shell-invocations.test.mjs',
       ]) {
         const target = join(repo, stub);

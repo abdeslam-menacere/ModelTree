@@ -223,6 +223,12 @@ const CHECKS = [
         bin: 'node',
         args: ['--test', '.github/scripts/check-shell-invocations.test.mjs'],
       },
+      {
+        label: 'Refuse a gate definition that reads the party under review',
+        cwd: '.',
+        bin: 'node',
+        args: ['.github/scripts/check-gate-independence.mjs'],
+      },
     ],
     requires: [],
   },

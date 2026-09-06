@@ -364,6 +364,36 @@ jobs:
         if: steps.scope.outputs.run == 'true'
         run: node --test .github/scripts/check-shell-invocations.test.mjs
 
+      # Gate independence was prose in one file and contradicted by the gate
+      # definitions in two others: `.github/copilot-instructions.md` says a gate
+      # judges from the issue text and `git diff` only, while both agent
+      # definitions told a gate to take its operating policy -- and, for QA, its
+      # acceptance criteria -- from `DOCK.md`, a file the party under review
+      # writes and can edit (#863). Nothing measured the disagreement, so it sat
+      # there through 222 recorded verdicts, protected by the accident that no
+      # `DOCK.md` has ever been created rather than by any rule.
+      #
+      # What this step measures is repository content and not runtime behaviour,
+      # and the distinction is load-bearing rather than a hedge: no gate
+      # transcript is repository content, so what an agent read at run time
+      # cannot be audited here at all. `.github/copilot-instructions.md` argues
+      # against pretending otherwise -- a sweep for one spelling reports green
+      # while another route returns the same bytes -- so this asserts the
+      # narrower thing that *is* versioned text: that every shipped gate
+      # definition still carries the permitted-inputs contract verbatim, and
+      # that nothing outside those blocks names a route to the developer's own
+      # account. The primary assertion is positive rather than a bad-string
+      # sweep, which is why there is no exemption marker to widen: the only
+      # excluded region is the contract itself, and every byte of it is pinned.
+      #
+      # Like the two checkers above it takes no arguments, proves each of its
+      # rules fires against a sample and stays silent on a control before it
+      # reads a file, and treats an empty scan as an error rather than a pass.
+      # Read the checker's own header before widening it.
+      - name: Refuse a gate definition that reads the party under review
+        if: steps.scope.outputs.run == 'true'
+        run: node .github/scripts/check-gate-independence.mjs
+
       # The step that turns a skip into a *report*. Without it a pull request
       # touching no gate input would run a job with every step skipped, and the
       # point of the restructure is that the check always concludes.
