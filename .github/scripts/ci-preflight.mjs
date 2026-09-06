@@ -229,6 +229,12 @@ const CHECKS = [
         bin: 'node',
         args: ['.github/scripts/check-gate-independence.mjs'],
       },
+      {
+        label: 'Prove the gate arm contamination guard still fires',
+        cwd: '.',
+        bin: 'node',
+        args: ['.github/scripts/gate-arm-guard.mjs', 'self-test'],
+      },
     ],
     requires: [],
   },

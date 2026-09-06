@@ -639,9 +639,9 @@ describe('the preflight cannot be talked into a pass', () => {
     try {
       const git = (...args: string[]) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' });
 
-      // These five are published rather than changed, so they stand in for
+      // These six are published rather than changed, so they stand in for
       // commands that exist without widening the diff: the change itself is the
-      // one file under .github/scripts/, which selects skills-ci alone. All six
+      // one file under .github/scripts/, which selects skills-ci alone. All seven
       // of the job's commands have to stand in, or the assertion below reads "a
       // command could not start" as the failure it is meant to rule out.
       for (const stub of [
@@ -650,6 +650,7 @@ describe('the preflight cannot be talked into a pass', () => {
         '.github/scripts/check-shell-invocations.mjs',
         '.github/scripts/check-gate-independence.mjs',
         '.github/scripts/check-shell-invocations.test.mjs',
+        '.github/scripts/gate-arm-guard.mjs',
       ]) {
         const target = join(repo, stub);
         mkdirSync(dirname(target), { recursive: true });
