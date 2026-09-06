@@ -218,6 +218,12 @@ const CHECKS = [
         args: ['.github/scripts/check-shell-invocations.mjs'],
       },
       {
+        label: 'Pin the shell guard fence model',
+        cwd: '.',
+        bin: 'node',
+        args: ['--test', '.github/scripts/check-shell-invocations.test.mjs'],
+      },
+      {
         label: 'Refuse a gate definition that reads the party under review',
         cwd: '.',
         bin: 'node',

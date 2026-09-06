@@ -344,6 +344,26 @@ jobs:
         if: steps.scope.outputs.run == 'true'
         run: node .github/scripts/check-shell-invocations.mjs
 
+      # What pins the fence model of the checker above (#1040). That checker's
+      # own self-test feeds command strings straight to the parser and never
+      # builds a document, so nothing exercised `fencedBlocks`: tilde support,
+      # cross-marker closure, run-length closure, indentation and the exemption
+      # lookback were all correct and all unpinned, and an edit narrowing the
+      # fence regex to backticks would have passed every check in this job.
+      #
+      # The suite runs the committed script over fixture corpora in a temporary
+      # repository root -- the shipped bytes, not a reimplementation -- and every
+      # case carries a stated mutation it is required to go red under.
+      #
+      # It belongs in *this* job because this job's scope pattern includes
+      # `.github/scripts/` as a whole directory. `web-ci` names
+      # `ci-preflight.mjs` file by file, so a vitest copy of this suite would
+      # never be selected by an edit to the checker it pins -- a guard that is
+      # not missing but never chosen, which is the shape #1040 is about.
+      - name: Pin the shell guard fence model
+        if: steps.scope.outputs.run == 'true'
+        run: node --test .github/scripts/check-shell-invocations.test.mjs
+
       # Gate independence was prose in one file and contradicted by the gate
       # definitions in two others: `.github/copilot-instructions.md` says a gate
       # judges from the issue text and `git diff` only, while both agent

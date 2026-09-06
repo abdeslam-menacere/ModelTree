@@ -702,7 +702,7 @@ two cases**:
 |---|---|---|
 | 1 | your branch already merged | the record, step 2 |
 | 2 | somebody closed your issue | issue state, step 0 |
-| 3 | somebody did your specific work, issue still open | content, step 4 |
+| 3 | somebody did your specific work, issue still open | content, step 4 — narrowed by step 2's issue key where the landing names your issue |
 
 1. **Your branch already merged.** Nothing inside a worktree changes when its
    branch merges into trunk, which makes the dock structurally the last party
@@ -769,7 +769,7 @@ have are the ones nobody thought to write down:
 | `ISSUE CLOSED` | the work is no longer wanted, whoever did it | stop, whatever the diff says; report which pull request or commit closed it |
 | `LANDED` | trunk already carries **this branch** | report exactly that and stop; do not ask for a gate |
 | `PARTIALLY LANDED` | an earlier commit of yours merged, your newest did not | name which commits, and treat only the remainder as unlanded |
-| `SUPERSEDED` | trunk already asserts what your change adds, from somebody else's branch | stop; report what of yours is novel, which is often nothing |
+| `SUPERSEDED` | trunk already asserts what your change adds, and your branch is not what put it there | stop; report what of yours is novel, which is often nothing |
 | `NOT LANDED` | this branch is not in trunk **and** trunk does not already assert what it adds | hand off to the review gate |
 | `UNDETERMINED` | the probe could not answer | say so, in that word; **never** round it to `NOT LANDED` |
 
@@ -949,11 +949,12 @@ failure from empty output:
   `headRefOid` are the only unlanded part; name them.
 - An empty list with `gh` exiting **0** ⇒ no record *for that head name*, but
   only from the `--state all` form: the flagless one returns that for a merged
-  branch too. This is **not a verdict**: it settles only that your branch did
-  not merge, which is one of the three ways you can be redundant. A branch
-  renamed after its pull request was opened also hides its own record, so query
-  the old name too. Either way you continue to step 4, which can turn this into
-  `NOT LANDED` or into `SUPERSEDED`.
+  branch too. This is **not a verdict**, and it does not settle even that your
+  branch did not merge. A branch renamed after its pull request was opened
+  hides its own record, so query the old name too — and a second ref name
+  pointing at the very same commit hides it in the same way, which is 44 refs
+  here rather than a corner case. Take keys 2 and 3 below before you go on to
+  step 4, which can turn this into `NOT LANDED` or into `SUPERSEDED`.
 - `gh` failing, unauthenticated or offline ⇒ `UNDETERMINED`. An empty string
   from a command that failed is not an empty result, which is why the exit code
   is read rather than the output.
@@ -1018,6 +1019,194 @@ request's recorded head — and they describe the branch's own shape *after* the
 record has already delivered the verdict. It explains a reading; it never
 produces one.
 
+**The branch name is one key of three, and an empty result under it is where
+the reading begins rather than where it ends.** Two things hide a merged pull
+request from the query above, and neither is the dropped-`--state all` failure
+a few paragraphs up. That one is a wrong *flag*; these are a wrong *key*, so
+the flag being present does not reach them:
+
+- **(a) The same commit under a second ref name.** Your commit was pushed and
+  merged from a ref your branch does not carry. Nothing was re-authored — it is
+  the same commit object, and a commit-keyed query finds it exactly.
+- **(b) Your content re-authored as a different commit.** No pull request
+  anywhere names your commit, because somebody wrote the change again. This is
+  a genuine `SUPERSEDED`, and only the issue-keyed probe reaches it.
+
+Case (a) is the common shape here rather than an exotic one. Measured
+2026-09-06 against trunk `3e786594be2b91135bded618ed7aaeedf9e0f8de`,
+reflog-dated `2026-09-06 09:10:43 -0400`: of 511 local branch refs, **44** read
+as having no pull request when keyed on their name and are the head of a
+**merged** one when keyed on their tip commit. The mechanism is ordinary — a
+gate or review worktree is cut from a dock's branch, the app names the new
+branch after the session, and the pull request was opened from the dock's name.
+Two refs, one commit, and the query above asks about the name. That sweep is
+only as good as its own completeness, and its shortfall reports itself nowhere:
+measured in one run, `gh pr list --state all --limit 400` returned exactly 400
+and `--limit 2000` returned 414, **both at exit 0**. A limit that truncates
+accuses branches falsely, so raise it until the count comes back under it. Both
+numbers move — an earlier run the same day returned 413 — which is the second
+reason to take this reading rather than quote one.
+
+The failure is byte-identical to its own negative control. Measured in one run
+on `abdeslam-menacere-rebase-548-collection-floors`, whose tip is
+`75aa0212c9d31cc83c5f26c776fd4910b622c521`, with `--state all` present in all
+three arms:
+
+```
+gh pr list --repo <owner>/<repo> --state all --head <name> --json number,state,mergedAt,headRefOid
+
+  the branch's own name        (SUBJECT)   exit 0   []
+  the pull request's head name (POS)       exit 0   [{"headRefOid":"75aa0212…","mergedAt":"2026-09-01T01:51:35Z","number":725,"state":"MERGED"}]
+  a fabricated name            (NEG)       exit 0   []
+```
+
+Subject and negative control are the same two bytes, while the positive arm
+shows that the very commit the subject is standing on merged as
+abdeslam-menacere/ModelTree#725. Only the two arms together show that: the
+positive one alone reads as a working instrument.
+
+#### Key 2 — the commit, which settles case (a)
+
+The key is already in hand. Step 2 resolves `$tip` on its second line, and the
+rule above already reasons in commit OIDs by comparing `headRefOid` against it;
+the query is simply not keyed on it.
+
+```powershell
+$pulls = gh api "repos/<owner>/<repo>/commits/$tip/pulls"; $cPulls = $LASTEXITCODE
+```
+
+**Read the exit code and the payload as two separate readings, because neither
+covers the other.** Measured 2026-09-06, three arms in one run:
+
+```
+exit 0, one pull request   75aa0212…   #725  state=closed  merged_at=2026-09-01T01:51:35Z
+                                       head.sha=75aa0212…  head.ref=abdeslam-menacere-gate-dataset-collection-floors
+exit 0, []                 f4937aec…   a pushed branch head that no pull request contains
+exit 1, HTTP 422           81920020…   "No commit found for SHA" — the remote does not have this commit
+```
+
+The exit code separates *looked* from *could not look*; the payload separates
+*found* from *found nothing*. What this key removes is not the empty list —
+that still arises, in the middle arm — but its ambiguity with a wrong key,
+which is the whole of the branch-name failure: a key the remote cannot resolve
+comes back exit 1 rather than `[]`.
+
+**One caveat inverts a naive reading of the payload, and it is measured: REST
+reports `state` as `closed` for a *merged* pull request.** The first arm above
+is abdeslam-menacere/ModelTree#725, which is `MERGED` in `gh pr list`'s
+vocabulary and `closed` in REST's. Anything testing `state` for `merged` takes
+a false negative on every merged pull request there is. Test `merged_at`, which
+is null on a closed-unmerged pull request and a timestamp on a merged one.
+
+Route it this way:
+
+- exit 0 with a pull request whose `merged_at` is non-null ⇒ you have a record
+  for your commit. Read it with the `headRefOid` rule above, `head.sha` being
+  the REST spelling of that field. In case (a) the head **is** your tip, so the
+  count is 0 and the verdict is `LANDED` — under a ref name you never carried.
+  Name the pull request; its `mergeCommit.oid`, one `gh pr view` away, is the
+  commit that carries your work on trunk.
+- exit 0 with `[]` ⇒ the remote has your commit and no pull request contains
+  it. Not a verdict; go on.
+- exit 1 ⇒ neither a landed nor an unlanded reading. Read the message rather
+  than the code alone. HTTP 422 `No commit found for SHA` says the remote does
+  not have this commit at all, which is the ordinary state of a dock's own tip
+  — a dock does not push — and it does rule case (a) out, since no pull request
+  can name a commit the remote has never seen. Any other failure is
+  `UNDETERMINED` for this arm: a nonexistent repository returns HTTP 404, and a
+  bare 404 was also observed transiently for SHAs that resolved at exit 0 in
+  the runs either side of it, so a single exit 1 that is not a 422 is not
+  evidence of absence. Re-run before believing one.
+
+#### Key 3 — the issue number, the only key that reaches case (b)
+
+In case (b) no pull request names your commit under any key, because the
+content was written again. What the record still holds is the message of
+whatever did land, and this repository's squash messages carry issue
+references. The dock always knows its own issue number.
+
+```
+git log <trunk> --grep '#<issue>' --oneline
+```
+
+**It returns candidates, not an answer**, and that is its value rather than a
+shortcoming: it turns an unbounded search into a set small enough to check one
+at a time. Measured 2026-09-06 at the anchor above:
+
+```
+--grep '#548'    exit 0   3 candidates   5172fa84 (#862), 5565222b (#737), 466332f5 (#725)
+--grep '#793'    exit 0   1 candidate    8255b606 (#806)
+--grep '#99999'  exit 0   0 candidates
+```
+
+Only `466332f5` of those three is the landing; the other two mention
+abdeslam-menacere/ModelTree#548 without delivering it. The set is not stable
+either — the reader who first took this measurement found two rather than three
+— which is a reason to run it rather than to quote it.
+
+**Its exit code carries no information, and it is the one instrument on this
+page of which that is true.** All three arms exit **0**, the empty one
+included. `git grep` exits 1 on no match and `gh api` exits 1 on a bad key, so
+a reader who has learned this page's habit of reading the code will read this
+one the same way and take exit 0 for a hit. Test the output; there is nothing
+in the code to test.
+
+**Match what you meant.** `--grep` searches the whole message, subject and
+body, which is what makes it work at all: `466332f5`'s subject ends in its
+*pull request* number and it matches only because its body carries
+`Refs abdeslam-menacere/ModelTree#548`. The pattern is also a substring, so a
+three-digit issue matches a four-digit one, and both forms exit 0:
+
+```
+git log "$trunk" --grep '#104' --oneline                  exit 0   3 candidates
+git log "$trunk" -E --grep '#104([^0-9]|$)' --oneline     exit 0   1 candidate
+```
+
+Two of the three the loose form returns matched four-digit numbers that merely
+begin with those digits. Anchor the pattern, or read a neighbouring issue's
+landing as your own.
+
+Then confirm a candidate by content, anchored **on the candidate** and never on
+trunk. That anchor is the whole point: trunk has moved past the landing, so a
+trunk-anchored comparison conflicts with the branch's own descendant and says
+nothing about landedness.
+
+```powershell
+$out = git merge-tree --write-tree <candidate> $tip; $code = $LASTEXITCODE
+git show -s --format=%T <candidate>
+```
+
+Exit 0 with the printed tree equal to the candidate's own tree means merging
+your tip into that candidate would change it in no way, so the candidate
+already carries your content. Measured on both live cases at the anchor above:
+
+```
+case (a)   466332f5 vs 75aa0212   exit 0   4689c9cc… == 466332f5's own tree   the landing
+           5565222b vs 75aa0212   exit 1   conflicts                          a candidate that is not
+           <trunk>  vs 75aa0212   exit 1   conflicts                          why trunk is the wrong anchor
+case (b)   8255b606 vs 81920020   exit 0   3cab477f… == 8255b606's own tree   the landing
+```
+
+Three of those four came back the other way, so exit 0 on the two that decide
+is a property of the input rather than of the instrument. Capture that exit
+code unpiped, as step 5 requires: a non-zero exit means the printed tree holds
+conflict markers and is not a comparable artefact at all.
+
+- A candidate confirmed, and no pull request under either of the other two keys
+  ⇒ `SUPERSEDED`. Name the candidate.
+- Nothing confirmed ⇒ still not a verdict. Go on to step 4, which reaches case
+  (b) by content whether or not anything on trunk names your issue, and is
+  where `NOT LANDED` is issued.
+
+The case-(b) fixture is `abdeslam-menacere-add-tencent-hunyuanimage-3-0`, tip
+`819200203dadb16ee6b6f1a55d925aad660033bf`, for issue
+abdeslam-menacere/ModelTree#793: blind by name at exit 0, HTTP 422 by commit
+because that tip was never pushed, one candidate by issue, and the id
+`tencent-hunyuanimage-3-0` present on trunk in five files at exit 0 against a
+nonce id absent at exit 1. Its issue is closed, so a dock there stops at step 0
+long before reaching any of this — it is a fixture for the instrument, not a
+claim about the route.
+
 **Quote every rev-spec, and never leave one bare.** Unquoted, a shell can
 rewrite the rev-spec before git sees it, and a rewritten rev-spec can still name
 a real object, so that failure reaches you as a well-formed answer rather than
@@ -1078,6 +1267,20 @@ each came back as written classify your own branch.
 - **Must classify anything except `LANDED`:** your own branch name with a suffix
   that cannot exist. It is derived rather than hard-coded, so it never goes
   stale and never needs maintaining.
+- **Must find a pull request the branch key cannot:** the commit key on
+  `75aa0212c9d31cc83c5f26c776fd4910b622c521`, whose pull request was opened
+  from a ref that branch does not carry, against a SHA that cannot exist. The
+  two must come back differing **by exit code**, which is what this key buys:
+  measured, the real tip returns abdeslam-menacere/ModelTree#725 at exit 0 with
+  `merged_at` set, and a fabricated SHA returns HTTP 422 at exit 1. Pin it on
+  the commit rather than on the branch name, since the name is what the
+  instrument under test is meant to be independent of.
+- **Must return candidates, and none:** the issue key on an issue number you
+  have confirmed landed something and on one that cannot exist. Both exit
+  **0**, so assert on the output and never on the code — a run in which you
+  read the exit status has measured nothing here. Measured at the anchor you
+  resolved, abdeslam-menacere/ModelTree#548 returns three candidates and a
+  five-digit number no issue in this repository has yet reached returns none.
 - **Must classify `SUPERSEDED`:** commit
   `7ddbb27c0d16334416cff6c9757cca39a0cb7ae5`, which adds the entities
   `eleutherai-gpt-neo` and `ibm-granite-4-0`. Pin it on content, the way the
@@ -1193,7 +1396,8 @@ each came back as written classify your own branch.
   This is the one that catches an instrument which has gone uniformly blind, and
   neither of the branch controls can catch it alone.
 
-The first two guard step 0, the next two guard step 2, the fifth guards step 4,
+The first two guard step 0, the next four guard step 2 — two for its branch key
+and one each for its commit and issue keys — the seventh guards step 4,
 and the last guards every comparison in steps 4 and 5 — one per instrument,
 because the three failure cases are independent and a control for one says
 nothing about the others. That mapping is the point: if you find yourself with
