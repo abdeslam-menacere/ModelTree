@@ -556,7 +556,7 @@ the anchor rather than the date.
 | `tree` | 197,389 | 6,163 | 32 |
 | `providers` group | 66,869 | 880 | 75 |
 
-Seven further figures — both `_astro` globals, the `passport` group and
+Seven further figures — the four globals, both `passport` figures and
 `updates` — measured **flat**: built twice, moved zero bytes. That is a
 measurement and not a gap, and it is exactly the claim `asset-budgets.json`
 cannot make about itself.
