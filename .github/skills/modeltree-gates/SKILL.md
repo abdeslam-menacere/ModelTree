@@ -375,9 +375,14 @@ added.
 
 One member of the class is admitted conditionally rather than by path alone:
 `web/asset-budgets.json`, under ADR 0015. A refresh that adds a normal data
-tranche moves a page past the 2% `measuredDrift` guard, and the only fix is to
+tranche moves a page past the `measuredDrift` guard, and the only fix is to
 re-run `npm run assets:report` and re-record the measured figure in that file —
-so the party that moved the number must be able to re-record it. But the same
+so the party that moved the number must be able to re-record it. The tolerance
+that guard applies is the `measuredDrift.maxFraction` field of that same file,
+which `web/tests/build/asset-budgets.test.ts` reads and applies to every
+recorded figure through `web/scripts/asset-drift.mjs`; it is named here rather
+than restated, for the same reason `ALLOWED_PATHS` is, so read the field when
+you need the number and this document cannot go stale about it. But the same
 file also holds the enforced ceilings (`criticalMaxRaw`, `jsMaxRaw`, the
 whole-build `*MaxRaw`) and the drift guard itself (`measuredDrift.maxFraction`),
 and admitting the path wholesale would let an unattended run raise its own
