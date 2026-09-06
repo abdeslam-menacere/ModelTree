@@ -32,13 +32,15 @@
 // Two measurements decided it, both taken on the committed history rather than
 // estimated:
 //
-//   * **Cost.** Over the 50 analysable commits touching `releases.json`, the
+//   * **Cost.** Over the 50 analysable commits touching `releases.json` (its
+//     whole history at trunk 82582b6c: 51 commits touch the file, and the one
+//     that creates it has no parent revision to diff a baseline against), the
 //     net-new third-party requests this check adds -- licence URLs introduced or
 //     re-pointed, minus those the source run already requests in the same commit
-//     -- total 28. That is 0.56 per `releases.json`-touching commit, 0.09 per
-//     commit overall, and **zero for 37 of those 50 commits**. ADR 0017's fear
-//     that this "asks third-party servers on every data pull request" is
-//     measurably not what it costs.
+//     -- total 28. That is 0.56 per `releases.json`-touching commit, 0.062 per
+//     commit across that trunk's 451-commit ancestry, and **zero for 37 of those
+//     50 commits**. ADR 0017's fear that this "asks third-party servers on every
+//     data pull request" is measurably not what it costs.
 //   * **Actionability.** The state that matters here is a licence URL pointing
 //     at a file that does not exist inside a repository that does. On
 //     `huggingface.co` that answers **404**, cleanly distinct from the **401**
