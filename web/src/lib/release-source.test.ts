@@ -498,6 +498,93 @@ describe('every page reads the shared selector', () => {
 // (that block is concurrently held by another branch, #992).
 import { LICENCE_EVIDENCE_PUBLISHER_ID, releaseSourceOrder } from './release-source';
 
+/**
+ * The releases whose headline the licence-evidence exclusion moved when this
+ * was pinned: 63 of 123. Read as a **subset**, exactly as
+ * `ORDER_DEPENDENT_AT_PIN` above is read -- the assertion names only the pinned
+ * ids that STOPPED being moved, so a release added after the pin cannot move
+ * it. A red here means a named release's headline stopped being rescued from
+ * licence evidence: find which, and either restore its sourcing or move the id
+ * out with a note saying why.
+ *
+ * It replaces `expect(moved.length).toBe(63)`, and for the reason #992 gives at
+ * the two lists at the top of this file (#1006). A count over a derived
+ * population moves whenever the corpus grows, and this file sits outside the
+ * class `gate-scope.mjs` admits, so an agent-gated refresh that reddens it
+ * cannot carry out the instruction the old comment gave -- "re-measure and
+ * update the figure" is an edit to a file the refresh may not touch. Measured:
+ * appending one open-weight release citing its own documentation alongside the
+ * existing `osi-license-index` -- the ordinary shape of 63 of the 123 records
+ * here -- takes the derived count 63 -> 64 and leaves this list green.
+ *
+ * Regenerating it is a deliberate act, not routine maintenance.
+ */
+const MOVED_BY_EXCLUSION_AT_PIN: readonly string[] = [
+  'meta-llama-4-scout',
+  'meta-llama-4-maverick',
+  'meta-llama-3-1-405b',
+  'meta-llama-3-3-70b',
+  'meta-llama-3-2-1b',
+  'meta-llama-3-2-3b',
+  'meta-llama-3-2-11b-vision',
+  'meta-llama-3-2-90b-vision',
+  'mistral-large-3-675b-instruct',
+  'mistral-ministral-3-8b-instruct',
+  'mistral-devstral-2-123b-instruct',
+  'mistral-devstral-small-2-24b-instruct',
+  'mistral-small-4-119b',
+  'deepseek-v4-pro',
+  'deepseek-v4-flash',
+  'deepseek-v3-2',
+  'alibaba-qwen3-8-2-4t-a95b',
+  'alibaba-qwen3-8-27b',
+  'microsoft-fara-1-5-27b',
+  'microsoft-fara-1-5-4b',
+  'microsoft-fara-1-5-9b',
+  'ai2-olmo-2-7b',
+  'tii-falcon-h1-34b-instruct',
+  'moonshot-ai-kimi-k2-instruct',
+  'eleutherai-pythia-12b',
+  'lg-ai-research-exaone-3-5-7-8b-instruct',
+  'lg-ai-research-exaone-4-0-32b',
+  'snowflake-arctic-instruct',
+  'upstage-solar-pro-preview-instruct',
+  'ibm-granite-4-2-30b',
+  'baidu-ernie-4-5-300b-a47b',
+  'bytedance-seed-oss-36b-instruct',
+  'stability-ai-stable-diffusion-3-5-large',
+  'minimax-m1-40k',
+  'minimax-m1-80k',
+  'hugging-face-smollm3-3b',
+  '01-ai-yi-1-5-34b-chat',
+  'sarvam-ai-sarvam-m-v1',
+  'aleph-alpha-pharia-1-llm-7b-control',
+  'reka-flash-3-1',
+  'nous-hermes-4-14b',
+  'liquid-lfm2-1-2b',
+  'xiaomi-mimo-7b-rl-0530',
+  'ai-singapore-llama-sea-lion-v3-8b',
+  '01-ai-yi-34b-chat',
+  'alibaba-qwen3-5-397b-a17b',
+  'alibaba-qwen3-6-35b-a3b',
+  'eleutherai-gpt-neo-2-7b',
+  'ibm-granite-4-0-h-small',
+  'ibm-granite-4-0-h-tiny',
+  'lelapa-ai-inkubalm-0-4b',
+  'openbmb-minicpm5-1b',
+  'nvidia-nemotron-nano-9b-v2',
+  'tencent-hunyuanimage-3-0-standard',
+  'tii-falcon-180b',
+  'ai2-molmo-7b-d',
+  'stability-ai-svd-img2vid-xt',
+  'nvidia-cosmos-1-0-diffusion-7b-text2world',
+  'zhipu-ai-cogvideox-2b',
+  'bytedance-seed-oss-36b-base',
+  'openbmb-minicpm-v-4-5',
+  'openbmb-minicpm-v-4-6',
+  'moonshot-ai-kimi-audio-7b-instruct',
+];
+
 describe('a release does not lead with licence evidence (#938)', () => {
   const asOsi = (base: SourceReference): SourceReference => ({
     ...base,
@@ -570,26 +657,76 @@ describe('a release does not lead with licence evidence (#938)', () => {
     }
   });
 
-  it('CONTROL: the exclusion moves the headline on exactly the measured population', () => {
-    // Non-vacuity for the invariant above, and exact per this file's style: were
-    // it a floor it would pass over a shrinking population. If it moves, the data
-    // changed -- re-measure and update the figure rather than loosening it.
-    // Computed against the same total order with no exclusion applied, which is
-    // exactly the pre-change selection.
+  it('CONTROL: the exclusion still moves the headline on every release it moved when pinned', () => {
+    // Non-vacuity for the invariant above. Two assertions, because the two
+    // blindnesses they catch are independent and neither sees the other's hole
+    // -- the same division of labour the `orderDependent` CONTROL block above
+    // uses, and deliberately the same idiom rather than a second one (#1006).
+    //
+    // **The pin.** Every release the exclusion moved when the list was taken
+    // must still be moved. Read as a subset, not as a count: `toBe(63)` is a
+    // census of a derived population, so it also reddens when a release is
+    // ADDED, and the fix it then demands -- "re-measure and update the figure"
+    // -- is an edit to this file, which `gate-scope.mjs` refuses to an
+    // agent-gated refresh. Measured: appending one open-weight release citing
+    // its own documentation alongside the existing `osi-license-index` takes
+    // the derived count 63 -> 64 and leaves this assertion green. What is
+    // deliberately given up is the other direction: a count sees an addition
+    // and this does not. What is gained is that a release going quiet is named
+    // rather than summed, which a count cannot see at all -- one release
+    // dropping out while another starts being moved holds the count at 63.
+    //
+    // **The invariant**, which the pin cannot state because it cannot name a
+    // release that does not exist yet. The exclusion moves a headline exactly
+    // when the unfiltered pick is licence evidence AND the release carries some
+    // other source: `selectReleaseSource` filters licence evidence out and
+    // falls back to the unfiltered set when nothing survives, so a release
+    // whose top pick is already documentary keeps it, and one with no
+    // alternative at all keeps its licence evidence rather than stranding.
+    // That equality is a property of the selector rather than of the corpus, so
+    // it holds over records added after the pin. It is what reddens if the
+    // exclusion regresses -- `moved` empties while the right-hand side does
+    // not. It cannot on its own report that the population is non-empty, which
+    // is the pin's job.
+    //
+    // Both sides are insensitive to the `breadth` term of the total order,
+    // which is a GLOBAL citation count, so appending a release that cites an
+    // EXISTING source perturbs it for every other release at once. Measured
+    // over all 289 sources, a +1 on any single one moves the selected source on
+    // 13 of the 123 releases and moves this set on none of them: 109 releases
+    // have two or more candidates after the exclusion, 24 have two or more tied
+    // at the best rank, and 13 of those flip on a single citation. The
+    // exclusion is decided by rank on every release it moves, and the four
+    // `open-source-initiative` sources sit at breadth 30, 11, 36 and 0, far
+    // from any documentary tie -- so the knife-edge is real for the headline
+    // and does not reach this membership.
     const citations = countReleaseCitations(dataset.releases);
     const order = releaseSourceOrder(citations);
-    const unfilteredPick = (ids: readonly string[]) =>
-      [
-        ...ids
-          .map((id) => sourceById.get(id))
-          .filter((candidate): candidate is SourceReference => candidate !== undefined),
-      ].sort(order)[0];
+    const resolvedSources = (ids: readonly string[]) =>
+      ids
+        .map((id) => sourceById.get(id))
+        .filter((candidate): candidate is SourceReference => candidate !== undefined);
+    // Computed against the same total order with no exclusion applied, which is
+    // exactly the pre-change selection.
+    const unfilteredPick = (ids: readonly string[]) => [...resolvedSources(ids)].sort(order)[0];
     const moved = dataset.releases.filter((release) => {
       const before = unfilteredPick(release.sourceIds);
       const after = selectReleaseSource(release.sourceIds, sourceById, release.id, citations);
       return before !== undefined && before.id !== after.id;
     });
-    expect(moved.length).toBe(63);
+
+    const stillMoved = new Set(moved.map(({ id }) => id));
+    const wentQuiet = MOVED_BY_EXCLUSION_AT_PIN.filter((id) => !stillMoved.has(id));
+    expect(wentQuiet).toEqual([]);
+
+    const licenceLed = dataset.releases.filter((release) => {
+      const resolved = resolvedSources(release.sourceIds);
+      const before = unfilteredPick(release.sourceIds);
+      return before !== undefined
+        && before.publisherId === LICENCE_EVIDENCE_PUBLISHER_ID
+        && resolved.some((candidate) => candidate.publisherId !== LICENCE_EVIDENCE_PUBLISHER_ID);
+    });
+    expect(moved.map(({ id }) => id)).toEqual(licenceLed.map(({ id }) => id));
   });
 
   it('CONTROL: no committed release is stranded by the exclusion', () => {
