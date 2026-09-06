@@ -66,10 +66,17 @@ const testsJob = job(workflow, 'source-link-health-tests');
 const checkJob = job(workflow, 'source-link-health');
 const issueJob = job(workflow, 'maintenance-issue');
 const resolveJob = job(workflow, 'resolve-issue');
+const licenceJob = job(workflow, 'licence-link-introduction');
 
 describe('source-link-health.yml parses and is wired to the right events', () => {
-  it('is valid YAML with the four jobs the design describes', () => {
-    expect(jobIds).toEqual(['source-link-health-tests', 'source-link-health', 'maintenance-issue', 'resolve-issue']);
+  it('is valid YAML with the five jobs the design describes', () => {
+    expect(jobIds).toEqual([
+      'source-link-health-tests',
+      'source-link-health',
+      'maintenance-issue',
+      'resolve-issue',
+      'licence-link-introduction',
+    ]);
   });
 
   it('sweeps on a schedule, which is what catches rot nobody is currently editing', () => {
@@ -195,18 +202,21 @@ describe('source-link-health.yml always reports a conclusion', () => {
   });
 
   it('keeps the reported check names stable and matrix-free', () => {
-    // A required status check is matched by job name. Neither of these is
-    // required today, and both should still be stable: renaming one silently
+    // A required status check is matched by job name. None of these is
+    // required today, and all should still be stable: renaming one silently
     // orphans any rule that ever comes to reference it.
     expect(testsJob.name).toBe('source-link-health-tests');
     expect(checkJob.name).toBe('source-link-health');
+    expect(licenceJob.name).toBe('licence-link-introduction');
     expect(testsJob.strategy).toBeUndefined();
     expect(checkJob.strategy).toBeUndefined();
+    expect(licenceJob.strategy).toBeUndefined();
   });
 
   it('bounds both jobs with a timeout, so neither can hang on an unresponsive host', () => {
     expect(Number(testsJob['timeout-minutes'])).toBeGreaterThan(0);
     expect(Number(checkJob['timeout-minutes'])).toBeGreaterThan(0);
+    expect(Number(licenceJob['timeout-minutes'])).toBeGreaterThan(0);
   });
 });
 
@@ -805,5 +815,130 @@ describe('source-link-health.yml link-check scope tells a broken matcher from a 
     expect(outcome.githubOutput ?? '').toContain('run=true');
     expect(outcome.githubOutput ?? '').not.toContain('run=false');
     expect(outcome.stdout).toContain(`grep exited ${grepExit}`);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* The introduction-time licence check (ADR 0019, #957)                       */
+/* -------------------------------------------------------------------------- */
+//
+// ADR 0019 supersedes exactly one clause of ADR 0017 -- "a pull-request run must
+// never request a licence URL" -- and does it by adding a separate instrument
+// rather than by widening the sweep. These assertions are what keep that
+// separation real rather than merely documented. Each one, if it fails, means
+// the decision has inverted.
+
+const licenceScript = steps(licenceJob, 'jobs.licence-link-introduction')
+  .map((step) => String(step.run ?? ''))
+  .join('\n');
+
+const sweepScript = steps(checkJob, 'jobs.source-link-health')
+  .map((step) => String(step.run ?? ''))
+  .join('\n');
+
+describe('source-link-health.yml checks the licence URLs a pull request introduces', () => {
+  it('runs on pull requests only, so the scheduled sweep is untouched by it', () => {
+    // A schedule reaching this job would make it a second sweep, which is the
+    // one thing ADR 0019 promises it cannot become.
+    expect(String(licenceJob.if ?? '')).toBe("github.event_name == 'pull_request'");
+  });
+
+  it('always passes a baseline, which is what stops it sweeping', () => {
+    // `check-licence-links.mjs` exits 2 without one and has no full-sweep mode.
+    // If this invocation ever loses the flag the job stops running at all --
+    // loudly, which is the intent -- but assert it here so the reason is
+    // recorded next to the decision it protects.
+    expect(licenceScript).toContain('--baseline');
+    expect(licenceScript).toContain('check-licence-links.mjs');
+  });
+
+  it('never passes a flag that would let it check something easier', () => {
+    for (const flag of ['--data', '--exclusions', '--today', '--skip', '--force', '--no-licences']) {
+      expect(licenceScript).not.toContain(flag);
+    }
+  });
+
+  it('never writes into the dataset', () => {
+    // The checker refuses such a path itself; this asserts the workflow never
+    // asks it to, so the refusal is a backstop rather than the only guard.
+    expect(licenceScript).not.toContain('web/src/data/report');
+    expect(licenceScript.includes('--report web/src/data/')).toBe(false);
+    expect(licenceScript.includes('--json web/src/data/')).toBe(false);
+  });
+
+  it('treats a checker that cannot run as a failure rather than a clean check', () => {
+    // Exit 2 is never a pass, repository-wide.
+    expect(licenceScript).toContain('-ge 2');
+    expect(licenceScript).toContain('could not run');
+  });
+
+  it('captures the exit code by hand instead of letting -e abort the step', () => {
+    // The #632 defect, in the job that inherited its shape: the runner supplies
+    // `-e`, so an unguarded `node` call exiting 1 aborts before the code can be
+    // read, and a finding becomes a silent skip.
+    expect(licenceScript).toContain('code=0');
+    expect(licenceScript).toContain('|| code=$?');
+  });
+
+  it('is keyed on the release records, because a licence URL lives there', () => {
+    const scope = steps(licenceJob, 'jobs.licence-link-introduction').find((step) => step.id === 'scope');
+
+    expect(String(scope?.run)).toContain('web/src/data/releases.json');
+  });
+
+  it('separates a broken matcher from a clean miss, like every other scope step here', () => {
+    const scope = String(
+      steps(licenceJob, 'jobs.licence-link-introduction').find((step) => step.id === 'scope')?.run ?? '',
+    );
+
+    // `grep` exits 0, 1 and 2+ for three different things. Truth-testing it
+    // collapses the last two and reports green over a change nothing read.
+    expect(scope).toContain('status=$?');
+    expect(scope).toContain('run=true');
+    expect(scope).toContain('run=false');
+    // The failure-to-diff path must run the check, never skip it.
+    expect(scope).toContain('Could not diff');
+  });
+
+  it('reads repository contents and nothing else, and cannot write them', () => {
+    const permissions = mapping(licenceJob.permissions, 'jobs.licence-link-introduction.permissions');
+
+    expect(Object.keys(permissions)).toEqual(['contents']);
+    expect(String(permissions.contents)).toBe('read');
+  });
+
+  it('keeps the checkout credential-free, because this job never pushes', () => {
+    const checkout = steps(licenceJob, 'jobs.licence-link-introduction').find((step) =>
+      String(step.uses ?? '').startsWith('actions/checkout'),
+    );
+
+    expect(checkout, 'jobs.licence-link-introduction has no actions/checkout step').toBeDefined();
+    expect(
+      String(mapping(checkout?.with ?? null, 'checkout.with')['persist-credentials']),
+    ).toBe('false');
+  });
+
+  it('distinguishes a missing base file from a git failure, rather than defaulting both to empty', () => {
+    // Falling through to `[]` on any failure would silently widen this job into
+    // a sweep of every licence URL in the dataset.
+    const materialise = licenceScript;
+
+    expect(materialise).toContain('git cat-file -e');
+    expect(materialise).toContain("echo '[]'");
+  });
+
+  it('leaves the scheduled sweep running the other checker, unwidened', () => {
+    // ADR 0017's discriminator lives in `check-source-links.mjs` and is not
+    // touched by this decision. The sweep must not learn about the new script,
+    // and the new job must not learn about the old one.
+    expect(sweepScript).toContain('check-source-links.mjs');
+    expect(sweepScript).not.toContain('check-licence-links.mjs');
+    expect(licenceScript).not.toContain('check-source-links.mjs');
+  });
+
+  it('stays advisory by reporting rather than editing, and says so when it checked nothing', () => {
+    // ADR 0018: "checked nothing" must not be renderable as "found nothing".
+    expect(licenceScript).toContain('nothing was changed in the dataset');
+    expect(licenceScript).toContain('not a clean bill of health');
   });
 });

@@ -221,11 +221,11 @@ jobs:
           # cache.
           node-version: 22
 
-      # Node's own test runner, no dependencies. The file path is passed
-      # explicitly: `node --test <directory>` resolves differently.
+      # Node's own test runner, no dependencies. Both file paths are passed
+      # explicitly on one line: `node --test <directory>` resolves differently.
       - name: Run the link-health tests
         if: steps.scope.outputs.run == 'true'
-        run: node --test .github/scripts/source-link-health/link-health.test.mjs
+        run: node --test .github/scripts/source-link-health/link-health.test.mjs .github/scripts/source-link-health/check-licence-links.test.mjs
 
       # The extraction dry run over the committed dataset, which issue #29 asks
       # for by name. It makes no request; it proves every source record reduces
@@ -708,3 +708,183 @@ jobs:
           echo "Resolving issue #$existing."
           gh issue comment "$existing" --repo "$REPO" --body-file "$RUNNER_TEMP/link-health-resolved.md"
           gh issue close "$existing" --repo "$REPO" --reason completed
+
+  # ---------------------------------------------------------------------------
+  # The introduction-time licence check (ADR 0019, #957).
+  # ---------------------------------------------------------------------------
+  #
+  # ADR 0017 put licence URLs on the clock rather than on the diff, and named the
+  # gap that left: a pull request adding a `license.url` that is *already* dead
+  # is not caught until the next scheduled sweep, up to seven days later. ADR
+  # 0019 closes that window with a genuinely separate instrument rather than by
+  # widening the sweep.
+  #
+  # Separate is the operative word, and it is structural rather than stylistic.
+  # This job runs `check-licence-links.mjs`, which has no full-sweep mode at all:
+  # `--baseline` is mandatory and there is no argument combination that makes it
+  # request the whole dataset. So it cannot become a second sweep, it cannot be
+  # aimed at the scheduled one, and no flag here can narrow the scheduled one --
+  # which is the ADR 0017 guardrail that stays untouched. The `source-link-health`
+  # job above is not modified by this addition.
+  #
+  # Advisory, in this repository's sense: not a required status check, so a red
+  # run is visible without blocking the merge.
+  licence-link-introduction:
+    name: licence-link-introduction
+    # Pull requests only. The scheduled decay sweep is unchanged and still owns
+    # the question of whether a licence URL *stays* reachable; this job only ever
+    # asks whether one was already dead on the day it was written down.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          # The scope step diffs against the base commit and reads the base
+          # revision of `releases.json`, neither of which a shallow checkout has.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Decide whether any licence URL was introduced
+        id: scope
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          # Fail safe, the same way the tests job does: a changed-file list that
+          # cannot be computed runs the check rather than skipping it. A green
+          # check over a change nothing read is the failure this shape removes.
+          if ! changed="$(git diff --name-only "$PR_BASE_SHA...$PR_HEAD_SHA")"; then
+            echo "Could not diff $PR_BASE_SHA...$PR_HEAD_SHA; running the check."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # `grep` exits 0 on a match, 1 on no match and 2 on an error, so
+          # truth-testing it would collapse the last two -- a matcher that never
+          # ran would read exactly like one that ran and matched nothing, and
+          # every step below is gated on this output. The three statuses are
+          # separated, and anything that is not a clean match-or-no-match runs
+          # the check.
+          set +e
+          grep -Fxq 'web/src/data/releases.json' <<< "$changed"
+          status=$?
+          set -e
+
+          case "$status" in
+            0)
+              echo "releases.json changed; checking any licence URL it introduces."
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              ;;
+            1)
+              echo "releases.json unchanged, so no license.url can have been introduced."
+              echo "run=false" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Could not match the changed-file list (grep exited $status); running the check."
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      - name: Materialise the base revision of releases.json
+        if: steps.scope.outputs.run == 'true'
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+
+          # An empty baseline is the correct reading when the file did not exist
+          # at the base commit: every licence URL in it is then genuinely new.
+          # It is *not* the correct reading for a `git show` that failed for some
+          # other reason, so the two are separated rather than both falling
+          # through to `[]`, which would silently widen this job into a sweep of
+          # the whole dataset -- the one thing ADR 0019 promises it cannot do.
+          if git cat-file -e "$PR_BASE_SHA:web/src/data/releases.json" 2>/dev/null; then
+            git show "$PR_BASE_SHA:web/src/data/releases.json" > "$RUNNER_TEMP/releases-base.json"
+          else
+            echo "releases.json does not exist at $PR_BASE_SHA; treating every licence URL as introduced."
+            echo '[]' > "$RUNNER_TEMP/releases-base.json"
+          fi
+
+      - name: Set up Node.js
+        if: steps.scope.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          # The checker is dependency-free, so there is nothing to install and no
+          # lockfile to cache.
+          node-version: 22
+
+      - name: Check the licence URLs this pull request introduced
+        id: check
+        if: steps.scope.outputs.run == 'true'
+        run: |
+          set -euo pipefail
+
+          # The exit code is captured by hand rather than tested, because this
+          # checker returns 1 for a *finding* and 2 or above for "could not run",
+          # and those two must not be reported as the same thing. `|| code=$?`
+          # rather than `set +e`: a command whose failure is tested by `||` is
+          # exempt from `-e`, so this is correct whatever the ambient options.
+          code=0
+          node .github/scripts/source-link-health/check-licence-links.mjs \
+            --baseline "$RUNNER_TEMP/releases-base.json" \
+            --report "$RUNNER_TEMP/licence-links.md" \
+            --json "$RUNNER_TEMP/licence-links.json" || code=$?
+
+          if [ "$code" -ge 2 ]; then
+            echo "::error::The licence link checker could not run (exit $code). This is a fault in the checker or its inputs, not a finding about a licence URL."
+            exit 1
+          fi
+
+          {
+            echo "ran=true"
+            echo "introduced=$(jq -r '.introducedUrls // 0' "$RUNNER_TEMP/licence-links.json")"
+            echo "actionable=$(jq -r '.actionableUrls // 0' "$RUNNER_TEMP/licence-links.json")"
+          } >> "$GITHUB_OUTPUT"
+
+          cat "$RUNNER_TEMP/licence-links.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the report
+        if: always() && steps.check.outputs.ran == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: licence-link-introduction-report
+          path: |
+            ${{ runner.temp }}/licence-links.md
+            ${{ runner.temp }}/licence-links.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+      # The one place this job can go red, and only ever for a licence URL that
+      # is definitively gone or permanently moved. A rate limit, an anti-bot 403,
+      # a timeout and a 5xx are classified out of the actionable set inside the
+      # library and cannot reach here: `ACTIONABLE_STATES` is imported by the
+      # checker, never restated, so `blocked` and `transient` stay outside it by
+      # construction.
+      #
+      # A licence URL that cannot be requested at all does not redden this job
+      # either. Those are collected over the whole dataset, before the baseline
+      # narrowing, so keying red on them would fail every pull request for one
+      # pre-existing bad record; the dry-run step in `source-link-health-tests`
+      # already catches an unrequestable `license.url` on the pull request that
+      # introduces it, and it does so without a request.
+      #
+      # Nothing here edits the dataset. The finding is a report.
+      - name: Report on the licence URLs this pull request introduced
+        if: steps.check.outputs.ran == 'true' && steps.check.outputs.actionable != '0'
+        run: |
+          echo "::error::This pull request introduces ${{ steps.check.outputs.actionable }} licence URL(s) that are already definitively broken or permanently moved. See the job summary; nothing was changed in the dataset."
+          exit 1
+
+      - name: Record that no licence check was needed
+        if: steps.scope.outputs.run != 'true'
+        run: |
+          echo 'No change to `web/src/data/releases.json`, so no `license.url` can have been introduced and none was requested. This is a statement about scope, not a clean bill of health.' >> "$GITHUB_STEP_SUMMARY"
