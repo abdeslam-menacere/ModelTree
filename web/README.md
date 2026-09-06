@@ -596,8 +596,8 @@ reading and the disagreement is written down here rather than resolved silently.
   entirely rather than zeroed or estimated.
   <!-- claim: {"kind":"omits","entity":"releases","id":"xai-grok-4-6","field":"parameters"} -->
   <!-- claim: {"kind":"omits","entity":"releases","id":"xai-grok-4-5","field":"parameters"} -->
-- **Nine name-only parameter counts document their gap in `summary`, not
-  `intendedUse`.** These releases assert a parameter count in their identifier —
+- **The name-only parameter counts listed below document their gap in
+  `summary`, not `intendedUse`.** These releases assert a parameter count in their identifier —
   a `34B`, `7B`, `2B` and so on — but record no `parameters` block, because no
   primary source states a total that could be cited; the "count" exists only in
   the name. Each one explains that absence, and the explanation lives in
@@ -608,9 +608,10 @@ reading and the disagreement is written down here rather than resolved silently.
   budget in `src/lib/comparison.test.ts`). An explanation of an *absent* field is
   editorial context and belongs in the editorial field; `intendedUse` is
   reserved for what the model is for. `src/data/parameter-gap-field.test.ts`
-  pins the set and the field, so the tenth such record does not have to guess.
+  pins the set and the field — deriving it from the data rather than a
+  hand-kept count — so the next such record does not have to guess.
   A model whose count appears only as approximate prose on a source, with no
-  count in its identifier, is not one of these nine — but it follows the same
+  count in its identifier, is not one of these name-only records — but it follows the same
   field convention, which the next bullet records.
   <!-- claim: {"kind":"omits","entity":"releases","id":"01-ai-yi-1-5-34b-chat","field":"parameters"} -->
   <!-- claim: {"kind":"omits","entity":"releases","id":"01-ai-yi-34b-chat","field":"parameters"} -->
