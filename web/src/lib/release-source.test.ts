@@ -290,3 +290,119 @@ describe('every page reads the shared selector', () => {
     });
   }
 });
+
+// A second import from the same module, deliberately kept apart from the import
+// block at the top of the file so this block can be appended without touching it
+// (that block is concurrently held by another branch, #992).
+import { LICENCE_EVIDENCE_PUBLISHER_ID, releaseSourceOrder } from './release-source';
+
+describe('a release does not lead with licence evidence (#938)', () => {
+  const asOsi = (base: SourceReference): SourceReference => ({
+    ...base,
+    publisherId: LICENCE_EVIDENCE_PUBLISHER_ID,
+  });
+
+  it('prefers a model-documenting source over an OSI licence source, in either order', () => {
+    // The OSI source is official-docs and would win on type rank; the alternative
+    // is a model-card, which ranks lower. Excluding licence evidence is the only
+    // reason the model-card can win, so a model-card pick proves the exclusion
+    // fired rather than the type priority. Both orders, so it is not positional.
+    const licence = asOsi(source('z-osi-licence', 'official-docs'));
+    const card = source('a-model-card', 'model-card');
+    const sources = mapOf(licence, card);
+    for (const order of [[licence.id, card.id], [card.id, licence.id]]) {
+      expect(selectReleaseSource(order, sources, 'r').id).toBe('a-model-card');
+    }
+  });
+
+  it('excludes by publisher identity, not by the word "licence" in a title', () => {
+    // Structural, per the acceptance criterion. A non-OSI source whose title is a
+    // licence name stays eligible and wins on type; an OSI source with a
+    // documentation-style title is still excluded. Title text decides nothing.
+    const nonOsiLicenceTitled: SourceReference = {
+      ...source('a-mit-doc', 'official-docs'),
+      title: 'The MIT License',
+    };
+    const card = source('z-model-card', 'model-card');
+    const eligible = mapOf(nonOsiLicenceTitled, card);
+    expect(selectReleaseSource([nonOsiLicenceTitled.id, card.id], eligible, 'r').id).toBe('a-mit-doc');
+
+    const osiDocTitled: SourceReference = {
+      ...asOsi(source('a-osi-docs', 'official-docs')),
+      title: 'Developer documentation',
+    };
+    const excluded = mapOf(osiDocTitled, card);
+    expect(selectReleaseSource([osiDocTitled.id, card.id], excluded, 'r').id).toBe('z-model-card');
+  });
+
+  it('GUARD: still cites the licence evidence when it is the only source, in either order', () => {
+    // The population this protects is empty today -- no release cites only OSI
+    // sources -- so without the guard a future single-source release would throw
+    // silently. Two OSI sources, nothing else: the release must resolve to one of
+    // them rather than strand, and deterministically. `a-osi` wins the total
+    // order, so both input orders must return it.
+    const first = asOsi(source('a-osi', 'official-docs'));
+    const second = asOsi(source('z-osi', 'official-docs'));
+    const sources = mapOf(first, second);
+    for (const order of [[first.id, second.id], [second.id, first.id]]) {
+      expect(selectReleaseSource(order, sources, 'lonely').id).toBe('a-osi');
+    }
+  });
+
+  it('no committed release leads with licence evidence while it carries an alternative', () => {
+    // The behavioural pin on real data: every release that has any non-OSI source
+    // must cite a non-OSI headline. Fails on the pre-change selector, where 63 of
+    // 120 headlines were OSI-published.
+    const citations = countReleaseCitations(dataset.releases);
+    for (const release of dataset.releases) {
+      const resolved = release.sourceIds
+        .map((id) => sourceById.get(id))
+        .filter((candidate): candidate is SourceReference => candidate !== undefined);
+      const hasAlternative = resolved.some(
+        (candidate) => candidate.publisherId !== LICENCE_EVIDENCE_PUBLISHER_ID,
+      );
+      const chosen = selectReleaseSource(release.sourceIds, sourceById, release.id, citations);
+      if (hasAlternative) {
+        expect(chosen.publisherId).not.toBe(LICENCE_EVIDENCE_PUBLISHER_ID);
+      }
+    }
+  });
+
+  it('CONTROL: the exclusion moves the headline on exactly the measured population', () => {
+    // Non-vacuity for the invariant above, and exact per this file's style: were
+    // it a floor it would pass over a shrinking population. If it moves, the data
+    // changed -- re-measure and update the figure rather than loosening it.
+    // Computed against the same total order with no exclusion applied, which is
+    // exactly the pre-change selection.
+    const citations = countReleaseCitations(dataset.releases);
+    const order = releaseSourceOrder(citations);
+    const unfilteredPick = (ids: readonly string[]) =>
+      [
+        ...ids
+          .map((id) => sourceById.get(id))
+          .filter((candidate): candidate is SourceReference => candidate !== undefined),
+      ].sort(order)[0];
+    const moved = dataset.releases.filter((release) => {
+      const before = unfilteredPick(release.sourceIds);
+      const after = selectReleaseSource(release.sourceIds, sourceById, release.id, citations);
+      return before !== undefined && before.id !== after.id;
+    });
+    expect(moved.length).toBe(63);
+  });
+
+  it('CONTROL: no committed release is stranded by the exclusion', () => {
+    // The other half of acceptance: 0 releases resolve to nothing. Without the
+    // guard, a release citing only licence evidence would throw; none exist today,
+    // and the guard keeps the count at 0 either way.
+    const citations = countReleaseCitations(dataset.releases);
+    const stranded = dataset.releases.filter((release) => {
+      try {
+        selectReleaseSource(release.sourceIds, sourceById, release.id, citations);
+        return false;
+      } catch {
+        return true;
+      }
+    });
+    expect(stranded.length).toBe(0);
+  });
+});
