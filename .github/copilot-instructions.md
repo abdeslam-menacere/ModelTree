@@ -845,15 +845,21 @@ Ask this first for a reason that is the whole thesis of this section. **It is a
 network call, so it is immune to the stale-anchor problem** that every other
 instrument here inherits. `refs/remotes/origin/main` is not a dock's own ref and
 does not sit still: this checkout holds exactly one of it, every worktree shares
-it, and it advances whenever any agent in any of them fetches. So its age when
-you read it is a fact about other sessions rather than about yours, and no
-inference from your own fetching reaches it. It only ever fast-forwards, which
-is what keeps the failure fail-safe — it is never ahead of the remote, so a
-stale reading widens a diff rather than hiding one — but behind by an unknown
-margin is not current, and every git-based check here inherits that margin,
-including the ones that pass. An issue-state query resolves against live GitHub
-and cannot go stale like that. It is also the cheapest thing you can run, which
-means there is no argument for deferring it.
+it, and any agent in any of them moves it by fetching. So its age when you read
+it is a fact about other sessions rather than about yours, no inference from
+your own fetching reaches it, and no assumption of monotonicity survives
+either: fetches almost always advance the ref, this one has been rewound
+before, and a later reading is therefore not automatically a later trunk. What
+does hold is that it is never ahead of the remote, a fetch writing a value the
+remote advertised, so it sits at the remote's tip or behind it by an unknown
+margin. Do not read that as a fail-safe direction. Which way a stale anchor
+errs depends on what trunk has done since and both directions are live; the
+trunk-anchor section before steps 4 and 5 works that out, and this paragraph
+deliberately does not restate it, so the two cannot drift apart. Behind by an
+unknown margin is not current, and every git-based check here inherits that
+margin, including the ones that pass. An issue-state query resolves against
+live GitHub and cannot go stale like that. It is also the cheapest thing you
+can run, which means there is no argument for deferring it.
 
 ### Step 1 — count your own commits before probing anything
 
