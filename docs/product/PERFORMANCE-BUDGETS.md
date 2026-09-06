@@ -512,8 +512,9 @@ somebody re-records it, so its history across commits is a sawtooth of re-record
 events rather than a growth curve. Mining it yields whoever's re-record size and
 cadence. `catalog` read byte-identical across a real three-creator tranche and
 then jumped +11,926 on a later re-record that released accumulated invisible
-drift. And in that file **"did not grow" and "was not measured" are
-byte-identical**, so an un-re-recorded route reads exactly like a stable one.
+drift (measured on this repository's history and recorded in #1018). And in that
+file **"did not grow" and "was not measured" are byte-identical**, so an
+un-re-recorded route reads exactly like a stable one.
 
 This matters because a data tranche is the one change class that **cannot trim**:
 the records *are* the change. ADR 0010's stopping rule is trim first and raise a

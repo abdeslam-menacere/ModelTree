@@ -9,8 +9,9 @@
  * of re-record events, not a growth curve, and a growth RATE cannot be mined out
  * of it. `catalog` read byte-identical across a real three-creator tranche and
  * then jumped +11,926 on a later re-record that released accumulated drift --
- * the file cannot tell "did not grow" from "was not measured", because in that
- * file the two are byte-identical.
+ * measured on this repository's history and recorded in #1018. The file cannot
+ * tell "did not grow" from "was not measured", because in that file the two are
+ * byte-identical.
  *
  * The only way to obtain a rate is therefore to BUILD BOTH ARMS: the dataset as
  * committed, and the same dataset plus a synthetic tranche of N creators. This
