@@ -897,6 +897,29 @@ this one flag: **a probe whose documented form is sound can still be void when
 paraphrased, so the qualifier that makes it sound must be labelled load-bearing
 where it appears** — the flag was already there; the label was not.
 
+Two of the probes that lean on this empty-`[]`-at-exit-0 reading are counted the
+wrong way by the shell before the reading is reached, so take the count as
+**Rule 2 — a dock's report is not one object** prescribes rather than inline.
+They are `gh pr list --search <sha> --state all --json number`, the step-2 record
+probe above, and `gh run list --workflow=pages.yml --commit <sha>` in deploy
+verification. The reason is the one Rule 2 states in full and this note does not
+restate: in Windows PowerShell `ConvertFrom-Json` emits an empty array as a
+single pipeline object, and assignment unrolls it where inline collection does
+not, so `@(gh … | ConvertFrom-Json).Count` reads **1** for an empty result — the
+very shape that otherwise means "a record exists". Measured on
+`PSVersion 5.1.26100.9168`: a fabricated SHA returns raw `[]` at exit 0 yet
+counts inline as 1, while `$p = gh … | ConvertFrom-Json; @($p).Count` reads 0.
+**A two-sided control does not catch this**, which is the part that carries the
+value: the positive arm — a real merged commit, abdeslam-menacere/ModelTree#1000's
+`33b15bc6…` returning one object — counts 1, and the negative arm — the fabricated SHA — also counts 1,
+so the arms agree, the control reads as consistent, and it has silently stopped
+discriminating at the one moment it was needed. Prefer testing the raw text —
+`$raw = gh … ; if (($raw -join '') -eq '[]') { … }` — over counting parsed
+objects at all, with assign-then-count as the correct alternative. This is not a
+`gh` fact: any `… | ConvertFrom-Json` whose payload may be an empty array reads
+the same way, and a false non-empty here points at a false `LANDED`, the
+expensive direction.
+
 Read it this way, checking the exit code of every call and never inferring a
 failure from empty output:
 
