@@ -405,7 +405,7 @@ a route that is easy to miss, because the instruction that walks you into it is
 a correct one (#832).
 
 `asset-budgets.test.ts` checks every recorded figure against a locally built page
-weight and fails past `measuredDrift.maxFraction` (2%). Locally "the build" is
+weight and fails past `measuredDrift.maxFraction`. Locally "the build" is
 **the branch alone**. `.github/workflows/web-ci.yml` checks out with no `ref:`
 override, so a `pull_request` run builds **`refs/pull/N/merge`** — the branch
 merged with trunk. Those are different trees whenever trunk has moved, so the 2%

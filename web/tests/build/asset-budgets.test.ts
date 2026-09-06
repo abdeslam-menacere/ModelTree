@@ -402,7 +402,7 @@ describe('deterministic asset budgets on the production build', () => {
   // 97.1% of its allowance locally and no way for the dock to see it, because a
   // pass/fail assertion cannot tell 97.1% from 2%.
   //
-  // The fix is a reading, not a looser number. `maxFraction` is UNCHANGED at 2%
+  // The fix is a reading, not a looser number. `maxFraction` is UNCHANGED
   // and every assertion below binds exactly where it did. What is new is that
   // each figure now reports how much of its allowance it has spent, on success
   // as well as on failure, and every reading carries the provenance of the tree
@@ -414,24 +414,48 @@ describe('deterministic asset budgets on the production build', () => {
 
     // The tolerance is the guard's own budget, so it gets the same treatment
     // the byte ceilings get: it is not for the party it constrains to widen
-    // quietly. Every figure quoted here and in the failure message below is a
-    // restatement of `measuredDrift.reason` in asset-budgets.json, which is the
-    // authoritative record of the 2026-09-02 re-baseline and lists all eight
-    // staleness figures (11.17, 4.92, 4.83, 4.66, 4.04, 3.13, 2.89, 0.93) --
-    // re-derive the counts from there rather than trusting this restatement.
-    // Drift that day ran 0.93%-11.17%, and four of the eight recorded figures
-    // were stale by 4.0%-4.9%, so a tolerance above 5% would have called that
-    // day's rot compliant.
+    // quietly.
+    //
+    // `measuredDrift.reason` in asset-budgets.json is the authoritative record
+    // of the 2026-09-02 re-baseline and lists all eight staleness figures.
+    // They are restated ONCE here, as data, so that every count in the failure
+    // message below is computed from them and from `maxFraction` rather than
+    // written out beside them (#1042). A count written out is a claim about a
+    // tolerance the message cannot see move: change `maxFraction` and a
+    // hardcoded percentage goes on arguing for a strictness that is NOT in
+    // force, while `driftFailureMessage` in scripts/asset-drift.mjs -- printed
+    // in the same run, to the same reader -- correctly renders the new value.
+    // Re-derive these figures from `reason` rather than trusting this copy.
+    const REBASELINE_DRIFT_PERCENTS = [11.17, 4.92, 4.83, 4.66, 4.04, 3.13, 2.89, 0.93];
+
+    // The widest tolerance this test accepts, named so that the assertion and
+    // the message it prints cannot disagree about it. Drift that day ran
+    // 0.93%-11.17%, and four of the eight recorded figures were stale by
+    // 4.0%-4.9%, so a tolerance above this would have called that day's rot
+    // compliant.
+    const MAX_TOLERABLE_FRACTION = 0.05;
+
     it('keeps a tolerance tight enough to have caught the drift it exists for', () => {
       expect(typeof maxFraction, 'measuredDrift.maxFraction must be a number').toBe('number');
       expect(maxFraction).toBeGreaterThan(0);
+
+      // How many of that day's figures a given tolerance reddens on. Both
+      // counts below are differences between two of these readings, so they
+      // track `maxFraction` and the ceiling rather than asserting numerals a
+      // later change to either would leave standing and wrong.
+      const caughtAt = (fraction: number) =>
+        REBASELINE_DRIFT_PERCENTS.filter((percent) => percent > fraction * 100).length;
+      const passedByCeiling = REBASELINE_DRIFT_PERCENTS.length - caughtAt(MAX_TOLERABLE_FRACTION);
+      const caughtInForce = caughtAt(maxFraction) - caughtAt(MAX_TOLERABLE_FRACTION);
+
       expect(
         maxFraction,
-        'a tolerance above 5% would have passed seven of the eight figures that ' +
-          'were stale on 2026-09-02, and six of those seven are figures the 2% in ' +
-          'force catches; widening it that far defeats the guard. The eight ' +
-          'figures are recorded in `measuredDrift.reason` in asset-budgets.json',
-      ).toBeLessThanOrEqual(0.05);
+        `a tolerance above ${MAX_TOLERABLE_FRACTION * 100}% would have passed ${passedByCeiling} ` +
+          `of the ${REBASELINE_DRIFT_PERCENTS.length} figures that were stale on 2026-09-02, and ` +
+          `${caughtInForce} of those ${passedByCeiling} are figures the ${maxFraction * 100}% in ` +
+          'force catches; widening it that far defeats the guard. The figures are recorded in ' +
+          '`measuredDrift.reason` in asset-budgets.json',
+      ).toBeLessThanOrEqual(MAX_TOLERABLE_FRACTION);
     });
 
     function expectWithinTolerance(label: string, recorded: number, measured: number) {

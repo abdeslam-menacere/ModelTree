@@ -5,7 +5,7 @@
 //
 // `asset-budgets.test.ts` compares each `measured*` figure in
 // asset-budgets.json against a locally built page weight and fails when they
-// differ by more than `measuredDrift.maxFraction` (2%). That guard is right and
+// differ by more than `measuredDrift.maxFraction`. That guard is right and
 // nothing here weakens it. What was missing is that the guard is pass/fail, and
 // its two inputs are measured on trees that are not the same tree:
 //
@@ -102,13 +102,14 @@
  * fact about how much room is left, which is exactly what this issue found
  * nobody could see.
  *
- * AXIS. This is 75% of the DRIFT ALLOWANCE -- `measuredDrift.maxFraction`, 2% of
- * a recorded figure -- and it is NOT a statement about ceiling headroom. The
- * ceiling axis has its own threshold, `CEILING_NEAR_MISS_FRACTION` below, at a
- * deliberately different number so the two cannot be confused by sight. Do not
- * read this 0.75 as "75% of the way to the budget"; see the two-walls note in
- * this file's header for why they measure different things and why a re-record
- * moves this one to zero while leaving the other exactly where it was.
+ * AXIS. This is 75% of the DRIFT ALLOWANCE -- `measuredDrift.maxFraction`, a
+ * fraction of a recorded figure -- and it is NOT a statement about ceiling
+ * headroom. The ceiling axis has its own threshold,
+ * `CEILING_NEAR_MISS_FRACTION` below, at a deliberately different number so the
+ * two cannot be confused by sight. Do not read this 0.75 as "75% of the way to
+ * the budget"; see the two-walls note in this file's header for why they
+ * measure different things and why a re-record moves this one to zero while
+ * leaving the other exactly where it was.
  */
 export const NEAR_MISS_FRACTION = 0.75;
 
