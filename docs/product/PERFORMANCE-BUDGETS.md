@@ -613,6 +613,7 @@ finally decides something rather than only printing: the creators column says ho
 many creators that flag is worth. A refusal is a reading taken at the one moment
 acting on it is still cheap.
 
+## What is reported, not gated: lab metrics
 
 Measured by `npm run lab` (`web/scripts/lab-metrics.mjs`), which drives the
 Chromium that Playwright already installs — **no new dependency** (adding
