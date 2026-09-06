@@ -42,6 +42,25 @@ export const PULSE_MAX_ITEMS = 6;
  * Which source to link when an event cites several. Earlier is preferred, so an
  * official announcement is chosen over a repository mirror when both are
  * present. This picks *which* primary source to surface; it never invents one.
+ *
+ * The question this list answers: **which source best reports this event?**
+ * `official-announcement` leads because a pulse entry describes an *event*, and
+ * the announcement is the event.
+ *
+ * It is one of three source-type lists in this repository, and they disagree on
+ * purpose because each answers a different question:
+ *
+ * - here — which source best reports an *event*, so the announcement leads;
+ * - `RELEASE_SOURCE_TYPE_PRIORITY` in `./release-source.ts` — which source best
+ *   *describes the model* on its release page, so `official-docs` leads there;
+ * - `PRIMARY_SOURCE_TYPES` in `../data/validate.ts` — a membership set rather
+ *   than an order, answering whether a source counts as primary at all.
+ *
+ * Nothing in the code relates the three, so the disagreement reads like an
+ * oversight and is not one. Collapsing them into a single order would silently
+ * re-rank one of the three surfaces; adopting this order on release pages would
+ * re-rank the cited source on many releases. Change any one of them on its own
+ * question's merits, never to make the three agree.
  */
 const SOURCE_TYPE_PRIORITY: readonly SourceReference['type'][] = [
   'official-announcement',
@@ -51,6 +70,37 @@ const SOURCE_TYPE_PRIORITY: readonly SourceReference['type'][] = [
   'benchmark-owner',
   'independent-evaluation',
 ];
+
+/** Where a source's declared type sits in the pulse order; unknown types sort last. */
+function rank(source: SourceReference): number {
+  const index = SOURCE_TYPE_PRIORITY.indexOf(source.type);
+  return index === -1 ? SOURCE_TYPE_PRIORITY.length : index;
+}
+
+/**
+ * A total order over the sources one event cites: declared type, then source id.
+ *
+ * The id term is arbitrary on purpose — it exists to make the order *total*.
+ * Ids are unique, so no two candidates ever compare equal, and the linked
+ * source can never depend on `Array.prototype.sort` being stable or on where an
+ * id happens to sit in `sourceIds`.
+ *
+ * `sourceIds` order carries no meaning: `schema.ts` declares it as
+ * `z.array(entityId).min(1)`, with no `.max()` and no ordering comment, and
+ * nothing between the JSON and the page sorts it. Permuting the array is
+ * therefore a semantically null edit, so any selection that read position would
+ * be deciding a sourcing question by file layout.
+ *
+ * Deliberately one comparator over every resolved candidate rather than a
+ * preferred-type lookup with a positional fallback — the same shape, and the
+ * same reasoning, as `releaseSourceOrder` in `./release-source.ts`. A two-arm
+ * form leaves the fallback indexing the raw array, so it stays order-dependent
+ * even after the preferred arm is sorted. The type layer differs between the
+ * two on purpose; see `SOURCE_TYPE_PRIORITY` above.
+ */
+export function comparePulseSources(a: SourceReference, b: SourceReference): number {
+  return rank(a) - rank(b) || compare(a.id, b.id);
+}
 
 /** Codepoint order, so output does not vary with the host's locale. */
 function compare(a: string, b: string): number {
@@ -161,15 +211,11 @@ function resolvePrimarySource(
     throw new Error(`Release event ${event.id} has no resolvable source`);
   }
 
-  const rank = (source: SourceReference) => {
-    const index = SOURCE_TYPE_PRIORITY.indexOf(source.type);
-    return index === -1 ? SOURCE_TYPE_PRIORITY.length : index;
-  };
-
-  return resolved
-    .slice()
-    .sort((a, b) => rank(a) - rank(b))
-    .map((source) => ({ title: source.title, url: source.url }))[0];
+  // One total order over every candidate, so there is no position read anywhere
+  // and no second arm to forget. `resolved` is built fresh above, so sorting it
+  // cannot disturb the caller's data.
+  const [source] = resolved.sort(comparePulseSources);
+  return { title: source.title, url: source.url };
 }
 
 /**
