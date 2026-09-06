@@ -2993,6 +2993,7 @@
     "accessType": "both",
     "license": {
       "name": "Apache 2.0",
+      "spdxId": "Apache-2.0",
       "url": "https://opensource.org/license/apache-2.0",
       "weightsDownloadable": true,
       "osiApproved": true
