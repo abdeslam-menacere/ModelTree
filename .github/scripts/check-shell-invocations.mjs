@@ -215,6 +215,32 @@
 // samples that must not, and it exits 2 -- never 0 -- if the covered set turns up
 // no file or no block.
 //
+// ## Why nothing here is a pattern handed to a shell
+//
+// This matches in process. It reads files with `readFileSync` and scans the text
+// itself; it imports no `child_process`, and it refuses arguments outright, so
+// there is no pattern for a shell to rewrite on the way in. That is a deliberate
+// property rather than an incidental one, because the obvious alternative --
+// shelling out to `git grep` with the pattern that names this defect class -- is
+// itself an instance of the class it would be looking for. A `git grep` pattern
+// containing a double quote is mangled by the shell before git sees it, and comes
+// back as no output at exit 1: indistinguishable from a clean corpus. Measured
+// twice, independently, on this repository: a bare-range sweep reported "no live
+// instances" while an argv array over the same tree found three.
+//
+// The defect selects for the well-aimed detector. A pattern that does not mention
+// quoting has no quote in it and runs fine, so the query is mangled in proportion
+// to how directly it targets the class -- and a positive control written the
+// natural way exercises the working path while the real query is blind.
+//
+// The control that separates them has to hold the quote constant across arms that
+// must come back differing, and `MUST_FLAG` / `MUST_NOT_FLAG` below carry it:
+// `$x = "$(git status && git log)"` must flag, `Write-Output "a && b"` and
+// `C="$(gh run list --limit 1 \` ... `)"` must not. All three carry a double
+// quote, two carry `&&`, and the verdicts differ -- which a matcher blinded by
+// quoting could not produce, since blindness here yields no finding at all. Keep
+// a quote-carrying sample on both sides of that pair if these lists are edited.
+//
 // ## How to re-take the measurements above
 //
 // They are readings against a corpus that moves, so re-take them rather than
@@ -494,6 +520,10 @@ const MUST_FLAG = [
   ["cd web && npm run validate", "chain-operator"],
   ["git switch main && git pull", "chain-operator"],
   // The same, reached through a subexpression inside a double-quoted string.
+  // This is also the positive arm of the quote-carrying control the header
+  // describes: it must flag, while the double-quoted samples in MUST_NOT_FLAG
+  // must not. Holding the quote constant across arms that come back differing
+  // is what a control written without one cannot do.
   ['$x = "$(git status && git log)"', "chain-operator"],
   // "The token '||' is not a valid statement separator in this version."
   ["npm ci || npm install", "chain-operator"],
