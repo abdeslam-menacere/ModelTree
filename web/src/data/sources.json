@@ -2568,5 +2568,32 @@
     "publisherId": "moonshot-ai",
     "lastCheckedDate": "2026-09-05",
     "notes": "The released artefact's own card. Cited for access type — \"This repository hosts the model checkpoints for Kimi-Audio-7B-Instruct\" — and for modalities, from \"We present Kimi-Audio, an open-source audio foundation model excelling in audio understanding, generation, and conversation\"; the card's own examples take a text instruction plus an audio file and return both text and a saved waveform, which is the audio-and-text in, audio-and-text out mapping. LICENCE, and the disagreement is recorded rather than resolved: the card's front matter states \"license: mit\", and that front matter is the artefact's own declaration, which is what the recorded licence rests on. The card's prose License section, however, scopes its licences to code rather than to weights — \"The model is based and modified from [Qwen 2.5-7B]. Code derived from Qwen2.5-7B is licensed under the [Apache 2.0 License]. Other parts of the code are licensed under the [MIT License].\" So the card names MIT twice over but its prose never states the weights' licence in terms, and a reader who takes only the prose would find the weights uncovered. The recorded value is the front-matter declaration, with this narrowing noted; the Apache-2.0 mention belongs to inherited Qwen code and is not recorded as this model's licence. osiApproved is true because the MIT License is OSI-published, cited to osi-license-mit, and that is a fact about MIT rather than a finding about what these weights are covered by. RE-VERIFIED 2026-09-05 for issue #820, and the disagreement is unchanged rather than assumed unchanged: the card returned HTTP 200, and the card's source form on this same origin still carries \"license: mit\" on line 2 of its front matter while its prose License section still names only code, both read in the same invocation; a fabricated control string was absent from the same fetch. NO PARAMETER COUNT is stated: \"7B\" appears only inside the model name, and a name is not a source, so parameters are withheld. NO CONTEXT WINDOW is stated anywhere on the card; withheld."
+  },
+  {
+    "id": "anthropic-opus-5-docs",
+    "url": "https://platform.claude.com/docs/en/models/opus-5/overview",
+    "title": "Claude Opus 5 - Claude Platform Docs",
+    "type": "official-docs",
+    "publisherId": "anthropic",
+    "lastCheckedDate": "2026-09-06",
+    "notes": "Anthropic's official model documentation page for Claude Opus 5 on platform.claude.com."
+  },
+  {
+    "id": "microsoft-mai-transcribe-2-announcement",
+    "url": "https://microsoft.ai/news/mai-transcribe-2-is-the-fastest-most-accurate-and-cheapest-speech-recognition-model-in-the-world/",
+    "title": "MAI-Transcribe-2 is the fastest, most accurate and cheapest speech recognition model in the world",
+    "type": "official-announcement",
+    "publisherId": "microsoft",
+    "publishedDate": "2026-09-03",
+    "lastCheckedDate": "2026-09-06"
+  },
+  {
+    "id": "microsoft-mai-image-2-6-announcement",
+    "url": "https://microsoft.ai/news/pushing-the-quality-cost-frontier-with-mai-image-2-6/",
+    "title": "Pushing the quality-cost frontier with MAI-Image-2.6",
+    "type": "official-announcement",
+    "publisherId": "microsoft",
+    "publishedDate": "2026-09-04",
+    "lastCheckedDate": "2026-09-06"
   }
 ]

@@ -123,7 +123,7 @@
       "qwen-hugging-face-organization",
       "qwen3-8-repository"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-09-06"
   },
   {
     "id": "microsoft",
@@ -620,7 +620,7 @@
       "kyutai-site-home",
       "kyutai-moshiko-pytorch-bf16-model-card"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-06"
   },
   {
     "id": "lelapa-ai",
@@ -636,7 +636,7 @@
       "lelapa-ai-pricing",
       "lelapa-ai-inkubalm-0-4b-model-card"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-06"
   },
   {
     "id": "maritaca-ai",
@@ -652,7 +652,7 @@
       "maritaca-ai-plans",
       "maritaca-ai-sabia-7b-model-card"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-06"
   },
   {
     "id": "openbmb",
