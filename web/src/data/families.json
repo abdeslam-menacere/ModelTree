@@ -314,6 +314,24 @@
     "verifiedAt": "2026-08-27"
   },
   {
+    "id": "openai-gpt-6",
+    "slug": "gpt-6",
+    "organizationId": "openai",
+    "name": "GPT-6",
+    "description": "OpenAI's GPT-6 generation of models. Its first documented member is GPT-6 Astra, published under the model ID gpt-6-astra and described by OpenAI as its most capable model, built for the hardest end-to-end work. No consulted OpenAI source states a first-release date for the generation as a whole, so this record carries none, and no consulted source states a lifecycle state for the generation, so its status is recorded as unknown.",
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "datePrecision": "unstated",
+    "status": "unknown",
+    "sourceIds": [
+      "openai-gpt-6-astra-docs"
+    ],
+    "verifiedAt": "2026-09-06"
+  },
+  {
     "id": "anthropic-claude-4-6",
     "slug": "claude-4-6",
     "organizationId": "anthropic",

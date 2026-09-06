@@ -449,7 +449,7 @@
     "title": "OpenAI News RSS feed",
     "type": "official-announcement",
     "publisherId": "openai",
-    "lastCheckedDate": "2026-08-31",
+    "lastCheckedDate": "2026-09-06",
     "notes": "OpenAI's news RSS feed. Used to date the GPT-5.6 Cyber introduction: the item 'Expanding Daybreak as the Cyber Defense Window Narrows', whose description introduces GPT-5.6-Cyber, carries pubDate Mon, 10 Aug 2026."
   },
   {
@@ -598,7 +598,7 @@
     "title": "OpenAI model catalog",
     "type": "official-docs",
     "publisherId": "openai",
-    "lastCheckedDate": "2026-08-31",
+    "lastCheckedDate": "2026-09-06",
     "notes": "OpenAI's developer model catalogue. Names GPT-5.6 Sol as the flagship model and lists GPT-Image-2 as the current image-generation model."
   },
   {
@@ -1008,6 +1008,14 @@
     "type": "official-docs",
     "publisherId": "openai",
     "lastCheckedDate": "2026-08-28"
+  },
+  {
+    "id": "openai-gpt-6-astra-docs",
+    "url": "https://developers.openai.com/api/docs/models/gpt-6-astra.md",
+    "title": "GPT-6 Astra model documentation",
+    "type": "official-docs",
+    "publisherId": "openai",
+    "lastCheckedDate": "2026-09-06"
   },
   {
     "id": "qwen-hugging-face-organization",
