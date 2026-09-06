@@ -1,5 +1,1772 @@
 [
   {
+    "id": "2026-09-06-2da81d",
+    "title": "Full-catalogue refresh 2026-09-06 — all 44 creators",
+    "ranOn": "2026-09-06",
+    "outcome": "published",
+    "summary": "Every creator in the catalogue was scouted in one pass and 262 claims were put to a three-rubric panel: 175 reached their threshold, 87 did not, and 112 survived to publication after a cross-bundle integrity pass withheld a further 50. Six records changed — three sources, two Microsoft releases (MAI-Transcribe-2 and MAI-Image-2.6) and one citation added to Claude Opus 5 — and 75 records were re-verified with no value change. Three findings are worth more than the six records. Fabricated evidence was caught for the first time: a quote attributed to a Microsoft page did not appear on it, and no deterministic gate can see that class, because gate-evidence checks hash shape and never correspondence to the cited URL — gates.test.mjs pins a well-formed but fabricated hash and quote as passing. A verbatim-quote verifier was written to close exactly that gap and is what caught it. Second, per-claim judgement cannot by itself produce a coherent dataset: five distinct integrity failures arose from claims that were each judged correctly, because coherence is a property of the surviving set and is unknown until the last claim is classified. Four are now withheld by a fixpoint over the kept set; the fifth was caught only by validate.ts and is new this run. Third, three of this run's own sweep scripts silently ignored their directory argument and reported on the wrong set at exit 0, caught only by reading the denominator against the count expected.",
+    "scope": "Every creator in the catalogue, scouted in one pass: all 44 organizations, 7 of them holding a reviewed profile and therefore judged at the 2-of-3 pilot threshold, the remaining 37 at the unanimous 3-of-3 long-tail threshold. The brief was a full refresh rather than a targeted one, so no creator was deliberately excluded and found.unswept is empty. Only the dataset JSON under web/src/data/ was in scope per ADR 0003, widened by ADR 0006 to include this ledger; nothing under tools/updater/, .github/ or docs/ was touched, and no repository setting was changed.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Established the environment by measurement rather than assumption. Both the bare and .cmd forms of drydock and npm were run: the bare forms are refused by this machine's PowerShell execution policy and the .cmd forms return 0.1.0 and 11.9.0, so both tools are installed and blocked rather than absent, and the execution policy was not changed to make the bare form work. Baseline npm run validate on the unmodified tree passed at exit 0 over 133 test files and 2988 tests, which is what makes a later failure attributable to this run rather than to trunk."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "All 44 creators scouted in parallel against primary sources only, 164 unique URLs fetched and hashed at fetch time, never recalled and never taken from a search snippet. 262 claims were extracted — 146 unchanged, 106 add, 7 change, 3 conflict — carrying 533 evidence entries over 256 distinct fetched bodies. A verbatim-quote verifier run over every bundle found a quote attributed to a Microsoft page that did not occur in the fetched body; that claim was corrected against the real page and re-verified. Four further findings from the same verifier proved to be its own blindness rather than defects in the evidence, including two silent synonym-key defects where it read creatorId for creator and claimId for id and so swept nothing while reporting success. One openai announcement returned three different sha256 digests across three separate HTTP 200 fetches, which is the origin of this run's stale-hash class; re-pointing was done only on exact substring match."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "786 verdicts over 262 claims, three per claim, no claim left partial and none duplicated. Each rubric was run as a separate sub-agent that saw only the claim, its evidence, the relevant dataset slice and its own rubric — never the scout's reasoning, never another reviewer's verdict, never the running tally. Beyond the skill's letter, each of the three rubrics was given a different model family, which attacks directly the weakness the skill itself names: three instances of one model reading one page share a failure mode, so a 2-of-3 majority buys independence of reasoning and not of training. 175 claims reached their threshold and 87 did not. The provenance rubric's rejections concentrated in three recorded traps: status 'current' asserted with no lifecycle quote, accessType 'open-weight' inferred from a licence name alone, and descriptions asserting facts absent from every attached quote."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "Every deterministic gate passed at exit 0 and every one was controlled in both directions in the same invocation, because a gate that has not been shown able to fail has measured nothing. gate-dataset was run against a pristine copy and against the same copy with one enum member corrupted, returning 0 and 1; gate-scope was run with and without an out-of-class file present, returning 0 and 1; gate-evidence and gate-source-approval were each run against the gated set and against an absent bundle, returning 0 and 2. The bundle-pairing checker initially reported every bundle coherent over a zero denominator, which is not a pass, and was only shown to discriminate after a deliberately malformed bundle carrying an uncited source add was fabricated and correctly refused."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "Six mutations applied in dependency order — sources before releases, so references resolve as they are created — with 0 refusals, followed by 75 re-verifications. The diff touches four documents and nothing outside web/src/data/. npm run validate passed at exit 0 over 133 test files and 2988 tests after application; its one failure during this run is recorded as a caveat and was cleared by withholding two date moves rather than by editing the dataset by hand. No bypass was used at any point: no --force, no --admin, no skipped gate, no lowered threshold, and no direct push to main."
+      },
+      {
+        "stage": "deploy",
+        "status": "ran",
+        "note": "Merge and deploy left to GitHub. Auto-merge was enabled on the pull request so that web-ci gates the merge rather than any judgement of this run's, and the Pages deployment was confirmed afterwards against the full 40-character merge commit rather than against a branch name, with a two-armed control whose arms were required to disagree before either reading was believed."
+      }
+    ],
+    "found": {
+      "scouts": 10,
+      "pagesFetched": 164,
+      "claimsProposed": 262,
+      "bundles": [
+        {
+          "creator": "01-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "ai-singapore",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "ai2",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 12
+        },
+        {
+          "creator": "ai21-labs",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "aleph-alpha",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "alibaba-cloud",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "amazon",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "anthropic",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "apple",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "baidu",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "bytedance-seed",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "cohere",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "databricks",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "deepseek",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "eleutherai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 12
+        },
+        {
+          "creator": "google-deepmind",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "hugging-face",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "ibm",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "kyutai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "lelapa-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "lg-ai-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "liquid-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "maritaca-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "meta",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "microsoft",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "minimax",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "mistral-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "moonshot-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "naver",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "nous-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "nvidia",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "openbmb",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "reka-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "sakana-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "sarvam-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "snowflake",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "stability-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "tencent",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "tii",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "upstage",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "xai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "xiaomi",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "zhipu-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "unchanged",
+          "count": 146,
+          "effect": "re-verification: the source still states what the dataset already holds"
+        },
+        {
+          "kind": "add",
+          "count": 106,
+          "effect": "a record proposed for a collection that did not hold it"
+        },
+        {
+          "kind": "change",
+          "count": 7,
+          "effect": "a field whose recorded value the sources contradict"
+        },
+        {
+          "kind": "conflict",
+          "count": 3,
+          "effect": "sources disagree, so the disagreement itself is the finding"
+        }
+      ],
+      "notCovered": [],
+      "unswept": [],
+      "degradedChannels": []
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 786,
+      "acceptedByPanel": 175,
+      "rejectedByPanel": 87,
+      "dissents": [
+        {
+          "claimId": "alibaba-cloud-creator-attribution-unchanged",
+          "rubric": "consistency",
+          "objection": "The unchanged claim targets organizations/alibaba-cloud field summary, but that record has no summary field; its stored field is description, whose longer conflict-aware text is not the claimed currentValue. The card therefore does not re-verify a value the current record holds."
+        },
+        {
+          "claimId": "meta-llama-4-scout-release-date-unchanged",
+          "rubric": "editorial",
+          "objection": "The quote is \"Llama 4 Version Effective Date: April 5, 2025\". That names the Llama 4 family, not Llama 4 Scout. Recording a family version-effective date as meta-llama-4-scout's releaseDate conflates family with release."
+        },
+        {
+          "claimId": "microsoft-fara-1-5-27b-release-date-unchanged",
+          "rubric": "provenance",
+          "objection": "Neither evidence quote mentions any date. Quote 1 ('Fara1.5-27B is a multimodal computer use agent (CUA) for web browsers, from Microsoft Research AI Frontiers.') and quote 2 ('- 262K context. Long enough for multi-screenshot trajectories with full action history.') describe the model's kind and context, but the field being re-verified is releaseDate '2026-05-21' and no quote states 21 May 2026 or any release date. The card's 'Release date | 21 May 2026' line exists on the source page but was not brought into the evidence, so the claim as it stands is unquoted."
+        },
+        {
+          "claimId": "microsoft-mai-transcribe-2-release-add",
+          "rubric": "provenance",
+          "objection": "The proposedValue's intendedUse — 'Real-world transcription workloads spanning clinical note-taking, legal documentation, accessibility, and closed captioning' — enumerates four specific application domains that appear in NONE of the four evidence quotes. The quotes cover only availability on Foundry/MAI Playground/Open Router, the 'most capable transcription model yet' framing, the September 3, 2026 date, and the 'Turn noisy audio into precise, domain-specific transcripts' models-page line. The 'clinical note-taking … legal documentation … accessibility … closed captioning' sentence exists on the announcement page but was not brought into evidence, so the intendedUse field is unquoted 'unknown filled in'."
+        },
+        {
+          "claimId": "microsoft-mai-transcribe-2-source-add",
+          "rubric": "editorial",
+          "objection": "proposedValue.title is 'MAI-Transcribe-2 is the fastest, most accurate and cheapest speech recognition model in the world'. That ranking claim would be written into the dataset. A verbatim superlative in a proposedValue field is still a superlative."
+        },
+        {
+          "claimId": "openai-gpt-6-astra-cite-announcement",
+          "rubric": "consistency",
+          "objection": "Appending openai-gpt-6-astra-announcement to openai-gpt-6-astra.sourceIds would make the release cite a fetched page while its unchanged summary explicitly says that announcement page returned HTTP 403 to this run and was not read."
+        },
+        {
+          "claimId": "openai-gpt-6-astra-release-date-unchanged",
+          "rubric": "consistency",
+          "objection": "Although 2026-09-03 matches openai-gpt-6-astra.releaseDate, this card says the launch page reconfirmed it while the current release summary says that page returned HTTP 403 to this run and was not read; the batch does not update that contradictory provenance text."
+        },
+        {
+          "claimId": "openai-gpt-6-astra-summary-correct-403-clause",
+          "rubric": "consistency",
+          "objection": "releases.json exactly contains the claimed old HTTP 403 clause, and the proposal changes only that clause consistently with the surrounding RSS-based 2026-09-03 date. However, the replacement asserts that openai-gpt-6-astra-announcement returned HTTP 200 and has no printed date while openai-gpt-6-astra.sourceIds remains only [openai-gpt-6-astra-docs, openai-news-rss]; because the announcement source addition was rejected and is missing from sources.json, the corrected summary would make an uncited page claim and is not internally coherent."
+        }
+      ],
+      "gates": [
+        {
+          "gate": "gate-scope",
+          "scope": "every path changed since the computed merge-base a51e196d, working tree and committed tip alike",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "4 dataset documents changed, 0 paths outside the ADR 0003 class. Controlled: with an out-of-class file present the same invocation exited 1 and named it, so the pass discriminates."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "all 631 records in web/src/data after the claims were applied",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "All gates passed over 631 records. Controlled: the identical invocation against a copy with one lifecycle status set to a non-member exited 1 and named the field, so both arms exercised the checking logic rather than the argument parser."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "the 112 gated claims across 38 surviving bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Every evidence entry well-formed. This gate verifies form and never correspondence to the cited URL, per ADR 0005, so it is not evidence that any quote is real; the separate verbatim verifier is what establishes that."
+        },
+        {
+          "gate": "gate-source-approval",
+          "scope": "every source cited by a surviving claim, against the approved origin profiles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "0 unapproved origins in the surviving set. Reached exit 0 only after a fourth integrity rule withheld claims whose evidence cited a source that a withheld claim would have added; before that rule it exited 1 over 7 creators."
+        },
+        {
+          "gate": "verify-quotes",
+          "scope": "all 450 distinct evidence entries over 256 fetched bodies, a superset of the 155 in the gated set",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": false,
+          "detail": "0 failures, 0 stale hashes. Not a repository gate but a check written for this run, because no deterministic gate can see a fabricated quote and gates.test.mjs pins that as accepted behaviour. Coverage of the gated subset was proved rather than assumed: all 155 gated entries occur among the 450 verified, with a discriminating control."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "the full web test suite and Astro/TypeScript diagnostics against the applied dataset",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "133 test files, 2988 tests, 0 errors. It failed at exit 1 on the first application over five model-fit freshness violations, which is the finding recorded in the caveats; it was cleared by withholding the two offending date moves, never by editing a fit statement's own verification date."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 6,
+      "documents": [
+        {
+          "document": "families.json",
+          "recordsBefore": 86,
+          "recordsAfter": 86,
+          "note": "8 record(s) re-verified with no value change"
+        },
+        {
+          "document": "organizations.json",
+          "recordsBefore": 44,
+          "recordsAfter": 44,
+          "note": "4 record(s) re-verified with no value change"
+        },
+        {
+          "document": "releases.json",
+          "recordsBefore": 121,
+          "recordsAfter": 123,
+          "note": "2 record(s) added; 1 field(s) changed; 63 record(s) re-verified with no value change"
+        },
+        {
+          "document": "sources.json",
+          "recordsBefore": 286,
+          "recordsAfter": 289,
+          "note": "3 record(s) added; ids: anthropic-opus-5-docs, microsoft-mai-transcribe-2-announcement, microsoft-mai-image-2-6-announcement"
+        }
+      ],
+      "records": [
+        {
+          "id": "microsoft-mai-transcribe-2",
+          "collection": "releases",
+          "note": "add from microsoft::microsoft-mai-transcribe-2-release-add — MAI-Transcribe-2 is a new Microsoft AI speech recognition release published on 3 September 2026 that accepts audio and produces text."
+        },
+        {
+          "id": "microsoft-mai-image-2-6",
+          "collection": "releases",
+          "note": "add from microsoft::microsoft-mai-image-2-6-release-add — MAI-Image-2.6 is a new Microsoft AI image release published on 4 September 2026 that accepts text or photo prompts and produces images, currently available in Public Preview through Microsoft Foundry."
+        },
+        {
+          "id": "anthropic-claude-opus-5",
+          "collection": "releases",
+          "note": "change to sourceIds from anthropic::anthropic-claude-opus-5-cite-docs — Cite Anthropic's Claude Opus 5 model documentation page on the anthropic-claude-opus-5 release."
+        }
+      ]
+    },
+    "withheld": [
+      {
+        "id": "01-ai::01-ai-yi-1-5-34b-chat-status-unchanged",
+        "category": "rejected-by-panel",
+        "detail": "releases 01-ai-yi-1-5-34b-chat — Yi-1.5-34B-Chat is still listed on the 01-ai Hugging Face org page as one of its 34B text-generation models, with no successor announcement replacing it on the Yi repository's News section. [withheld: rejected-by-panel, unapproved-source, short-quote; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "unapproved-source",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "01-ai::01-ai-yi-1-5-34b-chat-provenance-unchanged",
+        "category": "rejected-by-panel",
+        "detail": "families 01-ai-yi-1-5 — The Yi-1.5 family description is still supported by the Yi-1.5-34B-Chat model card, which restates the 500B-token corpus, 3M fine-tuning samples, and apache-2.0 licence. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "01-ai::01-ai-yi-34b-chat-status-unchanged",
+        "category": "rejected-by-panel",
+        "detail": "releases 01-ai-yi-34b-chat — Yi-34B-Chat is still listed on 01-ai's Hugging Face org page and the Yi repository's News section still records its 2023-11-23 open-source release without a superseding statement. [withheld: rejected-by-panel, unapproved-source, short-quote; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "unapproved-source",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "ai-singapore::sea-lion-v3-8b-parameters-still-8-billion",
+        "category": "source-refused",
+        "detail": "releases ai-singapore-llama-sea-lion-v3-8b — Llama-SEA-LION-v3-8B still measures at ~8B parameters: the Hugging Face Hub record's safetensors total is 8,030,261,248, which rounds to the recorded 8. [withheld: unapproved-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "unapproved-source"
+        ]
+      },
+      {
+        "id": "ai-singapore::sea-lion-v3-family-first-release-date-still-2024-12",
+        "category": "source-refused",
+        "detail": "families ai-singapore-sea-lion-v3 — The SEA-LION v3 family's first-release month remains 2024-12: AI Singapore's SEA-LION v3 documentation still states the version was released in Dec 2024, and the Hugging Face Hub record shows the 8B repository was created on 2024-12-11. [withheld: unapproved-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "unapproved-source"
+        ]
+      },
+      {
+        "id": "ai2::ai2-add-family-tulu-3",
+        "category": "rejected-by-panel",
+        "detail": "families ai2-tulu-3 — Add families record \"ai2-tulu-3\". [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "ai2::ai2-add-release-olmo-2-13b",
+        "category": "rejected-by-panel",
+        "detail": "releases ai2-olmo-2-13b [withheld: rejected-by-panel, no-statement, short-quote]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-statement",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "ai2::ai2-add-release-olmo-2-32b",
+        "category": "rejected-by-panel",
+        "detail": "releases ai2-olmo-2-32b [withheld: rejected-by-panel, no-statement, short-quote]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-statement",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "ai2::ai2-add-release-tulu-3-8b",
+        "category": "rejected-by-panel",
+        "detail": "releases ai2-tulu-3-8b — Add releases record \"ai2-tulu-3-8b\": canonical name \"Llama-3.1-Tulu-3-8B\", organization \"ai2\", family \"ai2-tulu-3\". [withheld: rejected-by-panel; 1 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "ai2::ai2-add-release-molmo-72b",
+        "category": "rejected-by-panel",
+        "detail": "releases ai2-molmo-72b [withheld: rejected-by-panel, no-statement, short-quote]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-statement",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "ai2::ai2-unchanged-molmo-family-firstreleasedate",
+        "category": "rejected-by-panel",
+        "detail": "families ai2-molmo [withheld: rejected-by-panel, no-statement]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-statement"
+        ]
+      },
+      {
+        "id": "ai2::ai2-unchanged-olmo-2-family-status",
+        "category": "rejected-by-panel",
+        "detail": "families ai2-olmo-2 — Re-verified: families record \"ai2-olmo-2\" field \"status\" still holds \"current\". [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "ai21-labs::ai21-jamba-reasoning-3b-card-source-add",
+        "category": "rejected-by-panel",
+        "detail": "sources ai21-jamba-reasoning-3b-card — The ai21labs/AI21-Jamba-Reasoning-3B Hugging Face model card is a primary AI21-published source and belongs in sources so a new Jamba Reasoning 3B release record can cite it. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "ai21-labs::ai21-jamba-reasoning-3b-release-add",
+        "category": "rejected-by-panel",
+        "detail": "releases ai21-labs-jamba-reasoning-3b — AI21 Labs released Jamba Reasoning 3B, a 3B-parameter hybrid Transformer-Mamba reasoning model under Apache 2.0 with a 256K context window, published on Hugging Face on 2025-10-05. [withheld: rejected-by-panel, short-quote; 0 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "ai21-labs::ai21-jamba-v0-1-status-conflict-newer-versions",
+        "category": "source-refused",
+        "detail": "releases ai21-labs-jamba-v0-1 — The Jamba v0.1 model card names two later versions (Jamba-1.5-Mini and Jamba-1.5-Large) as replacements, while the earlier announcement page and the file itself remain live and are still linked from AI21's own resources. The two readings do not agree on whether v0.1 should still carry \"current\" status; both are recorded here as a finding rather than resolved. [withheld: unapproved-source, short-quote; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "unapproved-source",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "ai21-labs::ai21-jamba-v0-1-context-window-unchanged",
+        "category": "source-refused",
+        "detail": "releases ai21-labs-jamba-v0-1 — The Jamba v0.1 model card still states a 256K context length, matching the 262,144 already recorded. [withheld: unapproved-source, short-quote; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "unapproved-source",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "ai21-labs::ai21-jamba-v0-1-access-type-unchanged",
+        "category": "source-refused",
+        "detail": "releases ai21-labs-jamba-v0-1 — Jamba v0.1 remains available as downloadable weights on Hugging Face under Apache 2.0, matching the existing open-weight access type. [withheld: unapproved-source, short-quote; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "unapproved-source",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "ai21-labs::ai21-labs-jamba-family-status-unchanged",
+        "category": "source-refused",
+        "detail": "families ai21-labs-jamba — The Jamba family status remains current, corroborated by AI21's October 2025 release of Jamba Reasoning 3B under the same family name. [withheld: unapproved-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "unapproved-source"
+        ]
+      },
+      {
+        "id": "aleph-alpha::aleph-tfree-hat-7b-base-card-source-add",
+        "category": "rejected-by-panel",
+        "detail": "sources aleph-tfree-hat-7b-base-card — The Aleph-Alpha/tfree-hat-pretrained-7b-base Hugging Face model card is a primary Aleph-Alpha-published source and is needed to back the new TFree-HAT-Pretrained-7B-Base release record and family record. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "aleph-alpha::aleph-alpha-tfree-hat-family-add",
+        "category": "rejected-by-panel",
+        "detail": "families aleph-alpha-tfree-hat — Aleph Alpha's tokenizer-free Hierarchical Autoregressive Transformer models constitute a distinct family from Pharia-1; the org page describes it as a separate family based on the HAT architecture paper, with the pretrained 7B base checkpoint published in July 2025. [withheld: rejected-by-panel, unapproved-source; 0 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "unapproved-source"
+        ]
+      },
+      {
+        "id": "aleph-alpha::aleph-alpha-tfree-hat-7b-base-release-add",
+        "category": "rejected-by-panel",
+        "detail": "releases aleph-alpha-tfree-hat-pretrained-7b-base — Aleph Alpha published TFree-HAT-Pretrained-7B-Base, a ~7B-parameter tokenizer-free HAT foundation model, on Hugging Face on 2025-07-31 under the Open Aleph License (weights downloadable, licence not OSI-approved), pre-trained in English and German with a long-context adapted checkpoint of 32,900 words. [withheld: rejected-by-panel, short-quote; 0 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "alibaba-cloud::alibaba-qwen3-6-27b-release-add",
+        "category": "rejected-by-panel",
+        "detail": "releases alibaba-qwen3-6-27b — Qwen3.6-27B is a new open-weight Alibaba Cloud dense release published on 22 April 2026 with 27B parameters, a 262,144-token native context window, and vision-language input. [withheld: rejected-by-panel; 1 of 3 accepts against a 2 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "alibaba-cloud::alibaba-qwen3-5-27b-release-add",
+        "category": "rejected-by-panel",
+        "detail": "releases alibaba-qwen3-5-27b — Qwen3.5-27B is a new open-weight Alibaba Cloud dense release published on 24 February 2026 with 27B parameters, a 262,144-token native context window, and vision-language input. [withheld: rejected-by-panel; 0 of 3 accepts against a 2 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "alibaba-cloud::alibaba-qwen3-6-27b-source-add",
+        "category": "rejected-by-panel",
+        "detail": "sources qwen3-6-27b-model-card — Add the Qwen3.6-27B Hugging Face model card as a model-card source; it is cited by the Qwen3.6-27B release add. [withheld: rejected-by-panel; 1 of 3 accepts against a 2 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "alibaba-cloud::alibaba-qwen3-5-27b-source-add",
+        "category": "rejected-by-panel",
+        "detail": "sources qwen3-5-27b-model-card — Add the Qwen3.5-27B Hugging Face model card as a model-card source; it is cited by the Qwen3.5-27B release add. [withheld: rejected-by-panel; 1 of 3 accepts against a 2 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "amazon::amazon-organization-provenance-unchanged",
+        "category": "rejected-by-panel",
+        "detail": "organizations amazon — The Amazon Nova portfolio positioning (foundation models plus Nova Forge / Nova Act, built on internal Amazon AI, served on Bedrock) is re-confirmed on the current AWS Nova overview page. [withheld: rejected-by-panel; 1 of 3 accepts against a 2 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "apple::apple-fastvlm-0-5b-release-add",
+        "category": "rejected-by-panel",
+        "detail": "releases apple-fastvlm-0-5b — Apple published a FastVLM 0.5B open-weight vision language model on Hugging Face under the apple-amlr research licence, alongside the FastVLM 7B already recorded. [withheld: rejected-by-panel, short-quote; 1 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "baidu::baidu-ernie-4-5-family-status-unchanged",
+        "category": "rejected-by-panel",
+        "detail": "families baidu-ernie-4-5 — The ERNIE 4.5 family status remains 'current': Baidu continues to publish new ERNIE 4.5 variants on Hugging Face, with ERNIE-4.5-21B-A3B-Thinking created on 2025-09-08. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "baidu::hugging-face-ernie-4-5-21b-thinking-hub-record-source-add",
+        "category": "rejected-by-panel",
+        "detail": "sources hugging-face-ernie-4-5-21b-thinking-hub-record — Add the Hugging Face hub JSON record for baidu/ERNIE-4.5-21B-A3B-Thinking as a source; its createdAt timestamp anchors the release date under dateBasis platform-repository-created. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "baidu::baidu-ernie-4-5-21b-thinking-release-add",
+        "category": "rejected-by-panel",
+        "detail": "releases baidu-ernie-4-5-21b-thinking — Add release ERNIE-4.5-21B-A3B-Thinking, Baidu's 21B/3B open-weight post-trained MoE within the ERNIE 4.5 family with a 131,072-token context length, whose HF model card was created on 2025-09-08. [withheld: rejected-by-panel, short-quote; 0 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "cohere::cohere-add-family-transcribe",
+        "category": "rejected-by-panel",
+        "detail": "families cohere-transcribe — Add the Cohere Transcribe family, the creator's dedicated audio-in, text-out automatic speech recognition line with weights released under Apache 2.0 on Hugging Face and hosted access on Cohere's Audio Transcriptions endpoint. [withheld: rejected-by-panel; 1 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "cohere::cohere-add-release-transcribe-03-2026",
+        "category": "rejected-by-panel",
+        "detail": "releases cohere-transcribe-03-2026 — Add cohere-transcribe-03-2026: a 2B parameter conformer-based encoder-decoder speech recognition model whose weights are released on Hugging Face under Apache 2.0 and which is also live on Cohere's hosted Audio Transcriptions endpoint. [withheld: rejected-by-panel; 1 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "deepseek::deepseek-release-add-v4-flash-vision-exp",
+        "category": "rejected-by-panel",
+        "detail": "releases deepseek-v4-flash-vision-exp [withheld: rejected-by-panel, no-statement]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-statement"
+        ]
+      },
+      {
+        "id": "deepseek::deepseek-v3-2-license-unchanged",
+        "category": "rejected-by-panel",
+        "detail": "releases deepseek-v3-2 — Re-verified: releases record \"deepseek-v3-2\" field \"license\" still holds { name: \"MIT License\", spdxId: \"MIT\", url: \"https://huggingface.co/deepseek-ai/DeepSeek-V3.2/blob/main/LICENSE\", weightsDownloadable: true, osiApproved: true }. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "eleutherai::add-source-mesh-transformer-jax-repository",
+        "category": "rejected-by-panel",
+        "detail": "sources eleutherai-mesh-transformer-jax-repository — The Mesh Transformer JAX GitHub repository, which the GPT-J-6B model card names as the training codebase, is a citable source for the GPT-J-6B release's licence and downloadable weights. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "eleutherai::add-family-gpt-neox",
+        "category": "rejected-by-panel",
+        "detail": "families eleutherai-gpt-neox — Add a GPT-NeoX family record for EleutherAI, whose sole publicly identified branded release is GPT-NeoX-20B. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "google-deepmind::google-gemini-3-8-flash-docs-source-add",
+        "category": "rejected-by-panel",
+        "detail": "sources google-gemini-3-8-flash-docs — Add the Google AI for Developers docs page for gemini-3.8-flash as a new Google source. [withheld: rejected-by-panel; 1 of 3 accepts against a 2 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "google-deepmind::google-gemini-3-8-flash-release-add",
+        "category": "rejected-by-panel",
+        "detail": "releases google-gemini-3-8-flash — Add Gemini 3.8 Flash as a new Google DeepMind release in the Gemini 3 family, dated September 2, 2026, with a 1,048,576-token input context and a 65,536-token output limit, served through the gemini-3.8-flash API alias. [withheld: rejected-by-panel; 0 of 3 accepts against a 2 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "google-deepmind::google-gemini-3-1-flash-lite-status-unchanged",
+        "category": "rejected-by-panel",
+        "detail": "releases google-gemini-3-1-flash-lite — Gemini 3.1 Flash-Lite remains an actively documented generally-available model on ai.google.dev, still described in the present tense with no deprecation banner on its docs page. [withheld: rejected-by-panel; 1 of 3 accepts against a 2 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "hugging-face::hf-add-family-smollm2",
+        "category": "rejected-by-panel",
+        "detail": "families hugging-face-smollm2 — Add families record \"hugging-face-smollm2\". [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "hugging-face::hf-add-family-smolvlm",
+        "category": "rejected-by-panel",
+        "detail": "families hugging-face-smolvlm — Add families record \"hugging-face-smolvlm\". [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "hugging-face::hf-add-release-smollm2-1-7b-instruct",
+        "category": "rejected-by-panel",
+        "detail": "releases hugging-face-smollm2-1-7b-instruct [withheld: rejected-by-panel, no-statement, short-quote]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-statement",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "hugging-face::hf-add-release-smolvlm-instruct",
+        "category": "rejected-by-panel",
+        "detail": "releases hugging-face-smolvlm-instruct — Add releases record \"hugging-face-smolvlm-instruct\": canonical name \"SmolVLM-Instruct\", organization \"hugging-face\", family \"hugging-face-smolvlm\". [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "hugging-face::hf-unchanged-smollm3-family-status",
+        "category": "source-refused",
+        "detail": "families hugging-face-smollm3 [withheld: no-statement, unapproved-source]",
+        "blockedBy": [
+          "no-statement",
+          "unapproved-source"
+        ]
+      },
+      {
+        "id": "ibm::ibm-granite-4-2-8b-release-add",
+        "category": "rejected-by-panel",
+        "detail": "releases ibm-granite-4-2-8b — Add Granite-4.2-8B as a distinct 8B dense-decoder Granite 4.2 reasoning release from IBM, dated August 25, 2026 with a native 128K context and Apache 2.0 licence. [withheld: rejected-by-panel; 0 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "ibm::ibm-granite-4-2-3b-release-add",
+        "category": "rejected-by-panel",
+        "detail": "releases ibm-granite-4-2-3b — Add Granite-4.2-3B as a distinct 3B dense-decoder Granite 4.2 reasoning release from IBM, dated August 25, 2026 with a native 128K context and Apache 2.0 licence. [withheld: rejected-by-panel; 0 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "lg-ai-research::lg-ai-research-exaone-4-0-1-2b-add-release",
+        "category": "rejected-by-panel",
+        "detail": "releases lg-ai-research-exaone-4-0-1-2b — LG AI Research released EXAONE 4.0 1.2B on 2025-07-15 as the small-size member of the EXAONE 4.0 series alongside the already-recorded 32B; it is a text-only model with a 65,536-token context length and 1.07B non-embedding parameters, distributed under the EXAONE AI Model License Agreement 1.2 - NC. [withheld: rejected-by-panel; 0 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "lg-ai-research::lg-ai-research-exaone-4-0-1-2b-add-source",
+        "category": "source-refused",
+        "detail": "sources lgai-exaone-4-0-1-2b-model-card — Add the Hugging Face model card for EXAONE-4.0-1.2B as a primary source; it is required to evidence the new 1.2B release record's context length, parameter count, licence and modality claims. [withheld: short-quote, unapproved-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "short-quote",
+          "unapproved-source"
+        ]
+      },
+      {
+        "id": "liquid-ai::liquid-lfm25-2-6b-card-source-add",
+        "category": "rejected-by-panel",
+        "detail": "sources liquid-lfm25-2-6b-card — The LiquidAI/LFM2.5-2.6B Hugging Face model card is a primary Liquid-AI-published source and belongs in sources so a new LFM2.5-2.6B release record and LFM2.5 family record can cite it. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "liquid-ai::liquid-lfm2-5-family-add",
+        "category": "rejected-by-panel",
+        "detail": "families liquid-lfm2-5 — Liquid AI introduced the LFM2.5 family as a follow-on to LFM2 with a 128K context window and agentic post-training; five post-trained checkpoints are published in the LFM2.5 collection on the Liquid AI Hugging Face org page. [withheld: rejected-by-panel, unapproved-source; 1 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "unapproved-source"
+        ]
+      },
+      {
+        "id": "liquid-ai::liquid-lfm2-5-2-6b-release-add",
+        "category": "rejected-by-panel",
+        "detail": "releases liquid-lfm2-5-2-6b — Liquid AI published LFM2.5-2.6B, a ~2.6B-parameter LFM2.5 post-trained hybrid model with a 128K context window, on Hugging Face on 2026-07-28 under the LFM Open License v1.0 (bespoke, not OSI-approved) with downloadable weights. [withheld: rejected-by-panel, short-quote; 1 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "liquid-ai::liquid-lfm2-family-status-unchanged",
+        "category": "source-refused",
+        "detail": "families liquid-lfm2 — The LFM2 family status remains current; Liquid AI's HF org page continues to list LFM2 variants alongside the newer LFM2.5 series and the LFM2-1.2B card is still active. [withheld: unapproved-source, short-quote; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "unapproved-source",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "microsoft::microsoft-mai-voice-2-release-add",
+        "category": "rejected-by-panel",
+        "detail": "releases microsoft-mai-voice-2 — MAI-Voice-2 is a new Microsoft AI text-to-speech release published on 2 June 2026 that accepts text and reference audio and produces audio. [withheld: rejected-by-panel, short-quote; 1 of 3 accepts against a 2 threshold]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "minimax::hugging-face-minimax-m2-hub-record-source-add",
+        "category": "rejected-by-panel",
+        "detail": "sources hugging-face-minimax-m2-hub-record — Add the Hugging Face hub JSON record for MiniMaxAI/MiniMax-M2 as a source; its createdAt timestamp anchors the release date and its cardData carries the license_name. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "minimax::minimax-m2-release-add",
+        "category": "rejected-by-panel",
+        "detail": "releases minimax-m2 — Add release MiniMax-M2, MiniMax's 230B-total / 10B-active open-weight MoE for coding and agentic workflows, whose HF model card was created on 2025-10-22. [withheld: rejected-by-panel; 0 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "mistral-ai::mistral-add-family-medium-3-5",
+        "category": "rejected-by-panel",
+        "detail": "families mistral-medium-3-5 — Add the Mistral Medium 3.5 family, the creator's dense flagship line that unifies instruction-following, reasoning and coding into a single model, released under a Modified MIT License. [withheld: rejected-by-panel; 1 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "mistral-ai::mistral-add-release-medium-3-5-128b",
+        "category": "rejected-by-panel",
+        "detail": "releases mistral-medium-3-5-128b — Add Mistral Medium 3.5 128B: a dense 128B multimodal model with a 256k context window, released 22 May 2026 in public preview under a Modified MIT License on Hugging Face and via the creator's hosted API. [withheld: rejected-by-panel; 1 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "mistral-ai::mistral-change-devstral-2-123b-status-deprecated",
+        "category": "rejected-by-panel",
+        "detail": "releases mistral-devstral-2-123b-instruct — Devstral 2 (API name devstral-2512) is listed by Mistral's own model docs under \"Deprecated & retired models\" with deprecation 5/22/2026 and retirement 7/31/2026, both of which are in the past as of 2026-09-06. [withheld: rejected-by-panel, unapproved-source; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "unapproved-source"
+        ]
+      },
+      {
+        "id": "mistral-ai::mistral-change-devstral-small-2-24b-status-deprecated",
+        "category": "rejected-by-panel",
+        "detail": "releases mistral-devstral-small-2-24b-instruct — Devstral Small 2 (API name labs-devstral-small-2512) is listed by Mistral's own model docs under \"Deprecated & retired models\" with deprecation 2/27/2026 and retirement 3/31/2026, both of which are in the past as of 2026-09-06. [withheld: rejected-by-panel, unapproved-source; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "unapproved-source"
+        ]
+      },
+      {
+        "id": "moonshot-ai::moonshot-family-add-kimi-k3",
+        "category": "rejected-by-panel",
+        "detail": "families moonshot-ai-kimi-k3 [withheld: rejected-by-panel, no-statement]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-statement"
+        ]
+      },
+      {
+        "id": "moonshot-ai::moonshot-release-add-kimi-k3",
+        "category": "rejected-by-panel",
+        "detail": "releases moonshot-ai-kimi-k3 — Add releases record \"moonshot-ai-kimi-k3\": canonical name \"Kimi-K3\", organization \"moonshot-ai\", family \"moonshot-ai-kimi-k3\". [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "moonshot-ai::moonshot-kimi-k2-instruct-context-unchanged",
+        "category": "rejected-by-panel",
+        "detail": "releases moonshot-ai-kimi-k2-instruct [withheld: rejected-by-panel, no-statement]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-statement"
+        ]
+      },
+      {
+        "id": "moonshot-ai::moonshot-kimi-k2-instruct-license-unchanged",
+        "category": "rejected-by-panel",
+        "detail": "releases moonshot-ai-kimi-k2-instruct — Re-verified: releases record \"moonshot-ai-kimi-k2-instruct\" field \"license\" still holds { name: \"Modified MIT License\", url: \"https://huggingface.co/moonshotai/Kimi-K2-Instruct/blob/main/LICENSE\", weightsDownloadable: true, osiApproved: false }. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "naver::naver-hyperclova-x-seed-text-instruct-0-5b-add-release",
+        "category": "rejected-by-panel",
+        "detail": "releases naver-hyperclova-x-seed-text-instruct-0-5b — NAVER Cloud released HyperCLOVAX-SEED-Text-Instruct-0.5B as the smallest of three lightweight HyperCLOVA X SEED text models on 2025-04-24; it is a Korean-focused text-to-text model with 0.57B total parameters, distributed under the HyperCLOVA X SEED Model License Agreement, and the same announcement already recorded for the 1.5B sibling covers it. [withheld: rejected-by-panel, unapproved-source; 0 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "unapproved-source"
+        ]
+      },
+      {
+        "id": "naver::naver-hyperclova-x-seed-0-5b-add-license",
+        "category": "rejected-by-panel",
+        "detail": "sources naver-hyperclova-x-seed-0-5b-license — Add the copy of the HyperCLOVA X SEED Model License Agreement that ships in the 0.5B repository as a primary source; the new 0.5B release cites it as the licence-terms artefact and it names NAVER Corp. as the intellectual-property holder. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "nous-research::nous-add-release-hermes-4-70b",
+        "category": "rejected-by-panel",
+        "detail": "releases nous-hermes-4-70b [withheld: rejected-by-panel, no-statement, short-quote]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-statement",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "nous-research::nous-add-release-hermes-4-405b",
+        "category": "rejected-by-panel",
+        "detail": "releases nous-hermes-4-405b [withheld: rejected-by-panel, no-statement, short-quote]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-statement",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "nous-research::nous-unchanged-hermes-4-14b-accesstype",
+        "category": "rejected-by-panel",
+        "detail": "releases nous-hermes-4-14b [withheld: rejected-by-panel, no-statement, short-quote]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-statement",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "nous-research::nous-unchanged-hermes-4-family-status",
+        "category": "rejected-by-panel",
+        "detail": "families nous-hermes-4 — Re-verified: families record \"nous-hermes-4\" field \"status\" still holds \"current\". [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "nvidia::nvidia-cosmos-1-0-diffusion-14b-text2world-release-add",
+        "category": "rejected-by-panel",
+        "detail": "releases nvidia-cosmos-1-0-diffusion-14b-text2world — Add Cosmos-1.0-Diffusion-14B-Text2World as a distinct 14B open-weight video-generating release in the Cosmos 1.0 family, released on 6 January 2025 under the NVIDIA Open Model License. [withheld: rejected-by-panel; 0 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "openai::openai-add-gpt-6-astra-announcement-source",
+        "category": "rejected-by-panel",
+        "detail": "sources openai-gpt-6-astra-announcement — Add source openai-gpt-6-astra-announcement pointing at https://openai.com/index/gpt-6-astra, OpenAI's launch announcement for GPT-6 Astra. [withheld: rejected-by-panel; 0 of 3 accepts against a 2 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "reka-ai::reka-edge-2603-card-source-add",
+        "category": "rejected-by-panel",
+        "detail": "sources reka-edge-2603-card — The RekaAI/reka-edge-2603 Hugging Face model card is a primary Reka-published source and belongs in sources so a new Reka Edge 2603 release record and a Reka Edge family record can cite it. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "reka-ai::reka-edge-family-add",
+        "category": "rejected-by-panel",
+        "detail": "families reka-edge — Reka AI introduced Reka Edge, an efficient 7B multimodal vision-language model line published on Hugging Face in March 2026 and listed alongside Reka Flash on the RekaAI org page. [withheld: rejected-by-panel, unapproved-source, short-quote; 1 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "unapproved-source",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "reka-ai::reka-edge-2603-release-add",
+        "category": "rejected-by-panel",
+        "detail": "releases reka-edge-2603 — Reka AI published Reka Edge 2603, a ~7B multimodal vision-language model, on Hugging Face on 2026-03-11 under a bespoke \"reka-edge-2603-license\" (open weights, commercial use permitted for organizations under $1M USD annual revenue; not OSI-approved). [withheld: rejected-by-panel; 0 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "reka-ai::reka-flash-family-status-unchanged",
+        "category": "source-refused",
+        "detail": "families reka-flash — The Reka Flash family status remains current; the RekaAI HF org page still lists Reka Flash 3.1 (updated Jul 10, 2025) and its 3.5-bit quantized companion alongside the newer Reka Edge 2603. [withheld: unapproved-source, short-quote; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "unapproved-source",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "sakana-ai::sakana-evollm-jp-family-first-release-date-still-2024-03",
+        "category": "rejected-by-panel",
+        "detail": "families sakana-ai-evollm-jp — The EvoLLM-JP family's first release date remains March 2024, as re-stated in Sakana AI's own retrospective blog. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "sarvam-ai::sarvam-m-release-status-still-current",
+        "category": "rejected-by-panel",
+        "detail": "releases sarvam-ai-sarvam-m-v1 — Sarvam-M remains Sarvam AI's currently-promoted flagship model on its own model card: the card describes it in present-tense terms as a multilingual hybrid-reasoning language model built on Mistral-Small, with no supersession or legacy notice. [withheld: rejected-by-panel; 1 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "snowflake::snowflake-arctic-instruct-release-date-unchanged",
+        "category": "rejected-by-panel",
+        "detail": "releases snowflake-arctic-instruct — The Snowflake Arctic Instruct model card continues to state Model Release Date April 24, 2024, matching the launch date recorded in the Snowflake-Labs README changelog. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "snowflake::snowflake-arctic-instruct-license-unchanged",
+        "category": "rejected-by-panel",
+        "detail": "releases snowflake-arctic-instruct — The Snowflake Arctic Instruct card continues to publish under Apache-2.0, and the Snowflake-Labs GitHub repo carries the same Apache-2.0 license header; OSI publishes the Apache License, Version 2.0 as an OSI-approved licence. [withheld: rejected-by-panel, short-quote; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "snowflake::snowflake-arctic-instruct-modality-unchanged",
+        "category": "rejected-by-panel",
+        "detail": "releases snowflake-arctic-instruct — The Snowflake Arctic Instruct card continues to state Arctic is a text-only model — input text only and output text and code only — so the release stays classified as text output. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "stability-ai::stability-sd-3-5-medium-release-add",
+        "category": "rejected-by-panel",
+        "detail": "releases ? — Stability AI has released Stable Diffusion 3.5 Medium (2.5B parameters, MMDiT-X architecture) as part of the SD 3.5 open release; the launch announcement records its release on October 29, 2024 as a companion to the Large variant already in the dataset. [withheld: rejected-by-panel, no-targetId; 0 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-targetId"
+        ]
+      },
+      {
+        "id": "stability-ai::stability-sd-3-5-large-turbo-release-add",
+        "category": "rejected-by-panel",
+        "detail": "releases ? — Stability AI has released Stable Diffusion 3.5 Large Turbo, a distilled variant of SD 3.5 Large that generates images in 4 steps, alongside the Large model on October 22, 2024, under the same Community License. [withheld: rejected-by-panel, no-targetId; 0 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-targetId"
+        ]
+      },
+      {
+        "id": "tencent::tencent-hunyuanimage-3-0-family-status-change",
+        "category": "rejected-by-panel",
+        "detail": "families tencent-hunyuanimage-3-0 — Move HunyuanImage-3.0 family status from 'unknown' to 'current'. The creator's own News list on the HunyuanImage-3.0 README now records two further checkpoint releases in the same family on 2026-01-26 (HunyuanImage-3.0-Instruct-Distil and HunyuanImage-3.0-Instruct) after the initial 2025-09-28 open-source release, and a 2025-10-30 vLLM Acceleration release, which together assert the family is in active development. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "tii::tii-add-family-falcon-3",
+        "category": "rejected-by-panel",
+        "detail": "families tii-falcon-3 — Add families record \"tii-falcon-3\". [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "tii::tii-add-family-falcon-mamba",
+        "category": "rejected-by-panel",
+        "detail": "families tii-falcon-mamba — Add families record \"tii-falcon-mamba\". [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "tii::tii-add-release-falcon-3-10b-base",
+        "category": "rejected-by-panel",
+        "detail": "releases tii-falcon-3-10b-base [withheld: rejected-by-panel, no-statement, short-quote]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-statement",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "tii::tii-add-release-falcon-mamba-7b",
+        "category": "rejected-by-panel",
+        "detail": "releases tii-falcon-mamba-7b [withheld: rejected-by-panel, no-statement, short-quote]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-statement",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "tii::tii-add-release-falcon-h1-7b-instruct",
+        "category": "rejected-by-panel",
+        "detail": "releases tii-falcon-h1-7b-instruct [withheld: rejected-by-panel, no-statement, short-quote]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-statement",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "tii::tii-unchanged-falcon-180b-accesstype",
+        "category": "rejected-by-panel",
+        "detail": "releases tii-falcon-180b — Re-verified: releases record \"tii-falcon-180b\" field \"accessType\" still holds \"open-weight\". [withheld: rejected-by-panel; 1 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "tii::tii-unchanged-falcon-h1-family-status",
+        "category": "rejected-by-panel",
+        "detail": "families tii-falcon-h1 — Re-verified: families record \"tii-falcon-h1\" field \"status\" still holds \"current\". [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "upstage::upstage-solar-pro-preview-instruct-context-window-unchanged",
+        "category": "rejected-by-panel",
+        "detail": "releases upstage-solar-pro-preview-instruct — Solar Pro Preview Instruct still states a maximum context length of 4K on its Hugging Face model card; under the run brief's Upstage rule 4K is recorded as 4096, matching the current dataset value. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "xai::xai-grok-4-5-context-unchanged",
+        "category": "rejected-by-panel",
+        "detail": "releases xai-grok-4-5 [withheld: rejected-by-panel, no-statement]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-statement"
+        ]
+      },
+      {
+        "id": "xai::xai-grok-4-6-status-unchanged",
+        "category": "rejected-by-panel",
+        "detail": "releases xai-grok-4-6 — Re-verified: releases record \"xai-grok-4-6\" field \"status\" still holds \"current\". [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "xai::xai-family-add-grok-build",
+        "category": "rejected-by-panel",
+        "detail": "families xai-grok-build [withheld: rejected-by-panel, no-statement]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-statement"
+        ]
+      },
+      {
+        "id": "xai::xai-release-add-grok-build-0-1",
+        "category": "rejected-by-panel",
+        "detail": "releases xai-grok-build-0-1 [withheld: rejected-by-panel, no-statement, short-quote]",
+        "blockedBy": [
+          "rejected-by-panel",
+          "no-statement",
+          "short-quote"
+        ]
+      },
+      {
+        "id": "xiaomi::mimo-7b-family-first-release-date-still-2025-05-30",
+        "category": "source-refused",
+        "detail": "families xiaomi-mimo-7b — The MiMo-7B family's first release date remains 2025-05-30 under the platform-repository-created basis: the Hugging Face Hub record for XiaomiMiMo/MiMo-7B-RL-0530 still shows createdAt \"2025-05-30T01:19:37.000Z\". [withheld: unapproved-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "unapproved-source"
+        ]
+      },
+      {
+        "id": "xiaomi::mimo-7b-rl-0530-access-type-still-open-weight",
+        "category": "source-refused",
+        "detail": "releases xiaomi-mimo-7b-rl-0530 — MiMo-7B-RL-0530's accessType remains open-weight: Xiaomi's own MiMo repository README states that the series is open-sourced with downloadable checkpoints for the RL model, and the Hugging Face Hub record still marks the repository as ungated with a safetensors weight enumeration. [withheld: unapproved-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "unapproved-source"
+        ]
+      },
+      {
+        "id": "xiaomi::mimo-7b-rl-0530-canonical-name-still-matches-hub",
+        "category": "source-refused",
+        "detail": "releases xiaomi-mimo-7b-rl-0530 — The recorded canonical name \"MiMo-7B-RL-0530\" still matches the Hugging Face repository id and card title verbatim. [withheld: unapproved-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "unapproved-source"
+        ]
+      },
+      {
+        "id": "zhipu-ai::hugging-face-glm-4-5-hub-record-source-add",
+        "category": "rejected-by-panel",
+        "detail": "sources hugging-face-glm-4-5-hub-record — Add the Hugging Face hub JSON record for zai-org/GLM-4.5 as a source; the record's createdAt timestamp anchors the release date under dateBasis platform-repository-created. [withheld: rejected-by-panel; 2 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "zhipu-ai::zhipu-ai-glm-4-5-release-add",
+        "category": "rejected-by-panel",
+        "detail": "releases zhipu-ai-glm-4-5 — Add release GLM-4.5, the full-size 355B/32B open-weight MIT-licensed sibling of GLM-4.5-Air, whose HF model card was created on 2025-07-20. [withheld: rejected-by-panel; 0 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "rejected-by-panel"
+        ]
+      },
+      {
+        "id": "ai2::ai2-src-olmo-2-13b-card",
+        "category": "dropped-after-acceptance",
+        "detail": "sources ai2-olmo-2-13b-model-card — Add sources record \"ai2-olmo-2-13b-model-card\": \"allenai/OLMo-2-1124-13B model card\" (\"model-card\") published by \"ai2\" at https://huggingface.co/allenai/OLMo-2-1124-13B. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "ai2::ai2-src-olmo-2-32b-card",
+        "category": "dropped-after-acceptance",
+        "detail": "sources ai2-olmo-2-32b-model-card — Add sources record \"ai2-olmo-2-32b-model-card\": \"allenai/OLMo-2-0325-32B model card\" (\"model-card\") published by \"ai2\" at https://huggingface.co/allenai/OLMo-2-0325-32B. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "ai2::ai2-src-tulu-3-8b-card",
+        "category": "dropped-after-acceptance",
+        "detail": "sources ai2-tulu-3-8b-model-card — Add sources record \"ai2-tulu-3-8b-model-card\": \"allenai/Llama-3.1-Tulu-3-8B model card\" (\"model-card\") published by \"ai2\" at https://huggingface.co/allenai/Llama-3.1-Tulu-3-8B. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "ai2::ai2-src-molmo-72b-card",
+        "category": "dropped-after-acceptance",
+        "detail": "sources ai2-molmo-72b-model-card — Add sources record \"ai2-molmo-72b-model-card\": \"allenai/Molmo-72B-0924 model card\" (\"model-card\") published by \"ai2\" at https://huggingface.co/allenai/Molmo-72B-0924. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "anthropic::anthropic-claude-haiku-4-5-context-window-unchanged",
+        "category": "verification-held",
+        "detail": "releases anthropic-claude-haiku-4-5 — Claude Haiku 4.5's context window remains 200,000 tokens, per the Sonnet 5 documentation page's model comparison table. [withheld: freshness-dependant-stale; 3 of 3 accepts against a 2 threshold]",
+        "blockedBy": [
+          "freshness-dependant-stale"
+        ]
+      },
+      {
+        "id": "apple::apple-fastvlm-0-5b-model-card-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "sources apple-fastvlm-0-5b-card — The apple/FastVLM-0.5B Hugging Face page is a primary Apple-published model card and belongs in sources so a new FastVLM-0.5B release record can cite it. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "apple::apple-fastvlm-7b-siblingids-add-0-5b",
+        "category": "dropped-after-acceptance",
+        "detail": "releases apple-fastvlm-7b — The existing FastVLM 7B record should list FastVLM 0.5B as a sibling, since Apple's own Hugging Face card and evaluations table present both as members of the same family launch. [withheld: dangling-reference; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "dangling-reference"
+        ]
+      },
+      {
+        "id": "baidu::baidu-ernie-4-5-21b-thinking-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "sources baidu-ernie-4-5-21b-thinking-model-card — Add the ERNIE-4.5-21B-A3B-Thinking model card on Hugging Face as a Baidu source; the release is not yet in the dataset. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "cohere::cohere-add-source-transcribe-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "sources cohere-transcribe-model-card — Add the Cohere Transcribe (cohere-transcribe-03-2026) Hugging Face model card as a model-card source. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "deepseek::deepseek-source-add-vision-exp-card",
+        "category": "dropped-after-acceptance",
+        "detail": "sources deepseek-v4-flash-vision-exp-model-card — Add sources record \"deepseek-v4-flash-vision-exp-model-card\": \"DeepSeek-V4-Flash-Vision-Exp model card\" (\"model-card\") published by \"deepseek\" at https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-Vision-Exp. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "deepseek::deepseek-source-add-vision-exp-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "sources hugging-face-deepseek-v4-flash-vision-exp-hub-record — Add sources record \"hugging-face-deepseek-v4-flash-vision-exp-hub-record\": \"DeepSeek-V4-Flash-Vision-Exp Hugging Face hub record\" (\"platform-record\") published by \"hugging-face\" at https://huggingface.co/api/models/deepseek-ai/DeepSeek-V4-Flash-Vision-Exp. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "eleutherai::add-family-gpt-j",
+        "category": "dropped-after-acceptance",
+        "detail": "families eleutherai-gpt-j — Add a GPT-J family record for EleutherAI, whose sole publicly identified member is GPT-J-6B. [withheld: dangling-citation; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "dangling-citation"
+        ]
+      },
+      {
+        "id": "eleutherai::add-release-gpt-j-6b",
+        "category": "dropped-after-acceptance",
+        "detail": "releases eleutherai-gpt-j-6b — Add EleutherAI's GPT-J-6B as a 6.053-billion-parameter, Apache-2.0-licensed, open-weight text model whose Hugging Face repository was created on 2022-03-02. [withheld: dangling-citation; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "dangling-citation"
+        ]
+      },
+      {
+        "id": "eleutherai::add-release-gpt-neox-20b",
+        "category": "dropped-after-acceptance",
+        "detail": "releases eleutherai-gpt-neox-20b — Add EleutherAI's GPT-NeoX-20B as a 20.555-billion-parameter, Apache-2.0-licensed, open-weight text model with a 2,048-token sequence length whose Hugging Face repository was created on 2022-04-07. [withheld: dangling-reference; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "dangling-reference"
+        ]
+      },
+      {
+        "id": "hugging-face::hf-src-smollm2-1-7b-instruct-card",
+        "category": "dropped-after-acceptance",
+        "detail": "sources hugging-face-smollm2-1-7b-instruct-model-card — Add sources record \"hugging-face-smollm2-1-7b-instruct-model-card\": \"HuggingFaceTB/SmolLM2-1.7B-Instruct model card\" (\"model-card\") published by \"hugging-face\" at https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B-Instruct. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "hugging-face::hf-src-smolvlm-instruct-card",
+        "category": "dropped-after-acceptance",
+        "detail": "sources hugging-face-smolvlm-instruct-model-card — Add sources record \"hugging-face-smolvlm-instruct-model-card\": \"HuggingFaceTB/SmolVLM-Instruct model card\" (\"model-card\") published by \"hugging-face\" at https://huggingface.co/HuggingFaceTB/SmolVLM-Instruct. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "ibm::ibm-granite-4-2-8b-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "sources ibm-granite-4-2-8b-model-card — Add the Hugging Face model card for granite-4.2-8b as a new IBM source. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "ibm::ibm-granite-4-2-3b-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "sources ibm-granite-4-2-3b-model-card — Add the Hugging Face model card for granite-4.2-3b as a new IBM source. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "meta::meta-llama-4-scout-release-date-unchanged",
+        "category": "verification-held",
+        "detail": "releases meta-llama-4-scout — Llama 4 Scout continues to state a version effective date of April 5, 2025 on its Hugging Face model card. [withheld: freshness-dependant-stale; 2 of 3 accepts against a 2 threshold]",
+        "blockedBy": [
+          "freshness-dependant-stale"
+        ]
+      },
+      {
+        "id": "microsoft::microsoft-mai-voice-2-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "sources microsoft-mai-voice-2-announcement — Add the MAI-Voice-2 announcement page on microsoft.ai as an official-announcement source; it is cited by the MAI-Voice-2 release add. [withheld: orphan-source; 3 of 3 accepts against a 2 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "minimax::minimax-m2-family-add",
+        "category": "dropped-after-acceptance",
+        "detail": "families minimax-m2 — Add family MiniMax-M2, a distinct open-weight MoE model line from MiniMax-M1, whose HF model card was created on 2025-10-22. [withheld: dangling-citation; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "dangling-citation"
+        ]
+      },
+      {
+        "id": "minimax::minimax-m2-license-conflict",
+        "category": "dropped-after-acceptance",
+        "detail": "releases minimax-m2 — MiniMax-M2 model card body labels the licence 'MIT' while the Hugging Face hub record's cardData labels it 'modified-mit' (license_name) with license_link pointing at github.com/MiniMax-AI/MiniMax-M2/blob/main/LICENSE. A human should retrieve the LICENSE file itself to determine whether the licence is vanilla MIT (OSI-approved) or a modification that must not be recorded as OSI-approved MIT. [withheld: evidence-source-unapproved; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "evidence-source-unapproved"
+        ]
+      },
+      {
+        "id": "mistral-ai::mistral-add-source-medium-3-5-announcement",
+        "category": "dropped-after-acceptance",
+        "detail": "sources mistral-medium-3-5-announcement — Add the Mistral Medium 3.5 announcement page as an official-announcement source on the creator's own domain. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "mistral-ai::mistral-add-source-medium-3-5-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "sources mistral-medium-3-5-model-card — Add the Mistral Medium 3.5 128B Hugging Face model card as a model-card source. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "moonshot-ai::moonshot-source-add-kimi-k3-card",
+        "category": "dropped-after-acceptance",
+        "detail": "sources moonshot-ai-kimi-k3-model-card — Add sources record \"moonshot-ai-kimi-k3-model-card\": \"Kimi-K3 model card\" (\"model-card\") published by \"moonshot-ai\" at https://huggingface.co/moonshotai/Kimi-K3. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "moonshot-ai::moonshot-source-add-kimi-k3-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "sources hugging-face-kimi-k3-hub-record — Add sources record \"hugging-face-kimi-k3-hub-record\": \"Kimi-K3 Hugging Face hub record\" (\"platform-record\") published by \"hugging-face\" at https://huggingface.co/api/models/moonshotai/Kimi-K3. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "naver::naver-hyperclova-x-seed-0-5b-add-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "sources naver-hyperclova-x-seed-0-5b-model-card — Add the Hugging Face model card for HyperCLOVAX-SEED-Text-Instruct-0.5B as a primary source; it is required to evidence the new 0.5B release's parameter count, modality and licence claims. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "naver::hugging-face-hyperclova-x-seed-0-5b-add-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "sources hugging-face-hyperclova-x-seed-0-5b-hub-record — Add the Hugging Face registry JSON record for HyperCLOVAX-SEED-Text-Instruct-0.5B as a primary source; it fixes the repository createdAt (2025-04-22) that anchors the platform-observable release timing and reports total safetensors parameters. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "nous-research::nous-src-hermes-4-70b-card",
+        "category": "dropped-after-acceptance",
+        "detail": "sources nous-hermes-4-70b-model-card — Add sources record \"nous-hermes-4-70b-model-card\": \"NousResearch/Hermes-4-70B model card\" (\"model-card\") published by \"nous-research\" at https://huggingface.co/NousResearch/Hermes-4-70B. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "nous-research::nous-src-hermes-4-405b-card",
+        "category": "dropped-after-acceptance",
+        "detail": "sources nous-hermes-4-405b-model-card — Add sources record \"nous-hermes-4-405b-model-card\": \"NousResearch/Hermes-4-405B model card\" (\"model-card\") published by \"nous-research\" at https://huggingface.co/NousResearch/Hermes-4-405B. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "nvidia::nvidia-cosmos-diffusion-14b-text2world-add",
+        "category": "dropped-after-acceptance",
+        "detail": "sources nvidia-cosmos-diffusion-14b-text2world-model-card — Add the Hugging Face model card for Cosmos-1.0-Diffusion-14B-Text2World as a new NVIDIA source. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "openai::openai-gpt-6-astra-cite-announcement",
+        "category": "dropped-after-acceptance",
+        "detail": "releases openai-gpt-6-astra — Cite the OpenAI launch announcement for GPT-6 Astra on the openai-gpt-6-astra release, now that the announcement page is retrievable. [withheld: dangling-citation; 2 of 3 accepts against a 2 threshold]",
+        "blockedBy": [
+          "dangling-citation"
+        ]
+      },
+      {
+        "id": "openai::openai-gpt-6-astra-release-date-unchanged",
+        "category": "dropped-after-acceptance",
+        "detail": "releases openai-gpt-6-astra — The OpenAI GPT-6 Astra release date remains 2026-09-03, as reconfirmed by the OpenAI news RSS pubDate and the launch announcement page. [withheld: evidence-source-unapproved; 2 of 3 accepts against a 2 threshold]",
+        "blockedBy": [
+          "evidence-source-unapproved"
+        ]
+      },
+      {
+        "id": "openai::openai-gpt-6-astra-summary-correct-403-clause",
+        "category": "dropped-after-acceptance",
+        "detail": "releases openai-gpt-6-astra — The openai-gpt-6-astra release summary's clause describing the announcement page as HTTP 403 and unread is out of date: the announcement page was retrievable at HTTP 200 to this run and carries no printed calendar date of its own, so the 2026-09-03 date still comes from the news feed pubDate rather than the page. [withheld: evidence-source-unapproved; 2 of 3 accepts against a 2 threshold]",
+        "blockedBy": [
+          "evidence-source-unapproved"
+        ]
+      },
+      {
+        "id": "stability-ai::stability-sd-3-5-medium-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "sources stability-ai-sd-3-5-medium-model-card — The Stable Diffusion 3.5 Medium model card on Hugging Face is a primary source for the SD 3.5 Medium release and needs its own source id. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "stability-ai::stability-sd-3-5-large-turbo-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "sources stability-ai-sd-3-5-large-turbo-model-card — The Stable Diffusion 3.5 Large Turbo model card on Hugging Face is a primary source for the SD 3.5 Large Turbo release and needs its own source id. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "tii::tii-src-falcon-3-10b-card",
+        "category": "dropped-after-acceptance",
+        "detail": "sources tii-falcon-3-10b-model-card — Add sources record \"tii-falcon-3-10b-model-card\": \"tiiuae/Falcon3-10B-Base model card\" (\"model-card\") published by \"tii\" at https://huggingface.co/tiiuae/Falcon3-10B-Base. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "tii::tii-src-falcon-mamba-7b-card",
+        "category": "dropped-after-acceptance",
+        "detail": "sources tii-falcon-mamba-7b-model-card — Add sources record \"tii-falcon-mamba-7b-model-card\": \"tiiuae/falcon-mamba-7b model card\" (\"model-card\") published by \"tii\" at https://huggingface.co/tiiuae/falcon-mamba-7b. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "tii::tii-src-falcon-h1-7b-instruct-card",
+        "category": "dropped-after-acceptance",
+        "detail": "sources tii-falcon-h1-7b-instruct-model-card — Add sources record \"tii-falcon-h1-7b-instruct-model-card\": \"tiiuae/Falcon-H1-7B-Instruct model card\" (\"model-card\") published by \"tii\" at https://huggingface.co/tiiuae/Falcon-H1-7B-Instruct. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "xai::xai-source-add-pricing",
+        "category": "dropped-after-acceptance",
+        "detail": "sources xai-pricing — Add sources record \"xai-pricing\": \"Pricing\" (\"official-docs\") published by \"xai\" at https://docs.x.ai/developers/pricing. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "zhipu-ai::zhipu-ai-glm-4-5-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "sources zhipu-ai-glm-4-5-base-model-card — Add the GLM-4.5 (base) model card on Hugging Face as a Zhipu AI source; the existing zhipu-ai-glm-4-5-model-card points at the Air variant. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "ai2::ai2-unchanged-molmo-7b-d-accesstype",
+        "category": "dropped-after-acceptance",
+        "detail": "releases ai2-molmo-7b-d — Re-verified: releases record \"ai2-molmo-7b-d\" field \"accessType\" still holds \"open-weight\". [withheld: evidence-source-unapproved; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "evidence-source-unapproved"
+        ]
+      },
+      {
+        "id": "eleutherai::add-source-gpt-j-6b-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "sources eleutherai-gpt-j-6b-model-card — The GPT-J-6B model card on Hugging Face is a citable source for the GPT-J-6B release and the GPT-J family. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "eleutherai::add-source-gpt-neox-20b-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "sources eleutherai-gpt-neox-20b-model-card — The GPT-NeoX-20B model card on Hugging Face is a citable source for the GPT-NeoX-20B release and the GPT-NeoX family. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "eleutherai::add-source-gpt-neox-library-repository",
+        "category": "dropped-after-acceptance",
+        "detail": "sources eleutherai-gpt-neox-library-repository — The GPT-NeoX library GitHub repository is a citable source for the GPT-NeoX family and the GPT-NeoX-20B release. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "eleutherai::add-source-gpt-neox-20b-paper",
+        "category": "dropped-after-acceptance",
+        "detail": "sources eleutherai-gpt-neox-20b-paper — The GPT-NeoX-20B arXiv paper by EleutherAI authors is a citable source for the GPT-NeoX-20B release. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "minimax::minimax-m2-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "sources minimax-m2-model-card — Add the MiniMax-M2 model card on Hugging Face as a MiniMax source; the MiniMax-M2 model line is not yet in the dataset. [withheld: orphan-source; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "orphan-source"
+        ]
+      },
+      {
+        "id": "xai::xai-grok-4-6-context-unchanged",
+        "category": "dropped-after-acceptance",
+        "detail": "releases xai-grok-4-6 — Re-verified: releases record \"xai-grok-4-6\" field \"contextWindow\" still holds 500000. [withheld: evidence-source-unapproved; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "evidence-source-unapproved"
+        ]
+      },
+      {
+        "id": "zhipu-ai::zhipu-ai-glm-4-5-air-parameters-unchanged",
+        "category": "dropped-after-acceptance",
+        "detail": "releases zhipu-ai-glm-4-5-air — GLM-4.5-Air still has 106B total parameters and 12B active parameters, as stated on the GLM-4.5 model card. [withheld: evidence-source-unapproved; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "evidence-source-unapproved"
+        ]
+      },
+      {
+        "id": "zhipu-ai::zhipu-ai-glm-4-5-air-license-unchanged",
+        "category": "dropped-after-acceptance",
+        "detail": "releases zhipu-ai-glm-4-5-air — GLM-4.5-Air is still released under the MIT open-source license, as stated on the GLM-4.5 model card, and MIT remains OSI-approved on the OSI's own MIT page. [withheld: evidence-source-unapproved; 3 of 3 accepts against a 3 threshold]",
+        "blockedBy": [
+          "evidence-source-unapproved"
+        ]
+      }
+    ],
+    "caveats": [
+      "Fabricated evidence is invisible to every deterministic gate, by design. gate-evidence.mjs checks contentHash shape and, in its own words, never correspondence to the cited url; ADR 0005 records that limit and gates.test.mjs pins as expected behaviour that a well-formed but fabricated hash and quote pass. This run caught one such fabrication — a quote attributed to a Microsoft page that did not occur in the fetched body — and it was caught only by a verbatim-quote verifier written for this run and not by any gate. Any run that relies on the gates alone is not checking whether its quotes are real.",
+      "Per-claim judgement cannot on its own produce a coherent dataset. Five distinct integrity failures this run share one shape: the panel accepted claim A and rejected claim B, each correctly, and the surviving pair was incoherent — an added source nothing cites, a citation to a source no longer added, a reference to a record no longer created, evidence citing a source a withheld claim would have added, and a re-verification that strands guidance resting on it. Coherence is a property of the kept set and is unknown until the last claim is classified, so bundles were held unwritten until classification finished and a fixpoint over four rules then withheld 50 claims across 3 passes. The rules only ever withhold and never promote.",
+      "The fifth of those failures was caught by validate.ts and by nothing else. Applying an unchanged claim moves a record's verifiedAt to the run date, and validate.ts line 433 refuses a model fit statement whose own verifiedAt is older than any fact it rests on — where a fit fact resolves to the release's or family's own verifiedAt. Re-verifying a release therefore strands the guidance built on it. Five violations across two releases, meta-llama-4-scout and anthropic-claude-haiku-4-5, were cleared by withholding those two date moves and recording them as verification-held. Bumping the fit statements instead would have asserted that their guidance was re-verified, which no reviewer did.",
+      "Three of this run's own sweep scripts accepted a directory argument and silently ignored it, measuring the run root instead of the set named. Every one failed at exit 0 with plausible output, and the tell each time was the denominator — 44 bundles reported where the gated set holds 38. Two were genuinely measuring the wrong set; the third was harmless only because its superset contains the subject, which was then proved rather than assumed. Separately, the bundle-pairing checker takes exactly one bundle and silently ignores the rest, so passing it 38 files reported on the first alone: a zero denominator is not a pass.",
+      "MINIMUM_QUOTE_LENGTH is satisfiable by padding. The 24-character floor was met on some HuggingFace model cards by widening a quote into adjacent sidebar metadata. Such quotes are verbatim and contiguous, so they are honest, but the added span carries no support for the claim. Scouting preferred prose on the second pass; 2 metadata-spanning quotes remain in the surviving set and are disclosed here rather than smoothed over.",
+      "21 claims were withheld because they cite a source origin that is not approved — HuggingFace organization pages and two Hub API endpoints — of which 6 were lost to that reason alone. They are recorded rather than published, and whether those origins should be approved is a question for a profile change and not for this run to decide.",
+      "One openai announcement page returned three different sha256 digests across three separate HTTP 200 fetches, so a content hash on an unstable page dates a fetch rather than pinning a document. Stale hashes were re-pointed only where the recorded quote still occurred as an exact substring of the newly fetched body; where it did not, the claim was withheld rather than re-hashed."
+    ],
+    "followUps": [
+      "Fold the verbatim-quote verifier into the repository's own gates. It caught a real fabrication this run and no shipped gate can see that class; leaving it as a per-run script means the next run is only as safe as whoever remembers to write it again.",
+      "The freshness dependency between a record and the guidance resting on it is enforced only by validate.ts, at the very end. Teaching gate-dataset or a gate of its own to refuse a verifiedAt move that strands a dependant would catch it where the other four integrity rules are caught, rather than as a late test failure.",
+      "35 claims were withheld as orphan-source: a source add that no surviving claim cites. Many are model cards whose paired release add was rejected on other grounds, so pairing them properly is a scouting improvement rather than a policy question, and several would land next run.",
+      "Consider whether HuggingFace organization pages and the two Hub API endpoints should be approved origins. 21 claims turn on that question this run, 6 of them on nothing else."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "PR #1045 — feat(data): full-catalogue refresh, 2 Microsoft MAI releases and 75 re-verifications (run 2026-09-06-2da81d)",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/1045",
+        "state": "open when this entry was written, carrying both the dataset change and this entry, per ADR 0006. The dataset commit precedes the ledger commit deliberately: refreshLogSchema requires a published run to name its own pull request, so the entry could not be written until the number existed. Reading it is honest; guessing it would have put a falsehood into the permanent record, and force-pushing to conceal the ordering would have been a bypass. Auto-merge is enabled, so web-ci gates the merge rather than any judgement of this run's."
+      },
+      {
+        "kind": "pull-request",
+        "label": "The reviewer rationale trail, published verbatim across three comments on PR #1045 — every rejecting rationale for the 87 claims that missed threshold, all 8 dissents behind claims that landed anyway, and all 150 withheld claims by reason. It runs to 105,730 characters, past GitHub's 65,536 limit for a single body, so it was split rather than truncated.",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/1045#issuecomment-5559563128",
+        "state": "posted"
+      }
+    ],
+    "recordedAt": "2026-09-06"
+  },
+  {
     "id": "2026-09-01-c3f81a",
     "title": "Long-tail depth 2026-09-01 — Cohere, TII, NVIDIA",
     "ranOn": "2026-09-01",
