@@ -1968,7 +1968,7 @@ size" passes the corrupted form. Assert on newlines, and join explicitly:
 
 ```powershell
 $b   = git log -1 --format=%B      # Object[], one element per line
-$msg = ($b -join "`n")             # the only form to hand to -m or -F
+$msg = ($b -join "`n")             # the only form to write to a message file
 [regex]::Matches($msg, "`n").Count # the assertion: newlines, never length
 ```
 
@@ -1982,6 +1982,71 @@ returns a confident pass on the one shape that cannot exhibit the defect. The
 control has to be a genuinely multi-line message, on the same rule as everywhere
 else on this page: a control that exercises only the shape which cannot fail has
 measured nothing.
+
+**`-m` and `-F` are not interchangeable, and the joined string is only half the
+remedy.** Hand that `$msg` to `git commit -m` on Windows PowerShell 5.1 and the
+shell deletes every double quote in it before git starts. Establish where that
+loss happens rather than inferring it: pass one message to a child process that
+prints its own argument vector, and read what arrived. Measured here on
+`PSVersion 5.1.26100.9168` with `git 2.53.0.windows.4`, in throwaway
+repositories under `%TEMP%`:
+
+| message handed to `-m` | what the child received | `git commit -m` |
+|---|---|---|
+| a subject carrying 2 double quotes, 3 newlines | 1 argument, **0 quotes** | **exit 0**, stored with 0 quotes |
+| the same subject with the quotes removed | 1 argument, byte-identical | exit 0, stored byte-identical |
+| this block's own example message, 4 double quotes | **4 arguments**, split at the quotes, `argv[2]` being the bare word `somebody` | **exit 1**, `error: pathspec 'somebody' did not match any file(s) known to git` |
+
+The middle row is the control, and it is what makes the first row readable: the
+same call shape with the quotes taken out preserves the message exactly, so the
+loss is a property of the quotes rather than of the instrument. The quotes are
+already absent from the argument vector, so this is the shell's doing and not
+git's — no exit code from git can report a character git was never handed.
+
+One cause, two ends, and they are not equally serious. The `exit 1` end is loud
+and self-correcting. **The `exit 0` end is the unrecoverable one:** the commit
+exists, its message is quietly wrong, and nothing afterwards tells it from one
+you wrote correctly. So **write the message to a file and use `-F`** for any
+message that could carry a double quote or run to more than one line. Measured
+over the 200 most recent commit messages on trunk
+`c945611be0b7eaa36d5eb6ba7cdf482c11c928c5`, reflog-dated
+2026-09-06 14:12:06 -0400: all 200 are multi-line, and 93 of the 200 carry a
+double quote, so neither condition is a corner case here. This block's own
+example message is one of the 93, which puts the worked example above in the
+failing class — through `-F` in the same run it round-tripped byte-identically,
+at 1814 characters, 32 newlines, all 4 quotes and a 90-character subject.
+
+```powershell
+$enc = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText($path, $msg, $enc)
+git commit -F $path
+```
+
+Three further readings bound what the joined form buys you, each measured in the
+same session:
+
+- **CR is lost at capture, before any join, so no join recovers it.** Read the
+  stored bytes through a redirection that no PowerShell capture touches — a
+  `git cat-file commit HEAD` redirected to a file by `cmd` — and compare them
+  against the captured value. On a message committed with `--cleanup=verbatim`:
+  stored 36 bytes carrying 4 CR, captured 32 characters carrying **0 CR**, and
+  the naive and the joined forms both 32 characters with 0. On this axis the two
+  forms are equally affected, so the remedy above does not reach it. Establish
+  separately how a CR got in at all: the same input under git's default cleanup
+  stored **0 CR**.
+- **A non-ASCII round trip holds only while `[Console]::OutputEncoding` is
+  UTF-8, which is not the default everywhere, so read it rather than assume it.**
+  One commit whose subject is an accented word, an em dash and three CJK
+  characters, captured twice in one session: at code page 65001 the round trip
+  was identical, and at 1252 those 10 characters came back as 19 different ones,
+  at **exit 0** both times. That one is silent as well.
+- **An empty message is the one capture that is not an array.** Three commits
+  addressed by SHA in one run: an empty message captured as `System.String` of
+  length 0, a single-line message as `Object[]` of 2, and a multi-line one as
+  `Object[]` of 5, so `.Count` and any array reasoning carry that edge case.
+  Separately, `-m ""` never reaches git as an empty message at all: the shell
+  drops the empty argument, git reports that the `m` switch requires a value,
+  and it exits **129**.
 
 So the printed tree is readable in exactly one case, and the exit code decides
 which case you are in before stdout is touched at all.
