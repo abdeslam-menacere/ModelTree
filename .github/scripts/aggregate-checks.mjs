@@ -304,6 +304,13 @@ const EXCLUDED = [
       + 'with all three required checks green, which is the case this exclusion exists for.',
   },
   {
+    check: 'licence-link-introduction',
+    why: 'it requests the licence URLs a pull request introduces, so it too is red when somebody '
+      + 'else\'s server is. ADR 0019 makes it advisory and never required for exactly the reason '
+      + 'the sweep above is excluded, and aggregating it into a required check would require it by '
+      + 'the back door.',
+  },
+  {
     check: 'Open or update the link-health issue',
     why: 'issue bookkeeping, skipped on every pull request by its own `if:`, and gated behind '
       + '`needs: source-link-health` -- so watching it would couple this job to the runtime of the '

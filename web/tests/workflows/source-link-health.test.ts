@@ -912,7 +912,10 @@ describe('source-link-health.yml checks the licence URLs a pull request introduc
       String(step.uses ?? '').startsWith('actions/checkout'),
     );
 
-    expect(String(mapping(checkout?.with, 'checkout.with')['persist-credentials'])).toBe('false');
+    expect(checkout, 'jobs.licence-link-introduction has no actions/checkout step').toBeDefined();
+    expect(
+      String(mapping(checkout?.with ?? null, 'checkout.with')['persist-credentials']),
+    ).toBe('false');
   });
 
   it('distinguishes a missing base file from a git failure, rather than defaulting both to empty', () => {
