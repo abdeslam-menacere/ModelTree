@@ -420,14 +420,16 @@ bytes of headroom against 760,000). Neither #822 nor trunk's #826 is individuall
 at fault; only their combination crosses the line, and the cost lands on whoever
 is unlucky enough to be next.
 
-**Two rules follow. Both are about what you record, never about the tolerance —
-2% is not the defect and widening it is refused.**
+**Three rules follow. The first two are about what you record, never about the
+tolerance — 2% is not the defect and widening it is refused. The third is about
+a different axis entirely, and it moves no ceiling either.**
 
 1. **Read the provenance line before you record anything.** `npm run
    assets:report` and the drift guard both print which tree they measured, and
    `npm run test` now prints consumed-vs-available for every recorded figure on
    success as well as failure, worst row first. A figure flagged `NEAR MISS`
-   (≥75% of its allowance) passes and is one trunk commit from red. That flag
+   (≥75% of its **drift allowance** — not of its ceiling; see rule 3) passes and
+   is one trunk commit from red. That flag
    fails nothing and permits nothing; it is the signal whose absence made this a
    trap rather than a nuisance.
 2. **A dock behind trunk does not re-record.** If the provenance says `behind`,
@@ -439,6 +441,50 @@ is unlucky enough to be next.
    Where the provenance says `level`, the tree you measured **is** the tree CI
    builds and you can record from it directly. Where it says `UNDETERMINED`, it
    is not `level` — say `UNDETERMINED` and hand off.
+3. **Ceiling headroom is a different axis, and rules 1–2 do not cover it**
+   (#939). Rule 1's `NEAR MISS` is 75% of the **drift allowance**, which is 2%
+   of a recorded figure. It says nothing about how close a route sits to the
+   ceiling that actually reddens the build, and the two are unrelated
+   quantities: **re-recording a measured figure resets drift consumption to zero
+   and moves ceiling headroom not one byte.** So the same run now prints a
+   second table, `CEILING HEADROOM`, comparing each measured figure against the
+   `criticalMaxRaw` / `jsMaxRaw` / `globals.*MaxRaw` that binds it, and flagging
+   `NEAR CEILING` at **92.5% of the ceiling** (`CEILING_NEAR_MISS_FRACTION` in
+   `web/scripts/asset-drift.mjs`).
+
+   State which axis a figure is on whenever you quote one. The two thresholds
+   are deliberately different numbers so they cannot be confused by sight, and
+   0.925 is derived rather than borrowed from 0.75: measured across the history
+   of `web/asset-budgets.json` with a key-level JSON parse, the largest share of
+   its own ceiling that any single entry has lost to one ordinary landed span is
+   **3.74%** (`benchmarks`, +19,462 bytes of a 520,000 ceiling, at #872), and
+   `1 − 2 × 0.0374 = 0.9252`, rounded down. The #813/#818 re-baseline is
+   excluded from that estimate on the file's own evidence — its `drift-note`
+   records it absorbing 23 commits of accumulated staleness in one write, so it
+   is a correction of a long-rotted record rather than one tranche of growth,
+   and it supplies the four largest deltas in the set. Two spans of room rather
+   than one because the remedies differ: a drift red clears itself by
+   re-recording, which ADR 0015 lets an unattended refresh do, while a ceiling
+   red clears only by trimming or by a human raising a ceiling that ADR 0015
+   keeps out of the auto-merging class. The warning has to arrive with room to
+   **act**, not merely room to notice.
+
+   Borrowing 0.75 onto this axis would carry no information. Measured at trunk
+   `b44c63d6`, a 0.75 line on the **ceiling** axis fires on 11 of the 13 checked
+   figures, and 0.85 fires on the same 11; 0.90 fires on 6. The 92.5% line fires
+   on four — `compare` 95.8%, `home` 95.8%, `catalog` 95.4%, `benchmarks` 94.6%
+   — and the next figure below is `providers` at 90.4%, so it sits in the middle
+   of a 4.16-point gap. Note what that 11-of-13 is and is not: it is a reading of
+   a threshold this repository does **not** use on this axis, quoted to show why
+   it was rejected. No implemented flag has ever fired on 11 of 13, and citing
+   one that did would be #874's conflation restored.
+
+   A crossing prompts a **trim**, on ADR 0010's stopping rule: trim first, raise
+   only when trimming cannot close the gap. It is not a prompt to raise a
+   ceiling and it cannot raise one. Like the drift flag it **fails nothing and
+   permits nothing** — it changes no exit code, no test, and `over` is decided
+   by the ceiling comparison alone, so no value of the threshold, including the
+   degenerate ones, can turn a failing row into a passing one.
 
 `npm run budget:merged` does **not** cover this. It measures the `/compare`
 payload and picker index through `scripts/comparison-budget.mjs`; page weight and
