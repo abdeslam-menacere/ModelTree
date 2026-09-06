@@ -1942,6 +1942,47 @@ those three values has no branch for what it just got. That is precisely the
 failure the gates exist to prevent, in that document's own words: a broken
 checker reading as a green one.
 
+**A capture's shape corrupts values as well as statuses, and this member of the
+family is the one where neither the exit code nor the size of the result gives
+it away.** Any git output of more than one line arrives in PowerShell as an
+`Object[]`, one element per line, so `git log --format=%B` and `--format=%b`
+hand you an array rather than a message. Interpolating or concatenating that
+array into a string joins the elements with `$OFS`, which is undefined by
+default and is therefore a **space**: every newline in the message is destroyed,
+and the single line that results is accepted at exit 0 as an entire commit
+subject. That is abdeslam-menacere/ModelTree#800, where a dock's amend produced
+a 3,933-character subject with nothing to flag it. Measured here on
+`PSVersion 5.1.26100.9168` against trunk `9acc691a`, whose message is 33 lines,
+with each form handed to `git commit-tree` in the same run:
+
+| form | length | newlines | subject of the commit it builds |
+|---|---|---|---|
+| the naive concatenation | 1814 | **0** | 1814 characters, at exit 0 |
+| the `-join` form | 1814 | **32** | 90 characters, and a 32-line body |
+
+**The two lengths are identical, so length is not an instrument here**, and
+neither is emptiness: the corrupted value is non-empty, plausible, and exactly
+the size you expected. Only the newline count discriminates — 0 against 32 — so
+a guard written as "the message is not empty" or "the message is the expected
+size" passes the corrupted form. Assert on newlines, and join explicitly:
+
+```powershell
+$b   = git log -1 --format=%B      # Object[], one element per line
+$msg = ($b -join "`n")             # the only form to hand to -m or -F
+[regex]::Matches($msg, "`n").Count # the assertion: newlines, never length
+```
+
+**And the obvious verification is a false control.** On a single-line message
+the naive form is right: measured on such a commit, `%B` returns the subject and
+the trailing blank line, the concatenation differs from the join only by a
+trailing space where a newline should be, and `git stripspace` — the cleanup
+`git commit` applies — makes the two byte-identical, so the commit you get is
+the same either way. Trying it on a commit and watching it work therefore
+returns a confident pass on the one shape that cannot exhibit the defect. The
+control has to be a genuinely multi-line message, on the same rule as everywhere
+else on this page: a control that exercises only the shape which cannot fail has
+measured nothing.
+
 So the printed tree is readable in exactly one case, and the exit code decides
 which case you are in before stdout is touched at all.
 
