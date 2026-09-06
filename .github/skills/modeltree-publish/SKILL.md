@@ -302,8 +302,7 @@ has not merged yet or the query failed — do not continue with a truncated SHA.
 ### Poll for the deploy run
 
 ```bash
-gh run list --workflow=pages.yml --commit "$MERGE_SHA" \
-  --json headSha,status,conclusion,databaseId
+gh run list --workflow=pages.yml --commit "$MERGE_SHA" --json headSha,status,conclusion,databaseId
 ```
 
 Interpret the result:
@@ -333,8 +332,7 @@ Pages run**:
 # Pick any recent merge commit that deployed successfully:
 CONTROL_SHA="$(gh run list --workflow=pages.yml --branch main --limit 1 \
   --json headSha --jq '.[0].headSha')"
-gh run list --workflow=pages.yml --commit "$CONTROL_SHA" \
-  --json headSha,status,conclusion,databaseId
+gh run list --workflow=pages.yml --commit "$CONTROL_SHA" --json headSha,status,conclusion,databaseId
 ```
 
 This must return at least one run. If it returns `[]`, the command itself is
