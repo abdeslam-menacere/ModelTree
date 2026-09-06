@@ -11,7 +11,7 @@ waiting for a merge to tell it.
 | Workflow | Triggers | Covers |
 |---|---|---|
 | [`web-ci.yml`](web-ci.yml) | `pull_request` (every one), `merge_group` (every queue entry) and `push` to `main`, both scoped **inside the job** to `web/**` and to every path outside `web/` that a test under `web/` reads — all of `.github/workflows/**`, `.github/scripts/ci-preflight.mjs`, `gate-dataset.mjs`, `gate-evidence.mjs` and `gate-scope.mjs` under `.github/skills/modeltree-gates/scripts/`, `.github/skills/modeltree-review/SKILL.md`, `.github/ISSUE_TEMPLATE/**`, `.github/CODEOWNERS`, `.github/pull_request_template.md`, `CONTRIBUTING.md`, `docs/contributing/minimal-dataset-example.json`, `docs/product/INFORMATION-ARCHITECTURE.md` and the top-level `*.json` documents in `tools/updater/profiles/`, which `src/data/featured-creator-profile.test.ts` reads through the `gate-evidence.mjs` it imports; `workflow_dispatch` | Validates and builds the Astro site under `web/`, as three separately-named steps — the vitest suite, the Astro and TypeScript diagnostics, and the production build — so a red run names which one failed |
-| [`skills-ci.yml`](skills-ci.yml) | `pull_request` (every one), `merge_group` (every queue entry) and `push` to `main`, `workflow_dispatch`; scoped **inside the job** to `.github/skills/**`, `.github/scripts/**`, `.github/workflows/skills-ci.yml` and `web/src/data/**`, with every event other than a pull request running the gates outright | The data-refresh gates' self-tests, `gate-dataset` run against the live dataset, `gate-reversals` run over `refresh-runs.json` and the dataset together — refusing a record the automated panel rejected that is in `web/src/data/` today with no entry in `rejection-reversals.json` saying which change brought it back and on what evidence (#835); it gates *visibility*, so an ordinary reviewed change may overrule the panel and an objection may be recorded as still unanswered, but neither may happen silently — and a refusal of a hand-written test count in the skill documentation — a numeral described as tests, self-tests, test cases or assertions, in either order, with markdown emphasis tolerated around the numeral, and a table column whose heading is one of those nouns and whose body cell is a bare number. Noun-first needs a real separator, of the kind a label or a table cell supplies (`tests: 103`), so the verb reading — "the gate tests 4 kinds of emptiness" — is not a count, and nor is a year after `in` or `since`, a written-out number, a singular `N test`, or `N checks`, which in this repository usually means a status check. It reads one line at a time, so a count split across two lines of prose is not seen, and where it errs it over-matches: "adds 3 tests" is flagged although it sizes a change rather than the suite. The script header carries the same list with the reasoning |
+| [`skills-ci.yml`](skills-ci.yml) | `pull_request` (every one), `merge_group` (every queue entry) and `push` to `main`, `workflow_dispatch`; scoped **inside the job** to `.github/skills/**`, `.github/scripts/**`, `.github/agents/**`, `.github/copilot-instructions.md`, `.github/workflows/skills-ci.yml` and `web/src/data/**`, with every event other than a pull request running the gates outright | The data-refresh gates' self-tests, `gate-dataset` run against the live dataset, `gate-reversals` run over `refresh-runs.json` and the dataset together — refusing a record the automated panel rejected that is in `web/src/data/` today with no entry in `rejection-reversals.json` saying which change brought it back and on what evidence (#835); it gates *visibility*, so an ordinary reviewed change may overrule the panel and an objection may be recorded as still unanswered, but neither may happen silently — and a refusal of a hand-written test count in the skill documentation — a numeral described as tests, self-tests, test cases or assertions, in either order, with markdown emphasis tolerated around the numeral, and a table column whose heading is one of those nouns and whose body cell is a bare number. Noun-first needs a real separator, of the kind a label or a table cell supplies (`tests: 103`), so the verb reading — "the gate tests 4 kinds of emptiness" — is not a count, and nor is a year after `in` or `since`, a written-out number, a singular `N test`, or `N checks`, which in this repository usually means a status check. It reads one line at a time, so a count split across two lines of prose is not seen, and where it errs it over-matches: "adds 3 tests" is flagged although it sizes a change rather than the suite. The script header carries the same list with the reasoning. Since [#652](https://github.com/abdeslam-menacere/ModelTree/issues/652) it also refuses a fenced `bash`, `sh` or `powershell` block in `.github/copilot-instructions.md`, `.github/agents/**` or `.github/skills/**` that Windows PowerShell 5.1 cannot **parse** — `&&` and `\|\|`, a `\` line continuation whose next line opens a `--flag`, an unescaped `<` used as a redirection or heredoc, and an unterminated string — after substituting `<placeholder>` tokens, which are documentation rather than defects and which a check that read them raw would report on every documented command. A block that quotes another tool's input rather than prescribing something to run is exempted by a `<!-- shell-parse-exempt: reason -->` marker whose reason may not be empty, and every exemption is named on every run including a passing one. The scope and parse-location decisions behind it are recorded under **The two decisions behind `check-shell-invocations.mjs`** below |
 | [`updater-tests.yml`](updater-tests.yml) | `pull_request` and `push` to `main`, path-filtered to `tools/updater/**`, `.github/workflows/updater-tests.yml`, `.github/workflows/publish-updater-proposals.yml`, `tools/instruction_refs/**`, `.github/skills/**`, `.github/workflows/instruction-references.yml`, `tools/adr_numbers/**`, `.github/workflows/adr-numbers.yml` and `docs/adr/**`; `merge_group` **unfiltered**, because that event supports no `paths:` filter; `workflow_dispatch` | The updater's pytest suite, which is also where this repository's stdlib-Python invariants are asserted |
 | [`instruction-references.yml`](instruction-references.yml) | `pull_request` and `push` to `main`, path-filtered to `.github/copilot-instructions.md`, `.github/skills/**`, `tools/instruction_refs/**` and `.github/workflows/instruction-references.yml`; `merge_group` **unfiltered**, because that event supports no `paths:` filter; `workflow_dispatch` | Resolves the paths, issue citations, and section markers in the instructions file, and every issue citation in the skill documents. A `#NNN` inside a fenced code block is not read as a citation — it is sample content such as a colour or a quoted shell argument — and each is reported as a named exemption rather than skipped in silence. The delimiter lines stay in scope, so a citation in an info string, or on the line above or below a block, is still refused; indented code blocks and inline `` `#N` `` spans are deliberately still scanned, for reasons the checker's module docstring records. Only the citation rule consults that fence model, so a broken path inside a fenced example is still reported. Not every path, and the shortfall is narrower than it was. A backticked reference the file wraps across one line break is read as one span whether or not either fragment carries whitespace, so the backtick pairing stays in phase and the reference after it is still checked; the wrapped one is not itself resolved, because what the document renders is its fragments joined by a space, which is not a path, and joining them without the space would be a guess at what the author meant. A blank line inside a span is a paragraph break rather than a wrap, and is still not paired. What separates a wrap from a stray unpaired backtick followed by prose is the character immediately before the closing backtick: a wrap closes on its own last character, whereas a backtick *opening* the next reference is preceded by whatever prose puts there, which is a space or an opening bracket or quote, and each of those is refused. The residual is the case where that prose ends on some other non-whitespace character — `and then--` before a reference, say — which is still read as a wrap, so the pairing goes out of phase and the next reference on that line is missed, unreported rather than reported wrong. Closing that means pairing backticks the way CommonMark does, which the checker's module docstring records as a separate decision |
 | [`adr-numbers.yml`](adr-numbers.yml) | `pull_request` and `push` to `main`, path-filtered to `docs/adr/**`, `tools/adr_numbers/**` and `.github/workflows/adr-numbers.yml`; `merge_group` **unfiltered**, because that event supports no `paths:` filter and a queue that does not run this check closes nothing [#860](https://github.com/abdeslam-menacere/ModelTree/issues/860) is about; `workflow_dispatch` | Refuses two decision records under `docs/adr/` that claim the same four-digit number, and a record whose `# ADR NNNN:` heading disagrees with the number in its filename |
@@ -425,6 +425,75 @@ requests forever, so none of the three can simply be added to `contexts`. Being
 named in that caution is not being in scope, and that same sentence is the proof
 — `skills-ci` appears in it and is then excluded from #169 by name. Requiring
 any of the three is therefore a decision separate from the two gaps above.
+
+### The two decisions behind `check-shell-invocations.mjs`
+
+That script is a step of `skills-ci`. It refuses a fenced shell block in an
+agent-facing document that Windows PowerShell 5.1 cannot **parse** — the class
+[#604](https://github.com/abdeslam-menacere/ModelTree/issues/604) and
+[#614](https://github.com/abdeslam-menacere/ModelTree/issues/614) each fixed by
+hand and by prose, which is why
+[#652](https://github.com/abdeslam-menacere/ModelTree/issues/652) asked for a
+machine. Two of that issue's five acceptance criteria are decisions rather than
+code, and the reasoning for each is recorded here as well as in the script's own
+header, because the script is where somebody debugging a finding looks and this
+file is where somebody deciding what a job should run looks.
+
+**Which documents are covered.** `.github/copilot-instructions.md`,
+`.github/agents/**/*.md` and `.github/skills/**/*.md`, and nothing else. The
+boundary is drawn on the **reader**, not on the directory: these are the
+documents an agent is told to read and then act on, so a block in one of them is
+a command that will be run by something that does not notice a shell refusing to
+parse and does not have a human's instinct to retype it. Three families were
+weighed and excluded, each for a reason worth being able to argue with rather
+than a reason of convenience:
+
+| excluded | blocks failing a real 5.1 parse | why it is out |
+|---|---|---|
+| `docs/product/LAUNCH-RUNBOOK.md` | 5 | genuine bash *programs*, addressed to a human operator on a machine where `&&` is correct |
+| `tools/updater/README.md` | 3 | human-facing dev setup, including a real `python -m venv .venv && …`; a live candidate to cover later, and named as one rather than left silent |
+| `docs/adr/**` | 0 | decision *records*. An ADR quotes what was done; it does not prescribe something to run |
+
+Covering the first two would not be a bigger version of this check, it would be a
+different check with a different premise, and the premise is the part worth
+keeping legible. Two further scope facts belong with the decision, because both
+are places the check deliberately cannot see. It reads **fenced** blocks only, so
+`` `&&` `` written inline in prose is invisible to it — which is not an oversight
+but the condition of the check being usable at all: six covered documents today
+carry `` `&&` `` inline in the very sentences #614 added to teach that `&&` does
+not work, and a checker that read inline spans would fail the build on its own
+remediation. And it reads only fences labelled `bash`, `sh` or `powershell`;
+`pwsh` is excluded because PowerShell 7 accepts `&&`, and unlabelled fences are
+excluded because they were measured to be commit messages, ASCII diagrams and
+transcripts, none of which is a command anybody runs.
+
+**Where the parse runs.** On the existing `ubuntu-latest` `skills-ci` job, as a
+deterministic Node scan of a defined construct set — *not* on a `windows-latest`
+runner invoking the real 5.1 parser. That is the weaker instrument and it is
+chosen knowingly. A real parse would be exact; what it would also be is
+unavailable to the people the check exists to serve. `ci-preflight.mjs` is how a
+contributor runs their selected checks before pushing, and a Windows-only step
+would make that script exit **2** — could not run, never a pass — for every
+contributor not on Windows, on every run. The preflight's own header records
+sessions skimming past exit 2 as though it were success; adding a step that
+produces it routinely is the way to make that habit permanent. A second runner
+would also mean a new status-check name and a branch-protection decision, which
+is an owner action outside this tree.
+
+The scan is therefore calibrated against the real parser rather than trusted to
+approximate it. Every construct it flags was measured against
+`[System.Management.Automation.Language.Parser]::ParseInput` on
+`PSVersion 5.1.26100.9168`, and the whole rule set was then run against all 133
+fenced blocks in the repository and compared block-by-block with that parser's
+verdict: **zero false positives**, and one false negative in a file this decision
+excludes. The script's header carries the table and the recipe for re-measuring
+it, so the calibration can be re-run rather than believed.
+
+What that leaves uncovered is the honest cost of the decision: the scan knows
+the constructs it was taught and no others, so a novel way to break the 5.1
+parser passes it. The check catches a **known** recurring defect completely
+rather than an unknown one partially, and the recipe in the header is how a
+newly-found construct gets added to what it knows.
 
 ### `source-link-health` must never be required, and `source-link-health-tests` could be
 
