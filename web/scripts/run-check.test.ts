@@ -272,80 +272,158 @@ describe('the script run as a process', () => {
     60_000,
   );
 
-  // Both halves of the control together, because either alone proves less: a
-  // wrapper that accepted everything would pass the first two and fail the
-  // third, and one that refused everything would pass the third and fail the
-  // first two.
+  // Both halves of the control travel together in each case below, because
+  // either alone proves less: a wrapper that accepted everything would pass the
+  // root form and fail the stray, and one that refused everything would pass the
+  // stray and fail the root form. The stray refusal spawns no astro pass -- it
+  // refuses before starting one -- so carrying it in both cases costs one cheap
+  // node process each, and leaves neither case leaning on its sibling for the
+  // direction it does not test itself.
   //
-  // The two real checks are run one after another rather than together. They
-  // used to be awaited concurrently, on the reasoning that one full check is
-  // ~30s and the overlapped pair costs about the same wall clock as one. That
-  // holds on an idle machine and inverts under load, which is the failure #786
-  // and #885 are about: each `astro check --root .` is a full astro/vite/tsc
-  // pass, and two of them running at the same instant on a contended box do not
-  // finish in one check's time -- they starve each other for CPU and memory and
-  // finish later than back-to-back would, or one of the spawned astro processes
-  // dies outright and exits non-zero (observed here as `code 1` under load,
-  // which trips the exit-0 assertion below), or the whole test overruns its
-  // 180 s cap (observed here at 180064 ms under load). Two heavy subprocesses
-  // fired at once from a single test is self-inflicted amplification of exactly
-  // the contention that makes this suite flaky; serialising them halves this
-  // test's peak real-process count while changing nothing it asserts. The stray
-  // refusal spawns no astro pass -- it refuses before starting one -- so it
-  // stays alongside the first check at no cost.
-  it(
-    'runs `--root .` and `--root=.` for real and still refuses a real stray path',
-    async () => {
-      const [spaced, stray] = await Promise.all([
-        runScript(['--root', '.']),
+  // The two real checks are a case each rather than two passes inside one case.
+  // They were originally awaited concurrently, on the reasoning that one full
+  // check is ~30s and the overlapped pair costs about the same wall clock as
+  // one. That holds on an idle machine and inverts under load, which is the
+  // failure #786 and #885 are about: each `astro check --root .` is a full
+  // astro/vite/tsc pass, and two of them running at the same instant on a
+  // contended box do not finish in one check's time -- they starve each other
+  // for CPU and memory and finish later than back-to-back would, or one of the
+  // spawned astro processes dies outright and exits non-zero (observed here as
+  // `code 1` under load, which trips the exit-0 assertion below), or the whole
+  // test overruns its cap (observed at 180064 ms before #893 serialised the
+  // pair, and again at 180022 ms after it -- see the budget note below).
+  // Serialising halved this file's peak real-process count; splitting the pair
+  // into a case each is what makes the budget below a statement about one of
+  // them. Neither changes anything either case asserts.
+  it.each([
+    ['--root .', ['--root', '.']],
+    ['--root=.', ['--root=.']],
+  ] as const)(
+    'runs `%s` for real and still refuses a real stray path',
+    async (form, argv) => {
+      const [checked, stray] = await Promise.all([
+        runScript([...argv]),
         runScript([SWALLOWED_PATH]),
       ]);
-      const equals = await runScript(['--root=.']);
 
-      for (const [form, result] of [
-        ['--root .', spaced],
-        ['--root=.', equals],
-      ] as const) {
-        expect(`${form}: ${result.stderr}`).not.toContain('refusing to run');
-        // Exit code before output, so a check that *died* says so instead of
-        // reporting as a check that ran and printed the wrong thing. Under the
-        // other order, the #679 failures read as "stdout lacked `Result (`",
-        // and three separate docks and the issue itself concluded from that
-        // wording that the optimizer banner had displaced the line -- a
-        // mechanism that measurement does not support (see the note above).
-        // Same assertions, same subjects; only the one that names the cause now
-        // fires first.
-        expect({ form, code: result.code }).toEqual({ form, code: 0 });
-        expect(`${form}: ${result.stdout}`).toContain('Result (');
-      }
+      expect(`${form}: ${checked.stderr}`).not.toContain('refusing to run');
+      // Exit code before output, so a check that *died* says so instead of
+      // reporting as a check that ran and printed the wrong thing. Under the
+      // other order, the #679 failures read as "stdout lacked `Result (`", and
+      // three separate docks and the issue itself concluded from that wording
+      // that the optimizer banner had displaced the line -- a mechanism that
+      // measurement does not support (see the note above). Same assertions,
+      // same subjects; only the one that names the cause now fires first.
+      expect({ form, code: checked.code }).toEqual({ form, code: 0 });
+      expect(`${form}: ${checked.stdout}`).toContain('Result (');
 
       expect(stray.stderr).toContain('refusing to run');
       expect(stray.code).not.toBe(0);
     },
-    // -- Why the cap stays at 180 s (#786/#885) --
+    // -- What this 180 s bounds, and why the number did not move (#925) --
     //
-    // 180 s was sized in #679 against this test's *standalone* runtime, ~108 s,
-    // a ~1.7x margin. That margin was real standalone but thin in the concurrent
-    // suite, where the test actually runs (inside `npm run test`, alongside ~125
-    // other files, which is how CI, `npm run validate` and the Pages deploy all
-    // reach it): before this change the body reached 130-229 s in-suite and hit
-    // the cap under load.
+    // #925: this block timed out at 190202 ms inside a full `npm run validate`,
+    // on a tree that already carried #893's serialisation and `vitest.config.ts`
+    // fork-pool bound, and nine post-#893 runs collected on that issue span
+    // 109-190 s. Reproduced here on an unchanged tree, `npm run test`, one
+    // 8-core Windows box, load stated with each figure because a figure without
+    // it says nothing:
     //
-    // The two companion changes cut this test's own runtime rather than its
-    // budget: the two `astro check` passes above now run back-to-back rather than
-    // via `Promise.all`, and `vitest.config.ts` bounds the fork pool. Re-measured
-    // with both in place, this test's body took ~53 s standalone, 53056 ms in the
-    // full suite under light load, and 94612 ms under heavy sibling-dock load,
-    // across repeated runs on an unchanged tree -- all green, none of the timeout,
-    // `Failed to start forks worker` or astro `code 1` signatures recurring.
+    //   in-suite, load at the start of the run    this block's body
+    //   ----------------------------------------  --------------------------
+    //   3 node procs, 44% CPU                     47615 ms   green
+    //   light, unmeasured                         51784 ms   green
+    //   14 node procs (8 hogs), 100% CPU          180022 ms  RED, timed out
+    //   file-scoped, 7 node procs, 76% CPU        47051 ms   green
     //
-    // So the fix restores the margin the old number claimed: the realistic
-    // in-suite worst case is now ~95 s, which is ~1.9x under the existing 180 s
-    // cap -- better than #679's ~1.7x, by the same methodology. The cap therefore
-    // does not need to move, and is deliberately left where it is: raising it with
-    // no measured need would be exactly the timeout-suppression #786 forbids. The
-    // ceiling stays finite so a truly hung `astro check` is still killed and
-    // surfaced rather than hanging the suite.
+    // Identical blobs, a 3.8x spread. The last row is what settles the design:
+    // run alone, this file costs what it costs inside the suite on a quiet box,
+    // so the other ~125 files are not the term that matters. The machine is.
+    //
+    // Split into a case each and re-run under the same 8-hog load that produced
+    // that RED, same machine, same `npm run test`:
+    //
+    //   14 node procs (8 hogs), 100% CPU          88170 ms   green  `--root .`
+    //                                             108299 ms  green  `--root=.`
+    //
+    // 2.04x and 1.66x under the cap, where the pair was killed at 1.00x. The two
+    // sum to 196469 ms, which is *more* than the 180022 ms the single case was
+    // stopped at -- 180022 is censored data, and a censored figure can never
+    // size the budget that censored it. (Both hogged runs exit 1 overall on
+    // `Failed to start forks worker` for a handful of jsdom files, which is the
+    // admission failure `vitest.config.ts` records under "what this deliberately
+    // does not fix" and `verify-test-coverage.mjs` catches. It is a property of
+    // running eight non-yielding hogs against eight cores, not of this file:
+    // zero test failures and zero timeouts in the after run.)
+    //
+    // -- The defect is the quantity this number covers, not its size --
+    //
+    // Until #925 one budget covered two full `astro check` passes running
+    // back-to-back. A number spanning two subprocesses is not a statement about
+    // either of them: the margin it advertises belongs to the pair, and the time
+    // left to notice a hang in the second pass is whatever the first pass did
+    // not spend -- under load, near zero. So the same 180 000 ms meant something
+    // different on every run, and `Test timed out in 180000ms` covered three
+    // distinct outcomes with one message: a broken wrapper, a hung `astro
+    // check`, and a busy machine.
+    //
+    // Each case now spawns exactly one real `astro check` (plus the cheap
+    // refusal, which starts no astro pass), so this 180 s bounds one pass. That
+    // is the whole of the change: no budget anywhere in this repository was
+    // raised, here or in `vitest.config.ts`. The margin roughly doubles because
+    // the work under the cap halved, not because the cap grew.
+    //
+    // -- The three directions #925 offered, and why this is the one taken --
+    //
+    // * Raise the cap to cover the contended range. Rejected. The tail it would
+    //   have to clear is set by whatever else the machine is running, not by
+    //   this code -- 180022 ms against 47615 ms on identical blobs above -- so
+    //   the number would be chosen by the noisiest observation anyone happened
+    //   to take, and re-argued from the next one. #786's review required 180 s
+    //   to stand on exactly that ground, and nothing here disturbs it: this
+    //   change raises no ceiling, so it is not the timeout-suppression #786
+    //   forbids. What #786's review could not have known is that its supporting
+    //   figure was wrong (see the reconciliation below); the position it took is
+    //   nevertheless satisfied literally.
+    // * Isolate the file so its cost stops depending on what else is running.
+    //   Rejected on measurement: 47051 ms file-scoped against 47615 ms in-suite
+    //   says the in-suite share is already near zero, and #925 records
+    //   file-scoped runs at 126-152 s under sibling-dock load, so isolation does
+    //   not remove the load that actually moves this figure. `vitest.config.ts`
+    //   reached the same conclusion from the pool side and measured the cost:
+    //   serialising this file against the other ~125 charges every dock and the
+    //   Pages deploy wall clock to shrink a term that is not the problem.
+    // * Assert the argument handling without spawning real checks. Rejected for
+    //   the reason this file opens with: #601 was a command that exits 0 and
+    //   silently checks the wrong thing, which only a real pass catches.
+    //   `planCheck` is already unit-tested above, and that is not the same test.
+    //
+    // -- What this costs, stated plainly --
+    //
+    // Two cases at 180 s each means the pair can occupy 360 s before both are
+    // killed, where one case could occupy 180 s. That is a real increase in this
+    // file's worst case and it is the honest price of the split. What it buys is
+    // that the number now means one thing: a hang is surfaced within 180 s of
+    // the hung pass starting, rather than within whatever the previous pass left
+    // over. The ceiling stays finite, so a truly hung `astro check` is still
+    // killed and surfaced rather than hanging the suite.
+    //
+    // -- Reconciling this with the two figures already in this file --
+    //
+    // The cold-cache block at the head of this `describe` records "20.7 s idle,
+    // 57-138 s under four spinning hogs, and 321 s under ten". Those are
+    // per-check, cold, and from before #679's `astro sync` warm-up existed; they
+    // do not describe the warm regime measured here and are not in conflict with
+    // it. The claim that was in conflict is #893's, which stood at this line and
+    // said "the realistic in-suite worst case is now ~95 s, which is ~1.9x under
+    // the existing 180 s cap. The cap therefore does not need to move." The nine
+    // runs on #925 and the RED row above contradict it: ~95 s is near this
+    // block's best case under load, not its worst. It is removed rather than
+    // re-numbered, because its method was three point measurements of a quantity
+    // whose run-to-run spread exceeds the cost of the rest of this file -- which
+    // cannot bound a margin however carefully each point is taken. The table
+    // above is offered as a distribution with its load stated, not as a better
+    // three points.
     180_000,
   );
 });
