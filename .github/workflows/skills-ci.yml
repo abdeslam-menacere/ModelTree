@@ -394,6 +394,32 @@ jobs:
         if: steps.scope.outputs.run == 'true'
         run: node .github/scripts/check-gate-independence.mjs
 
+      # Two gates dispatched against the *same* dock worktree overwrite each
+      # other's arm mutations, and whole-file restore makes it silent: a restore
+      # reverts the file, not the caller's edit, so one gate's cleanup reverts
+      # the other's live mutation with no error and nothing in either transcript
+      # (abdeslam-menacere/ModelTree#1056). Three of the four interleavings are
+      # loud and cost a cycle; the fourth is quiet and certifies a guard that
+      # catches nothing, because the measuring gate reads its neighbour's
+      # mutation as its own red arm.
+      #
+      # `gate-arm-guard.mjs` is what a gate runs immediately before reading any
+      # arm's exit code, so it never runs in CI on its own account. That is
+      # exactly the shape #1040 is about -- a guard that is not missing but is
+      # never chosen -- so its `self-test` is run here: the comparison is
+      # exercised over a clean pair that must yield no finding and one planted
+      # discrepancy per finding kind that must yield exactly that kind at
+      # exactly that path, with each planted arm required to come back differing
+      # from the clean one. A check nobody has seen fire is not a check.
+      #
+      # It belongs in *this* job because this job's scope pattern includes
+      # `.github/scripts/` and `.github/agents/` as whole directories, so an
+      # edit to either the guard or the two gate definitions that mandate it
+      # selects this step.
+      - name: Prove the gate arm contamination guard still fires
+        if: steps.scope.outputs.run == 'true'
+        run: node .github/scripts/gate-arm-guard.mjs self-test
+
       # The step that turns a skip into a *report*. Without it a pull request
       # touching no gate input would run a job with every step skipped, and the
       # point of the restructure is that the check always concludes.
