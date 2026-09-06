@@ -6068,9 +6068,9 @@
     "references": [
       {
         "kind": "pull-request",
-        "label": "PR #1025 - the pull request carrying this run's dataset change and this entry",
-        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/1025",
-        "state": "open at the time this entry was written; the entry ships in the same commit as the data, so the number is recorded before GitHub assigns it"
+        "label": "PR #1026 - the pull request carrying this run's dataset change and this entry",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/1026",
+        "state": "open. The entry ships in the same commit as the data, so the number had to be predicted before GitHub assigned it; the prediction was #1025, the number issued was #1026, and it was corrected in a second commit on the same branch rather than by rewriting the first"
       },
       {
         "kind": "issue",
@@ -6083,6 +6083,12 @@
         "label": "abdeslam-menacere/ModelTree#1006 - tracks re-expressing the release-source moved pin relationally, the one out-of-class edit this run was prepared to stop on",
         "url": "https://github.com/abdeslam-menacere/ModelTree/issues/1006",
         "state": "OPEN, read live on 2026-09-06 as this entry was written"
+      },
+      {
+        "kind": "commit",
+        "label": "31daaae307 - the dataset commit, applying the five accepted claims and this entry together",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/31daaae307767364fd9af90d5da8f86c85915358",
+        "state": "the commit this run landed; document links resolve against the first commit reference, so they show each file as this run left it rather than as main has since become"
       },
       {
         "kind": "commit",
