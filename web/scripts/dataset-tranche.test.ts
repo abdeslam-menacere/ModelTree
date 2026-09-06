@@ -59,6 +59,27 @@ function fixture(): Record<string, any[]> {
       { id: 'br1', releaseId: 'big-r1', benchmarkId: 'mmlu', sourceIds: ['s3'] },
     ],
     benchmarks: [{ id: 'mmlu', name: 'MMLU' }],
+    // `usage-syntheses.json` holds ZERO records today, which is the only reason
+    // omitting it from the clone set is currently inert. A test that read the
+    // real file would therefore pass whether or not syntheses are cloned, and
+    // would prove nothing about either. The fixture is non-empty on purpose, and
+    // the tests below assert its size before reading any result from it.
+    usageObservations: [
+      { id: 'uo1', releaseId: 'big-r1', metric: 'downloads', sourceIds: ['s3'] },
+      { id: 'uo2', releaseId: 'big-r1', metric: 'downloads', sourceIds: ['s3'] },
+    ],
+    usageSyntheses: [
+      {
+        id: 'us1',
+        releaseId: 'big-r1',
+        statement: 'Two readings of big-r1 downloads agree.',
+        // `usageSynthesisSchema` requires at least two, and they are entity ids
+        // of records this same donor owns -- so a clone that did not remap them
+        // would point at the donor's observations, not its own.
+        observationIds: ['uo1', 'uo2'],
+        agreement: 'agreeing',
+      },
+    ],
     variantPositioning: [{ id: 'vp1', familyId: 'big-f1', note: 'x' }],
   };
 }
@@ -304,5 +325,88 @@ describe('buildTranche', () => {
     expect(manifest.added.releases).toBe(3);
     expect(manifest.added.sources).toBe(3);
     expect(manifest.addedRecords).toBe(manifest.clones[0].records);
+  });
+});
+
+/**
+ * Usage syntheses are release-owned and were absent from the clone set (#1031).
+ *
+ * `usageSynthesisSchema` declares `releaseId: entityId`, so a synthesis traces
+ * to a donor creator by exactly the route every other release-owned collection
+ * does. Leaving it out clones less than the donor really consists of, which
+ * under-counts growth, which over-states runway -- the direction this module's
+ * header names as the one that loses work.
+ *
+ * WHY A FIXTURE AND NOT THE REAL FILE. `web/src/data/usage-syntheses.json` holds
+ * 0 records at this writing, and that emptiness is the whole reason the omission
+ * is inert rather than live. An empty subject yields the same reading as a
+ * correct one, so a test pointed at the real file would pass against the broken
+ * module and against the fixed one alike. Every test here therefore asserts the
+ * fixture's SIZE before it reads anything out of a build.
+ */
+describe('release-owned usage syntheses', () => {
+  it('the fixture is non-empty, or nothing below this line means anything', () => {
+    // Stated as its own assertion rather than assumed by the others: if a later
+    // edit empties this fixture, this fails loudly instead of leaving four
+    // vacuous passes behind.
+    const data = fixture();
+    expect(data.usageSyntheses.length).toBe(1);
+    expect(data.usageSyntheses[0].observationIds.length).toBeGreaterThanOrEqual(2);
+    expect(data.usageObservations.length).toBe(2);
+  });
+
+  it('is cloned with the donor, like every other collection owned via releaseId', () => {
+    const { dataset, manifest } = buildTranche(fixture(), { creators: 1, donors: ['big'] });
+    const cloned = dataset.usageSyntheses.filter((s: { id: string }) => s.id.endsWith('-rw0'));
+    expect(cloned.length).toBe(1);
+    expect(manifest.added.usageSyntheses).toBe(1);
+  });
+
+  it('remaps releaseId AND observationIds, so the clone reads its own records', () => {
+    // Two distinct reference shapes in one record: a scalar id and an array of
+    // ids. A fix that remapped only the scalar would leave the clone quoting the
+    // donor's observations while claiming to synthesise its own.
+    const { dataset } = buildTranche(fixture(), { creators: 1, donors: ['big'] });
+    const clone = dataset.usageSyntheses.find((s: { id: string }) => s.id === 'us1-rw0');
+    expect(clone).toBeDefined();
+    expect(clone.releaseId).toBe('big-r1-rw0');
+    expect(clone.observationIds).toEqual(['uo1-rw0', 'uo2-rw0']);
+  });
+
+  it('leaves no cloned reference pointing at a record that was not cloned', () => {
+    // The acceptance criterion stated as reachability rather than as string
+    // shape: a suffix test would pass on `uo9-rw0` even if no such observation
+    // existed. A reference into thin air is a broken tranche.
+    const { dataset } = buildTranche(fixture(), { creators: 2, donors: ['big'] });
+    const releaseIds = new Set(dataset.releases.map((r: { id: string }) => r.id));
+    const observationIds = new Set(dataset.usageObservations.map((o: { id: string }) => o.id));
+    const cloned = dataset.usageSyntheses.filter((s: { id: string }) => s.id !== 'us1');
+    expect(cloned.length).toBe(2);
+    for (const synthesis of cloned) {
+      expect(releaseIds.has(synthesis.releaseId), `${synthesis.id} releaseId`).toBe(true);
+      for (const id of synthesis.observationIds) {
+        expect(observationIds.has(id), `${synthesis.id} observationIds`).toBe(true);
+      }
+    }
+  });
+
+  it('control: the donor original is untouched, so the clone is an addition', () => {
+    // Without this arm the assertions above would pass just as well against a
+    // module that rewrote the donor's own synthesis in place -- which would be a
+    // corrupted dataset reported as growth.
+    const data = fixture();
+    const { dataset } = buildTranche(data, { creators: 1, donors: ['big'] });
+    const original = dataset.usageSyntheses.find((s: { id: string }) => s.id === 'us1');
+    expect(original).toEqual(data.usageSyntheses[0]);
+    expect(original.observationIds).toEqual(['uo1', 'uo2']);
+  });
+
+  it('control: a donor owning no synthesis clones none, so the count tracks the donor', () => {
+    // The other direction of the same instrument. If this returned 1 as well,
+    // the assertions above would be reading something other than the donor's
+    // records -- an instrument that answers the same thing to everything.
+    const { dataset, manifest } = buildTranche(fixture(), { creators: 1, donors: ['small'] });
+    expect(manifest.added.usageSyntheses).toBe(0);
+    expect(dataset.usageSyntheses.filter((s: { id: string }) => s.id.endsWith('-rw0'))).toEqual([]);
   });
 });

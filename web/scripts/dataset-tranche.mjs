@@ -86,12 +86,27 @@ const ORG_OWNED = Object.freeze([
   'servingPlatforms',
 ]);
 
-/** Collections owned by a release, via `releaseId`. */
+/**
+ * Collections owned by a release, via `releaseId`.
+ *
+ * `usageSyntheses` qualifies for the same reason as the rest --
+ * `usageSynthesisSchema` declares `releaseId: entityId` -- and is worth a note
+ * only because it carries a second reference shape alongside that scalar:
+ * `observationIds`, a list of `usageObservations` ids. Both are rewritten by
+ * `remapDeep` against the complete id map built in pass 1, so a cloned
+ * synthesis reads its own observations rather than its donor's. It was absent
+ * from this list until #1031; `usage-syntheses.json` holds no records at this
+ * writing, so the omission cost nothing yet and would have begun quietly
+ * under-counting growth the moment the file was populated. The fixture in
+ * `dataset-tranche.test.ts` is non-empty precisely so that this rule is
+ * exercised rather than merely stated.
+ */
 const RELEASE_OWNED = Object.freeze([
   'deployments',
   'releaseEvents',
   'benchmarkResults',
   'usageObservations',
+  'usageSyntheses',
   'modelFitStatements',
   'modelFitEvidenceGaps',
 ]);
