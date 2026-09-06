@@ -5640,5 +5640,457 @@
       }
     ],
     "recordedAt": "2026-09-05"
+  },
+  {
+    "id": "2026-09-06-82f346",
+    "title": "OpenAI GPT-6 Astra: the refresh that stopped at publish, re-run from source and published",
+    "ranOn": "2026-09-06",
+    "outcome": "published",
+    "summary": "Run 2026-09-05-df67a5 researched GPT-6 Astra, carried four claims through review and every data gate, and then stopped: publishing would have required editing two exact population counts in web/src/lib/release-source.test.ts and web/src/data/validate.test.ts, which gate-scope.mjs refuses and which ADR 0003 puts out of class. Those two pins were re-expressed relationally on trunk in the meantime, so this run re-did the work from the sources rather than replaying the stopped run: every page was re-fetched and re-hashed on 2026-09-06, and no hash or verifiedAt was carried forward. Five claims were proposed, all five reached the 2-of-3 pilot threshold, and all five were applied. Two carry a recorded provenance dissent. The RSS feed had genuinely moved since the stopped run, so its content hash differs; the GPT-6 Astra documentation page had not, and its hash matching the earlier run is a re-verification rather than an inheritance.",
+    "scope": "OpenAI only, one creator, under the pilot 2-of-3 policy. Adds the openai-gpt-6 family, the openai-gpt-6-astra release and the openai-gpt-6-astra-docs source, and re-dates two existing OpenAI sources whose lastCheckedDate this run re-verified. No other creator was scouted; the other 43 are named individually in found.unswept.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Clean worktree, gh authenticated, git fetch origin main at exit 0. Anchor 3161be877c resolved as the merge-base with refs/remotes/origin/main and confirmed against a live git ls-remote read. Both of the stopped run's blockers were re-read on trunk with surrounding context rather than counted: a naive grep for the old release-source pin still returns hits, and both are inside explanatory comments, not assertions."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "Seven pages fetched and hashed fresh on 2026-09-06. Every quote was re-verified verbatim against the stored bytes by a checker carrying a positive and a negative control in the same invocation: 18 of 18 quotes and 7 of 7 hashes at exit 0. Three OpenAI pages returned HTTP 403 Cloudflare challenges; they are cited by zero evidence entries and no workaround was attempted."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Three blind reviewers on three different model families, launched in parallel, each seeing only the claim, its evidence, the relevant dataset slice, the creator profile and its own rubric. Fifteen verdicts. One claim was then found to contradict its own evidence - a quote inside a source the record already cited stated the lifecycle the claim had recorded as unknown - so it was amended once on that factual ground and put to a fresh three-reviewer panel on three further model families, for three more verdicts. Eighteen verdicts in total; no reviewer was re-run to change an outcome."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-evidence, gate-source-approval, gate-dataset, gate-scope and gate-ledger all at exit 0, plus npm run validate and node .github/scripts/ci-preflight.mjs. gate-scope reported changed 4 with an empty outOfClass, so the change is non-empty as well as in class."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "Single commit carrying the dataset, the budget re-record and this entry together, opened as a pull request against 3161be877c and left to GitHub's auto-merge after CI. The run did not merge, did not push to main, did not force-push and used no admin override."
+      },
+      {
+        "stage": "deploy",
+        "status": "ran",
+        "note": "GitHub Pages deployment watched after the merge rather than assumed from a green pull request."
+      }
+    ],
+    "found": {
+      "scouts": 1,
+      "pagesFetched": 7,
+      "claimsProposed": 5,
+      "bundles": [
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 5
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "add",
+          "count": 3,
+          "effect": "One source, one family and one release: openai-gpt-6-astra-docs, openai-gpt-6 and openai-gpt-6-astra."
+        },
+        {
+          "kind": "change",
+          "count": 2,
+          "effect": "lastCheckedDate on openai-news-rss and openai-models-catalog, both re-fetched on 2026-09-06 and moved from 2026-08-31."
+        }
+      ],
+      "notCovered": [
+        "Every creator other than OpenAI. They are named individually in unswept rather than left to this prose.",
+        "openai.com/index/gpt-6-astra and openai.com/index/safety-overview-gpt-6-astra, both HTTP 403 to this run. The same facts were available from the RSS feed, which served HTTP 200 and is an approved source, so nothing rests on the pages that refused.",
+        "platform.openai.com, which holds zero sources in the committed dataset and was therefore not treated as an established channel for it."
+      ],
+      "unswept": [
+        {
+          "creator": "01-ai",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "ai-singapore",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "ai2",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "ai21-labs",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "aleph-alpha",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "alibaba-cloud",
+          "lastScouted": "2026-09-03",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-03 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "amazon",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "anthropic",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "apple",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "baidu",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "bytedance-seed",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "cohere",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "databricks",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "deepseek",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "eleutherai",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "google-deepmind",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "hugging-face",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "ibm",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "kyutai",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted is omitted because no committed ledger entry records a bundle for this creator, which is not the same as never having been scouted."
+        },
+        {
+          "creator": "lelapa-ai",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted is omitted because no committed ledger entry records a bundle for this creator, which is not the same as never having been scouted."
+        },
+        {
+          "creator": "lg-ai-research",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "liquid-ai",
+          "lastScouted": "2026-09-05",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-05 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "maritaca-ai",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted is omitted because no committed ledger entry records a bundle for this creator, which is not the same as never having been scouted."
+        },
+        {
+          "creator": "meta",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "microsoft",
+          "lastScouted": "2026-09-03",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-03 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "minimax",
+          "lastScouted": "2026-09-05",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-05 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "mistral-ai",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "moonshot-ai",
+          "lastScouted": "2026-09-05",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-05 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "naver",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "nous-research",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "nvidia",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "openbmb",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted is omitted because no committed ledger entry records a bundle for this creator, which is not the same as never having been scouted."
+        },
+        {
+          "creator": "reka-ai",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "sakana-ai",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "sarvam-ai",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "snowflake",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "stability-ai",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "tencent",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "tii",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "upstage",
+          "lastScouted": "2026-09-05",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-05 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "xai",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "xiaomi",
+          "lastScouted": "2026-09-05",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-05 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        },
+        {
+          "creator": "zhipu-ai",
+          "lastScouted": "2026-09-01",
+          "reason": "Out of scope for this run, which was scoped to OpenAI alone to finish the GPT-6 Astra refresh that run 2026-09-05-df67a5 left unpublished. Not looked at this pass, so this run is not evidence that it did or did not change. lastScouted 2026-09-01 is derived from the committed ledger: the most recent entry whose found.bundles names this creator."
+        }
+      ],
+      "degradedChannels": [
+        {
+          "creator": "openai",
+          "source": "official-announcement",
+          "detail": "openai.com/news/ returned HTTP 403 again, reproducing the failure recorded for 2026-09-04 and 2026-09-05, so the profile's catalogued announcement channel remains dark for a third consecutive run. Discovery survived only because openai.com/news/rss.xml still served HTTP 200. No workaround was attempted: no scraping, no user-agent spoofing, no mirror, and no press coverage used as evidence."
+        }
+      ]
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 18,
+      "acceptedByPanel": 5,
+      "rejectedByPanel": 0,
+      "dissents": [
+        {
+          "claimId": "openai-gpt-6-family-add",
+          "rubric": "provenance",
+          "objection": "Held that the family category multimodal-generalist was not forced by the attached quotes, which state text and image input and text output for one release rather than characterising the family. Outvoted 2-1 and applied over the objection rather than quietly dropped; the reviewer's full rationale is published verbatim in the pull request body."
+        },
+        {
+          "claimId": "openai-gpt-6-astra-release-add",
+          "rubric": "provenance",
+          "objection": "Held that a feed item's pubDate is a page publication timestamp and not a statement of a release date, and that the attached quotes do not force the recorded accessType. This is a listed rejection criterion in the provenance rubric and two independent reviewers on different model families reached it, so it is published as a standing dissent rather than treated as something to repair. The releaseDate it questions is carried anyway on the 2-of-3 majority."
+        }
+      ],
+      "gates": [
+        {
+          "gate": "gate-evidence.mjs",
+          "scope": "claim bundle for openai, run 2026-09-06-82f346",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "claims 5, applicable 5, passed true. The 2-of-3 threshold was derived independently by the gate from the declared pilot policy and matched."
+        },
+        {
+          "gate": "gate-source-approval.mjs",
+          "scope": "claim bundle for openai, run 2026-09-06-82f346",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "citations 18, passed true, against 285 dataset sources and 51 approved origins. One proposed source, openai-gpt-6-astra-docs, on the already-approved developers.openai.com origin which carries 17 existing sources; no new origin was proposed and no source was added to make a citation resolve."
+        },
+        {
+          "gate": "gate-dataset.mjs",
+          "scope": "web/src/data after the five claims were applied",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "passed true with no failures across sources 286, organizations 44, families 86, releases 121."
+        },
+        {
+          "gate": "gate-scope.mjs",
+          "scope": "merge-base 3161be877c with refs/remotes/origin/main",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "changed 4, outOfClass empty, empty false. web/asset-budgets.json classified in class under ADR 0015 with the gate's own note: only regenerable measurement and prose fields changed at HEAD and in the working tree."
+        },
+        {
+          "gate": "gate-ledger.mjs",
+          "scope": "this entry against the dataset diff",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "transcription false, so the entry was reconciled against a real diff rather than exempted as a backfill of already-published work."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "web/, tests plus Astro and TypeScript diagnostics",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "131 test files and 2929 tests passed, astro check reported 0 errors, 0 warnings and 0 hints. An earlier run of the same command failed on one assertion, the providers asset-budget drift, which is recorded in caveats and was repaired by re-recording the measurement the assertion itself names."
+        },
+        {
+          "gate": "node .github/scripts/ci-preflight.mjs",
+          "scope": "the pull-request checks this branch's diff triggers",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "PASS. 4 files changed since the anchor; 3 of 7 local check groups selected and all three passed: web-ci, skills-ci and source-link-health-tests. Four were not selected and are therefore not reported on rather than reported as passing: instruction-references, adr-numbers, updater-pytest and preflight-self-check. The script also prints what it does not cover at all, including the networked source-link-health and licence-link-introduction sweeps, the web-e2e browser check, the second Python interpreter, and the runner itself."
+        },
+        {
+          "gate": "release-source pin measurement (run instrument, not a repository gate)",
+          "scope": "web/src/lib/release-source.test.ts moved and stranded counts",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": false,
+          "detail": "A faithful reimplementation of releaseSourceOrder, validated against the committed pins before use, measured moved 63 to 63 and stranded 0 to 0 with zero releases changing their selected source. Its positive control forced a flip on openai-gpt-5-6-sol and detected it, and its negative control flipped none, so the zero is a discrimination rather than a blind instrument. Neither pin was edited."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 5,
+      "documents": [
+        {
+          "document": "web/src/data/sources.json",
+          "recordsBefore": 285,
+          "recordsAfter": 286,
+          "note": "Adds openai-gpt-6-astra-docs and re-dates lastCheckedDate on openai-news-rss and openai-models-catalog."
+        },
+        {
+          "document": "web/src/data/families.json",
+          "recordsBefore": 85,
+          "recordsAfter": 86,
+          "note": "Adds the openai-gpt-6 family."
+        },
+        {
+          "document": "web/src/data/releases.json",
+          "recordsBefore": 120,
+          "recordsAfter": 121,
+          "note": "Adds the openai-gpt-6-astra release."
+        }
+      ],
+      "records": [
+        {
+          "id": "openai-gpt-6",
+          "collection": "families",
+          "note": "The GPT-6 family. Applied over a recorded provenance dissent on its category."
+        },
+        {
+          "id": "openai-gpt-6-astra",
+          "collection": "releases",
+          "note": "GPT-6 Astra. Its lifecycle status is recorded as current on a quote from the safety overview item in the RSS feed, a source the record already cites, which describes it as the creator's most capable broadly deployed model. Applied over a recorded provenance dissent on releaseDate and accessType."
+        }
+      ]
+    },
+    "withheld": [],
+    "caveats": [
+      "posted.records names the two records a reader can navigate to, not every record this run wrote. The three sources.json edits are recorded in posted.documents and in the claim list, but deliberately not in posted.records: postedRecordLink in web/src/lib/refresh-log-links.ts resolves only releases, families and organizations, so a source record would render as a link to nowhere. This was caught by refresh-log-links.test.ts rather than assumed - an earlier draft of this entry listed all five and failed that test, and no committed entry in the log has ever named a sources record.",
+      "This run scouted one creator. It is not evidence that any other creator did or did not change, and the 43 unscouted creators are named individually in found.unswept so that \"we did not look\" cannot be read as \"we looked and nothing had changed\".",
+      "Two of the five applied claims carry a provenance dissent, and both are published rather than repaired. The release claim's dissent - that a feed item's pubDate is a publication timestamp and not a stated release date - is a listed rejection criterion in the rubric and was reached independently by two reviewers on different model families. A 2-of-3 majority carried the claim; that is the policy working as designed, not the objection being answered.",
+      "The release claim was amended once, after the first panel, because a quote inside a source the record already cited stated a lifecycle the claim had recorded as unknown, so the claim contradicted its own evidence. It was then put to a fresh panel of three different reviewers rather than re-scored by the original three. It was not amended a second time in response to the second panel's dissent, which would have been vote-rigging.",
+      "The source URL for openai-gpt-6-astra-docs carries a .md suffix. That is the form whose bytes were actually fetched and hashed, and it matches the two most recent OpenAI documentation precedents in the dataset, but 22 of the 24 existing OpenAI sources use the bare path. This is recorded as an explicit assumption rather than smoothed over.",
+      "npm run validate failed on first run, on the providers asset-budget drift assertion, and the repair was to re-record the measurement that assertion names. Measured on one machine in one session: the tree at the anchor built the providers worst-case page to 653,132 bytes and the same tree with these five claims applied built it to 668,876, so 15,744 of the 17,940 drift is this run and the remaining 2,196 was already unrecorded at the anchor. No ceiling was raised and measuredDrift.maxFraction was not widened; a field-level check with two-directional controls confirmed only ADR 0015-permitted fields moved and that all 14 ceilings and tolerances are byte-identical to the anchor.",
+      "The trunk tip moved during this run, from the anchor to d5907b3b, while the merge-base this run measured against did not. That commit changes only .github/copilot-instructions.md and touches no dataset file, no test and no budget file, so every measurement here still stands; it is recorded because a claim about trunk that does not name the trunk it was measured against cannot be checked later.",
+      "A green run proves the sources said what is recorded on the day they were read. It does not prove the sources are correct, and three reviewers drawn from large language models share failure modes that a single wrong page can carry past all three."
+    ],
+    "followUps": [
+      "The providers route is the one a single-creator OpenAI tranche loads hardest: these five claims moved it by 15,744 bytes against 2,314 on home, because its budget tracks a worst-case page that is providers/openai/index.html and OpenAI records land on it directly instead of being amortised across an index. Anyone sizing a future tranche against the home route alone will underestimate it.",
+      "The recorded asset-budget measurements were already about 2,196 bytes stale at the anchor on both routes this run could check, so spare computed from the file reads slightly high on every route. This run re-recorded only the one route its own change moved past the drift allowance, and deliberately left the others carrying their pre-existing staleness rather than making an unrelated repair inside a data refresh.",
+      "openai.com/news/ has now returned HTTP 403 to three consecutive runs. The catalogued announcement channel for the largest creator in the dataset is durably dark, and discovery for it currently rests on the RSS feed alone."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "PR #1025 - the pull request carrying this run's dataset change and this entry",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/1025",
+        "state": "open at the time this entry was written; the entry ships in the same commit as the data, so the number is recorded before GitHub assigns it"
+      },
+      {
+        "kind": "issue",
+        "label": "abdeslam-menacere/ModelTree#986 - this run's summary issue, and the stopped run it finishes",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/986",
+        "state": "open when this run began"
+      },
+      {
+        "kind": "issue",
+        "label": "abdeslam-menacere/ModelTree#1006 - tracks re-expressing the release-source moved pin relationally, the one out-of-class edit this run was prepared to stop on",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/1006",
+        "state": "OPEN, read live on 2026-09-06 as this entry was written"
+      },
+      {
+        "kind": "commit",
+        "label": "3161be877c - the merge-base with refs/remotes/origin/main that every measurement in this entry was taken against",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/3161be877c0091b3eff6b1f29fc55b44295787fa",
+        "state": "the anchor; trunk had moved to d5907b3bdc by the time this entry was written, on a commit touching no dataset file"
+      }
+    ],
+    "recordedAt": "2026-09-06"
   }
 ]

@@ -1274,6 +1274,49 @@
     "verifiedAt": "2026-08-31"
   },
   {
+    "id": "openai-gpt-6-astra",
+    "slug": "gpt-6-astra",
+    "canonicalName": "GPT-6 Astra",
+    "displayName": "GPT-6 Astra",
+    "organizationId": "openai",
+    "familyId": "openai-gpt-6",
+    "version": "6",
+    "variant": "Astra",
+    "releaseDate": "2026-09-03",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "multimodal-generalist",
+      "coding"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "contextWindow": 1050000,
+    "maximumOutput": 128000,
+    "apiAliases": [
+      "gpt-6-astra"
+    ],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "OpenAI's GPT-6 Astra, documented as its most capable model and built for the hardest end-to-end work, offered under the gpt-6-astra model ID. Its API documentation lists text and image input, text output, a 1,050,000-token context window, 922,000 maximum input tokens, 128,000 max output tokens and an Apr 30, 2026 knowledge cutoff, and supports the Chat Completions, Responses and Batch endpoints. Its release date is taken from the 2026-09-03 announcement item in OpenAI's news feed, because the model documentation page carries no date; the announcement page itself returned HTTP 403 to this run and was not read. OpenAI's own safety overview item in that feed describes it as its most capable broadly deployed model, which is the basis for recording its lifecycle as current.",
+    "intendedUse": "Complex reasoning, coding, computer use, research, and document creation, as the documentation states.",
+    "sourceIds": [
+      "openai-gpt-6-astra-docs",
+      "openai-news-rss"
+    ],
+    "verifiedAt": "2026-09-06"
+  },
+  {
     "id": "anthropic-claude-sonnet-5",
     "slug": "claude-sonnet-5",
     "canonicalName": "Claude Sonnet 5",
