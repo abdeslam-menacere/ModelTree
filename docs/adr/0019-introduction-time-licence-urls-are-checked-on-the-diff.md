@@ -52,9 +52,18 @@ anything, whereas a decayed one at least resolved on the day it was recorded.
 
 ### Objection 1 — "it asks third-party servers on every data pull request"
 
-Measured, at trunk `82582b6c0956bda1aef2b9a6ea39f6f57436c833`, over the last 300
-commits on this branch's history, of which 50 touch `web/src/data/releases.json`
-(17%):
+Measured at trunk `82582b6c0956bda1aef2b9a6ea39f6f57436c833`, over the **whole
+history of `web/src/data/releases.json`** at that commit: 51 commits touch the
+file, of which **50 are analysable** — the commit that creates it has no parent
+revision to diff a baseline against, so it is excluded. Those 50 span
+2026-08-15 → 2026-09-05.
+
+The population is named as the file's whole history, rather than as a slice of
+recent commits, because the two are different denominators and every figure
+below is only meaningful against the one it was taken over. The two do not
+coincide, and the difference is stated here so that neither figure can later be
+welded to the other's frame: of the last 300 commits at that trunk, **47** touch
+the file (15.7%), while the full ancestry there is **451** commits.
 
 | quantity | measured |
 |---|---|
@@ -63,7 +72,7 @@ commits on this branch's history, of which 50 touch `web/src/data/releases.json`
 | commits needing ≥1 net-new request | 13 of 50 (26%) |
 | commits needing **0** net-new requests | **37 of 50 (74%)** |
 | mean net-new per `releases.json`-touching commit | **0.56** |
-| mean net-new per commit overall | **0.09** |
+| mean net-new per commit across the 451-commit ancestry | **0.062** |
 | maximum by any single commit | 5 |
 
 "Every data pull request" is not what the history says. Three quarters of the
@@ -76,8 +85,8 @@ The comparison that settles the cost question is against the sweep this
 repository already runs and already accepted. `check-source-links.mjs --dry-run`
 reports that the committed dataset's "285 source record(s) and 41 licence URL(s)
 reduce to 304 unique URL(s)". The scheduled sweep requests all 304, weekly
-(`cron: '37 6 * * 1'`). Those 50 commits span 2026-08-15 → 2026-09-05, 21 days,
-so 28 net-new requests are ≈ **9.3 requests per week**.
+(`cron: '37 6 * * 1'`). Across the 21 days those 50 commits span, 28 net-new
+requests are ≈ **9.3 requests per week**.
 
 So the instrument ADR 0017 declined on cost grounds costs about **3% of the one
 it approved** — 9.3 against 304 requests a week, on the same servers, many of
