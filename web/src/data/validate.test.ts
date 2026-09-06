@@ -750,6 +750,240 @@ describe('partial dates on family and release dates', () => {
   });
 
   /**
+   * Every family and release that carried `day` precision when this was
+   * pinned, keyed by kind because eight ids name both a family and a release
+   * -- `openai-gpt-5` among them -- and an unkeyed list would conflate the two
+   * silently.
+   *
+   * This is the anti-downgrade tripwire, and it is exact. A key listed here
+   * that is missing from the dataset, or that now reads coarser than a day,
+   * fails. So a backfilled `day` quietly downgraded to `month`, a `year`
+   * stamped on a record whose source gave more, and a half-loaded dataset are
+   * each still caught -- which is what the exhaustive inventory below used to
+   * catch, and it is caught here without being a count of anything.
+   *
+   * What this deliberately does not do is grow. A record added after the pin
+   * is not named here, so adding one at any precision needs no edit to this
+   * file. That is the fix (#992). This file sits outside the class
+   * `gate-scope.mjs` admits, so an agent-gated refresh cannot edit it, and
+   * while the inventory was exhaustive over the *live* population no refresh
+   * could publish a record whose honest precision was coarser than a day --
+   * which is the ordinary case, not an exotic one, since inferring a family
+   * date from one member's announcement is a rejection the review rubric
+   * already names. Two runs stopped here (#935, #986).
+   *
+   * The obligation that moves is the justification, and only for records added
+   * after the pin. Their reasoning is stated in the run's claim bundle, where
+   * the three-rubric panel reviews it and `gate-evidence` holds it to verbatim
+   * quotes and content hashes, rather than in a comment here. What stays here
+   * is the pin on the records that already existed, which is the half a
+   * refresh must not be able to move.
+   *
+   * Regenerate only deliberately. A record removed, renamed, or re-dated
+   * coarser is a change worth a human reading, which is exactly why it costs
+   * an edit to a file a refresh cannot reach.
+   */
+  const RECORDS_AT_DAY_WHEN_PINNED: readonly string[] = [
+    'family:openai-gpt-4-1',
+    'family:openai-gpt-5-6',
+    'family:openai-gpt-5-5',
+    'family:openai-gpt-5-4',
+    'family:openai-gpt-5',
+    'family:anthropic-claude-5',
+    'family:anthropic-claude-4-5',
+    'family:google-gemini-3',
+    'family:google-gemini-2-5',
+    'family:meta-llama-4',
+    'family:meta-llama-3',
+    'family:meta-muse',
+    'family:openai-gpt-5-1',
+    'family:openai-gpt-5-2',
+    'family:openai-gpt-5-3-codex',
+    'family:openai-gpt-image',
+    'family:anthropic-claude-4-6',
+    'family:anthropic-claude-4-7',
+    'family:anthropic-claude-4-8',
+    'family:anthropic-claude-5-1',
+    'family:xai-grok-4',
+    'family:mistral-large-3',
+    'family:mistral-ministral-3',
+    'family:mistral-devstral-2',
+    'family:mistral-small-4',
+    'family:deepseek-v4',
+    'family:deepseek-v3-2',
+    'family:qwen3-8',
+    'family:microsoft-mai',
+    'family:microsoft-fara',
+    'family:amazon-nova-2',
+    'family:ai2-olmo-2',
+    'family:tii-falcon-h1',
+    'family:nvidia-nemotron-4-340b',
+    'family:ai21-labs-jamba',
+    'family:moonshot-ai-kimi-k2',
+    'family:eleutherai-pythia',
+    'family:lg-ai-research-exaone-3-5',
+    'family:lg-ai-research-exaone-4-0',
+    'family:snowflake-arctic',
+    'family:upstage-solar-pro',
+    'family:ibm-granite-4-2',
+    'family:baidu-ernie-4-5',
+    'family:tencent-hunyuan-video',
+    'family:bytedance-seed-oss',
+    'family:stability-ai-stable-diffusion-3-5',
+    'family:databricks-dbrx',
+    'family:minimax-m1',
+    'family:apple-openelm',
+    'family:hugging-face-smollm3',
+    'family:01-ai-yi-1-5',
+    'family:minimax-text-01',
+    'family:sarvam-ai-sarvam-m',
+    'family:naver-hyperclova-x-seed',
+    'family:aleph-alpha-pharia-1',
+    'family:reka-flash',
+    'family:nous-hermes-4',
+    'family:liquid-lfm2',
+    'family:xiaomi-mimo-7b',
+    'family:01-ai-yi',
+    'family:qwen3-5',
+    'family:qwen3-6',
+    'family:eleutherai-gpt-neo',
+    'family:ibm-granite-4-0',
+    'family:kyutai-moshi',
+    'family:lelapa-ai-inkubalm',
+    'family:maritaca-ai-sabia',
+    'family:openbmb-minicpm5',
+    'family:nvidia-nemotron-nano-2',
+    'family:tencent-hunyuanimage-3-0',
+    'family:tii-falcon-180b',
+    'family:ai2-molmo',
+    'family:stability-ai-stable-video-diffusion',
+    'family:nvidia-cosmos',
+    'family:apple-fastvlm',
+    'family:zhipu-ai-cogvideox',
+    'family:openbmb-minicpm-v',
+    'family:amazon-titan',
+    'family:ai21-labs-jurassic',
+    'family:moonshot-ai-kimi-audio',
+    'release:openai-gpt-4-1-2025-04-14',
+    'release:openai-gpt-4-1-mini-2025-04-14',
+    'release:openai-gpt-4-1-nano-2025-04-14',
+    'release:openai-gpt-5-6-sol',
+    'release:openai-gpt-5-6-terra',
+    'release:openai-gpt-5-6-luna',
+    'release:openai-gpt-5-5',
+    'release:openai-gpt-5-4',
+    'release:openai-gpt-5',
+    'release:anthropic-claude-fable-5',
+    'release:anthropic-claude-mythos-5',
+    'release:anthropic-claude-opus-5',
+    'release:anthropic-claude-haiku-4-5',
+    'release:google-gemini-3-1-pro-preview',
+    'release:google-gemini-3-1-flash-lite',
+    'release:google-gemini-3-5-flash-lite',
+    'release:google-gemini-2-5-pro',
+    'release:google-gemini-2-5-flash',
+    'release:meta-llama-4-scout',
+    'release:meta-llama-4-maverick',
+    'release:meta-llama-3-1-405b',
+    'release:meta-llama-3-3-70b',
+    'release:openai-gpt-5-6-cyber',
+    'release:openai-gpt-5-1',
+    'release:openai-gpt-5-2',
+    'release:openai-gpt-5-3-codex',
+    'release:openai-gpt-image-2',
+    'release:anthropic-claude-sonnet-5',
+    'release:google-gemini-3-5-flash',
+    'release:google-gemini-3-6-flash',
+    'release:google-gemini-3-7-flash',
+    'release:meta-muse-spark',
+    'release:meta-muse-spark-1-1',
+    'release:meta-muse-image',
+    'release:meta-muse-video',
+    'release:meta-llama-3-2-1b',
+    'release:meta-llama-3-2-3b',
+    'release:meta-llama-3-2-11b-vision',
+    'release:meta-llama-3-2-90b-vision',
+    'release:xai-grok-4-6',
+    'release:xai-grok-4-5',
+    'release:mistral-large-3-675b-instruct',
+    'release:mistral-ministral-3-8b-instruct',
+    'release:mistral-devstral-2-123b-instruct',
+    'release:mistral-devstral-small-2-24b-instruct',
+    'release:mistral-small-4-119b',
+    'release:deepseek-v4-pro',
+    'release:deepseek-v4-flash',
+    'release:deepseek-v3-2',
+    'release:anthropic-claude-opus-4-6',
+    'release:anthropic-claude-opus-4-7',
+    'release:anthropic-claude-opus-4-8',
+    'release:anthropic-claude-fable-5-1',
+    'release:anthropic-claude-mythos-5-1',
+    'release:alibaba-qwen3-8-2-4t-a95b',
+    'release:alibaba-qwen3-8-27b',
+    'release:alibaba-qwen3-8-flash-next',
+    'release:microsoft-mai-thinking-1',
+    'release:microsoft-fara-1-5-27b',
+    'release:microsoft-fara-1-5-4b',
+    'release:microsoft-fara-1-5-9b',
+    'release:amazon-nova-2-sonic',
+    'release:cohere-command-a-plus-05-2026',
+    'release:ai2-olmo-2-7b',
+    'release:tii-falcon-h1-34b-instruct',
+    'release:nvidia-nemotron-4-340b-base',
+    'release:ai21-labs-jamba-v0-1',
+    'release:moonshot-ai-kimi-k2-instruct',
+    'release:eleutherai-pythia-12b',
+    'release:lg-ai-research-exaone-3-5-7-8b-instruct',
+    'release:lg-ai-research-exaone-4-0-32b',
+    'release:snowflake-arctic-instruct',
+    'release:upstage-solar-pro-preview-instruct',
+    'release:ibm-granite-4-2-30b',
+    'release:baidu-ernie-4-5-300b-a47b',
+    'release:tencent-hunyuan-video-t2v',
+    'release:bytedance-seed-oss-36b-instruct',
+    'release:stability-ai-stable-diffusion-3-5-large',
+    'release:databricks-dbrx-instruct',
+    'release:minimax-m1-40k',
+    'release:minimax-m1-80k',
+    'release:apple-openelm-3b-instruct',
+    'release:hugging-face-smollm3-3b',
+    'release:01-ai-yi-1-5-34b-chat',
+    'release:minimax-text-01-456b',
+    'release:sarvam-ai-sarvam-m-v1',
+    'release:naver-hyperclova-x-seed-text-instruct-1-5b',
+    'release:aleph-alpha-pharia-1-llm-7b-control',
+    'release:reka-flash-3-1',
+    'release:nous-hermes-4-14b',
+    'release:liquid-lfm2-1-2b',
+    'release:xiaomi-mimo-7b-rl-0530',
+    'release:01-ai-yi-34b-chat',
+    'release:alibaba-qwen3-5-397b-a17b',
+    'release:alibaba-qwen3-6-35b-a3b',
+    'release:eleutherai-gpt-neo-2-7b',
+    'release:ibm-granite-4-0-h-small',
+    'release:ibm-granite-4-0-h-tiny',
+    'release:kyutai-moshiko-pytorch-bf16',
+    'release:lelapa-ai-inkubalm-0-4b',
+    'release:maritaca-ai-sabia-7b',
+    'release:openbmb-minicpm5-1b',
+    'release:nvidia-nemotron-nano-9b-v2',
+    'release:tencent-hunyuanimage-3-0-standard',
+    'release:tii-falcon-180b',
+    'release:ai2-molmo-7b-d',
+    'release:stability-ai-svd-img2vid-xt',
+    'release:nvidia-cosmos-1-0-diffusion-7b-text2world',
+    'release:apple-fastvlm-7b',
+    'release:zhipu-ai-cogvideox-2b',
+    'release:bytedance-seed-oss-36b-base',
+    'release:openbmb-minicpm-v-4-5',
+    'release:openbmb-minicpm-v-4-6',
+    'release:cohere-rerank-v3-5',
+    'release:amazon-titan-text-express',
+    'release:ai21-labs-jurassic-1-jumbo',
+    'release:moonshot-ai-kimi-audio-7b-instruct',
+  ];
+
+  /**
    * Criterion 4. Every record the backfill touched keeps the date it already
    * had and is marked `day` -- because a day is what those sources gave, not
    * because `day` is a convenient default for a newly required field. The
@@ -764,13 +998,24 @@ describe('partial dates on family and release dates', () => {
    * change exists to provide, so such records are enumerated here rather than
    * forbidden -- scanning the live dataset for `day` alone would have made the
    * first honest partial date fail, which is the opposite of the intent above.
-   * The enumeration is the assertion and it stays exact: an unlisted non-day
-   * record still fails, so a backfilled `day` quietly downgraded to `month`, or
-   * a `year` stamped on a record whose source gave more, is still caught.
+   * The enumeration is the assertion and it stays exact, over the population it
+   * was written about: the records named in `RECORDS_AT_DAY_WHEN_PINNED` above,
+   * plus these. Within that population an unlisted non-day record still fails,
+   * so a backfilled `day` quietly downgraded to `month`, or a `year` stamped on
+   * a record whose source gave more, is still caught.
+   *
+   * It is scoped that way rather than to the live dataset because this file is
+   * outside the class `gate-scope.mjs` admits, so exhaustiveness over a
+   * *growing* population made it impossible for an agent-gated refresh to
+   * publish any record whose honest precision was coarser than a day (#992).
+   * A record added after the pin is outside both lists by construction; the
+   * reasoning for its precision is reviewed in the run's claim bundle instead.
+   * Nothing about the records that existed at the pin is relaxed.
    */
   it('leaves every committed date at day precision, agreeing with its value', () => {
     const datesCoarserThanADay = [
       {
+        kind: 'family',
         id: 'cohere-command-a',
         precision: 'month',
         // Cohere dates the family only through its earliest member's published
@@ -778,6 +1023,7 @@ describe('partial dates on family and release dates', () => {
         // recording one would be the invention this field exists to prevent.
       },
       {
+        kind: 'family',
         id: 'zhipu-ai-glm-4-5',
         precision: 'month',
         // GLM-4.5 launched at WAIC Shanghai in late July 2025; no fetchable
@@ -785,6 +1031,7 @@ describe('partial dates on family and release dates', () => {
         // honest floor rather than an invented day.
       },
       {
+        kind: 'family',
         id: 'sakana-ai-evollm-jp',
         precision: 'month',
         // Sakana AI's announcement post carries a page date of March 21, 2024,
@@ -795,6 +1042,7 @@ describe('partial dates on family and release dates', () => {
         // support.
       },
       {
+        kind: 'family',
         id: 'ai-singapore-sea-lion-v3',
         precision: 'month',
         // AI Singapore's SEA-LION v3 documentation states the family was
@@ -802,6 +1050,7 @@ describe('partial dates on family and release dates', () => {
         // synthesising a day is the invention this field exists to prevent.
       },
       {
+        kind: 'family',
         id: 'cohere-rerank',
         precision: 'unstated',
         // The one entry here that is not a precision at all but an absence
@@ -813,11 +1062,13 @@ describe('partial dates on family and release dates', () => {
         // invented one.
       },
       {
+        kind: 'release',
         id: 'zhipu-ai-glm-4-5-air',
         precision: 'month',
         // The Air variant shipped in the same GLM-4.5 launch; same reasoning.
       },
       {
+        kind: 'release',
         id: 'sakana-ai-evollm-jp-v1-7b',
         precision: 'month',
         // The release inherits the family's problem: no day survives contact
@@ -826,6 +1077,7 @@ describe('partial dates on family and release dates', () => {
         // measurement of the repository -- so none is recorded.
       },
       {
+        kind: 'release',
         id: 'ai-singapore-llama-sea-lion-v3-8b',
         precision: 'month',
         // The base SEA-LION v3 8B release carries the family's Dec 2024 month
@@ -836,22 +1088,47 @@ describe('partial dates on family and release dates', () => {
     const dataset = validateDataset(copyDataset());
     const dated = [
       ...dataset.families.map((family) => ({
+        kind: 'family',
         id: family.id,
-        value: family.firstReleaseDate,
-        precision: family.datePrecision,
+        value: family.firstReleaseDate as string | undefined,
+        precision: family.datePrecision as string,
       })),
       ...dataset.releases.map((release) => ({
+        kind: 'release',
         id: release.id,
-        value: release.releaseDate,
-        precision: release.datePrecision,
+        value: release.releaseDate as string | undefined,
+        precision: release.datePrecision as string,
       })),
     ];
 
     expect(dataset.families.length).toBeGreaterThanOrEqual(26);
     expect(dataset.releases.length).toBeGreaterThanOrEqual(51);
 
+    const keyOf = (entry: { kind: string; id: string }) => `${entry.kind}:${entry.id}`;
+    const precisionByKey = new Map(dated.map((entry) => [keyOf(entry), entry.precision]));
+
+    // The tripwire. A pinned key that is absent reads `undefined` here, so
+    // this one filter separates three outcomes that must not share a
+    // representation: still `day` (passes), gone coarser (named), and no
+    // longer in the dataset at all (also named, as `undefined`).
+    const regressed = RECORDS_AT_DAY_WHEN_PINNED
+      .filter((key) => precisionByKey.get(key) !== 'day')
+      .map((key) => ({ key, precision: precisionByKey.get(key) ?? '(absent)' }));
+    expect(regressed).toEqual([]);
+
+    // The inventory, still exact and still exhaustive -- over the records that
+    // existed when the pin was taken, which is the population it was written
+    // about. A record added since is outside it by construction, so a refresh
+    // may publish an honestly coarse date without editing this file, while a
+    // record named above may not become coarse without failing the tripwire.
+    const pinnedKeys = new Set([
+      ...RECORDS_AT_DAY_WHEN_PINNED,
+      ...datesCoarserThanADay.map(({ kind, id }) => `${kind}:${id}`),
+    ]);
     const notDay = dated.filter((entry) => entry.precision !== 'day');
-    expect(notDay.map(({ id, precision }) => ({ id, precision }))).toEqual(datesCoarserThanADay);
+    const coarseWhenPinned = notDay.filter((entry) => pinnedKeys.has(keyOf(entry)));
+    expect(coarseWhenPinned.map(({ kind, id, precision }) => ({ kind, id, precision })))
+      .toEqual(datesCoarserThanADay);
 
     // `unstated` is the one precision that carries no value, so it is checked
     // as the pairing rather than as a shape (ADR 0013). Both halves: an
