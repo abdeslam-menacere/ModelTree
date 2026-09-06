@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DEFAULT_TRANCHE_CREATORS,
+  UsageError,
   classifyRunway,
   formatRunwayReport,
   formatTrancheManifest,
+  parseArgs,
   rateOf,
   runwayVerdict,
 } from './asset-runway.mjs';
@@ -217,5 +219,56 @@ describe('formatTrancheManifest', () => {
 describe('defaults', () => {
   it('asks about a 3-creator tranche, the unit the budget prose already uses', () => {
     expect(DEFAULT_TRANCHE_CREATORS).toBe(3);
+  });
+});
+
+/**
+ * Argument parsing is a measurement input, so a command line that does not mean
+ * what it says has to be refused rather than guessed at. Every case below asserts
+ * BOTH that the bad form is rejected and that the good form it resembles is
+ * accepted, because a parser that refused everything would pass the first half.
+ */
+describe('parseArgs', () => {
+  it('accepts the forms the report documents', () => {
+    expect(parseArgs([])).toMatchObject({ creators: DEFAULT_TRANCHE_CREATORS, donors: null, keep: false });
+    expect(parseArgs(['--creators', '7']).creators).toBe(7);
+    expect(parseArgs(['--creators=7']).creators).toBe(7);
+    expect(parseArgs(['--donors', 'a,b']).donors).toEqual(['a', 'b']);
+    expect(parseArgs(['--donors=a, b']).donors).toEqual(['a', 'b']);
+    expect(parseArgs(['--keep']).keep).toBe(true);
+    expect(parseArgs(['--creators', '0']).creators).toBe(0);
+  });
+
+  it('refuses a fractional or trailing-garbage count instead of truncating it', () => {
+    // Number.parseInt('2.5') is 2 and Number.isInteger(2) is true, so the guard
+    // this replaced accepted a tranche size nobody typed.
+    expect(() => parseArgs(['--creators', '2.5'])).toThrow(UsageError);
+    expect(() => parseArgs(['--creators', '3abc'])).toThrow(UsageError);
+    expect(() => parseArgs(['--creators', '-1'])).toThrow(UsageError);
+    expect(parseArgs(['--creators', '3']).creators).toBe(3); // control
+  });
+
+  it('refuses a flag whose value is missing, rather than crashing on undefined', () => {
+    // `--donors` with no value used to reach `undefined.split` and exit 1 -- a
+    // crash wearing the exit code this probe documents as a finding.
+    expect(() => parseArgs(['--donors'])).toThrow(UsageError);
+    expect(() => parseArgs(['--donors', '--keep'])).toThrow(UsageError);
+    expect(() => parseArgs(['--creators'])).toThrow(UsageError);
+    expect(() => parseArgs(['--donors', ','])).toThrow(UsageError);
+    expect(parseArgs(['--donors', 'a', '--keep'])).toMatchObject({ donors: ['a'], keep: true }); // control
+  });
+
+  it('refuses a percentile outside the range it would silently clamp', () => {
+    expect(() => parseArgs(['--percentile', '150'])).toThrow(UsageError);
+    expect(parseArgs(['--percentile', '100']).percentile).toBe(100); // control
+    expect(parseArgs(['--percentile', '0']).percentile).toBe(0);
+  });
+
+  it('refuses an unknown flag rather than ignoring it', () => {
+    // A misspelled flag that parses to the default is the quietest way to
+    // measure something other than what was asked for.
+    expect(() => parseArgs(['--creator', '3'])).toThrow(UsageError);
+    expect(() => parseArgs(['--donor', 'a'])).toThrow(UsageError);
+    expect(parseArgs(['--creators', '3']).creators).toBe(3); // control
   });
 });

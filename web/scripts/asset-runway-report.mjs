@@ -48,13 +48,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { analyzeRoute, globalTotals, groupWorst } from './asset-budget.mjs';
 import { describeProvenance } from './asset-drift.mjs';
 import {
-  DEFAULT_TRANCHE_CREATORS,
+  UsageError,
   formatRunwayReport,
   formatTrancheManifest,
+  parseArgs,
   rateOf,
   runwayVerdict,
 } from './asset-runway.mjs';
-import { DATA_FILES, DEFAULT_DONOR_PERCENTILE, buildTranche } from './dataset-tranche.mjs';
+import { DATA_FILES, buildTranche } from './dataset-tranche.mjs';
 import { probeTreeProvenance } from './tree-provenance.mjs';
 
 const webRoot = fileURLToPath(new URL('..', import.meta.url));
@@ -65,30 +66,20 @@ const budgets = JSON.parse(readFileSync(join(webRoot, 'asset-budgets.json'), 'ut
 // next agent's `git status` to trip over.
 const workRoot = join(webRoot, 'node_modules/.cache/asset-runway');
 
-function parseArgs(argv) {
-  const args = {
-    creators: DEFAULT_TRANCHE_CREATORS,
-    percentile: DEFAULT_DONOR_PERCENTILE,
-    donors: null,
-    keep: false,
-  };
-  for (let i = 0; i < argv.length; i += 1) {
-    const [flag, inline] = argv[i].split('=');
-    const value = inline ?? argv[i + 1];
-    const consume = () => {
-      if (inline === undefined) i += 1;
-      return value;
-    };
-    if (flag === '--creators') args.creators = Number.parseInt(consume(), 10);
-    else if (flag === '--percentile') args.percentile = Number.parseInt(consume(), 10);
-    else if (flag === '--donors') args.donors = consume().split(',').map((s) => s.trim()).filter(Boolean);
-    else if (flag === '--keep') args.keep = true;
-    else if (flag === '--help' || flag === '-h') args.help = true;
+function parseArgsOrExit(argv) {
+  try {
+    return parseArgs(argv);
+  } catch (error) {
+    if (!(error instanceof UsageError)) throw error;
+    console.error(`asset-runway: ${error.message}`);
+    console.error('  Exit 2: the probe could not answer. Exit 1 means a figure REFUSED the tranche,');
+    console.error('  which is a measurement, so a bad command line must never borrow that code.');
+    console.error('  usage: npm run assets:runway -- [--creators N] [--percentile P] [--donors a,b,c] [--keep]');
+    process.exit(2);
   }
-  return args;
 }
 
-const args = parseArgs(process.argv.slice(2));
+const args = parseArgsOrExit(process.argv.slice(2));
 
 if (args.help) {
   console.log(
@@ -98,18 +89,16 @@ if (args.help) {
       '  --creators N    creators in the tranche being asked about (default 3; 0 runs the',
       '                  mechanism control, which requires the two arms to come out identical)',
       '  --percentile P  footprint percentile donors are drawn from (default 75)',
-      '  --donors a,b,c  name donors explicitly, to model a tranche you already know',
+      '  --donors a,b,c  name donors explicitly, to model a tranche you already know.',
+      '                  An id that names no creator is refused (exit 2), never skipped:',
+      '                  a donor that clones nothing would still consume a slot and dilute',
+      '                  the measured rate, over-stating how many creators fit.',
       '  --keep          leave both builds on disk for inspection',
       '',
       'exit 0 the tranche fits, 1 a figure refuses it, 2 the probe could not answer.',
     ].join('\n'),
   );
   process.exit(0);
-}
-
-if (!Number.isInteger(args.creators) || args.creators < 0) {
-  console.error(`asset-runway: --creators must be a non-negative integer, got ${process.argv.join(' ')}`);
-  process.exit(2);
 }
 
 function readDataset() {
@@ -233,12 +222,26 @@ function figuresFor(dist) {
 }
 
 const raw = readDataset();
-const armA = buildTranche(raw, { creators: 0 });
-const armB = buildTranche(raw, {
-  creators: args.creators,
-  donors: args.donors,
-  percentile: args.percentile,
-});
+
+// The tranche is constructed BEFORE either build, so a refusal costs no build
+// time. It is wrapped because `buildTranche` refuses a donor id that names no
+// creator: uncaught, that throw would leave node's default exit 1 -- the code
+// this probe documents as "a figure refused the tranche", which is a
+// measurement. A bad donor list is the probe declining to answer, so it is 2.
+let armA;
+let armB;
+try {
+  armA = buildTranche(raw, { creators: 0 });
+  armB = buildTranche(raw, {
+    creators: args.creators,
+    donors: args.donors,
+    percentile: args.percentile,
+  });
+} catch (error) {
+  console.error(`asset-runway: ${error.message}`);
+  console.error('  UNDETERMINED (exit 2): no tranche was built, so there is no rate and no runway.');
+  process.exit(2);
+}
 
 console.log('ROUTE RUNWAY PROBE -- two full builds, this tree, this run.');
 console.log(describeProvenance(probeTreeProvenance(webRoot)).join('\n'));

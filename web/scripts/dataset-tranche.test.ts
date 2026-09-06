@@ -118,6 +118,85 @@ describe('selectDonors', () => {
   });
 });
 
+/**
+ * A donor that clones nothing is the dangerous input, not an academic one.
+ *
+ * `buildTranche` loops `creators` times and takes `chosen[index % chosen.length]`,
+ * so a donor id that matches no organization clones ZERO records while still
+ * counting in the denominator that `rateOf` divides by. The measured rate is then
+ * diluted in proportion, `affordable` is over-stated in proportion, and because
+ * the surviving real donors still move the figures the run has `rated > 0` and
+ * exits 0. That is the over-states-runway direction this module's header calls
+ * the one that loses work: a dock told it can afford six creators when it can
+ * afford three does three creators of research that cannot land.
+ *
+ * The realistic trigger needs no typo. `organizations.json` carries `mistral-ai`,
+ * so `--donors mistral,cohere,ai2` -- the natural way to write that set, with two
+ * real ids -- silently drops a third of the intended growth.
+ */
+describe('a donor that would clone nothing', () => {
+  it('is refused, rather than diluting the rate it was supposed to contribute to', () => {
+    expect(() =>
+      buildTranche(fixture(), { creators: 3, donors: ['big', 'zz-not-a-creator', 'mid'] }),
+    ).toThrow(/zz-not-a-creator/);
+  });
+
+  it('control: a donor set that is entirely real is not refused', () => {
+    // Without this arm the check above passes just as well against a function
+    // that throws at every donor set, which would refuse every real run.
+    expect(() =>
+      buildTranche(fixture(), { creators: 3, donors: ['big', 'mid', 'small'] }),
+    ).not.toThrow();
+  });
+
+  it('names every unknown id, not only the first, so one run fixes the whole flag', () => {
+    let message = '';
+    try {
+      buildTranche(fixture(), { creators: 2, donors: ['aa-nope', 'bb-nope'] });
+    } catch (error) {
+      message = (error as Error).message;
+    }
+    expect(message).toMatch(/aa-nope/);
+    expect(message).toMatch(/bb-nope/);
+  });
+
+  it('suggests the near miss, because the realistic case is a real creator under another id', () => {
+    // `mistral` -> `mistral-ai` in the real dataset; `big-ai` -> `big` here.
+    expect(() => buildTranche(fixture(), { creators: 1, donors: ['big-ai'] })).toThrow(/big/);
+  });
+
+  it('refuses before building, so no caller can read a diluted manifest at all', () => {
+    // The dilution is only observable in a manifest that was returned. Asserting
+    // the throw is asserting that none is.
+    let manifest: any = null;
+    try {
+      ({ manifest } = buildTranche(fixture(), { creators: 3, donors: ['big', 'zz-nope', 'mid'] }));
+    } catch {
+      /* expected */
+    }
+    expect(manifest).toBeNull();
+  });
+
+  it('every clone in a manifest it did return contributed records', () => {
+    const { manifest } = buildTranche(fixture(), { creators: 4, donors: ['big', 'mid'] });
+    expect(manifest.clones).toHaveLength(4);
+    for (const clone of manifest.clones) expect(clone.records).toBeGreaterThan(0);
+  });
+
+  it('unknown and clones-nothing are the same set, which is why membership is the check', () => {
+    // The property is "contributes no records". The implementation checks
+    // membership. They coincide only because `collectOwned` always yields at
+    // least the organization record itself, so this asserts that rather than
+    // assuming it -- with the other arm alongside, or it would pass while every
+    // footprint was zero.
+    const data = fixture();
+    for (const org of data.organizations) {
+      expect(creatorFootprint(data, org.id).records).toBeGreaterThan(0);
+    }
+    expect(creatorFootprint(data, 'zz-not-a-creator').records).toBe(0);
+  });
+});
+
 describe('buildTranche', () => {
   it('adds nothing at all for zero creators, so the control arm is a true control', () => {
     const data = fixture();

@@ -46,9 +46,80 @@
  */
 
 import { CEILING_NEAR_MISS_FRACTION, classifyHeadroom, formatConsumed, headroomOf } from './asset-drift.mjs';
+import { DEFAULT_DONOR_PERCENTILE } from './dataset-tranche.mjs';
 
 /** Creators in the tranche a dock is asking about, when it does not say. */
 export const DEFAULT_TRANCHE_CREATORS = 3;
+
+/**
+ * A command line that does not mean what it says is refused, not guessed at.
+ *
+ * Every failure below exits 2, the code this probe documents as "could not
+ * answer", and never 1. Exit 1 is a FINDING -- a figure refusing the tranche --
+ * and a crash or a typo wearing that code would be read as a measurement that
+ * was taken. `Number.parseInt` is what makes that easy to get wrong: it accepts
+ * `2.5` and `3abc` and returns an integer, so an `Number.isInteger` guard
+ * downstream passes a value the user never typed. The whole-string test below
+ * rejects them instead of silently truncating.
+ */
+export class UsageError extends Error {}
+
+/**
+ * Parse the probe's argv. Pure, and exported so the refusals above are testable:
+ * a behavioural rule with no test is a rule that stops holding quietly.
+ *
+ * @param {string[]} argv
+ * @returns {{ creators: number, percentile: number, donors: string[] | null, keep: boolean, help: boolean }}
+ */
+export function parseArgs(argv) {
+  const args = {
+    creators: DEFAULT_TRANCHE_CREATORS,
+    percentile: DEFAULT_DONOR_PERCENTILE,
+    donors: /** @type {string[] | null} */ (null),
+    keep: false,
+    help: false,
+  };
+
+  for (let i = 0; i < argv.length; i += 1) {
+    const token = argv[i];
+    const eq = token.indexOf('=');
+    const flag = eq === -1 ? token : token.slice(0, eq);
+    const inline = eq === -1 ? undefined : token.slice(eq + 1);
+
+    const value = (name) => {
+      const raw = inline ?? argv[i + 1];
+      if (inline === undefined) i += 1;
+      if (raw === undefined || raw === '' || raw.startsWith('--')) {
+        throw new UsageError(`${name} needs a value`);
+      }
+      return raw;
+    };
+    const integer = (name) => {
+      const raw = value(name);
+      // Whole string, so `2.5` and `3abc` are refused rather than truncated.
+      if (!/^\d+$/.test(raw)) throw new UsageError(`${name} needs a whole number, got "${raw}"`);
+      return Number(raw);
+    };
+
+    if (flag === '--creators') args.creators = integer('--creators');
+    else if (flag === '--percentile') args.percentile = integer('--percentile');
+    else if (flag === '--donors') {
+      const list = value('--donors')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (list.length === 0) throw new UsageError('--donors needs at least one creator id');
+      args.donors = list;
+    } else if (flag === '--keep') args.keep = true;
+    else if (flag === '--help' || flag === '-h') args.help = true;
+    else throw new UsageError(`unknown flag ${flag}`);
+  }
+
+  if (args.percentile > 100) {
+    throw new UsageError(`--percentile must be between 0 and 100, got ${args.percentile}`);
+  }
+  return args;
+}
 
 const group = (value) => value.toLocaleString('en-US');
 

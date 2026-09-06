@@ -212,6 +212,50 @@ export function selectDonors(dataset, count, { percentile = DEFAULT_DONOR_PERCEN
   return ranked.slice(start, start + want).map((entry) => entry.organizationId);
 }
 
+/**
+ * A donor id that names no creator is refused, never silently skipped.
+ *
+ * This is the same rule as CLONE EVERYTHING above, enforced at the input rather
+ * than at the copy. `buildTranche` loops `creators` times and cycles through the
+ * donor list, so a donor that clones nothing still consumes a slot: the tranche
+ * grows by less than `creators` creators' worth while `rateOf` still divides the
+ * delta by `creators`. The rate comes out diluted, `affordable` comes out
+ * over-stated in proportion, and -- the part that makes it dangerous rather than
+ * merely wrong -- the surviving real donors still move the figures, so the run
+ * has `rated > 0` and exits 0. An over-statement reported as a pass is exactly
+ * the direction that loses work.
+ *
+ * Refusing is preferred to dropping the dead slots and measuring the survivors:
+ * silently measuring an N nobody asked for is the same fault one step quieter.
+ *
+ * Membership is the check, and it coincides with "contributes no records"
+ * because `collectOwned` always yields at least the organization record itself.
+ * `dataset-tranche.test.ts` asserts that coincidence rather than assuming it.
+ *
+ * @param {TrancheDataset} dataset
+ * @param {string[]} donors
+ */
+function assertDonorsExist(dataset, donors) {
+  const known = new Set(asArray(dataset.organizations).map((org) => org.id));
+  const unknown = donors.filter((id) => !known.has(id));
+  if (unknown.length === 0) return;
+
+  const described = unknown.map((id) => {
+    // The realistic failure is a real creator under a slightly different id --
+    // `mistral` for `mistral-ai` -- so a prefix match in either direction is
+    // worth more than a bare rejection.
+    const near = [...known].filter((k) => k.startsWith(id) || id.startsWith(k)).sort();
+    return near.length > 0 ? `${id} (did you mean ${near.join(' or ')}?)` : id;
+  });
+
+  throw new Error(
+    `unknown donor id(s): ${described.join(', ')}. ` +
+      'A donor that clones nothing would still consume a slot in the tranche, diluting the ' +
+      'measured rate and over-stating how many creators fit. Name creators that exist, or ' +
+      'drop --donors and let the percentile choose them.',
+  );
+}
+
 /** Every record traceable to one organization, plus its transitive source ids. */
 function collectOwned(dataset, organizationId) {
   const byCollection = {};
@@ -306,8 +350,10 @@ function tagUrl(url, tag) {
  * @param {TrancheDataset} dataset
  * @param {{ creators?: number, donors?: string[] | null, percentile?: number }} [options]
  * @returns {{ dataset: TrancheDataset, manifest: any }}
+ * @throws if a named donor matches no organization -- see `assertDonorsExist`.
  */
 export function buildTranche(dataset, { creators = 3, donors = null, percentile = DEFAULT_DONOR_PERCENTILE } = {}) {
+  if (donors && donors.length > 0) assertDonorsExist(dataset, donors);
   const chosen = donors && donors.length > 0 ? donors : selectDonors(dataset, creators, { percentile });
   /** @type {TrancheDataset} */
   const out = {};
