@@ -1989,13 +1989,15 @@ shell deletes every double quote in it before git starts. Establish where that
 loss happens rather than inferring it: pass one message to a child process that
 prints its own argument vector, and read what arrived. Measured here on
 `PSVersion 5.1.26100.9168` with `git 2.53.0.windows.4`, in throwaway
-repositories under `%TEMP%`:
+repositories under `%TEMP%`. Counts in the table are **user arguments** — the
+entries the child was handed, not counting the program name — so an unsplit
+message is one argument and not two:
 
 | message handed to `-m` | what the child received | `git commit -m` |
 |---|---|---|
 | a subject carrying 2 double quotes, 3 newlines | 1 argument, **0 quotes** | **exit 0**, stored with 0 quotes |
 | the same subject with the quotes removed | 1 argument, byte-identical | exit 0, stored byte-identical |
-| this block's own example message, 4 double quotes | **4 arguments**, split at the quotes, `argv[2]` being the bare word `somebody` | **exit 1**, `error: pathspec 'somebody' did not match any file(s) known to git` |
+| this block's own example message, 4 double quotes | **3 arguments**, split at the quotes, the second being the bare word `somebody` | **exit 1**, `error: pathspec 'somebody' did not match any file(s) known to git` |
 
 The middle row is the control, and it is what makes the first row readable: the
 same call shape with the quotes taken out preserves the message exactly, so the
