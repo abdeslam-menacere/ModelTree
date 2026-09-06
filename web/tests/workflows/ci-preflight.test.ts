@@ -456,7 +456,14 @@ describe('selection follows the change', () => {
   });
 
   it('selects the instruction checks on the instructions file itself', () => {
-    expect(selectionFor(['.github/copilot-instructions.md'])).toEqual(['instruction-references']);
+    // `skills-ci` joined this in #652. `check-shell-invocations.mjs` covers
+    // `.github/copilot-instructions.md`, so the job that runs it has to be
+    // selected by an edit to that file: a checker whose covered set is wider
+    // than the scope that triggers it never reads the difference.
+    expect(selectionFor(['.github/copilot-instructions.md'])).toEqual([
+      'instruction-references',
+      'skills-ci',
+    ]);
   });
 
   it('selects the link-health tests on a change to the source records', () => {
@@ -632,12 +639,15 @@ describe('the preflight cannot be talked into a pass', () => {
     try {
       const git = (...args: string[]) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' });
 
-      // The two gate scripts are published rather than changed, so they stand in
-      // for commands that exist without widening the diff: the change itself is
-      // the one file under .github/scripts/, which selects skills-ci alone.
+      // These three are published rather than changed, so they stand in for
+      // commands that exist without widening the diff: the change itself is the
+      // one file under .github/scripts/, which selects skills-ci alone. All four
+      // of the job's commands have to stand in, or the assertion below reads "a
+      // command could not start" as the failure it is meant to rule out.
       for (const stub of [
         '.github/skills/modeltree-gates/scripts/gates.test.mjs',
         '.github/skills/modeltree-gates/scripts/gate-dataset.mjs',
+        '.github/scripts/check-shell-invocations.mjs',
       ]) {
         const target = join(repo, stub);
         mkdirSync(dirname(target), { recursive: true });

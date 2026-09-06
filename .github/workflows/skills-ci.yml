@@ -166,6 +166,15 @@ jobs:
           # resolves — so a new document cannot be added without this decision
           # following it.
           #
+          # `.github/agents/` and `.github/copilot-instructions.md` are here for
+          # `check-shell-invocations.mjs` below, whose covered set is those two
+          # plus `.github/skills/`. A scope pattern narrower than the checker's
+          # covered set is a checker that never runs on half of what it claims to
+          # guard: the defect it exists to catch -- a shell block an agent cannot
+          # parse -- arrives by editing exactly these documents. Neither path is
+          # read by any gate step, so they widen this job by one cheap Node
+          # process and nothing else (#652).
+          #
           # A here-string rather than a pipe: `grep -q` exits on its first match,
           # which can leave the left-hand side of a pipe killed by SIGPIPE and
           # the whole pipeline non-zero under `set -o pipefail`.
@@ -182,7 +191,7 @@ jobs:
           # The three statuses are therefore separated, and anything that is not
           # a clean match-or-no-match runs the gates (#691, after #609).
           set +e
-          grep -Eq '^(\.github/skills/|\.github/scripts/|\.github/workflows/skills-ci\.yml$|web/src/data/)' <<< "$changed"
+          grep -Eq '^(\.github/skills/|\.github/scripts/|\.github/agents/|\.github/copilot-instructions\.md$|\.github/workflows/skills-ci\.yml$|web/src/data/)' <<< "$changed"
           status=$?
           set -e
 
@@ -312,6 +321,28 @@ jobs:
       - name: Refuse a hand-written test count in the skill documentation
         if: steps.scope.outputs.run == 'true'
         run: node .github/scripts/check-skill-doc-test-counts.mjs
+
+      # The `&&` class (#652, after #604 and #614). An agent-facing document that
+      # writes `cd web && npm run validate` hands its reader a *parse* error on
+      # Windows PowerShell 5.1, which discards the whole block rather than the one
+      # line -- and it is invisible to review, because the string is valid in
+      # bash, in PowerShell 7, and in every editor. #604 and #614 each fixed the
+      # class by sweeping, and a sweep does not stop the next author.
+      #
+      # This runs on `ubuntu-latest` with the rest of the job, and it is a
+      # deterministic scan rather than a real parse. That is decision 2 in the
+      # checker's own header, argued there rather than here: `pwsh` on Linux is
+      # the wrong instrument because PowerShell 7 *accepts* `&&`, and a
+      # `windows-latest` job would make the local half of this repository's
+      # pre-merge story -- `ci-preflight.mjs` -- exit 2 for every contributor not
+      # on Windows. Read that header before widening or moving this step.
+      #
+      # Like the checker above it takes no arguments, proves its own rules fire
+      # against samples the real 5.1 parser rejected before it reads a file, and
+      # treats an empty scan as an error rather than a pass.
+      - name: Refuse a shell block an agent-facing document cannot parse
+        if: steps.scope.outputs.run == 'true'
+        run: node .github/scripts/check-shell-invocations.mjs
 
       # The step that turns a skip into a *report*. Without it a pull request
       # touching no gate input would run a job with every step skipped, and the

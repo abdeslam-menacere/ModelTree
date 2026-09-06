@@ -190,7 +190,7 @@ const CHECKS = [
     job: 'skills-ci',
     trigger: {
       kind: 'in-job-scope',
-      pattern: '^(\\.github/skills/|\\.github/scripts/|\\.github/workflows/skills-ci\\.yml$|web/src/data/)',
+      pattern: '^(\\.github/skills/|\\.github/scripts/|\\.github/agents/|\\.github/copilot-instructions\\.md$|\\.github/workflows/skills-ci\\.yml$|web/src/data/)',
     },
     commands: [
       {
@@ -210,6 +210,12 @@ const CHECKS = [
         cwd: '.',
         bin: 'node',
         args: ['.github/scripts/check-skill-doc-test-counts.mjs'],
+      },
+      {
+        label: 'Refuse a shell block an agent-facing document cannot parse',
+        cwd: '.',
+        bin: 'node',
+        args: ['.github/scripts/check-shell-invocations.mjs'],
       },
     ],
     requires: [],

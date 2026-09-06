@@ -302,8 +302,7 @@ has not merged yet or the query failed — do not continue with a truncated SHA.
 ### Poll for the deploy run
 
 ```bash
-gh run list --workflow=pages.yml --commit "$MERGE_SHA" \
-  --json headSha,status,conclusion,databaseId
+gh run list --workflow=pages.yml --commit "$MERGE_SHA" --json headSha,status,conclusion,databaseId
 ```
 
 Interpret the result:
@@ -372,13 +371,10 @@ Then run both arms, in the same session, with the same command:
 
 ```bash
 # Positive arm: a commit known to have a run, known not to be the subject.
-gh run list --workflow=pages.yml --commit "$CONTROL_SHA" \
-  --json headSha,status,conclusion,databaseId
+gh run list --workflow=pages.yml --commit "$CONTROL_SHA" --json headSha,status,conclusion,databaseId
 
 # Negative arm: a full 40-character SHA that cannot name a commit.
-gh run list --workflow=pages.yml \
-  --commit 0000000000000000000000000000000000000000 \
-  --json headSha,status,conclusion,databaseId
+gh run list --workflow=pages.yml --commit 0000000000000000000000000000000000000000 --json headSha,status,conclusion,databaseId
 ```
 
 The instrument counts as verified only when the two arms **disagree**:
