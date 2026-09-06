@@ -543,12 +543,34 @@ a dock still neither gates, pushes, rebases nor merges its own work.
 
 ## Gates
 
-Gate verdicts bind to a commit SHA and go stale on any new commit. That is the
-core of the product.
+Gate verdicts bind to a commit SHA. **Two events invalidate one, they do it in
+opposite ways, and they want opposite responses.** That is the core of the
+product, and naming only the first of them — that a verdict goes stale on any
+new commit — leaves the second unstated.
+
+| the event | what it does to the verdict | the remedy |
+|---|---|---|
+| a **new commit** on the branch | makes it **false**: it judged a tree that is no longer the branch's tip | **re-run the gate** |
+| the branch **merges** | makes it **moot**: it stays true about the SHA it names, and stops being actionable, because there is nothing left to gate | **stop** |
+
+The second row is the one that goes unnoticed, because **nothing inside the
+branch changes when it merges.** A verdict can therefore go moot with no new
+commit ever made, so a rule keyed on commits never fires on it and the verdict
+reads as live indefinitely. Moot is a terminal outcome in its own right —
+neither a pass, nor a fail, nor stale — and a reader who finds one **does not
+re-gate it, does not re-dispatch it, and does not offer merged work for
+review.**
+
+Keep the two words apart. *Stale* sends the next reader back to the gate and
+*moot* sends them away from it, so collapsing them costs either a wasted gate
+cycle or a skipped one.
 
 - Gates run in order: `review` → `qa`. QA is refused until review passes.
-- If you commit after a gate passes, it goes stale and must be re-run. Working
-  as intended.
+- If you commit after a gate passes, the verdict is false and must be re-run.
+  Working as intended.
+- If the branch merges after a gate passes, the verdict is moot and the work
+  stops there. Also working as intended, and not a fault in the gate: the
+  verdict was true when it was written and stays true about the SHA it names.
 - **Do not add an override, `--skip-gates`, or `--force` that bypasses
   verification.** If a bypass is genuinely needed it belongs in branch protection,
   where it is auditable.
@@ -626,6 +648,138 @@ core of the product.
   and conclusions it was meant to reproduce independently. A verdict that then
   "confirms" the developer's figures has confirmed nothing, and it is
   indistinguishable from one that did the work.
+
+### A verdict expires, and no probe inside the worktree can catch it
+
+The rule above says what invalidates a verdict. This says **when**, and the
+answer is that the invalidating event routinely happens after the verdict is
+written and outside the worktree that wrote it.
+
+**For a dock's own branch, `NOT LANDED` expires by construction.** The
+coordinator opens the pull request only after both gates pass, and both gates
+run only after the dock reports — so the pull request that merges a dock's work
+**cannot exist** at the moment that dock measures. Four instances, measured, and
+the direction never varies: the pull request was *created* after the verdict
+every time.
+
+| issue | verdict posted | its pull request created | delay |
+|---|---|---|---|
+| abdeslam-menacere/ModelTree#861 | `2026-09-05T01:30:20Z` | abdeslam-menacere/ModelTree#912 `05:16:05Z` | **+225.8 min** |
+| abdeslam-menacere/ModelTree#950 | `2026-09-05T15:34:12Z` | abdeslam-menacere/ModelTree#966 `17:35:29Z` | **+121.3 min** |
+| abdeslam-menacere/ModelTree#943 | `2026-09-05T17:50:19Z` | abdeslam-menacere/ModelTree#978 `19:24:23Z` | **+94.1 min** |
+| abdeslam-menacere/ModelTree#941 | `2026-09-05T17:41:35Z` | abdeslam-menacere/ModelTree#973 `18:52:15Z` | **+70.7 min** |
+
+Those delays are the gate-cycle duration and nothing else. In every one of them
+a record probe returned `[]` at exit 0, and **that was the correct answer about
+the world at that moment.**
+
+**So the failure splits into two buckets that want different fixes, and
+conflating them is why the second has looked stubborn.**
+
+| bucket | what happened | does a better probe reach it? |
+|---|---|---|
+| **anchor-stale** | the merge had already happened, and the reading's ref predated it | **yes** — a re-fetch or a record probe catches it, and the procedure under **Finishing** is right for it |
+| **temporally expired** | the reading was true when taken, and was falsified afterwards | **no** — nothing available in the worktree reaches an event that has not happened yet |
+
+Prescribing probe hygiene against the second bucket only adds a call that
+returns the same answer. The decisive instance is
+abdeslam-menacere/ModelTree#943, whose dock held a trunk anchor **14 minutes
+old** when it wrote its verdict: nothing was stale, there was no later state to
+fetch, and the pull request that merged its work would not exist for another
+hour and a half. A dock with a perfectly fresh anchor still gets it wrong,
+because the fact it is asserting has not happened yet. That also rules out the
+obvious objection — that these docks measured too early and should have
+re-measured before posting — because re-measuring reaches nothing either.
+
+**The writer's fix is to change what the claim is about, not to bolt a shelf
+life onto it.** Attaching an expiry date leaves the claim a proposition about
+the world that still goes false; it merely says when, and somebody still has to
+notice — which is the same unattended-notice problem these instances are made
+of. Report instead what was actually measured: **the absence of evidence
+reachable from inside this worktree, at instant T.** That proposition was true
+when written, is true after the merge, and stays true permanently, because a
+later merge does not retroactively put evidence inside the worktree at time T.
+It is the time-domain form of the move this file makes elsewhere — prefer a
+predicate that cannot go false over a fact somebody has to keep watching.
+
+So a summary's landedness line reads like this rather than as a bare verdict:
+
+```
+As of 2026-09-05T17:50:19Z, against trunk 87c0d523 (14 minutes old): no pull
+request carrying head 315e2dd8 exists, and merge-tree exits 0 with a tree
+differing from trunk's. No evidence available in this worktree shows this
+work on trunk. This is a statement about in-dock evidence at that instant,
+not a claim that the work is unmerged now.
+```
+
+Three facts go in that clause and not one: the SHA judged, the trunk SHA the
+probe ran against, and the **instant** it ran. The anchor rule under **A claim
+about trunk carries the anchor it was measured against** already requires the
+second; what this adds is the third, and *where all three go*. A session event
+log does record an instant — a `task_complete` carries one — but it sits where
+the next reader never looks, and a report is acted on from its text. **An
+instant recorded only in a log is not recorded in the report.**
+
+The anchor is what certifies that instant rather than decorating it, because
+trunk moves fast enough here that an old one is recognisable on sight. Measured
+against `refs/remotes/origin/main` =
+`1a86cf9e8bd14443915c29a88ddd6ed04054f0e7`, reflog-dated
+2026-09-06 18:47:37 -0400: trunk took **4** first-parent moves inside the 67
+minutes spanning three of the merges above, and **47** across the day those
+reports then sat unread.
+
+**The reader is the only party who can catch the temporally-expired bucket, so
+the reader re-establishes liveness before acting.** The writer's honest wording
+stops the report from lying; it cannot make the report actionable, and only
+somebody standing outside the worktree — after the event — can see the merge at
+all. Measured over roughly one day of traffic here, five hand-offs reached the
+coordinating session **27 to 28 hours** after the merge that mooted them,
+spanning three roles — a dock, a review gate and a QA gate — across four issues.
+Three roles is what rules out a lapse by any one participant and leaves the
+ordering: every one of those reports was correct when it was written.
+
+The check is one call, keyed on the branch the verdict is about, and it needs no
+local object and no anchor:
+
+```powershell
+$raw = gh pr list --repo <owner>/<repo> --state all --head <branch> --json number,state,headRefOid,mergedAt
+$cLive = $LASTEXITCODE
+```
+
+- A record whose `mergedAt` is non-null ⇒ the verdict is **moot**. Stop: do not
+  re-gate it, do not re-dispatch it, and do not offer merged work for review.
+  Test `mergedAt` rather than `state`, for the reason key 2 records — REST
+  spells a merged pull request `closed`.
+- `[]` at exit 0 ⇒ no record under that head name, which is not a verdict on its
+  own: keys 2 and 3 under step 2 reach the two cases a name cannot, and
+  `--state all` is load-bearing there for the reason that step gives.
+- A non-zero exit ⇒ you could not look, which is not looking and finding
+  nothing. Do not act on a report whose liveness you could not establish.
+
+Control it in the same run against a **fabricated** branch name, which must come
+back `[]`, so an empty result cannot pass as "no pull request" when the
+instrument is simply broken. Both arms exit 0, so the exit code does not
+discriminate here and the payload is what carries the reading — test the raw
+text, `($raw -join '') -eq '[]'`, rather than counting parsed objects, for the
+reason **Rule 2** gives. Measured at the anchor above,
+`abdeslam-menacere-decayed-split-line-1509` returned
+abdeslam-menacere/ModelTree#970, `MERGED`, `mergedAt` `2026-09-05T18:26:46Z`,
+against `[]` for a branch name invented in the same invocation.
+
+This is the branch-keyed twin of **Rule 1** under **When a dock hands back**,
+and neither covers the other: an issue can close with nothing merged, and a
+branch can merge under an umbrella issue that stays open by design. A gate
+verdict claims something about a branch, so the branch is the key that matches
+what it claims.
+
+**None of this weakens the verdict, and one part of it must survive intact.**
+`NOT LANDED`'s second conjunct — that trunk does not already assert what the
+change adds — is what catches work **somebody else** has already done, and no
+amount of self-dating or liveness-checking reaches that case: it is a fact about
+content rather than about time. It has paid for itself, correctly returning
+`SUPERSEDED` on abdeslam-menacere/ModelTree#497 and flagging the overlap on
+abdeslam-menacere/ModelTree#941. Rewording how a verdict is *published* changes
+nothing about what step 4 must establish before that verdict is issued.
 
 ## Finishing
 
@@ -772,6 +926,18 @@ have are the ones nobody thought to write down:
 | `SUPERSEDED` | trunk already asserts what your change adds, and your branch is not what put it there | stop; report what of yours is novel, which is often nothing |
 | `NOT LANDED` | this branch is not in trunk **and** trunk does not already assert what it adds | hand off to the review gate |
 | `UNDETERMINED` | the probe could not answer | say so, in that word; **never** round it to `NOT LANDED` |
+
+**Every verdict in that table is a reading bound to an instant, and one of them
+is perishable by construction.** The whole of this procedure is about being
+accurate at the moment the reading is taken; it says nothing about how long the
+reading stays true afterwards, and for a dock's own branch `NOT LANDED` is
+guaranteed to be falsified about one gate-cycle later, because the pull request
+that merges the work is opened only after the gates that follow your report.
+Publish it as a statement about the evidence available in this worktree at that
+instant, naming the instant and the trunk SHA, exactly as **A verdict expires,
+and no probe inside the worktree can catch it** sets out under **Gates**. That
+changes how the verdict is written and nothing about how it is established:
+every step below still applies in full.
 
 `NOT LANDED` is the only verdict with two conjuncts, and that is deliberate.
 Establishing the first alone is what every one of the failures on this page has
@@ -2439,9 +2605,10 @@ trunk state that crosses a session boundary names the SHA it was measured
 against.** A claim that names its anchor cannot decay silently — a later reader
 sees at once that it was taken against a different trunk, and knows to
 re-measure rather than to doubt. This is the discipline gate verdicts already
-follow by binding to a commit SHA and going stale on any new commit, and the
-anchor is measured as you write, never recalled, exactly like the two figures
-mandated under **Finishing**.
+follow by binding to a commit SHA and being invalidated by what becomes of that
+SHA afterwards — falsified by a new commit, mooted by a merge, as **Gates** sets
+out — and the anchor is measured as you write, never recalled, exactly like the
+two figures mandated under **Finishing**.
 
 **It binds more than a verdict.** A landedness verdict, a trunk SHA quoted to
 another session, and a "trunk currently has X" statement are one kind of
