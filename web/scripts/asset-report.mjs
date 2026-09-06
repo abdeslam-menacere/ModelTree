@@ -35,6 +35,8 @@
 // gates nothing: this is a report, and the reading is advisory.
 
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   analyzeRoute,
@@ -42,9 +44,11 @@ import {
   groupWorst,
 } from './asset-budget.mjs';
 import { describeProvenance } from './asset-drift.mjs';
+import { fixedRoutesOf } from './asset-routes.mjs';
 import { probeTreeProvenance } from './tree-provenance.mjs';
 
 const webRoot = fileURLToPath(new URL('..', import.meta.url));
+const budgets = JSON.parse(readFileSync(join(webRoot, 'asset-budgets.json'), 'utf8'));
 
 function buildPinned(outDir) {
   const { BASE_URL: _dropBaseUrl, ...inheritedEnv } = process.env;
@@ -69,14 +73,12 @@ if (distArg) {
   buildPinned(dist);
 }
 
-const FIXED = [
-  ['home', 'index.html'],
-  ['catalog', 'models/index.html'],
-  ['benchmarks', 'benchmarks/index.html'],
-  ['tree', 'tree/index.html'],
-  ['compare', 'compare/index.html'],
-  ['updates', 'updates/index.html'],
-];
+// The route id -> path pairs are NOT restated here (#1030). They are read from
+// `asset-budgets.json`, which is the file the binding gate
+// (`tests/build/asset-budgets.test.ts`) already reads them from, so a seventh
+// route appears in this table by adding it there and cannot be gated while
+// silently missing from this report.
+const FIXED = fixedRoutesOf(budgets);
 const GROUPS = [
   ['passport', 'models'],
   ['providers', 'providers'],
@@ -108,7 +110,7 @@ console.log(describeProvenance(probeTreeProvenance(webRoot)).join('\n'));
 console.log('');
 
 console.log('Fixed routes:');
-for (const [id, path] of FIXED) line(id, analyzeRoute(dist, path, caches).totals);
+for (const route of FIXED) line(route.id, analyzeRoute(dist, route.path, caches).totals);
 
 console.log('\nRoute groups (worst-case page):');
 for (const [id, dir] of GROUPS) {

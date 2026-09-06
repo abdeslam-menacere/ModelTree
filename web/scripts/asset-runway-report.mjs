@@ -55,6 +55,7 @@ import {
   rateOf,
   runwayVerdict,
 } from './asset-runway.mjs';
+import { assertFiguresCover, expectedFigureLabels, fixedRoutesOf } from './asset-routes.mjs';
 import { DATA_FILES, buildTranche } from './dataset-tranche.mjs';
 import { probeTreeProvenance } from './tree-provenance.mjs';
 
@@ -180,26 +181,27 @@ function buildArm(label, dataset) {
   return dist;
 }
 
-const FIXED = [
-  ['home', 'index.html'],
-  ['catalog', 'models/index.html'],
-  ['benchmarks', 'benchmarks/index.html'],
-  ['tree', 'tree/index.html'],
-  ['compare', 'compare/index.html'],
-  ['updates', 'updates/index.html'],
-];
-
-/** Every figure that has a ceiling, read from the budget file rather than restated. */
+/**
+ * Every figure that has a ceiling, read from the budget file rather than restated.
+ *
+ * The route id -> path pairs were restated here as a literal `FIXED` array until
+ * #1030, alongside a `budgets.fixedRoutes.find(...)` that looked each restated
+ * id back up and a `if (!budget) continue;` that dropped any it could not find.
+ * A seventh route in the budget file was therefore gated by
+ * `tests/build/asset-budgets.test.ts` and silently absent from this report,
+ * whose denominator went on counting the rows it managed as though they were
+ * the rows it was asked for. Iterating the budget file directly removes both
+ * halves by construction: there is no second list to fall out of step, and
+ * nothing left to look up and fail to find.
+ */
 function figuresFor(dist) {
   const caches = { importCache: new Map(), fontCache: new Map(), sizeCache: new Map() };
   const out = new Map();
 
-  for (const [id, path] of FIXED) {
-    const budget = budgets.fixedRoutes.find((r) => r.id === id);
-    if (!budget) continue;
-    out.set(`route:${id}`, {
-      ceiling: budget.criticalMaxRaw,
-      value: analyzeRoute(dist, path, caches).totals.critical.raw,
+  for (const route of fixedRoutesOf(budgets)) {
+    out.set(`route:${route.id}`, {
+      ceiling: route.criticalMaxRaw,
+      value: analyzeRoute(dist, route.path, caches).totals.critical.raw,
     });
   }
 
@@ -266,10 +268,27 @@ try {
 const figuresA = figuresFor(distA);
 const figuresB = figuresFor(distB);
 
+// #1030: the denominator this report prints must be a count of what was asked
+// for, not of what survived. Both arms derive their labels from the same
+// `asset-budgets.json`, so a figure present in one and absent from the other is
+// the instrument moving under its own feet -- and a row silently dropped here
+// would shrink `rows`, which is what every `N figure(s)` line below counts.
+// Refused as UNDETERMINED rather than skipped: exit 1 is reserved for a figure
+// REFUSING the tranche, which is a measurement, and a dropped figure is the
+// absence of one.
+const expected = expectedFigureLabels(budgets);
+try {
+  assertFiguresCover(figuresA.keys(), expected, 'arm A (dataset as committed)');
+  assertFiguresCover(figuresB.keys(), expected, `arm B (+${args.creators} synthetic creator(s))`);
+} catch (error) {
+  console.error('');
+  console.error(`UNDETERMINED: ${error.message}`);
+  process.exit(2);
+}
+
 const rows = [];
 for (const [label, a] of figuresA) {
   const b = figuresB.get(label);
-  if (!b) continue;
   rows.push(rateOf(label, a.ceiling, a.value, b.value, args.creators));
 }
 
