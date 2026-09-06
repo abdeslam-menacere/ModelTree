@@ -1011,6 +1011,109 @@ describe('gate-dataset', () => {
       assert.throws(() => backdate('changed 1 releases.verifiedAt'), /must declare what its mutation touches/);
       assert.throws(() => backdate(undefined), /must declare what its mutation touches/);
     });
+
+    // -----------------------------------------------------------------------
+    // The degradation path, which is the one that fails quietly (#1011)
+    //
+    // `documentFootprint` emits five descriptors. Four of them are positive
+    // claims about records that moved, and every one had an arm. `replaced` is
+    // the fifth and had none, which is the wrong one to leave unpinned: it is
+    // returned from the two branches that fire when identity matching is
+    // *unavailable*, and it exists so that a mutation those branches cannot
+    // describe finely is still declared rather than degrading to silence.
+    //
+    // The asymmetry is what makes the gap worth closing. A missing arm on a
+    // positive descriptor surfaces the first time someone reads output that
+    // looks wrong. A missing arm here surfaces never: if either branch
+    // regressed to `[]` -- a plausible edit, since `[]` is what each of them
+    // returns on the equal-JSON path immediately beside it -- the harness would
+    // report no footprint for a document that genuinely changed, every
+    // declaration would still be satisfied, and nothing in the suite would go
+    // red. An undeclared mutation and a silent harness look identical.
+    //
+    // `usage-observations.json` rather than `releases.json` for both arms: it
+    // is small and nothing references its ids, so each shape trips exactly one
+    // gate and the arm stays attributable to one component -- which is the
+    // property this whole block exists to hold tests to.
+    //
+    // Each arm is paired with a test of its own branch's equal-JSON early
+    // return, called directly the way `documentsFrom` is exercised further
+    // down. That half is not reachable through a mutated copy, and the reason
+    // is structural rather than incidental: both early returns need identity
+    // matching to be unavailable, or the document to be unparseable, on the
+    // side that is *not* being written -- and `before` there is always a parsed
+    // array of uniquely identified records, because it is a copy of the live
+    // dataset. Without those pairs the arms would be satisfied just as well by
+    // a branch that returned `replaced` unconditionally, which is the other way
+    // to break the guard. They are separate tests rather than a tail on each
+    // arm so that they still run on the day the arm they defend goes red.
+    // -----------------------------------------------------------------------
+
+    test('a mutation that duplicates an id is declared, since identity matching cannot describe it', () => {
+      // `recordsById` refuses a repeated id, so the `after` side has no usable
+      // identity map and the footprint degrades to one coarse descriptor.
+      const duplicateId = (touches) => gateMutatedDataset(({ read, write }) => {
+        const observations = read('usage-observations.json');
+        observations[1].id = observations[0].id;
+        write('usage-observations.json', observations);
+      }, touches);
+
+      // Declared, so admitted -- and the gate still refuses the data.
+      assertFailed(duplicateId(['replaced usage-observations']), 'identity', 'appears more than once');
+
+      // Undeclared, so refused, and the refusal names the descriptor rather
+      // than reporting a document that changed as a document that did not.
+      assert.throws(
+        () => duplicateId([]),
+        (error) => {
+          assert.match(error.message, /never declared/);
+          assert.match(error.message, /replaced usage-observations/);
+          return true;
+        },
+      );
+    });
+
+    test('the duplicate-id branch is silent only when the document really did not change', () => {
+      // The early return the arm above leans on, in its own test rather than
+      // bolted to that arm's tail: there it would be skipped on exactly the run
+      // where the arm went red, which is the one run it has anything to say
+      // about. A guarantee only ever reached by passing runs is what this file
+      // refuses everywhere else.
+      const repeated = [{ id: 'a' }, { id: 'a' }];
+      assert.deepEqual(documentFootprint('x', repeated, [{ id: 'a' }, { id: 'a' }]), []);
+      assert.deepEqual(documentFootprint('x', repeated, [{ id: 'a' }, { id: 'b' }]), ['replaced x']);
+    });
+
+    test('a document rewritten into something other than a list of records is declared too', () => {
+      // The other branch: `after` parses, but not into an array, so there are
+      // no records to match on either side.
+      const notAList = (touches) => gateMutatedDataset(({ read, write }) => {
+        write('usage-observations.json', { entries: read('usage-observations.json') });
+      }, touches);
+
+      assertFailed(notAList(['replaced usage-observations']), 'well-formed', 'must be a JSON array');
+
+      assert.throws(
+        () => notAList([]),
+        (error) => {
+          assert.match(error.message, /never declared/);
+          assert.match(error.message, /replaced usage-observations/);
+          return true;
+        },
+      );
+    });
+
+    test('the non-array branch is silent only when the document really did not change', () => {
+      // Separated from its arm for the same reason as the one above. Both ways
+      // this branch is entered: a pair that is not a list of records...
+      const notAnArray = { entries: [] };
+      assert.deepEqual(documentFootprint('x', notAnArray, { entries: [] }), []);
+      assert.deepEqual(documentFootprint('x', notAnArray, { entries: [1] }), ['replaced x']);
+      // ...and a document that did not parse, which `write` cannot produce at
+      // all, since it renders JSON.
+      assert.deepEqual(documentFootprint('x', UNPARSEABLE, UNPARSEABLE), []);
+      assert.deepEqual(documentFootprint('x', UNPARSEABLE, []), ['replaced x']);
+    });
   });
 
   // #318 in one assertion: a record verified *today* is not the future. The
