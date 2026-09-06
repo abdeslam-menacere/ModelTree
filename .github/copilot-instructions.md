@@ -290,7 +290,10 @@ distinguish (abdeslam-menacere/ModelTree#796).
 
 Issue state and the session registry are read from live records rather than
 inferred from a local checkout, so neither inherits that problem, and neither
-goes stale the way a worktree's `refs/remotes/origin/main` does.
+goes stale the way `refs/remotes/origin/main` does. That ref is not per-worktree
+and it is not yours: this checkout holds exactly one of it, every worktree
+shares it, and it carries whatever the last fetch by any agent happened to
+leave there.
 
 ### What these two conditions do not cover
 
@@ -839,13 +842,18 @@ is not monotonic, so a check that passed earlier in your session is not still
 valid now. Ask again at the end.
 
 Ask this first for a reason that is the whole thesis of this section. **It is a
-network call, so it is immune to the frozen-anchor problem** that every other
-instrument here inherits. A dock's `refs/remotes/origin/main` is pinned near its
-merge-base and is structurally blind to anything that landed afterwards, so
-every git-based check it runs is blind in the same way — including the ones that
-pass. An issue-state query resolves against live GitHub and cannot go stale like
-that. It is also the cheapest thing you can run, which means there is no
-argument for deferring it.
+network call, so it is immune to the stale-anchor problem** that every other
+instrument here inherits. `refs/remotes/origin/main` is not a dock's own ref and
+does not sit still: this checkout holds exactly one of it, every worktree shares
+it, and it advances whenever any agent in any of them fetches. So its age when
+you read it is a fact about other sessions rather than about yours, and no
+inference from your own fetching reaches it. It only ever fast-forwards, which
+is what keeps the failure fail-safe — it is never ahead of the remote, so a
+stale reading widens a diff rather than hiding one — but behind by an unknown
+margin is not current, and every git-based check here inherits that margin,
+including the ones that pass. An issue-state query resolves against live GitHub
+and cannot go stale like that. It is also the cheapest thing you can run, which
+means there is no argument for deferring it.
 
 ### Step 1 — count your own commits before probing anything
 
@@ -874,7 +882,7 @@ question a finishing dock actually has about its own branch. A tree probe
 answers *"is this content on trunk?"*; the record answers *"was this branch
 already merged?"*, and the second is the one being asked. Ask it before any tree
 arithmetic. Like step 0 it goes to the network, so it too is free of the
-frozen-anchor problem.
+stale-anchor problem.
 
 ```powershell
 $branch = git rev-parse --abbrev-ref HEAD; $cBranch = $LASTEXITCODE
@@ -1232,9 +1240,19 @@ you do not read your own result at all.
 
 Steps 4 and 5 both compare against trunk, so both inherit whatever is wrong with
 your trunk ref. `refs/remotes/origin/main` is a local cache that moves only when
-something fetches, so inside a dock it is frozen by construction and can be
-arbitrarily old. **Establish that your anchor is current, and if you cannot,
-say so rather than answering against it.**
+something fetches — and "something" is not you. Every worktree in this checkout
+shares one ref store, so the ref advances on any agent's fetch and sits still
+for none of them: it can be seconds old, hours old or days old at the moment you
+read it, with nothing in the value to say which. **Establish how old your anchor
+is, and if you cannot, say so rather than answering against it.**
+
+Establish the sharing rather than taking it from here, because it costs two
+commands: `git rev-parse --git-common-dir` names the store every worktree draws
+on and `git rev-parse --git-dir` names the one only yours has, and the two
+differing is what makes the ref store common while the checkout is not. The
+reflog below is the other half of the same demonstration — read from a worktree
+created minutes ago it carries entries from weeks before that worktree existed,
+which no per-worktree ref could.
 
 The reason this matters is that staleness does not degrade the answer evenly —
 which way it fails depends on what trunk has done since. Trunk's *history* only
@@ -1289,6 +1307,50 @@ Where you cannot establish that, the reading is `UNDETERMINED`. And you may
 **not** conclude `NOT LANDED` from a stale anchor at all. That reading is
 `UNDETERMINED` too, and steps 0 and 2, which ask GitHub directly and
 so have no anchor to be stale, are how you resolve both.
+
+`git rev-parse` is not that check on its own. It returns which commit the anchor
+names and says nothing about when it came to name it, so a dock can publish a
+stale SHA in good faith with nothing available to catch it — which is what makes
+an anchor's age unfalsifiable rather than merely unknown. The ref's own reflog
+answers it locally, with no network call and no remote:
+
+```powershell
+$rl = git reflog show refs/remotes/origin/main --date=iso; $cRl = $LASTEXITCODE
+@($rl)[0]
+```
+
+The first entry is the write that made your current value current, and its
+timestamp is the age of your reading. Capture the status unpiped and read it
+before the output, for the reason every other probe on this page does.
+
+**Its control is three-valued, and collapsing it to two is what would make it
+useless.** A ref that has a reflog exits **0** and prints entries. A revision
+that exists but has no reflog — a raw SHA is the easiest one to hand — also
+exits **0** and prints **nothing**. A ref name that does not exist exits **128**
+and prints nothing. So the exit code separates *could not look* from *looked*,
+and the entry count separates *looked and found nothing* from *dated*; neither
+question is answerable from the other, and an empty reflog is a real state
+rather than a broken instrument. Evaluate all three in one run before you read
+your own, and re-measure the codes against your own git rather than trusting the
+numbers written here — the discrimination is three answers coming back
+different, not the particular values.
+
+An anchor you could not date is `UNDETERMINED` about its own age, and that is
+not the same as `UNDETERMINED` about landedness: a reading you cannot date can
+still be sound on other evidence. What it may not do is pass as fresh. Write
+down that the reflog did not answer, rather than implying a currency you never
+established.
+
+**This dates a reading; it does not stop the reading moving, and the two are
+different remedies for different failures.** Pinning — resolve once into a
+variable and use that variable for every command in the measurement, so no two
+steps of one sequence are anchored to different values — is the ground of
+abdeslam-menacere/ModelTree#703, stays there, and is already required of you by
+step 5 below. Pinning makes a sequence internally consistent and says nothing
+about age; dating says how old the pinned value is and nothing about
+consistency. Do both: neither substitutes for the other, and a sequence
+consistently anchored to yesterday's value is exactly as wrong as one that is
+not anchored at all.
 
 ### Step 4 — content, the only step that sees somebody else's work
 
@@ -2096,17 +2158,28 @@ into apparent news, which is harder to catch than a visibly stale report because
 nothing about it looks old. The SHA survives both, so date a claim by its anchor
 and never by when it was sent, when it arrived, or how fresh it reads.
 
+**A SHA identifies a reading; it does not date one.** Two anchors quoted a day
+apart are indistinguishable as strings, so a reader who wants to know which is
+older has to resolve both, and a reader who does not have the objects cannot
+know at all. Carry the reflog timestamp from the anchor section beside the SHA
+and the claim dates itself, which is what turns "I believe that was current"
+into a sentence somebody else can check. This binds wherever this file requires
+an anchor to be quoted, and it is stated once here rather than repeated at each
+of those places.
+
 Put the anchor in a clause beside the claim rather than in a footnote, so that
 quoting the claim carries the anchor with it:
 
 ```
 LANDED, measured against refs/remotes/origin/main = <40-hex anchor>,
+reflog-dated <timestamp of the write that made it current>,
 re-read at report time = <40-hex anchor>
 ```
 
 Where the two differ, the clause names both and says what you did about the
-difference. Where the re-check could not run, it says that, rather than leaving
-a reader to read silence as a re-check that passed.
+difference. Where the re-check could not run, or the reflog could not date the
+anchor, it says that, rather than leaving a reader to read silence as a check
+that passed.
 
 ### Your issue is closed — what happens to the branch in your hands
 
