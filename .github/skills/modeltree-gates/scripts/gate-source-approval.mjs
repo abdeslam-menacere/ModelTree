@@ -232,6 +232,30 @@ function originOf(value) {
   }
 }
 
+/**
+ * Where `cwd` sits inside its worktree, as git reports it: `''` at the top,
+ * `.github/` one directory below it, and so on.
+ *
+ * Three values on purpose. `null` is "git would not say" - a bare repository is
+ * enough to produce it - and it is deliberately not rounded into `''`, because
+ * `''` is a positive finding that this run was at the top and `null` is the
+ * absence of a finding. Collapsing them would put "I did not look" and "I looked
+ * and it was the top" behind one value, which is the shape of defect this whole
+ * change is about (#434).
+ *
+ * Not fatal, and not a refusal. A run from a subdirectory now reads the same
+ * anchor as one from the top, so there is nothing here to refuse over. This
+ * reports where the gate was standing, so a reader of the report never has to
+ * infer it from an anchor count the way #381 had to.
+ */
+function repoPrefixOf(cwd) {
+  try {
+    return git(cwd, 'rev-parse', '--show-prefix').trim();
+  } catch {
+    return null;
+  }
+}
+
 /** Every origin the committed dataset already stands behind. */
 function datasetAnchor(cwd, base) {
   let raw;
@@ -273,15 +297,30 @@ function datasetAnchor(cwd, base) {
  *
  * `urls` is unchanged by that bookkeeping. Which origins this anchor approves is
  * decided exactly as before; only the account of how wide it was got honest.
+ *
+ * The pathspec is matched with `--full-tree`, which anchors it at the top of the
+ * tree rather than at whatever directory the gate happened to be invoked from.
+ * Without it this listing was the one reading in the gate that moved with the
+ * cwd: running from a subdirectory matched nothing, and matched-nothing was
+ * reported as "there is no catalogue" rather than "I could not look properly"
+ * (#434). `--full-tree` also implies `--full-name`, which repairs the second half
+ * of the same fault - the names it lists are the ones fed straight back to
+ * `git show <base>:<file>` below, and git resolves those from the top, so
+ * cwd-relative names would have missed a second time.
  */
 function catalogAnchor(cwd, base) {
   let listing;
   try {
-    listing = git(cwd, 'ls-tree', '-r', '--name-only', base, '--', PROFILE_DIR);
-  } catch {
-    // The profiles are an additive anchor. Their absence is reported in the
-    // output rather than guessed at, and the dataset anchor still applies.
-    return { files: [], urls: [], catalogues: [], withoutCatalogue: [], unreadable: [] };
+    listing = git(cwd, 'ls-tree', '-r', '--name-only', '--full-tree', base, '--', PROFILE_DIR);
+  } catch (error) {
+    // Not the same fact as an absent catalogue, and it must not be reported as
+    // one. A tree with no profiles lists cleanly and exits 0 with no output, so
+    // reaching here means the listing did not happen at all - and a sweep that
+    // did not run has established nothing about how wide the anchor is. The
+    // dataset anchor's reads throw for exactly this class and `main` turns that
+    // into exit 2; this one used to return an empty anchor instead, which is
+    // "could not look" wearing "looked and found nothing"'s clothes (#434).
+    throw new Error(`cannot list ${PROFILE_DIR} at ${base}: ${error.message.trim()}`);
   }
 
   const files = listing.split('\n').map((line) => line.trim()).filter((line) => line.endsWith('.json'));
@@ -402,6 +441,25 @@ function main() {
     return 2;
   }
   const anchorAt = anchor.anchor.slice(0, 10);
+  const repoPrefix = repoPrefixOf(cwd);
+
+  // A narrowed anchor has to say so wherever anyone is looking. `--json` already
+  // carries `anchors.profilesUnreadable`, but that is the machine-readable half:
+  // the default output mode prints one success line about citations and would
+  // otherwise never mention that a profile was skipped, so a typo in a catalogue
+  // silently shrank the trust boundary for anybody not reading the JSON (#434).
+  //
+  // stderr, not stdout, so a consumer parsing the report off stdout is unaffected
+  // and this is emitted in both modes from one place. The verdict does not move:
+  // the skip is deliberate and stays a skip - see `profilesUnreadable` below for
+  // why refusing here would be the wrong trade.
+  if (catalog.unreadable.length > 0) {
+    process.stderr.write(
+      `gate-source-approval: ${catalog.unreadable.length} profile(s) at ${anchorAt} did not parse and `
+      + `contributed no approved origin, so the trust anchor is narrower than the `
+      + `${catalog.files.length} listed: ${[...catalog.unreadable].sort().join(', ')}\n`,
+    );
+  }
 
   const approvedOrigins = new Set();
   for (const record of baseline.values()) {
@@ -539,14 +597,20 @@ function main() {
 
   const result = {
     // Which tree this verdict is about, and the field that makes a wrong one
-    // visible. `datasetAnchor` reads `git show <base>:web/src/data/sources.json`,
-    // a path git resolves from the top of the working tree no matter which
-    // subdirectory it was run in, so a root one directory off still finds the
-    // same dataset anchor and still exits 0. Only the catalogue anchor's
-    // pathspec is cwd-relative, and an absent catalogue is a tolerated state.
-    // Until this field existed, such a run's report was indistinguishable from a
-    // correct one, and a test that wanted to pin the resolved root had to infer
-    // it from `anchors.profileCatalogues` instead of reading it (#381).
+    // visible. Both anchors now resolve their paths from the top of the tree -
+    // `datasetAnchor` through `git show <base>:web/src/data/sources.json`, which
+    // git has always resolved that way, and `catalogAnchor` through the
+    // `--full-tree` listing it gained in #434 - so a root one directory off no
+    // longer reads a different anchor. It did until then, and silently: the
+    // catalogue pathspec was cwd-relative, so the same commit gated from a
+    // subdirectory trusted fewer origins and still exited 0.
+    //
+    // That is why the field exists and why it is still worth reading. Before it,
+    // such a run's report was indistinguishable from a correct one, and a test
+    // that wanted to pin the resolved root had to infer it from
+    // `anchors.profileCatalogues` instead of reading it (#381) - an inference the
+    // #434 fix has now taken away, which is the right outcome for the gate and
+    // the reason the tests that made it were rewritten rather than deleted.
     //
     // The name is `repo`, the spelling `gate-scope.mjs` already uses, because it
     // is the same fact. `gate-dataset.mjs` reports `dataDir` and that is not an
@@ -562,6 +626,12 @@ function main() {
     // it is what makes the value a real absolute path rather than whatever
     // string arrived.
     repo: cwd,
+    // And where that root sits inside its worktree, which `repo` alone does not
+    // say: reading `/x/y/.github` as a subdirectory rather than a worktree top
+    // takes knowledge of the layout, and this states it. `''` is the top,
+    // `.github/` is one below, `null` is git declining to answer - three values,
+    // kept apart for the reason `repoPrefixOf` gives.
+    repoPrefix,
     bundle: bundlePath,
     runId: bundle.runId ?? null,
     creator: bundle.creator ?? null,
@@ -606,8 +676,8 @@ function main() {
       //
       // `profilesUnreadable` is the damaged case, and it stays a skip rather
       // than becoming a refusal. This anchor is additive: a wholly absent
-      // profile tree is already tolerated a few lines up, so one corrupt file
-      // being fatal while losing the whole tree is fine would be incoherent, and it
+      // profile tree is already tolerated, so one corrupt file being fatal while
+      // losing the whole tree is fine would be incoherent, and it
       // would hand any single unparseable profile a veto over runs that never
       // cited it. The skip also fails in the safe direction - it can only
       // withhold trust, never extend it, so it cannot approve anything it
@@ -615,6 +685,15 @@ function main() {
       // indistinguishable from a deliberate no-catalogue file is the defect
       // itself, and naming the two separately settles that without moving the
       // verdict a millimetre.
+      //
+      // That naming was only ever half a remedy, because this block is the
+      // `--json` report and the default output mode never prints it. #434
+      // finished the job by writing the same fact to stderr in both modes, and
+      // re-affirmed the decision above rather than overturning it: the skip is
+      // still a skip, the verdict still does not move, and what changed is only
+      // that a run in the default mode now says so out loud. The neighbouring
+      // decision went the other way on purpose - a listing that could not run at
+      // all throws, because that is not a narrower anchor but no reading of one.
       profileFiles: catalog.files.length,
       profileCatalogues: catalog.catalogues.length,
       profilesWithoutCatalogue: [...catalog.withoutCatalogue].sort(),

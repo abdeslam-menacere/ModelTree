@@ -240,7 +240,10 @@ if what merged is fully legible afterwards. Include:
   `anchors.profilesWithoutCatalogue` and `anchors.profilesUnreadable`) — a
   profile that configures no origins is a choice and one that will not parse is
   damage, and a narrowed anchor that nobody reported reads exactly like a full
-  one — every source cited
+  one — **the directory the gate resolved against** (`repo` with `repoPrefix`,
+  which is `""` at the top of the worktree, a path when the gate ran below it,
+  and `null` when git could not say; the anchor no longer moves with it, and the
+  field is what makes that checkable rather than assumed) — every source cited
   split into **inherited** (already in the dataset) and **proposed** (added by
   this run) with the origin each sits on, and any source the gate refused. This
   is the one part of the body that says which sources the run was *allowed* to

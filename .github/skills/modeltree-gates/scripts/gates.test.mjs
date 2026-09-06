@@ -12,7 +12,7 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, readFileSync, readdirSync, cpSync, mkdirSync, rmSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve, relative } from 'node:path';
@@ -84,14 +84,39 @@ function shiftDays(date, days) {
   return new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 }
 
+/**
+ * Run a gate and read back everything it said.
+ *
+ * `stdout` keeps the shape the whole file already asserts against: the gate's
+ * stdout on a passing run, and stdout followed by stderr on a failing one, since
+ * a refusal explains itself on stderr and every exit-2 test matches that text
+ * through this field.
+ *
+ * `stderr` is reported separately and additionally, which `execFileSync` could
+ * not do here: it throws on a non-zero exit, so the only run whose stderr was
+ * reachable was one that had already failed. A gate that narrows its own trust
+ * anchor and says so while still exiting 0 (#434) was therefore untestable - not
+ * because the diagnostic was absent, but because the harness dropped it. Reading
+ * a stream nobody could read is how a signal comes to be believed without ever
+ * being seen.
+ *
+ * `spawnSync` does not throw, so both streams survive either outcome. A process
+ * killed by a signal reports `status: null`; that is neither a pass nor a
+ * verdict, so it is raised rather than folded into a numeric code.
+ */
 function run(script, args) {
-  try {
-    const stdout = execFileSync('node', [script, ...args], { encoding: 'utf8' });
-    return { code: 0, stdout };
-  } catch (error) {
-    if (typeof error.status !== 'number') throw error;
-    return { code: error.status, stdout: `${error.stdout ?? ''}${error.stderr ?? ''}` };
+  const result = spawnSync('node', [script, ...args], { encoding: 'utf8' });
+  if (result.error) throw result.error;
+  const stdout = result.stdout ?? '';
+  const stderr = result.stderr ?? '';
+  if (typeof result.status !== 'number') {
+    throw new Error(`${script} did not exit with a status (signal: ${result.signal})\n${stderr}`);
   }
+  return {
+    code: result.status,
+    stdout: result.status === 0 ? stdout : `${stdout}${stderr}`,
+    stderr,
+  };
 }
 
 /**
@@ -5330,22 +5355,24 @@ describe('gate-source-approval', () => {
   // invoked without the flag, and the arm every test above skips, since they all
   // route through `approvalRepo` and always pass `--repo <scratch>`.
   //
-  // The exit code alone cannot carry this claim, and neither can the dataset
-  // anchor. A `repoRoot()` landing one directory short resolves to `.github`,
-  // which exists and sits inside the same git repository -- and `datasetAnchor`
-  // reads `git show <base>:web/src/data/sources.json`, whose path git resolves
-  // from the top of the working tree no matter which subdirectory git was run
-  // in. So a wrong-but-inside-the-repo root still finds the same sources.
+  // What this can and cannot pin has narrowed, and saying so is the honest thing
+  // rather than leaving a message that overstates it. The catalogue count used to
+  // discriminate *by directory*: `catalogAnchor` passed `tools/updater/profiles`
+  // as a cwd-relative pathspec, so a fallback landing one directory short on
+  // `.github` matched nothing and read no catalogue. #434 removed that, because
+  // reporting "matched nothing" as "there is no catalogue" was the defect and not
+  // the feature -- the listing is `--full-tree` now and reads the same anchor
+  // from anywhere inside the worktree.
   //
-  // The profile catalogue is what separates them: `catalogAnchor` passes
-  // `tools/updater/profiles` as a **pathspec**, which git resolves relative to
-  // the directory it was run in. From the real root the catalogue is found; from
-  // `.github` it matches nothing and is silently treated as absent, since an
-  // absent catalogue is a tolerated state rather than an error. Asserting that
-  // the catalogued origin was picked up therefore pins the resolved root itself.
-  //
-  // Neither origin appears in any real dataset, so this cannot pass by having
-  // read some other repository either.
+  // So the count no longer separates a root from a directory inside it, and this
+  // test no longer claims it does. What it still proves is worth keeping and is
+  // why it was rewritten rather than deleted: that the fallback arm resolves to a
+  // gateable root at all, that `catalogAnchor` was reached and read a catalogue
+  // there, and -- through `approvedOrigins` -- that the tree it read was *this*
+  // repository. Neither origin appears in any real dataset, so a run that had
+  // resolved to some other tree could not produce them. The directory question
+  // the count used to answer is now answered directly by `repo` and `repoPrefix`,
+  // in the two tests below.
   test('with no --repo at all the approval gate falls back to the repository its own file sits in', () => {
     const good = { id: 'good-source', url: 'https://good.example/a', title: 'G', type: 'official-announcement', publisherId: 'p', lastCheckedDate: TODAY };
     const result = fallbackRepo(GATE_SOURCE_APPROVAL, ({ dir, commit, publish }) => {
@@ -5367,7 +5394,7 @@ describe('gate-source-approval', () => {
     assert.equal(
       report.anchors.profileCatalogues,
       1,
-      `the fallback must resolve to the root the catalogue is read from, not to a directory inside it:\n${result.stdout}`,
+      `the fallback must resolve somewhere inside the worktree holding the catalogue, and must actually read it:\n${result.stdout}`,
     );
     // Sorted by the gate, so this is the whole set and not a subset.
     assert.deepEqual(
@@ -5379,18 +5406,25 @@ describe('gate-source-approval', () => {
   });
 
   // The identity field this block previously had to infer (#381). `--repo`
-  // selects the root, and until now nothing in the report said which root that
-  // was -- the test above pins it through `anchors.profileCatalogues`, a count,
-  // precisely because there was no field naming the thing it cares about.
+  // selects the root, and until that field existed nothing in the report said
+  // which root that was -- the test above pinned it through
+  // `anchors.profileCatalogues`, a count, precisely because there was no field
+  // naming the thing it cares about.
   //
   // The wrong root here is a real directory *inside the same git repository*,
-  // which is the failure mode rather than an invented one. `datasetAnchor` reads
-  // `git show <base>:web/src/data/sources.json`, a path git resolves from the
-  // top of the working tree no matter which subdirectory it ran in, so the wrong
-  // root finds the same dataset anchor. Both runs below exit 0 and both report
-  // `passed: true`; measured on the same fixture, the reports differ in exactly
-  // two fields, and one of them is an incidental count. Only `repo` answers
-  // "which tree was this verdict about".
+  // which is the failure mode rather than an invented one. Both anchors resolve
+  // their paths from the top of the tree, so the wrong root finds the same
+  // dataset anchor and -- since #434 -- the same catalogue anchor too. Both runs
+  // below exit 0, both report `passed: true`, and both now report the *same*
+  // anchors. That is the fix working: the trust boundary no longer depends on
+  // which directory the gate was invoked from.
+  //
+  // Which leaves `repo` and `repoPrefix` as the only things that separate them,
+  // and that is the point of this test rather than a weakening of it. The two
+  // legs here used to read `1` and `0` catalogues, and that difference was the
+  // defect wearing the costume of an assertion: a green suite pinning the exact
+  // behaviour #434 was filed about. Equality is now the claim, and the two
+  // identity fields carry the discrimination the count used to.
   test('the approval report names the root it resolved against, so a wrong root is visible in it', () => {
     const bundle = {
       runId: 'r1',
@@ -5448,10 +5482,46 @@ describe('gate-source-approval', () => {
     // The verdict cannot separate them, which is why the field is needed.
     assert.equal(rightReport.passed, true);
     assert.equal(wrongReport.passed, true);
-    // And the two really did read different trees: only the right root's
-    // catalogue pathspec matched.
-    assert.equal(rightReport.anchors.profileCatalogues, 1, 'the right root reads its catalogue');
-    assert.equal(wrongReport.anchors.profileCatalogues, 0, 'the wrong root silently reads none');
+
+    // And neither can the anchor any more, which is #434's whole outcome. These
+    // two legs read 1 and 0 before that fix; asserting equality here is what
+    // stops the old behaviour being reintroduced without a test going red.
+    assert.equal(
+      rightReport.anchors.profileCatalogues,
+      wrongReport.anchors.profileCatalogues,
+      'the same commit must yield the same catalogue anchor from either directory',
+    );
+    assert.deepEqual(
+      rightReport.anchors.approvedOrigins,
+      wrongReport.anchors.approvedOrigins,
+      'and therefore the same trust boundary',
+    );
+
+    // The control that keeps the equality above from being vacuous: a catalogue
+    // was genuinely read, from both. Two runs that both read nothing would also
+    // be equal, and before #344 this function returned an empty set in every
+    // test in the file -- so equality alone cannot tell "both read the same
+    // catalogue" from "neither reached the catalogue at all".
+    assert.equal(rightReport.anchors.profileCatalogues, 1, 'and the anchor they agree on is a read one');
+    assert.ok(
+      rightReport.anchors.approvedOrigins.includes(CATALOGUED),
+      `the catalogued origin must be in the anchor, or nothing here exercised catalogAnchor:\n${right.stdout}`,
+    );
+    assert.ok(
+      wrongReport.anchors.approvedOrigins.includes(CATALOGUED),
+      `and from the subdirectory too, which is the fix:\n${wrong.stdout}`,
+    );
+
+    // The discrimination the count used to carry, now carried by the two fields
+    // that mean it. Without this the equality legs above would pass just as well
+    // on one run read twice.
+    assert.equal(rightReport.repoPrefix, '', 'the right root is the top of its worktree');
+    assert.equal(wrongReport.repoPrefix, '.github/', 'and the wrong one says where inside it stood');
+    assert.notEqual(
+      rightReport.repoPrefix,
+      wrongReport.repoPrefix,
+      'two runs from two directories must not report the same prefix',
+    );
 
     const wobblyReport = JSON.parse(wobbly.stdout);
     assert.equal(wobblyReport.repo, resolve(root), 'the report must name the resolved root');
@@ -5465,10 +5535,10 @@ describe('gate-source-approval', () => {
   // report `null` here and every test above would still pass.
   //
   // The fixture is the one directly above this block, on purpose: that test
-  // proves the fallback landed on the right root by way of the catalogue count,
-  // and this one asserts the same fact directly, which is what #381 makes
-  // possible. Both are kept -- the count is a separate claim, and #344 is open
-  // on how it is computed.
+  // proves the fallback landed on a root whose catalogue it could read, and this
+  // one asserts the resolved root directly, which is what #381 makes possible.
+  // Both are kept -- the count is a separate claim about what was actually read,
+  // and the two answer different questions.
   test('with no --repo at all the approval report names the fallback root it used', () => {
     const good = { id: 'good-source', url: 'https://good.example/a', title: 'G', type: 'official-announcement', publisherId: 'p', lastCheckedDate: TODAY };
     const result = fallbackRepo(GATE_SOURCE_APPROVAL, ({ dir, commit, publish }) => {
@@ -5494,6 +5564,120 @@ describe('gate-source-approval', () => {
       `the report must name the fallback root the gate resolved for itself:\n${result.stdout}`,
     );
     assert.equal(report.anchors.profileCatalogues, 1, 'and that root must be the tree actually read');
+  });
+
+  // #434, case 1. The catalogue pathspec used to be the one reading in this gate
+  // that moved with the working directory, and the way it moved was silent: from
+  // a subdirectory `tools/updater/profiles` matched nothing, and matched-nothing
+  // was reported as `profileCatalogues: 0` -- "there is no catalogue" -- rather
+  // than "I could not look properly". Two runs over one commit could disagree
+  // about what the repository was allowed to trust, and both exit 0.
+  //
+  // Which direction that fails matters and is not escalated here. A narrower
+  // anchor trusts *fewer* origins, so the harm is a spurious refusal and never a
+  // spurious approval: the second arm below is the demonstration, and it is a
+  // correctness-and-diagnosability defect rather than a hole in the boundary.
+  //
+  // Both arms run the same bundle over the same commit, so anything they disagree
+  // about is attributable to the directory alone.
+  test('the catalogue anchor is the same from any directory inside the worktree', () => {
+    const bundle = {
+      runId: 'r1',
+      creator: 'someone',
+      policy: 'pilot',
+      claims: [claim({ evidence: [evidence(ANCHORED.id, ANCHORED.url)] })],
+    };
+    let top = null;
+    let below = null;
+    let refusedFromTop = null;
+    let refusedFromBelow = null;
+
+    approvalRepo(({ dir, writeSources, commit, publish }) => {
+      writeSources([ANCHORED]);
+      writeCatalogue(dir, `${CATALOGUED}/newsroom`);
+      commit('the reviewed dataset and its catalogue');
+      publish();
+      mkdirSync(join(dir, '.github'), { recursive: true });
+
+      const path = join(dir, 'inside.json');
+      writeFileSync(path, JSON.stringify(bundle, null, 2));
+      const at = (repo) => run(GATE_SOURCE_APPROVAL, ['--claims', path, '--repo', repo, '--json']);
+      top = at(dir);
+      below = at(join(dir, '.github'));
+
+      // The same two directories, now asked something only the catalogue can
+      // answer: a source proposed on the catalogued origin. This is what the
+      // silent narrowing actually cost -- before the fix this arm exited 1 from
+      // the subdirectory and 0 from the top, on one commit.
+      const onCatalogued = join(dir, 'catalogued.json');
+      writeFileSync(onCatalogued, JSON.stringify({
+        runId: 'r1',
+        creator: 'someone',
+        policy: 'pilot',
+        claims: [
+          claim({ evidence: [evidence(ANCHORED.id, ANCHORED.url)] }),
+          addSource('fresh', `${CATALOGUED}/new`),
+        ],
+      }, null, 2));
+      const onCataloguedAt = (repo) => run(GATE_SOURCE_APPROVAL, ['--claims', onCatalogued, '--repo', repo, '--json']);
+      refusedFromTop = onCataloguedAt(dir);
+      refusedFromBelow = onCataloguedAt(join(dir, '.github'));
+    }, bundle);
+
+    assert.equal(top.code, 0, `the top of the worktree must be gateable:\n${top.stdout}`);
+    assert.equal(below.code, 0, `and so must a directory inside it:\n${below.stdout}`);
+    const topReport = JSON.parse(top.stdout);
+    const belowReport = JSON.parse(below.stdout);
+
+    // The control that the two arms are genuinely two invocations from two
+    // places, and not one run whose output was read twice. Without it every
+    // equality below would hold just as well against a fixture that never moved.
+    assert.notEqual(topReport.repo, belowReport.repo, 'the two arms must have resolved different roots');
+    assert.equal(topReport.repoPrefix, '', 'the first arm stood at the top of the worktree');
+    assert.equal(belowReport.repoPrefix, '.github/', 'the second stood one directory inside it');
+
+    // The claim itself.
+    assert.equal(
+      topReport.anchors.profileFiles,
+      belowReport.anchors.profileFiles,
+      `the listing must not depend on the directory it was run from:\n${below.stdout}`,
+    );
+    assert.equal(
+      topReport.anchors.profileCatalogues,
+      belowReport.anchors.profileCatalogues,
+      `nor must the catalogues actually read:\n${below.stdout}`,
+    );
+    assert.deepEqual(
+      topReport.anchors.approvedOrigins,
+      belowReport.anchors.approvedOrigins,
+      `nor, therefore, the trust boundary:\n${below.stdout}`,
+    );
+
+    // And the control that the agreement is not agreement on nothing. Before
+    // #344's tests, `catalogAnchor` returned an empty set in every case in this
+    // file and could have been deleted without the suite noticing; two arms both
+    // reading zero would satisfy every equality above. This is the leg that says
+    // the function was exercised, and it is asserted from *both* directories
+    // because only one of them used to be able to satisfy it.
+    assert.equal(topReport.anchors.profileCatalogues, 1, 'a catalogue was read from the top');
+    assert.equal(belowReport.anchors.profileCatalogues, 1, 'and the same one from inside');
+    assert.ok(
+      topReport.anchors.approvedOrigins.includes(CATALOGUED),
+      `the catalogued origin must reach the anchor from the top:\n${top.stdout}`,
+    );
+    assert.ok(
+      belowReport.anchors.approvedOrigins.includes(CATALOGUED),
+      `and from the subdirectory, which is the whole of the fix:\n${below.stdout}`,
+    );
+
+    // The consequence, stated as a verdict rather than as a count: the same
+    // bundle over the same commit is judged the same way from either directory.
+    assert.equal(
+      refusedFromTop.code,
+      refusedFromBelow.code,
+      `one commit must not be judged two ways by directory:\n${refusedFromBelow.stdout}`,
+    );
+    assert.equal(refusedFromTop.code, 0, `and the judgement must be the catalogue's:\n${refusedFromTop.stdout}`);
   });
 
   test('a repository with no published main cannot be gated', () => {
@@ -5563,17 +5747,46 @@ describe('gate-source-approval', () => {
   //              and since #344 that is a recorded decision rather than an
   //              oversight: the `catch` in `catalogAnchor` skips it because this
   //              anchor is additive, so a skip can only withhold trust and never
-  //              extend it. What has changed is that it is no longer swallowed
-  //              with nobody told -- the file is named in
-  //              `anchors.profilesUnreadable`, so a typo that narrows the trust
-  //              boundary is legible in the report instead of silent. The
-  //              reporting is covered, by the second of the two #344 tests at
-  //              the end of this block. **Refusing is still not covered**,
-  //              because it is still not done; that remains open on #312, and
-  //              the two tests directly below do not cover it either.
+  //              extend it. #434 re-argued that decision and came to the same
+  //              answer, so refusing is still not covered because it is still not
+  //              done -- and the record of that is this comment and the tests it
+  //              points at, not an open issue. It used to point at #312, which
+  //              had closed: a live gap recorded only against a closed issue is
+  //              a gap nobody is going to find, which is half of what #434 was
+  //              filed about.
+  //
+  //              What #434 did change is the reach of the telling. #344 named the
+  //              file in `anchors.profilesUnreadable`, but that is the `--json`
+  //              report, and the default output mode printed one success line
+  //              that never mentioned it -- so a typo still narrowed the trust
+  //              boundary silently for anyone not parsing JSON. The gate now also
+  //              writes the fact to stderr, in both modes. Both halves are
+  //              covered: the JSON half by the second of the two #344 tests at
+  //              the end of this block, the stderr half by the #434 test beside
+  //              it, which carries its own negative control because a diagnostic
+  //              only ever seen to fire is indistinguishable from one that cannot
+  //              stay quiet.
+  //
+  //              The neighbouring decision went the other way, and deliberately.
+  //              A listing that could not run at all is not a narrower anchor but
+  //              no reading of one, so `catalogAnchor` throws there and `main`
+  //              turns that into exit 2, as the dataset anchor already did. That
+  //              path has **no test**, and saying so is the point: no fixture
+  //              makes `git ls-tree` fail once `rev-parse`, `merge-base` and
+  //              `git show` have all succeeded against the same repository and
+  //              base -- a tree with no profiles lists cleanly at exit 0, which
+  //              is the ordinary state and not a failure.
   //   stale   -- present, but not at the anchor: only in the working tree, or
   //              committed by this branch after it left published history. The
   //              second test below. This is the cell that fails open.
+  //
+  // One more thing this block does not cover, added by #434 so the omission is
+  // not rediscovered: **which directory the gate ran from**. The catalogue
+  // pathspec was cwd-relative, so a run from a subdirectory read no catalogue and
+  // reported that as "there is no catalogue" -- the `absent` row above, reached
+  // by a route that had nothing to do with the tree's contents. The listing is
+  // `--full-tree` now, and the test that pins it is beside the `repo` field
+  // tests, where the fixture for two roots already lives.
   // -------------------------------------------------------------------------
 
   /** A source on an origin the dataset anchor stands behind, so it is not the one under test. */
@@ -5819,6 +6032,100 @@ describe('gate-source-approval', () => {
       report.anchors.approvedOrigins,
       [CATALOGUED, 'https://good.example'],
       `the skipped profiles must not change the trust boundary:\n${result.stdout}`,
+    );
+  });
+
+  // #434, case 2. #344 named the unreadable profile, and named it in the
+  // `--json` report only. The default output mode prints one success line, and
+  // that line said nothing at all -- so for anyone not parsing JSON off stdout
+  // the `catch` was still the silent narrowing it had always been. A trust
+  // boundary that moves without telling anybody is the defect, whichever mode
+  // the operator happened to run in.
+  //
+  // The severity is not escalated by fixing it. Skipping a profile removes
+  // origins from the anchor, so what it produces is a refusal of something that
+  // should have been approved, never an approval of something that should not
+  // have been -- which is why the remedy is a diagnostic and the verdict below
+  // is asserted unchanged rather than moved to a refusal.
+  //
+  // Both arms are here, in one test, on purpose. A diagnostic only ever observed
+  // to fire cannot be told apart from one that cannot stay quiet.
+  test('an unparseable profile is reported on stderr in the default output mode', () => {
+    // `approvalRepo` always appends `--json`, and this test is precisely about
+    // the mode where it is absent, so the runs are taken from inside the build
+    // callback where the flags are ours. The outer run it performs is harmless
+    // and doubles as a check that the fixture is gateable at all.
+    const gateWith = (profiles) => {
+      const arms = {};
+      approvalRepo(
+        ({ dir, writeSources, commit, publish }) => {
+          writeSources([ANCHORED]);
+          profiles(dir);
+          commit('the reviewed dataset and its profiles');
+          publish();
+          const path = join(dir, 'mixed.json');
+          writeFileSync(path, JSON.stringify(MIXED_BUNDLE, null, 2));
+          arms.plain = run(GATE_SOURCE_APPROVAL, ['--claims', path, '--repo', dir]);
+          arms.json = run(GATE_SOURCE_APPROVAL, ['--claims', path, '--repo', dir, '--json']);
+        },
+        MIXED_BUNDLE,
+      );
+      return arms;
+    };
+
+    // The subject: a damaged profile at the anchor.
+    const damaged = gateWith(mixedProfiles);
+
+    // The negative control, differing in exactly one thing: the same fixture
+    // with the damaged profile left out. Same bundle, same dataset, same
+    // catalogue, same mode.
+    const intact = gateWith((dir) => {
+      mixedProfiles(dir);
+      rmSync(join(dir, 'tools', 'updater', 'profiles', 'broken.json'));
+    });
+
+    assert.equal(damaged.plain.code, 0, `an unparseable profile does not fail the gate:\n${damaged.plain.stdout}`);
+    assert.equal(intact.plain.code, 0, `and neither does its absence:\n${intact.plain.stdout}`);
+
+    assert.match(
+      damaged.plain.stderr,
+      /tools\/updater\/profiles\/broken\.json/,
+      `the narrowed anchor must name the file that narrowed it:\n${damaged.plain.stderr}`,
+    );
+    assert.doesNotMatch(
+      intact.plain.stderr,
+      /broken\.json/,
+      `and must not fire when nothing is damaged:\n${intact.plain.stderr}`,
+    );
+    assert.notEqual(
+      damaged.plain.stderr,
+      intact.plain.stderr,
+      'a diagnostic that reads the same either way has not discriminated anything',
+    );
+
+    // stdout carries the verdict and must not be disturbed by the diagnostic:
+    // a machine consumer parsing this stream is the reason the message is on
+    // stderr rather than beside the success line.
+    assert.doesNotMatch(
+      damaged.plain.stdout,
+      /broken\.json/,
+      `the verdict stream stays a verdict:\n${damaged.plain.stdout}`,
+    );
+
+    // And the same holds in `--json` mode, where corrupting stdout would break
+    // every consumer rather than merely confuse one.
+    assert.equal(damaged.json.code, 0, `the json mode agrees on the verdict:\n${damaged.json.stdout}`);
+    assert.match(
+      damaged.json.stderr,
+      /tools\/updater\/profiles\/broken\.json/,
+      `the diagnostic is not a default-mode consolation prize:\n${damaged.json.stderr}`,
+    );
+    const report = JSON.parse(damaged.json.stdout);
+    assert.equal(report.passed, true, 'the verdict has not moved');
+    assert.deepEqual(
+      report.anchors.profilesUnreadable,
+      ['tools/updater/profiles/broken.json'],
+      'and the report still says it too, so the two channels agree',
     );
   });
 
