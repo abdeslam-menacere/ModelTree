@@ -780,7 +780,7 @@
       "eleutherai-pythia-repository",
       "eleutherai-pythia-12b-model-card"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-06"
   },
   {
     "id": "lg-ai-research-exaone-3-5",
@@ -927,7 +927,7 @@
     "sourceIds": [
       "bytedance-seed-oss-36b-instruct-model-card"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-06"
   },
   {
     "id": "stability-ai-stable-diffusion-3-5",
@@ -1003,7 +1003,7 @@
       "apple-openelm-license",
       "hugging-face-openelm-3b-instruct-hub-record"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-06"
   },
   {
     "id": "hugging-face-smollm3",
@@ -1095,7 +1095,7 @@
       "sarvam-ai-sarvam-m-blog",
       "hugging-face-sarvam-m-hub-record"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-06"
   },
   {
     "id": "naver-hyperclova-x-seed",
@@ -1131,7 +1131,7 @@
       "aleph-alpha-pharia-1-llm-announcement",
       "aleph-alpha-pharia-1-llm-7b-control-model-card"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-06"
   },
   {
     "id": "reka-flash",
@@ -1335,7 +1335,7 @@
       "kyutai-moshiko-pytorch-bf16-model-card",
       "hugging-face-kyutai-moshiko-pytorch-bf16-hub-record"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-06"
   },
   {
     "id": "lelapa-ai-inkubalm",
@@ -1354,7 +1354,7 @@
       "lelapa-ai-inkubalm-0-4b-model-card",
       "hugging-face-lelapa-inkubalm-0-4b-hub-record"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-06"
   },
   {
     "id": "maritaca-ai-sabia",
@@ -1374,7 +1374,7 @@
       "hugging-face-maritaca-ai-sabia-7b-hub-record",
       "maritaca-ai-about"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-06"
   },
   {
     "id": "openbmb-minicpm5",
