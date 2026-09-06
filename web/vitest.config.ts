@@ -262,8 +262,9 @@ import { defineConfig } from 'vitest/config';
 // is the worst: before this issue its "runs `--root .` and `--root=.` for real"
 // case fired the two real `astro check` passes at once via `Promise.all` (a
 // third, cheap, `runScript` refuses before spawning astro), each pass being a
-// full astro/vite/tsc run. It now serialises those two passes (see that file);
-// this bound addresses the cross-file amplification that remains.
+// full astro/vite/tsc run. That case now runs one real pass per test case, each
+// under its own budget (#893 serialised the pair, #925 split it -- see that
+// file); this bound addresses the cross-file amplification that remains.
 // `tests/workflows/ci-preflight.test.ts`, `tests/build/asset-budgets.test.ts`,
 // `scripts/run-tests.test.ts` and `scripts/asset-drift.test.ts` do the same kind
 // of thing. These carry their own large per-test budgets (120 s, 180 s, 300 s)
@@ -340,11 +341,11 @@ import { defineConfig } from 'vitest/config';
 // vitest cannot see, a single spawned `astro check` is starved regardless of how
 // few vitest workers there are -- the target test still overran its budget under
 // heavy external load. That residual is covered by the larger,
-// separately-justified per-test budget in `scripts/run-check.test.ts` and by
-// serialising that test's two astro passes, not by this bound. #763 reached the
-// same conclusion from the other direction (its run D capped the pool and did not
-// close the timeout failures), which is why capping alone was never going to be
-// the whole answer and is not offered as one here.
+// separately-justified per-test budgets in `scripts/run-check.test.ts`, each of
+// which bounds a single astro pass since #925, not by this bound. #763 reached
+// the same conclusion from the other direction (its run D capped the pool and did
+// not close the timeout failures), which is why capping alone was never going to
+// be the whole answer and is not offered as one here.
 const CI_RUNNER_PARALLELISM = 3;
 const maxForks = Math.max(1, Math.min(availableParallelism(), CI_RUNNER_PARALLELISM));
 
