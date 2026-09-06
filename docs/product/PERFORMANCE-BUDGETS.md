@@ -494,6 +494,125 @@ measures the merged tree without checking anything out — to the asset budgets
 would let a dock measure the merged page weight without touching its branch. That
 is a genuine follow-up and is deliberately not done in #832.
 
+## Runway: how many creators fit before a ceiling reddens
+
+Both readings above answer *where am I now*. Neither answers the question a data
+tranche has to ask **before** the research starts: *how much can I add?* That
+question needs a rate, and a rate needs two points.
+
+The drift guard cannot supply one, and says so in its own `drift-note`: it
+measures **staleness of a record** and resets to ~0% on every re-record, so it
+reads green all the way to the wall. The headroom report supplies spare bytes but
+no rate, so it can say `home` is closest to its ceiling and still not say how
+many creators that is.
+
+Neither can the file's history. `measuredRaw` is a **record of a past
+measurement**, not a measurement of the current tree — it moves only when
+somebody re-records it, so its history across commits is a sawtooth of re-record
+events rather than a growth curve. Mining it yields whoever's re-record size and
+cadence. `catalog` read byte-identical across a real three-creator tranche and
+then jumped +11,926 on a later re-record that released accumulated invisible
+drift (measured on this repository's history and recorded in #1018). And in that
+file **"did not grow" and "was not measured" are byte-identical**, so an
+un-re-recorded route reads exactly like a stable one.
+
+This matters because a data tranche is the one change class that **cannot trim**:
+the records *are* the change. ADR 0010's stopping rule is trim first and raise a
+ceiling only when trimming cannot close the gap, so a route that cannot take the
+tranche has to be found before the sources are read — not after `npm run
+validate` refuses a day of completed primary-source research.
+
+### The instrument: `npm run assets:runway`
+
+Run from `web/`. It builds the site **twice**: arm A on the dataset exactly as
+committed, arm B on the same tree plus a synthetic tranche of N cloned creators.
+The difference divided by N is a growth rate per creator, measured in that run on
+that commit. Spare bytes divided by that rate is a runway in creators.
+
+```
+npm run assets:runway                       # default 3-creator tranche
+npm run assets:runway -- --creators 6       # can I afford six?
+npm run assets:runway -- --donors meta,ibm  # model a tranche you already know
+npm run assets:runway -- --creators 0       # mechanism control, see below
+```
+
+Exit **0** the tranche fits, **1** a figure refuses it, **2** the probe could not
+answer. Exit 2 is never a pass, the convention the gate scripts under
+`.github/skills/modeltree-gates/` already hold to.
+
+Measured on the dataset as of `d5907b3bdc` — this branch's merge-base, and the
+last commit before the instrument existed — with the default 3-creator tranche
+(donors `deepseek`, `ibm`, `minimax`; 46 records added). The instrument's own
+commits change no data, so a run at this branch's tip reproduces these figures
+byte for byte; a run on a later trunk will not, and that is the point of naming
+the anchor rather than the date.
+
+| figure | spare | B/creator | creators |
+| --- | ---: | ---: | ---: |
+| `compare` | 34,759 | 8,574 | **4** |
+| `catalog` | 30,530 | 4,726 | 6 |
+| `home` | 44,244 | 6,681 | 6 |
+| `benchmarks` | 28,233 | 3,320 | 8 |
+| `tree` | 197,389 | 6,163 | 32 |
+| `providers` group | 66,869 | 880 | 75 |
+
+Seven further figures — the four globals, both `passport` figures and
+`updates` — measured **flat**: built twice, moved zero bytes. That is a
+measurement and not a gap, and it is exactly the claim `asset-budgets.json`
+cannot make about itself.
+
+Two things in that table are new information rather than a restatement:
+
+1. **`compare` binds first, not `home`.** The headroom report ranks `home`
+   closest to its ceiling by fraction used, and `home` is *not* the figure that
+   runs out first. A figure can sit further from its ceiling and still run out
+   sooner because it grows faster, and ranking by proximity alone reports the
+   faster one as the safer one.
+2. **`catalog` has a measured rate for the first time.** It has less absolute
+   spare than `home` and had never been measured, which in a file where unmoved
+   and unmeasured are byte-identical is indistinguishable from stability.
+
+### Why it builds instead of reading, and what stops it lying
+
+Both arms are built through **identical machinery** — a throwaway Vite
+`resolveId` overlay that redirects `src/data/*.json`, applied to the unchanged
+arm as well as the tranche arm. Nothing in the working tree is written or
+restored, so a crashed run cannot leave a mutated dataset behind for the next
+agent. The synthetic creators are deep clones of real ones with every id and
+uniqueness-constrained field suffixed; `validateDataset` runs at import during
+every build, so a clone that broke a constraint fails the build rather than
+passing quietly.
+
+The probe runs two controls, and they are in opposite directions:
+
+- **The arms must be able to differ.** If *no* figure moves between arms, the
+  overlay did not take, and two identical builds report as a wall of zeroes
+  indistinguishable from a real pass. That is instrument failure, exit 2 — never
+  a green result.
+- **The arms must agree when they should.** `--creators 0` builds both arms from
+  identical data and requires every figure to come out identical. Measured at
+  `d5907b3bdc`: 13 figures compared, 13 identical, 0 moved. That proves
+  reproducibility only, which is why the first control exists separately.
+
+A rate is only as representative as the creator it came from, and this dataset's
+creators run from 6 records to 59 (44 creators, median 11, mean 14.8). So donors
+are drawn from the **p75 footprint percentile by default** — deliberately above
+the median, because a rate from a below-typical creator under-states growth,
+which over-states runway, which is the error that costs a dock its research. The
+report names its donors and their footprints on every run, because a rate whose
+unit is unstated is not checkable.
+
+### What it permits: nothing
+
+It raises no ceiling, widens no allowance, moves no recorded figure and adds no
+recorded figure to rot. It is **not** wired into `npm run validate` or `npm run
+build` — it costs two full builds (~2 minutes), and the required CI check's step
+list is pinned by `tests/workflows/web-ci.test.ts` to exactly `npm run build`.
+The `[near ceiling]` flag from the headroom report is carried onto each row so it
+finally decides something rather than only printing: the creators column says how
+many creators that flag is worth. A refusal is a reading taken at the one moment
+acting on it is still cheap.
+
 ## What is reported, not gated: lab metrics
 
 Measured by `npm run lab` (`web/scripts/lab-metrics.mjs`), which drives the
