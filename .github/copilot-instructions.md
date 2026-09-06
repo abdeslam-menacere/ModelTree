@@ -302,11 +302,209 @@ to a different check:
 |---|---|
 | the issue was already closed at dispatch | condition 1 |
 | a dock already existed for it, live or archived | condition 2 |
-| it closes during the dock's life | the same question asked again at hand-off, under **Finishing** |
+| it closes during the dock's life | the dock asks again at hand-off, under **Finishing** — and, because that window stays open after the dock has stopped, the coordinator asks again at act time, under **When a dock hands back** |
 
-The third row is why the question is asked twice rather than once. A dispatch
-cleared by both conditions above is still a dispatch whose issue can close while
-the work is in progress.
+The third row is why the question is asked three times rather than once: at
+dispatch by the conditions above, at hand-off by the dock, and at act time by
+the coordinator. A dispatch cleared by both conditions above is still a dispatch
+whose issue can close while the work is in progress — and the last of those
+three windows opens *after* the dock has written its final sentence, so the
+party that can still run a check then is the reader and not the writer.
+
+## When a dock hands back
+
+The two conditions above are the coordinator's dispatch-time half. This is its
+act-time half, and it sits beside them rather than after **Finishing** because
+both halves belong to the same reader. **Finishing** is the *dock's* procedure,
+and the process that runs it has stopped by the time anything in this section
+applies.
+
+**A hand-off is read at a different moment from the one it was written at, and
+that gap is where the acting decision goes wrong.** Ten docks posted a
+landedness claim that was correct when written and false by the time it was
+read. Each row is the last comment asserting `NOT LANDED` before the merge that
+falsified it; the windows are differences between UTC instants, so they are
+timezone-invariant. Re-measured 2026-09-05 against trunk
+`82582b6c0956bda1aef2b9a6ea39f6f57436c833` — all ten pull requests `MERGED`, all
+ten issues `CLOSED` with `stateReason` `COMPLETED`:
+
+| issue | closing pull request | merged (UTC) | claim → merge |
+|---|---|---|---|
+| abdeslam-menacere/ModelTree#879 | abdeslam-menacere/ModelTree#891 | 2026-09-04T19:35:06Z | **21 min** |
+| abdeslam-menacere/ModelTree#906 | abdeslam-menacere/ModelTree#915 | 2026-09-05T06:20:27Z | 57 min |
+| abdeslam-menacere/ModelTree#709 | abdeslam-menacere/ModelTree#919 | 2026-09-05T07:56:24Z | 72 min |
+| abdeslam-menacere/ModelTree#951 | abdeslam-menacere/ModelTree#963 | 2026-09-05T17:31:12Z | 114 min |
+| abdeslam-menacere/ModelTree#907 | abdeslam-menacere/ModelTree#929 | 2026-09-05T11:28:09Z | 117 min |
+| abdeslam-menacere/ModelTree#820 | abdeslam-menacere/ModelTree#921 | 2026-09-05T09:02:31Z | 118 min |
+| abdeslam-menacere/ModelTree#903 | abdeslam-menacere/ModelTree#916 | 2026-09-05T07:28:50Z | 122 min |
+| abdeslam-menacere/ModelTree#779 | abdeslam-menacere/ModelTree#932 | 2026-09-05T11:46:25Z | 130 min |
+| abdeslam-menacere/ModelTree#866 | abdeslam-menacere/ModelTree#914 | 2026-09-05T05:33:04Z | 226 min |
+| abdeslam-menacere/ModelTree#861 | abdeslam-menacere/ModelTree#912 | 2026-09-05T05:18:47Z | **228 min** |
+
+Ten of ten, median about 118 minutes. **These were not sloppy docks.**
+abdeslam-menacere/ModelTree#866 and abdeslam-menacere/ModelTree#709 ran
+two-sided controls on every instrument in a six-step probe, and
+abdeslam-menacere/ModelTree#879 measured its branch twice and re-reported after
+remediating a gate failure. The rigour was real, and it is not what failed.
+
+### Three things can be stale, and only two are the writer's to catch
+
+| # | what is stale | can the writer assert it away? |
+|---|---|---|
+| 1 | the **anchor** — `refs/remotes/origin/main` is hours old | yes, by re-reading the remote before measuring: the trunk-anchor section under **Finishing** |
+| 2 | the **subject** — the tip advanced past the SHA reported | yes, by measuring `git rev-parse HEAD` as you write rather than recalling it, which **Finishing** mandates; asserting it against `refs/heads/<branch>` is a further check that section does not require |
+| 3 | the claim's standing against **events that postdate the write** | **no** |
+
+Classes 1 and 2 are writer-side and already covered, which is why they are named
+here as pointers rather than restated. Class 3 is reachable by nothing the
+writer can run, and its instance is exact: the
+abdeslam-menacere/ModelTree#879 dock posted a hand-off asserting `NOT LANDED` at
+2026-09-04T17:44:08Z, correctly — its own record shows the row-2 check was run
+at that moment and returned true — its gates then ran and QA returned `pass` at
+19:13:57Z; and abdeslam-menacere/ModelTree#891 merged at 19:35:06Z, twenty-one
+minutes after that last pre-merge sentence. No probe available when any of those
+sentences was written could have reached the event that falsified them. A
+writer-side assertion that passes is not evidence about a class it cannot see.
+
+**"Fetch before probing" is not the remedy here, and that is measured rather
+than argued.** The natural diagnosis of this family is a stale anchor, which is
+class 1 and already covered; it was tried against these instances and does not
+fit. The abdeslam-menacere/ModelTree#880 dock committed at 2026-09-04T16:24:39Z,
+inside a window in which trunk was static for seven minutes and fifty-three
+seconds — `f72a7b28` landed at 16:21:44Z and trunk's next first-parent move,
+`def74474`, at 16:29:37Z. That dock's anchor was genuinely current and its
+`NOT LANDED` was correct. What falsified it was
+abdeslam-menacere/ModelTree#888, created at 18:40:14Z, whose head commit is that
+dock's own tip. Measuring each dock's tip against the creation of the pull
+request that carried it, abdeslam-menacere/ModelTree#893 was opened 1h52m36s
+after the commit it carries, abdeslam-menacere/ModelTree#895 2h18m29s, and
+abdeslam-menacere/ModelTree#888 2h15m35s. No freshness on the writer's side
+reaches a pull request that will not exist for another two hours.
+
+The symmetry, in one line, because this file already carries the other half:
+
+> A remembered SHA under-reports work; an unstamped verdict over-reports its
+> own shelf life. Same class, opposite end.
+
+**Finishing** mandates measuring `git rev-parse HEAD` as you write for the sake
+of the first half — a SHA recalled from mid-session names a commit you have
+since built on, so it under-reports your own work, which is the
+abdeslam-menacere/ModelTree#584 case. Class 3 is that same defect read from the
+other end: the verdict was true when written, and nothing in it says how long it
+stays true. The first is repairable at write time; the second is not, which is
+what the two rules below are for.
+
+So do not answer class 3 with another assertion for the writer. **The reader
+re-reads, at the moment of acting** — keyed on the issue or the branch ref, and
+never on a SHA quoted in the hand-off, because a quoted SHA is the very thing
+whose currency is in question. **A claim about trunk carries the anchor it was
+measured against** makes a claim self-dating, which lets a reader *see* that it
+is old; only the re-read says what is true now. The two are complementary, and
+neither substitutes for the other.
+
+### Rule 1 — re-read the disposition, immediately before acting
+
+One network call, and it would have caught all ten rows above:
+
+```powershell
+gh issue view <n> --repo <owner>/<repo> --json state,stateReason,closedByPullRequestsReferences
+$cAct = $LASTEXITCODE
+```
+
+- `CLOSED` ⇒ the hand-off's verdict is superseded whatever it said. Do not open
+  a gate on it and do not publish. `closedByPullRequestsReferences` names what
+  closed it and needs no branch name, so unlike a `--head` query it survives a
+  branch rename. Then tell the dock, so the branch in its hands is disposed of
+  under **Your issue is closed — what happens to the branch in your hands**
+  rather than abandoned.
+- `OPEN` ⇒ the absence of a reason to stop, and not a finding that the claim
+  still holds. An umbrella issue stays open by design while the things inside it
+  finish one at a time, so this pairs with the hand-off's own evidence rather
+  than replacing it.
+- `gh` failing, unauthenticated or offline ⇒ `UNDETERMINED`. Read the exit code:
+  a call that failed prints nothing, and nothing is not `OPEN`. Do not act on a
+  hand-off you could not re-read.
+
+Control it in both directions in the same run, the way condition 1 above is
+controlled and for the same reason.
+
+**Reach for the record and the issue, not for the trees.** Both are facts about
+the subject's disposition, whereas every git probe is an inference from the
+observer's checkout, and a stale remote-tracking ref cannot defeat a network
+read. Re-measured 2026-09-05 against the trunk anchor above: of 454 local
+branches, 364 — 80.2% — are the head branch of a merged pull request by name,
+from a single `gh pr list` call returning 387 merged pull requests. The
+instrument answered both ways in that one run, which is what makes either answer
+readable, and it discriminates at the level of a single branch: this dock's own
+branch missed while a branch known to have merged hit. The other 90 are the ones
+the record correctly says *nothing* about, and they are where the **Finishing**
+procedure applies. The record narrows the hard problem; it does not abolish it.
+
+### Rule 2 — a dock's report is not one object
+
+Enumerate the hand-offs and read the last, rather than sampling one:
+
+```powershell
+$c = gh api "repos/<owner>/<repo>/issues/<n>/comments" --paginate | ConvertFrom-Json
+$cCmt = $LASTEXITCODE
+@($c).Count
+```
+
+`@(...)` is right, and so is the assignment above it — but not for the reason
+the scalar/array polymorphism row in step 4 gives. That row describes a
+`Where-Object` filter matching exactly one record, and `ConvertFrom-Json` does
+not behave that way: measured on `PSVersion 5.1.26100.9168`, a JSON array parses
+to `System.Object[]` at every arity, its bare `.Count` reading 0, 1 and 2. What
+bites here is collapsing those two lines into one. `ConvertFrom-Json` emits the
+whole array as a single pipeline item, so the inline form counts that one item
+and returns **1** for an empty, a one-comment and a two-comment issue alike — a
+constant wearing the shape of a measurement, and it read 1 against this file's
+own issue where the assigned form read 5. Assign, then count, and re-measure
+both against your own `$PSVersionTable.PSVersion` rather than trusting these
+figures.
+
+Several hand-offs on one issue is the norm here rather than an edge case.
+Counting the comments that are not gate-agent posts — those open `### Drydock` —
+on 2026-09-05:
+
+| issue | comments | gate posts | hand-offs | a later hand-off corrects an earlier one |
+|---|---|---|---|---|
+| abdeslam-menacere/ModelTree#877 | 10 | 7 | 3 | yes |
+| abdeslam-menacere/ModelTree#879 | 15 | 9 | 6 | yes |
+| abdeslam-menacere/ModelTree#850 | 10 | 3 | 7 | yes |
+
+The middle row is the instance that motivates the rule. The
+abdeslam-menacere/ModelTree#879 dock posted its first hand-off at
+2026-09-04T16:06:13Z and its second 98 minutes later at 17:44:08Z, the second
+superseding the first after a review-gate failure, with four more following once
+its gates had passed. The coordinator read the first, characterised the run from
+it, and filed a correct dock against the wrong defect — a fact about **which
+comment was sampled**, reported as a fact about **what the dock reported**,
+when the data needed to avoid it was already inside the response being read.
+That filing was withdrawn.
+
+A count is a negative result when it comes back as one, so control it against an
+issue you have independently established carries several hand-offs. An
+enumeration that returns one comment about everything cannot be told apart from
+a subject that posted one.
+
+### What the re-read costs
+
+The table above is a defect log, and a defect log on its own cannot answer the
+first question anyone asks of a remedy. abdeslam-menacere/ModelTree#820 supplies
+the other arm. Its dock posted a hand-off asserting `NOT LANDED` at
+2026-09-05T07:04:48Z; abdeslam-menacere/ModelTree#921 merged at 09:02:31Z,
+falsifying it across the 118 minutes the table above records; the coordinator
+re-read and told the dock; and by 11:12:50Z the dock had verified, stood down,
+and re-homed onto abdeslam-menacere/ModelTree#807 a finding that would otherwise
+have died with its worktree. Against failure windows measured in hours, the
+re-read costs one call by the reader and minutes by the dock. **Record the
+successes beside the failures**, or this log can only ever argue that the defect
+is real and never that the fix is affordable.
+
+None of this moves the gate. Acting on a hand-off still means opening the pull
+request only once review and QA have both passed against the current commit, and
+a dock still neither gates, pushes, rebases nor merges its own work.
 
 ## Working in a dock
 
