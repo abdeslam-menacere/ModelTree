@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { dataset as seedDataset } from '../data/dataset';
-import type { Dataset } from '../data/schema';
+import type { Dataset, SourceReference } from '../data/schema';
 import { validateDataset } from '../data/validate';
 import {
   buildCoverageStats,
   buildReleasePulse,
+  comparePulseSources,
   latestChangeLabel,
   PULSE_MAX_ITEMS,
   PULSE_WINDOW_MONTHS,
@@ -633,5 +634,206 @@ describe('release pulse against the real dataset', () => {
       expect(seedDataset.releaseEvents.some((event) => event.id === item.id)).toBe(true);
       expect(latestDay(item.date) >= start).toBe(true);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Source selection. `sourceIds` order carries no meaning, so permuting it is a
+// semantically null edit and must never move a pulse link. These range over the
+// real events, and each states the size of the population it ranged over --
+// a permutation test over an empty or single-source population passes
+// trivially and forever, which is the failure these guards exist to prevent.
+// ---------------------------------------------------------------------------
+
+/** Every ordering of `items`. Event source arrays are tiny, so this is exhaustive. */
+function permutations<T>(items: readonly T[]): T[][] {
+  if (items.length <= 1) return [[...items]];
+  return items.flatMap((item, index) =>
+    permutations([...items.slice(0, index), ...items.slice(index + 1)]).map((rest) => [
+      item,
+      ...rest,
+    ]),
+  );
+}
+
+/**
+ * The order this module shipped before the tie fix: declared type and nothing
+ * else. Used only as a control, to show these assertions can see a non-total
+ * order rather than passing against anything handed to them.
+ */
+function typeOnlyOrder(a: SourceReference, b: SourceReference): number {
+  const priority = [
+    'official-announcement',
+    'official-docs',
+    'model-card',
+    'repository',
+    'benchmark-owner',
+    'independent-evaluation',
+  ];
+  const rank = (source: SourceReference) => {
+    const index = priority.indexOf(source.type);
+    return index === -1 ? priority.length : index;
+  };
+  return rank(a) - rank(b);
+}
+
+describe('release pulse source selection is a total order', () => {
+  const sourceById = new Map(seedDataset.sources.map((source) => [source.id, source]));
+  const citedByEvent = seedDataset.releaseEvents.map((event) => ({
+    id: event.id,
+    sources: event.sourceIds
+      .map((sourceId) => sourceById.get(sourceId))
+      .filter((source): source is SourceReference => source !== undefined),
+  }));
+  const multiSource = citedByEvent.filter((event) => event.sources.length > 1);
+
+  it('ranges over a real multi-source population, not over nothing', () => {
+    // The denominator for every assertion below, derived from the seed rather
+    // than pinned so it moves with the data instead of reddening `main` on the
+    // next refresh. It can still fail, and is the assertion that fails first if
+    // the population it guards ever empties out.
+    expect(seedDataset.releaseEvents.length).toBeGreaterThan(0);
+    expect(multiSource.length).toBeGreaterThan(0);
+    // No event may cite an id the dataset cannot resolve, or the population
+    // above would be silently smaller than the events suggest.
+    for (const event of citedByEvent) {
+      expect(event.sources.length).toBe(
+        seedDataset.releaseEvents.find(({ id }) => id === event.id)!.sourceIds.length,
+      );
+    }
+  });
+
+  it('never lets two distinct candidates compare equal', () => {
+    const cited = [...new Map(citedByEvent.flatMap(({ sources }) => sources.map((s) => [s.id, s])))]
+      .map(([, source]) => source);
+    expect(cited.length).toBeGreaterThan(1);
+
+    let pairs = 0;
+    for (const a of cited) {
+      // A comparator that returned 0 for everything would pass the pair check
+      // below vacuously; a source must still compare equal to itself.
+      expect(comparePulseSources(a, a)).toBe(0);
+      for (const b of cited) {
+        if (a.id === b.id) continue;
+        pairs += 1;
+        expect(comparePulseSources(a, b)).not.toBe(0);
+        // Antisymmetric, so the order is a real one and not just non-zero.
+        expect(Math.sign(comparePulseSources(a, b))).toBe(-Math.sign(comparePulseSources(b, a)));
+      }
+    }
+    expect(pairs).toBe(cited.length * (cited.length - 1));
+
+    // CONTROL. The same population under the type-only order this module used
+    // to ship does contain a pair comparing equal, so the assertion above is a
+    // finding about the comparator and not a property of any two sources.
+    const tiedUnderTypeOnly = cited.some((a) =>
+      cited.some((b) => a.id !== b.id && typeOnlyOrder(a, b) === 0),
+    );
+    expect(tiedUnderTypeOnly).toBe(true);
+  });
+
+  it('orders every real event’s sources identically under every permutation of sourceIds', () => {
+    let permuted = 0;
+    for (const event of multiSource) {
+      const orderings = permutations(event.sources).map((candidates) =>
+        candidates.slice().sort(comparePulseSources).map((source) => source.id),
+      );
+      expect(orderings.length).toBeGreaterThan(1);
+      permuted += 1;
+      for (const ordering of orderings) expect(ordering).toEqual(orderings[0]);
+    }
+    // The loop covered the whole multi-source population, so a `pass` here
+    // cannot mean it quietly skipped every event.
+    expect(permuted).toBe(multiSource.length);
+  });
+
+  it('links the same source however each event’s sourceIds are ordered', () => {
+    // A window wide enough and a cap high enough that every recorded event is
+    // carried, so the invariance is checked over all of them and not just the
+    // handful the homepage strip happens to show.
+    const options = {
+      base: BASE,
+      now: '2026-08-28',
+      windowMonths: 12_000,
+      maxItems: seedDataset.releaseEvents.length,
+    };
+    const linkById = (data: Dataset) =>
+      Object.fromEntries(
+        buildReleasePulse(data, options).items.map((item) => [item.id, item.source.url]),
+      );
+
+    const shipped = linkById(seedDataset);
+    expect(Object.keys(shipped)).toHaveLength(seedDataset.releaseEvents.length);
+
+    for (const permute of [
+      (ids: readonly string[]) => [...ids].reverse(),
+      (ids: readonly string[]) => [...ids].sort(),
+      (ids: readonly string[]) => [...ids].sort().reverse(),
+      (ids: readonly string[]) => [...ids.slice(1), ...ids.slice(0, 1)],
+    ]) {
+      const reordered: Dataset = {
+        ...seedDataset,
+        releaseEvents: seedDataset.releaseEvents.map((event) => ({
+          ...event,
+          sourceIds: permute(event.sourceIds),
+        })),
+      };
+      // CONTROL that the permutation is not a no-op on this data: at least one
+      // event's array really did change, or the comparison below is vacuous.
+      expect(
+        reordered.releaseEvents.some((event, index) =>
+          event.sourceIds.some((id, slot) => id !== seedDataset.releaseEvents[index].sourceIds[slot]),
+        ),
+      ).toBe(true);
+      expect(linkById(reordered)).toEqual(shipped);
+    }
+  });
+
+  it('breaks a same-type tie by source id, not by position in sourceIds', () => {
+    // The real data carries no tie at the winning rank today, so the defect is
+    // latent there. This states it directly: two sources the type order ranks
+    // equally, cited in both orders by two events.
+    const sources = [
+      {
+        id: 'src-official',
+        url: 'https://example.com/announcement',
+        title: 'Official announcement',
+        type: 'official-announcement',
+        publisherId: 'pub',
+        lastCheckedDate: '2026-08-28',
+      },
+      {
+        id: 'src-docs-a',
+        url: 'https://example.com/docs-a',
+        title: 'Docs A',
+        type: 'official-docs',
+        publisherId: 'pub',
+        lastCheckedDate: '2026-08-28',
+      },
+      {
+        id: 'src-docs-b',
+        url: 'https://example.com/docs-b',
+        title: 'Docs B',
+        type: 'official-docs',
+        publisherId: 'pub',
+        lastCheckedDate: '2026-08-28',
+      },
+    ];
+    const data = makeDataset({
+      sources,
+      releaseEvents: [
+        event('forward', '2026-06-01', 'day', { sourceIds: ['src-docs-a', 'src-docs-b'] }),
+        event('reversed', '2026-06-02', 'day', { sourceIds: ['src-docs-b', 'src-docs-a'] }),
+      ],
+    });
+
+    const byId = Object.fromEntries(
+      buildReleasePulse(data, { base: BASE, now: '2026-08-28', windowMonths: 18 }).items.map(
+        (item) => [item.id, item.source],
+      ),
+    );
+
+    expect(byId.forward).toEqual(byId.reversed);
+    expect(byId.forward).toEqual({ title: 'Docs A', url: 'https://example.com/docs-a' });
   });
 });
