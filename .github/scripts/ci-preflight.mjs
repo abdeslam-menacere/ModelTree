@@ -217,6 +217,12 @@ const CHECKS = [
         bin: 'node',
         args: ['.github/scripts/check-shell-invocations.mjs'],
       },
+      {
+        label: 'Pin the shell guard fence model',
+        cwd: '.',
+        bin: 'node',
+        args: ['--test', '.github/scripts/check-shell-invocations.test.mjs'],
+      },
     ],
     requires: [],
   },
