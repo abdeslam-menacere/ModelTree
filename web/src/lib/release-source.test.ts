@@ -43,10 +43,21 @@ import {
  * all: two runs researched one, passed every data gate, and stopped here
  * (#935, #986). What is pinned instead is the side that does not grow.
  *
- * Regenerating either list is a deliberate act, not routine maintenance. Both
- * describe releases that already exist, so a change to one means an existing
- * release's sourcing changed -- which is worth a human reading, and is exactly
- * why it costs an edit to a file a refresh cannot reach.
+ * Regenerating either list is a deliberate act, not routine maintenance. What
+ * forces a regeneration differs between them, and the two are not symmetric --
+ * do not read a red on one the way you would read a red on the other.
+ *
+ * `ORDER_DEPENDENT_AT_PIN` is read as a subset: the assertion names only the
+ * pinned ids that STOPPED being order-dependent, so a release added after the
+ * pin cannot move it. A red there really does mean an existing release's
+ * sourcing changed. Measured: a new order-dependent release takes the derived
+ * count 33 -> 34 and leaves this file green.
+ *
+ * `CITING_ONE_SOURCE_AT_PIN` is read as an exact equality, so it reddens on a
+ * NEW release citing one source as well. Measured: adding one reddens the
+ * CONTROL block below with zero existing records modified. Both causes are
+ * worth a human reading, which is why it costs an edit to a file a refresh
+ * cannot reach -- but they call for different fixes, set out at that block.
  */
 const ORDER_DEPENDENT_AT_PIN: readonly string[] = [
   'openai-gpt-5-6-sol',
@@ -91,8 +102,20 @@ const ORDER_DEPENDENT_AT_PIN: readonly string[] = [
  * A release usually needs one source for its specifications and another for
  * its date, so citing one is the unusual shape -- 10 of 120 when pinned -- and
  * it is the quantity that does NOT move when a normally-sourced release is
- * added. Pinning it anchors the population size exactly, without pinning the
- * population.
+ * added. Measured: adding one takes the corpus 120 -> 121 and the multi-source
+ * set 110 -> 111, with this list unmoved at 10.
+ *
+ * What pinning it anchors is that ten-member exception set, exactly. It does
+ * NOT anchor the size of the multi-source population, which it cannot see.
+ * The inference that it does is tempting and false: the identity
+ * `multi-source = corpus - exceptions` has two unknowns, and pinning the
+ * exceptions fixes only one of them. Nothing here fixes the other -- no
+ * assertion in this file reads `dataset.releases.length`, or the corpus size
+ * in any other form. So the same ten-id list is consistent with a corpus of
+ * 120 and with a corpus of 121, which is exactly what the measurement above
+ * shows. Shrinkage of the multi-source population is caught in
+ * `web/src/data/validate.test.ts`, not here; the CONTROL block below says why
+ * that cross-file dependency must survive.
  */
 const CITING_ONE_SOURCE_AT_PIN: readonly string[] = [
   'openai-gpt-5',
@@ -233,9 +256,16 @@ describe('release source selection is permutation-invariant', () => {
     // exception set -- not the population size, which it cannot see. Measured:
     // a half-load that keeps every pinned id and drops the other 77 of 120
     // releases leaves this assertion green, because it drops only multi-source
-    // records and all ten of these cite one. A red here means a release gained
+    // records and all ten of these cite one. A red here has two causes, not
+    // one, and they need opposite responses. Either an existing release gained
     // or lost sources -- read the population and fix the sourcing, or move the
-    // id in or out with a note.
+    // id in or out with a note -- or a NEW release citing exactly one source
+    // was added, which reddens this equality with no existing record touched
+    // at all. Measured: adding one such release reddens the assertion below
+    // with zero existing records modified. In that second case nothing
+    // existing is broken and there is nothing to restore; source the new
+    // release properly, with two or more, which is the shape the guard is
+    // asking for.
     //
     // The equality is again the half the pin cannot state. It is **not**
     // strictly stronger than the `toBe(110)` it replaces, and the two do not
