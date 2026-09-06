@@ -56,6 +56,33 @@ one refused, and fail rather than passing over a gap.
 
 Formatting, naming bikesheds, or anything a linter should catch. If you find yourself commenting on style, stop — you are wasting the gate.
 
+## Measuring a guard in a worktree you may be sharing
+
+You prove a guard catches something by mutating a file, running the guard, reading the exit code, and restoring. Do that in a worktree another gate is also working in, and the two of you destroy each other's readings without either transcript recording it. This is about **one worktree with two gates in it**. Gates running at the same time in *different* worktrees do not interact at all: nothing here asks you to wait for another gate, and nothing here serialises gating.
+
+**Whole-file restore is the mechanism, and it is why a check at the start of your run does not cover this.** `git checkout -- <path>` does not undo *your* edit; it restores *the file*. A restore either of you issues therefore reverts whatever is in that file at that moment, including a mutation the other gate made seconds ago and is about to measure — with no error, no output, and nothing recorded anywhere. A worktree that was clean when you started acquires a neighbour thirty seconds later, mid-arm, which is exactly what happened in abdeslam-menacere/ModelTree#1056: the reviewer watched the other gate's probe files appear *during* its run. Do not weaken this back to a start-of-run cleanliness check. That check catches a gate that arrives second and is blind to one that arrives while you are measuring.
+
+**Three of the four interleavings are loud, and the quiet one is why this is mandatory.** If your mutation is reverted before you read, the guard exits 0 and you conclude it does not fire. If your clean arm reads a tree the other gate has dirtied, it exits 1 and you conclude a clean tree reddens. Both make you complain about a change that is fine, and both cost a cycle. The fourth does the damage: your own mutation is already gone, the other gate's mutation is present, your red arm exits 1, and you read that as *your* mutation firing the guard. A red arm is the only evidence you have that a guard catches anything, so a red arm that passed for a reason you did not create certifies a guard that catches nothing — and unlike the three loud orderings, nothing downstream ever revisits a passed arm. **A false FAIL costs a cycle; a false PASS ships a broken guard.**
+
+**So verify per arm, immediately before you read that arm's exit code** — not once per run, and not afterwards. Snapshot straight after making the mutation; verify straight before reading:
+
+```sh
+node .github/scripts/gate-arm-guard.mjs snapshot --out <file> --mutated <path>
+node .github/scripts/gate-arm-guard.mjs verify --baseline <file>
+```
+
+`--mutated` is repeatable, and an arm that mutates nothing is a clean arm: omit it and verify that arm the same way. The second loud ordering lands on exactly that arm, so it is not exempt. Write the snapshot outside the worktree.
+
+Read the guard's exit code before you read the arm's:
+
+- **0** — the difference between the worktree and `HEAD` is still exactly the mutation you declared, byte for byte, and nothing else appeared, vanished or changed. The arm's exit code is a real reading. Score it.
+- **1** — residue, or your own mutation was reverted or overwritten in place. The arm is **VOID**.
+- **2** — the guard could not answer. The arm is **VOID** for the same reason: a check that did not run is not a check that passed.
+
+**A void arm is a third outcome and must not collapse into either of the other two.** Do not score it as a pass. Do not score it as a fail. Do not average it into a verdict, and do not carry it forward as though a later arm covered it. Report the paths the guard named and say which arm they voided, restore a clean tree, and re-measure. If you cannot get a clean reading at all, say so and fail: a guard you could not measure is not a guard you measured and found sound.
+
+There is no override. The guard has no flag that suppresses a finding, refuses arguments it does not recognise rather than ignoring them, and takes its paths from `git` rather than from you, so it cannot be pointed at a narrower tree. Nothing here is waivable, by you or by whoever scheduled you.
+
 ## Comment protocol
 
 Use these verbatim headings for GitHub issue comments:
