@@ -340,6 +340,22 @@ describe('the script run as a process', () => {
     // run alone, this file costs what it costs inside the suite on a quiet box,
     // so the other ~125 files are not the term that matters. The machine is.
     //
+    // Split into a case each and re-run under the same 8-hog load that produced
+    // that RED, same machine, same `npm run test`:
+    //
+    //   14 node procs (8 hogs), 100% CPU          88170 ms   green  `--root .`
+    //                                             108299 ms  green  `--root=.`
+    //
+    // 2.04x and 1.66x under the cap, where the pair was killed at 1.00x. The two
+    // sum to 196469 ms, which is *more* than the 180022 ms the single case was
+    // stopped at -- 180022 is censored data, and a censored figure can never
+    // size the budget that censored it. (Both hogged runs exit 1 overall on
+    // `Failed to start forks worker` for a handful of jsdom files, which is the
+    // admission failure `vitest.config.ts` records under "what this deliberately
+    // does not fix" and `verify-test-coverage.mjs` catches. It is a property of
+    // running eight non-yielding hogs against eight cores, not of this file:
+    // zero test failures and zero timeouts in the after run.)
+    //
     // -- The defect is the quantity this number covers, not its size --
     //
     // Until #925 one budget covered two full `astro check` passes running
