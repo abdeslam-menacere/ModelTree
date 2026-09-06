@@ -40,6 +40,27 @@ function rank(source: SourceReference): number {
   return index === -1 ? RELEASE_SOURCE_TYPE_PRIORITY.length : index;
 }
 
+/**
+ * The publisher whose sources are carried as licence evidence rather than as
+ * documentation of any particular model.
+ *
+ * `validateDataset` refuses a licence claim that cites no OSI-published source,
+ * and `osi-approved-citations.test.ts` requires every `osiApproved: false`
+ * record to rest on the exhaustive index. Those sources are provenance for the
+ * `license.osiApproved` field and must stay -- but a page giving a release one
+ * link should point at a document about *that model*, not at a licence register
+ * shared across the catalogue. The two roles are separated here by publisher
+ * identity, which is structural and exact, rather than by pattern-matching the
+ * word "licence" in a title: `open-source-initiative` publishes only licence
+ * evidence, so every source it publishes is ineligible to be a headline while
+ * the release carries any alternative.
+ */
+export const LICENCE_EVIDENCE_PUBLISHER_ID = 'open-source-initiative';
+
+function isLicenceEvidence(source: SourceReference): boolean {
+  return source.publisherId === LICENCE_EVIDENCE_PUBLISHER_ID;
+}
+
 /** Codepoint order, so output does not vary with the host's locale. */
 function compareIds(a: string, b: string): number {
   if (a < b) return -1;
@@ -108,10 +129,20 @@ export function selectReleaseSource(
   releaseId: string,
   citations?: ReadonlyMap<string, number>,
 ): SourceReference {
-  const [source] = sourceIds
+  const resolved = sourceIds
     .map((sourceId) => sourceById.get(sourceId))
-    .filter((candidate): candidate is SourceReference => candidate !== undefined)
-    .sort(releaseSourceOrder(citations));
+    .filter((candidate): candidate is SourceReference => candidate !== undefined);
+
+  // Prefer a source that documents the model over one carried purely as licence
+  // evidence, but only when the release has an alternative. A release whose
+  // *only* resolved source is licence evidence must still cite it rather than
+  // strand -- no release is in that state today, but the guard keeps the promise
+  // that every release resolves to a source, so the population being empty now
+  // cannot let a future single-source release throw silently.
+  const documentary = resolved.filter((candidate) => !isLicenceEvidence(candidate));
+  const candidates = documentary.length > 0 ? documentary : resolved;
+
+  const [source] = [...candidates].sort(releaseSourceOrder(citations));
 
   if (!source) throw new Error(`No source found for ${releaseId}`);
   return source;
