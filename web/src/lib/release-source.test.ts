@@ -174,11 +174,13 @@ describe('release source selection is permutation-invariant', () => {
     // **The pin.** Every release that was order-dependent when the list was
     // taken must still be. Exact, not `> 0`: a floor reddens only on an empty
     // population and passes for any non-zero one, so an instrument that has
-    // gone half-blind reads as confirmation. It is also strictly stronger than
-    // the `toBe(33)` it replaces, because a count cannot see a swap: five of
-    // these going quiet while five other releases turned order-dependent held
-    // that count at 33 and is red here. What it is not is a count of the
-    // population, so adding a release never moves it; that is the fix (#992).
+    // gone half-blind reads as confirmation. Against the `toBe(33)` it
+    // replaces it is stronger in one direction and deliberately weaker in the
+    // other, rather than strictly stronger. A count cannot see a swap, so five
+    // of these going quiet while five other releases turned order-dependent
+    // holds that count at 33 and is red here -- measured, not asserted. A
+    // count does see an addition, and this does not, which is the whole fix
+    // (#992): adding a release moves the count and must not move this.
     // A red here means a named release changed how it cites sources: find
     // which, and either restore the sourcing or move the id out with a note
     // saying why. It is not a nuisance to silence by loosening the bound back
@@ -227,15 +229,30 @@ describe('release source selection is permutation-invariant', () => {
     //
     // So the **complement** is pinned instead. The releases citing exactly one
     // source are the standing exception set, and adding a normally-sourced
-    // release does not move it. It anchors the population size exactly: a
-    // half-loaded dataset drops ids the pin names and reddens, which is the
-    // shrinkage a floor could not see. A red here means a release gained or
-    // lost sources -- read the population and fix the sourcing, or move the id
-    // in or out with a note.
+    // release does not move it. What it anchors exactly is that ten-member
+    // exception set -- not the population size, which it cannot see. Measured:
+    // a half-load that keeps every pinned id and drops the other 77 of 120
+    // releases leaves this assertion green, because it drops only multi-source
+    // records and all ten of these cite one. A red here means a release gained
+    // or lost sources -- read the population and fix the sourcing, or move the
+    // id in or out with a note.
     //
-    // The equality is again the half the pin cannot state, and it is strictly
-    // stronger than `toBe(110)`: a count is blind to a filter that misses five
-    // releases while over-reporting five others, and a named set is not.
+    // The equality is again the half the pin cannot state. It is **not**
+    // strictly stronger than the `toBe(110)` it replaces, and the two do not
+    // order: each catches what the other misses. It is stronger against a
+    // filter that swaps members while holding the count, which a count cannot
+    // see by construction. It is weaker against shrinkage of the multi-source
+    // population, because both sides of an equality shrink together. Measured:
+    // a half-load keeping every pinned id and dropping the other 77 of 120
+    // releases (64%) leaves this file green, where `toBe(110)` reddens with
+    // `expected 33 to be 110`.
+    //
+    // That shrinkage is still caught, and it is caught **in another file**.
+    // `RECORDS_AT_DAY_WHEN_PINNED` in `web/src/data/validate.test.ts` pins 117
+    // releases by id, and 76 of the 77 that half-load drops are among them, so
+    // it reddens naming each one. The dependency is real, and being cross-file
+    // it is the fragile kind: do not delete or loosen that pin on the grounds
+    // that this file already covers population shrinkage. It does not.
     expect(releasesRepeatingASourceId().map(({ id }) => id)).toEqual([]);
 
     const reordered = dataset.releases.filter(
@@ -249,6 +266,12 @@ describe('release source selection is permutation-invariant', () => {
     const citingSeveralSources = dataset.releases.filter(
       (release) => release.sourceIds.length >= 2,
     );
+    // Near-tautological given the no-repeat precondition asserted above: an
+    // array of two or more distinct ids always differs from its reverse, so
+    // this cannot fail unless that precondition fails first. What it
+    // establishes is narrow -- that the join-comparison `reordered` uses still
+    // agrees with a plain arity test, so it has not stopped discriminating --
+    // and it is not a check on the population.
     expect(reordered.map(({ id }) => id)).toEqual(citingSeveralSources.map(({ id }) => id));
   });
 });
