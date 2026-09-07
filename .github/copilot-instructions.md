@@ -314,6 +314,87 @@ whose issue can close while the work is in progress — and the last of those
 three windows opens *after* the dock has written its final sentence, so the
 party that can still run a check then is the reader and not the writer.
 
+### The kickoff itself — a dispatched session has no user
+
+Conditions 1 and 2 settle *whether* to dispatch. This settles what the kickoff
+has to carry, and it is the coordinator's step because the party it protects
+cannot write its own brief.
+
+**A dispatched session that calls `ask_user` is permanently dead, and the
+coordinator is told the opposite.** Nobody is watching an unattended dispatch,
+so the question is never answered; and the one channel a coordinator has for
+answering it — `send_session_message` — does not reach a session already
+blocked on that call. The message is accepted and discarded. **The send returns
+its success string either way**, so a coordinator that reads the return value
+comes away with positive confirmation that it has resolved a deadlock it has in
+fact left standing. Success from `send_session_message` is therefore not
+evidence of delivery, and it is not evidence that the target is alive.
+
+This is this file's own **A value covering several outcomes is not evidence on
+its own**, in the most expensive shape yet recorded here: one success string
+covers *delivered* and *discarded*, and the reassuring reading is the wrong
+one. Set it beside the stranded hand-back, which shares the diagnosis and not
+the severity — a hand-back that strands has already posted its summary to the
+issue, so the work survives in the durable record, while a session that dies on
+`ask_user` has posted nothing, committed nothing, and holds no state worth
+recovering. Invisible-but-recoverable against invisible-and-total.
+
+The instance is the QA gate dispatched for abdeslam-menacere/ModelTree#1017,
+session `3d6f7d01-b3a2-4559-a69f-5c0b41c152de`, whose event-log figures are
+recorded on abdeslam-menacere/ModelTree#1097: 149 events, exactly one
+`user.message` — the kickoff — an `ask_user` started at
+2026-09-07T02:39:18.880Z, no event of any kind after 02:39:19.170Z, and one
+incomplete tool start, which is that `ask_user`. An answer sent with
+`delivery_mode: "immediate"` at roughly 02:41 returned success, and nineteen
+minutes later the log still held one `user.message`. Read independently from
+the session registry at 2026-09-07T04:46Z, that session carried **0** turns
+against **1238** for a live session read in the same statement whose newest
+turn was seconds old — the two arms differing, which is what makes the 0 a
+reading rather than a query that returns nothing to everything.
+
+**So write the kickoff so that the question never gets asked.** State the rule
+with its reason attached, because a rule whose reason is left off is one a later
+writer drops as boilerplate:
+
+> Do not call `ask_user`. There is no user on this dispatch. Resolve the
+> ambiguity yourself and record the choice as an assumption in the summary you
+> post to the issue. A session blocked on `ask_user` cannot be reached by any
+> message the coordinator can send, so it never resumes.
+
+That invents nothing, and it is not a parallel rule: it is **rule 3 of Working
+in a dock** — record the assumption and proceed — applied to the one case where
+an agent is tempted to do neither, since asking is a way of *not* proceeding,
+and silent guessing and blocking are the two halves that rule already rules
+out. Pre-answer in the kickoff whatever methodology question you can anticipate,
+so that there is less to be tempted by.
+
+**Detection is receiver-side, and it has to be, because the sender's instrument
+returns success by construction.** That is this file's **A reading carries the
+vantage it was taken from**: where your own vantage is the thing in question,
+the answer comes from an instrument standing elsewhere. The reading is the
+target's own event log — a `tool.execution_start` with no matching
+`tool.execution_complete` — and it is not a verdict on its own, because an
+incomplete start covers *still running*, *crashed* and *blocked on a question*
+alike. Measured across two days of the event store, 15,406 starts against
+15,361 completes, so incomplete starts are an ordinary population rather than a
+signature; re-measure that rather than quoting it. Separate the outcomes before
+reading one: take the tool **name** on the start event, and establish whether
+any event of any kind followed it.
+
+Two vantage facts about that read, each measured while this was written and each
+worth establishing rather than assuming. That session was absent from the cloud
+event store and present in the local one, so a query finding nothing has
+reported on the store it stood in and not on the session. And a session's
+`updated_at` is not a liveness instrument: on the live arm above it read
+2026-09-04T17:14:34.464Z while that same session's newest turn read
+2026-09-07T04:46:15.644Z — two readings that cannot both be true, which is a
+finding rather than a discrepancy to reconcile. Read turn or event timestamps,
+never the summary field.
+
+Making the send fail loudly, or letting a message satisfy a pending question,
+are transport changes; abdeslam-menacere/ModelTree#1097 records both and adopts
+neither, and neither is settled here.
+
 ## When a dock hands back
 
 The two conditions above are the coordinator's dispatch-time half. This is its
@@ -530,7 +611,13 @@ a dock still neither gates, pushes, rebases nor merges its own work.
    `DOCK.md` is a good place to collect assumptions as you work, and never the
    place they stop. Never write them into this file either, where they would
    read to the next agent as sanctioned practice. Then you proceed. Silent
-   guessing is the failure mode this entire system exists to prevent.
+   guessing is the failure mode this entire system exists to prevent, and
+   blocking is its other half: **do not call `ask_user`**. A dispatched session
+   has no user, no message the coordinator sends reaches a session already
+   blocked on that call, and the coordinator is told its answer was delivered —
+   so the session never resumes and nobody learns that it did not. Decide,
+   record the assumption, proceed. **The kickoff itself — a dispatched session
+   has no user**, under **Before a dock is opened**, carries the measurement.
 4. **Never switch branches, rebase, or merge by hand.** Landing is `drydock land`
    after the gates pass if that command is on your PATH, and otherwise is not a
    step you perform at all; merging is GitHub's once CI is green. Your work ends
