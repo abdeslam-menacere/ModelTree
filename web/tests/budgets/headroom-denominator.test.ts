@@ -84,3 +84,87 @@ describe('asset-budgets headroom percentages name their denominator (#1023)', ()
     expect([...text.matchAll(UNLABELED_HEADROOM)]).toHaveLength(0);
   });
 });
+
+/**
+ * Denominator accuracy: the LAST headroom figure per route must match the
+ * denominator it claims, computed from the route's own numeric fields.
+ * A figure switched to the other denominator flips this test (issue #1023
+ * acceptance criterion 4).
+ */
+describe('the last headroom figure per route matches its claimed denominator (#1023)', () => {
+  const LABELED_HEADROOM =
+    /[+](\d+\.?\d*)%\s+headroom\s*\(of\s+(ceiling|measured)\)/g;
+
+  // Tolerance: figures are rounded to 1 decimal in prose, so 0.15 pts covers rounding.
+  const TOLERANCE = 0.15;
+
+  const routes: Array<{
+    id: string;
+    ceiling: number;
+    measured: number;
+    reason: string;
+  }> = [
+    ...budgets.fixedRoutes.map((r: Record<string, unknown>) => ({
+      id: r.id as string,
+      ceiling: r.criticalMaxRaw as number,
+      measured: r.measuredRaw as number,
+      reason: r.reason as string,
+    })),
+    ...budgets.routeGroups.map((r: Record<string, unknown>) => ({
+      id: r.id as string,
+      ceiling: r.criticalMaxRaw as number,
+      measured: (r.measuredWorstRaw ?? r.measuredRaw) as number,
+      reason: r.reason as string,
+    })),
+  ].filter(
+    (r) => r.reason && [...r.reason.matchAll(LABELED_HEADROOM)].length > 0,
+  );
+
+  it('finds routes with labeled headroom to check', () => {
+    expect(routes.length).toBeGreaterThan(5);
+  });
+
+  it.each(routes.map((r) => [r.id, r] as const))(
+    'last headroom figure is accurate for its claimed denominator: %s',
+    (_id, route) => {
+      const matches = [...route.reason.matchAll(LABELED_HEADROOM)];
+      const last = matches[matches.length - 1];
+      const figure = parseFloat(last[1]);
+      const denom = last[2]; // 'ceiling' or 'measured'
+
+      const spare = route.ceiling - route.measured;
+      const ofCeiling = (spare / route.ceiling) * 100;
+      const ofMeasured = (spare / route.measured) * 100;
+      const expected = denom === 'ceiling' ? ofCeiling : ofMeasured;
+      const other = denom === 'ceiling' ? ofMeasured : ofCeiling;
+
+      expect(
+        Math.abs(figure - expected),
+        `${route.id}: last figure is +${figure}% (of ${denom}), ` +
+          `expected ${expected.toFixed(2)}% (of ${denom}), ` +
+          `gap ${Math.abs(figure - expected).toFixed(3)} exceeds tolerance ${TOLERANCE}. ` +
+          `The other denominator gives ${other.toFixed(2)}%.\n` +
+          `If the figure matches the OTHER denominator, the label is wrong.`,
+      ).toBeLessThan(TOLERANCE);
+    },
+  );
+
+  // --- Mutation proof: switching the denominator must flip the result ---
+
+  it('REJECTS a figure that matches the other denominator', () => {
+    // Take a real route where the two conventions differ meaningfully.
+    // home: spare/ceiling=4.20%, spare/measured=4.39% — gap 0.19 pts, above tolerance.
+    const home = routes.find((r) => r.id === 'home');
+    expect(home).toBeDefined();
+    const spare = home!.ceiling - home!.measured;
+    const ofMeasured = (spare / home!.measured) * 100; // ~4.39
+    const ofCeiling = (spare / home!.ceiling) * 100; // ~4.20
+
+    // A figure claiming "of ceiling" but using the measured value should fail.
+    const gap = Math.abs(ofMeasured - ofCeiling);
+    expect(
+      gap,
+      'The two denominators must differ enough to detect a switch',
+    ).toBeGreaterThan(TOLERANCE);
+  });
+});
