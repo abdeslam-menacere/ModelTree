@@ -53,18 +53,68 @@ const BODY = '<!doctype html><html><head>{LINK}</head><body><h1>Probe</h1></body
  * One route per spelling. Identical assets, identical body, identical bytes
  * except inside the `<link>` itself -- so any difference in the recorded budget
  * is caused by the spelling and by nothing else.
+ *
+ * `counts` is the direction the review of #1081 found unpinned. Every row above
+ * it must be ADMITTED, and a suite made only of those cannot tell the correct
+ * rule from the maximally permissive one that admits any `<link href>` at all --
+ * which is why deleting the `rel` test from the scanner left all 3138 tests
+ * green and moved 0 of 185 route totals. The `counts: false` rows are the
+ * missing arm: a route the scanner must REFUSE to charge.
  */
-const ROUTES: Array<{ id: string; link: string; visibleToLegacy: boolean }> = [
+const ROUTES: Array<{ id: string; link: string; visibleToLegacy: boolean; counts: boolean }> = [
   {
     id: 'astro-today',
     link: '<link rel="stylesheet" href="/_astro/probe.css">',
     visibleToLegacy: true,
+    counts: true,
   },
-  { id: 'href-first', link: '<link href="/_astro/probe.css" rel="stylesheet">', visibleToLegacy: false },
-  { id: 'single-quoted', link: "<link rel='stylesheet' href='/_astro/probe.css'>", visibleToLegacy: false },
-  { id: 'unquoted', link: '<link rel=stylesheet href=/_astro/probe.css>', visibleToLegacy: false },
-  { id: 'uppercase', link: '<LINK REL="STYLESHEET" HREF="/_astro/probe.css">', visibleToLegacy: false },
+  {
+    id: 'href-first',
+    link: '<link href="/_astro/probe.css" rel="stylesheet">',
+    visibleToLegacy: false,
+    counts: true,
+  },
+  {
+    id: 'single-quoted',
+    link: "<link rel='stylesheet' href='/_astro/probe.css'>",
+    visibleToLegacy: false,
+    counts: true,
+  },
+  {
+    id: 'unquoted',
+    link: '<link rel=stylesheet href=/_astro/probe.css>',
+    visibleToLegacy: false,
+    counts: true,
+  },
+  {
+    id: 'uppercase',
+    link: '<LINK REL="STYLESHEET" HREF="/_astro/probe.css">',
+    visibleToLegacy: false,
+    counts: true,
+  },
+  // A `rel="preload"` pointing at a .css file is a hint to fetch early, not a
+  // stylesheet the page renders against. Counting it would charge the route for
+  // the same bytes twice once the real link appears -- and it is written in the
+  // reordered and single-quoted spellings on purpose, so the row cannot be
+  // passed by a scanner that rejects it for being unreadable rather than for
+  // being a preload.
+  {
+    id: 'preload-not-stylesheet',
+    link: '<link rel="preload" as="style" href="/_astro/probe.css">',
+    visibleToLegacy: false,
+    counts: false,
+  },
+  {
+    id: 'preload-href-first',
+    link: "<link href='/_astro/probe.css' as='style' rel='PRELOAD'>",
+    visibleToLegacy: false,
+    counts: false,
+  },
 ];
+
+/** The rows the scanner must admit, and the rows it must refuse. */
+const COUNTED = ROUTES.filter((r) => r.counts);
+const REJECTED = ROUTES.filter((r) => !r.counts);
 
 for (const route of ROUTES) {
   mkdirSync(join(dist, route.id), { recursive: true });
@@ -82,21 +132,55 @@ describe('a route whose budget would have been born wrong', () => {
     // Discrimination first. If the retired pattern missed every route here, the
     // fixture would be proving that the pattern is broken rather than that these
     // four spellings are the ones it cannot read.
-    const visible = ROUTES.filter((r) => legacyCssNames(BODY.replace('{LINK}', r.link)).length > 0);
+    const visible = COUNTED.filter((r) => legacyCssNames(BODY.replace('{LINK}', r.link)).length > 0);
     expect(visible.map((r) => r.id)).toEqual(['astro-today']);
-    expect(ROUTES.length - visible.length).toBe(4);
+    expect(COUNTED.length - visible.length).toBe(4);
   });
 
-  it.each(ROUTES)('records the correct critical budget for $id', ({ id }) => {
+  it.each(COUNTED)('records the correct critical budget for $id', ({ id }) => {
     const { totals } = measure(id);
     expect(totals.css.count).toBe(1);
     expect(totals.css.raw).toBe(Buffer.byteLength(CSS));
     expect(totals.critical.raw).toBe(totals.html.raw + totals.css.raw);
   });
 
+  it.each(REJECTED)('refuses to charge $id, which is not a stylesheet', ({ id }) => {
+    // The arm the review of #1081 found missing, and the reason it mattered: a
+    // scanner that admits ANY `<link href>` -- the maximally permissive failure
+    // -- passes every COUNTED row above, so those rows alone are a tally and not
+    // a pin. Deleting the `rel` test from the scanner left 3138 tests green and
+    // moved 0 of 185 route totals; it does not survive this row.
+    const { totals } = measure(id);
+    expect(totals.css.count).toBe(0);
+    // The cascade the issue names, read in the other direction: no stylesheet
+    // means no @font-face walk, so over-admitting charges TWO categories for
+    // bytes the page never blocks on.
+    expect(totals.font.count).toBe(0);
+    expect(totals.critical.raw).toBe(totals.html.raw);
+  });
+
+  it('refuses those rows for being preloads, not for being unreadable', () => {
+    // Discrimination, taken through the scanner itself rather than the rule it
+    // calls. If the tokenizer simply could not read those tags, the test above
+    // would pass for the wrong reason. The same bytes with `preload` changed to
+    // `stylesheet` and nothing else touched must be admitted, which makes the
+    // refusal a property of `rel` and not of the spelling around it.
+    for (const route of REJECTED) {
+      const control = route.link.replace(/preload/i, 'stylesheet');
+      expect(control).not.toBe(route.link);
+
+      const id = `${route.id}-control`;
+      mkdirSync(join(dist, id), { recursive: true });
+      writeFileSync(join(dist, id, 'index.html'), BODY.replace('{LINK}', control));
+
+      expect(measure(id).totals.css.count).toBe(1);
+      expect(measure(route.id).totals.css.count).toBe(0);
+    }
+  });
+
   it('gives every spelling the same budget as the one Astro emits today', () => {
     const reference = measure('astro-today').totals;
-    for (const route of ROUTES) {
+    for (const route of COUNTED) {
       const totals = measure(route.id).totals;
       // The HTML differs by the length of the link itself, so critical is
       // compared net of it. Everything downstream of discovery must be equal.
@@ -114,7 +198,7 @@ describe('a route whose budget would have been born wrong', () => {
   it('carries the font cascade with the stylesheet it was missed with', () => {
     // The amplification the issue names: fonts are derived from the stylesheet
     // set, so a missed <link> silently removes TWO categories, not one.
-    for (const route of ROUTES) {
+    for (const route of COUNTED) {
       const { totals } = measure(route.id);
       expect(totals.font.count).toBe(1);
       expect(totals.font.raw).toBe(FONT_BYTES);
@@ -122,7 +206,7 @@ describe('a route whose budget would have been born wrong', () => {
   });
 
   it('quantifies what each budget would have been born as', () => {
-    const bornWrong = ROUTES.filter((r) => !r.visibleToLegacy);
+    const bornWrong = COUNTED.filter((r) => !r.visibleToLegacy);
     expect(bornWrong.length).toBeGreaterThan(0);
 
     for (const route of bornWrong) {

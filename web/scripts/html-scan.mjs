@@ -69,9 +69,10 @@
 //
 // The limit of that choice, stated rather than glossed: this is a tokenizer, not
 // a parser. It does not build a tree, so it cannot answer anything about nesting
-// or implied elements, and it does not resolve character references (see
-// `attributeValue` below). If a future question needs a tree, jsdom is the right
-// answer and this module is the wrong one.
+// or implied elements, and it does not resolve character references -- attribute
+// values arrive exactly as written (see `readAttributes` below). If a future
+// question needs a tree, jsdom is the right answer and this module is the wrong
+// one.
 
 /** HTML whitespace, per the spec's definition (not `\s`, which is wider). */
 function isSpace(code) {
@@ -285,7 +286,18 @@ export function isStylesheetRel(rel) {
 }
 
 /**
- * The `href` of every render-blocking stylesheet the document links.
+ * The stylesheet `href` one start tag contributes, or `null` for every tag that
+ * is not a render-blocking stylesheet link.
+ *
+ * This is THE admission rule, and it is a function so that exactly one of it
+ * exists. The first version of this change shipped two: this rule, and an inline
+ * re-statement of it in the budget scanner's own tag loop. A rule with two
+ * copies is pinned by a test in one copy and free in the other -- deleting the
+ * `rel` test from the scanner's copy moved no route total and reddened no test,
+ * because every fixture route linked a genuine stylesheet and so could not tell
+ * the permissive rule from the correct one. That is the same one-rule-two-copies
+ * divergence this change exists to remove, so the scanner asks this question
+ * rather than answering it a second time.
  *
  * `media` is deliberately NOT consulted. A `media="print"` stylesheet is
  * arguably not on the critical path, but that is a question about how a found
@@ -293,15 +305,25 @@ export function isStylesheetRel(rel) {
  * at all. Changing classification would move recorded route totals as a side
  * effect of a discovery fix, so it stays as it was and belongs on its own issue.
  *
+ * @param {{ name: string, attrs: Map<string, string> }} tag  one `startTags` yield
+ * @returns {string | null}
+ */
+export function stylesheetHrefOf(tag) {
+  if (tag.name !== 'link') return null;
+  if (!isStylesheetRel(tag.attrs.get('rel'))) return null;
+  return tag.attrs.get('href') || null;
+}
+
+/**
+ * The `href` of every render-blocking stylesheet the document links.
+ *
  * @param {string} html
  * @returns {string[]}
  */
 export function stylesheetHrefs(html) {
   const out = [];
-  for (const { name, attrs } of startTags(html)) {
-    if (name !== 'link') continue;
-    if (!isStylesheetRel(attrs.get('rel'))) continue;
-    const href = attrs.get('href');
+  for (const tag of startTags(html)) {
+    const href = stylesheetHrefOf(tag);
     if (href) out.push(href);
   }
   return out;

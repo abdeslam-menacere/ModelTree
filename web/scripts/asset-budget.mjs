@@ -24,7 +24,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { brotliCompressSync, gzipSync } from 'node:zlib';
 
-import { isStylesheetRel, startTags } from './html-scan.mjs';
+import { startTags, stylesheetHrefOf } from './html-scan.mjs';
 
 /** raw / gzip / brotli byte lengths of a buffer. */
 export function sizes(buf) {
@@ -135,20 +135,24 @@ export function analyzeRoute(dist, routeHtml, caches = { importCache: new Map(),
   //
   // See `html-scan.mjs` for why this is a tokenizer and not a wider pattern, and
   // for the measured reason it is not jsdom.
-  for (const { name, attrs } of startTags(html)) {
+  for (const tag of startTags(html)) {
+    const { name, attrs } = tag;
     const componentUrl = attrs.get('component-url');
     if (componentUrl) jsEntries.add(astroName(componentUrl));
     const rendererUrl = attrs.get('renderer-url');
     if (rendererUrl) jsEntries.add(astroName(rendererUrl));
 
-    if (name === 'script') {
+    // The stylesheet admission rule is asked, never re-stated. It lives once, in
+    // `stylesheetHrefOf`, so the rule the unit tests pin is the same object this
+    // scanner runs -- see that function for what a second copy of it cost.
+    const cssHref = stylesheetHrefOf(tag);
+    if (cssHref) {
+      const n = astroName(cssHref);
+      if (n) cssNames.add(n);
+    } else if (name === 'script') {
       const src = attrs.get('src');
       const n = src ? astroName(src) : null;
       if (n && n.endsWith('.js')) jsEntries.add(n);
-    } else if (name === 'link' && isStylesheetRel(attrs.get('rel'))) {
-      const href = attrs.get('href');
-      const n = href ? astroName(href) : null;
-      if (n) cssNames.add(n);
     } else if (name === 'img') {
       const src = attrs.get('src');
       if (src) imgUrls.add(src);
