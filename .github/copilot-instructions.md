@@ -561,6 +561,23 @@ neither a pass, nor a fail, nor stale — and a reader who finds one **does not
 re-gate it, does not re-dispatch it, and does not offer merged work for
 review.**
 
+That the first row's trigger can simply never fire is measured rather than
+argued, on two issues that came out the same way. Every verdict on
+abdeslam-menacere/ModelTree#956 — dock summary `18:10:04Z`, review PASS
+`18:31:30Z`, QA PASS `19:09:23Z` — binds
+`d4277b4d0c861e13486a9d2abefe5aa9dc817912`; every verdict on
+abdeslam-menacere/ModelTree#549 — `18:53:41Z`, `19:23:17Z`, `20:09:10Z` — binds
+`7f5aa6ec47bceaf518593be1ad63dc3ede85920d`; all six instants on 2026-09-05. In
+both cases the merged pull request's `headRefOid` is **byte-identical** to that
+bound SHA — abdeslam-menacere/ModelTree#975 merged `19:15:07Z`,
+abdeslam-menacere/ModelTree#980 merged `20:15:09Z` — each inside six minutes of
+the QA pass that authorised it. So the documented trigger had nothing to fire
+on, and six verdicts across two issues stopped being actionable anyway. Take
+that for exactly what it measures: the head at merge equalled the bound SHA,
+which is what leaves the first row's condition unmet. Whether a commit was made
+and undone in between is not something these records settle, and the reading
+does not need them to.
+
 Keep the two words apart. *Stale* sends the next reader back to the gate and
 *moot* sends them away from it, so collapsing them costs either a wasted gate
 cycle or a skipped one.
@@ -733,10 +750,14 @@ the reader re-establishes liveness before acting.** The writer's honest wording
 stops the report from lying; it cannot make the report actionable, and only
 somebody standing outside the worktree — after the event — can see the merge at
 all. Measured over roughly one day of traffic here, five hand-offs reached the
-coordinating session **27 to 28 hours** after the merge that mooted them,
-spanning three roles — a dock, a review gate and a QA gate — across four issues.
-Three roles is what rules out a lapse by any one participant and leaves the
-ordering: every one of those reports was correct when it was written.
+coordinating session between **23h40m and 28h23m** after the merge that mooted
+them, spanning three roles — a dock, a review gate and a QA gate — across three
+issues, two of which contributed an independent pair. Three roles is what rules
+out a lapse by any one participant and leaves the ordering: every one of those
+reports was correct when it was written. Read that lag as two measurements of
+different kinds: the merge instants are API records, while the arrival instants
+are observable only to the receiving session, corroborated as upper bounds by
+the creation times of the comments reporting them.
 
 The check is one call, keyed on the branch the verdict is about, and it needs no
 local object and no anchor:
