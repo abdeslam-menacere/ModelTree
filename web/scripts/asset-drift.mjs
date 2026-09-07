@@ -379,6 +379,12 @@ export const CEILING_NEAR_MISS_FRACTION = 0.925;
 /**
  * Ceiling-headroom accounting for one measured figure -- the second wall.
  *
+ * `used` is `measured / ceiling`, so `1 - used` is `spare / ceiling` -- the
+ * fraction of the ceiling that is unoccupied. This is distinct from
+ * `spare / measured` (the fraction by which the route can grow from its current
+ * size), which is the other convention used in asset-budgets.json prose. The
+ * two diverge as headroom widens; see #1023 for the measured gap per route.
+ *
  * `measured` is the figure the BUILD produced, not the one recorded in
  * asset-budgets.json, because the built figure is what the ceiling assertion
  * compares. Reporting headroom against the recorded value instead would

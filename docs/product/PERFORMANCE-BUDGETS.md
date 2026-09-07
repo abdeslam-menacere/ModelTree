@@ -452,7 +452,21 @@ a different axis entirely, and it moves no ceiling either.**
    `NEAR CEILING` at **92.5% of the ceiling** (`CEILING_NEAR_MISS_FRACTION` in
    `web/scripts/asset-drift.mjs`).
 
-   State which axis a figure is on whenever you quote one. The two thresholds
+   State which axis a figure is on whenever you quote one.
+
+   **Two headroom percentages exist, and they answer different questions**
+   (#1023). `spare / ceiling` is the fraction of the ceiling that is unoccupied
+   — the complement of `headroomOf`'s `used` field in `asset-drift.mjs`, and the
+   quantity the `CEILING HEADROOM` report prints. `spare / measured` is the
+   fraction by which the route can grow from its current size before hitting the
+   ceiling — the natural answer to "will this data tranche fit?" The gap between
+   them widens with headroom: at 4% spare the two differ by ~0.2 points; at 35%
+   they differ by ~9 points. Every headroom percentage in `asset-budgets.json`
+   prose carries `(of ceiling)` or `(of measured)` so the two can be compared
+   directly, and `web/tests/budgets/headroom-denominator.test.ts` reddens on an
+   unlabeled figure. When writing a new headroom figure, label it.
+
+   The two thresholds
    are deliberately different numbers so they cannot be confused by sight, and
    0.925 is derived rather than borrowed from 0.75: measured across the history
    of `web/asset-budgets.json` with a key-level JSON parse, the largest share of
