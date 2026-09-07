@@ -615,8 +615,9 @@ function main() {
     // is the same fact. `gate-dataset.mjs` reports `dataDir` and that is not an
     // inconsistency to be tidied: it resolves a directory of documents from
     // `--data`, never a repository. The rule the four follow is that a gate
-    // resolving a repository root reports it as `repo`, and the one resolving a
-    // data directory reports `dataDir`.
+    // resolving a repository root reports it as `repo`, and the two resolving a
+    // data directory -- `gate-dataset.mjs` and `gate-reversals.mjs` -- report
+    // `dataDir`.
     repo,
     bundle: path,
     runId: bundle.runId ?? null,

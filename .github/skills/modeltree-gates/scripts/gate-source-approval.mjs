@@ -617,8 +617,8 @@ function main() {
     // inconsistency to be tidied: it resolves a directory of documents from
     // `--data`, never a repository, so `repo` would name something it does not
     // have. The rule the four follow is that a gate resolving a repository root
-    // reports it as `repo`, and the one resolving a data directory reports
-    // `dataDir`.
+    // reports it as `repo`, and the two resolving a data directory --
+    // `gate-dataset.mjs` and `gate-reversals.mjs` -- report `dataDir`.
     //
     // It is the resolved root the gate used, never the flag as given. The two
     // cannot diverge here - `--repo` with no value exits 2 - but reporting `cwd`
