@@ -28,7 +28,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { readFileSync, readdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -40,11 +40,13 @@ import {
   BROKEN,
   DEFAULTS,
   EXCLUDED,
+  MISMATCHED,
   NORMALISED,
   OK,
   REDIRECTED,
   TRANSIENT,
   applyExclusions,
+  applyLicenceIdentity,
   canonicaliseUrl,
   checkAll,
   checkTarget,
@@ -53,6 +55,7 @@ import {
   extractTargets,
   extractLicenceTargets,
   fabricateControlUrl,
+  loadLicenceClassifier,
   mergeTargets,
   parseExclusions,
   renderReport,
@@ -1667,4 +1670,201 @@ test('the CLI emits the discriminator over the committed dataset', () => {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+/* -------------------------------------------------------------------------- */
+/* Licence identity cross-check (#1085)                                       */
+/* -------------------------------------------------------------------------- */
+//
+// #1072 landed `web/src/lib/licence-url-identity.ts` and no CI entry point
+// invoked it, so the sweep went on recording a licence URL that resolves to the
+// wrong licence as `ok` -- indistinguishable, in the report and in the JSON,
+// from one that is correct. These tests are written the way that defect asks
+// for: every one of them runs the mismatched case and the correct case in the
+// *same* invocation with the *same* classifier, and asserts they come out
+// different. A test that only ever ran the mismatched arm would pass just as
+// happily against a rule that flags everything.
+
+// Two releases that differ in exactly one respect: whether the identifier each
+// claims is the identifier its URL resolves to. Same host, same shape, same
+// path depth, both recognised by the identity table -- so when the verdicts
+// differ, the difference is the thing under test and not an artefact of one
+// fixture being odd.
+const LICENCE_FIXTURE_RELEASES = [
+  { id: 'rel-correct', license: { spdxId: 'Apache-2.0', url: 'https://www.apache.org/licenses/LICENSE-2.0' } },
+  { id: 'rel-mismatch', license: { spdxId: 'MIT', url: 'https://www.apache.org/licenses/LICENSE-2.0' } },
+];
+
+function licenceResult(canonical, recordId, state = OK) {
+  return {
+    canonical,
+    finalUrl: canonical,
+    state,
+    status: state === BROKEN ? 404 : 200,
+    recordIds: [recordId],
+    licenceRecordIds: [recordId],
+    titles: [],
+  };
+}
+
+test('a mismatched licence URL is distinguished from a correct one, in the same run', async () => {
+  const classify = await loadLicenceClassifier();
+
+  const correct = licenceResult('https://www.apache.org/licenses/LICENSE-2.0', 'rel-correct');
+  const mismatched = licenceResult('https://www.apache.org/licenses/LICENSE-2.0', 'rel-mismatch');
+
+  const tally = applyLicenceIdentity([correct, mismatched], LICENCE_FIXTURE_RELEASES, classify);
+
+  // The whole of #1085 in two lines. Before the wiring, both of these read `ok`.
+  assert.equal(mismatched.state, MISMATCHED, 'a licence URL resolving to the wrong identifier must not stay `ok`');
+  assert.equal(correct.state, OK, 'a correct licence pair must not be flagged; otherwise the check flags everything');
+
+  assert.equal(tally.disagrees, 1);
+  assert.equal(tally.agrees, 1);
+  assert.equal(tally.abstained, 0);
+  assert.equal(tally.adjudicated, 2);
+
+  // The finding has to say which identifier was claimed and which was resolved.
+  // A bare "mismatch" is not actionable: a reader cannot tell whether to fix the
+  // URL or the `spdxId` without both halves.
+  assert.equal(tally.findings.length, 1);
+  assert.equal(tally.findings[0].recordId, 'rel-mismatch');
+  assert.equal(tally.findings[0].claimedSpdxId, 'MIT');
+  assert.equal(tally.findings[0].resolvedSpdxId, 'Apache-2.0');
+});
+
+test('the sweep imports the landed classifier rather than carrying its own copy', async () => {
+  // Acceptance criterion 1, asserted rather than assumed. The subject is the
+  // real module path; the control is a module that does not exist, and it must
+  // reject -- otherwise a `loadLicenceClassifier` that quietly returned a stub
+  // would pass the subject arm and this suite would be testing nothing.
+  const classify = await loadLicenceClassifier();
+  assert.equal(typeof classify, 'function');
+
+  // Different object from the subject, per the control discipline: a distinct
+  // URL naming a file that is not there.
+  const absent = new URL('./licence-url-identity-does-not-exist.ts', import.meta.url);
+  await assert.rejects(
+    () => loadLicenceClassifier(absent),
+    'a classifier that cannot be loaded must throw, so the caller can exit 2 rather than sweep on in ignorance',
+  );
+
+  // And the module it loads is the one under `web/`, not a copy beside this
+  // script. A second implementation here would satisfy "the sweep cross-checks
+  // licences" while rebuilding the drift #1085 is about.
+  const localCopies = readdirSync(HERE).filter((name) => name.includes('licence-url-identity'));
+  assert.deepEqual(localCopies, [], 'the classifier must have exactly one implementation, and it lives in web/src/lib');
+});
+
+test('an abstention is reported as not judged, never folded into ok or into mismatched', async () => {
+  const classify = await loadLicenceClassifier();
+
+  const releases = [
+    // Recognised host and path: adjudicable, and wrong. The positive control.
+    { id: 'rel-mismatch', license: { spdxId: 'MIT', url: 'https://www.apache.org/licenses/LICENSE-2.0' } },
+    // A licence document inside a model repository. The classifier cannot read
+    // it without fetching the blob, so it abstains by name.
+    { id: 'rel-abstain', license: { spdxId: 'MIT', url: 'https://huggingface.co/acme/model/blob/main/LICENSE' } },
+  ];
+
+  const mismatched = licenceResult('https://www.apache.org/licenses/LICENSE-2.0', 'rel-mismatch');
+  const abstained = licenceResult('https://huggingface.co/acme/model/blob/main/LICENSE', 'rel-abstain');
+
+  const tally = applyLicenceIdentity([mismatched, abstained], releases, classify);
+
+  assert.equal(mismatched.state, MISMATCHED);
+  // Not judged is not a pass, and it is not a failure either. The state stays
+  // `ok` because reachability genuinely was fine, and the abstention is carried
+  // separately -- so a reader can see the denominator instead of reading
+  // "0 disagreements" as a clean bill of health over a set that was never
+  // adjudicated (ADR 0018).
+  assert.equal(abstained.state, OK);
+  assert.equal(tally.abstained, 1);
+  assert.equal(tally.adjudicated, 1, 'an abstention must not inflate the adjudicated denominator');
+  assert.equal(tally.byReason['repository-hosted-document'], 1, 'the abstention must be counted under its own reason');
+
+  // The reason has to survive onto the result, or the report cannot say why.
+  const entry = abstained.licenceIdentity.find((item) => item.recordId === 'rel-abstain');
+  assert.equal(entry.verdict, 'cannot-determine');
+  assert.equal(entry.reason, 'repository-hosted-document');
+});
+
+test('a URL cited only as a source is never classified for licence identity', async () => {
+  const classify = await loadLicenceClassifier();
+
+  const sourceOnly = {
+    canonical: 'https://www.apache.org/licenses/LICENSE-2.0',
+    finalUrl: 'https://www.apache.org/licenses/LICENSE-2.0',
+    state: OK,
+    status: 200,
+    recordIds: ['src-1'],
+    licenceRecordIds: [],
+    titles: [],
+  };
+  // The control: the same URL, same state, differing only in provenance.
+  const asLicence = licenceResult('https://www.apache.org/licenses/LICENSE-2.0', 'rel-mismatch');
+
+  const tally = applyLicenceIdentity([sourceOnly, asLicence], LICENCE_FIXTURE_RELEASES, classify);
+
+  assert.equal(sourceOnly.licenceIdentity, undefined, 'a source citation makes no licence claim to contradict');
+  assert.equal(sourceOnly.state, OK);
+  assert.equal(asLicence.state, MISMATCHED, 'the control must still be caught, or this test proves only that nothing is classified');
+  assert.equal(tally.classifiedUrls, 1);
+});
+
+test('a final URL is supplied only where a response was actually observed', async () => {
+  // `checkAll` defaults `finalUrl` to the canonical URL even when the request
+  // failed, so handing it over unconditionally would tell the classifier "this
+  // was fetched and did not redirect" about a request that 404ed. That is a
+  // fabricated observation, and `identifiedFrom` would then read `final-url`
+  // for a URL nothing ever landed on.
+  const seen = [];
+  const spy = (input) => {
+    seen.push(input);
+    return { verdict: 'cannot-determine', reason: 'no-spdx-id', identifiedSpdxId: null, identifiedFrom: 'none', redirected: false };
+  };
+
+  const reachable = licenceResult('https://www.apache.org/licenses/LICENSE-2.0', 'rel-correct', OK);
+  const broken = licenceResult('https://www.apache.org/licenses/LICENSE-2.0', 'rel-mismatch', BROKEN);
+
+  applyLicenceIdentity([reachable, broken], LICENCE_FIXTURE_RELEASES, spy);
+
+  assert.equal(seen.length, 2);
+  assert.equal(seen[0].finalUrl, 'https://www.apache.org/licenses/LICENSE-2.0', 'a 200 is real evidence and must be passed on');
+  assert.equal(seen[1].finalUrl, undefined, 'a 404 observed nothing, so no final URL may be claimed');
+});
+
+test('a mismatch is actionable, counted, and reported under its own heading', async () => {
+  const classify = await loadLicenceClassifier();
+
+  const correct = licenceResult('https://opensource.org/licenses/MIT', 'rel-ok');
+  const mismatched = licenceResult('https://www.apache.org/licenses/LICENSE-2.0', 'rel-mismatch');
+  const releases = [
+    { id: 'rel-ok', license: { spdxId: 'MIT', url: 'https://opensource.org/licenses/MIT' } },
+    ...LICENCE_FIXTURE_RELEASES,
+  ];
+
+  const results = [correct, mismatched];
+  const tally = applyLicenceIdentity(results, releases, classify);
+
+  assert.ok(ACTIONABLE_STATES.has(MISMATCHED), 'a mismatch nobody acts on is the defect #1085 describes, one layer up');
+
+  const summary = summarise(results, { licenceIdentity: tally });
+  assert.equal(summary.counts[MISMATCHED], 1);
+  assert.equal(summary.counts[OK], 1, 'the correct pair must still be counted as ok');
+  assert.equal(summary.actionableUrls, 1);
+
+  const report = renderReport(results, { licenceIdentity: tally });
+  assert.match(report, /Licence does not match the identifier claimed/);
+  // Both identifiers, or the finding is not actionable from the report alone.
+  assert.match(report, /Apache-2\.0/);
+  assert.match(report, /MIT/);
+  // The denominator and the named abstentions, not just the disagreements.
+  assert.match(report, /Licence identity cross-check/);
+  assert.match(report, /not judged/);
+
+  // The correct pair must not appear under the mismatch heading. Without this,
+  // a report that listed every licence URL would satisfy the assertions above.
+  const section = report.split('Licence does not match the identifier claimed')[1].split('###')[0];
+  assert.ok(!section.includes('opensource.org'), 'a correct licence URL must not be listed as a mismatch');
 });
