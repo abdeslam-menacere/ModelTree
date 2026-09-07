@@ -119,6 +119,7 @@ describe('runwayVerdict', () => {
   const rated = (label: string, spare: number, perCreator: number) =>
     rateOf(label, 1000 + spare, 1000, 1000 + perCreator * 3, 3);
   const flat = (label: string) => rateOf(label, 2000, 1000, 1000, 3);
+  const over = (label: string) => rateOf(label, 1000, 1100, 1200, 3);
 
   it('passes when every rated figure affords the request', () => {
     const verdict = runwayVerdict([rated('a', 10_000, 100), flat('b')], 3);
@@ -150,6 +151,53 @@ describe('runwayVerdict', () => {
 
   it('exits 2 on no figures at all rather than vacuously passing', () => {
     expect(runwayVerdict([], 3).code).toBe(2);
+  });
+
+  /**
+   * An over-ceiling row is read from arm A alone -- `baseline > ceiling` -- so
+   * it does not depend on the two arms disagreeing, and a failed overlay cannot
+   * manufacture it. Counting it as the arms-agree fault files the worst true
+   * finding this probe can produce as a broken harness, which sends a reader to
+   * fix the instrument while every route sits past its budget.
+   */
+  describe('every figure over its ceiling is a finding, not the overlay failing to take', () => {
+    it('exits 1 and names the ceilings when every figure is over', () => {
+      const verdict = runwayVerdict([over('a'), over('b'), over('c')], 3);
+      // Stated so the assertion below cannot pass for the wrong reason: this is
+      // the zero-rated shape that used to short-circuit to 2.
+      expect(verdict.tally.rated).toBe(0);
+      expect(verdict.tally.over).toBe(3);
+      expect(verdict.code).toBe(1);
+      expect(verdict.reason).toContain('over ceiling');
+      expect(verdict.reason).not.toContain('did not take');
+    });
+
+    it('exits 1 for an over figure among flat ones, since no rated row is needed to read it', () => {
+      const verdict = runwayVerdict([over('a'), flat('b')], 3);
+      expect(verdict.tally.rated).toBe(0);
+      expect(verdict.code).toBe(1);
+      expect(verdict.reason).toContain('over ceiling');
+    });
+
+    it('control: a genuinely flat run keeps exit 2 and its overlay reason', () => {
+      // The arms-agree control is the reason this module refuses to report a
+      // pass it cannot tell from a no-op, and it is not traded away above.
+      const verdict = runwayVerdict([flat('a'), flat('b')], 3);
+      expect(verdict.tally.rated).toBe(0);
+      expect(verdict.code).toBe(2);
+      expect(verdict.reason).toContain('did not take');
+    });
+
+    it('separates the two zero-rated outcomes by reason string, not only by exit code', () => {
+      // Both arms have zero rated rows. Before this was fixed they returned the
+      // same code AND the same verbatim reason, so one value covered two
+      // outcomes that route a reader to opposite places -- the conflation
+      // docs/adr/0018-... exists to forbid.
+      const allOver = runwayVerdict([over('a'), over('b')], 3);
+      const allFlat = runwayVerdict([flat('a'), flat('b')], 3);
+      expect(allOver.code).not.toBe(allFlat.code);
+      expect(allOver.reason).not.toBe(allFlat.reason);
+    });
   });
 
   it('names the figure that runs out first, not the one closest to its ceiling', () => {
