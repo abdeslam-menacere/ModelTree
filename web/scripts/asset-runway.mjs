@@ -199,6 +199,17 @@ export function classifyRunway(row, requested = DEFAULT_TRANCHE_CREATORS) {
  *
  * Exit 2 is never a pass, which is the convention the gate scripts under
  * `.github/skills/modeltree-gates/` already hold to.
+ *
+ * The arms-agree fault is EVERY-FIGURE-FLAT, and not merely "no figure was
+ * rated". The two are not the same set, because an over-ceiling row is read from
+ * arm A alone -- `baseline > ceiling`, decided before any delta is looked at --
+ * so it is never rated and a failed overlay can neither produce it nor hide it.
+ * Testing `rated === 0` therefore filed the worst true finding this probe can
+ * return, every route past its budget, as a broken harness: one exit code and
+ * one verbatim reason string covering both "the overlay silently failed" and
+ * "every route is over its ceiling", which route a reader to opposite places
+ * (#1038). Instrument faults still win where they are faults; this narrows what
+ * counts as one, and softens nothing about what a 2 means.
  */
 export function runwayVerdict(rows, requested = DEFAULT_TRANCHE_CREATORS) {
   const verdicts = rows.map((row) => classifyRunway(row, requested));
@@ -230,12 +241,24 @@ export function runwayVerdict(rows, requested = DEFAULT_TRANCHE_CREATORS) {
   } else if (tally.undetermined > 0) {
     code = 2;
     reason = `${tally.undetermined} figure(s) shrank between arms, which added records cannot do`;
-  } else if (tally.rated === 0) {
+  } else if (tally.flat === tally.total) {
+    // Every figure flat, which is the overlay failing to apply. Statuses are
+    // disjoint and `undetermined` is already spent above, so what remains is
+    // over + flat + rated: this predicate is exactly "nothing but flat", and it
+    // cannot be reached by a run carrying an over-ceiling row.
     code = 2;
     reason = 'no figure moved between the two arms -- the tranche overlay did not take';
   } else if (tally.over > 0 || tally.refused > 0) {
     code = 1;
-    reason = `${tally.over + tally.refused} figure(s) cannot take a ${requested}-creator tranche`;
+    // Named separately rather than summed, so the reason alone says which of the
+    // two it is: over-ceiling is a figure already past its budget with no tranche
+    // added, while refused is a measured rate that will not carry the request.
+    reason = [
+      tally.over > 0 ? `${tally.over} figure(s) are over ceiling before any tranche is added` : null,
+      tally.refused > 0 ? `${tally.refused} figure(s) cannot take a ${requested}-creator tranche` : null,
+    ]
+      .filter(Boolean)
+      .join('; ');
   } else {
     code = 0;
     reason = `every rated figure affords ${requested} creator(s)`;
