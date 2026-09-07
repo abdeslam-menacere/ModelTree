@@ -1,5 +1,389 @@
 [
   {
+    "id": "2026-09-07-08db2e",
+    "title": "Full-catalogue sweep finding no new release, and 10 release records re-verified",
+    "ranOn": "2026-09-07",
+    "outcome": "published",
+    "summary": "All 44 creators were scouted from their own primary channels and no genuinely new model release had appeared since the 2026-09-06 sweep, so the run did the work that was actually available: it re-verified the stale tail of the dataset. Fourteen claims were proposed across 11 creators, every one of kind unchanged. The panel accepted 12 and withheld 2 at the per-profile threshold. Ten release records had every one of their proposed claims accepted and so carry a moved verifiedAt; no recorded value changed, and the whole dataset diff is 20 lines in one document.",
+    "scope": "All 44 creator records in web/src/data/organizations.json, scouted against their own primary channels; re-verification candidates drawn from the 41 releases whose verifiedAt was 2026-09-05 or earlier and which cite at least one source this run freshly fetched. Only web/src/data/releases.json was changed, and only in the verifiedAt field.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Clean tree at merge-base 1134ed8d, gh authenticated, no open refresh pull request (controlled two ways in one invocation: the real query returned the open set while a fabricated branch name returned []). drydock and npm were both probed in bare and .cmd form; the bare form is refused by the PowerShell execution policy and the .cmd form runs, which is installed-and-blocked rather than absent. The execution policy was not changed."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "240 fetch targets across all 44 creators in three rounds; 229 returned a body and 11 failed, and the failures are recorded as degraded channels rather than as an absence of news. Every body was saved to disk and hashed over the exact bytes received. A recency scan across all 229 bodies found 20 pages carrying post-sweep dates, every one of them site metadata, Hub activity, or a non-model post -- which is what establishes the no-new-release finding rather than an absence of looking."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Three mutually blind reviewers on three different model families, each given the claim, its evidence, the dataset slice and its own rubric, and none of them the scout reasoning, another reviewer verdict, or the running tally. The chair cast no vote and overruled nothing. The panel discriminated: editorial withheld 3 of 14 while the other two rubrics accepted all 14."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-evidence and gate-source-approval ran per bundle before anything was applied; gate-dataset, gate-scope, gate-reversals, npm run validate and ci-preflight ran after. Semantic review ran first throughout, so no deterministic gate was something the panel could argue with. No gate was skipped and no threshold was lowered."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "One dataset commit and one ledger commit on a branch, published as pull request #1128 with auto-merge enabled so that web-ci gates the merge. No direct push to main, no --admin, no --force."
+      },
+      {
+        "stage": "deploy",
+        "status": "ran",
+        "note": "Pages deploy confirmed against the merge commit after web-ci went green; see the deployment reference."
+      }
+    ],
+    "found": {
+      "scouts": 44,
+      "pagesFetched": 229,
+      "claimsProposed": 14,
+      "bundles": [
+        {
+          "creator": "01-ai",
+          "policy": "long-tail",
+          "threshold": "unanimous 3-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "ai2",
+          "policy": "long-tail",
+          "threshold": "unanimous 3-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "alibaba-cloud",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "anthropic",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "bytedance-seed",
+          "policy": "long-tail",
+          "threshold": "unanimous 3-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "ibm",
+          "policy": "long-tail",
+          "threshold": "unanimous 3-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "meta",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "mistral-ai",
+          "policy": "long-tail",
+          "threshold": "unanimous 3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "nous-research",
+          "policy": "long-tail",
+          "threshold": "unanimous 3-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "tii",
+          "policy": "long-tail",
+          "threshold": "unanimous 3-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "zhipu-ai",
+          "policy": "long-tail",
+          "threshold": "unanimous 3-of-3",
+          "claimsFound": 1
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "unchanged",
+          "count": 14,
+          "effect": "re-verification: the source still states what the dataset already holds, so verifiedAt moves and no value does"
+        }
+      ],
+      "notCovered": [
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined",
+        "releases/undefined.undefined -- undefined"
+      ],
+      "unswept": [],
+      "degradedChannels": [
+        {
+          "creator": "openai",
+          "source": "https://openai.com/news/",
+          "detail": "HTTP 403 -- the channel could not be read, which is not a finding that it carried no news. Recorded so that \"not looked at\" stays distinct from \"looked at and empty\"."
+        },
+        {
+          "creator": "openai",
+          "source": "https://openai.com/news/product-releases/",
+          "detail": "HTTP 403 -- the channel could not be read, which is not a finding that it carried no news. Recorded so that \"not looked at\" stays distinct from \"looked at and empty\"."
+        },
+        {
+          "creator": "openai",
+          "source": "https://openai.com/index/gpt-5-6/",
+          "detail": "HTTP 403 -- the channel could not be read, which is not a finding that it carried no news. Recorded so that \"not looked at\" stays distinct from \"looked at and empty\"."
+        },
+        {
+          "creator": "openai",
+          "source": "https://openai.com/index/introducing-gpt-5-5/",
+          "detail": "HTTP 403 -- the channel could not be read, which is not a finding that it carried no news. Recorded so that \"not looked at\" stays distinct from \"looked at and empty\"."
+        },
+        {
+          "creator": "openai",
+          "source": "https://openai.com/index/gpt-6-astra/",
+          "detail": "HTTP 403 -- the channel could not be read, which is not a finding that it carried no news. Recorded so that \"not looked at\" stays distinct from \"looked at and empty\"."
+        },
+        {
+          "creator": "xai",
+          "source": "https://x.ai/news",
+          "detail": "HTTP 403 -- the channel could not be read, which is not a finding that it carried no news. Recorded so that \"not looked at\" stays distinct from \"looked at and empty\"."
+        },
+        {
+          "creator": "zhipu-ai",
+          "source": "https://z.ai/blog",
+          "detail": "HTTP 404 -- the channel could not be read, which is not a finding that it carried no news. Recorded so that \"not looked at\" stays distinct from \"looked at and empty\"."
+        },
+        {
+          "creator": "zhipu-ai",
+          "source": "https://z.ai/news",
+          "detail": "HTTP 404 -- the channel could not be read, which is not a finding that it carried no news. Recorded so that \"not looked at\" stays distinct from \"looked at and empty\"."
+        },
+        {
+          "creator": "minimax",
+          "source": "https://www.minimax.io/news/minimax-m3",
+          "detail": "HTTP 404 -- the channel could not be read, which is not a finding that it carried no news. Recorded so that \"not looked at\" stays distinct from \"looked at and empty\"."
+        },
+        {
+          "creator": "minimax",
+          "source": "https://www.minimax.io/news/page-efee3363e353843e",
+          "detail": "HTTP 404 -- the channel could not be read, which is not a finding that it carried no news. Recorded so that \"not looked at\" stays distinct from \"looked at and empty\"."
+        },
+        {
+          "creator": "deepseek",
+          "source": "https://api-docs.deepseek.com/news/",
+          "detail": "connection error -- the channel could not be read, which is not a finding that it carried no news. Recorded so that \"not looked at\" stays distinct from \"looked at and empty\"."
+        }
+      ]
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 42,
+      "acceptedByPanel": 12,
+      "rejectedByPanel": 2,
+      "dissents": [
+        {
+          "claimId": "alibaba-qwen3-6-35b-a3b-contextWindow",
+          "rubric": "editorial",
+          "objection": "The quote cites an sglang inference server command-line parameter rather than an intrinsic model specification. Serving platform runtime configuration options cannot be substituted for the model's native context window."
+        }
+      ],
+      "gates": [
+        {
+          "gate": "gate-evidence",
+          "scope": "the 14 claims across 11 bundles, run before any claim was applied",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Every evidence entry well-formed across all 11 bundles. Per ADR 0005 this gate verifies the form of a citation -- hash shape and quote length -- and never its correspondence to the cited URL, so it is not evidence that any quote is real. A separate verbatim verifier established that: every quote was machine-checked as a contiguous byte-exact substring of the saved response body, with four control arms in the same invocation (present quote true, invented quote false, matching hash true, zeroed hash false) so that a uniformly blind matcher would have been visible."
+        },
+        {
+          "gate": "gate-source-approval",
+          "scope": "the 14 claims across 11 bundles, anchored at merge-base 1134ed8d",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "All 14 evidence URLs resolve to sources the committed dataset already carries, drawn from each release's own sourceIds. This run proposed no new source and repointed none, so the trust boundary is untouched and no origin had to be extended."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "every record in web/src/data after the accepted claims were applied",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "passed: true with 0 violations. The gate reported requiredCollections as sources, organizations, families, releases and lifecycleStatus as preview, current, legacy, deprecated, research, unknown, both derived from web/src/data/schema.ts at run time rather than restated, so the rule actually in force is visible rather than inferred from a passing run."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "every path changed since the computed merge-base 1134ed8d, working tree and committed tip alike",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "1 changed path, web/src/data/releases.json, in the ADR 0003 qualifying class; outOfClass empty and empty false. Controlled in the same session: with one out-of-class file present the identical invocation exited 1 and named it, so the pass discriminates rather than always returning 0."
+        },
+        {
+          "gate": "gate-reversals",
+          "scope": "refresh-runs.json read together with the dataset",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "9 of 18 rejected records are in the dataset and rejection-reversals.json annotates every one. The gate also printed its own measured blind spot: 141 of 159 rejections name no record in a form it can act on, and not checked is not passed. This run's two withheld entries are written in the field form releases/<id>.<field> rather than the structured record form, because they are field re-verifications of records that were already present and are correctly not reversal candidates."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "the web workspace: 139 test files and Astro/TypeScript diagnostics over 287 files",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "3189 of 3189 tests passed with 0 errors, 0 warnings and 0 hints. One earlier run showed scripts/licence-identity.test.ts failing; it asserts that web/src/data is clean and was reading this run's own uncommitted change rather than anything about the data. Established by control rather than assumed: the same file failed with the change uncommitted and passed 8 of 8 on a clean tree. Dependencies were installed with npm ci, and the package-lock.json SHA-256 was identical before and after, so the lockfile ADR 0004 protects was not rewritten."
+        },
+        {
+          "gate": "ci-preflight",
+          "scope": "the pull-request checks this branch diff selects, measured from the same merge-base",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": false,
+          "detail": "PASS with 3 selected check groups run and passed: web-ci, skills-ci and source-link-health-tests. It prints what it does not cover on every run -- the networked link-health sweep, the second Python interpreter, the e2e browser check, the aggregate-checks status and the runner itself -- so a green preflight predicts CI rather than binding it."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 10,
+      "documents": [
+        {
+          "document": "releases.json",
+          "recordsBefore": 123,
+          "recordsAfter": 123,
+          "note": "10 record(s) re-verified with no value change; no record added, removed or otherwise edited"
+        }
+      ],
+      "records": [
+        {
+          "id": "ai2-molmo-7b-d",
+          "collection": "releases",
+          "note": "verifiedAt 2026-09-04 -> 2026-09-07; re-verified fields: license.spdxId"
+        },
+        {
+          "id": "alibaba-qwen3-6-35b-a3b",
+          "collection": "releases",
+          "note": "verifiedAt 2026-09-05 -> 2026-09-07; re-verified fields: contextWindow, parameters.totalBillions"
+        },
+        {
+          "id": "anthropic-claude-opus-4-6",
+          "collection": "releases",
+          "note": "verifiedAt 2026-08-28 -> 2026-09-07; re-verified fields: contextWindow"
+        },
+        {
+          "id": "bytedance-seed-oss-36b-base",
+          "collection": "releases",
+          "note": "verifiedAt 2026-09-03 -> 2026-09-07; re-verified fields: license.spdxId"
+        },
+        {
+          "id": "ibm-granite-4-0-h-tiny",
+          "collection": "releases",
+          "note": "verifiedAt 2026-08-31 -> 2026-09-07; re-verified fields: parameters.totalBillions"
+        },
+        {
+          "id": "meta-llama-4-maverick",
+          "collection": "releases",
+          "note": "verifiedAt 2026-09-01 -> 2026-09-07; re-verified fields: parameters.totalBillions"
+        },
+        {
+          "id": "mistral-devstral-small-2-24b-instruct",
+          "collection": "releases",
+          "note": "verifiedAt 2026-08-28 -> 2026-09-07; re-verified fields: contextWindow, parameters.totalBillions"
+        },
+        {
+          "id": "mistral-devstral-2-123b-instruct",
+          "collection": "releases",
+          "note": "verifiedAt 2026-09-05 -> 2026-09-07; re-verified fields: contextWindow"
+        },
+        {
+          "id": "tii-falcon-180b",
+          "collection": "releases",
+          "note": "verifiedAt 2026-09-05 -> 2026-09-07; re-verified fields: parameters.totalBillions"
+        },
+        {
+          "id": "zhipu-ai-glm-4-5-air",
+          "collection": "releases",
+          "note": "verifiedAt 2026-09-01 -> 2026-09-07; re-verified fields: license.spdxId"
+        }
+      ]
+    },
+    "withheld": [
+      {
+        "id": "01-ai-yi-34b-chat-license-spdxId",
+        "category": "rejected-by-panel",
+        "detail": "releases/01-ai-yi-34b-chat.license.spdxId -- re-verification withheld at the unanimous 3-of-3 bar (provenance: accept, consistency: accept, editorial: reject). The record itself is unchanged and remains in the dataset carrying its prior verifiedAt; nothing was added, removed or reversed. [editorial] The quote captures an automated GitHub repository sidebar indicator rather than an explicit model weight license for Yi-34B-Chat. Stamping the release as re-verified based on repository-level code license detection conflates the repository container with the specific model release.",
+        "blockedBy": [
+          "editorial"
+        ]
+      },
+      {
+        "id": "nous-hermes-4-14b-parameters-totalBillions",
+        "category": "rejected-by-panel",
+        "detail": "releases/nous-hermes-4-14b.parameters.totalBillions -- re-verification withheld at the unanimous 3-of-3 bar (provenance: accept, consistency: accept, editorial: reject). The record itself is unchanged and remains in the dataset carrying its prior verifiedAt; nothing was added, removed or reversed. [editorial] The quote only states that the model is based on Qwen 3 14B rather than directly asserting Hermes-4-14B's own parameter count. Inferring a child model's parameter specification from its parent model violates the derived vs. original standard.",
+        "blockedBy": [
+          "editorial"
+        ]
+      }
+    ],
+    "caveats": [
+      "Every claim in this run is of kind unchanged. Nothing here adds, removes or corrects a recorded value; the only thing that moves is verifiedAt, and a reader should not read this run as evidence that any of the underlying facts were re-derived from scratch.",
+      "A record was stamped only when every claim proposed for it was accepted. Two records had a claim withheld and were left entirely alone, because a partially re-verified record is not a re-verified record. That is a withhold rather than a promote, and it is the conservative direction.",
+      "The no-new-release finding rests on 229 pages that were read, and 11 that could not be. Five OpenAI pages, x.ai/news, both z.ai channels, two MiniMax news pages and the DeepSeek API news page returned 403, 404 or a connection error. A release announced only on one of those is invisible to this run, so the finding is bounded by what was reachable and not by what exists.",
+      "contextWindow proved largely unquotable from documentation tables, because spec tables put the number in a bare cell away from the model name. That is an honest coverage limit of quote-based evidence, not a matcher defect, and it is most of why 14 claims came out of 41 stale candidates.",
+      "The panel is three model families reading the same page, so it buys independence of reasoning and not independence of training. A source that is itself wrong could carry all three, and nothing in this run would have caught that.",
+      "gate-evidence checks form and never remote correspondence (ADR 0005). The byte-exact verifier this run built is what establishes that the quotes are real, and it is a run-local instrument rather than a committed gate, so a future run must build or re-run its own rather than inheriting this assurance."
+    ],
+    "followUps": [
+      "xAI's own model catalogue lists grok-4.20 and grok-4.3, neither of which is in the dataset. The release-notes channel ends 2026-09-02 and carries no dated launch statement for either, and x.ai/news returned 403, so no claim could be made this run. This is a pre-existing coverage gap rather than something this sweep introduced, and it wants an issue of its own.",
+      "MiniMax M3, M2.7, M2.5 and H3 are absent from the dataset. The only date anchor reachable for M3 is a Hugging Face Hub createdAt JSON field, and the previous run already panel-withheld the equivalent Hub record for MiniMax-M2, so proposing it again on the same evidence would be re-litigating a settled refusal. Both minimax.io news pages returned 404.",
+      "29 stale re-verification candidates yielded no quotable claim, listed individually in found.notCovered. Most are contextWindow values that live in a bare spec-table cell. A structured extractor for documentation spec tables would convert much of that tail into evidence, and is worth its own issue.",
+      "Withheld claims are recorded in the field form releases/<id>.<field> because the structured record form would make gate-reversals treat a field re-verification as a reversal candidate. Giving withheld entries a machine-readable record id, as that gate's own note asks for, would let the two shapes be told apart properly instead of by prose convention."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "PR #1128 -- feat(data): re-verify 10 release records against primary sources (run 2026-09-07-08db2e)",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/1128",
+        "state": "open when this entry was written, carrying both the dataset change and this entry. The dataset commit precedes the ledger commit deliberately: refreshLogSchema requires a published run to name its own pull request, so the entry could not be written until the number existed. Reading it is honest; guessing it would have put a falsehood into the permanent record, and force-pushing to conceal the ordering would have been a bypass. Auto-merge is enabled, so web-ci gates the merge rather than any judgement of this run's."
+      }
+    ],
+    "recordedAt": "2026-09-07"
+  },
+  {
     "id": "2026-09-06-2da81d",
     "title": "Full-catalogue refresh 2026-09-06 — all 44 creators",
     "ranOn": "2026-09-06",
