@@ -2190,7 +2190,7 @@ them fires.
 |---|---|
 | **matcher case-folding**, abdeslam-menacere/ModelTree#1016 | the matcher folds case, so a hit on one identifier is returned for a differently-cased neighbour; `Select-String` is case-insensitive by default where `git grep` is case-sensitive by default, so the probe this page prescribes is safe and the idiomatic in-shell paraphrase of it is not |
 | **deletion-class polarity**, abdeslam-menacere/ModelTree#1016 | nothing is mismatched and the matcher is correct; the change *removes* content, so *present* means not landed and *absent* means landed, while every reading written out in step 4 above is written for an addition |
-| **provenance narrative collision**, abdeslam-menacere/ModelTree#1016 | the corpus records what a failure looks like, so a probe for that marker matches the record *about* the condition rather than the condition — and the record is exemplary rather than defective, which is why the fix belongs to the probe |
+| **provenance narrative collision**, abdeslam-menacere/ModelTree#1016 | a free-text query over any store matches the record *about* a condition rather than the condition itself; the store records what a failure looks like, the record is exemplary rather than defective, and the fix therefore belongs to the probe and never to the record |
 
 **Case-folding, measured.** At trunk
 `158a761a4027679e32f717e773c69c207fe9697f`, reflog-dated 2026-09-07 03:55:40
@@ -2334,11 +2334,64 @@ instances, three records, two unrelated strings, written by different hands,
 none of them defective. A fix scoped to the records is undone by the next
 well-sourced entry; scoped to the probe, it holds.
 
-Scope the probe to the field carrying the assertion, never to the file text. A
-probe asking whether any source *points at* something must read `.url`; asked of
-the file text it also reads every note that *discusses* it. This generalises past
-`web/src/data/sources.json`: `notes`, `caveats` and every other free-prose field
-exists in order to carry the vocabulary of the thing it describes.
+Scope the probe to the field carrying the assertion, never to the free text.
+
+> **A free-text query over any store answers "is this discussed?" — never "is
+> this asserted?". Where a structured field carries the assertion, query that
+> field; a text match is evidence of discussion only.**
+
+One rule, two stores, and the second is not a corpus of JSON at all. In
+`web/src/data/sources.json` the asserting field is `.url` and the free text is
+every note and caveat, which exist in order to carry the vocabulary of the thing
+they describe. On GitHub the asserting field is `closingIssuesReferences` and the
+free text is an `in:body` search.
+
+**The second store, measured.** Asking whether seven in-flight issues had a pull
+request yet, `gh pr list --search "<n> in:body" --state all` returned a merged
+pull request for six of them, every one at exit 0. Four were false: those pull
+requests close abdeslam-menacere/ModelTree#1097,
+abdeslam-menacere/ModelTree#710, abdeslam-menacere/ModelTree#403 and
+abdeslam-menacere/ModelTree#623, none of which is the issue searched for, and
+all four issues read `OPEN` with an empty `closedByPullRequestsReferences` in
+the same run. Two were true. Nothing in the free-text arm separates them, and
+read at face value the four falses would have **stood down four live docks
+mid-implementation** — this subsection's own unrecoverable outcome, not a wasted
+sweep.
+
+Those two turned true *during* the measurement, because the coordinator holding
+the control merged them an hour before it was re-read. A control pinned on "has
+no pull request yet" is pinned on a state still in motion, and here its own
+author's next action decayed it. Pin a control on a terminal state.
+
+**This mechanism also defeats the negative control mandated throughout this
+page.** Four fabricated numbers, same run, same quoting:
+
+```text
+'99999 in:body'   -> two pull requests   NOT empty
+'88888 in:body'   -> []
+'123456 in:body'  -> []
+'97531 in:body'   -> []
+"#1016" in:body   -> still returns the pull request closing 710
+```
+
+Three clean arms, so the instrument discriminates and the outlier is a real
+occurrence rather than noise. Its context is the mechanism itself: that pull
+request's body says 99999 cannot turn a failed check green, and separately cites
+lines 1016/1089/1172 — so the nonce matched a **fabricated value quoted inside a
+description of a failure**, and the issue number matched a **line number**. The
+last line above is the obvious hardening, and it does not rescue the probe.
+
+> A nonce must be **coined uniquely for the run**, not merely fabricated.
+> "Obviously fake" is a small, shared space, and a corpus that records what
+> failure looks like is unusually likely to already occupy it, because somebody
+> else independently reached for an obviously-fake value to demonstrate a
+> failure. A run-unique nonce, minted at the moment of use, is not in that space.
+
+So `88888`, `123456` and `97531` are unoccupied today, drawn from that same small
+space, and one documented failure away from the same collision: the fix is not a
+different round number. This is also the shape of a rule stated one level too
+general — tested against the example that produced it, it is confirmed, because
+that example is the one case it cannot fail on.
 
 **What the three have in common, and why the usual control cannot see any of
 them.** Each returns a well-formed count at a clean exit, with nothing in the
@@ -2347,7 +2400,8 @@ output to say the reading is wrong, and each fails toward `SUPERSEDED` or
 A string nobody has written reads absent through a matcher that folds case,
 absent through a correct matcher pointed at a deletion, and absent through a
 corpus full of failure notes. It passes while all three fire, which is the
-negative-control clause above restated as the reason this table exists.
+negative-control clause above restated as the reason this table exists — and,
+by the nonce property under the third row, it is not guaranteed to pass at all.
 
 **And this section is now an instance of its own third row.** The identifiers
 and markers written out above are in this file, so a tree-wide probe for any of
