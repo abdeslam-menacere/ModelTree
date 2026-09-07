@@ -2257,12 +2257,17 @@ reading and the correct verdict are never available to the same observer.
 **The live instance, which closes the natural escape route.** At the trunk
 anchored above — more than two days after that deletion merged — a tree-wide
 probe for both removed lines exits **0**. Each identifier survives in the *other*
-file of the very pair the deletion touched: `type ComparisonDataset,` on line 20
-of `web/src/components/ModelComparison.test.tsx` and line 27 of
-`web/src/lib/comparison.test.ts`, `type CompactComparisonPayload,` on line 12 of
+file of the very pair the deletion touched: `type ComparisonDataset,`, removed
+from `web/src/components/ModelComparison.tsx`, survives on line 20 of
+`web/src/components/ModelComparison.test.tsx`, and
+`type CompactComparisonPayload,`, removed from
+`web/src/components/ModelComparison.test.tsx`, survives on line 12 of
 `web/src/components/ModelComparison.tsx`. So narrowing the probe to the two
 files the change edited — the obvious remedy — leaves **both** reading present
-about a deletion that wholly landed.
+about a deletion that wholly landed. A third occurrence of
+`type ComparisonDataset,`, on line 27 of `web/src/lib/comparison.test.ts`, is
+**outside** that pair and carries none of that weight: the narrowing result
+rests on the two within-pair survivors alone.
 
 That is where this page's existing marker test does the work, and it is why no
 new rule is needed for the residue: *a marker is only usable if you can state
@@ -2378,14 +2383,18 @@ author's next action decayed it. Pin a control on a terminal state.
 reading bound to its instant rather than a standing fact.** Re-read at
 2026-09-07T14:00:57Z, three of those four searched-for issues had since acquired
 a closing pull request of their own, so the set no longer reads `OPEN` with an
-empty field and the run does not reproduce whole. What does reproduce is the
-second row, and it is the **pure** case: searching for
-abdeslam-menacere/ModelTree#1016 returns exactly one pull request,
-abdeslam-menacere/ModelTree#824, which closes abdeslam-menacere/ModelTree#710 —
-both terminal, so that pair holds indefinitely — while at that same instant the
-issue searched for had no closing pull request at all. Every result the
-free-text arm gives for it is wrong, which is this mechanism with nothing else
-mixed in.
+empty field and the run does not reproduce whole. What still reproduced at
+that instant is the second row, and it is the **pure** case: searching for
+abdeslam-menacere/ModelTree#1016 returned exactly one pull request,
+abdeslam-menacere/ModelTree#824, which closes abdeslam-menacere/ModelTree#710,
+while the issue searched for had no closing pull request at all. Every result
+the free-text arm gave for it was wrong, which is this mechanism with nothing
+else mixed in. That row is a reading at an instant too, not a standing fact: a
+closed issue can reopen, the free-text arm will also return whatever comes to
+match it later, and the branch that closes abdeslam-menacere/ModelTree#1016
+will give it a closing pull request by construction. Re-derive the row rather
+than quoting it — the claim is that the two arms disagreed, never that they
+must keep disagreeing.
 
 **This mechanism also defeats the negative control mandated throughout this
 page.** Four fabricated numbers, same run, same quoting:
