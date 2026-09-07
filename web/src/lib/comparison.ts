@@ -9,14 +9,32 @@
  * Three things shape every decision below.
  *
  * 1. **The shipped dataset is sparse, and sparse is the main path, not an edge
- *    case.** Measured at merge-base `fc418bb6` over `web/src/data`: 49 releases,
- *    of which 44 state a context window, 26 a maximum output, 16 a licence, and
- *    15 a parameter count; `derivedFromIds` is non-empty on 0 of 49. `raw.ts`
- *    composes no pricing, deployment, or serving-platform JSON at all, so those
- *    three entity types reach a page only through Zod `.default([])`. Benchmark
- *    results exist but cover 2 of 49 releases. So for almost every pair a reader
- *    can pick, most of this table is absence — and rendering absence as a blank
- *    cell would read as a rendering fault rather than as a fact about coverage.
+ *    case.** This rests on the schema rather than on a census, because the
+ *    schema is the part that cannot move quietly underneath a reader. Four of
+ *    the attributes this table compares — `contextWindow`, `maximumOutput`,
+ *    `license`, `parameters` — are `.optional()` on `releaseSchema`, so their
+ *    absence is reachable by construction rather than by accident; and every
+ *    operational collection on `datasetSchema` is `.default([])`, so a whole
+ *    group can be empty while the dataset stays valid. That is what makes
+ *    absence need kinds at all, and it is why this module decides
+ *    `not-collected` from `dataset.pricing.length` and
+ *    `dataset.deployments.length` as it builds, never from a figure written
+ *    here.
+ *
+ *    One dated reading, for magnitude and never as a premise: at `158a761a`
+ *    (2026-09-07) exactly 1 of 123 releases stated all four of those
+ *    attributes, benchmark results reached 2 of them, and `pricing` was the
+ *    only collection with no JSON file at all. It is deliberately not
+ *    maintained: `comparison.ts` sits outside the class `gate-scope.mjs`
+ *    admits (ADR 0003), so the refresh that grows the corpus is forbidden to
+ *    edit this file to correct a count in it — which is exactly why nothing
+ *    above is allowed to depend on one. An earlier census here pinned six
+ *    tallies and the composition of `raw.ts`; the corpus grew and took most of
+ *    them with it (#1089).
+ *
+ *    So for almost every pair a reader can pick, most of this table is absence
+ *    — and rendering absence as a blank cell would read as a rendering fault
+ *    rather than as a fact about coverage.
  *
  * 2. **Absence has kinds, and collapsing them is the failure this issue names.**
  *    {@link ValueState} splits it four ways and each kind is decided by a rule a
