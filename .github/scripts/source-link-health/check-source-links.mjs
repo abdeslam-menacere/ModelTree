@@ -82,10 +82,13 @@ import { dirname, resolve, relative, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  ACTIONABLE_STATES,
   applyExclusions,
+  applyLicenceIdentity,
   checkAll,
   extractLicenceTargets,
   extractTargets,
+  loadLicenceClassifier,
   mergeTargets,
   parseExclusions,
   renderReport,
@@ -205,11 +208,14 @@ async function main() {
   let targets = sourceTargets;
   let selected;
   let licenceUrls = 0;
+  // Hoisted: the licence identity cross-check below needs the release records
+  // after the requests have been made, and they are read only on this branch.
+  let releases = null;
 
   if (args.baseline === null) {
     // A full sweep, so the licence URLs join it. See the note at the head of
     // this file for why they are here and nowhere else.
-    const releases = readJson(RELEASES_FILE, 'the release records');
+    releases = readJson(RELEASES_FILE, 'the release records');
     if (!Array.isArray(releases)) die(`${RELEASES_FILE} is not a JSON array`);
 
     const licence = extractLicenceTargets(releases);
@@ -301,11 +307,42 @@ async function main() {
     timeoutMs: args.timeoutMs,
   });
 
+  // The licence identity cross-check (#1085). Only on the full-sweep path,
+  // because that is the only path on which a licence URL is swept at all -- a
+  // `--baseline` run carries source targets only, so there is nothing here to
+  // adjudicate and no way for this to redden a pull request.
+  //
+  // It makes no request. Every URL involved has already been fetched by
+  // `checkAll` above, and the verdict is a second fact read off that same
+  // response, so wiring this in costs the sweep no additional traffic.
+  //
+  // A failure to load the classifier is exit 2 and never a quiet skip. The whole
+  // of #1085 is that a check nothing invokes reports the same thing as a check
+  // that ran and found nothing; degrading to a reachability-only sweep here
+  // would rebuild that defect one layer down.
+  let licenceIdentity = null;
+  if (releases !== null) {
+    let classify;
+    try {
+      classify = await loadLicenceClassifier();
+    } catch (error) {
+      process.stderr.write(
+        `error: could not load the licence identity classifier: ${error.message}\n` +
+          'The sweep cannot report on licence identity without it, and reporting a\n' +
+          'reachability-only result as if it were a full sweep is the defect this\n' +
+          'check exists to remove. Refusing rather than skipping.\n',
+      );
+      return 2;
+    }
+    licenceIdentity = applyLicenceIdentity(results, releases, classify);
+  }
+
   const report = `${renderReport(results, {
     excluded,
     malformed,
     unmatchedExclusions: unmatched,
     scope,
+    licenceIdentity,
   })}\n`;
 
   const summary = summarise(results, {
@@ -316,8 +353,15 @@ async function main() {
     excludedUrls: excluded.length,
     malformedRecords: malformed.length,
     generatedAt: new Date().toISOString(),
+    licenceIdentity,
     findings: results
-      .filter((result) => result.state === 'broken' || result.state === 'redirected' || result.expiredExclusion !== undefined)
+      // Was a hardcoded `'broken' || 'redirected'` pair. Read from
+      // ACTIONABLE_STATES instead, so this list and `summary.actionableUrls`
+      // cannot disagree about what counts: the summary already derives its
+      // count from that set, and a new actionable state added to one and not
+      // the other would open a maintenance issue whose count says N and whose
+      // finding list is empty.
+      .filter((result) => ACTIONABLE_STATES.has(result.state) || result.expiredExclusion !== undefined)
       .map((result) => ({
         url: result.canonical,
         state: result.state,
@@ -329,6 +373,11 @@ async function main() {
         // can label each provenance correctly instead of calling a release a
         // source record.
         licenceRecordIds: result.licenceRecordIds ?? [],
+        // Present only on a `mismatched` result: which identifier the record
+        // claims, which one the URL resolves to, and which URL that reading came
+        // from. Without the last of those a reader cannot tell a verdict read
+        // off a redirect target from one read off the recorded URL.
+        licenceIdentity: result.licenceIdentity ?? null,
         title: result.titles[0] ?? null,
         exclusionExpiredOn: result.expiredExclusion?.expiresOn ?? null,
       })),
