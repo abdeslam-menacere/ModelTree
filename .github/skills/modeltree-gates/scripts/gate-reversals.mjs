@@ -148,9 +148,10 @@
 // Exit 0 = every visible reversal is annotated. Exit 1 = one is not, do not
 // merge. Exit 2 = the gate could not run, which is never treated as a pass.
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readJsonInput, escapeInvisible } from './json-input.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -227,9 +228,12 @@ function readArray(dir, file) {
   if (!existsSync(path)) return { present: false, records: [], path };
   let parsed;
   try {
-    parsed = JSON.parse(readFileSync(path, 'utf8'));
+    // `--data` names a directory the caller supplies, so these bytes are a caller
+    // input: one leading U+FEFF is forgiven and nothing else, and the refusal is
+    // rendered visibly. See `json-input.mjs` for the decision.
+    parsed = readJsonInput(path);
   } catch (error) {
-    throw new Error(`${file} is not readable JSON: ${error.message}`);
+    throw new Error(`${file} is not readable JSON: ${escapeInvisible(error.message)}`);
   }
   if (!Array.isArray(parsed)) throw new Error(`${file} is not a JSON array`);
   return { present: true, records: parsed, path };

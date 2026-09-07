@@ -17,6 +17,7 @@ import { mkdtempSync, writeFileSync, readFileSync, readdirSync, cpSync, mkdirSyn
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readJsonInput, escapeInvisible } from './json-input.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..', '..', '..');
@@ -794,8 +795,7 @@ function fallbackRepo(script, build) {
     git('config', 'user.email', 'gate@example.com');
     git('config', 'user.name', 'Gate Test');
     const planted = join(dir, relative(REPO, script));
-    mkdirSync(dirname(planted), { recursive: true });
-    cpSync(script, planted);
+    plant(script, dir);
     mkdirSync(join(dir, 'web', 'src', 'data'), { recursive: true });
     writeFileSync(join(dir, 'README.md'), 'scratch\n');
     const commit = (message) => {
@@ -809,6 +809,32 @@ function fallbackRepo(script, build) {
     return { ...run(planted, args), root };
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Plant `script` into `dir` at its path relative to this repository's root, and
+ * plant whatever it imports from its own directory beside it, transitively.
+ *
+ * The relative-path arithmetic is the reason this is not a directory copy: the
+ * planted tree has to contain what the gate needs and nothing that would let a
+ * wrong `..` count still resolve. Until
+ * abdeslam-menacere/ModelTree#1017 no gate imported a local sibling and copying
+ * the single file was enough, so a gate that gains one is exactly the case this
+ * had no cover for -- and the failure is loud (`ERR_MODULE_NOT_FOUND` on the
+ * planted copy) rather than a planted gate quietly running a different program.
+ * Deriving the set from the source keeps that true for the next one without
+ * anybody remembering to extend a list.
+ */
+function plant(script, dir, done = new Set()) {
+  const from = resolve(script);
+  if (done.has(from)) return;
+  done.add(from);
+  const target = join(dir, relative(REPO, from));
+  mkdirSync(dirname(target), { recursive: true });
+  cpSync(from, target);
+  for (const [, spec] of readFileSync(from, 'utf8').matchAll(/^import[^;]*?from '(\.[^']*)';/gm)) {
+    plant(resolve(dirname(from), spec), dir, done);
   }
 }
 
@@ -8883,5 +8909,332 @@ describe('gate-reversals.mjs', () => {
       + 'present. None do. Either the gap closed -- in which case update the header, SKILL.md, '
       + 'skills-ci.yml and web/src/data/README.md, which all state it -- or this probe broke.',
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The encoding of a caller-supplied JSON file (#1017)
+//
+// A gate is handed two kinds of JSON. Repository-controlled data is written by
+// this repository's own tooling and read as a reviewed diff. A *caller-supplied*
+// file -- the `--claims` bundle, and whatever directory `--data` or `--repo`
+// points at -- is written by the run under test, on whatever platform that run
+// happened to execute on. On Windows PowerShell 5.1, where the docks in this
+// repository run, the idiomatic way to write a file emits a UTF-8 BOM, and
+// `readFileSync(path, 'utf8')` decodes those three bytes to U+FEFF and hands
+// them to `JSON.parse` rather than stripping them.
+//
+// Two defects came out of one symptom. The gate refused input that every other
+// consumer of the same bytes reads as well-formed JSON, turning a verdict into
+// exit 2 -- "could not run", which is never a pass. And the refusal quoted the
+// offending character raw, so the operator read `Unexpected token ''` pointing
+// at what looks like an ordinary `{`: a stated cause that cannot be acted on.
+//
+// The decision, recorded in `json-input.mjs`: strip exactly one U+FEFF and only
+// at position 0, refuse everything else exactly as before, and escape the
+// invisible characters in any refusal so the reason can be read at all.
+//
+// Both halves are held below, and the refusing half is the one that matters
+// most: "strip a BOM" must not become "tolerate anything", so every input that
+// was refused before this change is asserted to be refused still. Each
+// forgiveness test carries the byte-identical file without the BOM as its
+// control, because "the BOM'd file passed" is only evidence if the same bytes
+// without it reach the same verdict -- otherwise a gate that had gone blind
+// would satisfy it just as well.
+// ---------------------------------------------------------------------------
+describe('a caller-supplied JSON file carrying a UTF-8 BOM (#1017)', () => {
+  const BOM = '\uFEFF';
+  const BUNDLE = { runId: 'r1', creator: DEFAULT_PILOT_CREATOR, policy: 'pilot', claims: [claim()] };
+  const BUNDLE_JSON = JSON.stringify(BUNDLE, null, 2);
+
+  /** The leading bytes of a file as hex, so a fixture can be asserted rather than assumed. */
+  function head(path, n) {
+    return [...readFileSync(path).subarray(0, n)]
+      .map((b) => b.toString(16).padStart(2, '0').toUpperCase())
+      .join(' ');
+  }
+
+  /**
+   * The fixture set, in a throwaway directory.
+   *
+   * Every file is written through `writeFileSync` with an explicit encoding and
+   * never through a shell redirection: PowerShell's `>` and `Out-File` emit
+   * UTF-16LE, which is a different encoding defect entirely, and a suite built
+   * that way would report on a defect it does not claim to test while looking
+   * exactly like one that had.
+   */
+  function withFixtures(body) {
+    const dir = mkdtempSync(join(tmpdir(), 'modeltree-bom-'));
+    try {
+      const write = (name, text, encoding = 'utf8') => {
+        const path = join(dir, name);
+        writeFileSync(path, text, encoding);
+        return path;
+      };
+      return body({
+        dir,
+        clean: write('clean.json', BUNDLE_JSON),
+        oneBom: write('one-bom.json', `${BOM}${BUNDLE_JSON}`),
+        twoBoms: write('two-boms.json', `${BOM}${BOM}${BUNDLE_JSON}`),
+        midBom: write('mid-bom.json', BUNDLE_JSON.replace('{\n', `{\n${BOM}`)),
+        utf16: write('utf16le.json', `${BOM}${BUNDLE_JSON}`, 'utf16le'),
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  /** A gate report with the fields that name the run's own scratch paths removed. */
+  function reportWithoutPaths(result) {
+    const report = JSON.parse(result.stdout);
+    delete report.bundle;
+    return report;
+  }
+
+  test('the fixtures carry the bytes they are named for, and differ nowhere else', () => {
+    // Nothing below this test means anything without it. A "BOM fixture" that
+    // carried no BOM, or carried a UTF-16 one, would exercise a different defect
+    // and read exactly like a fixture that had exercised this one.
+    withFixtures(({ clean, oneBom, twoBoms, midBom, utf16 }) => {
+      assert.equal(head(clean, 1), '7B', 'the control fixture does not begin with a plain `{`');
+      assert.equal(head(oneBom, 3), 'EF BB BF', 'the one-BOM fixture carries no UTF-8 BOM');
+      assert.equal(head(twoBoms, 6), 'EF BB BF EF BB BF', 'the two-BOM fixture carries fewer than two');
+      assert.equal(head(utf16, 2), 'FF FE', 'the UTF-16LE fixture is not UTF-16LE');
+      assert.equal(
+        Buffer.compare(readFileSync(oneBom).subarray(3), readFileSync(clean)),
+        0,
+        'the one-BOM fixture differs from its control by more than its three leading bytes, so a '
+          + 'verdict shared between them would not be evidence about the BOM',
+      );
+      assert.equal(head(midBom, 3) === 'EF BB BF', false, 'the mid-file fixture has its BOM at position 0');
+      assert.equal(
+        readFileSync(midBom).includes(Buffer.from([0xef, 0xbb, 0xbf])),
+        true,
+        'the mid-file fixture carries no BOM anywhere, so it tests nothing',
+      );
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Forgiven: one BOM, at position 0.
+  // -------------------------------------------------------------------------
+
+  test('gate-evidence reaches the same verdict whether or not the bundle carries a BOM', () => {
+    withFixtures(({ clean, oneBom }) => {
+      const control = run(GATE_EVIDENCE, ['--claims', clean, '--today', TODAY, '--json']);
+      const subject = run(GATE_EVIDENCE, ['--claims', oneBom, '--today', TODAY, '--json']);
+      // The control must be a pass, or "both arms agree" would be satisfied by
+      // both failing, which is the state this change exists to end.
+      assert.equal(control.code, 0, control.stdout);
+      assert.equal(subject.code, 0, subject.stdout);
+      assert.deepEqual(reportWithoutPaths(subject), reportWithoutPaths(control));
+      assert.equal(subject.stdout.includes('not valid JSON'), false, subject.stdout);
+      // The two runs really did read two different files.
+      assert.notEqual(JSON.parse(subject.stdout).bundle, JSON.parse(control.stdout).bundle);
+    });
+  });
+
+  test('gate-source-approval reaches the same verdict whether or not the bundle carries a BOM', () => {
+    // A scratch repository, for the reason the gate-source-approval block gives:
+    // the anchor is the merge base with `refs/remotes/origin/main`, and a CI
+    // checkout has no such ref. Both bundles are gated in the *same* repository
+    // so that the anchor, and every figure derived from it, is shared and the
+    // two reports are comparable field by field.
+    const dir = mkdtempSync(join(tmpdir(), 'modeltree-bom-approval-'));
+    try {
+      const git = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' });
+      git('init', '-q');
+      git('config', 'user.email', 'gate@example.com');
+      git('config', 'user.name', 'Gate Test');
+      mkdirSync(join(dir, 'web', 'src', 'data'), { recursive: true });
+      cpSync(join(DATA, 'sources.json'), join(dir, 'web', 'src', 'data', 'sources.json'));
+      git('add', '-A');
+      git('commit', '-qm', 'the reviewed dataset');
+      git('update-ref', 'refs/remotes/origin/main', git('rev-parse', 'HEAD').trim());
+
+      const clean = join(dir, 'clean.json');
+      const oneBom = join(dir, 'one-bom.json');
+      writeFileSync(clean, BUNDLE_JSON, 'utf8');
+      writeFileSync(oneBom, `${BOM}${BUNDLE_JSON}`, 'utf8');
+      assert.equal(head(oneBom, 3), 'EF BB BF');
+
+      const gate = (path) => run(GATE_SOURCE_APPROVAL, ['--claims', path, '--repo', dir, '--json']);
+      const control = gate(clean);
+      const subject = gate(oneBom);
+      // Whether this bundle passes this gate is not what is being measured, and
+      // pinning it here would make the test brittle against an unrelated policy
+      // change. What is measured is that the BOM does not convert a verdict into
+      // a refusal -- so the control must be a verdict, which is to say not a 2.
+      assert.notEqual(control.code, 2, `the control produced no verdict, so this test measures nothing:\n${control.stdout}`);
+      assert.equal(subject.code, control.code, subject.stdout);
+      assert.deepEqual(reportWithoutPaths(subject), reportWithoutPaths(control));
+      assert.equal(subject.stdout.includes('not valid JSON'), false, subject.stdout);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('gate-dataset and gate-reversals read a dataset document that carries a BOM', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'modeltree-bom-data-'));
+    try {
+      cpSync(DATA, dir, { recursive: true });
+      // The unmutated copy first: if the live dataset does not pass, nothing
+      // below distinguishes "the BOM was forgiven" from "this gate passes
+      // everything".
+      assert.equal(run(GATE_DATASET, ['--data', dir, '--json']).code, 0);
+      assert.equal(run(GATE_REVERSALS, ['--data', dir, '--json']).code, 0);
+
+      const file = join(dir, 'releases.json');
+      writeFileSync(file, `${BOM}${readFileSync(file, 'utf8')}`, 'utf8');
+      assert.equal(head(file, 3), 'EF BB BF', 'the mutation did not put a UTF-8 BOM on the document');
+
+      const dataset = run(GATE_DATASET, ['--data', dir, '--json']);
+      assert.equal(dataset.code, 0, dataset.stdout);
+      assert.equal(dataset.stdout.includes('not valid JSON'), false, dataset.stdout);
+      const reversals = run(GATE_REVERSALS, ['--data', dir, '--json']);
+      assert.equal(reversals.code, 0, reversals.stdout);
+
+      // The other direction, in the same directory: a document that is genuinely
+      // malformed is still refused, so forgiving the BOM did not disable the
+      // rule that reads the document at all.
+      writeFileSync(file, `${BOM}{not json`, 'utf8');
+      const broken = run(GATE_DATASET, ['--data', dir, '--json']);
+      assert.notEqual(broken.code, 0, broken.stdout);
+      assert.match(broken.stdout, /not valid JSON/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('gate-ledger reads a working-tree ledger that carries a BOM', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'modeltree-bom-ledger-'));
+    try {
+      const git = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' });
+      const write = (rel, value) => {
+        const target = join(dir, ...rel.split('/'));
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, `${JSON.stringify(value, null, 2)}\n`);
+      };
+      git('init', '-q');
+      git('config', 'user.email', 'gate@example.com');
+      git('config', 'user.name', 'Gate Test');
+      write('web/src/data/releases.json', [{ id: 'r1' }]);
+      write('web/src/data/families.json', [{ id: 'f1' }]);
+      write('web/src/data/refresh-runs.json', []);
+      git('add', '-A');
+      git('commit', '-qm', 'base');
+      git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+
+      // A branch that records a run. The ledger the gate reads here is the
+      // working-tree copy, which is the caller-supplied side of this gate; the
+      // committed copy it compares against is read from git and is deliberately
+      // left on the old idiom, being repository-controlled rather than supplied.
+      write('web/src/data/releases.json', [{ id: 'r1' }, { id: 'r2' }]);
+      write('web/src/data/refresh-runs.json', [{
+        id: '2026-09-01-aaaaaa',
+        posted: { documents: [{ document: 'releases.json', recordsBefore: 1, recordsAfter: 2 }] },
+      }]);
+      const control = run(GATE_LEDGER, ['--repo', dir, '--json']);
+      assert.equal(control.code, 0, control.stdout);
+
+      const ledger = join(dir, 'web', 'src', 'data', 'refresh-runs.json');
+      writeFileSync(ledger, `${BOM}${readFileSync(ledger, 'utf8')}`, 'utf8');
+      assert.equal(head(ledger, 3), 'EF BB BF');
+      const subject = run(GATE_LEDGER, ['--repo', dir, '--json']);
+      assert.equal(subject.code, 0, subject.stdout);
+      assert.deepEqual(JSON.parse(subject.stdout), JSON.parse(control.stdout));
+
+      // And the same file made genuinely unreadable is still refused.
+      writeFileSync(ledger, `${BOM}[{"id": `, 'utf8');
+      const broken = run(GATE_LEDGER, ['--repo', dir, '--json']);
+      assert.notEqual(broken.code, 0, broken.stdout);
+      assert.match(broken.stdout, /in the working tree is not valid JSON/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // Refused still, and now legibly. Without these the change above would be
+  // indistinguishable from one that stopped reading the input at all.
+  // -------------------------------------------------------------------------
+
+  test('a second BOM is still refused, and the refusal names the character where it can be read', () => {
+    withFixtures(({ clean, twoBoms }) => {
+      // The same bytes minus the two BOMs pass, so the refusal below is about
+      // the BOMs and not about the bundle.
+      assert.equal(run(GATE_EVIDENCE, ['--claims', clean, '--today', TODAY, '--json']).code, 0);
+
+      const result = run(GATE_EVIDENCE, ['--claims', twoBoms, '--today', TODAY, '--json']);
+      assert.equal(result.code, 2, result.stdout);
+      assert.match(result.stdout, /not valid JSON/);
+      assert.equal(
+        result.stdout.includes('\\uFEFF'),
+        true,
+        `the refusal does not name the character it tripped over: ${JSON.stringify(result.stdout)}`,
+      );
+      assert.equal(
+        result.stdout.includes(BOM),
+        false,
+        'the refusal still prints a raw U+FEFF, which a terminal renders as nothing at all',
+      );
+    });
+  });
+
+  test('a BOM anywhere but position 0 is still refused', () => {
+    withFixtures(({ midBom }) => {
+      const result = run(GATE_EVIDENCE, ['--claims', midBom, '--today', TODAY, '--json']);
+      assert.equal(result.code, 2, result.stdout);
+      assert.match(result.stdout, /not valid JSON/);
+      assert.equal(result.stdout.includes(BOM), false, 'a raw U+FEFF reached the diagnostic');
+    });
+  });
+
+  test('a UTF-16LE file is still refused, so the forgiveness did not widen to any encoding', () => {
+    // A UTF-16 file is not UTF-8 with a marker on the front; it is a different
+    // decoding of every byte in it, and reading one as UTF-8 yields nothing a
+    // stripping rule could rescue. Pinned here because a rule written as "ignore
+    // a leading BOM" rather than "ignore one leading U+FEFF" would reach for this
+    // one too, and because PowerShell's `>` and `Out-File` produce exactly this
+    // file. What a gate should do about a non-UTF-8 input beyond refusing it is
+    // abdeslam-menacere/ModelTree#195's question and deliberately not this
+    // change's.
+    withFixtures(({ utf16 }) => {
+      const result = run(GATE_EVIDENCE, ['--claims', utf16, '--today', TODAY, '--json']);
+      assert.equal(result.code, 2, result.stdout);
+      assert.match(result.stdout, /not valid JSON/);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // The module the five entry points share, read directly. The subprocess tests
+  // above exercise one character in one position; these state the rule.
+  // -------------------------------------------------------------------------
+
+  test('readJsonInput forgives exactly one leading BOM and nothing else', () => {
+    withFixtures(({ dir, clean, oneBom, twoBoms, midBom, utf16 }) => {
+      assert.deepEqual(readJsonInput(oneBom), readJsonInput(clean));
+      assert.deepEqual(readJsonInput(clean), BUNDLE);
+      assert.throws(() => readJsonInput(twoBoms), SyntaxError);
+      assert.throws(() => readJsonInput(midBom), SyntaxError);
+      assert.throws(() => readJsonInput(utf16), SyntaxError);
+      // An absent file still fails as an absent file rather than as bad JSON:
+      // the two are different refusals and an operator needs to tell them apart.
+      assert.throws(() => readJsonInput(join(dir, 'no-such-file.json')), /ENOENT/);
+    });
+  });
+
+  test('escapeInvisible renders what cannot be seen and leaves what can alone', () => {
+    assert.equal(escapeInvisible(`${BOM}{`), '\\uFEFF{');
+    assert.equal(escapeInvisible('a\u200Bb'), 'a\\u200Bb');
+    assert.equal(escapeInvisible('a\u202Eb'), 'a\\u202Eb');
+    assert.equal(escapeInvisible('a\u0000b'), 'a\\u0000b');
+    assert.equal(escapeInvisible('two\nlines'), 'two\\nlines');
+    // The control, and the half that is easy to lose: a message of ordinary
+    // characters must come back byte for byte, or "the invisible ones were
+    // escaped" would be satisfied by a function that escaped everything and
+    // made every diagnostic harder to read instead of easier.
+    const ordinary = 'Unexpected token \'{\', "{not json" is not valid JSON';
+    assert.equal(escapeInvisible(ordinary), ordinary);
   });
 });
