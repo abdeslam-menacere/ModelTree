@@ -682,6 +682,118 @@ abdeslam-menacere/ModelTree#652, which argues that the enumeration rather than
 any single command is the unit needing repair; this note exists so that nobody
 reading the list concludes a range is safe bare while that is still open.
 
+That enumeration is itself still a list of instances. It names characters *the
+shell* treats specially, which is not the same set as the characters an argument
+cannot survive, and the `--jq` case below is exactly the gap between the two.
+Stated as the property: **an argument whose correct parse depends on which shell
+reads it must be single-quoted, or eliminated from the command line
+altogether.** The second half is load-bearing rather than a flourish. Single
+quotes close the rev-spec class because nothing in a rev-spec has to be a double
+quote; they do not close a class whose hazardous character *is* the double
+quote, and where the argument cannot be written without one.
+
+#### A `--jq` expression is that argument, and single quotes do not save it
+
+abdeslam-menacere/ModelTree#1102. The trigger is an expression carrying an
+embedded double quote **together with** a space. Neither alone is enough, which
+is why ordinary use does not find it and why it keeps coming back. The
+enumeration above cannot catch it either: the double quote is not on that list,
+and a space is not a character anybody thinks of as shell-dependent.
+
+One question asked seven ways in a single run, against this repository's own
+issue 1102. Everything is held constant except the `--jq` argument —
+`gh issue view <n> --repo <owner>/<repo> --json number,state`:
+
+```
+--jq argument, exactly as written        "    sp   gh printed                    exit
+---------------------------------------  ---  ---  ---------------------------  ----
+".number"                                 no   no  1102                            0
+".number, .state"                         no  yes  1102, OPEN (on two lines)       0
+'.number, .state'                         no  yes  1102, OPEN (on two lines)       0
+".number + \"  \" + .state"              yes  yes  accepts 1 arg(s), received 3    1
+'(.number|tostring) + "  " + .state'     yes  yes  accepts 1 arg(s), received 2    1
+'(.number|tostring)+"/"+.state'          yes   no  failed to parse jq expression   1
+                                                     (.number|tostring)+/+.state
+                                                                        ^ unexpected token "/"
+'"#\(.number) \(.state)"'                yes  yes  missing query (try ".")         1
+```
+
+Row four is the defect as the issue reports it: PowerShell resolves `\"` inside
+a double-quoted string to a literal quote and then re-splits the result on
+whitespace, so one expression reaches `gh` as three arguments and `gh` refuses
+the two it never asked for.
+
+**Rows five and six are why the remedy is not "single-quote it".** Both are in
+single quotes, which are literal in PowerShell, and both failed anyway. Row six
+is the informative one, because `gh` echoed back the argument it actually
+parsed: `(.number|tostring)+/+.state`, with the double quotes *deleted* rather
+than misread. So what happens to this argument is not quote interpretation —
+which single quotes do prevent — but quote stripping when PowerShell
+re-serialises a native command's arguments onto a Win32 command line, which they
+do not. Row five is row six with a space added: the same stripping, and now the
+broken quoting run splits the wreckage into two arguments. Row seven arrives at
+the same place through a backslash instead, and `gh` reports that it received no
+query at all.
+
+Name what was observed before naming what it means. Rows four to seven are
+`gh`'s error text and exit status; they are not a reading of the bytes that
+crossed the process boundary. What is measured is that the quotes were absent
+from what `gh` parsed. That PowerShell's argument re-serialisation removed them,
+rather than something further along, is the explanation those observations best
+support and not a further measurement.
+
+**Rows one to three are the control**, and they are what makes the other four
+findings. Same binary, same subject, same credentials, same run — so a row that
+failed failed on the shape of its argument, and not on an expired token or an
+unreachable API, which would otherwise explain a table of nothing but failures
+just as well.
+
+Single quotes therefore remain the right default for a `--jq` expression
+carrying neither a double quote nor a space — that is rows one to three, and it
+is why the `--jq .mergeCommit.oid` further down this page is written quoted.
+What single quotes do **not** do is make a double-quote-bearing expression safe,
+and neither does the double-quoted form, which is row four. Both of the two
+ordinary ways to quote a string in PowerShell were measured here, and both lose.
+
+**So eliminate the argument**, which is the second half of the property above.
+Ask for the fields and select in the host, so no jq expression ever crosses the
+shell boundary:
+
+```powershell
+$raw = gh issue view <n> --repo <owner>/<repo> --json number,state
+$c   = $LASTEXITCODE
+$obj = $raw | ConvertFrom-Json
+"$($obj.number)  $($obj.state)"
+```
+
+Measured in the same run as the table: `1102  OPEN`, exit 0.
+
+**Read the exit code, never the emptiness of standard output.** This defect is
+usually loud — `gh` exits non-zero and writes its complaint to standard error
+rather than returning an empty result — and that is why nothing has silently
+rotted from it. The residual risk is that the loud failure gets *read* as a
+quiet one. A non-zero exit whose message went to standard error, seen through a
+capture that takes standard output only, looks exactly like "the query returned
+nothing" — and nothing is a legitimate answer to most `gh` queries.
+
+**And that is what it did to a control.** The dock on
+abdeslam-menacere/ModelTree#1081 split its landedness *positive control* into
+three arguments and voided it, and caught that only by re-running. A voided
+control does not merely lose a measurement. It makes a broken instrument look
+verified, because the arm that existed to prove the instrument was live is the
+arm that died — so the run reports a plausible zero, and nothing in it separates
+that zero from a real one. That inverts the property a control exists to
+provide, which is why this case outranks a lost measurement and why it is
+written here rather than left as a footnote about quoting. Step 3 below fixes
+every expected classification before any real result is read, and "did not run"
+is not one of the classifications it can report — so **read the exit code of
+every control arm before you read its output.**
+
+Tested limits: Windows PowerShell 5.1, `gh` invoked as a native command, and the
+seven `--jq` arguments above. Not tested: PowerShell 7, `cmd.exe`, bash on this
+host, or the `-q` shorthand. None of this is claimed to generalise past what was
+run.
+
 ### Step 3 — controls, fixed before any real result is read
 
 Write every expected classification down, then evaluate them all, and only if
@@ -1546,7 +1658,7 @@ A measurement, not a judgement, and it has exactly one comparand: **the squash
 commit, never trunk's tip.**
 
 ```powershell
-$sq  = gh pr view <n> --repo <owner>/<repo> --json mergeCommit --jq .mergeCommit.oid
+$sq  = gh pr view <n> --repo <owner>/<repo> --json mergeCommit --jq '.mergeCommit.oid'
 $cSq = $LASTEXITCODE
 ```
 
