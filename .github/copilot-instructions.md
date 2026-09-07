@@ -2348,20 +2348,44 @@ free text is an `in:body` search.
 
 **The second store, measured.** Asking whether seven in-flight issues had a pull
 request yet, `gh pr list --search "<n> in:body" --state all` returned a merged
-pull request for six of them, every one at exit 0. Four were false: those pull
-requests close abdeslam-menacere/ModelTree#1097,
-abdeslam-menacere/ModelTree#710, abdeslam-menacere/ModelTree#403 and
-abdeslam-menacere/ModelTree#623, none of which is the issue searched for, and
-all four issues read `OPEN` with an empty `closedByPullRequestsReferences` in
-the same run. Two were true. Nothing in the free-text arm separates them, and
-read at face value the four falses would have **stood down four live docks
-mid-implementation** — this subsection's own unrecoverable outcome, not a wasted
-sweep.
+pull request for six of them, every one at exit 0. Four of those six were false.
+The **searched-for** issue is the first column below, what came back is the
+second, and what that pull request actually closes is the third — a different
+issue in every row:
+
+| searched for | the free-text arm returned | which closes |
+|---|---|---|
+| abdeslam-menacere/ModelTree#1109 | abdeslam-menacere/ModelTree#1111 | abdeslam-menacere/ModelTree#1097 |
+| abdeslam-menacere/ModelTree#1016 | abdeslam-menacere/ModelTree#824 | abdeslam-menacere/ModelTree#710 |
+| abdeslam-menacere/ModelTree#1082 | abdeslam-menacere/ModelTree#413 | abdeslam-menacere/ModelTree#403 |
+| abdeslam-menacere/ModelTree#1108 | abdeslam-menacere/ModelTree#630 and abdeslam-menacere/ModelTree#808 | abdeslam-menacere/ModelTree#623 and abdeslam-menacere/ModelTree#767 |
+
+Recorded at 2026-09-07T08:53:11Z, every issue in the **first** column read
+`OPEN` with an empty `closedByPullRequestsReferences`, so on all four the
+asserting field and the free-text arm disagreed. The third column is a property
+of what came back and says nothing about the first, which is the whole of the
+confusion the two arms invite. Two of the six were true. Nothing in the
+free-text arm separates them, and read at face value the four falses would have
+**stood down four live docks mid-implementation** — this subsection's own
+unrecoverable outcome, not a wasted sweep.
 
 Those two turned true *during* the measurement, because the coordinator holding
 the control merged them an hour before it was re-read. A control pinned on "has
 no pull request yet" is pinned on a state still in motion, and here its own
 author's next action decayed it. Pin a control on a terminal state.
+
+**The subject decays the same way that control did, so the first column is a
+reading bound to its instant rather than a standing fact.** Re-read at
+2026-09-07T14:00:57Z, three of those four searched-for issues had since acquired
+a closing pull request of their own, so the set no longer reads `OPEN` with an
+empty field and the run does not reproduce whole. What does reproduce is the
+second row, and it is the **pure** case: searching for
+abdeslam-menacere/ModelTree#1016 returns exactly one pull request,
+abdeslam-menacere/ModelTree#824, which closes abdeslam-menacere/ModelTree#710 —
+both terminal, so that pair holds indefinitely — while at that same instant the
+issue searched for had no closing pull request at all. Every result the
+free-text arm gives for it is wrong, which is this mechanism with nothing else
+mixed in.
 
 **This mechanism also defeats the negative control mandated throughout this
 page.** Four fabricated numbers, same run, same quoting:
