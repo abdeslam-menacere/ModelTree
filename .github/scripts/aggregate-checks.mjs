@@ -6,14 +6,22 @@
  *
  * -- What this closes --
  *
- * Branch protection on `main` requires three contexts. `adr-numbers`,
- * `instruction-references` and the two `pytest` legs are not among them, and
- * they are not required for a reason that is sound rather than an oversight:
- * each is filtered at its trigger by `on.pull_request.paths`, so on a pull
- * request that touches none of those paths the workflow never starts and
- * reports *no check at all* -- and a required check that never reports leaves a
- * pull request pending forever. `adr-numbers.yml` says exactly this in its own
- * header.
+ * Branch protection on `main` requires `web-ci`, `skills-ci`, `web-e2e` and
+ * `aggregate-checks` -- measured 2026-09-07T07:35Z, and dated because which
+ * checks are required is a repository setting that lives outside this tree,
+ * which no file in it can observe: read it with
+ * `gh api "repos/{owner}/{repo}/branches/main/protection"`. That set is
+ * enumerated rather than counted, and stated here once and referred back to
+ * below rather than restated, so a protection change falsifies one line in
+ * this header rather than leaving two passages to disagree.
+ *
+ * `adr-numbers`, `instruction-references` and the two `pytest` legs are not
+ * among them, and they are not required for a reason that is sound rather than
+ * an oversight: each is filtered at its trigger by `on.pull_request.paths`, so
+ * on a pull request that touches none of those paths the workflow never starts
+ * and reports *no check at all* -- and a required check that never reports
+ * leaves a pull request pending forever. `adr-numbers.yml` says exactly this in
+ * its own header.
  *
  * The consequence is that those checks run, and go red, and stop nothing.
  * `mergeStateStatus` still reads `CLEAN`, because that field means "mergeable,
@@ -27,11 +35,11 @@
  * converting *failed* into one.
  *
  * Requiring it was a branch-protection change and an owner action, and that
- * action has been taken: `aggregate-checks` is one of the required contexts on
- * `main` -- measured 2026-09-04. So what this script concludes now decides what
- * can merge. Requirable and required stay separate facts, and only the second
- * lives outside this tree, so that reading is a dated measurement rather than a
- * standing guarantee.
+ * action has been taken -- `aggregate-checks` is in the required set enumerated
+ * at the top of this header. So what this script concludes now decides what can
+ * merge. Requirable and required stay separate facts, and only the second lives
+ * outside this tree, which is why that reading is dated rather than a standing
+ * guarantee.
  *
  * -- Why it reads the API rather than `needs` --
  *
