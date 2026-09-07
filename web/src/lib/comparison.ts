@@ -577,16 +577,38 @@ export const NO_RANKING_NOTE =
   + 'Every observation below is scoped to one attribute, names the records it was read from, and is '
   + 'withheld unless every model in this comparison states that attribute.';
 
+// The four projections below were inline `Pick`s on `ComparisonDataset` until
+// #1088 promoted them to named types. Naming them is what makes
+// `Record<keyof ComparisonPublisher, string>` expressible at the key-map site,
+// which is where the map/projection correspondence has to be enforced — every
+// `rekey` call erases its type at the call site. `ComparisonDataset` still
+// composes them, so each section is declared once rather than twice.
+export type ComparisonPublisher = Pick<Publisher, 'id' | 'name'>;
+
+// `shortName` travels with `name`: the label rule needs both recorded forms
+// to resolve, and a payload carrying only one would render creators
+// differently from the server. See `organization-name.ts`.
+export type ComparisonOrganization = Pick<Organization, 'id' | 'name' | 'shortName'>;
+
+export type ComparisonFamily = Pick<ModelFamily, 'id' | 'name'>;
+
+export type ComparisonServingPlatform = Pick<
+  ServingPlatform,
+  'id' | 'name' | 'type' | 'organizationId'
+>;
+
 export type ComparisonDataset = {
   sources: ComparisonSourceRecord[];
-  publishers: Array<Pick<Publisher, 'id' | 'name'>>;
-  // `shortName` travels with `name`: the label rule needs both recorded forms
-  // to resolve, and a payload carrying only one would render creators
-  // differently from the server. See `organization-name.ts`.
-  organizations: Array<Pick<Organization, 'id' | 'name' | 'shortName'>>;
-  families: Array<Pick<ModelFamily, 'id' | 'name'>>;
+  publishers: ComparisonPublisher[];
+  organizations: ComparisonOrganization[];
+  families: ComparisonFamily[];
   releases: ComparisonRelease[];
-  servingPlatforms: Array<Pick<ServingPlatform, 'id' | 'name' | 'type' | 'organizationId'>>;
+  servingPlatforms: ComparisonServingPlatform[];
+  // Deployments and pricing are the two sections with no `Pick`: the whole
+  // schema record reaches the wire, so for these the schema *is* the
+  // projection and `keyof` reaches every field it declares — including the
+  // optionals no record populates yet, which is exactly where #1088's one real
+  // gap lived.
   deployments: Deployment[];
   pricing: PricingRecord[];
   benchmarks: ComparisonBenchmark[];
@@ -1624,8 +1646,21 @@ export function measureComparisonPayload(payload: ComparisonDataset) {
 // ---------------------------------------------------------------------------
 
 // --- key maps: long → short -----------------------------------------------
+//
+// Every map here is typed against the projection its section ships, so a field
+// added to a projection stops compiling until it is given a code (#1088,
+// generalising #977). `Record<K, string>` is not homomorphic, so optional
+// fields are required keys here too — which is the whole point, since an
+// optional nobody populates yet is precisely the field a runtime guard reading
+// real data cannot see. Without the annotation `rekey` falls back to
+// `map[key] ?? key` and an unmapped field reaches the wire under its long key.
+//
+// The correspondence can only be enforced at these literals: all ten `rekey`
+// calls erase their record type at the call site (`as unknown as
+// Record<string, unknown>[]`), so there is no other place the compiler can see
+// both sides at once.
 
-const RELEASE_KEY_TO_SHORT: Record<string, string> = {
+const RELEASE_KEY_TO_SHORT: Record<keyof ComparisonRelease, string> = {
   id: 'i', slug: 's', canonicalName: 'c', displayName: 'd',
   organizationId: 'o', familyId: 'f', version: 'v', variant: 'a',
   releaseDate: 'r', datePrecision: 'p', status: 't', categories: 'g',
@@ -1635,21 +1670,31 @@ const RELEASE_KEY_TO_SHORT: Record<string, string> = {
   sourceIds: 'S', verifiedAt: 'V',
 };
 
-const SOURCE_KEY_TO_SHORT: Record<string, string> = {
+const SOURCE_KEY_TO_SHORT: Record<keyof ComparisonSourceRecord, string> = {
   id: 'i', url: 'u', title: 't', publisherId: 'p', lastCheckedDate: 'd',
 };
 
-const PUBLISHER_KEY_TO_SHORT: Record<string, string> = { id: 'i', name: 'n' };
-const ORGANIZATION_KEY_TO_SHORT: Record<string, string> = { id: 'i', name: 'n', shortName: 's' };
-const FAMILY_KEY_TO_SHORT: Record<string, string> = { id: 'i', name: 'n' };
+const PUBLISHER_KEY_TO_SHORT: Record<keyof ComparisonPublisher, string> = { id: 'i', name: 'n' };
+const ORGANIZATION_KEY_TO_SHORT: Record<keyof ComparisonOrganization, string> = { id: 'i', name: 'n', shortName: 's' };
+const FAMILY_KEY_TO_SHORT: Record<keyof ComparisonFamily, string> = { id: 'i', name: 'n' };
 
-const SERVING_PLATFORM_KEY_TO_SHORT: Record<string, string> = {
+const SERVING_PLATFORM_KEY_TO_SHORT: Record<keyof ComparisonServingPlatform, string> = {
   id: 'i', name: 'n', type: 't', organizationId: 'o',
 };
 
-const DEPLOYMENT_KEY_TO_SHORT: Record<string, string> = {
+// Indexed against the dataset section rather than against `Deployment`
+// directly: deployments are not projected today, so the schema record is what
+// ships, and writing it this way means the map follows automatically if a
+// `Pick` is ever introduced. `apiIdentifier` and `effectiveTo` are the two
+// codes #1088 added — both schema-optional, both populated by no record in
+// `deployments.json`, so every runtime guard that reads real data passed
+// without ever reaching them. `apiIdentifier` takes the free lowercase initial;
+// `effectiveTo` takes `E` because `e` is `effectiveFrom`, matching the
+// convention `PRICING_KEY_TO_SHORT` already uses for the same pair.
+const DEPLOYMENT_KEY_TO_SHORT: Record<keyof ComparisonDataset['deployments'][number], string> = {
   id: 'i', releaseId: 'r', platformId: 'p', deliveryMode: 'd',
-  regions: 'g', effectiveFrom: 'e', sourceIds: 's', verifiedAt: 'v',
+  apiIdentifier: 'a', regions: 'g', effectiveFrom: 'e', effectiveTo: 'E',
+  sourceIds: 's', verifiedAt: 'v',
 };
 
 // Typed against the projection rather than as a bare `Record<string, string>`,
@@ -1664,7 +1709,7 @@ const BENCHMARK_KEY_TO_SHORT: Record<keyof ComparisonBenchmark, string> = {
   id: 'i', name: 'n', metric: 'm', metricUnit: 'u', direction: 'r',
 };
 
-const PRICING_KEY_TO_SHORT: Record<string, string> = {
+const PRICING_KEY_TO_SHORT: Record<keyof ComparisonDataset['pricing'][number], string> = {
   id: 'i', deploymentId: 'd', currency: 'c', unit: 'u', rates: 'a',
   region: 'g', processingTier: 'p', effectiveFrom: 'e', effectiveTo: 'E',
   sourceIds: 'S', verifiedAt: 'V',
