@@ -19,6 +19,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readJsonInput, escapeInvisible } from './json-input.mjs';
 
 // The dataset documents, exactly as `web/src/data/raw.ts` composes them. Keyed
 // collection name -> file, and the collection names are the ones
@@ -324,9 +325,12 @@ function loadDocuments(dataDir) {
     }
     let parsed;
     try {
-      parsed = JSON.parse(readFileSync(path, 'utf8'));
+      // `--data` names a directory the caller supplies, and a refresh writes
+      // these documents mid-run: one leading U+FEFF is forgiven and nothing
+      // else, and the refusal is rendered visibly. See `json-input.mjs`.
+      parsed = readJsonInput(path);
     } catch (error) {
-      fail('well-formed', `is not valid JSON: ${error.message}`, file);
+      fail('well-formed', `is not valid JSON: ${escapeInvisible(error.message)}`, file);
       loaded[name] = [];
       continue;
     }

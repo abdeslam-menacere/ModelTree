@@ -103,9 +103,10 @@
 // the gate could not run, which is never treated as a pass.
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync, existsSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readJsonInput, escapeInvisible } from './json-input.mjs';
 
 const DATASET_SOURCES = 'web/src/data/sources.json';
 const PROFILE_DIR = 'tools/updater/profiles';
@@ -412,11 +413,14 @@ function main() {
     return 2;
   }
 
+  // Same bundle, same author, same platform as `gate-evidence.mjs` reads, so the
+  // same input-encoding idiom: one leading U+FEFF forgiven, everything else
+  // refused, and the refusal rendered so a reader can see what it names.
   let bundle;
   try {
-    bundle = JSON.parse(readFileSync(bundlePath, 'utf8'));
+    bundle = readJsonInput(bundlePath);
   } catch (error) {
-    process.stderr.write(`gate-source-approval: ${bundlePath} is not valid JSON: ${error.message}\n`);
+    process.stderr.write(`gate-source-approval: ${bundlePath} is not valid JSON: ${escapeInvisible(error.message)}\n`);
     return 2;
   }
 

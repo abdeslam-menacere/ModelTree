@@ -97,9 +97,10 @@
 // auto-merge. Exit 2 = the gate could not run, which is never treated as a pass.
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { resolve, dirname, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readJsonInput, escapeInvisible } from './json-input.mjs';
 
 /** The ledger itself. In the qualifying class as of ADR 0006, and never counted as a dataset document. */
 const LEDGER_PATH = 'web/src/data/refresh-runs.json';
@@ -258,9 +259,13 @@ function readArrayAtWorkingTree(cwd, path) {
   if (!existsSync(onDisk)) return readArrayAtRef(cwd, 'HEAD', path);
   let parsed;
   try {
-    parsed = JSON.parse(readFileSync(onDisk, 'utf8'));
+    // The working-tree copy is the one a run has just written, on whatever
+    // platform it ran on, so it is a caller input in a way the committed copy
+    // `readArrayAtRef` reads is not: one leading U+FEFF is forgiven and nothing
+    // else, and the refusal is rendered visibly. See `json-input.mjs`.
+    parsed = readJsonInput(onDisk);
   } catch (error) {
-    throw new Error(`${path} in the working tree is not valid JSON: ${error.message}`);
+    throw new Error(`${path} in the working tree is not valid JSON: ${escapeInvisible(error.message)}`);
   }
   if (!Array.isArray(parsed)) throw new Error(`${path} in the working tree is not a JSON array`);
   return { present: true, records: parsed };

@@ -74,6 +74,37 @@ Keep the JSON from step 2. Its `anchor`, `anchors`, `inheritedSources`, and
 only place a later reader can see which origins the run was allowed to trust —
 and, in `anchor.selectedBy`, that the run did not pick that anchor for itself.
 
+### The bytes of a file you hand a gate
+
+A bundle you pass to `--claims`, and whatever directory `--data` or `--repo`
+names, are written by the run — on whatever platform the run happened to execute
+on. On Windows PowerShell 5.1, where the docks in this repository work,
+`Set-Content -Encoding utf8` writes a UTF-8 byte order mark and
+`[System.IO.File]::WriteAllText` with a BOM-less encoder does not, and the two
+files are otherwise byte-identical.
+
+**One leading U+FEFF is stripped before parsing; everything else is refused
+exactly as before.** That rule lives in one place,
+[`scripts/json-input.mjs`](scripts/json-input.mjs), which every gate that reads
+a caller-supplied file goes through, and its header records why forgiving was
+chosen over refusing. It is a stripping rule and not a tolerance: a second BOM
+is content once the first has gone and still fails, a BOM anywhere but position
+0 is untouched, and no whitespace, comment, trailing comma or other encoding is
+forgiven. A file with no BOM takes the byte-identical path it always took, so
+nothing here can turn a refusal into a pass — the point of the separation, given
+that everything above rests on 2 never being a pass.
+
+The same module renders every parse failure through `escapeInvisible` before it
+is printed. `JSON.parse` quotes the character it tripped over into its own
+message, and a zero-width character arrives at a terminal as nothing at all: the
+gate then appears to blame an empty token, on a file that opens correctly in
+every editor. A refusal you cannot act on is close to no refusal, so the
+diagnostic names such a character as `\uFEFF` rather than printing it. This is a
+rendering rule for a message and reaches no value any gate reads; invisible
+characters *inside* a creator id are a different position with a different fix,
+tracked as abdeslam-menacere/ModelTree#331. Both halves came from
+abdeslam-menacere/ModelTree#1017.
+
 Then the final hard gate, which is not in this skill because it belongs to the
 site and always has. From `web/`:
 

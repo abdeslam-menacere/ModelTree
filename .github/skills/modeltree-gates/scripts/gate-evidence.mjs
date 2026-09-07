@@ -25,6 +25,7 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve, join, dirname, extname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { readJsonInput, escapeInvisible } from './json-input.mjs';
 
 // The three rubrics from #59's review panel. A bundle must carry exactly these,
 // once each: a panel missing a rubric has not been independently reviewed, and
@@ -449,11 +450,15 @@ function main() {
     return 2;
   }
 
+  // The bundle is written by the run under test, on whatever platform it ran on,
+  // so its bytes are a caller input like any other: `readJsonInput` forgives one
+  // leading U+FEFF and nothing else, and `escapeInvisible` makes whatever is
+  // still wrong visible in the refusal. See `json-input.mjs` for the decision.
   let bundle;
   try {
-    bundle = JSON.parse(readFileSync(path, 'utf8'));
+    bundle = readJsonInput(path);
   } catch (error) {
-    process.stderr.write(`gate-evidence: ${path} is not valid JSON: ${error.message}\n`);
+    process.stderr.write(`gate-evidence: ${path} is not valid JSON: ${escapeInvisible(error.message)}\n`);
     return 2;
   }
 
