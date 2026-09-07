@@ -1997,9 +1997,18 @@ test('a --dry-run issues no request and emits no licence verdict, even with a cl
   try {
     const run = runUnderSentinel(fixture, [fixture.cli, '--dry-run']);
 
-    // The vacuity guard, read first. Every assertion after this one is satisfied
-    // by a run that extracted nothing, so the run has to be shown to have done
-    // the real work before its zeroes mean anything.
+    // The pin, read first, because these are the assertions that name the
+    // property. Each turns red if the licence block -- or only its classifier
+    // load -- is hoisted above the dry-run block's early `return`.
+    assert.equal(run.status, 0, `a dry run must exit 0 even when the classifier cannot load\n${run.stderr}`);
+    assert.doesNotMatch(
+      run.stderr,
+      /could not load the licence identity classifier/,
+      'a dry run must never reach the classifier at all, so it can never refuse over one',
+    );
+
+    // The vacuity guard, read before the two assertions below it, because those
+    // two are absences and an absence is satisfied by a run that did nothing.
     assert.match(run.stdout, /## Source link health — extraction dry run/, run.stderr);
     assert.ok(
       run.stdout.includes('openai-gpt-4-1-announcement'),
@@ -2012,14 +2021,6 @@ test('a --dry-run issues no request and emits no licence verdict, even with a cl
         + 'nothing but the early return keeps it away from the licence block',
     );
 
-    // The pin. Each of these four turns red if the licence block, or only its
-    // classifier load, is hoisted above the dry-run block's early `return`.
-    assert.equal(run.status, 0, `a dry run must exit 0 even when the classifier cannot load\n${run.stderr}`);
-    assert.doesNotMatch(
-      run.stderr,
-      /could not load the licence identity classifier/,
-      'a dry run must never reach the classifier at all, so it can never refuse over one',
-    );
     assert.equal(
       run.stdout.includes(LICENCE_VERDICT_HEADING),
       false,
