@@ -298,6 +298,16 @@ async function main() {
     // Unchanged, and deliberately so: the workflow step that invokes this path
     // treats any non-zero as failure, which is correct for both meanings. What
     // #698 asked for was a payload that says *which* meaning, not a new code.
+    //
+    // LOAD-BEARING ORDERING (#1108). This `return` is the only thing standing
+    // between a dry run and the licence block below. A dry run passes no
+    // baseline, so it took the full-sweep branch above and *has* read the
+    // release records and extracted licence URLs; nothing in the condition on
+    // that block distinguishes it. Moving the block -- or just its classifier
+    // load -- above this line would make a run documented as issuing no request
+    // start issuing them, and would fail every pull request whenever the
+    // classifier could not load. `--dry-run` runs on pull requests. See the
+    // comment on that block, and the ordering tests in `link-health.test.mjs`.
     return malformed.length > 0 ? 1 : 0;
   }
 
@@ -307,10 +317,24 @@ async function main() {
     timeoutMs: args.timeoutMs,
   });
 
-  // The licence identity cross-check (#1085). Only on the full-sweep path,
-  // because that is the only path on which a licence URL is swept at all -- a
-  // `--baseline` run carries source targets only, so there is nothing here to
-  // adjudicate and no way for this to redden a pull request.
+  // The licence identity cross-check (#1085). Two different mechanisms keep it
+  // off the two paths that must not reach it, and they are not the same
+  // mechanism -- naming only the first is what #1108 corrects:
+  //
+  //   * A `--baseline` run is held off by the `releases !== null` condition
+  //     below. That is a real condition: narrowing leaves `releases` null, so a
+  //     pull-request sweep carries source targets only and there is nothing here
+  //     to adjudicate.
+  //
+  //   * A `--dry-run` is held off by **statement ordering alone** -- the early
+  //     `return` in the dry-run block above, and nothing else. A dry run passes
+  //     no baseline, so `releases` is *not* null here and licence URLs *were*
+  //     extracted. The baseline condition does not distinguish it, and would not
+  //     stop it. The ordering is the whole guard, so it is load-bearing and must
+  //     not be reordered "to fail fast on a bad classifier": that single edit
+  //     would redden every pull request whenever the classifier failed to load
+  //     -- the dry run is a pull-request step -- and would make a run documented
+  //     as issuing no request start issuing them.
   //
   // It makes no request. Every URL involved has already been fetched by
   // `checkAll` above, and the verdict is a second fact read off that same
@@ -319,7 +343,9 @@ async function main() {
   // A failure to load the classifier is exit 2 and never a quiet skip. The whole
   // of #1085 is that a check nothing invokes reports the same thing as a check
   // that ran and found nothing; degrading to a reachability-only sweep here
-  // would rebuild that defect one layer down.
+  // would rebuild that defect one layer down. That refusal is correct *here* and
+  // would be a defect one block earlier, which is exactly why the ordering is
+  // pinned by a test rather than only described by this comment.
   let licenceIdentity = null;
   if (releases !== null) {
     let classify;

@@ -28,10 +28,10 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { readFileSync, readdirSync, mkdtempSync, mkdirSync, copyFileSync, writeFileSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 import {
@@ -1868,3 +1868,244 @@ test('a mismatch is actionable, counted, and reported under its own heading', as
   const section = report.split('Licence does not match the identifier claimed')[1].split('###')[0];
   assert.ok(!section.includes('opensource.org'), 'a correct licence URL must not be listed as a mismatch');
 });
+
+/* -------------------------------------------------------------------------- */
+/* The dry run's licence guard is statement ordering, and it is pinned (#1108) */
+/* -------------------------------------------------------------------------- */
+//
+// `check-source-links.mjs` must not let `--dry-run` issue a request or redden a
+// pull request. The review and QA gates on #1085 established -- separately, and
+// in agreement -- that nothing enforces that except where one `return` happens
+// to sit. A dry run passes no baseline, so it takes the full-sweep branch, reads
+// the release records and extracts licence URLs: `releases !== null` is
+// therefore *true* on that path, and the baseline condition guarding the licence
+// block does not distinguish a dry run from a sweep and would not stop one. Only
+// the early `return` in the dry-run block gets there first.
+//
+// So the plausible edit -- "fail fast on a bad classifier", hoisting the licence
+// block or just its classifier load above that `return` -- silently converts a
+// step that runs on every pull request from "exits 0, requests nothing" into
+// "exits 2 whenever the classifier cannot load", and puts requests on a path
+// documented as issuing none. Nothing in the code resisted it, and the one
+// comment a reader would consult first attributed the protection to
+// `--baseline`, so reordering read as safe.
+//
+// The pin below is behavioural rather than textual. It does not assert what
+// order the statements appear in; it asserts the property the ordering is there
+// to buy, so a future refactor that moves the block and keeps the property is
+// free to pass, and one that moves it and loses the property cannot.
+//
+// Three instruments, three two-sided controls, because no one of them guards
+// another:
+//
+//   1. A runnable copy of the checker whose licence classifier is *absent*, so
+//      the dry run executes against a classifier that cannot load. Control: the
+//      same load, resolved through the same specifier the production code uses,
+//      must throw against the fixture and resolve against the committed tree.
+//   2. A `fetch` sentinel installed by `--import` ahead of the CLI, recording
+//      every request and then refusing it. Control: a probe that does fetch must
+//      appear in the same log, or an empty log is blindness and not a finding.
+//   3. The licence verdict's own heading, asserted absent from the dry run.
+//      Control: `renderReport` must emit that exact string when a verdict *is*
+//      present, or its absence is unfalsifiable.
+//
+// And every one of those is read only after a vacuity guard: the run has to be
+// shown to have extracted the committed dataset, licence URLs included, before
+// "it requested nothing" is a statement about anything.
+
+/** The heading `renderReport` writes when, and only when, a licence verdict exists. */
+const LICENCE_VERDICT_HEADING = '### Licence identity cross-check';
+
+/**
+ * A complete copy of the checker's runtime. `link-health.mjs` has no imports at
+ * all, so these three files are the whole of it.
+ */
+const CHECKER_FILES = ['check-source-links.mjs', 'link-health.mjs', 'exclusions.json'];
+
+/**
+ * Evaluated by `--import` before the CLI, and therefore before `withDefaults`
+ * reads `globalThis.fetch`. It records first and refuses second: a request that
+ * was issued has to be visible even though it is not allowed to succeed.
+ */
+const SENTINEL_SOURCE = [
+  "import { appendFileSync } from 'node:fs';",
+  '',
+  'globalThis.fetch = async (input) => {',
+  "  const url = typeof input === 'string' ? input : (input?.url ?? String(input));",
+  "  appendFileSync(process.env.LINK_HEALTH_REQUEST_LOG, url + '\\n');",
+  "  throw new Error('fetch sentinel: this process must not reach the network');",
+  '};',
+  '',
+].join('\n');
+
+/**
+ * A runnable checker tree whose licence classifier is deliberately missing.
+ *
+ * The checker resolves the dataset and the classifier relative to its own file,
+ * so copying it elsewhere removes the classifier without touching the committed
+ * one -- no loader hook, no monkey-patching, and nothing mutated under `web/`.
+ */
+function makeOrderingFixture() {
+  const root = mkdtempSync(resolve(tmpdir(), 'link-health-ordering-'));
+  const scripts = resolve(root, '.github', 'scripts', 'source-link-health');
+  const data = resolve(root, 'web', 'src', 'data');
+
+  mkdirSync(scripts, { recursive: true });
+  mkdirSync(data, { recursive: true });
+  // `web/src/lib/` is never created. That absence is the fixture.
+
+  for (const name of CHECKER_FILES) copyFileSync(resolve(HERE, name), resolve(scripts, name));
+  copyFileSync(SOURCES_FILE, resolve(data, 'sources.json'));
+  copyFileSync(RELEASES_FILE, resolve(data, 'releases.json'));
+
+  const log = resolve(root, 'requests.log');
+  writeFileSync(log, '', 'utf8');
+  const sentinel = resolve(root, 'fetch-sentinel.mjs');
+  writeFileSync(sentinel, SENTINEL_SOURCE, 'utf8');
+
+  return {
+    root,
+    log,
+    sentinel,
+    cli: resolve(scripts, 'check-source-links.mjs'),
+    lib: resolve(scripts, 'link-health.mjs'),
+    dispose: () => rmSync(root, { recursive: true, force: true }),
+  };
+}
+
+/** Every URL the sentinel saw, in order. */
+function requestsMade(fixture) {
+  return readFileSync(fixture.log, 'utf8')
+    .split('\n')
+    .filter((line) => line !== '');
+}
+
+function runUnderSentinel(fixture, argv) {
+  return spawnSync(process.execPath, ['--import', pathToFileURL(fixture.sentinel).href, ...argv], {
+    encoding: 'utf8',
+    cwd: fixture.root,
+    env: { ...process.env, LINK_HEALTH_REQUEST_LOG: fixture.log },
+  });
+}
+
+/** The specifier `link-health.mjs` uses for the classifier, quoted once and shared. */
+const CLASSIFIER_SPECIFIER = '../../../web/src/lib/licence-url-identity.ts';
+
+test('a --dry-run issues no request and emits no licence verdict, even with a classifier that cannot load (#1108)', () => {
+  const fixture = makeOrderingFixture();
+
+  try {
+    const run = runUnderSentinel(fixture, [fixture.cli, '--dry-run']);
+
+    // The pin, read first, because these are the assertions that name the
+    // property. Each turns red if the licence block -- or only its classifier
+    // load -- is hoisted above the dry-run block's early `return`.
+    assert.equal(run.status, 0, `a dry run must exit 0 even when the classifier cannot load\n${run.stderr}`);
+    assert.doesNotMatch(
+      run.stderr,
+      /could not load the licence identity classifier/,
+      'a dry run must never reach the classifier at all, so it can never refuse over one',
+    );
+
+    // The vacuity guard, read before the two assertions below it, because those
+    // two are absences and an absence is satisfied by a run that did nothing.
+    assert.match(run.stdout, /## Source link health — extraction dry run/, run.stderr);
+    assert.ok(
+      run.stdout.includes('openai-gpt-4-1-announcement'),
+      'the fixture must extract the committed dataset, or "no requests" is a fact about an empty run',
+    );
+    const [, licences] = run.stderr.match(/and (\d+) licence URL\(s\) merge/) ?? [];
+    assert.ok(
+      Number(licences) > 0,
+      'the dry run must have taken the full-sweep branch and extracted licence URLs -- that is exactly why '
+        + 'nothing but the early return keeps it away from the licence block',
+    );
+
+    assert.equal(
+      run.stdout.includes(LICENCE_VERDICT_HEADING),
+      false,
+      'a dry run adjudicates nothing, so it must emit no licence verdict',
+    );
+    assert.deepEqual(requestsMade(fixture), [], 'a dry run must issue no request whatsoever');
+  } finally {
+    fixture.dispose();
+  }
+});
+
+test('the fixture really does make the classifier unloadable, and the committed tree really does not', async () => {
+  // Control for instrument 1. Both arms resolve the classifier through the same
+  // specifier the production code uses, against each tree's own module, so the
+  // control cannot drift from the expression it is a control for.
+  const fixture = makeOrderingFixture();
+
+  try {
+    const absent = new URL(CLASSIFIER_SPECIFIER, pathToFileURL(fixture.lib));
+    const present = new URL(CLASSIFIER_SPECIFIER, pathToFileURL(resolve(HERE, 'link-health.mjs')));
+
+    let fixtureFailure = null;
+    try {
+      await loadLicenceClassifier(absent);
+    } catch (error) {
+      fixtureFailure = error;
+    }
+
+    const committed = await loadLicenceClassifier(present);
+
+    assert.ok(fixtureFailure, `${absent.href} must fail to load, or the dry-run test above proves nothing`);
+    assert.equal(typeof committed, 'function', 'the same probe must resolve against the committed classifier');
+  } finally {
+    fixture.dispose();
+  }
+});
+
+test('the request sentinel records a request when one is made, so an empty log is a finding', () => {
+  // Control for instrument 2, both arms in one run against one fixture: an
+  // instrument that logs nothing whatever happens cannot tell a quiet run from a
+  // broken recorder. The positive arm is taken first and unconditionally, so the
+  // control stays readable under a mutation that breaks the subject -- a control
+  // that can only be collected when the subject behaves is unavailable at
+  // exactly the moment it is needed.
+  const fixture = makeOrderingFixture();
+
+  try {
+    const before = requestsMade(fixture);
+
+    const control = 'https://example.invalid/link-health-sentinel-control';
+    const probe = resolve(fixture.root, 'sentinel-control.mjs');
+    writeFileSync(probe, `await fetch('${control}').catch(() => {});\n`, 'utf8');
+
+    const probeRun = runUnderSentinel(fixture, [probe]);
+    assert.equal(probeRun.status, 0, probeRun.stderr);
+    const afterProbe = requestsMade(fixture);
+
+    assert.deepEqual(before, [], 'a fresh fixture starts from an empty log');
+    assert.deepEqual(afterProbe, [control], 'the sentinel must see a request that is actually made');
+    assert.notDeepEqual(before, afterProbe, 'the two arms must differ, or the sentinel measures nothing');
+
+    // Negative arm. The log is shared across runs in this fixture, so the dry run
+    // is asked to add nothing to it rather than to leave it empty.
+    const dryRun = runUnderSentinel(fixture, [fixture.cli, '--dry-run']);
+    assert.equal(dryRun.status, 0, dryRun.stderr);
+    assert.deepEqual(requestsMade(fixture), afterProbe, 'the dry run must add no request to the log');
+  } finally {
+    fixture.dispose();
+  }
+});
+
+test('the licence verdict heading is findable when a verdict is present, and absent when there is none', () => {
+  // Control for instrument 3. If `renderReport` ever stopped writing this
+  // string, the dry-run assertion that it is absent would pass over a report
+  // full of verdicts -- an unfalsifiable absence, which is not evidence.
+  const tally = { adjudicated: 1, agrees: 1, disagrees: 0, abstained: 0, byReason: {} };
+
+  assert.ok(
+    renderReport([], { licenceIdentity: tally }).includes(LICENCE_VERDICT_HEADING),
+    `renderReport must still write ${LICENCE_VERDICT_HEADING} when a licence verdict exists`,
+  );
+  assert.equal(
+    renderReport([], { licenceIdentity: null }).includes(LICENCE_VERDICT_HEADING),
+    false,
+    'and must not write it when there is no verdict, or the marker says nothing either way',
+  );
+});
+
