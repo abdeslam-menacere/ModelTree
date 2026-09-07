@@ -631,7 +631,7 @@ describe('the preflight cannot be talked into a pass', () => {
     // The companion to the failure case, and the more important of the two. An
     // exit of 1 proves nothing on its own: a command that was never spawned also
     // exits non-zero, which is how a Windows quoting bug once turned every
-    // node-based check red while this suite stayed green. Standing in the four
+    // node-based check red while this suite stayed green. Standing in the
     // scripts that skills-ci runs, each exiting 0, distinguishes "the check ran
     // and passed" from "the check could not start".
     const repo = scratchRepo();
@@ -639,11 +639,13 @@ describe('the preflight cannot be talked into a pass', () => {
     try {
       const git = (...args: string[]) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' });
 
-      // These six are published rather than changed, so they stand in for
-      // commands that exist without widening the diff: the change itself is the
-      // one file under .github/scripts/, which selects skills-ci alone. All seven
-      // of the job's commands have to stand in, or the assertion below reads "a
-      // command could not start" as the failure it is meant to rule out.
+      // These are published rather than changed, so they stand in for commands
+      // that exist without widening the diff: the change itself is the one file
+      // under .github/scripts/, which selects skills-ci alone. Every one of the
+      // job's commands has to stand in, or the assertion below reads "a command
+      // could not start" as the failure it is meant to rule out. The list is
+      // stated without a count, because a hand-written total goes stale one
+      // command sooner than the list it describes does.
       for (const stub of [
         '.github/skills/modeltree-gates/scripts/gates.test.mjs',
         '.github/skills/modeltree-gates/scripts/gate-dataset.mjs',
@@ -651,6 +653,9 @@ describe('the preflight cannot be talked into a pass', () => {
         '.github/scripts/check-gate-independence.mjs',
         '.github/scripts/check-shell-invocations.test.mjs',
         '.github/scripts/gate-arm-guard.mjs',
+        '.github/scripts/check-test-registries.mjs',
+        '.github/scripts/check-test-registries.test.mjs',
+        '.github/skills/modeltree-scout/tests/check-bundle-pairing.test.mjs',
       ]) {
         const target = join(repo, stub);
         mkdirSync(dirname(target), { recursive: true });
