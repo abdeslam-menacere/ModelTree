@@ -186,14 +186,38 @@ describe('a degenerate budget file must not read as a covered one', () => {
 });
 
 describe('expectedFigureLabels keeps a printed denominator honest', () => {
-  it('counts the thirteen figures the real budget file asks for', () => {
+  it('counts every figure the real budget file asks for, re-derived from the file', () => {
     // docs/product/PERFORMANCE-BUDGETS.md publishes "13 figures compared, 13
-    // identical, 0 moved" from the runway probe's mechanism control. Six fixed
-    // routes + passport critical + passport js + providers critical + four
-    // globals = 13, and this is the arithmetic that has to keep re-deriving.
+    // identical, 0 moved" from the runway probe's mechanism control run at
+    // d5907b3bdc. That figure is bound to a named commit as history, so it stays
+    // true OF THAT COMMIT and is not the count today: #1065 added a seventh
+    // fixed route (`methodology`, the one route in the build linking a
+    // page-specific stylesheet), which is precisely the move this module exists
+    // to absorb. So the expectation is re-derived from the file rather than
+    // bumped to the next constant -- a constant restated beside the data file
+    // that holds the authority is the #1030 defect itself, and updating it to 14
+    // would rebuild that defect one number later.
+    //
+    // The sum is written out here independently of `expectedFigureLabels`, not
+    // read back from it, so a category silently vanishing from that function
+    // still fails this arm rather than moving both sides together.
+    const groups = realBudgets.routeGroups as { jsMaxRaw?: number }[];
+    const expectedCount =
+      realBudgets.fixedRoutes.length +
+      groups.length +
+      groups.filter((g) => typeof g.jsMaxRaw === 'number').length +
+      4; // globals: js, css, font, _astro dir
+
     const labels = expectedFigureLabels(realBudgets);
-    expect(labels).toHaveLength(13);
+    expect(labels).toHaveLength(expectedCount);
+    // Non-vacuous: an emptiness matching an emptiness would satisfy the equality
+    // above, and the four globals alone would satisfy any count that ignored the
+    // file's routes.
+    expect(expectedCount).toBeGreaterThan(4);
     expect(labels).toContain('route:updates');
+    // #1065: the seventh route is in the denominator every report prints, which
+    // is the whole of what putting it in `fixedRoutes` was for.
+    expect(labels).toContain('route:methodology');
     expect(labels).toContain('group:passport js');
     expect(labels).toContain('global:_astro dir');
   });
