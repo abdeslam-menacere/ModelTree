@@ -420,6 +420,59 @@ jobs:
         if: steps.scope.outputs.run == 'true'
         run: node .github/scripts/gate-arm-guard.mjs self-test
 
+      # Nothing under `.github/` discovers its tests by globbing. This workflow,
+      # `source-link-health.yml` and `ci-preflight.mjs` each enumerate the
+      # filenames by hand, and none of the three can see the directory they are
+      # drawn from. A `*.test.mjs` added without an entry is not a failing test
+      # and not a skipped test: it is a file nothing opens, and it reports
+      # nothing at all. `check-bundle-pairing.test.mjs` sat in that state: a
+      # whole suite of passing tests that had never run in CI
+      # (abdeslam-menacere/ModelTree#1086).
+      #
+      # The checker measures each registry against a *directory listing*, never
+      # against another registry. That is the whole design: when the defect was
+      # found the two registries agreed with each other -- both omitted the same
+      # file -- so their agreement was what made it invisible.
+      #
+      # Like the checkers above it takes no arguments, proves both of its rules
+      # fire and that neither fires on a clean corpus before it reads a file,
+      # and treats an empty listing as an error rather than a pass.
+      - name: Refuse a test file that no registry runs
+        if: steps.scope.outputs.run == 'true'
+        run: node .github/scripts/check-test-registries.mjs
+
+      # What pins the checker above. Its own self-check drives the comparison
+      # and the extractor with literal data and never builds a repository, so
+      # the directory walk, the three registry paths, both vacuity refusals and
+      # the exit codes would otherwise ship unpinned.
+      #
+      # The suite runs the committed script over fixture corpora in a temporary
+      # repository root -- the shipped bytes, not a reimplementation -- and
+      # every case carries an arm required to come back differing: a corpus arm
+      # that removes a registration, or a mutation arm that deletes the rule the
+      # case depends on.
+      #
+      # It also covers the one direction the real repository cannot exhibit.
+      # Coverage is a union, and on trunk every test file is named by two
+      # registries, so removing one registration correctly passes. The fixtures
+      # include files named by exactly one registry, where removing that one is
+      # the removal of the last and the checker does fail.
+      - name: Pin the test registry guard
+        if: steps.scope.outputs.run == 'true'
+        run: node --test .github/scripts/check-test-registries.test.mjs
+
+      # The tests the checker above was written because nobody was running. They
+      # cover `check-bundle-pairing.mjs`, which the scout skill runs to refuse a
+      # claim bundle that adds a source without a paired citation -- the
+      # fail-open case that would let dead provenance through.
+      #
+      # They belong in *this* job because its scope pattern includes
+      # `.github/skills/` as a whole directory, so an edit to the checker they
+      # pin, or to the skill that runs it, selects this step.
+      - name: Run the scout bundle-pairing tests
+        if: steps.scope.outputs.run == 'true'
+        run: node --test .github/skills/modeltree-scout/tests/check-bundle-pairing.test.mjs
+
       # The step that turns a skip into a *report*. Without it a pull request
       # touching no gate input would run a job with every step skipped, and the
       # point of the restructure is that the check always concludes.
