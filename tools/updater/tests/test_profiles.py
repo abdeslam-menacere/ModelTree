@@ -140,6 +140,91 @@ def test_a_malformed_profile_fails_loudly(tmp_path) -> None:
         load_profile(bad)
 
 
+# --- Bytes that are not valid UTF-8 reach all three loaders alike (#1101) ---
+# `read_text` raises `UnicodeDecodeError` before the parser is reached, and that is a
+# `ValueError` rather than an `OSError` or a `json.JSONDecodeError` — so it fell
+# outside the clause all three loaders had hand-copied and left the codec's own
+# traceback as the answer, naming `codecs.py` instead of the document. The three now
+# read through `profiles._read_json_document`, but each loader states the case for
+# itself rather than trusting that the shared reader is reached from it: the sharing
+# is the fix, and a test that only exercised one caller could not tell a shared
+# reader from a repaired copy.
+
+# `\xe9` is Latin-1 `é`. As UTF-8 it opens a three-byte sequence and the next byte is
+# `"`, which is not a continuation — so the codec refuses it rather than mis-decoding
+# it. Written as *bytes*: `write_text` would re-encode this into valid UTF-8 and the
+# test would exercise nothing.
+NOT_UTF8_DOCUMENT = b'{"creator": {"id": "acme", "name": "Acme caf\xe9"}}'
+
+
+def _reviewed_profile_bytes() -> bytes:
+    """A document this loader genuinely accepts, taken from the reviewed set.
+
+    Read from `profiles/` rather than hand-built so the control cannot drift away from
+    the schema it is controlling for: a hand-written minimum that stopped satisfying
+    `load_profile` would fail for its own reasons and be read as the guard breaking.
+    """
+    return sorted(DEFAULT_PROFILES_DIR.glob("*.json"))[0].read_bytes()
+
+
+def test_a_profile_whose_bytes_are_not_utf8_is_refused_naming_the_file(tmp_path) -> None:
+    """The refusal names the document; the codec's own message is kept, not replaced.
+
+    Asserting the codec's sentence survives is what distinguishes this route from the
+    BOM one below, which is refused by the parser instead. Without that, both tests
+    would pass against a loader that had collapsed the two into one vague answer.
+    """
+    bad = tmp_path / "latin1.json"
+    bad.write_bytes(NOT_UTF8_DOCUMENT)
+
+    with pytest.raises(ProfileError) as error:
+        load_profile(bad)
+
+    message = str(error.value)
+    assert "latin1.json" in message
+    assert "could not be read" in message
+    assert "codec" in message
+
+
+def test_a_valid_profile_still_loads_beside_the_encoding_guard(tmp_path) -> None:
+    """The two-sided control: the guard must not have made the loader refuse in general.
+
+    This passes both before and after #1101, which is the point — it is what makes the
+    red arm of the test above attributable to the encoding gap rather than to the
+    module being broken outright.
+    """
+    good = tmp_path / "good.json"
+    good.write_bytes(_reviewed_profile_bytes())
+
+    profile = load_profile(good)
+
+    assert profile.creator_id
+    assert profile.catalog
+
+
+def test_a_bom_profile_keeps_the_json_refusal_it_already_had(tmp_path) -> None:
+    """A BOM was never the broken case, and must not be routed anywhere worse (#1101).
+
+    A UTF-8 BOM survives `read_text(encoding="utf-8")` as `\\ufeff` and then fails in
+    the parser as a `JSONDecodeError` — already inside the handled set before this
+    change, and still refused by that arm rather than by the new one. Worth pinning
+    because `Set-Content -Encoding utf8` writes a BOM on Windows PowerShell, so a
+    contributor generating a document locally hits the arm that was never broken and
+    could reasonably conclude encoding was handled in general.
+    """
+    bom = tmp_path / "bom.json"
+    bom.write_bytes(b"\xef\xbb\xbf" + _reviewed_profile_bytes())
+
+    with pytest.raises(ProfileError) as error:
+        load_profile(bom)
+
+    message = str(error.value)
+    assert "bom.json" in message
+    assert "could not be read" in message
+    assert "BOM" in message
+    assert "codec" not in message
+
+
 def test_default_profiles_directory_is_the_versioned_one() -> None:
     """Which directory a *checkout* defaults to — when there is a checkout (#212).
 

@@ -1483,3 +1483,74 @@ def test_the_long_tail_flag_alone_still_resolves_the_default_reviewed_profile() 
 def test_neither_flag_still_leaves_a_run_with_no_long_tail_profile() -> None:
     """The ordinary path is untouched: no profile, and so the majority policy."""
     assert _long_tail_profile(_parsed_run([])) is None
+
+
+# --- Bytes that are not valid UTF-8 reach this loader too (#1101) ---
+# The third statement of the same case. `load_long_tail_profile` had its own copy of
+# the `except (OSError, json.JSONDecodeError)` clause, so `UnicodeDecodeError` — a
+# `ValueError` raised by `read_text` before the parser is reached — escaped here
+# exactly as it did in the other two. All three now read through
+# `profiles._read_json_document`; this is stated per loader rather than once, because
+# the sharing is the fix and a single test could not tell a shared reader from one
+# repaired copy.
+
+# Latin-1 `é` opening a three-byte UTF-8 sequence that has no continuation, written as
+# bytes so it is not silently re-encoded into something valid.
+NOT_UTF8_DOCUMENT = b'{"profile": {"id": "long-tail-generic", "name": "caf\xe9"}}'
+
+
+def test_a_long_tail_profile_whose_bytes_are_not_utf8_is_refused(tmp_path) -> None:
+    """Named refusal carrying the codec's own sentence, not a traceback out of it.
+
+    Asserting `codec` is what separates this route from the BOM one below, which the
+    parser refuses instead; without it both tests would pass against a loader that had
+    collapsed the two into one vague answer.
+    """
+    bad = tmp_path / "latin1.json"
+    bad.write_bytes(NOT_UTF8_DOCUMENT)
+
+    with pytest.raises(ProfileError) as error:
+        load_long_tail_profile(bad)
+
+    message = str(error.value)
+    assert "latin1.json" in message
+    assert "could not be read" in message
+    assert "codec" in message
+
+
+def test_a_valid_long_tail_profile_still_loads_beside_the_encoding_guard(
+    tmp_path,
+) -> None:
+    """The two-sided control, and it passes on both sides of #1101 deliberately.
+
+    That is what makes the red arm above attributable to the encoding gap rather than
+    to this module having been broken outright by the change.
+    """
+    good = _custom_profile_file(tmp_path / "good.json", profile_id="long-tail-generic")
+
+    profile = load_long_tail_profile(good)
+
+    assert profile.id == "long-tail-generic"
+    assert profile.unresolved_topics
+
+
+def test_a_bom_long_tail_profile_keeps_the_refusal_it_already_had(tmp_path) -> None:
+    """A BOM was already refused by the parser arm, and still is (#1101).
+
+    Pinned because `Set-Content -Encoding utf8` writes a BOM on Windows PowerShell, so
+    a contributor hand-generating a profile hits the arm that was never broken and
+    could conclude encoding was handled in general. It was not; only that one accident
+    was, and this change did not move it.
+    """
+    reviewed = _custom_profile_file(tmp_path / "source.json")
+    bom = tmp_path / "bom.json"
+    bom.write_bytes(b"\xef\xbb\xbf" + reviewed.read_bytes())
+
+    with pytest.raises(ProfileError) as error:
+        load_long_tail_profile(bom)
+
+    message = str(error.value)
+    assert "bom.json" in message
+    assert "could not be read" in message
+    assert "BOM" in message
+    assert "codec" not in message
