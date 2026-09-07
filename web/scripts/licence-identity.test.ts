@@ -124,6 +124,20 @@ describe('the licence-identity CLI over the real dataset', () => {
     expect(adjudicated).toBeGreaterThan(0);
     expect(adjudicated).toBeLessThan(report.coverage.checkable);
     expect(report.reasons['no-spdx-id']).toBe(report.coverage.urlWithoutSpdxId);
+    // The twin relation, absent until #1077 because both no-field populations
+    // shared one code and so could not both be reconciled against the coverage
+    // table. `no-licence-url` is now exactly the population its prose names.
+    expect(report.reasons['no-licence-url']).toBe(report.coverage.spdxIdWithoutUrl);
+    // The neither-field population has no coverage row of its own, so it is named
+    // as the remainder. Asserted non-zero as well, or the relation above would
+    // hold vacuously against a build where the split had been undone.
+    expect(report.reasons['no-licence-fields']).toBe(
+      report.coverage.withLicence -
+        report.coverage.checkable -
+        report.coverage.urlWithoutSpdxId -
+        report.coverage.spdxIdWithoutUrl,
+    );
+    expect(report.reasons['no-licence-fields']).toBeGreaterThan(0);
     expect(report.classifiedAgainstFinalUrl).toBe(0);
 
     expect(readFileSync(reportPath, 'utf8')).toMatch(/Reachability is not correctness/);
