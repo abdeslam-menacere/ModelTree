@@ -24,6 +24,8 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { brotliCompressSync, gzipSync } from 'node:zlib';
 
+import { isStylesheetRel, startTags } from './html-scan.mjs';
+
 /** raw / gzip / brotli byte lengths of a buffer. */
 export function sizes(buf) {
   return { raw: buf.length, gzip: gzipSync(buf).length, brotli: brotliCompressSync(buf).length };
@@ -114,21 +116,44 @@ export function analyzeRoute(dist, routeHtml, caches = { importCache: new Map(),
   const html = readFileSync(join(dist, routeHtml), 'utf8');
 
   const jsEntries = new Set();
-  for (const m of html.matchAll(/component-url="([^"]+)"/g)) jsEntries.add(astroName(m[1]));
-  for (const m of html.matchAll(/renderer-url="([^"]+)"/g)) jsEntries.add(astroName(m[1]));
-  for (const m of html.matchAll(/<script[^>]+src="([^"]+)"/g)) {
-    const n = astroName(m[1]);
-    if (n && n.endsWith('.js')) jsEntries.add(n);
-  }
-
   const cssNames = new Set();
-  for (const m of html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)) {
-    const n = astroName(m[1]);
-    if (n) cssNames.add(n);
-  }
-
   const imgUrls = new Set();
-  for (const m of html.matchAll(/<img[^>]+src="([^"]+)"/g)) imgUrls.add(m[1]);
+
+  // One tokenizer pass replaces the five element-matching patterns this scanner
+  // used to run over the raw text (#1081). The stylesheet one was the reported
+  // defect -- it demanded `rel` before `href` and double quotes, so a valid
+  // stylesheet written any other way was invisible and its bytes, plus every
+  // @font-face woff2 it cascades to below, went silently unbilled.
+  //
+  // The other four are fixed here rather than left for later, which is a
+  // decision and not an oversight. They shared the double-quote assumption, they
+  // are the same bug on the same input, and leaving them would keep the class
+  // alive after the issue that names it is closed -- exactly how this repository
+  // has regenerated a scanner defect before. Attribute-order brittleness was
+  // unique to the stylesheet pattern; the quote-character brittleness was
+  // common to all five.
+  //
+  // See `html-scan.mjs` for why this is a tokenizer and not a wider pattern, and
+  // for the measured reason it is not jsdom.
+  for (const { name, attrs } of startTags(html)) {
+    const componentUrl = attrs.get('component-url');
+    if (componentUrl) jsEntries.add(astroName(componentUrl));
+    const rendererUrl = attrs.get('renderer-url');
+    if (rendererUrl) jsEntries.add(astroName(rendererUrl));
+
+    if (name === 'script') {
+      const src = attrs.get('src');
+      const n = src ? astroName(src) : null;
+      if (n && n.endsWith('.js')) jsEntries.add(n);
+    } else if (name === 'link' && isStylesheetRel(attrs.get('rel'))) {
+      const href = attrs.get('href');
+      const n = href ? astroName(href) : null;
+      if (n) cssNames.add(n);
+    } else if (name === 'img') {
+      const src = attrs.get('src');
+      if (src) imgUrls.add(src);
+    }
+  }
 
   const fontNames = new Set();
   for (const c of cssNames) for (const f of fontsOf(astroDir, c, caches.fontCache)) fontNames.add(f);
