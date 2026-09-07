@@ -2156,7 +2156,8 @@ which you have by looking at the output, so capture first and slice the
 variable. That is not `merge-tree`'s defect, nor git's.
 
 These documents read three other families of probe by exit code, and the same
-pipe corrupts each. `.github/scripts/ci-preflight.mjs`, where 2 is never a pass;
+pipe corrupts each. `.github/scripts/ci-preflight.mjs`, where no non-zero exit
+is a pass;
 `npm run validate` the same way; and — the sharpest of the three — the gate
 scripts under `.github/skills/modeltree-gates/scripts/`, whose contract
 `.github/skills/modeltree-gates/SKILL.md` states as **0** passed, **1** a gate
@@ -2990,12 +2991,33 @@ The site is a static Astro build; everything lives under `web/`.
 
   It selects the pull-request checks your branch's diff actually triggers,
   measured from `git merge-base HEAD refs/remotes/origin/main`, and runs their
-  commands locally. Exit 0 passed, 1 a check failed, 2 a check could not run or
-  there was nothing to run — and 2 is never a pass. It prints what it does
-  **not** cover on every run, including the networked link-health sweep and the
-  second Python interpreter; read that before treating a green preflight as a
-  green CI.
-  `.github/workflows/README.md` records the full mapping and its limits.
+  commands locally.
+
+  **What comes back is a fact about the checkout you ran it from, and not only
+  about your branch.** Both ends of the range it measures are derived from
+  `HEAD`, so they move together and cannot separate. Run it from a worktree
+  whose `HEAD` is trunk — the ordinary situation of a gate or a review checkout
+  — and it measures no files and selects nothing, because there is no width
+  between the two ends to measure. **That is a statement about where you were
+  standing, and it is not a pass.** It is also a different state from a real
+  change that legitimately selects no check group, which is a statement about
+  the diff. The script names the two separately, so read which one you were
+  given rather than inferring it from the bare fact that nothing ran: the
+  remedies are opposite, the first meaning *re-run from the subject tip* and the
+  second meaning *there is genuinely nothing here to check*. Neither is a pass.
+  There is deliberately no flag naming some other tip, and deliberately no
+  fallback to another ref when the range comes back empty — an empty range is
+  sometimes the truth, and guessing at a subject would replace a legible
+  ambiguity with an illegible one. **So stand at the tip you want measured**,
+  and treat every outcome other than a clean pass as unverified. Read the exit
+  vocabulary from the script's own `--help` and header rather than from memory
+  or from this file, so that the two cannot drift apart. Recorded as
+  abdeslam-menacere/ModelTree#1109.
+
+  It prints what it does **not** cover on every run, including the networked
+  link-health sweep and the second Python interpreter; read that before treating
+  a green preflight as a green CI. `.github/workflows/README.md` records the
+  full mapping and its limits.
 - **Data changes are reviewable repository changes.** Seed data is versioned
   JSON in `web/src/data/`, validated with Zod. Never fetch at runtime — there is
   no database and no live API monitoring.
