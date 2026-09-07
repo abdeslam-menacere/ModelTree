@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import { dataset } from '../data/dataset';
-import { benchmarkResultSchema } from '../data/schema';
+import {
+  benchmarkResultSchema,
+  deploymentSchema,
+  pricingRecordSchema,
+  type Deployment,
+  type PricingRecord,
+} from '../data/schema';
 import {
   COMPARE_QUERY_PARAMETER,
   COMPARISON_GROUP_ORDER,
@@ -1414,6 +1420,138 @@ describe('comparison payload', () => {
       'the fixture reaches no key the real dataset misses, so it adds no coverage over '
       + '"compacts every key" and cannot see an omitted entry',
     ).toBeGreaterThan(0);
+  });
+
+  it('compacts every key a deployment or pricing record CAN carry, not just the ones data sets (#1088)', () => {
+    // The companion to the benchmark-result guard above, for the two sections
+    // that have no `Pick`. `ComparisonDataset` ships `Deployment[]` and
+    // `PricingRecord[]` whole, so for these two the schema *is* the projection
+    // and every field it declares reaches the wire the moment a record sets it.
+    // That makes a schema-optional field nobody populates yet invisible to any
+    // guard that reads the shipped dataset — the same tautology #977 records,
+    // arrived at from the opposite direction.
+    //
+    // Both sections were in exactly that state when this was written, and they
+    // failed differently, which is why neither one alone would have been enough
+    // to notice:
+    //
+    //   * `apiIdentifier` and `effectiveTo` are declared by `deploymentSchema`
+    //     and set by none of the deployments in the dataset, so
+    //     `DEPLOYMENT_KEY_TO_SHORT` omitted both while "compacts every key"
+    //     passed over all of them.
+    //   * pricing ships **zero records**, so that guard iterates an empty array
+    //     and passes without reading one key. An uncovered map and a fully
+    //     covered one produce identical output there, so its apparent pass
+    //     carried no information at all.
+    //
+    // Field universes are read off `.shape` rather than listed here, so a field
+    // added to either schema fails the maximality assertion below until this
+    // fixture populates it, and then fails the compaction assertion until it is
+    // given a short code. Nothing in this test pins a field count.
+    const deploymentSeed = dataset.deployments[0];
+    expect(deploymentSeed, 'the dataset must carry a deployment to build the fixture from').toBeDefined();
+
+    const maximalDeployment: Deployment = {
+      ...deploymentSeed!,
+      apiIdentifier: 'maximal-fixture-api-identifier',
+      effectiveTo: deploymentSeed!.verifiedAt,
+    };
+
+    // Built rather than seeded, because there is no record to seed from: the
+    // shipped dataset has no pricing at all. Dates and source ids are borrowed
+    // from a real deployment so the fixture stays a record the schema accepts.
+    const maximalPricing: PricingRecord = {
+      id: 'maximal-fixture-pricing-record',
+      deploymentId: deploymentSeed!.id,
+      currency: 'USD',
+      unit: 'per-1m-tokens',
+      rates: { input: 1, cachedInput: 0.5, output: 2, batchInput: 0.5, batchOutput: 1 },
+      region: 'us-east-1',
+      processingTier: 'standard',
+      effectiveFrom: deploymentSeed!.effectiveFrom,
+      effectiveTo: deploymentSeed!.verifiedAt,
+      sourceIds: deploymentSeed!.sourceIds,
+      verifiedAt: deploymentSeed!.verifiedAt,
+    };
+
+    const maximality = [
+      ['deployment', maximalDeployment, deploymentSchema] as const,
+      ['pricing', maximalPricing, pricingRecordSchema] as const,
+    ];
+    for (const [label, fixture, schema] of maximality) {
+      expect(
+        Object.keys(fixture).sort(),
+        `this ${label} fixture must populate every field its schema declares, or the `
+        + 'compaction assertion below is vacuous for whatever it leaves out — which is '
+        + 'exactly the failure #977 and #1088 record',
+      ).toEqual(Object.keys(schema.shape).sort());
+      // The values must be ones the schema would accept, or the fixture proves
+      // something about a record that could never reach the payload.
+      expect(() => schema.parse(fixture)).not.toThrow();
+    }
+
+    const maximalPayload = buildComparisonPayload({
+      ...dataset,
+      deployments: dataset.deployments.map(
+        (deployment) => (deployment.id === deploymentSeed!.id ? maximalDeployment : deployment),
+      ),
+      pricing: [...dataset.pricing, maximalPricing],
+    });
+    const compact = compactComparisonPayload(maximalPayload);
+
+    const cases = [
+      {
+        map: 'DEPLOYMENT_KEY_TO_SHORT',
+        projected: maximalPayload.deployments.find((record) => record.id === maximalDeployment.id),
+        shipped: compact.D.find((record) => record.i === maximalDeployment.id),
+        fromRealData: compactComparisonPayload(payload).D,
+      },
+      {
+        map: 'PRICING_KEY_TO_SHORT',
+        projected: maximalPayload.pricing.find((record) => record.id === maximalPricing.id),
+        shipped: compact.X.find((record) => record.i === maximalPricing.id),
+        fromRealData: compactComparisonPayload(payload).X,
+      },
+    ];
+
+    for (const { map, projected, shipped, fromRealData } of cases) {
+      expect(projected, `the maximal record must survive the projection for ${map}`).toBeDefined();
+      expect(shipped, `the maximal record must survive compaction for ${map}`).toBeDefined();
+
+      for (const key of Object.keys(shipped!)) {
+        expect(
+          key,
+          `unmapped key "${key}" on a fully populated record — add it to ${map} in comparison.ts`,
+        ).toHaveLength(1);
+      }
+
+      // Collisions, which the length check above cannot see: two long keys
+      // sharing one code both land in the same slot and one value is lost
+      // silently. The compiler cannot see this either — the map's value type is
+      // `string`, not a union of unused codes — so it is checked here.
+      expect(
+        Object.keys(shipped!).length,
+        `two keys share a short code in ${map} — one value was overwritten`,
+      ).toBe(Object.keys(projected!).length);
+
+      // Negative control on the guard itself: at least one shipped key must be
+      // unreachable from the live data, or this test is measuring what
+      // "compacts every key" already measures and cannot see an omitted entry.
+      const realKeys = new Set(
+        (fromRealData as Record<string, unknown>[]).flatMap((record) => Object.keys(record)),
+      );
+      expect(
+        Object.keys(shipped!).filter((key) => !realKeys.has(key)).length,
+        `the ${map} fixture reaches no key the real dataset misses, so it adds no coverage `
+        + 'over "compacts every key" and cannot see an omitted entry',
+      ).toBeGreaterThan(0);
+    }
+
+    // And losslessly, which is the collision check restated as behaviour — and
+    // restated over every section at once, so a collision introduced in any of
+    // the ten maps fails here even though the two above are what this fixture
+    // widens.
+    expect(expandComparisonPayload(compact)).toEqual(maximalPayload);
   });
 });
 
