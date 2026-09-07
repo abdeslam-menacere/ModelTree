@@ -114,6 +114,34 @@ export const EXCLUDED = 'excluded';
 export const NORMALISED = 'normalised';
 
 /**
+ * The URL answered 2xx, and the licence it resolves to is not the licence the
+ * record claims.
+ *
+ * This is the state that stops reachability and correctness sharing a result
+ * code (#1085). A publisher that repairs a dead licence URL by repointing it at
+ * a *different but live* document answers 200 exactly as the correct document
+ * would, so `ok` is indistinguishable between a record whose licence URL is
+ * right and one whose licence URL is wrong. Every instrument in this file before
+ * this state was a reachability instrument, and reachability is all a 200
+ * establishes.
+ *
+ * It is reached only from {@link OK}. A `broken` URL is broken whatever it would
+ * have said, and a `redirected` one is already actionable for a reason that does
+ * not depend on what it resolves to, so neither is re-labelled: a state that
+ * already tells a maintainer to act is not improved by telling them to act for a
+ * second reason. Promoting only the state that would otherwise have been silent
+ * is what makes this additive rather than a reordering of existing verdicts.
+ *
+ * The verdict behind it is taken by `classifyLicenceIdentity` in
+ * `web/src/lib/licence-url-identity.ts` -- the landed module, imported rather
+ * than reimplemented -- and it is a **pure offline function** of
+ * `(spdxId, recordedUrl, finalUrl)`. No request is made to establish it. The
+ * `finalUrl` it reads is a second fact extracted from the request this sweep had
+ * already made, which is why the cross-check adds no network traffic at all.
+ */
+export const MISMATCHED = 'mismatched';
+
+/**
  * The states worth a maintainer's attention.
  *
  * `blocked` and `transient` are deliberately absent, and that absence is the
@@ -127,8 +155,16 @@ export const NORMALISED = 'normalised';
  * just as readily says nothing about the URL that received it. The difference is
  * that this one is *measured* per host rather than assumed -- see
  * `explainHostNormalisation`.
+ *
+ * `mismatched` **is** present, and it is the one member of this set that owes
+ * nothing to a conversation with a server. It is a disagreement between two
+ * things this repository already asserts -- a record's `spdxId` and the licence
+ * its own `license.url` resolves to -- so it cannot be a rate limit, an anti-bot
+ * response or a flake, and re-running does not make it go away. That is exactly
+ * the property `blocked` and `transient` lack, and it is why including it does
+ * not reopen the decision that excludes them.
  */
-export const ACTIONABLE_STATES = new Set([BROKEN, REDIRECTED]);
+export const ACTIONABLE_STATES = new Set([BROKEN, REDIRECTED, MISMATCHED]);
 
 /**
  * Statuses that mean the resource is gone, rather than that we were refused.
@@ -1040,6 +1076,175 @@ export async function checkAll(targets, options = {}) {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Licence identity (#1085)                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Where the landed classifier lives.
+ *
+ * `.github/scripts/source-link-health/link-health.mjs` -> up three is the
+ * repository root. The module is TypeScript under `web/`, and this file is plain
+ * `.mjs` run by a bare `node` with no dependency install, which are facts worth
+ * stating together because they are what make the import below load at all:
+ * `licence-url-identity.ts` has exactly one import and it is `import type`, so
+ * it pulls in nothing at runtime, and Node's type stripping is enough to load
+ * it. There is no bundler, no `node_modules` and no vite server in this path.
+ *
+ * That it is imported rather than copied is the whole point of #1085. The
+ * classifier landed in #1072 and nothing invoked it; a second implementation
+ * living here would have satisfied the letter of "the sweep cross-checks
+ * licences" while recreating the defect the issue is about, because two copies
+ * of a rule drift and the one nobody runs is the one that rots.
+ */
+const LICENCE_CLASSIFIER_URL = new URL('../../../web/src/lib/licence-url-identity.ts', import.meta.url);
+
+/**
+ * Load `classifyLicenceIdentity` from the landed module.
+ *
+ * Throws rather than returning a null classifier, and the caller maps that to
+ * exit 2. A sweep that could not load the cross-check has *not looked*, and the
+ * one thing it must never do is report that as having looked and found nothing
+ * (ADR 0018). Degrading quietly to a reachability-only sweep would restore the
+ * exact behaviour this wiring exists to remove, and would do it invisibly.
+ *
+ * The URL is a parameter so a test can point this at a module that is missing or
+ * malformed and assert the refusal, which is the only way to show the refusal
+ * path is real rather than asserted.
+ */
+export async function loadLicenceClassifier(url = LICENCE_CLASSIFIER_URL) {
+  const module = await import(url.href ?? String(url));
+  const classify = module.classifyLicenceIdentity;
+  if (typeof classify !== 'function') {
+    throw new TypeError(`${url.href ?? String(url)} does not export classifyLicenceIdentity`);
+  }
+  return classify;
+}
+
+/**
+ * States in which a 2xx was actually observed, so a `finalUrl` is fetch evidence.
+ *
+ * A result carries `finalUrl` unconditionally -- it falls back to the canonical
+ * URL when no observation was made -- so passing it on every result would tell
+ * the classifier "this was fetched and did not redirect" about a request that
+ * timed out. That is a fabricated observation, and it is the failure mode the
+ * classifier's own `identifiedFrom` field exists to prevent. Outside these
+ * states the recorded URL is classified and the result says so.
+ */
+const FETCH_EVIDENCE_STATES = new Set([OK, REDIRECTED, NORMALISED]);
+
+/**
+ * Index release records by id, keeping the licence fields this needs.
+ *
+ * Deliberately not a `find` per result: the dataset is small but the loop is
+ * quadratic, and more importantly a map makes "this id names no release" an
+ * explicit `undefined` rather than a silent miss.
+ */
+function indexReleaseLicences(releases) {
+  const byId = new Map();
+  if (!Array.isArray(releases)) return byId;
+  for (const release of releases) {
+    if (typeof release?.id !== 'string') continue;
+    byId.set(release.id, {
+      spdxId: release?.license?.spdxId,
+      recordedUrl: release?.license?.url,
+    });
+  }
+  return byId;
+}
+
+/**
+ * Cross-check every swept licence URL against the identifier its record claims.
+ *
+ * Pure, and the classifier is injected rather than imported here, so the whole
+ * rule is testable with no network, no clock and no module resolution. It
+ * mutates each result in place -- `checkAll` already returns freshly-built
+ * objects that nothing else holds -- and returns the tally the report and the
+ * JSON summary both read.
+ *
+ * Three properties this is required to have, all from #1085's acceptance
+ * criteria, and each one is a thing that would otherwise be lost:
+ *
+ *   * **A disagreement is a distinct outcome.** `ok` is promoted to
+ *     `mismatched`, so reachability and correctness stop sharing a code.
+ *   * **An abstention is reported as not judged.** `cannot-determine` never
+ *     touches the state, and it is *counted by reason* rather than dropped, so a
+ *     record this instrument cannot adjudicate is visibly unadjudicated instead
+ *     of quietly joining the clean ones.
+ *   * **Only licence provenance is classified.** A URL cited as a source and
+ *     never as a `license.url` carries no licence claim to contradict, so it is
+ *     skipped entirely rather than abstained over -- an abstention about a
+ *     record that made no claim is noise in the denominator.
+ */
+export function applyLicenceIdentity(results, releases, classify) {
+  if (typeof classify !== 'function') {
+    throw new TypeError('applyLicenceIdentity needs a classify function');
+  }
+
+  const byId = indexReleaseLicences(releases);
+  const tally = { adjudicated: 0, agrees: 0, disagrees: 0, abstained: 0 };
+  const byReason = {};
+  const findings = [];
+
+  for (const result of results) {
+    const ids = result.licenceRecordIds ?? [];
+    if (ids.length === 0) continue;
+
+    const hasFetchEvidence = FETCH_EVIDENCE_STATES.has(result.state);
+    const verdicts = [];
+
+    for (const id of ids) {
+      const record = byId.get(id);
+      if (record === undefined) continue;
+
+      const verdict = classify({
+        spdxId: record.spdxId,
+        recordedUrl: record.recordedUrl,
+        // Withheld unless a 2xx was actually observed. See FETCH_EVIDENCE_STATES.
+        finalUrl: hasFetchEvidence ? result.finalUrl : undefined,
+      });
+
+      verdicts.push({ recordId: id, claimedSpdxId: record.spdxId ?? null, ...verdict });
+
+      if (verdict.verdict === 'agrees') {
+        tally.agrees += 1;
+        tally.adjudicated += 1;
+      } else if (verdict.verdict === 'disagrees') {
+        tally.disagrees += 1;
+        tally.adjudicated += 1;
+      } else {
+        tally.abstained += 1;
+        const reason = verdict.reason ?? 'unstated';
+        byReason[reason] = (byReason[reason] ?? 0) + 1;
+      }
+    }
+
+    if (verdicts.length === 0) continue;
+    result.licenceIdentity = verdicts;
+
+    const disagreements = verdicts.filter((entry) => entry.verdict === 'disagrees');
+    if (disagreements.length === 0) continue;
+
+    // Only a state that would otherwise have been silent is promoted. See the
+    // note on MISMATCHED for why `broken` and `redirected` are left alone.
+    if (result.state === OK) result.state = MISMATCHED;
+
+    for (const entry of disagreements) {
+      findings.push({
+        url: result.canonical,
+        recordId: entry.recordId,
+        claimedSpdxId: entry.claimedSpdxId,
+        resolvedSpdxId: entry.identifiedSpdxId,
+        identifiedFrom: entry.identifiedFrom,
+        redirected: entry.redirected,
+      });
+    }
+  }
+
+  return { ...tally, byReason, findings, classifiedUrls: results.filter((r) => r.licenceIdentity !== undefined).length };
+}
+
+
+/* -------------------------------------------------------------------------- */
 /* Reporting                                                                  */
 /* -------------------------------------------------------------------------- */
 
@@ -1052,6 +1257,7 @@ export function summarise(results, extra = {}) {
     [BROKEN]: 0,
     [EXCLUDED]: 0,
     [NORMALISED]: 0,
+    [MISMATCHED]: 0,
   };
   for (const result of results) counts[result.state] = (counts[result.state] ?? 0) + 1;
 
@@ -1139,6 +1345,17 @@ function detail(result) {
     return `resolves; this host ${rule} every path`;
   }
 
+  if (result.state === MISMATCHED) {
+    const disagreements = (result.licenceIdentity ?? []).filter((entry) => entry.verdict === 'disagrees');
+    const first = disagreements[0];
+    if (first === undefined) return 'resolves, but the licence it resolves to was not identified';
+    const where = first.identifiedFrom === 'final-url' ? 'the URL the request landed on' : 'the recorded URL';
+    return (
+      `resolves, but ${where} is \`${first.identifiedSpdxId}\` ` +
+      `while the record claims \`${first.claimedSpdxId}\``
+    );
+  }
+
   if (result.state === TRANSIENT) {
     if (result.error !== null && result.error !== undefined) return `request failed: ${result.error.message}`;
     if (result.status !== null) return `HTTP ${result.status}`;
@@ -1210,7 +1427,13 @@ function section(heading, results, note) {
  */
 export function renderReport(
   results,
-  { excluded = [], malformed = [], unmatchedExclusions = [], scope = 'the full seed dataset' } = {},
+  {
+    excluded = [],
+    malformed = [],
+    unmatchedExclusions = [],
+    scope = 'the full seed dataset',
+    licenceIdentity = null,
+  } = {},
 ) {
   const summary = summarise(results);
   const byState = (state) => results.filter((result) => result.state === state);
@@ -1242,6 +1465,41 @@ export function renderReport(
       'These resolve, but only through a permanent redirect, so the recorded URL is stale. Replacing a source URL is a reviewed human edit; this report never does it.',
     ),
   );
+
+  lines.push(
+    ...section(
+      'Licence does not match the identifier claimed',
+      byState(MISMATCHED),
+      'These resolve. That is the point: a 200 is what made them invisible until now. ' +
+        'The licence the URL resolves to is not the licence the record claims, which is a disagreement between ' +
+        'two things this repository asserts rather than a fault in any server — so it cannot be a rate limit, ' +
+        'a timeout or a flake, and re-running will not clear it. Re-pointing the record, or correcting its ' +
+        '`spdxId`, is a reviewed human edit; this report never makes one.',
+    ),
+  );
+
+  // The denominator, and the named abstentions. A cross-check that reported only
+  // its disagreements would let "0 disagreements" read as a clean bill of health
+  // for a set it mostly could not adjudicate (ADR 0018).
+  if (licenceIdentity !== null) {
+    const { adjudicated, agrees, disagrees, abstained, byReason } = licenceIdentity;
+    lines.push('### Licence identity cross-check', '');
+    lines.push(
+      `Adjudicated ${adjudicated} licence claim(s) offline against the URL each one resolves to: ` +
+        `${agrees} agree and ${disagrees} disagree. A further ${abstained} were **not judged**, ` +
+        'which is a statement about this instrument\'s reach and not a pass. No request was made to ' +
+        'establish any of this; the sweep had already fetched these URLs, and the licence verdict is a ' +
+        'second fact read off that same request.',
+      '',
+    );
+
+    const reasons = Object.entries(byReason).sort(([a], [b]) => a.localeCompare(b));
+    if (reasons.length > 0) {
+      lines.push('Why the unjudged claims were not judged:', '');
+      for (const [reason, count] of reasons) lines.push(`- \`${reason}\` — ${count}`);
+      lines.push('');
+    }
+  }
 
   if (expired.length > 0) {
     lines.push(`### Expired exclusions (${expired.length})`, '');
