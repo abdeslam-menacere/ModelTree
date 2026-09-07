@@ -7,7 +7,6 @@ output is a diff in the code.
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -29,6 +28,7 @@ from ..contracts import (
 from ..profiles import (
     ProfileError,
     _DuplicateIdGuard,
+    _read_json_document,
     _refuse_padded_id,
     _require,
     _reviewed_profile_paths,
@@ -163,12 +163,25 @@ def load_fixture_library(directory: Path) -> FixtureLibrary:
     ``--fixtures`` was right and the directory was there. Folding it into the named
     refusal says what actually happened.
 
-    What is *not* handled here, deliberately: a file whose bytes are not valid UTF-8
-    raises ``UnicodeDecodeError`` from ``read_text``, which is a ``ValueError`` and so
-    not caught by either clause. That gap is identical in all three loaders, and closing
-    it in this one alone would recreate exactly the "one rule, three copies" divergence
-    #108, #151, #199 and #204 each spent a fix removing. It belongs in a change that
-    moves all three together.
+    What ``read_text`` itself can raise is handled in the same clause, and that is the
+    part #1101 added: a file whose bytes are not valid UTF-8 raises
+    ``UnicodeDecodeError``, which is a ``ValueError`` rather than an ``OSError`` or a
+    ``json.JSONDecodeError`` and so escaped all three loaders' guards as a traceback
+    out of the codec. It is now refused with this same wording, naming the file. The
+    guard is no longer written here at all: all three loaders read through
+    :func:`~modeltree_updater.profiles._read_json_document`, because the gap was
+    identical in each and closing it in one alone would have recreated exactly the
+    "one rule, three copies" divergence #108, #151, #199 and #204 each spent a fix
+    removing.
+
+    A UTF-8 **BOM** is deliberately not part of that: it survives
+    ``read_text(encoding="utf-8")`` as ``\\ufeff`` and then fails in the parser as a
+    ``JSONDecodeError``, so it was already refused cleanly and still is, by the
+    ``json.JSONDecodeError`` arm rather than the new one. This is worth stating
+    because ``Set-Content -Encoding utf8`` writes a BOM on Windows PowerShell, so a
+    contributor generating a fixture locally hits the arm that was never broken and
+    could reasonably conclude encoding was handled in general. It was not; only that
+    one encoding accident was.
 
     One wording divergence is inherited, not chosen: the shared refusal for a
     case-variant extension says "the reviewed set", which here names the set of
@@ -199,10 +212,7 @@ def load_fixture_library(directory: Path) -> FixtureLibrary:
         ),
     )
     for path in _reviewed_profile_paths(directory, kind="a creator fixture"):
-        try:
-            document = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as error:
-            raise ProfileError(f"{path.name}: could not be read: {error}") from error
+        document = _read_json_document(path, reraise_missing=False)
         creator = _require(document, "creator", path=path)
         request = CreatorRequest(
             creator_id=_refuse_padded_id(

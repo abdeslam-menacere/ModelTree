@@ -283,15 +283,54 @@ def _ambiguity(raw: Mapping[str, Any], *, path: Path) -> SourceAmbiguity:
     )
 
 
+def _read_json_document(path: Path, *, reraise_missing: bool) -> Any:
+    """Read and parse one JSON document, or refuse naming the file.
+
+    The one reader behind :func:`load_profile`,
+    :func:`~modeltree_updater.longtail.load_long_tail_profile` and
+    :func:`~modeltree_updater.providers.fixtures.load_fixture_library`. Those three
+    had hand-copied the same ``try``/``except`` around the same expression, and #1101
+    is precisely the divergence that shape invites: ``read_text`` raises
+    ``UnicodeDecodeError`` on bytes that are not valid UTF-8, and that is a
+    ``ValueError`` rather than an ``OSError`` or a ``json.JSONDecodeError``, so it
+    fell outside all three copies of the clause and reached the operator as a
+    traceback out of the codec — naming ``codecs.py`` rather than the document that
+    could not be read, which is the one thing the reader needs when a directory holds
+    a dozen of them. Closing that in one copy would have left the other two diverging
+    on exactly the behaviour #166 had just unified, which is the "one rule, three
+    copies" defect #108, #151, #199 and #204 were each spent removing. A single
+    reader is what stops there being a fourth copy to forget.
+
+    ``UnicodeDecodeError`` is named rather than the clause being widened to
+    ``ValueError``. The two other places in this repository that already guard a
+    decode name it exactly — ``tools/adr_numbers/check_adr_numbers.py`` and
+    :mod:`~modeltree_updater.github_issues` — so this matches an established
+    convention rather than inventing one. Widening would also be actively wrong
+    here: :class:`ProfileError` is itself a ``ValueError``, so a ``ValueError``
+    clause would put this function's own refusals inside its handled set.
+
+    ``reraise_missing`` carries the one divergence between the callers that is
+    deliberate. The two reviewed loaders re-raise ``FileNotFoundError`` untouched,
+    because there the path is one the *caller named* and "not found" is the precise
+    answer. The fixture loader folds it into the named refusal instead, because every
+    path it reads comes from scanning a directory that has already been found — so a
+    read-time miss is a file removed mid-scan, and re-raising it would reach
+    :func:`~modeltree_updater.cli._fixture_library`, which appends the "pass
+    ``--fixtures``" hint to every ``FileNotFoundError`` and would answer a question
+    the reader did not ask.
+    """
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        if reraise_missing and isinstance(error, FileNotFoundError):
+            raise
+        raise ProfileError(f"{path.name}: could not be read: {error}") from error
+
+
 def load_profile(path: Path | str) -> CreatorProfile:
     """Load one creator profile from JSON, failing loudly on a malformed file."""
     path = Path(path)
-    try:
-        document = json.loads(path.read_text(encoding="utf-8"))
-    except FileNotFoundError:
-        raise
-    except (OSError, json.JSONDecodeError) as error:
-        raise ProfileError(f"{path.name}: could not be read: {error}") from error
+    document = _read_json_document(path, reraise_missing=True)
 
     creator = _require(document, "creator", path=path)
     catalog = tuple(

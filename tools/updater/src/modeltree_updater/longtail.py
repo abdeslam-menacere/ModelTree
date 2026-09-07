@@ -34,7 +34,6 @@ this creator:
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -63,6 +62,7 @@ from .profiles import (
     SourceAmbiguity,
     TrustedSource,
     _DuplicateIdGuard,
+    _read_json_document,
     _refuse_padded_id,
     _reviewed_profile_paths,
     origin_of,
@@ -416,12 +416,7 @@ def load_long_tail_profile(
             f"distribution, which has no default.\n{LONG_TAIL_PROFILES_ARE_REPOSITORY_DATA}"
         )
     path = Path(path)
-    try:
-        document = json.loads(path.read_text(encoding="utf-8"))
-    except FileNotFoundError:
-        raise
-    except (OSError, json.JSONDecodeError) as error:
-        raise ProfileError(f"{path.name}: could not be read: {error}") from error
+    document = _read_json_document(path, reraise_missing=True)
 
     profile = _require(document, "profile", path=path)
     seed = _require(document, "seed_source", path=path)

@@ -364,6 +364,74 @@ def test_a_fixture_removed_mid_scan_is_refused_without_the_wrong_hint(
     assert "acme.json" in str(error.value)
 
 
+# --- Bytes that are not valid UTF-8 reach this loader too (#1101) ---
+# One layer earlier in the same expression than #166. `read_text` raises
+# `UnicodeDecodeError` before `json.loads` is ever called, and that is a `ValueError`
+# rather than an `OSError` or a `json.JSONDecodeError` — so it escaped the clause all
+# three loaders had hand-copied and reached the operator as a traceback out of the
+# codec, naming `codecs.py` rather than the fixture. `--fixtures` is the offline path
+# CI and the gates run and the path a contributor hand-edits, so it is where a
+# mis-encoded file is likeliest and where a stack trace helps least.
+#
+# All three loaders now read through `profiles._read_json_document`, which is the
+# shape #1101 asks for: repairing this copy alone would have left the other two
+# diverging on exactly what #166 had just unified. The case is still stated per
+# loader, because the sharing is the fix and one test could not tell a shared reader
+# from a single repaired copy.
+
+# Latin-1 `é`: as UTF-8 it opens a three-byte sequence whose next byte is `"`, not a
+# continuation, so the codec refuses rather than mis-decodes. Written as *bytes* —
+# `write_text` would re-encode it into valid UTF-8 and the test would prove nothing.
+NOT_UTF8_DOCUMENT = b'{"creator": {"creator_id": "acme", "creator_name": "caf\xe9"}}'
+
+
+def test_a_fixture_whose_bytes_are_not_utf8_is_refused_naming_the_file(tmp_path) -> None:
+    """Named refusal carrying the codec's own sentence, not a traceback out of it.
+
+    The keeper proves the refusal is about the mis-encoded document rather than about
+    the directory being unloadable in general, exactly as the #166 cases above do.
+    Asserting `codec` is what separates this route from the BOM one below, which the
+    parser refuses instead — without it, both tests would pass against a loader that
+    had collapsed the two into one vague answer.
+    """
+    _fixture_file(tmp_path / "keeper.json", creator_id="keeper")
+    (tmp_path / "latin1.json").write_bytes(NOT_UTF8_DOCUMENT)
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    message = str(error.value)
+    assert "latin1.json" in message
+    assert "could not be read" in message
+    assert "codec" in message
+    assert "keeper.json" not in message
+
+
+def test_a_bom_fixture_keeps_the_json_refusal_it_already_had(tmp_path) -> None:
+    """A BOM was never the broken case, and is not routed anywhere worse (#1101).
+
+    A UTF-8 BOM survives `read_text(encoding="utf-8")` as `\\ufeff` and then fails in
+    the parser as a `JSONDecodeError` — inside the handled set before this change and
+    still refused by that arm rather than the new one. Pinned because
+    `Set-Content -Encoding utf8` writes a BOM on Windows PowerShell, so a contributor
+    generating a fixture locally hits the arm that was never broken and could
+    reasonably conclude encoding was handled in general. Only that one accident was.
+    """
+    _fixture_file(tmp_path / "keeper.json", creator_id="keeper")
+    source = _fixture_file(tmp_path / "source.json", creator_id="acme-labs")
+    (tmp_path / "bom.json").write_bytes(b"\xef\xbb\xbf" + source.read_bytes())
+    source.unlink()
+
+    with pytest.raises(ProfileError) as error:
+        load_fixture_library(tmp_path)
+
+    message = str(error.value)
+    assert "bom.json" in message
+    assert "could not be read" in message
+    assert "BOM" in message
+    assert "codec" not in message
+
+
 def test_a_valid_fixture_directory_is_completely_unaffected(tmp_path) -> None:
     """The guard changes nothing a well-formed directory produces.
 

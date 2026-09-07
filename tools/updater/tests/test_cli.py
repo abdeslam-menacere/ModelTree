@@ -8,6 +8,7 @@ import json
 import pytest
 
 from modeltree_updater.cli import EXIT_CREATOR_FAILED, EXIT_OK, EXIT_USAGE, main
+from modeltree_updater.profiles import DEFAULT_PROFILES_DIR
 
 
 def _run(args, env=None):
@@ -152,6 +153,86 @@ def test_a_malformed_fixture_exits_cleanly_naming_the_file(
     assert "line 1 column" in output
     assert "Traceback" not in output
     assert "keeper.json" not in output
+
+
+# --- The same refusal one layer earlier: bytes that are not UTF-8 (#1101) ---
+# `read_text` raises `UnicodeDecodeError` before `json.loads` runs, and that is a
+# `ValueError` rather than an `OSError` or a `json.JSONDecodeError` — so it escaped the
+# clause #166 installed and reached the operator as a traceback out of `codecs.py`,
+# exiting **1** instead of the CLI's own `EXIT_USAGE`. Asserted here rather than only
+# at the loaders because the exit code is a CLI-level fact: `main` maps `ProfileError`
+# to 2, and nothing mapped the codec error at all.
+
+# Latin-1 `é` opens a three-byte UTF-8 sequence whose next byte is not a continuation.
+# Written as bytes — `write_text` would re-encode it into something valid.
+NOT_UTF8_BYTES = b'{"creator": {"creator_id": "acme", "creator_name": "caf\xe9"}}'
+
+
+@pytest.mark.parametrize("command", ["run", "creators"])
+def test_a_non_utf8_fixture_exits_cleanly_naming_the_file(
+    tmp_path, fixture_dir, command
+) -> None:
+    """Exit 2 naming the file, where the merge base exited 1 with a codec traceback.
+
+    Parametrised over both fixture-reading commands for the reason #166's case above
+    is: they reach the loader by separate call sites, and a fix applied to one of them
+    would pass a test that only drove the other. The good neighbour proves the refusal
+    identifies the offending document rather than merely failing to load the directory.
+    """
+    fixtures = tmp_path / "fixtures"
+    fixtures.mkdir()
+    (fixtures / "keeper.json").write_text(
+        (fixture_dir / "contoso-ai.json").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    (fixtures / "latin1.json").write_bytes(NOT_UTF8_BYTES)
+
+    code, output = _run([command, "--fixtures", str(fixtures)])
+
+    assert code == EXIT_USAGE
+    assert "error: latin1.json: could not be read" in output
+    assert "codec" in output
+    assert "Traceback" not in output
+    assert "keeper.json" not in output
+
+
+def test_a_non_utf8_reviewed_profile_exits_cleanly_naming_the_file(tmp_path) -> None:
+    """The second loader, reached by the second command, refusing the same way.
+
+    `profiles --profiles` is the only route that hands `load_profile` a caller-named
+    directory, and it is a separate loader from the fixtures one — so this is evidence
+    that the guard was fixed in the shared reader all three now use, and not in one
+    copy. The valid neighbour is lifted from the reviewed set rather than hand-built,
+    so the control cannot drift away from the schema it has to satisfy.
+    """
+    profiles = tmp_path / "profiles"
+    profiles.mkdir()
+    reviewed = sorted(DEFAULT_PROFILES_DIR.glob("*.json"))[0]
+    (profiles / reviewed.name).write_bytes(reviewed.read_bytes())
+    (profiles / "latin1.json").write_bytes(NOT_UTF8_BYTES)
+
+    code, output = _run(["profiles", "--profiles", str(profiles)])
+
+    assert code == EXIT_USAGE
+    assert "error: latin1.json: could not be read" in output
+    assert "codec" in output
+    assert "Traceback" not in output
+
+
+def test_a_valid_reviewed_profile_directory_still_lists(tmp_path) -> None:
+    """The two-sided control for the route above: it passes on both sides of #1101.
+
+    Without it, the red arm's failure could be the module having been broken outright
+    rather than the encoding gap being the thing under test.
+    """
+    profiles = tmp_path / "profiles"
+    profiles.mkdir()
+    reviewed = sorted(DEFAULT_PROFILES_DIR.glob("*.json"))[0]
+    (profiles / reviewed.name).write_bytes(reviewed.read_bytes())
+
+    code, output = _run(["profiles", "--profiles", str(profiles)])
+
+    assert code == EXIT_OK
+    assert reviewed.stem in output
 
 
 def test_a_malformed_fixture_writes_nothing(tmp_path, fixture_dir) -> None:
