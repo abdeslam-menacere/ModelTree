@@ -69,8 +69,21 @@ const MAX_VERBATIM_REPEAT = 72;
 /** `[SUPERSEDED by #967 on 2026-09-06: <claim>]` -- source and verification date. */
 const WELL_FORMED_MARKER = /\[SUPERSEDED by #\d+ on \d{4}-\d{2}-\d{2}: [^\]]+\]/g;
 
-/** Anything that opens a marker, well-formed or not. Used to catch malformed ones. */
-const MARKER_OPENER = /\[SUPERSEDED/g;
+/**
+ * Anything that opens a marker, well-formed or not. Used to catch malformed ones.
+ *
+ * Case-INSENSITIVE deliberately, while `WELL_FORMED_MARKER` above stays
+ * case-sensitive. A near-miss such as `[Superseded by #967 on 2026-09-06: ...]`
+ * would otherwise match neither pattern and be silently read as ordinary prose --
+ * a marker that was never checked, indistinguishable in the output from a marker
+ * that was checked and found sound. That is the distinction
+ * `docs/adr/0018-not-looking-and-finding-nothing-are-separately-representable.md`
+ * exists to keep, and a guard that erased it would be introducing the very defect
+ * this file was written to catch. The asymmetry is the mechanism: the opener
+ * admits the near-miss, the well-formed pattern rejects it, so it surfaces as
+ * malformed and the convention stays strictly upper-case.
+ */
+const MARKER_OPENER = /\[SUPERSEDED/gi;
 
 type ProseField = { readonly name: string; readonly text: string };
 
@@ -329,6 +342,25 @@ describe('the guard refuses the right things', () => {
 
     it('CATCHES an empty claim body', () => {
       expect(malformedMarkers('[SUPERSEDED by #967 on 2026-09-06: ]')).toHaveLength(1);
+    });
+
+    /**
+     * The near-miss case. Everything else here is malformed in a way a
+     * case-sensitive opener still sees; this one is malformed in the opener
+     * itself, so a case-sensitive `MARKER_OPENER` would match neither pattern
+     * and report nothing -- a marker that went unchecked, reported identically
+     * to a marker that was checked and passed.
+     *
+     * The two arms must come back DIFFERING, or this has validated nothing: the
+     * upper-case spelling is the positive control and must stay accepted, so a
+     * `malformedMarkers` that simply flagged everything could not pass both.
+     */
+    it('CATCHES a marker whose keyword is not upper-case, rather than ignoring it', () => {
+      const upper = `[SUPERSEDED by #967 on 2026-09-06: a claim about ${nonce}.]`;
+      const lower = `[Superseded by #967 on 2026-09-06: a claim about ${nonce}.]`;
+
+      expect(malformedMarkers(upper)).toEqual([]);
+      expect(malformedMarkers(lower)).toHaveLength(1);
     });
   });
 
