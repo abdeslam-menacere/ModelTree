@@ -2061,13 +2061,14 @@ test('the fixture really does make the classifier unloadable, and the committed 
 test('the request sentinel records a request when one is made, so an empty log is a finding', () => {
   // Control for instrument 2, both arms in one run against one fixture: an
   // instrument that logs nothing whatever happens cannot tell a quiet run from a
-  // broken recorder.
+  // broken recorder. The positive arm is taken first and unconditionally, so the
+  // control stays readable under a mutation that breaks the subject -- a control
+  // that can only be collected when the subject behaves is unavailable at
+  // exactly the moment it is needed.
   const fixture = makeOrderingFixture();
 
   try {
-    const dryRun = runUnderSentinel(fixture, [fixture.cli, '--dry-run']);
-    assert.equal(dryRun.status, 0, dryRun.stderr);
-    const afterDryRun = requestsMade(fixture);
+    const before = requestsMade(fixture);
 
     const control = 'https://example.invalid/link-health-sentinel-control';
     const probe = resolve(fixture.root, 'sentinel-control.mjs');
@@ -2077,9 +2078,15 @@ test('the request sentinel records a request when one is made, so an empty log i
     assert.equal(probeRun.status, 0, probeRun.stderr);
     const afterProbe = requestsMade(fixture);
 
-    assert.deepEqual(afterDryRun, [], 'the dry run must issue no request');
+    assert.deepEqual(before, [], 'a fresh fixture starts from an empty log');
     assert.deepEqual(afterProbe, [control], 'the sentinel must see a request that is actually made');
-    assert.notDeepEqual(afterDryRun, afterProbe, 'the two arms must differ, or the sentinel measures nothing');
+    assert.notDeepEqual(before, afterProbe, 'the two arms must differ, or the sentinel measures nothing');
+
+    // Negative arm. The log is shared across runs in this fixture, so the dry run
+    // is asked to add nothing to it rather than to leave it empty.
+    const dryRun = runUnderSentinel(fixture, [fixture.cli, '--dry-run']);
+    assert.equal(dryRun.status, 0, dryRun.stderr);
+    assert.deepEqual(requestsMade(fixture), afterProbe, 'the dry run must add no request to the log');
   } finally {
     fixture.dispose();
   }
