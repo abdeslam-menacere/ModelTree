@@ -959,7 +959,7 @@
       "meta-llama-4-maverick-original-model-card",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-07"
   },
   {
     "id": "meta-llama-3-1-405b",
@@ -2113,7 +2113,7 @@
       "mistral-devstral-2-123b-model-card",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-05"
+    "verifiedAt": "2026-09-07"
   },
   {
     "id": "mistral-devstral-small-2-24b-instruct",
@@ -2165,7 +2165,7 @@
       "mistral-devstral-small-2-24b-model-card",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-09-07"
   },
   {
     "id": "mistral-small-4-119b",
@@ -2409,7 +2409,7 @@
       "anthropic-opus-4-6-announcement",
       "anthropic-model-deprecations"
     ],
-    "verifiedAt": "2026-08-28"
+    "verifiedAt": "2026-09-07"
   },
   {
     "id": "anthropic-claude-opus-4-7",
@@ -3254,7 +3254,7 @@
       "zhipu-ai-glm-4-5-announcement",
       "osi-license-mit"
     ],
-    "verifiedAt": "2026-09-01"
+    "verifiedAt": "2026-09-07"
   },
   {
     "id": "moonshot-ai-kimi-k2-instruct",
@@ -4652,7 +4652,7 @@
       "qwen3-8-repository",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-05"
+    "verifiedAt": "2026-09-07"
   },
   {
     "id": "eleutherai-gpt-neo-2-7b",
@@ -4792,7 +4792,7 @@
       "ibm-granite-4-0-announcement",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-08-31"
+    "verifiedAt": "2026-09-07"
   },
   {
     "id": "kyutai-moshiko-pytorch-bf16",
@@ -5107,7 +5107,7 @@
       "tii-falcon-180b-model-card",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-05"
+    "verifiedAt": "2026-09-07"
   },
   {
     "id": "ai2-molmo-7b-d",
@@ -5151,7 +5151,7 @@
       "ai2-molmo-7b-d-model-card",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-04"
+    "verifiedAt": "2026-09-07"
   },
   {
     "id": "stability-ai-svd-img2vid-xt",
@@ -5370,7 +5370,7 @@
       "bytedance-seed-oss-36b-base-model-card",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-03"
+    "verifiedAt": "2026-09-07"
   },
   {
     "id": "openbmb-minicpm-v-4-5",
