@@ -425,8 +425,8 @@ jobs:
       # filenames by hand, and none of the three can see the directory they are
       # drawn from. A `*.test.mjs` added without an entry is not a failing test
       # and not a skipped test: it is a file nothing opens, and it reports
-      # nothing at all. `check-bundle-pairing.test.mjs` sat in that state with
-      # thirteen passing tests that had never run in CI
+      # nothing at all. `check-bundle-pairing.test.mjs` sat in that state: a
+      # whole suite of passing tests that had never run in CI
       # (abdeslam-menacere/ModelTree#1086).
       #
       # The checker measures each registry against a *directory listing*, never

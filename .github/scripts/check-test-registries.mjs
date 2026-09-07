@@ -16,8 +16,10 @@
 // they are drawn from. A test file added without an entry is therefore not a
 // failing test and not a skipped test -- it is a file nothing ever opens, and it
 // reports nothing at all. `.github/skills/modeltree-scout/tests/check-bundle-pairing.test.mjs`
-// sat in that state with thirteen passing tests that had never run in CI
-// (abdeslam-menacere/ModelTree#1086).
+// sat in that state: a whole suite of passing tests that had never run in CI
+// (abdeslam-menacere/ModelTree#1086). The count is deliberately not written down
+// here -- a number in prose goes stale the first time a test is added, and
+// check-skill-doc-test-counts.mjs exists because that keeps happening.
 //
 // ## Decision 1 -- compare each registry against the directory, never against
 // another registry
