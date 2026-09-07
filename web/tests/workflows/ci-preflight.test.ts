@@ -592,6 +592,119 @@ describe('the preflight cannot be talked into a pass', () => {
     }
   });
 
+  it('separates a measurement taken from the merge base from a measured change that selects nothing', () => {
+    /*
+     * Two states that shared one reading, whose remedies point opposite ways
+     * (abdeslam-menacere/ModelTree#1109).
+     *
+     * ARM A stands where every gate worktree stands: `HEAD` is the published
+     * tip, so the range this script measures runs from a commit to itself and
+     * no file can be read from there. The remedy is to *move* -- measure again
+     * from the tip that is the subject.
+     *
+     * ARM B measured a real change and found that no pull-request check reads
+     * any of it. The remedy is to do nothing: there is genuinely nothing to
+     * run.
+     *
+     * The assertion carrying the value is that the two arms come back
+     * **different**, in one run with one invocation shape. Before the change
+     * both exited 2 and printed the same `NOTHING SELECTED` prose, so an agent
+     * standing in the wrong place read a state shaped exactly like "there is
+     * nothing to do" -- the reassuring direction, and the one nobody re-checks.
+     * A single arm proves nothing here: arm B on its own is satisfied by a
+     * script that answers "nothing selected" to everything, which is precisely
+     * the instrument being ruled out.
+     */
+    const vantage = scratchRepo();
+    const measured = scratchRepo();
+    const dirty = scratchRepo();
+
+    try {
+      // ARM A: nothing on top of published history at all, so HEAD *is* the
+      // merge base and the committed end of the range collapses onto the base.
+      const armA = spawnSync(process.execPath, [script, '--repo', vantage], { encoding: 'utf8' });
+
+      // ARM B: a real branch, one commit ahead of published history, changing
+      // one path no pull-request check reads -- not under web/, .github/,
+      // tools/ or docs/adr/. Committed rather than left on disk so that this
+      // arm differs from arm A at *both* ends of the range, which is the shape
+      // of the dock this reading is actually about.
+      const gitB = (...args: string[]) => execFileSync('git', args, { cwd: measured, encoding: 'utf8' });
+      touch(measured, 'docs/product/BACKLOG.md');
+      gitB('add', '-A');
+      gitB('commit', '-qm', 'a change no pull-request check reads');
+      const armB = spawnSync(process.execPath, [script, '--repo', measured], { encoding: 'utf8' });
+
+      // Neither is a pass. That was already true and is not what is under test.
+      expect(armA.status, 'a vantage with nothing to measure is not a pass').not.toBe(0);
+      expect(armB.status, 'an empty selection is not a pass').not.toBe(0);
+
+      // The discrimination itself, in both of the ways the issue asks for: the
+      // two states may share neither an exit code nor a message.
+      expect(armA.status, 'the two states must not share an exit code').not.toBe(armB.status);
+      expect(armA.stdout, 'arm A must not print arm B\'s verdict').not.toContain('NOTHING SELECTED');
+      expect(armB.stdout, 'arm B must not print arm A\'s verdict').not.toContain('NOTHING MEASURED');
+
+      // Arm A names the vantage, so the reader is told where they are standing
+      // rather than told there is nothing to do.
+      expect(armA.stdout).toContain('NOTHING MEASURED');
+      expect(armA.stdout).toContain('This is not a pass');
+
+      // Arm B keeps exactly the reading it already had.
+      expect(armB.stdout).toContain('NOTHING SELECTED');
+      expect(armB.status).toBe(2);
+
+      // And a machine reader that never parses prose can separate them too.
+      interface Report {
+        changed: string[];
+        empty: boolean;
+        atMergeBase: boolean;
+        nothingMeasured: boolean;
+        passed: boolean;
+        exitCode: number;
+      }
+      const readJson = (repo: string): Report => {
+        const run = spawnSync(process.execPath, [script, '--repo', repo, '--json'], { encoding: 'utf8' });
+        return JSON.parse(run.stdout) as Report;
+      };
+      const reportA = readJson(vantage);
+      const reportB = readJson(measured);
+
+      expect(reportA.atMergeBase).toBe(true);
+      expect(reportA.nothingMeasured).toBe(true);
+      expect(reportA.changed).toEqual([]);
+      expect(reportA.passed).toBe(false);
+
+      expect(reportB.atMergeBase).toBe(false);
+      expect(reportB.nothingMeasured).toBe(false);
+      expect(reportB.passed).toBe(false);
+
+      expect(reportA.exitCode).not.toBe(reportB.exitCode);
+
+      /*
+       * ARM C pins the conjunction, and it is the arm that stops the fix
+       * over-reaching. Standing at the merge base is *not* on its own a reason
+       * to say nothing was measured: a dirty working copy of trunk has a real
+       * subject, and the union picks it up. An implementation keyed on the
+       * vantage alone would report "nothing measured" here and send a caller
+       * away from a change that is sitting in front of them -- so this arm has
+       * arm A's vantage and arm B's verdict, and shares its exit code with
+       * neither arm A nor a pass.
+       */
+      touch(dirty, 'docs/product/BACKLOG.md');
+      const reportC = readJson(dirty);
+
+      expect(reportC.atMergeBase, 'arm C stands exactly where arm A stands').toBe(true);
+      expect(reportC.nothingMeasured, 'and still has something to measure').toBe(false);
+      expect(reportC.exitCode).toBe(reportB.exitCode);
+      expect(reportC.exitCode).not.toBe(reportA.exitCode);
+    } finally {
+      rmSync(vantage, { recursive: true, force: true });
+      rmSync(measured, { recursive: true, force: true });
+      rmSync(dirty, { recursive: true, force: true });
+    }
+  });
+
   it('reports a check it could not run as unverified, never as a pass', () => {
     // web-ci needs the site dependencies. In a scratch repository they are
     // absent, so the check must come back as "could not run" with a non-zero
