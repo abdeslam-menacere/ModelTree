@@ -2193,7 +2193,7 @@ them fires.
 | **provenance narrative collision**, abdeslam-menacere/ModelTree#1016 | the corpus records what a failure looks like, so a probe for that marker matches the record *about* the condition rather than the condition — and the record is exemplary rather than defective, which is why the fix belongs to the probe |
 
 **Case-folding, measured.** At trunk
-`60b705a7309a814c09c010ddfd94049467ed83b0`, reflog-dated 2026-09-07 03:00:59
+`158a761a4027679e32f717e773c69c207fe9697f`, reflog-dated 2026-09-07 03:55:40
 -0400, on `web/src/components/ModelComparison.tsx` — which imports the *type*
 `CompactComparisonPayload` and contains no camelCase function of that name — on
 `PSVersion 5.1.26100.9168`:
@@ -2283,7 +2283,8 @@ CONTROL  <pre-merge trunk> vs the merge-base    exit 0  prints that trunk's tree
 ```
 
 Against the current trunk anchored above, the same call exits 0 and prints
-trunk's own tree `0e112298`, which reads `LANDED` — so on this fixture the
+trunk's own tree, which reads `LANDED` — expect that identity rather than a
+particular OID, since it is whichever trunk you resolved. So on this fixture the
 content probe and the tree comparison disagree, and the tree comparison is the
 one that is right. It keeps step 5's documented failure — once trunk edits a
 touched file it exits 1, the branch conflicting with its own descendant, as the
