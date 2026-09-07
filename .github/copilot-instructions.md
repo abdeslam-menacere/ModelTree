@@ -2297,6 +2297,54 @@ could have named it by SHA changes the tree that is printed. A non-zero exit
 means the printed tree is not a comparable artefact at all: do not compare it,
 and conclude nothing from it.
 
+**A non-zero status covers two outcomes, and the status alone does not say
+which.** The paragraph above describes one of them: the merge was computed and
+conflicts, so a tree holding the markers exists, and its OID is on stdout ahead
+of the `CONFLICT` lines. The other is that the merge was never computed at all,
+because an operand did not resolve — no tree exists, stdout carries nothing,
+and the message goes to stderr. Both end at `UNDETERMINED` below, which is the
+right verdict for each, and that is exactly what makes the conflation cheap to
+miss: the safe routing hides it. It stops being cheap one sentence later, where
+the reader is told to report the `CONFLICT` paths. Applying the conflicted-tree
+model to an operand that did not resolve means looking for conflict paths that
+were never printed, and then reading their absence as a fact about the merge
+rather than about whether a merge happened at all — this file's own **not-looked
+stays separately representable from looked-and-found-nothing**, arriving through
+a status rather than through a report.
+
+The discriminator is on stdout rather than in the status, so **before concluding
+that a conflicted tree exists, establish that stdout's first line is a
+40-character hex OID.** That is the same shape test the per-path readings
+further down are guarded by, applied here for the same reason. Stated as the
+property rather than as a rule about this one command: **where one status covers
+both "the operation ran and failed" and "the operation did not run", a caller
+that acts on the difference must read something other than the status.**
+`.github/scripts/ci-preflight.mjs` gives those two outcomes different statuses;
+`merge-tree` does not, so the separation has to come from somewhere else.
+
+Control the shape test in the same run, in both directions: an operand you have
+established resolves, and a ref name you invent as you go. A test that comes
+back the same way on both has not discriminated anything. Measured at trunk
+`60b705a7309a814c09c010ddfd94049467ed83b0`, reflog-dated 2026-09-07 03:00:59
+-0400, on `git 2.53.0.windows.4`, each status read unpiped on the statement
+immediately after its call and the two streams captured to separate files:
+
+```
+second operand = this branch's merge-base with trunk
+   status 0   stdout 1 line     stderr 0 lines   first line 40-hex: yes
+second operand = d18a7309aec5da5820d9d9a68f140e1e7a5eb357
+   status 1   stdout 12 lines   stderr 0 lines   first line 40-hex: yes
+second operand = a ref name invented in the same run
+   status 1   stdout 0 lines    stderr 1 line    first line 40-hex: no
+```
+
+The status-0 row is the control that this invocation can return something other
+than 1 in that session, so the two 1s are a property of their inputs rather than
+of the instrument. The last two rows share their status and share nothing else,
+which is the whole finding. Re-measure against the git you have and the trunk
+you resolved rather than carrying these readings forward: they are a reading
+taken at that anchor, not a prediction about your run.
+
 **Read that exit code from an unpiped invocation, and read it on the statement
 immediately after.** The OID is on the command's first line, so the natural way
 to get at it in PowerShell — which is where this repository's docks run — is to
@@ -2494,7 +2542,12 @@ inequality is not a sound negative one. Report it alongside step 2's record.
 its OID, and do not diff it. A conflicted tree holds conflict markers, so it
 can never equal trunk's and diffing it presents those markers as though they
 were the merge result. Report the `CONFLICT` paths instead, which are stable
-and actionable, and never key a cache, a dedup or a cross-run identity on a
+and actionable — but establish first that stdout's first line is a 40-character
+hex OID, since the same status also covers the merge never having been computed,
+and there are no conflict paths to report in that case. Where the shape test
+fails, report that the merge did not run and name the stderr message, rather
+than publishing an empty conflict list as though the merge had been computed and
+found nothing. Never key a cache, a dedup or a cross-run identity on a
 `merge-tree` OID unless the exit was 0.
 
 Measured against the same pinned trunk
