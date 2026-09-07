@@ -23,9 +23,11 @@
 //
 // Exit 0 = every selected check ran and passed. Exit 1 = a selected check
 // failed. Exit 2 = a check could not be run, or the script could not decide what
-// to run. **Exit 2 is never a pass**, the same rule the gates hold themselves to:
-// a check that did not run has not passed, and the worst outcome available to a
-// verifier is looking green while inspecting nothing.
+// to run. Exit 3 = there was nothing here to measure, described under "Where the
+// caller is standing" below. **No non-zero exit is a pass**, the same rule the
+// gates hold themselves to: a check that did not run has not passed, and the
+// worst outcome available to a verifier is looking green while inspecting
+// nothing.
 //
 // `--plan` prints what would run and exits **2**, not 0, precisely because it
 // verifies nothing. `--help` exits 2 for the same reason. So does a run that
@@ -38,6 +40,34 @@
 // to check", `--json` carries `empty` so the two can be told apart without
 // parsing prose. Exit 0 in `gate-scope.mjs` has the same dual reading and is
 // separated the same way.
+//
+// -- Where the caller is standing is part of the result --
+//
+// Exit 3 = the range had no width from here: `HEAD` is the merge base with the
+// published ref, and nothing sits on top of it in the working tree either, so no
+// file could be read and nothing was measured. It is not a pass, and it is not
+// the same state as a measured change that no pull-request check reads
+// (abdeslam-menacere/ModelTree#1109). The remedies point opposite ways -- one
+// says *move*, the other says *there is nothing to do* -- so they get different
+// codes and different prose, and `--json` carries `atMergeBase` and
+// `nothingMeasured` for a reader that never sees either.
+//
+// This is the ordinary situation of a gate or review worktree, whose `HEAD` is
+// trunk. Both ends of the measured range are derived from `HEAD` -- the base is
+// its merge base with the published ref -- so from there the two ends coincide
+// by construction and the zero that comes back is a fact about the vantage
+// rather than about the subject. It presented as *nothing to do*, which is the
+// shape of a pass, and it took deliberate effort to notice.
+//
+// There is deliberately **no** flag naming some other tip to measure. The
+// measurement is the committed range unioned with this working tree, and a
+// working tree is only meaningful relative to the `HEAD` it sits on: a tip
+// supplied independently of it would union two different subjects and produce a
+// number that is about neither. `--repo <dir>` is the supported way to change
+// vantage, at the granularity the union actually binds to -- point it at a
+// checkout whose `HEAD` is the tip in question. And there is no fallback to some
+// other ref when the range is empty, because an empty range is sometimes the
+// truth and a guess would replace a legible ambiguity with an illegible one.
 //
 // -- A failure carries its own evidence --
 //
@@ -691,6 +721,31 @@ function resolveAnchor(cwd) {
 }
 
 /**
+ * Which commit the caller is standing on.
+ *
+ * Resolved separately from the anchor and compared with it, because the two ends
+ * of the measured range are both derived from `HEAD` and so can coincide. When
+ * they do, the range has no width and the run reads no file -- a fact about the
+ * vantage, not about the subject, and one the script could not previously say
+ * out loud (abdeslam-menacere/ModelTree#1109). Failing to resolve it is exit 2
+ * for the same reason every other unresolvable thing here is: a script that does
+ * not know where it is standing cannot report what it measured.
+ */
+function resolveHead(cwd) {
+  let head;
+  try {
+    head = git(cwd, 'rev-parse', '--verify', 'HEAD^{commit}').trim();
+  } catch {
+    throw new Error(
+      'cannot resolve HEAD to a commit, so there is no vantage to measure from. An empty '
+      + 'repository with no commit yet will do this',
+    );
+  }
+  if (head.length === 0) throw new Error('HEAD resolved to nothing');
+  return head;
+}
+
+/**
  * Every path this change touches: what the branch committed since the anchor,
  * unioned with what the working tree holds on top of it. Same union, and same
  * reasoning, as `gate-scope.mjs` -- a change that is half committed and half
@@ -1091,6 +1146,15 @@ function main() {
       'usage: ci-preflight.mjs [--repo <dir>] [--json]\n'
       + '       ci-preflight.mjs --plan [--json]   (prints the plan, runs nothing, exits 2)\n'
       + '\n'
+      + 'What it measures is the range from the merge base with the published\n'
+      + 'main to HEAD, unioned with this working tree, so the result is a fact\n'
+      + 'about the checkout it was run in. Standing on the published tip -- as a\n'
+      + 'gate or review worktree does -- leaves that range with no width, and it\n'
+      + 'reports that as its own state rather than as a pass or as an empty\n'
+      + 'selection. There is no flag naming some other tip: the working-tree half\n'
+      + 'of the union only means anything relative to the HEAD it sits on, so use\n'
+      + '--repo to point this at a checkout whose HEAD is the tip you mean.\n'
+      + '\n'
       + 'Exit 0 means every selected check ran and passed. Printing this text\n'
       + 'verifies nothing, so --help exits 2 for the same reason --plan does:\n'
       + 'the only zero this script emits is one that was earned.\n',
@@ -1105,10 +1169,12 @@ function main() {
   }
 
   let anchor;
+  let head;
   let paths;
   let plan;
   try {
     anchor = resolveAnchor(cwd);
+    head = resolveHead(cwd);
     paths = changedPaths(cwd, anchor);
     plan = CHECKS.map((check) => ({ check, selectedBy: selectingPaths(check, paths) }));
   } catch (error) {
@@ -1118,6 +1184,41 @@ function main() {
 
   const selected = plan.filter((entry) => entry.selectedBy.length > 0);
   const skipped = plan.filter((entry) => entry.selectedBy.length === 0);
+
+  /*
+   * The two readings that used to be one, and the whole of
+   * abdeslam-menacere/ModelTree#1109.
+   *
+   * `atMergeBase` says the committed end of the range has no width: the caller
+   * is standing on the very commit the range is measured from. On its own that
+   * is not a problem -- a dirty working tree on top of trunk is a real subject,
+   * and the union below picks it up -- so the diagnostic needs both halves.
+   * `nothingMeasured` says no path was produced at all, by any of the four
+   * sources. Together they say the run had nowhere to look, which is a fact
+   * about the vantage and not about the subject, and is reported as its own
+   * state rather than folded into an empty selection.
+   *
+   * The converse case is deliberately left alone: an anchor that differs from
+   * `HEAD` and still yields no path -- a branch whose commits cancel out, say --
+   * measured something and found it empty. That is a genuine "nothing to run"
+   * and keeps the reading it already had.
+   */
+  const atMergeBase = head === anchor;
+  const nothingMeasured = paths.length === 0;
+  const noVantage = atMergeBase && nothingMeasured;
+
+  /*
+   * Said on stderr in every mode, `--json` and `--plan` included, because this
+   * one is addressed to whoever chose where to run the command and they may
+   * never read the payload. Never to stdout under `--json`, which owns it.
+   */
+  if (noVantage) {
+    process.stderr.write(
+      `ci-preflight: HEAD is at the merge base with ${PUBLISHED_REF} and the working tree adds `
+      + 'nothing on top of it, so there was nothing to measure from here. Measure from the tip '
+      + 'that is the subject, or point --repo at a checkout whose HEAD is that tip.\n',
+    );
+  }
 
   if (args.plan) {
     const describe = (check) => ({
@@ -1138,6 +1239,9 @@ function main() {
     });
     const report = {
       anchor,
+      head,
+      atMergeBase,
+      nothingMeasured,
       changed: paths,
       selected: selected.map((entry) => ({ ...describe(entry.check), selectedBy: entry.selectedBy })),
       notSelected: skipped.map((entry) => describe(entry.check)),
@@ -1159,6 +1263,13 @@ function main() {
       writeNotCovered((text) => process.stdout.write(text));
     }
     process.stderr.write('ci-preflight: --plan verified nothing, so this is not a pass\n');
+    /*
+     * Exit 2 here regardless of the vantage. `--plan`'s non-zero is a statement
+     * about `--plan` -- it verified nothing, whatever the diff was -- rather
+     * than about the measurement, so overloading it with the vantage code would
+     * make it mean two things again. The vantage itself is reported: on stderr
+     * above, and as `atMergeBase` and `nothingMeasured` in the payload.
+     */
     return 2;
   }
 
@@ -1214,13 +1325,26 @@ function main() {
    * readings of exit 0 that `gate-scope.mjs` separates.
    */
   const empty = selected.length === 0;
-  // A definite red dominates an unknown, because it is the actionable one. Both
-  // are non-zero; neither is a pass.
-  const code = failed.length > 0 ? 1 : (unknown.length > 0 || empty) ? 2 : 0;
+  /*
+   * A definite red dominates an unknown, because it is the actionable one. The
+   * vantage code sits between them and the empty selection, because it is the
+   * most specific reading available: when it holds, nothing was selected and so
+   * nothing failed and nothing went unknown, and reporting the empty selection
+   * would name a consequence where a cause is available. All are non-zero;
+   * none is a pass.
+   */
+  const code = failed.length > 0
+    ? 1
+    : noVantage
+      ? 3
+      : (unknown.length > 0 || empty) ? 2 : 0;
 
   if (args.json) {
     process.stdout.write(`${JSON.stringify({
       anchor,
+      head,
+      atMergeBase,
+      nothingMeasured,
       changed: paths,
       results,
       notSelected: skipped.map((entry) => ({ id: entry.check.id, checks: entry.check.checks })),
@@ -1243,7 +1367,18 @@ function main() {
     for (const note of result.notes ?? []) process.stdout.write(`                note: ${note}\n`);
   }
 
-  if (empty) {
+  if (noVantage) {
+    process.stdout.write(
+      '\nci-preflight: NOTHING MEASURED - HEAD is at the merge base with '
+      + `${PUBLISHED_REF}, and the working tree adds nothing on top of it, so the range this `
+      + 'script measures has no width and no file was read.\nThis is a fact about where the '
+      + 'caller is standing, not about the subject: measure again from the tip that is the '
+      + 'subject, or point --repo at a checkout whose HEAD is that tip.\nThis is not a pass, '
+      + 'and it is not the same reading as a measured change that no pull-request check '
+      + 'happens to read - that one is reported separately, because the two want opposite '
+      + 'responses.\n',
+    );
+  } else if (empty) {
     process.stdout.write(
       '\nci-preflight: NOTHING SELECTED - no pull-request check reads anything this '
       + 'branch changed.\nThis is not a pass: nothing was verified here, so it says '
