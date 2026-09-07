@@ -676,10 +676,12 @@ written and outside the worktree that wrote it.
 coordinator opens the pull request only after both gates pass, and both gates
 run only after the dock reports — so the pull request that merges a dock's work
 **cannot exist** at the moment that dock measures. Four instances, measured, and
-the direction never varies: the pull request was *created* after the verdict
-every time.
+the direction never varies: the pull request was *created* after the dock posted
+its report every time. These four are dock summaries carrying a landedness
+verdict rather than gate verdicts — the gate case is the two-issue measurement
+above — and the expiry mechanism is the same for both.
 
-| issue | verdict posted | its pull request created | delay |
+| issue | dock summary posted | its pull request created | delay |
 |---|---|---|---|
 | abdeslam-menacere/ModelTree#861 | `2026-09-05T01:30:20Z` | abdeslam-menacere/ModelTree#912 `05:16:05Z` | **+225.8 min** |
 | abdeslam-menacere/ModelTree#950 | `2026-09-05T15:34:12Z` | abdeslam-menacere/ModelTree#966 `17:35:29Z` | **+121.3 min** |
@@ -738,39 +740,66 @@ the next reader never looks, and a report is acted on from its text. **An
 instant recorded only in a log is not recorded in the report.**
 
 The anchor is what certifies that instant rather than decorating it, because
-trunk moves fast enough here that an old one is recognisable on sight. Measured
-against `refs/remotes/origin/main` =
-`1a86cf9e8bd14443915c29a88ddd6ed04054f0e7`, reflog-dated
-2026-09-06 18:47:37 -0400: trunk took **4** first-parent moves inside the 67
-minutes spanning three of the merges above, and **47** across the day those
-reports then sat unread.
+trunk moves fast enough here that an old one is recognisable on sight. Measure
+that rate rather than taking one from this sentence, and when you record it,
+**prefer a count between two named commits over a count across a period.** The
+first is a fact about two immutable objects and stays re-derivable forever; the
+second silently re-scopes itself every time the period is re-read, so a reader
+who recomputes it gets a different number and cannot tell a miscount from a
+moved window. Two figures pinned here in that second form did not survive their
+first re-derivation, which is why the form is named rather than the figures
+repaired. Measured between the two anchors one dock resolved during a single
+session — `1a86cf9e8bd14443915c29a88ddd6ed04054f0e7`, reflog-dated 2026-09-06
+18:47:37 -0400, and `6003e83d5b85d8a109b644aaa7e0270fa3a722dc` at
+20:33:50 -0400 — `git rev-list --count --first-parent` reports trunk taking
+**1** first-parent move, against **0** for either anchor compared with itself,
+and `--is-ancestor` exits 0 one way and 1 the other, so the interval is strictly
+forward rather than a rewind. One move inside one dock's own session is the
+whole of why an unread report's anchor is worth checking.
 
 **The reader is the only party who can catch the temporally-expired bucket, so
 the reader re-establishes liveness before acting.** The writer's honest wording
 stops the report from lying; it cannot make the report actionable, and only
 somebody standing outside the worktree — after the event — can see the merge at
-all. Measured over roughly one day of traffic here, five hand-offs reached the
-coordinating session between **23h40m and 28h23m** after the merge that mooted
-them, spanning three roles — a dock, a review gate and a QA gate — across three
-issues, two of which contributed an independent pair. Three roles is what rules
-out a lapse by any one participant and leaves the ordering: every one of those
-reports was correct when it was written. Read that lag as two measurements of
-different kinds: the merge instants are API records, while the arrival instants
-are observable only to the receiving session, corroborated as upper bounds by
-the creation times of the comments reporting them.
+all. How long a report then sits unread is the reader's own exposure, and this
+file deliberately pins no figure for it: arrival instants are observable only
+inside the receiving session, so a reader here cannot re-derive one from any
+record, and an unre-derivable number is worth less than the structure it would
+decorate. The structure needs no new figure, because the table above already
+carries it — every verdict there was written before the pull request that merged
+its work existed, so *any* delay in reading one is a delay measured against an
+event its writer could not have seen.
 
-The check is one call, keyed on the branch the verdict is about, and it needs no
-local object and no anchor:
+The check starts as one call, keyed on the branch the verdict is about, and that
+call needs no local object and no anchor:
 
 ```powershell
 $raw = gh pr list --repo <owner>/<repo> --state all --head <branch> --json number,state,headRefOid,mergedAt
 $cLive = $LASTEXITCODE
 ```
 
-- A record whose `mergedAt` is non-null ⇒ the verdict is **moot**. Stop: do not
-  re-gate it, do not re-dispatch it, and do not offer merged work for review.
-  Test `mergedAt` rather than `state`, for the reason key 2 records — REST
-  spells a merged pull request `closed`.
+- A record whose `mergedAt` is non-null ⇒ **something** merged under that branch
+  name, which is not yet the verdict's disposition. `mergedAt` is one value
+  covering two outcomes, and the call already fetches the field that separates
+  them, so read `headRefOid` against the SHA the verdict binds — by the rule
+  step 2 states for a tip, `git rev-list --count "<headRefOid>..<bound>"` where
+  you hold both objects, or `gh api
+  "repos/<owner>/<repo>/compare/<headRefOid>...<bound>"` and its `ahead_by`
+  where you do not, which keeps this check free of local objects:
+  - **0** ⇒ the merged head carries everything the verdict judged, so what was
+    gated is on trunk and the verdict is **moot**. Stop: do not re-gate it, do
+    not re-dispatch it, and do not offer merged work for review.
+  - **above 0** ⇒ the verdict binds commits the merged head does not carry.
+    Those are unmerged *and* ungated, the merge settles nothing about them, and
+    a re-run is owed on the remainder — step 2's `PARTIALLY LANDED` shape, read
+    from the verdict's end rather than from the tip's.
+
+  Do not write that test as equality against `headRefOid`. Equality is the
+  common case and not the rule: step 2 measures a branch whose tip is an
+  *ancestor* of `headRefOid`, where the count is 0 while equality is false, and
+  records that reading equality there would have reverted 49 files and 6,622
+  lines. Test `mergedAt` rather than `state`, for the reason key 2 records —
+  REST spells a merged pull request `closed`.
 - `[]` at exit 0 ⇒ no record under that head name, which is not a verdict on its
   own: keys 2 and 3 under step 2 reach the two cases a name cannot, and
   `--state all` is load-bearing there for the reason that step gives.
@@ -786,6 +815,17 @@ reason **Rule 2** gives. Measured at the anchor above,
 `abdeslam-menacere-decayed-split-line-1509` returned
 abdeslam-menacere/ModelTree#970, `MERGED`, `mergedAt` `2026-09-05T18:26:46Z`,
 against `[]` for a branch name invented in the same invocation.
+
+The comparison is a second instrument and takes its own control, since a control
+on the list call says nothing about it. Measured on the
+abdeslam-menacere/ModelTree#813 pair step 2 records, four arms in one run:
+`7ab64880...11836e28` returned `ahead_by` **0** at `status` `behind`, the
+operands reversed returned **1** at `ahead`, a commit against itself returned
+**0** at `identical`, and a fabricated SHA exited **1** on HTTP 404. So the
+payload separates the two `ahead_by` **0** readings that both mean stop from the
+non-zero one that does not, while the exit code separates all three from a key
+the remote cannot resolve — and those counts agree with the `rev-list` figures
+step 2 publishes for that same pair, which is what licenses using either form.
 
 This is the branch-keyed twin of **Rule 1** under **When a dock hands back**,
 and neither covers the other: an issue can close with nothing merged, and a
