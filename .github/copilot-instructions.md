@@ -1766,6 +1766,30 @@ The site is a static Astro build; everything lives under `web/`.
   The same general form as above, moved from detection to invocation: an
   instruction that names a command must not assume the form it names is the form
   that runs.
+- **`npm ci` is the only install form that is safe here, and a bare install
+  damages the repository whether or not the command succeeds.** The paragraph
+  above settles which *form* of npm your shell resolves. This is the separate
+  question of which *subcommand* to hand it, and an agent that answers the first
+  perfectly still reaches for the wrong second one. A bare install rewrites
+  `web/package-lock.json` — against a mirror that publishes no `sha512`, so the
+  rewrite gains nothing — churns the load-balanced shard hosts, and on npm
+  11.9.0 strips the `libc` selectors that drive glibc-versus-musl binary
+  selection. `docs/adr/0004-sha-1-lockfile-integrity-is-a-mirror-constraint.md`
+  carries the measurements and already forbids regenerating the lockfile for
+  this reason.
+
+  The consequence, named because you will meet it before you meet the cause:
+  `web/tests/lockfile/libc-selectors.test.ts` going red in a worktree where you
+  did not deliberately change the lockfile means **an install of yours rewrote
+  it**. That test reads only the committed lockfile, spawns nothing, and passes
+  on a clean Windows tree, so "it fails on Windows" is never the explanation.
+  Both docks that hit it reached for one anyway: abdeslam-menacere/ModelTree#435
+  identified the cause and restored the file, while the gate on
+  abdeslam-menacere/ModelTree#698 recorded it as a pre-existing platform quirk
+  and found the deletions in its own lockfile only on being asked to look again.
+  A guard that fires correctly and gets written up as a platform quirk is a
+  guard on its way to being switched off. If you have already run an install,
+  restore the lockfile rather than committing the rewrite.
 - `npm run validate` (tests + Astro/TypeScript diagnostics) must keep passing.
   `npm run build` runs it, so a broken change cannot ship.
 - **`npm run validate` is not the whole verification set, and a diff that
