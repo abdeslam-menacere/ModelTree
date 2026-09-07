@@ -92,6 +92,16 @@ export const LICENCE_ABSTENTION_REASONS = [
   'no-spdx-id',
   /** The record asserts an `spdxId` but cites no URL: the sweep never sees this record at all. */
   'no-licence-url',
+  /**
+   * The record asserts neither an `spdxId` nor a URL: there is no claim here at
+   * all. Separate from `no-licence-url` because that reason's prose names an
+   * asserted `spdxId`, and these records assert nothing to name. Both populations
+   * abstain, and they convert into different work — one needs a URL found for a
+   * licence already stated, the other needs the licence established first — so
+   * one code covering both would report a bucket whose prose is false for part
+   * of it.
+   */
+  'no-licence-fields',
   /** The recorded URL is not a URL. Malformed input is a finding for the schema, not for this. */
   'malformed-url',
   /** A `finalUrl` was supplied and is not a URL. The supplier is broken; this abstains rather than falling back. */
@@ -318,7 +328,7 @@ export function classifyLicenceIdentity(input: LicenceIdentityInput): LicenceIde
   // name the wrong problem: the host is beside the point when there is no
   // assertion to contradict.
   if (spdxId === undefined || spdxId.length === 0) {
-    return abstain(recordedUrl === undefined || recordedUrl.length === 0 ? 'no-licence-url' : 'no-spdx-id');
+    return abstain(recordedUrl === undefined || recordedUrl.length === 0 ? 'no-licence-fields' : 'no-spdx-id');
   }
   if (recordedUrl === undefined || recordedUrl.length === 0) return abstain('no-licence-url');
 
@@ -513,6 +523,7 @@ export function buildLicenceIdentityReport(
 const REASON_PROSE: Readonly<Record<LicenceAbstentionReason, string>> = {
   'no-spdx-id': 'cites a licence URL but asserts no `spdxId`, so there is nothing to contradict',
   'no-licence-url': 'asserts an `spdxId` but cites no URL, so the sweep never sees this record at all',
+  'no-licence-fields': 'asserts neither an `spdxId` nor a URL, so there is no licence claim to check',
   'malformed-url': 'the recorded `license.url` is not a URL',
   'malformed-final-url': 'a final URL was supplied for this record and is not a URL',
   'model-landing-page': 'URL is a model landing page; the licence is asserted in the card body, not in the URL',

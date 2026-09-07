@@ -43,6 +43,7 @@ const CORPUS: readonly { readonly name: string; readonly input: LicenceIdentityI
     input: { recordedUrl: 'https://www.apache.org/licenses/LICENSE-2.0.txt' },
   },
   { name: 'a record with an spdxId and no URL', input: { spdxId: 'Apache-2.0' } },
+  { name: 'a record asserting neither an spdxId nor a URL', input: {} },
   { name: 'a recorded URL that is not a URL', input: { spdxId: 'MIT', recordedUrl: 'not a url' } },
   {
     name: 'a supplied final URL that is not a URL',
@@ -218,7 +219,26 @@ describe('classifyLicenceIdentity: abstention reasons name the structure, not th
 
   it('names a missing URL for the population the sweep never sees', () => {
     expect(classifyLicenceIdentity({ spdxId: 'Apache-2.0' }).reason).toBe('no-licence-url');
-    expect(classifyLicenceIdentity({}).reason).toBe('no-licence-url');
+  });
+
+  it('separates a record asserting neither field from one asserting an spdxId', () => {
+    // Both abstain, and both once reported `no-licence-url` -- whose prose says
+    // the record "asserts an `spdxId`", which is false of a record that asserts
+    // nothing. Read both arms in the same run and require them to come back
+    // DIFFERING: one arm returning the value somebody had in mind shows nothing,
+    // and the conflation this replaces was pinned by an assertion that only ever
+    // looked at one of the two populations at a time.
+    const neither = classifyLicenceIdentity({}).reason;
+    const spdxOnly = classifyLicenceIdentity({ spdxId: 'Apache-2.0' }).reason;
+    expect(neither).toBe('no-licence-fields');
+    expect(spdxOnly).toBe('no-licence-url');
+    expect(neither).not.toBe(spdxOnly);
+  });
+
+  it('reads an empty string as an absent field, on both fields at once', () => {
+    // The classifier tests `.length === 0` as well as `undefined`, so a record
+    // carrying empty strings is the same population as one carrying nothing.
+    expect(classifyLicenceIdentity({ spdxId: '', recordedUrl: '' }).reason).toBe('no-licence-fields');
   });
 
   it('separates a model landing page from a file inside a repository', () => {
@@ -403,6 +423,52 @@ describe('buildLicenceIdentityReport over the real dataset', () => {
     expect(total).toBe(report.records.length);
     expect(report.records.length).toBe(report.coverage.withLicence);
     expect(new Set(report.records.map((entry) => entry.releaseId)).size).toBe(report.records.length);
+  });
+
+  it('pins each no-field abstention bucket to the population its prose describes', () => {
+    // The guard whose absence let the conflation ship. Both no-field populations
+    // once returned one code, so that bucket counted 20 while its prose -- and the
+    // coverage row it should match -- named 14, and nothing anywhere asserted the
+    // two had to agree. Asserting the RELATION rather than either figure means a
+    // future drift between a label and its measurement fails here instead of
+    // being printed as a fact.
+    expect(report.reasons['no-licence-url']).toBe(report.coverage.spdxIdWithoutUrl);
+    expect(report.reasons['no-spdx-id']).toBe(report.coverage.urlWithoutSpdxId);
+
+    // The neither-field population has no coverage row of its own. It is named
+    // here as the remainder rather than by adding a field to a table that is
+    // already arithmetically correct. With it, the no-field buckets and the
+    // checkable population partition `withLicence` exactly.
+    const neither =
+      report.coverage.withLicence -
+      report.coverage.checkable -
+      report.coverage.urlWithoutSpdxId -
+      report.coverage.spdxIdWithoutUrl;
+    expect(report.reasons['no-licence-fields']).toBe(neither);
+  });
+
+  it('CONTROL: each no-field bucket holds only records with the structure its prose names', () => {
+    // Without this, both relations above hold vacuously if every no-field record
+    // lands in one bucket -- which is precisely the state being repaired, so the
+    // relation alone would have passed against the defect.
+    const withReason = (reason: string) => report.records.filter((record) => record.reason === reason);
+    const urlMissing = withReason('no-licence-url');
+    const bothMissing = withReason('no-licence-fields');
+
+    expect(urlMissing.length).toBeGreaterThan(0);
+    expect(bothMissing.length).toBeGreaterThan(0);
+
+    // The arms come back differing in structure, which is the whole claim: the
+    // prose for `no-licence-url` names an asserted `spdxId`, and every record in
+    // the other bucket asserts none.
+    for (const record of urlMissing) {
+      expect(record.spdxId, record.releaseId).not.toBeNull();
+      expect(record.recordedUrl, record.releaseId).toBeNull();
+    }
+    for (const record of bothMissing) {
+      expect(record.spdxId, record.releaseId).toBeNull();
+      expect(record.recordedUrl, record.releaseId).toBeNull();
+    }
   });
 
   it('never adjudicates a record outside the checkable population', () => {
