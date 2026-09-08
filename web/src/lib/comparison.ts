@@ -9,8 +9,10 @@
  * Three things shape every decision below.
  *
  * 1. **Absence is a main path through this module, not an edge case.** This
- *    rests on the schema rather than on a census, because the schema is the
- *    part that cannot move quietly underneath a reader. Four of the attributes
+ *    rests on the schema rather than on a census. The schema can change, but it
+ *    is validated on every build and only a reviewed code change can move it,
+ *    whereas the data it admits grows without one — so it is the more stable of
+ *    the two things to argue from, not an immovable one. Four of the attributes
  *    this table compares — `contextWindow`, `maximumOutput`, `license`,
  *    `parameters` — are `.optional()` on `releaseSchema`, and every operational
  *    collection on `datasetSchema` is `.default([])`, so a whole group can be
@@ -28,12 +30,20 @@
  *    data rather than of this module, and it is deliberately not recorded here.
  *    The module reads it live instead — `not-collected` is decided from
  *    `dataset.pricing.length` and `dataset.deployments.length` as the page
- *    builds, never from a figure written in a comment. A census in this file
- *    could not be kept true even in principle: `comparison.ts` sits outside the
- *    class `gate-scope.mjs` admits (ADR 0003), so the refresh that grows the
- *    corpus is forbidden to edit this file to correct a count in it. An earlier
- *    header pinned a census of the dataset and the composition of `raw.ts`; the
- *    corpus grew and took most of it with it (#1089).
+ *    builds, never from a figure written in a comment. A census here would also
+ *    sit outside the reach of the process that outdates it: `comparison.ts` is
+ *    not in the class `gate-scope.mjs` admits (ADR 0003), so the automatic
+ *    data-only refresh that grows the corpus cannot edit this file to correct a
+ *    figure in it. An ordinary reviewed code change still can — that is how this
+ *    comment was written — but nothing triggers one when the corpus moves, so
+ *    the correction waits on somebody noticing.
+ *
+ *    Anchoring a reading does not settle it either, which this file has already
+ *    demonstrated. An earlier header pinned a census that named the commit it
+ *    was measured at, and that reading stayed true of that commit; what it
+ *    stopped doing was describing the dataset in front of the reader, because it
+ *    was written as a present-tense claim about the shipped data. The corpus
+ *    grew and took most of it with it (#1089).
  *
  *    Rendering absence as a blank cell would read as a rendering fault rather
  *    than as a fact about coverage, which is what the kinds below are for.
