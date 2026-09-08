@@ -8,15 +8,45 @@
  *
  * Three things shape every decision below.
  *
- * 1. **The shipped dataset is sparse, and sparse is the main path, not an edge
- *    case.** Measured at merge-base `fc418bb6` over `web/src/data`: 49 releases,
- *    of which 44 state a context window, 26 a maximum output, 16 a licence, and
- *    15 a parameter count; `derivedFromIds` is non-empty on 0 of 49. `raw.ts`
- *    composes no pricing, deployment, or serving-platform JSON at all, so those
- *    three entity types reach a page only through Zod `.default([])`. Benchmark
- *    results exist but cover 2 of 49 releases. So for almost every pair a reader
- *    can pick, most of this table is absence — and rendering absence as a blank
- *    cell would read as a rendering fault rather than as a fact about coverage.
+ * 1. **Absence is a main path through this module, not an edge case.** This
+ *    rests on the schema rather than on a census. The schema can change, but it
+ *    is validated on every build and only a reviewed code change can move it,
+ *    whereas the data it admits grows without one — so it is the more stable of
+ *    the two things to argue from, not an immovable one. Four of the attributes
+ *    this table compares — `contextWindow`, `maximumOutput`, `license`,
+ *    `parameters` — are `.optional()` on `releaseSchema`, and every operational
+ *    collection on `datasetSchema` is `.default([])`, so a whole group can be
+ *    empty while the dataset stays valid.
+ *
+ *    Read that as permission rather than as frequency. Nothing obliges any of
+ *    these to be stated, and nothing obliges them to be stated together, so a
+ *    comparison in which every one of them is missing is a valid dataset rather
+ *    than a corrupt one. That is what settles the design: this module cannot
+ *    treat presence as the default and absence as the exception, because the
+ *    schema lets absence arrive on any attribute, on any row, all at once. It
+ *    has to render absence as a first-class outcome everywhere it compares.
+ *
+ *    How much absence there happens to be on a given day is a property of the
+ *    data rather than of this module, and it is deliberately not recorded here.
+ *    The module reads it live instead — `not-collected` is decided from
+ *    `dataset.pricing.length` and `dataset.deployments.length` as the page
+ *    builds, never from a figure written in a comment. A census here would also
+ *    sit outside the reach of the process that outdates it: `comparison.ts` is
+ *    not in the class `gate-scope.mjs` admits (ADR 0003), so the automatic
+ *    data-only refresh that grows the corpus cannot edit this file to correct a
+ *    figure in it. An ordinary reviewed code change still can — that is how this
+ *    comment was written — but nothing triggers one when the corpus moves, so
+ *    the correction waits on somebody noticing.
+ *
+ *    Anchoring a reading does not settle it either, which this file has already
+ *    demonstrated. An earlier header pinned a census that named the commit it
+ *    was measured at, and that reading stayed true of that commit; what it
+ *    stopped doing was describing the dataset in front of the reader, because it
+ *    was written as a present-tense claim about the shipped data. The corpus
+ *    grew and took most of it with it (#1089).
+ *
+ *    Rendering absence as a blank cell would read as a rendering fault rather
+ *    than as a fact about coverage, which is what the kinds below are for.
  *
  * 2. **Absence has kinds, and collapsing them is the failure this issue names.**
  *    {@link ValueState} splits it four ways and each kind is decided by a rule a
