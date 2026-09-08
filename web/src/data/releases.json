@@ -329,7 +329,7 @@
       "openai-gpt-5-5-announcement",
       "openai-gpt-5-5-docs"
     ],
-    "verifiedAt": "2026-08-26"
+    "verifiedAt": "2026-09-08"
   },
   {
     "id": "openai-gpt-5-4",
@@ -373,7 +373,7 @@
       "openai-gpt-5-4-announcement",
       "openai-gpt-5-4-docs"
     ],
-    "verifiedAt": "2026-08-26"
+    "verifiedAt": "2026-09-08"
   },
   {
     "id": "openai-gpt-5",
@@ -1147,7 +1147,7 @@
     "sourceIds": [
       "openai-gpt-5-1-docs"
     ],
-    "verifiedAt": "2026-08-27"
+    "verifiedAt": "2026-09-08"
   },
   {
     "id": "openai-gpt-5-2",
@@ -1190,7 +1190,7 @@
     "sourceIds": [
       "openai-gpt-5-2-docs"
     ],
-    "verifiedAt": "2026-08-27"
+    "verifiedAt": "2026-09-08"
   },
   {
     "id": "openai-gpt-5-3-codex",
@@ -1232,7 +1232,7 @@
       "openai-gpt-5-3-codex-docs",
       "openai-news-rss"
     ],
-    "verifiedAt": "2026-08-27"
+    "verifiedAt": "2026-09-08"
   },
   {
     "id": "openai-gpt-image-2",
@@ -4963,7 +4963,9 @@
     "contextWindow": 131072,
     "apiAliases": [],
     "predecessorIds": [],
-    "successorIds": [],
+    "successorIds": [
+      "openbmb-minicpm5-2b"
+    ],
     "siblingIds": [],
     "summary": "OpenBMB's first MiniCPM5 checkpoint, described on its card as \"a dense 1B Transformer built for on-device, local deployment, and resource-constrained scenarios\" with a \"built-in `<think>` chat template\" so that \"the same checkpoint serves as both a fast assistant and a deliberate reasoner\". The recorded parameter count is the card's \"Number of Parameters: 1,080,632,832\" expressed in billions, and the recorded context window is the card's \"Context Length: 131,072\" exactly. The card's comparative and leaderboard claims are deliberately not recorded: this dataset states no ranking and carries no composite score. The lifecycle is recorded as unknown because no source read states one for this checkpoint. The card’s \"We are releasing MiniCPM5-1B, the first model in the MiniCPM5 series\" announces a release and places the checkpoint in a series without stating whether the creator still offers it.",
     "intendedUse": "Local assistants, coding agents and tool-use workflows on constrained hardware, per the card's statement that the model is \"designed for local assistants, coding agents, tool-use workflows, and reasoning scenarios where a compact model is preferred\".",
@@ -4974,6 +4976,55 @@
       "osi-license-index"
     ],
     "verifiedAt": "2026-09-06"
+  },
+  {
+    "id": "openbmb-minicpm5-2b",
+    "slug": "minicpm5-2b",
+    "canonicalName": "MiniCPM5-2B",
+    "displayName": "MiniCPM5-2B",
+    "organizationId": "openbmb",
+    "familyId": "openbmb-minicpm5",
+    "version": "5",
+    "variant": "2B",
+    "releaseDate": "2026-09-07",
+    "datePrecision": "day",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "language-reasoning"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache License 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 2.51675648
+    },
+    "contextWindow": 131072,
+    "apiAliases": [],
+    "predecessorIds": [
+      "openbmb-minicpm5-1b"
+    ],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "OpenBMB's second MiniCPM5 checkpoint, described on its card as \"a dense 2B Transformer that scales up the same training recipe, built for on-device, local deployment, and resource-constrained scenarios\" and as \"the second model in the MiniCPM5 series, following MiniCPM5-1B\". The recorded parameter count is the card's \"Number of Parameters: 2,516,756,480\" expressed in billions, and the recorded context window is the card's \"Context Length: 131,072\" exactly. The card's \"2B-class open-source SOTA\" and other comparative and leaderboard claims are deliberately not recorded: this dataset states no ranking and carries no composite score. The lifecycle is recorded as unknown because no source read states one for this checkpoint; the repository's \"[2026.09.07] MiniCPM5-2B is released\" announces a release without stating whether the creator still offers it.",
+    "intendedUse": "Local assistants, coding agents and tool-use workflows on constrained hardware, per the card's statement that the model \"is designed for local assistants, coding agents, tool-use workflows, and reasoning scenarios where a compact model is preferred\".",
+    "sourceIds": [
+      "openbmb-minicpm5-2b-model-card",
+      "openbmb-minicpm-repository",
+      "hugging-face-openbmb-minicpm5-2b-hub-record",
+      "osi-license-index"
+    ],
+    "verifiedAt": "2026-09-08"
   },
   {
     "id": "nvidia-nemotron-nano-9b-v2",

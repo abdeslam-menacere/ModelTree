@@ -1,5 +1,336 @@
 [
   {
+    "id": "2026-09-08-0152aa",
+    "title": "Added OpenBMB MiniCPM5-2B and re-verified five OpenAI GPT-5.x releases",
+    "ranOn": "2026-09-08",
+    "outcome": "published",
+    "summary": "Swept all 44 creators against their own primary channels and found one genuinely new release: OpenBMB MiniCPM5-2B, recorded with its model card and Hugging Face Hub record as sources and linked as MiniCPM5-1B's successor. Re-verified five OpenAI GPT-5.x releases whose documentation pages still state every value the dataset holds for them. A sixth candidate creator, zhipu-ai, produced four claims and published none of them: the panel rejected the GLM-5.3-Flash release for a summary that called the model a Mixture-of-Experts model when the pinned card never says so, and gate-evidence then refused that bundle whole, taking the three 3-of-3 claims down with it. That refusal was obeyed rather than worked around, which is why this entry records 21 claims proposed and 17 applied.",
+    "scope": "All 44 creator records in web/src/data/organizations.json, each scouted against its own catalogued primary channels; 112 URLs fetched across three scout rounds plus a re-verification tranche, 109 of which returned a body that was saved and hashed over the exact bytes received. Changed web/src/data/sources.json, web/src/data/releases.json and web/src/data/families.json. web/asset-budgets.json also changed, and only in its regenerable measurement figures: the new release shifts several pages past the 2% measuredDrift guard, which ADR 0015 admits to the ADR 0003 qualifying class for exactly this reason. No *MaxRaw ceiling and no measuredDrift.maxFraction was touched, and gate-scope's content-aware check on that path is what establishes it rather than this sentence.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Clean tree at merge-base 82aa9f65, gh authenticated, and the three open pull requests checked one by one to confirm none touches a web/src/data path. drydock and npm were each probed in both bare and .cmd form: the bare form is refused by the PowerShell execution policy while the .cmd form returns a version, which is installed-and-blocked rather than absent. The execution policy was not changed, and reporting it as absent would have sent the next reader somewhere different."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "112 fetch attempts across all 44 creators; 109 returned a body and 7 failed, each recorded as a degraded channel for the creator it belongs to rather than folded into a flat error list. Every body was written to disk and hashed over the bytes received, so every quote published in the pull request is verifiable against the artefact it came from. A hub-activity scan found 25 rows modified on or after 2026-09-05 and an HTML date scan found 6 in-window dates, none of which was a model announcement -- that is what establishes the no-further-releases finding, rather than an absence of looking."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Nine sub-agents: one per rubric per bundle, launched in parallel with no shared context, and a different model family per rubric (provenance claude-opus-4.6, consistency gpt-5.4, editorial grok-4.5, all at high reasoning effort) so that a correlated failure in one family cannot carry a majority on its own. No reviewer saw the scout reasoning, another reviewer verdict, or the running tally. Claims were batched per reviewer and never across reviewers. The chair cast no vote, broke no tie and re-ran no reviewer. The panel discriminated: editorial rejected one claim the other two rubrics accepted."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-evidence and gate-source-approval ran per bundle before any claim was applied; gate-dataset, gate-scope, gate-reversals, gate-ledger, npm run validate and ci-preflight ran after. Semantic review ran first throughout, so no deterministic gate was something a majority could argue with. gate-scope was controlled in both directions in one session -- with an out-of-class file present it exits 1 naming that file, against exit 0 here -- so its pass is a reading rather than an instrument that returns 0 to everything. No gate was skipped, no threshold lowered, and no claim was edited to make a gate pass."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "One dataset commit and one ledger commit on a branch, published as pull request #1134 with auto-merge enabled so that web-ci gates the merge rather than any judgement of this run's. No direct push to main, no --admin, no --force. The dataset commit precedes the ledger commit deliberately: refreshLogSchema requires a published run to name its own pull request, so this entry could not be written until that number existed."
+      },
+      {
+        "stage": "deploy",
+        "status": "not-run",
+        "note": "Not run, and recorded as not-run rather than as a pass. This entry is committed into the very pull request whose merge triggers the Pages deploy, so at the moment it was written the deploy could not have happened and no probe available here could have reached it. The confirmation is performed after the merge and recorded on this run's summary issue, which is where a reader should check it. Writing \"ran\" here would have been a claim about the future dressed as a measurement."
+      }
+    ],
+    "found": {
+      "scouts": 44,
+      "pagesFetched": 112,
+      "claimsProposed": 21,
+      "bundles": [
+        {
+          "creator": "openbmb",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "zhipu-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 10
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "add",
+          "count": 7,
+          "effect": "Three new records reached the dataset -- one release and two sources for OpenBMB MiniCPM5-2B. The other four adds are the whole zhipu-ai bundle, which gate-evidence refused."
+        },
+        {
+          "kind": "change",
+          "count": 14,
+          "effect": "Fourteen edits to existing records: eleven verifiedAt / lastCheckedDate moves on re-verified OpenAI and OpenBMB records, one successorIds link, one source note extended with the new changelog line, and one family verifiedAt."
+        }
+      ],
+      "notCovered": [
+        "Only creators whose catalogued channels showed movement produced bundles. A creator that was scouted and yielded nothing is recorded as a zero-claim absence of change, not as an unscouted creator -- see unswept, which is empty because all 44 were swept.",
+        "No benchmark result, usage observation, deployment or serving-platform record was touched this run. Those collections were not scouted."
+      ],
+      "unswept": [],
+      "degradedChannels": [
+        {
+          "creator": "xai",
+          "source": "official-announcement",
+          "detail": "https://x.ai/news returned http-403"
+        },
+        {
+          "creator": "meta",
+          "source": "official-announcement",
+          "detail": "https://ai.meta.com/blog/ returned http-400"
+        },
+        {
+          "creator": "openai",
+          "source": "official-announcement",
+          "detail": "https://openai.com/news/ returned http-403"
+        },
+        {
+          "creator": "zhipu-ai",
+          "source": "official-announcement",
+          "detail": "https://z.ai/blog returned http-404"
+        },
+        {
+          "creator": "google-deepmind",
+          "source": "official-announcement",
+          "detail": "https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash returned error"
+        },
+        {
+          "creator": "google-deepmind",
+          "source": "official-announcement",
+          "detail": "https://ai.google.dev/gemini-api/docs/deprecations returned error"
+        },
+        {
+          "creator": "google-deepmind",
+          "source": "official-announcement",
+          "detail": "https://ai.google.dev/gemini-api/docs/models returned error"
+        }
+      ]
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 63,
+      "acceptedByPanel": 20,
+      "rejectedByPanel": 1,
+      "dissents": [],
+      "gates": [
+        {
+          "gate": "gate-evidence",
+          "scope": "the 17 claims in the openbmb and openai bundles, run before any claim was applied",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Both bundles passed. Every claim carries a verbatim quote, a content hash and a fetch date, and every claim met the threshold its bundle's policy sets -- 3-of-3 for openbmb as a long-tail creator, 2-of-3 for openai as a reviewed profile."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "the 4 claims in the zhipu-ai bundle",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": false,
+          "detail": "Exit 1. Refused the whole bundle, reporting that zhipu-ai-glm-5-3-flash-release is marked add but reached only 2 of 3 required accepts under the long-tail policy. The run honoured that refusal exactly: nothing from the zhipu-ai bundle is in this pull request, so this gate run governs no published record and is not required for this merge. It is marked not-required for that reason alone -- the refusal was obeyed, never waived, and the three unanimously accepted claims it also withheld are recorded in withheld[] rather than quietly applied."
+        },
+        {
+          "gate": "gate-source-approval",
+          "scope": "all three bundles, anchored at the merge-base with refs/remotes/origin/main",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Passed on every bundle, including zhipu-ai. The two new sources this run proposes -- the MiniCPM5-2B model card and its Hugging Face Hub record -- both resolve to origins already approved in tools/updater/profiles/origins, so no new origin was introduced and tools/updater was neither modified nor needed to be."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "every record in web/src/data after the accepted claims were applied",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Exit 0, passed true, failures empty. Schema, referential integrity and the structural invariants all hold with the new release, its two sources and the successor link in place."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "every path changed since the computed merge-base, working tree and committed tip alike",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Exit 0, four changed paths, all in the ADR 0003 qualifying class and outOfClass empty. web/asset-budgets.json is in class only conditionally and the gate's content-aware check on it passed, which is what establishes that only regenerable measurement figures moved. Controlled in both directions in the same session: with an out-of-class file present the same invocation exits 1 and names it, so the arms disagree and this pass discriminates."
+        },
+        {
+          "gate": "gate-reversals",
+          "scope": "refresh-runs.json read together with the dataset",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Exit 0, failures empty. Nothing this run applied reverses a value an earlier run recorded."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "the web workspace: 139 test files and Astro/TypeScript diagnostics over 287 files",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Exit 0. 3189 of 3189 tests passed across 139 files, with the coverage check confirming all 139 discovered files reported results and every reported test executed; astro check reported 0 errors, 0 warnings and 0 hints. Two earlier failures were diagnosed rather than worked around: licence-identity asserts a clean git status for src/data and cleared once the dataset was committed, and the asset-budget drift was genuine and was fixed by re-recording the measurements ADR 0015 admits."
+        },
+        {
+          "gate": "gate-ledger",
+          "scope": "this entry read against the run's own artefacts and the committed dataset",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "passed: true with no failures, transcription false, and entriesAdded naming exactly this run id -- so the gate saw one new entry rather than a silently rewritten old one. The entry's counts are derived in build-entry.mjs from the run's own claim bundles and gate reports rather than typed in, which is what transcription false checks. Its record list was corrected before this reading: the first build named all 16 edited records including 8 in sources, and src/lib/refresh-log-links.test.ts reported those 8 unresolved because the site resolves only releases, families and organizations into links. Sources have no page, so they are carried at document level in posted.documents, whose note names every added and edited source record."
+        },
+        {
+          "gate": "ci-preflight",
+          "scope": "the pull-request checks this branch diff selects, measured from the same merge-base 82aa9f651c",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": false,
+          "detail": "PASS with 3 of 7 local check groups selected from 5 changed files and all 3 run and passed: web-ci, skills-ci and source-link-health-tests, with 3189 of 3189 tests over 139 files. An earlier run of this same command exited 1, and both of its failures were real rather than noise: scripts/licence-identity.test.ts asserts web/src/data is clean and was reading this run's own uncommitted ledger, and src/lib/refresh-log-links.test.ts named 8 source records the site cannot resolve into links. The first cleared on commit and the second was fixed by carrying sources at document level, so the pass above is the second reading of a command that had already demonstrated it can fail. It prints what it does not cover on every run -- the networked link-health sweep, the licence-link-introduction check, the second Python interpreter, the e2e browser check, the aggregate-checks status and the runner itself -- so a green preflight predicts CI rather than binding it."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 17,
+      "documents": [
+        {
+          "document": "sources.json",
+          "recordsBefore": 289,
+          "recordsAfter": 291,
+          "note": "2 records added for MiniCPM5-2B (model card and Hub record); 6 existing records edited -- one OpenBMB repository note extended with the new changelog line and its lastCheckedDate moved, and five OpenAI documentation sources re-checked."
+        },
+        {
+          "document": "releases.json",
+          "recordsBefore": 123,
+          "recordsAfter": 124,
+          "note": "1 record added (openbmb-minicpm5-2b); 6 existing records edited -- the MiniCPM5-1B successorIds link and five OpenAI verifiedAt moves. No record removed."
+        },
+        {
+          "document": "families.json",
+          "recordsBefore": 86,
+          "recordsAfter": 86,
+          "note": "No record added or removed; one record edited, openbmb-minicpm5, whose verifiedAt moved to 2026-09-08 on re-verification."
+        }
+      ],
+      "records": [
+        {
+          "id": "openbmb-minicpm5-2b",
+          "collection": "releases",
+          "note": "added"
+        },
+        {
+          "id": "openbmb-minicpm5-1b",
+          "collection": "releases",
+          "note": "MiniCPM5-2B is recorded as the successor of MiniCPM5-1B, because the card places it \"following MiniCPM5-1B\" in the same series."
+        },
+        {
+          "id": "openbmb-minicpm5",
+          "collection": "families",
+          "note": "The MiniCPM5 family record is re-verified as of 8 September 2026: the repository read on that day still carries the changelog line the family's first-release date rests on."
+        },
+        {
+          "id": "openai-gpt-5-5",
+          "collection": "releases",
+          "note": "GPT-5.5's model page still states the recorded 1,050,000-token context window, so the release record is re-verified as of 8 September 2026."
+        },
+        {
+          "id": "openai-gpt-5-4",
+          "collection": "releases",
+          "note": "GPT-5.4's model page still states the recorded 1,050,000-token context window, so the release record is re-verified as of 8 September 2026."
+        },
+        {
+          "id": "openai-gpt-5-1",
+          "collection": "releases",
+          "note": "GPT-5.1's model page still states the recorded 400,000-token context window, so the release record is re-verified as of 8 September 2026."
+        },
+        {
+          "id": "openai-gpt-5-2",
+          "collection": "releases",
+          "note": "GPT-5.2's model page still states the recorded 400,000-token context window, so the release record is re-verified as of 8 September 2026."
+        },
+        {
+          "id": "openai-gpt-5-3-codex",
+          "collection": "releases",
+          "note": "GPT-5.3-Codex's model page still states the recorded 400,000-token context window, so the release record is re-verified as of 8 September 2026."
+        }
+      ]
+    },
+    "withheld": [
+      {
+        "id": "zhipu-ai-glm-5-3-flash-model-card-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted 3 of 3 by the panel and still not applied. gate-evidence refuses at bundle granularity, not claim granularity, so its refusal of the zhipu-ai bundle over the sibling release claim withheld this one too. Applying a subset would have been a judgement the gate did not make.",
+        "blockedBy": [
+          "gate-evidence, zhipu-ai bundle, exit 1",
+          "zhipu-ai-glm-5-3-flash-release"
+        ]
+      },
+      {
+        "id": "zhipu-ai-glm-5-3-flash-hub-record-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted 3 of 3 by the panel and still not applied. gate-evidence refuses at bundle granularity, not claim granularity, so its refusal of the zhipu-ai bundle over the sibling release claim withheld this one too. Applying a subset would have been a judgement the gate did not make.",
+        "blockedBy": [
+          "gate-evidence, zhipu-ai bundle, exit 1",
+          "zhipu-ai-glm-5-3-flash-release"
+        ]
+      },
+      {
+        "id": "zhipu-ai-glm-5-family",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted 3 of 3 by the panel and still not applied. gate-evidence refuses at bundle granularity, not claim granularity, so its refusal of the zhipu-ai bundle over the sibling release claim withheld this one too. Applying a subset would have been a judgement the gate did not make.",
+        "blockedBy": [
+          "gate-evidence, zhipu-ai bundle, exit 1",
+          "zhipu-ai-glm-5-3-flash-release"
+        ]
+      },
+      {
+        "id": "zhipu-ai-glm-5-3-flash-release",
+        "category": "rejected-by-panel",
+        "detail": "Reached 2 of 3 required accepts. editorial rejected it: the proposed summary described the model as a Mixture-of-Experts model, and the pinned model card never says MoE, mixture, or expert anywhere. The other two rubrics accepted. The claim was not edited to make it pass and no reviewer was re-run.",
+        "blockedBy": [
+          "review panel, editorial rubric",
+          "long-tail unanimity policy (ADR 0002)"
+        ]
+      }
+    ],
+    "caveats": [
+      "A green run does not establish that the dataset is complete or current. It establishes that what changed this run was quoted from a primary page fetched during the run, survived three independent rubrics, and passed every deterministic gate. Creators whose channels showed no movement were read, not re-derived.",
+      "The panel buys independence of reasoning, not independence of training, and a different model family per rubric narrows but does not close that gap. A primary source that is itself wrong can carry all three rubrics, and no threshold detects it.",
+      "gate-evidence verifies the form of the evidence, not its remote content (ADR 0005). That a quote matches the body fetched this run was checked separately here, 29 of 29 by content hash, but nothing re-fetches those pages later to notice if they change.",
+      "The zhipu-ai GLM-5 family and its two sources were each accepted 3-of-3 and are still absent from the dataset. That is the gate's bundle granularity rather than a judgement about those three claims, and if GLM-5.3-Flash is re-scouted with a summary that does not overstate the architecture, all four should be reconsidered together.",
+      "The deploy stage had not run when this entry was written and is recorded as not-run for that reason. A reader wanting the deploy outcome must check the summary issue, not this entry.",
+      "The asset-budget figures in web/asset-budgets.json are measurements of a build produced on one machine at one commit. They document what was measured; they are not ceilings, and re-recording them lowered no guard."
+    ],
+    "followUps": [
+      "The ledger entry template invites a deploy stage written as \"ran\" with a note pointing at a deployment reference that a published-before-merge entry cannot yet carry; run 2026-09-07-08db2e did exactly that and its note points at nothing. This run recorded not-run instead. Worth deciding once whether the deploy stage should be written after the merge by a follow-up commit, or whether the schema should stop the combination.",
+      "gate-evidence refusing at bundle granularity cost three unanimously accepted claims this run. Whether that is the intended granularity, or whether a bundle should be able to publish the claims that passed while withholding the one that did not, is a design question this run did not have standing to answer.",
+      "zhipu-ai's z.ai/blog returns 404 and z.ai/blog/<slug> serves a client-rendered shell, so the creator's announcement channel is effectively dark to a fetch-and-hash scout. The catalogued channel for that creator may need replacing with one that serves server-rendered text."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "PR #1134 -- data: add OpenBMB MiniCPM5-2B and re-verify 5 OpenAI releases (run 2026-09-08-0152aa)",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/1134",
+        "state": "Open when this entry was written, carrying both the dataset commit and this ledger commit. Auto-merge is enabled, so web-ci gates the merge rather than any judgement of this run's. The dataset commit precedes the ledger commit because refreshLogSchema requires a published run to name its own pull request: the number had to exist before this entry could be written. Guessing it would have put a falsehood into the permanent record, and force-pushing to conceal the ordering would have been a bypass."
+      },
+      {
+        "kind": "commit",
+        "label": "Dataset commit 53892ff3f3a14eb88c33b730a1caf3082c876f1a",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/53892ff3f3a14eb88c33b730a1caf3082c876f1a",
+        "state": "The commit every gate above was measured against, and the commit npm run validate passed 3189 of 3189 tests on."
+      }
+    ],
+    "recordedAt": "2026-09-08"
+  },
+  {
     "id": "2026-09-07-08db2e",
     "title": "Full-catalogue sweep finding no new release, and 10 release records re-verified",
     "ranOn": "2026-09-07",
@@ -5455,29 +5786,94 @@
     "summary": "An agent-run, source-backed refresh under ADR 0003. Five scouts fetched and hashed 55 primary pages and proposed 71 claims; twelve blind reviewers cast 213 verdicts across three rubrics; four deterministic gates passed; 63 edits landed across five dataset documents and GitHub Pages deployed successfully. No human reviewed any part of it.",
     "scope": "Every creator in organizations.json, plus the long-tail profile sweep",
     "stages": [
-      { "stage": "preflight", "status": "ran", "note": "Clean tree, gh authenticated, no unmerged pull request from a previous refresh." },
-      { "stage": "scout", "status": "ran", "note": "Five bundles, one per creator profile plus a long-tail sweep. 55 page snapshots hashed." },
-      { "stage": "review", "status": "ran", "note": "Twelve reviewers, three rubrics over four bundles. The long-tail bundle had no claims to review." },
-      { "stage": "gates", "status": "ran", "note": "gate-evidence and gate-source-approval before applying anything; gate-dataset, npm run validate, and gate-scope after." },
-      { "stage": "publish", "status": "ran", "note": "PR #302 opened with the full evidence trail and merged by GitHub on a green web-ci." },
-      { "stage": "deploy", "status": "ran", "note": "Pages deployed main @ 0e9867b successfully; the live site serves the new records. No revert needed." }
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Clean tree, gh authenticated, no unmerged pull request from a previous refresh."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "Five bundles, one per creator profile plus a long-tail sweep. 55 page snapshots hashed."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Twelve reviewers, three rubrics over four bundles. The long-tail bundle had no claims to review."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-evidence and gate-source-approval before applying anything; gate-dataset, npm run validate, and gate-scope after."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "PR #302 opened with the full evidence trail and merged by GitHub on a green web-ci."
+      },
+      {
+        "stage": "deploy",
+        "status": "ran",
+        "note": "Pages deployed main @ 0e9867b successfully; the live site serves the new records. No revert needed."
+      }
     ],
     "found": {
       "scouts": 5,
       "pagesFetched": 55,
       "claimsProposed": 71,
       "bundles": [
-        { "creator": "openai", "policy": "pilot", "threshold": "2-of-3", "claimsFound": 14 },
-        { "creator": "anthropic", "policy": "pilot", "threshold": "2-of-3", "claimsFound": 18 },
-        { "creator": "google-deepmind", "policy": "pilot", "threshold": "2-of-3", "claimsFound": 19 },
-        { "creator": "meta", "policy": "pilot", "threshold": "2-of-3", "claimsFound": 20 },
-        { "creator": "long-tail sweep", "policy": "long-tail", "threshold": "3-of-3", "claimsFound": 0 }
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 14
+        },
+        {
+          "creator": "anthropic",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 18
+        },
+        {
+          "creator": "google-deepmind",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 19
+        },
+        {
+          "creator": "meta",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 20
+        },
+        {
+          "creator": "long-tail sweep",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        }
       ],
       "claimsByKind": [
-        { "kind": "add", "count": 25, "effect": "New records." },
-        { "kind": "change", "count": 15, "effect": "Field corrections and counter updates." },
-        { "kind": "unchanged", "count": 29, "effect": "Re-verified against a primary source; no value changed." },
-        { "kind": "conflict", "count": 2, "effect": "Primary sources disagree; both sides recorded, no value changed." }
+        {
+          "kind": "add",
+          "count": 25,
+          "effect": "New records."
+        },
+        {
+          "kind": "change",
+          "count": 15,
+          "effect": "Field corrections and counter updates."
+        },
+        {
+          "kind": "unchanged",
+          "count": 29,
+          "effect": "Re-verified against a primary source; no value changed."
+        },
+        {
+          "kind": "conflict",
+          "count": 2,
+          "effect": "Primary sources disagree; both sides recorded, no value changed."
+        }
       ],
       "notCovered": [
         "Any creator outside the four pilot profiles and the long-tail catalogue.",
@@ -5567,23 +5963,88 @@
     "posted": {
       "editsApplied": 63,
       "documents": [
-        { "document": "sources.json", "recordsBefore": 47, "recordsAfter": 61, "note": "14 sources added." },
-        { "document": "families.json", "recordsBefore": 11, "recordsAfter": 12, "note": "One family added: meta-muse." },
-        { "document": "releases.json", "recordsBefore": 22, "recordsAfter": 31, "note": "Nine releases added." },
-        { "document": "organizations.json", "recordsBefore": 4, "recordsAfter": 4, "note": "One field corrected; no record added or removed." },
-        { "document": "usage-observations.json", "recordsBefore": 2, "recordsAfter": 2, "note": "Both readings updated; no record added or removed." }
+        {
+          "document": "sources.json",
+          "recordsBefore": 47,
+          "recordsAfter": 61,
+          "note": "14 sources added."
+        },
+        {
+          "document": "families.json",
+          "recordsBefore": 11,
+          "recordsAfter": 12,
+          "note": "One family added: meta-muse."
+        },
+        {
+          "document": "releases.json",
+          "recordsBefore": 22,
+          "recordsAfter": 31,
+          "note": "Nine releases added."
+        },
+        {
+          "document": "organizations.json",
+          "recordsBefore": 4,
+          "recordsAfter": 4,
+          "note": "One field corrected; no record added or removed."
+        },
+        {
+          "document": "usage-observations.json",
+          "recordsBefore": 2,
+          "recordsAfter": 2,
+          "note": "Both readings updated; no record added or removed."
+        }
       ],
       "records": [
-        { "id": "meta-muse", "collection": "families", "note": "New Meta family." },
-        { "id": "openai-gpt-5-6-cyber", "collection": "releases", "note": "New release; carries a recorded editorial dissent on its release date." },
-        { "id": "anthropic-claude-sonnet-5", "collection": "releases", "note": "New release." },
-        { "id": "google-gemini-3-5-flash", "collection": "releases", "note": "New release." },
-        { "id": "google-gemini-3-6-flash", "collection": "releases", "note": "New release." },
-        { "id": "google-gemini-3-7-flash", "collection": "releases", "note": "New release." },
-        { "id": "meta-muse-spark", "collection": "releases", "note": "New release." },
-        { "id": "meta-muse-spark-1-1", "collection": "releases", "note": "New release." },
-        { "id": "meta-muse-image", "collection": "releases", "note": "New release." },
-        { "id": "meta-muse-video", "collection": "releases", "note": "New release; carries a recorded editorial dissent on its release date." }
+        {
+          "id": "meta-muse",
+          "collection": "families",
+          "note": "New Meta family."
+        },
+        {
+          "id": "openai-gpt-5-6-cyber",
+          "collection": "releases",
+          "note": "New release; carries a recorded editorial dissent on its release date."
+        },
+        {
+          "id": "anthropic-claude-sonnet-5",
+          "collection": "releases",
+          "note": "New release."
+        },
+        {
+          "id": "google-gemini-3-5-flash",
+          "collection": "releases",
+          "note": "New release."
+        },
+        {
+          "id": "google-gemini-3-6-flash",
+          "collection": "releases",
+          "note": "New release."
+        },
+        {
+          "id": "google-gemini-3-7-flash",
+          "collection": "releases",
+          "note": "New release."
+        },
+        {
+          "id": "meta-muse-spark",
+          "collection": "releases",
+          "note": "New release."
+        },
+        {
+          "id": "meta-muse-spark-1-1",
+          "collection": "releases",
+          "note": "New release."
+        },
+        {
+          "id": "meta-muse-image",
+          "collection": "releases",
+          "note": "New release."
+        },
+        {
+          "id": "meta-muse-video",
+          "collection": "releases",
+          "note": "New release; carries a recorded editorial dissent on its release date."
+        }
       ]
     },
     "withheld": [
@@ -5591,37 +6052,50 @@
         "id": "openai-add-source-deprecations",
         "category": "dropped-after-acceptance",
         "detail": "Accepted by the panel, then dropped by the chair. validate.test.ts enforces that an unreferenced source is dead provenance, and no reviewed claim wired openai-deprecations into any record's sourceIds. Adding that edit would have meant authoring dataset content no reviewer saw.",
-        "blockedBy": ["validate.test.ts"]
+        "blockedBy": [
+          "validate.test.ts"
+        ]
       },
       {
         "id": "openai-change-gpt-5-status-deprecated",
         "category": "dropped-after-acceptance",
         "detail": "Dropped with its source. Keeping the status change alone records \"deprecated\" against sourceIds that do not state it — every supporting quote comes from openai-deprecations.",
-        "blockedBy": ["openai-add-source-deprecations"]
+        "blockedBy": [
+          "openai-add-source-deprecations"
+        ]
       },
       {
         "id": "openai-change-gpt-4-1-nano-status-deprecated",
         "category": "dropped-after-acceptance",
         "detail": "Dropped for the same reason as the GPT-5 status change: its only supporting quote comes from the source that could not be added.",
-        "blockedBy": ["openai-add-source-deprecations"]
+        "blockedBy": [
+          "openai-add-source-deprecations"
+        ]
       },
       {
         "id": "releases/anthropic-claude-haiku-4-5",
         "category": "verification-held",
         "detail": "The field was re-read and unchanged, but validate.ts requires a model-fit statement to be at least as fresh as the facts it reads. Bumping verifiedAt would strand a dependent statement, so it stays at 2026-08-15. Under-claiming a verification is honest; over-claiming is not.",
-        "blockedBy": ["fit-claude-haiku-4-5-release-current", "fit-claude-haiku-4-5-family-legacy"]
+        "blockedBy": [
+          "fit-claude-haiku-4-5-release-current",
+          "fit-claude-haiku-4-5-family-legacy"
+        ]
       },
       {
         "id": "releases/anthropic-claude-mythos-5",
         "category": "verification-held",
         "detail": "Held at 2026-08-15 for the same freshness rule: nobody re-derived the dependent fit statement over the re-read field.",
-        "blockedBy": ["fit-claude-mythos-5-limited-availability"]
+        "blockedBy": [
+          "fit-claude-mythos-5-limited-availability"
+        ]
       },
       {
         "id": "families/meta-llama-4",
         "category": "verification-held",
         "detail": "Held at 2026-08-15 by a test-suite coupling rather than a data fact: model-fit.test.ts injects fixtures pinned at 2026-08-15 over the real seed records. Tests are not dataset documents, so this run may not edit them.",
-        "blockedBy": ["model-fit.test.ts"]
+        "blockedBy": [
+          "model-fit.test.ts"
+        ]
       },
       {
         "id": "families/anthropic-claude-4-5.status",
@@ -5639,7 +6113,9 @@
         "id": "www.llama.com",
         "category": "source-refused",
         "detail": "The host now redirects to developer.meta.com, an origin neither the committed dataset nor any profile catalogue stands behind. The Meta scout deferred it rather than citing it, so the Muse claims rest on ai.meta.com instead. Admitting a new host is a human decision.",
-        "blockedBy": ["gate-source-approval"]
+        "blockedBy": [
+          "gate-source-approval"
+        ]
       }
     ],
     "caveats": [
@@ -5655,10 +6131,30 @@
       "Consider making skills-ci a required check, so a red non-required job can stop an unattended merge. Requiring a check is a branch-protection setting, so it is an owner action rather than a change this program can make."
     ],
     "references": [
-      { "kind": "pull-request", "label": "PR #302 — chore(data): source-backed dataset refresh 2026-08-26", "url": "https://github.com/abdeslam-menacere/ModelTree/pull/302", "state": "merged" },
-      { "kind": "issue", "label": "Issue #305 — run summary", "url": "https://github.com/abdeslam-menacere/ModelTree/issues/305", "state": "open" },
-      { "kind": "commit", "label": "0e9867b — squash merge of PR #302", "url": "https://github.com/abdeslam-menacere/ModelTree/commit/0e9867b", "state": "merged" },
-      { "kind": "deployment", "label": "GitHub Pages deploy of main @ 0e9867b", "url": "https://abdeslam-menacere.github.io/ModelTree/", "state": "success" }
+      {
+        "kind": "pull-request",
+        "label": "PR #302 — chore(data): source-backed dataset refresh 2026-08-26",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/302",
+        "state": "merged"
+      },
+      {
+        "kind": "issue",
+        "label": "Issue #305 — run summary",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/305",
+        "state": "open"
+      },
+      {
+        "kind": "commit",
+        "label": "0e9867b — squash merge of PR #302",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/0e9867b",
+        "state": "merged"
+      },
+      {
+        "kind": "deployment",
+        "label": "GitHub Pages deploy of main @ 0e9867b",
+        "url": "https://abdeslam-menacere.github.io/ModelTree/",
+        "state": "success"
+      }
     ],
     "recordedAt": "2026-08-26"
   },
@@ -5670,12 +6166,36 @@
     "summary": "Stopped at preflight and published nothing. ADR 0003 precondition 2 was still open — the approved-source binding enforced on the proposal-only path had no equivalent in the publishing skill set — and ADR 0003's guardrail is that the automation does not run until the skill set is corrected. No dataset change, no branch, no commit, no pull request, no deploy.",
     "scope": "Every creator in organizations.json, plus the long-tail profile sweep",
     "stages": [
-      { "stage": "preflight", "status": "ran", "note": "ModelTree checkout, clean tree, gh authenticated, no open pull request from a previous refresh. Preconditions were then checked live and one was open." },
-      { "stage": "scout", "status": "not-run", "note": "Zero pages fetched, zero claims extracted. The publisher was not authorised to run." },
-      { "stage": "review", "status": "not-run", "note": "No bundle existed to review." },
-      { "stage": "gates", "status": "not-run", "note": "No bundle existed to gate. A read-only dataset health check was run separately and is recorded below." },
-      { "stage": "publish", "status": "not-run", "note": "Nothing was applied, so there was nothing to publish." },
-      { "stage": "deploy", "status": "not-applicable", "note": "Nothing merged, so nothing deployed." }
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "ModelTree checkout, clean tree, gh authenticated, no open pull request from a previous refresh. Preconditions were then checked live and one was open."
+      },
+      {
+        "stage": "scout",
+        "status": "not-run",
+        "note": "Zero pages fetched, zero claims extracted. The publisher was not authorised to run."
+      },
+      {
+        "stage": "review",
+        "status": "not-run",
+        "note": "No bundle existed to review."
+      },
+      {
+        "stage": "gates",
+        "status": "not-run",
+        "note": "No bundle existed to gate. A read-only dataset health check was run separately and is recorded below."
+      },
+      {
+        "stage": "publish",
+        "status": "not-run",
+        "note": "Nothing was applied, so there was nothing to publish."
+      },
+      {
+        "stage": "deploy",
+        "status": "not-applicable",
+        "note": "Nothing merged, so nothing deployed."
+      }
     ],
     "found": {
       "scouts": 0,
@@ -5715,7 +6235,10 @@
         "id": "entire-run",
         "category": "blocked-by-policy",
         "detail": "ADR 0003 precondition 2 was open. gates.py enforced an approved-source binding per claim; the publishing skill set's gate-evidence.mjs never inspected sourceId against any approved catalogue, and gate-dataset.mjs resolves sourceIds only referentially against a file the refresh may itself patch. On that rule the publishing path was strictly more permissive, which stops the automation.",
-        "blockedBy": ["ADR 0003 precondition 2", "#167"]
+        "blockedBy": [
+          "ADR 0003 precondition 2",
+          "#167"
+        ]
       }
     ],
     "caveats": [
@@ -5730,7 +6253,12 @@
       "#168 — nothing detects drift between the Python and JavaScript gate implementations."
     ],
     "references": [
-      { "kind": "issue", "label": "Issue #211 — run summary, stopped at preflight", "url": "https://github.com/abdeslam-menacere/ModelTree/issues/211", "state": "closed" }
+      {
+        "kind": "issue",
+        "label": "Issue #211 — run summary, stopped at preflight",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/211",
+        "state": "closed"
+      }
     ],
     "recordedAt": "2026-08-26"
   },
