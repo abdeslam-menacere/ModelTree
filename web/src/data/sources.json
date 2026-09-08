@@ -104,7 +104,7 @@
     "title": "GPT-5.5 model documentation",
     "type": "official-docs",
     "publisherId": "openai",
-    "lastCheckedDate": "2026-08-18",
+    "lastCheckedDate": "2026-09-08",
     "notes": "Default snapshot gpt-5.5-2026-04-23. Lists text and image input, text output, a 1,050,000-token context window, 128,000 max output tokens, and a 2025-12-01 knowledge cutoff."
   },
   {
@@ -122,7 +122,7 @@
     "title": "GPT-5.4 model documentation",
     "type": "official-docs",
     "publisherId": "openai",
-    "lastCheckedDate": "2026-08-18",
+    "lastCheckedDate": "2026-09-08",
     "notes": "Default snapshot gpt-5.4-2026-03-05. Lists text and image input, text output, a 1,050,000-token context window, 128,000 max output tokens, and a 2025-08-31 knowledge cutoff."
   },
   {
@@ -562,7 +562,7 @@
     "title": "GPT-5.1 model documentation",
     "type": "official-docs",
     "publisherId": "openai",
-    "lastCheckedDate": "2026-08-27",
+    "lastCheckedDate": "2026-09-08",
     "notes": "Lists the gpt-5.1 and gpt-5.1-2025-11-13 API identifiers, text and image input, text output, a 400,000-token context window, and 128,000 max output tokens."
   },
   {
@@ -571,7 +571,7 @@
     "title": "GPT-5.2 model documentation",
     "type": "official-docs",
     "publisherId": "openai",
-    "lastCheckedDate": "2026-08-27",
+    "lastCheckedDate": "2026-09-08",
     "notes": "Lists the gpt-5.2 and gpt-5.2-2025-12-11 API identifiers, text and image input, text output, a 400,000-token context window, and 128,000 max output tokens."
   },
   {
@@ -580,7 +580,7 @@
     "title": "GPT-5.3-Codex model documentation",
     "type": "official-docs",
     "publisherId": "openai",
-    "lastCheckedDate": "2026-08-27",
+    "lastCheckedDate": "2026-09-08",
     "notes": "Lists the gpt-5.3-codex API identifier, text and image input, text output, a 400,000-token context window, and 128,000 max output tokens."
   },
   {
@@ -2225,8 +2225,8 @@
     "title": "OpenBMB/MiniCPM repository",
     "type": "repository",
     "publisherId": "openbmb",
-    "lastCheckedDate": "2026-09-01",
-    "notes": "OpenBMB's own MiniCPM repository, in OpenBMB's own GitHub organization, so the publisher is OpenBMB and not the host. Fetched 2026-09-01. Its changelog states \"[2026.05.19] MiniCPM5-1B is released: a compact 1B-class dense model for on-device and resource-constrained use\", which the day-precision release date rests on, and \"We are releasing MiniCPM5-1B, the first model in the MiniCPM5 series\". No page read here states OpenBMB's legal form or its relationship to ModelBest, so the organization record states neither; the repository links a \"MiniCPM Wiki (in Chinese)\" on a modelbest.feishu.cn host without stating what that relationship is. The repository's leaderboard and \"SOTA\" claims are deliberately not recorded, because this dataset states no ranking."
+    "lastCheckedDate": "2026-09-08",
+    "notes": "OpenBMB's own MiniCPM repository, in OpenBMB's own GitHub organization, so the publisher is OpenBMB and not the host. Fetched 2026-09-08. Its changelog states \"[2026.09.07] MiniCPM5-2B is released: a compact 2B-class dense model for on-device and resource-constrained use\" and \"[2026.05.19] MiniCPM5-1B is released: a compact 1B-class dense model for on-device and resource-constrained use\", which the two day-precision release dates rest on, and \"We are releasing MiniCPM5-1B, the first model in the MiniCPM5 series\". No page read here states OpenBMB's legal form or its relationship to ModelBest, so the organization record states neither; the repository links a \"MiniCPM Wiki (in Chinese)\" on a modelbest.feishu.cn host without stating what that relationship is. The repository's leaderboard and \"SOTA\" claims are deliberately not recorded, because this dataset states no ranking."
   },
   {
     "id": "openbmb-minicpm5-1b-model-card",
@@ -2245,6 +2245,24 @@
     "publisherId": "hugging-face",
     "lastCheckedDate": "2026-09-01",
     "notes": "The Hub's own API record, in Hugging Face's own namespace, so the publisher is the host and not the creator. Fetched 2026-09-01: tags include \"license:apache-2.0\", with \"gated\":false and safetensors present in the repository. Cited for the licence identifier and for the downloadable-weights fact. The release date is not taken from here, because OpenBMB states one itself in its own repository."
+  },
+  {
+    "id": "openbmb-minicpm5-2b-model-card",
+    "url": "https://huggingface.co/openbmb/MiniCPM5-2B",
+    "title": "MiniCPM5-2B model card",
+    "type": "model-card",
+    "publisherId": "openbmb",
+    "lastCheckedDate": "2026-09-08",
+    "notes": "OpenBMB's own card for the recorded model, in OpenBMB's own Hugging Face namespace, so the publisher is OpenBMB and not the host. Fetched 2026-09-08. States \"We are releasing MiniCPM5-2B, the second model in the MiniCPM5 series, following MiniCPM5-1B. It is a dense 2B Transformer that scales up the same training recipe, built for on-device, local deployment, and resource-constrained scenarios\", and a Model Information list giving \"Number of Parameters: 2,516,756,480\" and \"Context Length: 131,072\", which the recorded parameter count and context window rest on exactly. Also states \"MiniCPM5-2B is the second model in the MiniCPM5 series. It is designed for local assistants, coding agents, tool-use workflows, and reasoning scenarios where a compact model is preferred\", and under License that \"This repository and MiniCPM model weights are released under the Apache-2.0 License\". Its \"2B-class open-source SOTA\" and other comparative and leaderboard claims are deliberately not recorded, because this dataset states no ranking and carries no composite score."
+  },
+  {
+    "id": "hugging-face-openbmb-minicpm5-2b-hub-record",
+    "url": "https://huggingface.co/api/models/openbmb/MiniCPM5-2B",
+    "title": "Hugging Face Hub record for openbmb/MiniCPM5-2B",
+    "type": "repository",
+    "publisherId": "hugging-face",
+    "lastCheckedDate": "2026-09-08",
+    "notes": "The Hub's own API record, in Hugging Face's own namespace, so the publisher is the host and not the creator. Fetched 2026-09-08: tags include \"license:apache-2.0\", with \"gated\":false and safetensors present giving \"total\":2516756480, which agrees with the card's stated parameter count. Cited for the licence identifier and for the downloadable-weights fact. The release date is not taken from here, because OpenBMB states one itself in its own repository; the record's \"createdAt\":\"2026-09-06T11:12:19.000Z\" is therefore not what the recorded date rests on."
   },
   {
     "id": "nvidia-nemotron-nano-9b-v2-model-card",
