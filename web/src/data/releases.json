@@ -5750,5 +5750,98 @@
       "microsoft-ai-models-page"
     ],
     "verifiedAt": "2026-09-06"
+  },
+  {
+    "id": "deepseek-v4-1-flash",
+    "slug": "deepseek-v4-1-flash",
+    "canonicalName": "DeepSeek-V4.1-Flash",
+    "displayName": "DeepSeek-V4.1-Flash",
+    "organizationId": "deepseek",
+    "familyId": "deepseek-v4-1",
+    "version": "4.1",
+    "variant": "Flash",
+    "releaseDate": "2026-09-10",
+    "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "MIT License",
+      "spdxId": "MIT",
+      "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/blob/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "contextWindow": 1000000,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "DeepSeek’s DeepSeek-V4.1-Flash, introduced on its card as \"a multimodal Mixture-of-Experts (MoE) model with 552B backbone parameters and support for contexts of up to one million tokens\" whose weights and repository are MIT-licensed. The context window is the card’s own sampling table, whose context_window row reads \"1M tokens\", recorded as 1000000. No parameter count is recorded: the card states 552B *backbone* parameters, which is a qualified subset rather than a total — it separately names a 196B-parameter Engram conditional memory, and gives activated parameters as the two-valued \"8B / 16B\" — so neither totalBillions nor activeBillions can be read from it without adding a claim the creator does not make. The lifecycle is recorded as unknown because no source read states one. The card’s comparative and benchmark claims are deliberately not recorded: this dataset states no ranking and carries no composite score.",
+    "intendedUse": "Multimodal work over very long contexts from downloadable weights, per the card’s statement that the model \"natively processes images and text, and generates text autoregressively\" with \"support for contexts of up to one million tokens\".",
+    "sourceIds": [
+      "deepseek-v4-1-flash-model-card",
+      "hugging-face-deepseek-v4-1-flash-hub-record",
+      "osi-license-mit"
+    ],
+    "verifiedAt": "2026-09-10"
+  },
+  {
+    "id": "deepseek-v4-flash-vision-exp",
+    "slug": "deepseek-v4-flash-vision-exp",
+    "canonicalName": "DeepSeek-V4-Flash-Vision-Exp",
+    "displayName": "DeepSeek-V4-Flash-Vision-Exp",
+    "organizationId": "deepseek",
+    "familyId": "deepseek-v4",
+    "version": "4",
+    "variant": "Flash-Vision-Exp",
+    "releaseDate": "2026-08-31",
+    "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
+    "status": "unknown",
+    "featured": false,
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "MIT License",
+      "spdxId": "MIT",
+      "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-Vision-Exp/blob/main/LICENSE",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "derivedFromIds": [],
+    "summary": "DeepSeek’s DeepSeek-V4-Flash-Vision-Exp, which its card introduces as \"our first experimental multimodal model in the DeepSeek-V4 family\" that \"builds on the DeepSeek-V4-Flash architecture by incorporating visual modules and undergoing continued training to unlock visual understanding capabilities\". It is placed in the DeepSeek-V4 family because the card states that membership in its own voice. No parameter count and no context window are recorded, because the card states neither. The lifecycle is recorded as unknown rather than mapped from the card’s word \"experimental\": that word describes the checkpoint, and neither \"research\" nor \"preview\" is stated — the card announces no research-only restriction and no forthcoming general version — so mapping it would add a claim the creator does not make. The card’s benchmark comparison table is deliberately not recorded.",
+    "intendedUse": "Multimodal agent work from downloadable weights, per the card’s statement that the model incorporates \"visual modules and undergoing continued training to unlock visual understanding capabilities\", with checkpoint conversion and inference commands documented in the repository.",
+    "sourceIds": [
+      "deepseek-v4-flash-vision-exp-model-card",
+      "hugging-face-deepseek-v4-flash-vision-exp-hub-record",
+      "osi-license-mit"
+    ],
+    "verifiedAt": "2026-09-10"
   }
 ]

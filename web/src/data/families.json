@@ -1624,5 +1624,24 @@
       "moonshot-ai-kimi-audio-model-card"
     ],
     "verifiedAt": "2026-09-05"
+  },
+  {
+    "id": "deepseek-v4-1",
+    "slug": "deepseek-v4-1",
+    "organizationId": "deepseek",
+    "name": "DeepSeek-V4.1",
+    "description": "The creator’s DeepSeek-V4.1 generation. Its card treats V4.1 as a generation distinct from DeepSeek-V4 — the companion toolkit \"encodes them into DeepSeek V4 and V4.1 prompts or token IDs\", and the card compares KV cache size \"across generations of DeepSeek models\" — and introduces its first published model as \"a multimodal Mixture-of-Experts (MoE) model\" that \"natively processes images and text, and generates text autoregressively\", published under the MIT licence. No source read states a lifecycle status for the generation, so it is recorded as unknown.",
+    "categories": [
+      "multimodal-generalist"
+    ],
+    "firstReleaseDate": "2026-09-10",
+    "datePrecision": "day",
+    "dateBasis": "platform-repository-created",
+    "status": "unknown",
+    "sourceIds": [
+      "deepseek-v4-1-flash-model-card",
+      "hugging-face-deepseek-v4-1-flash-hub-record"
+    ],
+    "verifiedAt": "2026-09-10"
   }
 ]
