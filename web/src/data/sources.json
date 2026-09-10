@@ -2613,41 +2613,5 @@
     "publisherId": "microsoft",
     "publishedDate": "2026-09-04",
     "lastCheckedDate": "2026-09-06"
-  },
-  {
-    "id": "deepseek-v4-1-flash-model-card",
-    "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/raw/main/README.md",
-    "title": "deepseek-ai/DeepSeek-V4.1-Flash model card",
-    "type": "model-card",
-    "publisherId": "deepseek",
-    "lastCheckedDate": "2026-09-10",
-    "notes": "DeepSeek’s own model card for DeepSeek-V4.1-Flash, read as the raw README the repository serves. States the model is multimodal with \"552B backbone parameters and support for contexts of up to one million tokens\", gives a sampling table whose context_window row reads \"1M tokens\", and states that \"This repository and the model weights are licensed under the [MIT License](LICENSE).\" Its comparative and benchmark claims are deliberately not recorded."
-  },
-  {
-    "id": "hugging-face-deepseek-v4-1-flash-hub-record",
-    "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-V4.1-Flash",
-    "title": "Hugging Face Hub record for deepseek-ai/DeepSeek-V4.1-Flash",
-    "type": "repository",
-    "publisherId": "hugging-face",
-    "lastCheckedDate": "2026-09-10",
-    "notes": "The Hub’s machine-readable record, carrying the createdAt of 2026-09-10 used as this release’s date. Only that Hub-measured timestamp and the repository’s pipeline tag are cited from here; the card prose is DeepSeek’s and is recorded separately as deepseek-v4-1-flash-model-card. The release recording this date carries dateBasis \"platform-repository-created\" (issue #682, ADR 0009), because createdAt records repository creation and no dated announcement on the creator’s own domain could be reached this run."
-  },
-  {
-    "id": "deepseek-v4-flash-vision-exp-model-card",
-    "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-Vision-Exp/raw/main/README.md",
-    "title": "deepseek-ai/DeepSeek-V4-Flash-Vision-Exp model card",
-    "type": "model-card",
-    "publisherId": "deepseek",
-    "lastCheckedDate": "2026-09-10",
-    "notes": "DeepSeek’s own model card, read as the raw README the repository serves. Introduces the model as \"our first experimental multimodal model in the DeepSeek-V4 family\" built on the DeepSeek-V4-Flash architecture, and states that \"This repository is licensed under the [MIT License](LICENSE).\" It states no parameter count and no context window, so neither is recorded. Its benchmark comparison table is deliberately not recorded."
-  },
-  {
-    "id": "hugging-face-deepseek-v4-flash-vision-exp-hub-record",
-    "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-V4-Flash-Vision-Exp",
-    "title": "Hugging Face Hub record for deepseek-ai/DeepSeek-V4-Flash-Vision-Exp",
-    "type": "repository",
-    "publisherId": "hugging-face",
-    "lastCheckedDate": "2026-09-10",
-    "notes": "The Hub’s machine-readable record, carrying the createdAt of 2026-08-31 used as this release’s date, and recording the repository as public and ungated (\"gated\":false) with 304,646,824,126 published safetensors parameters over 167 GB of used storage. The release recording this date carries dateBasis \"platform-repository-created\" (issue #682, ADR 0009), because createdAt records repository creation and no dated announcement on the creator’s own domain could be reached this run."
   }
 ]
