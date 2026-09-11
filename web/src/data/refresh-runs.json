@@ -8777,5 +8777,1344 @@
       }
     ],
     "recordedAt": "2026-09-06"
+  },
+  {
+    "id": "2026-09-11-cd4874",
+    "title": "Full 44-creator sweep: 190 re-verifications published, every new record withheld at the home-route ceiling",
+    "ranOn": "2026-09-11",
+    "outcome": "published",
+    "summary": "A full sweep of all 44 creators, 477 pages fetched and hashed on 2026-09-11, 398 claims proposed and 1194 verdicts cast by blind three-rubric panels - exactly three per claim. The panel accepted 357 and rejected 41. gate-evidence then refused 19 bundles whole, all of them long-tail, costing 145 individually-accepted claims. Of what survived, the run applied 190 claims and withheld all 14 accepted new records: adding them puts the home route at 1106468 bytes against a criticalMaxRaw of 1105000, and raising a ceiling is the one move ADR 0015 puts outside the qualifying class. The tranche was therefore narrowed by a stated structural rule - re-verification only, no new records - rather than by choosing which new model to hide, which would have been an unrecorded editorial judgement. web/asset-budgets.json was not touched at all. A separate evidence-reproducibility checker, two-sided controlled, found 25 of 491 evidence items unreproducible across 18 claims; all 18 had already been rejected by the blind panel, so two independent instruments converged completely.",
+    "scope": "All 44 creators scouted, so found.unswept is empty: nothing was passed off as unchanged that was merely not looked at. 7 creators carry a reviewed profile and ran at the 2-of-3 pilot threshold; the other 37 ran at the unanimous 3-of-3 long-tail threshold. Only web/src/data/sources.json changed, re-dating lastCheckedDate on 189 sources and correcting one notes field. No record was added, removed or re-identified, and the record count is unchanged at 291.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Clean worktree, gh authenticated, no competing refresh pull request open. Anchor d395d2c8fda531c8b633885d6fd56594b9788755 resolved and confirmed against a live git ls-remote read, then re-read at report time and found unchanged. A full baseline was taken before any edit - all gates at exit 0 and npm run validate at exit 0 with 139 files and 3189 tests - so any later failure is attributable to this run rather than inherited."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "477 pages fetched and hashed over the bytes received on 2026-09-11 across 7 parallel scouts covering all 44 creators. 26 channels degraded and are named per creator in found.degradedChannels rather than folded into a flat error list. gate-source-approval passed 44 of 44 bundles, so no claim rests on an unapproved origin."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "18 blind reviewer agents cast 1194 verdicts, exactly 398 x 3, so every claim received three independent reviewers and none was skipped. Each reviewer saw only the claim, its evidence, the relevant dataset slice, the creator profile and its own rubric - never another reviewer verdict, the running tally, or the scout reasoning. The chair cast no vote, broke no tie and re-ran no reviewer. 357 accepted, 41 rejected, 8 accepted over a recorded dissent."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-source-approval 44/44, gate-evidence 25 pass and 19 refuse, gate-dataset exit 0 over 634 records, gate-scope exit 0 with outOfClass empty and one document changed. npm run validate exit 0 with 139/139 files and 3189/3189 tests and 0 Astro errors; ci-preflight.mjs exit 0 with web-ci, skills-ci and source-link-health-tests all passing. Exit codes were read from unpiped invocations after a piped read of validate reported 1 where the true status was 0 - the Select-Object early-termination hazard, not a test failure."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "Published as pull request #1150 with auto-merge enabled on a squash, gated by web-ci. The full per-claim evidence table and all 41 verbatim reviewer rationales are posted as comments on that pull request, because the body limit will not hold them and truncating a reviewer reasoning would defeat the point of publishing it. No bypass was used: no --force, no --admin, no skipped gate, no lowered threshold and no direct push to main."
+      },
+      {
+        "stage": "deploy",
+        "status": "not-run",
+        "note": "Not yet observed at the moment this entry was written, because the entry ships in the same pull request it describes and the Pages deploy runs on push to main afterwards. Recorded as not-run rather than as a pass: a deploy nobody has looked at is not a deploy that succeeded."
+      }
+    ],
+    "found": {
+      "scouts": 7,
+      "pagesFetched": 477,
+      "claimsProposed": 398,
+      "bundles": [
+        {
+          "creator": "01-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "ai-singapore",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 20
+        },
+        {
+          "creator": "ai2",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "ai21-labs",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 12
+        },
+        {
+          "creator": "aleph-alpha",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "alibaba-cloud",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 17
+        },
+        {
+          "creator": "amazon",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "anthropic",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 19
+        },
+        {
+          "creator": "apple",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "baidu",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "bytedance-seed",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "cohere",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 17
+        },
+        {
+          "creator": "databricks",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "deepseek",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 21
+        },
+        {
+          "creator": "eleutherai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "google-deepmind",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 22
+        },
+        {
+          "creator": "hugging-face",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 26
+        },
+        {
+          "creator": "ibm",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "kyutai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "lelapa-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "lg-ai-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "liquid-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "maritaca-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "meta",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 25
+        },
+        {
+          "creator": "microsoft",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 17
+        },
+        {
+          "creator": "minimax",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "mistral-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 18
+        },
+        {
+          "creator": "moonshot-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "naver",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "nous-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "nvidia",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 27
+        },
+        {
+          "creator": "openbmb",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 12
+        },
+        {
+          "creator": "reka-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "sakana-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "sarvam-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "snowflake",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "stability-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "tencent",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "tii",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "upstage",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "xai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "xiaomi",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "zhipu-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "change",
+          "count": 312,
+          "effect": "Re-verification of facts already in the dataset, overwhelmingly lastCheckedDate on existing sources. 190 of these were applied; the rest were lost to bundle-level gate-evidence refusal or rejected by the panel."
+        },
+        {
+          "kind": "add",
+          "count": 85,
+          "effect": "Proposed new sources, families and releases. None reached the dataset: 14 accepted adds were withheld at the home-route asset ceiling, 7 were dropped on pinned test registries or their cascade, and the remainder were rejected or lost to bundle refusal."
+        },
+        {
+          "kind": "conflict",
+          "count": 1,
+          "effect": "One recorded conflict between primary sources, published as a finding rather than resolved by the pipeline."
+        }
+      ],
+      "notCovered": [
+        "The 9 OpenAI announcement and news pages that returned HTTP 403, and the xAI news channel that failed outright. Those creators were swept through their remaining reachable channels only, so their coverage this run is partial and is reported as partial.",
+        "No workaround was attempted against any channel that refused. A page that returns 403 is recorded as degraded rather than fetched by another route.",
+        "The 19 bundles gate-evidence refused were scouted and reviewed in full; what they did not get is an applied change. They are not unswept, and they are named individually in withheld."
+      ],
+      "unswept": [],
+      "degradedChannels": [
+        {
+          "creator": "ai-singapore",
+          "source": "ai-singapore-gemma-sea-lion-v3-9b-docs-lowercase-404",
+          "detail": "https://github.com/aisingapore/sealion/blob/main/models/sea-lion-v3/gemma-sea-lion-v3-9b.md returned error"
+        },
+        {
+          "creator": "ai-singapore",
+          "source": "ai-singapore-llama-sea-lion-v3-70b-docs-lowercase-404",
+          "detail": "https://github.com/aisingapore/sealion/blob/main/models/sea-lion-v3/llama-sea-lion-v3-70b.md returned error"
+        },
+        {
+          "creator": "cohere",
+          "source": "cohere-transcribe-c4ai-model-card-probe",
+          "detail": "https://huggingface.co/CohereLabs/c4ai-transcribe-4b-v1 returned http-401"
+        },
+        {
+          "creator": "cohere",
+          "source": "hugging-face-cohere-transcribe-c4ai-hub-record-probe",
+          "detail": "https://huggingface.co/api/models/CohereLabs/c4ai-transcribe-4b-v1 returned http-401"
+        },
+        {
+          "creator": "google-deepmind",
+          "source": "google-gemini-3-8-flash-cyber-docs",
+          "detail": "https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-cyber returned http-404"
+        },
+        {
+          "creator": "google-deepmind",
+          "source": "google-gemini-3-8-flash-cyber-platform-docs",
+          "detail": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-8-flash-cyber returned http-404"
+        },
+        {
+          "creator": "ibm",
+          "source": "ibm-granite-4-0-h-small-model-card",
+          "detail": "https://huggingface.co/ibm-granite/granite-4.0-h-small returned http-429"
+        },
+        {
+          "creator": "ibm",
+          "source": "ibm-granite-4-0-h-tiny-model-card",
+          "detail": "https://huggingface.co/ibm-granite/granite-4.0-h-tiny returned http-429"
+        },
+        {
+          "creator": "ibm",
+          "source": "ibm-granite-4-2-30b-model-card",
+          "detail": "https://huggingface.co/ibm-granite/granite-4.2-30b returned http-429"
+        },
+        {
+          "creator": "ibm",
+          "source": "ibm-granite-4-2-technical-blog",
+          "detail": "https://huggingface.co/blog/ibm-granite/granite-4-2 returned http-429"
+        },
+        {
+          "creator": "lg-ai-research",
+          "source": "lg-ai-research-exaone-3-5-model-card",
+          "detail": "https://huggingface.co/LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct returned http-429"
+        },
+        {
+          "creator": "mistral-ai",
+          "source": "mistral-medium-3-5-hf-model-card-probe",
+          "detail": "https://huggingface.co/mistralai/Mistral-Medium-3.5-128B-Instruct-2604 returned http-401"
+        },
+        {
+          "creator": "openai",
+          "source": "openai-chatgpt-images-2-5-announcement",
+          "detail": "https://openai.com/index/introducing-chatgpt-images-2-5 returned http-403"
+        },
+        {
+          "creator": "openai",
+          "source": "openai-gpt-4-1-announcement",
+          "detail": "https://openai.com/index/gpt-4-1/ returned http-403"
+        },
+        {
+          "creator": "openai",
+          "source": "openai-gpt-5-4-announcement",
+          "detail": "https://openai.com/index/introducing-gpt-5-4/ returned http-403"
+        },
+        {
+          "creator": "openai",
+          "source": "openai-gpt-5-5-announcement",
+          "detail": "https://openai.com/index/introducing-gpt-5-5/ returned http-403"
+        },
+        {
+          "creator": "openai",
+          "source": "openai-gpt-5-6-launch",
+          "detail": "https://openai.com/index/gpt-5-6/ returned http-403"
+        },
+        {
+          "creator": "openai",
+          "source": "openai-gpt-5-6-price-update",
+          "detail": "https://openai.com/index/advancing-the-price-performance-frontier-with-gpt-5-6/ returned http-403"
+        },
+        {
+          "creator": "openai",
+          "source": "openai-gpt-5-6-sol-preview",
+          "detail": "https://openai.com/index/previewing-gpt-5-6-sol/ returned http-403"
+        },
+        {
+          "creator": "openai",
+          "source": "openai-gpt-live-1-announcement",
+          "detail": "https://openai.com/index/introducing-gpt-live-1-in-the-api returned http-403"
+        },
+        {
+          "creator": "openai",
+          "source": "openai-news",
+          "detail": "https://openai.com/news/ returned http-403"
+        },
+        {
+          "creator": "snowflake",
+          "source": "snowflake-arctic-instruct-model-card",
+          "detail": "https://huggingface.co/Snowflake/snowflake-arctic-instruct returned http-429"
+        },
+        {
+          "creator": "tencent",
+          "source": "tencent-hunyuanimage-3-0-instruct-distil-license",
+          "detail": "https://huggingface.co/tencent/HunyuanImage-3.0-Instruct-Distil/raw/main/LICENSE returned http-404"
+        },
+        {
+          "creator": "upstage",
+          "source": "upstage-solar-pro-preview-model-card",
+          "detail": "https://huggingface.co/upstage/solar-pro-preview-instruct returned http-429"
+        },
+        {
+          "creator": "xai",
+          "source": "xai-news",
+          "detail": "https://x.ai/news returned failed"
+        },
+        {
+          "creator": "zhipu-ai",
+          "source": "zhipu-ai-glm-4-5-announcement",
+          "detail": "https://z.ai/blog/glm-4.5 returned empty-text"
+        }
+      ]
+    },
+    "evaluated": {
+      "reviewers": 18,
+      "verdictsCast": 1194,
+      "acceptedByPanel": 357,
+      "rejectedByPanel": 41,
+      "dissents": [
+        {
+          "claimId": "qwen3-8-flash-next-repository-last-checked-2026-09-11",
+          "rubric": "editorial",
+          "objection": "The current source record notes import the comparative phrase \"delivers superior capabilities in coding and office tasks\" into data; editorial forbids rank/winner language even when a source says it."
+        },
+        {
+          "claimId": "alibaba-qwen-drive-1-0-4b-release-add",
+          "rubric": "provenance",
+          "objection": "The attached quotes support downloadability (`The model can be downloaded from Hugging Face or ModelScope`), weights, createdAt, and Apache licensing, but none of this claim's quoted evidence states `"
+        },
+        {
+          "claimId": "google-gemini-3-8-flash-release-add",
+          "rubric": "editorial",
+          "objection": "Google profile says the canonical release name is the API model id and the marketing name is an alias; the proposal sets canonicalName/displayName to Gemini 3.8 Flash while treating gemini-3.8-flash a"
+        },
+        {
+          "claimId": "microsoft-mai-transcribe-2-announcement-last-checked-2026-09-11",
+          "rubric": "editorial",
+          "objection": "The source title and claim statement import a winner/rank phrase, \"fastest, most accurate and cheapest speech recognition model in the world\"; editorial forbids ranking language in data or phrasing."
+        },
+        {
+          "claimId": "microsoft-mai-image-2-6-announcement-last-checked-2026-09-11",
+          "rubric": "editorial",
+          "objection": "The source title and claim statement import the composite ranking phrase \"quality-cost frontier\"; editorial forbids frontier/rank language in data or phrasing."
+        },
+        {
+          "claimId": "microsoft-mai-code-1-1-flash-announcement-source-add",
+          "rubric": "editorial",
+          "objection": "The proposed source title imports comparative ranking, \"Better, faster, at a quarter of the cost\", and the notes/quote carry quality-efficiency-cost comparisons; editorial forbids rank/composite winne"
+        },
+        {
+          "claimId": "openai-gpt-image-2-5-sunburst-release-add",
+          "rubric": "editorial",
+          "objection": "OpenAI release naming rule is dated snapshot as canonical release and dateless name as API alias; the proposal sets canonicalName/displayName to GPT-Image-2.5 Sunburst while placing gpt-image-2.5-sunb"
+        },
+        {
+          "claimId": "openai-gpt-image-2-5-flare-release-add",
+          "rubric": "editorial",
+          "objection": "OpenAI release naming rule is dated snapshot as canonical release and dateless name as API alias; the proposal sets canonicalName/displayName to GPT-Image-2.5 Flare while placing gpt-image-2.5-flare-2"
+        }
+      ],
+      "gates": [
+        {
+          "gate": "gate-source-approval",
+          "scope": "All 44 claim bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Every cited origin is in the reviewed catalogue. 44 of 44 bundles at exit 0."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "The 25 bundles that passed, which are the only bundles contributing a record to this pull request",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Exit 0. Every claim carries a verbatim quote, a sha256 hash and a fetch date, and every claim met the threshold its policy sets - 2-of-3 for a reviewed profile, unanimous 3-of-3 for a long-tail creator. Per ADR 0005 this gate verifies the form of a citation and never its correspondence to the cited URL, so it is not evidence that any quote is real; a separate reproducibility checker addressed that."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "The 19 bundles it refused, run to confirm the withholding mechanically",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": false,
+          "detail": "Exit 1 on all 19, every one of them long-tail, naming the claims that fell short of the unanimous 3-of-3 bar. The run honoured every refusal exactly: nothing from any of these bundles is in this pull request, so this gate run governs no published record. It is expensive rather than wrong - refusal is per bundle, so 145 claims the panel had individually accepted were discarded alongside the blocking ones, and that cost is filed as a follow-up rather than worked around."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "The applied tranche, 634 records",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Schema, referential integrity and the family-has-release rule all hold. An earlier tranche failed this gate when dropping a release orphaned its family; the family and the 4 sources whose sole referents were dropped went with it rather than landing as a data error."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "Branch diff against merge-base d395d2c8fd",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "One dataset document changed, web/src/data/sources.json, with outOfClass empty. web/asset-budgets.json was not touched in any field."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "web/",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "139 of 139 test files and 3189 of 3189 tests passed with 0 Astro errors, matching the pre-edit baseline exactly. Every asset-budget test passes."
+        },
+        {
+          "gate": "ci-preflight",
+          "scope": "Repository root, checks selected from the branch diff",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": false,
+          "detail": "web-ci, skills-ci and source-link-health-tests all pass locally. It does not cover the networked link-health sweep, the second Python interpreter, web-e2e or the runner itself, so it predicts CI rather than binding it."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 190,
+      "documents": [
+        {
+          "document": "web/src/data/sources.json",
+          "recordsBefore": 291,
+          "recordsAfter": 291,
+          "note": "Re-dates lastCheckedDate on 189 sources across 25 creators against freshly fetched and hashed primary pages, and corrects one notes field. No record added, removed or re-identified, which is why posted.records is empty: nothing landed in releases, families or organizations this run."
+        }
+      ],
+      "records": []
+    },
+    "withheld": [
+      {
+        "id": "bundle:hugging-face",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 1 sub-threshold claim(s), discarding 25 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "hugging-face-gguf-docs-last-checked-2026-09-11 (2/3 against 3)"
+        ]
+      },
+      {
+        "id": "bundle:deepseek",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 4 sub-threshold claim(s), discarding 17 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "deepseek-v4-1-family (1/3 against 3)",
+          "deepseek-v4-1-flash-release (1/3 against 3)",
+          "deepseek-v4-pro-0813-release (1/3 against 3)",
+          "deepseek-v4-flash-0731-release (1/3 against 3)"
+        ]
+      },
+      {
+        "id": "bundle:mistral-ai",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 2 sub-threshold claim(s), discarding 16 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "mistral-medium-3-5-128b-release (1/3 against 3)",
+          "mistral-voxtral-tts-4b-2603-release (1/3 against 3)"
+        ]
+      },
+      {
+        "id": "bundle:ai-singapore",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 6 sub-threshold claim(s), discarding 13 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "osi-license-index-last-checked-2026-09-11 (2/3 against 3)",
+          "ai-singapore-sea-lion-v3-description-record-three-models (1/3 against 3)",
+          "ai-singapore-gemma-sea-lion-v3-9b-release-add (1/3 against 3)",
+          "ai-singapore-llama-sea-lion-v3-70b-release-add (1/3 against 3)"
+        ]
+      },
+      {
+        "id": "bundle:ai21-labs",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 2 sub-threshold claim(s), discarding 10 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "osi-approved-licenses-last-checked-2026-09-11 (2/3 against 3)",
+          "ai21-labs-jamba-instruct-release-add (2/3 against 3)"
+        ]
+      },
+      {
+        "id": "bundle:cohere",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 7 sub-threshold claim(s), discarding 10 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "cohere-command-a-plus-announcement-last-checked-2026-09-11 (2/3 against 3)",
+          "cohere-transcribe-announcement-source (2/3 against 3)",
+          "cohere-north-small-translate-announcement-source (2/3 against 3)",
+          "cohere-north-small-translate-model-card-source (2/3 against 3)"
+        ]
+      },
+      {
+        "id": "bundle:zhipu-ai",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 1 sub-threshold claim(s), discarding 8 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "zhipu-ai-glm-4-5-release-add (2/3 against 3)"
+        ]
+      },
+      {
+        "id": "bundle:tencent",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 1 sub-threshold claim(s), discarding 7 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "tencent-hunyuanimage-3-0-instruct-release (2/3 against 3)"
+        ]
+      },
+      {
+        "id": "bundle:minimax",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 1 sub-threshold claim(s), discarding 6 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "minimax-model-license-last-checked-2026-09-11 (2/3 against 3)"
+        ]
+      },
+      {
+        "id": "bundle:apple",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 2 sub-threshold claim(s), discarding 5 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "apple-openelm-license-last-checked-2026-09-11 (2/3 against 3)",
+          "apple-fastvlm-license-last-checked-2026-09-11 (2/3 against 3)"
+        ]
+      },
+      {
+        "id": "bundle:lelapa-ai",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 1 sub-threshold claim(s), discarding 4 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "osi-license-index-last-checked-2026-09-11 (2/3 against 3)"
+        ]
+      },
+      {
+        "id": "bundle:maritaca-ai",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 1 sub-threshold claim(s), discarding 4 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "osi-license-index-last-checked-2026-09-11 (2/3 against 3)"
+        ]
+      },
+      {
+        "id": "bundle:moonshot-ai",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 4 sub-threshold claim(s), discarding 4 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "osi-license-index-last-checked-2026-09-11 (2/3 against 3)",
+          "moonshot-ai-kimi-k2-instruct-0905-model-card-source-add (2/3 against 3)",
+          "hugging-face-kimi-k2-instruct-0905-hub-record-source-add (2/3 against 3)",
+          "moonshot-ai-kimi-k2-instruct-0905-release-add (2/3 against 3)"
+        ]
+      },
+      {
+        "id": "bundle:naver",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 1 sub-threshold claim(s), discarding 4 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "naver-hyperclova-x-seed-announcement-last-checked-2026-09-11 (2/3 against 3)"
+        ]
+      },
+      {
+        "id": "bundle:ibm",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 2 sub-threshold claim(s), discarding 3 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "ibm-granite-4-0-h-micro-release-add (2/3 against 3)",
+          "ibm-granite-4-0-micro-release-add (2/3 against 3)"
+        ]
+      },
+      {
+        "id": "bundle:kyutai",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 1 sub-threshold claim(s), discarding 3 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "osi-license-index-last-checked-2026-09-11 (2/3 against 3)"
+        ]
+      },
+      {
+        "id": "bundle:sakana-ai",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 2 sub-threshold claim(s), discarding 3 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "sakana-ai-evollm-jp-model-card-last-checked-2026-09-11 (2/3 against 3)",
+          "sakana-ai-evollm-jp-license-last-checked-2026-09-11 (2/3 against 3)"
+        ]
+      },
+      {
+        "id": "bundle:sarvam-ai",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 1 sub-threshold claim(s), discarding 3 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "sarvam-ai-sarvam-m-blog-last-checked-2026-09-11 (2/3 against 3)"
+        ]
+      },
+      {
+        "id": "bundle:upstage",
+        "category": "blocked-by-policy",
+        "detail": "gate-evidence refused this long-tail bundle whole on 1 sub-threshold claim(s), discarding 0 claim(s) the panel had accepted. The gate refuses per bundle, not per claim; the run obeyed it rather than applying a subset it had not been authorised to pick.",
+        "blockedBy": [
+          "gate-evidence",
+          "osi-license-mit-last-checked-2026-09-11 (2/3 against 3)"
+        ]
+      },
+      {
+        "id": "google-gemini-3-8-flash-docs",
+        "category": "blocked-by-policy",
+        "detail": "Accepted by the panel and not applied. Adding the new records takes the home route's critical payload to 1106468 bytes against criticalMaxRaw 1105000, over by 1468. Raising that ceiling is out of the qualifying class under ADR 0015, so the run withheld every new record rather than choosing which to hide.",
+        "blockedBy": [
+          "web/asset-budgets.json criticalMaxRaw",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md"
+        ]
+      },
+      {
+        "id": "google-gemini-3-8-flash-platform-docs",
+        "category": "blocked-by-policy",
+        "detail": "Accepted by the panel and not applied. Adding the new records takes the home route's critical payload to 1106468 bytes against criticalMaxRaw 1105000, over by 1468. Raising that ceiling is out of the qualifying class under ADR 0015, so the run withheld every new record rather than choosing which to hide.",
+        "blockedBy": [
+          "web/asset-budgets.json criticalMaxRaw",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md"
+        ]
+      },
+      {
+        "id": "google-gemini-3-8-flash-cyber-announcement",
+        "category": "blocked-by-policy",
+        "detail": "Accepted by the panel and not applied. Adding the new records takes the home route's critical payload to 1106468 bytes against criticalMaxRaw 1105000, over by 1468. Raising that ceiling is out of the qualifying class under ADR 0015, so the run withheld every new record rather than choosing which to hide.",
+        "blockedBy": [
+          "web/asset-budgets.json criticalMaxRaw",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md"
+        ]
+      },
+      {
+        "id": "microsoft-mai-code-1-1-flash-announcement",
+        "category": "blocked-by-policy",
+        "detail": "Accepted by the panel and not applied. Adding the new records takes the home route's critical payload to 1106468 bytes against criticalMaxRaw 1105000, over by 1468. Raising that ceiling is out of the qualifying class under ADR 0015, so the run withheld every new record rather than choosing which to hide.",
+        "blockedBy": [
+          "web/asset-budgets.json criticalMaxRaw",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md"
+        ]
+      },
+      {
+        "id": "microsoft-mai-code-1-1-flash-model-page",
+        "category": "blocked-by-policy",
+        "detail": "Accepted by the panel and not applied. Adding the new records takes the home route's critical payload to 1106468 bytes against criticalMaxRaw 1105000, over by 1468. Raising that ceiling is out of the qualifying class under ADR 0015, so the run withheld every new record rather than choosing which to hide.",
+        "blockedBy": [
+          "web/asset-budgets.json criticalMaxRaw",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md"
+        ]
+      },
+      {
+        "id": "openai-gpt-live-1-docs",
+        "category": "blocked-by-policy",
+        "detail": "Accepted by the panel and not applied. Adding the new records takes the home route's critical payload to 1106468 bytes against criticalMaxRaw 1105000, over by 1468. Raising that ceiling is out of the qualifying class under ADR 0015, so the run withheld every new record rather than choosing which to hide.",
+        "blockedBy": [
+          "web/asset-budgets.json criticalMaxRaw",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md"
+        ]
+      },
+      {
+        "id": "openai-gpt-image-2-5-sunburst-docs",
+        "category": "blocked-by-policy",
+        "detail": "Accepted by the panel and not applied. Adding the new records takes the home route's critical payload to 1106468 bytes against criticalMaxRaw 1105000, over by 1468. Raising that ceiling is out of the qualifying class under ADR 0015, so the run withheld every new record rather than choosing which to hide.",
+        "blockedBy": [
+          "web/asset-budgets.json criticalMaxRaw",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md"
+        ]
+      },
+      {
+        "id": "openai-gpt-image-2-5-flare-docs",
+        "category": "blocked-by-policy",
+        "detail": "Accepted by the panel and not applied. Adding the new records takes the home route's critical payload to 1106468 bytes against criticalMaxRaw 1105000, over by 1468. Raising that ceiling is out of the qualifying class under ADR 0015, so the run withheld every new record rather than choosing which to hide.",
+        "blockedBy": [
+          "web/asset-budgets.json criticalMaxRaw",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md"
+        ]
+      },
+      {
+        "id": "openai-gpt-live",
+        "category": "blocked-by-policy",
+        "detail": "Accepted by the panel and not applied. Adding the new records takes the home route's critical payload to 1106468 bytes against criticalMaxRaw 1105000, over by 1468. Raising that ceiling is out of the qualifying class under ADR 0015, so the run withheld every new record rather than choosing which to hide.",
+        "blockedBy": [
+          "web/asset-budgets.json criticalMaxRaw",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md"
+        ]
+      },
+      {
+        "id": "google-gemini-3-8-flash",
+        "category": "blocked-by-policy",
+        "detail": "Accepted by the panel and not applied. Adding the new records takes the home route's critical payload to 1106468 bytes against criticalMaxRaw 1105000, over by 1468. Raising that ceiling is out of the qualifying class under ADR 0015, so the run withheld every new record rather than choosing which to hide.",
+        "blockedBy": [
+          "web/asset-budgets.json criticalMaxRaw",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md"
+        ]
+      },
+      {
+        "id": "microsoft-mai-code-1-1-flash",
+        "category": "blocked-by-policy",
+        "detail": "Accepted by the panel and not applied. Adding the new records takes the home route's critical payload to 1106468 bytes against criticalMaxRaw 1105000, over by 1468. Raising that ceiling is out of the qualifying class under ADR 0015, so the run withheld every new record rather than choosing which to hide.",
+        "blockedBy": [
+          "web/asset-budgets.json criticalMaxRaw",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md"
+        ]
+      },
+      {
+        "id": "openai-gpt-live-1",
+        "category": "blocked-by-policy",
+        "detail": "Accepted by the panel and not applied. Adding the new records takes the home route's critical payload to 1106468 bytes against criticalMaxRaw 1105000, over by 1468. Raising that ceiling is out of the qualifying class under ADR 0015, so the run withheld every new record rather than choosing which to hide.",
+        "blockedBy": [
+          "web/asset-budgets.json criticalMaxRaw",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md"
+        ]
+      },
+      {
+        "id": "openai-gpt-image-2-5-sunburst",
+        "category": "blocked-by-policy",
+        "detail": "Accepted by the panel and not applied. Adding the new records takes the home route's critical payload to 1106468 bytes against criticalMaxRaw 1105000, over by 1468. Raising that ceiling is out of the qualifying class under ADR 0015, so the run withheld every new record rather than choosing which to hide.",
+        "blockedBy": [
+          "web/asset-budgets.json criticalMaxRaw",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md"
+        ]
+      },
+      {
+        "id": "openai-gpt-image-2-5-flare",
+        "category": "blocked-by-policy",
+        "detail": "Accepted by the panel and not applied. Adding the new records takes the home route's critical payload to 1106468 bytes against criticalMaxRaw 1105000, over by 1468. Raising that ceiling is out of the qualifying class under ADR 0015, so the run withheld every new record rather than choosing which to hide.",
+        "blockedBy": [
+          "web/asset-budgets.json criticalMaxRaw",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md"
+        ]
+      },
+      {
+        "id": "alibaba-qwen-drive-1-0-4b-release-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Adding this release puts a twelfth id into the deliberately pinned registry in web/src/data/date-basis-policy.test.ts (dateBasis 'platform-repository-created'), and a sixteenth into the pinned EXPECTED_GAP_IDS in web/src/data/parameter-gap-field.test.ts (the id states '4B' but the record carries no parameters block). Both lists are hard-coded in TypeScript test files and both are pinned on purpose - date-basis-policy.test.ts states 'Pinned rather than derived. Deriving the expected set from the data would make this test agree with whatever the data says, which is not a check.' Landing the rele",
+        "blockedBy": [
+          "web/src/data/parameter-gap-field.test.ts"
+        ]
+      },
+      {
+        "id": "lg-ai-research-exaone-4-0-1-2b-release-add",
+        "category": "dropped-after-acceptance",
+        "detail": "The id states '2B' and the record carries no parameters block, so it enters the pinned EXPECTED_GAP_IDS registry in web/src/data/parameter-gap-field.test.ts and additionally fails that file's 'the parameter-count explanation must be in summary' assertion, which requires the phrase 'parameter count' in the summary field. Satisfying either would mean editing a .ts test file or editing the claim's proposed summary to make it pass - the first is out of class under ADR 0003, the second is explicitly forbidden by claim-bundle.md ('Never edit a claim to make it pass - that is the run overruling its o",
+        "blockedBy": [
+          "web/src/data/parameter-gap-field.test.ts"
+        ]
+      },
+      {
+        "id": "qwen-drive-family-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Cascade from dropping alibaba-qwen-drive-1-0-4b-release-add, which was the family's only release. gate-dataset refuses a family with no releases outright ([family-has-release] 'no release belongs to this family, so the site cannot be built'), and the dataset cannot express 'announced but unreleased'. Dropped together with the release rather than left as a data error.",
+        "blockedBy": [
+          "web/src/data/parameter-gap-field.test.ts"
+        ]
+      },
+      {
+        "id": "qwen-drive-1-0-4b-model-card-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Cascade. This source was added solely to support the dropped Qwen-Drive release and family, and nothing else cites it. Landing a source no record references adds an uncited row to the catalogue rather than evidence.",
+        "blockedBy": [
+          "web/src/data/parameter-gap-field.test.ts"
+        ]
+      },
+      {
+        "id": "hugging-face-qwen-drive-1-0-4b-hub-record-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Cascade. Added solely to support the dropped Qwen-Drive release and family; nothing else cites it.",
+        "blockedBy": [
+          "web/src/data/parameter-gap-field.test.ts"
+        ]
+      },
+      {
+        "id": "qwen-drive-1-0-repository-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Cascade. Added solely to support the dropped Qwen-Drive release and family; nothing else cites it.",
+        "blockedBy": [
+          "web/src/data/parameter-gap-field.test.ts"
+        ]
+      },
+      {
+        "id": "lgai-exaone-4-0-1-2b-model-card-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Cascade. Added solely to support the dropped EXAONE 4.0.1 2B release; nothing else cites it.",
+        "blockedBy": [
+          "web/src/data/parameter-gap-field.test.ts"
+        ]
+      },
+      {
+        "id": "ai-singapore:osi-license-index-last-checked-2026-09-11",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. Reject: the cited contentHash sha256:94c72ae924ee69fa5e1fd3481013d287afdd941a8b84bdcff8e629e279923432 does not match any stored .raw page for this run; the only osi-license-index.raw present hashes to sha256:9304b108a09fbd97c7c25474726be0cbd5760dd72be2ff9ed5b1b9b615af9965, so the",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "ai-singapore:ai-singapore-sea-lion-v3-description-record-three-models",
+        "category": "rejected-by-panel",
+        "detail": "1/3 accepts against a threshold of 3. Dissenting rubric(s): provenance, editorial. Reject: the only attached quote says SEA-LION v3 is \"a collection of 3 models (and their variants)\" but does not name Gemma 9B or Llama 70B, so it does not support the proposed description's specific named list.",
+        "blockedBy": [
+          "provenance",
+          "editorial"
+        ]
+      },
+      {
+        "id": "ai-singapore:ai-singapore-gemma-sea-lion-v3-9b-release-add",
+        "category": "rejected-by-panel",
+        "detail": "1/3 accepts against a threshold of 3. Dissenting rubric(s): provenance, editorial. Reject: the quotes support the name, 9B size, 8192 context, download availability, and \"License: Gemma Community License\", but no attached quote states lifecycle status \"current\", and the generic OSI-process quote does not state that Gemma Community License is not OSI-approved.",
+        "blockedBy": [
+          "provenance",
+          "editorial"
+        ]
+      },
+      {
+        "id": "ai-singapore:ai-singapore-llama-sea-lion-v3-70b-release-add",
+        "category": "rejected-by-panel",
+        "detail": "1/3 accepts against a threshold of 3. Dissenting rubric(s): provenance, editorial. Reject: the attached Llama quote states \"70 billion parameters\" and download availability, but no quote states the proposed 128000-token context window or lifecycle status \"current\", and the generic OSI-process quote does not state that the Llama 3.1 Community License is not OSI-",
+        "blockedBy": [
+          "provenance",
+          "editorial"
+        ]
+      },
+      {
+        "id": "ai-singapore:ai-singapore-llama-sea-lion-v3-8b-sibling-ids-add-v3-peers",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. Reject: the quote says only that SEA-LION v3 is \"a collection of 3 models (and their variants)\"; it does not name the proposed sibling ids Gemma-SEA-LION-v3-9B and Llama-SEA-LION-v3-70B.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "ai-singapore:ai-singapore-sea-lion-v4-5-family-add",
+        "category": "rejected-by-panel",
+        "detail": "1/3 accepts against a threshold of 3. Dissenting rubric(s): provenance, editorial. Reject: the quotes support v4.5 as \"foundational, agentic, and multimodal\" and identify Qwen/Gemma sources, but none of the attached quotes states the proposed \"coding\" category.",
+        "blockedBy": [
+          "provenance",
+          "editorial"
+        ]
+      },
+      {
+        "id": "ai21-labs:osi-approved-licenses-last-checked-2026-09-11",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The cited contentHash sha256:b4c6f6a756d1eba09084fd3db309aec635290e58fb4ddda677ed92a5e3837343 does not match the fetched osi-approved-licenses.raw bytes, which hash to sha256:087690e000fec800e0e5e6394a74f0391e65b60e409df4c4b8d55b65fcb571ff.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "ai21-labs:ai21-labs-jamba-instruct-release-add",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The quote says \"Jamba-Instruct ... is in public preview on the AI21 Platform\", so the proposed status unknown is not supported; the source states a preview lifecycle value.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "apple:apple-openelm-license-last-checked-2026-09-11",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The quoted string \"Disclaimer: IMPORTANT: This Apple Machine Learning Research Model is\" is generic Apple model-license boilerplate; it does not name OpenELM, OpenELM-3B-Instruct, or any source-specific license title, so it does not prove the catalogued OpenELM license source sti",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "apple:apple-fastvlm-license-last-checked-2026-09-11",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The quoted string \"Disclaimer: IMPORTANT: This Apple Machine Learning Research Model is\" is generic Apple model-license boilerplate; it does not name FastVLM, FastVLM-7B, or any source-specific license title, so it does not prove the catalogued FastVLM license source still identi",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "cohere:cohere-command-a-plus-announcement-last-checked-2026-09-11",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The quote is only the generic banner 'Skip to content AI for Empowerment: Your freedom. Your focus...' and does not identify the Command A+ announcement page, so it does not re-verify that catalogued source.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "cohere:cohere-transcribe-announcement-source",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): editorial. Reject: the proposed source title and claim statement import \"state-of-the-art\" into ModelTree source data/phrasing; the editorial rubric forbids rank or winner language even when it appears in an announcement title.",
+        "blockedBy": [
+          "editorial"
+        ]
+      },
+      {
+        "id": "cohere:cohere-north-small-translate-announcement-source",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): editorial. Reject: the proposed source title and claim statement import the rank term \"leading\" into ModelTree source data/phrasing; the editorial rubric forbids rank or winner language.",
+        "blockedBy": [
+          "editorial"
+        ]
+      },
+      {
+        "id": "cohere:cohere-north-small-translate-model-card-source",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The quote is tokenizer/chat-template text beginning with eos_token/pad_token/platform_instruction_override; it does not name North Small Translate or CohereLabs/North-Small-Translate-1.0, so it does not support adding that model-card source.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "cohere:cohere-transcribe-03-2026-release",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The quotes support ASR, audio-in/text-out, 2B parameters, and download availability, but no model quote states Apache 2.0 as the model licence or hosted/API/Model Vault access for accessType 'both'; the OSI page only proves Apache approval.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "cohere:cohere-north-small-translate-1-0-release",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The model-card quote supports an open-weights research MoE with 25B active and 218B total parameters for translation, but no provided quote states the CC BY-NC 4.0 licence or the proposed 16K input/output context windows.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "cohere:cohere-parse-v5-0-release",
+        "category": "rejected-by-panel",
+        "detail": "1/3 accepts against a threshold of 3. Dissenting rubric(s): provenance, editorial. The quote supports Cohere Parse as a document-processing vision language model, but it does not state the proposed parse-v5.0 API alias/version, current hosted availability, or proprietary-hosted access type.",
+        "blockedBy": [
+          "provenance",
+          "editorial"
+        ]
+      },
+      {
+        "id": "deepseek:deepseek-v4-1-family",
+        "category": "rejected-by-panel",
+        "detail": "1/3 accepts against a threshold of 3. Dissenting rubric(s): provenance, editorial. The quoted source names the release 'DeepSeek-V4.1-Flash'; it does not state a separate 'DeepSeek-V4.1' family, and the hub-record quote provided does not include createdAt to support the proposed 2026-09-10 firstReleaseDate.",
+        "blockedBy": [
+          "provenance",
+          "editorial"
+        ]
+      },
+      {
+        "id": "deepseek:deepseek-v4-1-flash-release",
+        "category": "rejected-by-panel",
+        "detail": "1/3 accepts against a threshold of 3. Dissenting rubric(s): provenance, editorial. The model-card quote supports multimodal MoE, 552B backbone parameters, image/text input, text output, and one-million-token context, but the provided hub-record quote does not include createdAt, so the proposed 2026-09-10 releaseDate/dateBasis is not quoted.",
+        "blockedBy": [
+          "provenance",
+          "editorial"
+        ]
+      },
+      {
+        "id": "deepseek:deepseek-v4-pro-0813-release",
+        "category": "rejected-by-panel",
+        "detail": "1/3 accepts against a threshold of 3. Dissenting rubric(s): provenance, editorial. The model-card quote says DeepSeek-V4-Pro-0813 is the official release superseding the preview, but neither quote states the proposed 2026-08-13 repository-created release date; the hub-record quote shown does not include createdAt.",
+        "blockedBy": [
+          "provenance",
+          "editorial"
+        ]
+      },
+      {
+        "id": "deepseek:deepseek-v4-flash-0731-release",
+        "category": "rejected-by-panel",
+        "detail": "1/3 accepts against a threshold of 3. Dissenting rubric(s): provenance, editorial. The model-card quote says DeepSeek-V4-Flash-0731 is the official release superseding the preview, but neither quote states the proposed 2026-07-31 repository-created release date; the hub-record quote shown does not include createdAt.",
+        "blockedBy": [
+          "provenance",
+          "editorial"
+        ]
+      },
+      {
+        "id": "hugging-face:hugging-face-gguf-docs-last-checked-2026-09-11",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The quoted string begins with the documentation navigation text \"?? View all docs AWS Trainium & Inferentia...\" and does not name GGUF or the GGUF docs page; it is boilerplate navigation, not evidence that the catalogued GGUF source still identifies itself.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "ibm:ibm-granite-4-0-h-micro-release-add",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. For open-weight access the evidence has \"open sourced under a standard Apache 2.0 license\" and \"Download language models\", but no quote states weights are downloadable; the OSI Apache evidence hash also does not match the fetched raw bytes.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "ibm:ibm-granite-4-0-micro-release-add",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. For open-weight access the evidence has \"open sourced under a standard Apache 2.0 license\" and \"Download language models\", but no quote states weights are downloadable; the OSI Apache evidence hash also does not match the fetched raw bytes.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "kyutai:osi-license-index-last-checked-2026-09-11",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. Reject: the cited contentHash sha256:e68145cd8074237ae72422bf5eb1d6559f1c30896ab494cb82265edce4eb89f7 does not match any stored .raw page for this run; the only osi-license-index.raw present hashes to sha256:9304b108a09fbd97c7c25474726be0cbd5760dd72be2ff9ed5b1b9b615af9965, so the",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "lelapa-ai:osi-license-index-last-checked-2026-09-11",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. Reject: the cited contentHash sha256:f0205cc1dd07ecbca01b3343be9bbaa9957840aeb864a753a43c24718bb8d33f does not match any stored .raw page for this run; the only osi-license-index.raw present hashes to sha256:9304b108a09fbd97c7c25474726be0cbd5760dd72be2ff9ed5b1b9b615af9965, so the",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "maritaca-ai:osi-license-index-last-checked-2026-09-11",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. Reject: the cited contentHash sha256:a2c93600a45439ef11e3d486926e007d79eb5862dde2fb6305113a5ea08dd4e7 does not match any stored .raw page for this run; the only osi-license-index.raw present hashes to sha256:9304b108a09fbd97c7c25474726be0cbd5760dd72be2ff9ed5b1b9b615af9965, so the",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "minimax:minimax-model-license-last-checked-2026-09-11",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The quoted string \"Model Release Date: 15 January 2025\" is present, but it does not name MiniMax, the MiniMax Model License, or the catalogued license source; the quote alone supports only a date line, not re-verification of that source.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "mistral-ai:mistral-medium-3-5-128b-release",
+        "category": "rejected-by-panel",
+        "detail": "1/3 accepts against a threshold of 3. Dissenting rubric(s): provenance, editorial. The quotes support the name, 128B size, open weights, and Modified MIT wording, but no provided quote states the proposed 256k context window, image input, public-preview lifecycle, or hosted/API access required by accessType 'both'.",
+        "blockedBy": [
+          "provenance",
+          "editorial"
+        ]
+      },
+      {
+        "id": "mistral-ai:mistral-voxtral-tts-4b-2603-release",
+        "category": "rejected-by-panel",
+        "detail": "1/3 accepts against a threshold of 3. Dissenting rubric(s): provenance, editorial. The quotes state Voxtral TTS, 4B parameters, text-to-speech/voice-cloning details, open weights/BF16 weights, and CC BY-NC wording, but none states the proposed hosted API/Studio access needed for accessType 'both' or the exact release date.",
+        "blockedBy": [
+          "provenance",
+          "editorial"
+        ]
+      },
+      {
+        "id": "moonshot-ai:osi-license-index-last-checked-2026-09-11",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The cited contentHash sha256:66f0bc037700f668da07e931e1a703c2347a8d32b396e2eeb36b95402aac0b71 does not match the fetched osi-license-index.raw bytes, which hash to sha256:9304b108a09fbd97c7c25474726be0cbd5760dd72be2ff9ed5b1b9b615af9965.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "moonshot-ai:moonshot-ai-kimi-k2-instruct-0905-model-card-source-add",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The cited contentHash sha256:12d67666d2a8b6790e738ab87925848d97b4628350bfdf88452106c734092278 does not match moonshot-ai-kimi-k2-instruct-0905-model-card.raw sha256:12d676ae66ec2b3dab35b76660626e94121b85b8868d98bf1df047b78b9f7ec4.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "moonshot-ai:hugging-face-kimi-k2-instruct-0905-hub-record-source-add",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The cited contentHash sha256:35b6f803c9e89f1175ad86f43b2779fed6468d9f40e5f749b8120bd4fb7e3f3e does not match hugging-face-kimi-k2-instruct-0905-hub-record.raw sha256:35b6f8eb5a864d7f8aca36dbe2cdfc16b4c69184e572a13105a1e3f6adacdd6f.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "moonshot-ai:moonshot-ai-kimi-k2-instruct-0905-release-add",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The load-bearing 0905 model-card, Hub-record, and OSI-index evidence hashes do not match the fetched raw files, so the quoted strings are not tied to the cited bytes for the release, date, access, or OSI-false fields.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "naver:naver-hyperclova-x-seed-announcement-last-checked-2026-09-11",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The quoted sentence \"Businesses and research institutions... can download these models\" is anaphoric and does not name HyperCLOVA X SEED, NAVER, or the announcement title; read alone it does not identify the catalogued source.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "sakana-ai:sakana-ai-evollm-jp-model-card-last-checked-2026-09-11",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The quoted sentence \"This model is provided for research and development purposes only...\" is a generic model-card disclaimer and does not name EvoLLM-JP-v1-7B or SakanaAI, so it does not prove the catalogued model-card source still identifies itself.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "sakana-ai:sakana-ai-evollm-jp-license-last-checked-2026-09-11",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The quoted sentence \"These license terms are an agreement between you and Microsoft Corporation...\" is generic Microsoft license boilerplate and does not name EvoLLM-JP-v1-7B, SakanaAI, or the catalogued license source.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "sarvam-ai:sarvam-ai-sarvam-m-blog-last-checked-2026-09-11",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The quoted sentence \"Download the model from Hugging Face, try it on our playground, and build with our APIs\" says only \"the model\" and does not name Sarvam-M or the announcement source; read alone it does not identify the catalogued source.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "tencent:tencent-hunyuanimage-3-0-instruct-release",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): editorial. Reject: the release naming keeps `HunyuanImage-3.0-Instruct` and the Hub download separate, but the proposed `intendedUse` adds `chain-of-thought-style visual reasoning`; the attached quotes say only `Instruct (with reasoning)` / `Instruction reasoning` and image-to-image generat",
+        "blockedBy": [
+          "editorial"
+        ]
+      },
+      {
+        "id": "upstage:osi-license-mit-last-checked-2026-09-11",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The cited contentHash sha256:64b9a6077ff220cdb35ad7f6f4fa3f91bdd95a72112de4d1d7233c8356e083bf does not match the fetched osi-license-mit.raw bytes, which hash to sha256:fccedc89f37399eefd47c15460bf41426cc3a3d296ea9ee3d5947aa055724716.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "zhipu-ai:zhipu-ai-glm-4-5-release-add",
+        "category": "rejected-by-panel",
+        "detail": "2/3 accepts against a threshold of 3. Dissenting rubric(s): provenance. The MIT OSI evidence is not tied to the fetched bytes: the cited sha256:64b9a6077ff220cdb35ad7f6f4fa3f91bdd95a72112de4d1d7233c8356e083bf does not match osi-license-mit.raw sha256:fccedc89f37399eefd47c15460bf41426cc3a3d296ea9ee3d5947aa055724716.",
+        "blockedBy": [
+          "provenance"
+        ]
+      },
+      {
+        "id": "ai-singapore:ai-singapore-qwen-sea-lion-v4-5-27b-it-license-conflict",
+        "category": "conflict-recorded",
+        "detail": "Recorded as a conflict rather than resolved. The fetched Qwen-SEA-LION-v4.5-27B-IT documentation and Hub record disagree on the license value.",
+        "blockedBy": [
+          "conflicting primary sources"
+        ]
+      }
+    ],
+    "caveats": [
+      "No human read any of these claims. The three-rubric panel and the deterministic gates are the whole of the oversight, and 2-of-3 buys independence of reasoning, not independence of training: three instances of the same model family reading one page share a failure mode, and a source that is itself wrong can carry all three.",
+      "A green run does not mean the dataset is complete. 145 individually-accepted claims were discarded by bundle-level gate-evidence refusal, and every one of the 19 refused bundles was long-tail, where a single dissent blocks.",
+      "The 14 withheld records are accepted, sourced and absent from the site. Readers will not see Gemini 3.8 Flash, MAI-Code-1.1-Flash or three OpenAI releases until the home-route payload problem is fixed, and nothing on the site says so.",
+      "Coverage for OpenAI and xAI is partial: 9 OpenAI pages returned 403 and the xAI news channel failed. This run is not evidence that those creators did or did not change on the channels that refused.",
+      "A separate checker found 25 of 491 evidence items unreproducible. It converged completely with the panel this run, but that convergence is a measurement of one run and not a guarantee that the scout hash-recording defect is harmless.",
+      "The deploy stage had not run when this entry was written, so nothing here reports that the site built or published. That is recorded as not-run rather than assumed."
+    ],
+    "followUps": [
+      "The home route's criticalMaxRaw is exhausted: an ordinary refresh tranche no longer fits, and this run withheld 14 accepted records to stay inside it. The named remedy is to project the home page's island props rather than inlining whole records, as was done for /tree. Until then every refresh is capped at re-verification.",
+      "gate-evidence refuses at bundle granularity, so one sub-threshold claim discards every other claim in its bundle. Hugging Face lost 25 accepted claims to a single blocking one, and 145 were lost run-wide. Claim-level refusal would recover them without weakening any threshold.",
+      "The scout recorded content hashes that do not reproduce for 25 of 491 evidence items. The panel independently rejected every affected claim this run, but the defect is in the recording step and should not be left resting on that coincidence.",
+      "licence-identity.test.ts asserts that git status --porcelain src/data is empty, so it fails locally for every refresh before the commit regardless of cause, including for the ledger entry itself. It conflates \"the CLI wrote to the dataset\" with \"the tree is dirty for any reason\".",
+      "The pinned registries in date-basis-policy.test.ts and parameter-gap-field.test.ts structurally block an unattended refresh from adding any release whose id states a parameter count or whose date rests on a platform record. The pins are deliberate and correct; what is missing is a route for an agent to land such a release without editing a guard."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "PR #1150 - the pull request carrying this run dataset change and this entry",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/1150",
+        "state": "open with auto-merge enabled when this entry was written; the number was read from the created pull request rather than predicted, because the entry is committed after the pull request exists"
+      },
+      {
+        "kind": "commit",
+        "label": "c36b3e74e0 - the dataset commit applying the 190 accepted claims",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/c36b3e74e09ee38c4731fd7866b1fec9229e3a7e",
+        "state": "the first of this branch two commits; this ledger entry lands as the second, because a published run must name its own pull request and that number does not exist until the pull request is opened"
+      },
+      {
+        "kind": "commit",
+        "label": "d395d2c8fd - the trunk anchor every measurement in this entry was taken against",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/d395d2c8fda531c8b633885d6fd56594b9788755",
+        "state": "read live with git ls-remote at the start of the run and again at report time, unchanged between the two"
+      }
+    ],
+    "recordedAt": "2026-09-11"
   }
 ]
