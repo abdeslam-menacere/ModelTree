@@ -2613,5 +2613,43 @@
     "publisherId": "microsoft",
     "publishedDate": "2026-09-04",
     "lastCheckedDate": "2026-09-11"
+  },
+  {
+    "id": "microsoft-mai-code-1-1-flash-announcement",
+    "url": "https://microsoft.ai/news/mai-code-1-1-flash-br-better-faster-at-a-quarter-of-the-cost/",
+    "title": "MAI-Code-1.1-Flash: Better, faster, at a quarter of the cost",
+    "type": "official-announcement",
+    "publisherId": "microsoft",
+    "publishedDate": "2026-08-11",
+    "lastCheckedDate": "2026-09-12",
+    "notes": "Microsoft AI’s own announcement post for MAI-Code-1.1-Flash. The page states \"August 11, 2026\" beside the headline and publishes the same date as JSON-LD \"datePublished\":\"2026-08-11T17:00:00+00:00\", which is the date this dataset records for the release."
+  },
+  {
+    "id": "microsoft-mai-voice-2-announcement",
+    "url": "https://microsoft.ai/news/mai-voice-2/",
+    "title": "Introducing MAI-Voice-2",
+    "type": "official-announcement",
+    "publisherId": "microsoft",
+    "publishedDate": "2026-06-02",
+    "lastCheckedDate": "2026-09-12",
+    "notes": "Microsoft AI’s own announcement post for MAI-Voice-2. The page states \"June 2, 2026\" beside the headline and publishes the same date as JSON-LD \"datePublished\":\"2026-06-02T16:47:39+00:00\". A later post, \"Introducing MAI-Image-2.5-Pro and MAI-Voice-2-Flash\" (23 July 2026), announces the separate MAI-Voice-2-Flash variant, which this dataset does not record."
+  },
+  {
+    "id": "ibm-granite-4-2-8b-model-card",
+    "url": "https://huggingface.co/ibm-granite/granite-4.2-8b/raw/main/README.md",
+    "title": "Granite-4.2-8B model card",
+    "type": "model-card",
+    "publisherId": "ibm",
+    "lastCheckedDate": "2026-09-12",
+    "notes": "IBM’s own model card for Granite-4.2-8B. The raw README URL is cited because that is the byte-exact form of the card this run read and hashed; the rendered card is at https://huggingface.co/ibm-granite/granite-4.2-8b. The card’s Model Summary table states the release date, parameter count, context length and licence recorded here."
+  },
+  {
+    "id": "ibm-granite-4-2-3b-model-card",
+    "url": "https://huggingface.co/ibm-granite/granite-4.2-3b/raw/main/README.md",
+    "title": "Granite-4.2-3B model card",
+    "type": "model-card",
+    "publisherId": "ibm",
+    "lastCheckedDate": "2026-09-12",
+    "notes": "IBM’s own model card for Granite-4.2-3B. The raw README URL is cited because that is the byte-exact form of the card this run read and hashed; the rendered card is at https://huggingface.co/ibm-granite/granite-4.2-3b. The card’s Model Summary table states the release date, parameter count, context length and licence recorded here."
   }
 ]

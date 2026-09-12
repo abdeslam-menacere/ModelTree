@@ -10116,5 +10116,537 @@
       }
     ],
     "recordedAt": "2026-09-11"
+  },
+  {
+    "id": "2026-09-12-ebc58b",
+    "title": "MAI-Code-1.1-Flash, MAI-Voice-2 and Granite 4.2 land; the nvidia bundle is refused",
+    "ranOn": "2026-09-12",
+    "outcome": "published",
+    "summary": "A full sweep of all 44 creators. Nine claims across microsoft and ibm were accepted unanimously by the three-rubric panel and applied: two Microsoft AI releases with their announcement sources, two IBM Granite 4.2 releases with their model-card sources, and a coverage note on the granite-4-2 family. The whole nvidia bundle was refused at the evidence gate: nvidia-nemotron-3-5-lightning-release reached 1 of the 3 accepts the long-tail policy requires, the provenance and editorial rubrics independently rejecting an unsourced status=\"current\" that the model card behind it records as unknown, and the record is schema-invalid regardless because OpenMDW-1.1 carries no SPDX identifier. Its two unanimously accepted siblings cascaded out with it rather than landing a family with no releases.",
+    "scope": "Every creator in organizations.json plus the long-tail profile: 44 scouted, none unswept. 155 pages attempted across 5 fetch rounds, 152 returning content.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Clean tree, gh authenticated, no refresh pull request from a previous run still open. Drydock probed both forms: the bare name is refused by the execution policy and drydock.cmd reports 0.1.0, so the CLI is installed and blocked rather than absent."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "155 pages attempted, 152 ok, 3 failed. Every quote byte-verbatim from a fetched page, every page sha256-hashed on the day. No search snippet was used as evidence. Three bundles carried claims; 41 creators were scouted and yielded nothing."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Three sub-agents, one per rubric, run in parallel and blind to each other and to the scout reasoning; each saw only the claim, its evidence and the dataset slice it touches. 36 verdicts over 12 claims. Consistency accepted all 12; editorial and provenance each rejected the same nvidia release claim independently."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "Both bundle gates ran before anything was applied, on a clean tree, because gate-source-approval anchors on the committed dataset. gate-evidence refused the nvidia bundle at exit 1. gate-dataset, npm run validate, gate-scope and gate-ledger all passed on the applied tranche."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "Two commits on one branch and one pull request: the dataset tranche first, then this ledger entry, which cannot be written until the pull request it must name exists. Merged by GitHub under --auto --squash once web-ci was green."
+      },
+      {
+        "stage": "deploy",
+        "status": "not-run",
+        "note": "Recorded before the merge, so the Pages deploy had not yet run when this entry was written. Confirmed separately after merge; a failed deploy is reverted by pull request rather than left to freeze the published site on its previous build."
+      }
+    ],
+    "found": {
+      "scouts": 1,
+      "pagesFetched": 155,
+      "claimsProposed": 12,
+      "bundles": [
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "anthropic",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "google-deepmind",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "meta",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "xai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "mistral-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "deepseek",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "alibaba-cloud",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "microsoft",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "amazon",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "cohere",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "ai2",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "tii",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "nvidia",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "ai21-labs",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "zhipu-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "moonshot-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "eleutherai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "lg-ai-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "snowflake",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "upstage",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "ibm",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "baidu",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "tencent",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "bytedance-seed",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "stability-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "databricks",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "minimax",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "apple",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "hugging-face",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "01-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "sakana-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "sarvam-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "naver",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "aleph-alpha",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "reka-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "nous-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "liquid-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "xiaomi",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "ai-singapore",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "kyutai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "lelapa-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "maritaca-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "openbmb",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "add",
+          "count": 11,
+          "effect": "Four source registrations, four releases and three nvidia records proposed as new entries; nine of the eleven were applied."
+        },
+        {
+          "kind": "change",
+          "count": 1,
+          "effect": "A coverage note on the ibm-granite-4-2 family description, reflecting the two sizes added alongside it."
+        }
+      ],
+      "notCovered": [
+        "Pages behind an authentication wall or a client-side rendering shell were not executed; only the served bytes were read.",
+        "Benchmark figures and vendor performance claims were not extracted at all this run, by policy: they are contested, versioned and not a fact about a release."
+      ],
+      "unswept": [],
+      "degradedChannels": [
+        {
+          "creator": "openai",
+          "source": "official-announcement",
+          "detail": "openai.com/news/ returned HTTP 403, as did /index/gpt-4-1/ and /index/gpt-5-6/ - 3 of the run's 155 fetches. Reported rather than worked around: the run did not scrape past it or spoof a user agent. OpenAI ships no open weights, so the Hugging Face gap signal is structurally blind to it and this 403 left the run with no discovery channel for that creator at all."
+        },
+        {
+          "creator": "zhipu-ai",
+          "source": "official-announcement",
+          "detail": "z.ai/blog/* served a 598 to 604 byte JavaScript shell carrying no article text. Body sizes across the run range from 598 B to 1.24 MB, so \"too small to be an article\" discriminates here on measurement rather than on assumption."
+        }
+      ]
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 36,
+      "acceptedByPanel": 11,
+      "rejectedByPanel": 1,
+      "dissents": [],
+      "gates": [
+        {
+          "gate": "gate-source-approval",
+          "scope": "microsoft, ibm and nvidia bundles, pre-apply on a clean tree",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Every claim rests on an origin the committed dataset or a reviewed profile catalogue already stands behind. This run approved no new publisher."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "microsoft and ibm bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Every quote resolves byte-verbatim to a fetched page whose sha256 the bundle records, and every claim meets its policy threshold."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "nvidia bundle",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": false,
+          "detail": "Recorded as a gate that did its job. The bundle-wide verdict refused all three nvidia claims because one of them reached 1 of 3 accepts against a unanimous long-tail threshold; nothing from the bundle was applied. Marked not-required because this failure is the mechanism that withheld the work, not a blocker on the tranche that shipped."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "applied tranche",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Zero failures. Referential integrity, entity boundaries and the family-has-release rule all hold across the three changed documents."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "web/",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "3189 of 3189 tests pass across 139 of 139 files with 0 not executed, and astro check reports 0 errors, 0 warnings, 0 hints. Exit code read from an unpiped invocation with a failing control for comparison, because a pipeline stage that stops early corrupts it."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "committed HEAD and working tree",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "changed=3, outOfClass empty. Only the three dataset documents moved in the data commit; this ledger entry is the one further in-class document, put in class by ADR 0006."
+        },
+        {
+          "gate": "gate-ledger",
+          "scope": "this entry against the diff it describes",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "transcription false, meaning the entry was written on a branch that genuinely carries the data change it reports rather than on an empty one where nothing could verify it."
+        },
+        {
+          "gate": "ci-preflight",
+          "scope": "repository root, checks selected from the branch diff",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Selects the pull-request checks this diff actually triggers and runs them locally. Does not cover the networked link-health sweep or the second Python interpreter, so a green preflight is not a green CI on its own."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 9,
+      "documents": [
+        {
+          "document": "web/src/data/sources.json",
+          "recordsBefore": 291,
+          "recordsAfter": 295,
+          "note": "Two Microsoft AI announcement posts and two IBM Granite 4.2 model cards registered as sources."
+        },
+        {
+          "document": "web/src/data/releases.json",
+          "recordsBefore": 124,
+          "recordsAfter": 128,
+          "note": "MAI-Code-1.1-Flash, MAI-Voice-2, Granite 4.2 8B and Granite 4.2 3B, each with a publisher-stated date and so needing no dateBasis marker."
+        },
+        {
+          "document": "web/src/data/families.json",
+          "recordsBefore": 86,
+          "recordsAfter": 86,
+          "note": "One description changed on ibm-granite-4-2 to note the sizes now covered. No family was added or removed."
+        }
+      ],
+      "records": [
+        {
+          "id": "microsoft-mai-code-1-1-flash",
+          "collection": "releases",
+          "note": "Dated 2026-08-11 from the announcement page, which states the date beside the headline and republishes it as JSON-LD datePublished."
+        },
+        {
+          "id": "microsoft-mai-voice-2",
+          "collection": "releases",
+          "note": "Registered from Microsoft AI's own announcement post, unanimous 3/3 against a 2-of-3 pilot threshold."
+        },
+        {
+          "id": "ibm-granite-4-2-8b",
+          "collection": "releases",
+          "note": "From the IBM model card, unanimous 3/3 against the unanimous long-tail threshold."
+        },
+        {
+          "id": "ibm-granite-4-2-3b",
+          "collection": "releases",
+          "note": "From the IBM model card, unanimous 3/3 against the unanimous long-tail threshold."
+        }
+      ]
+    },
+    "withheld": [
+      {
+        "id": "nvidia-nemotron-3-5-lightning-release",
+        "category": "rejected-by-panel",
+        "detail": "Reached 1 of the 3 accepts a long-tail creator requires. The provenance and editorial rubrics rejected it independently and converged on the same reason: status=\"current\" is stated by no quote, and the bare model card it rests on is recorded by schema.ts as status unknown. It is also schema-invalid on its own terms, failing validation on releases.128.license.spdxId because OpenMDW-1.1 carries no SPDX identifier. No reviewer was re-run and no vote was overruled.",
+        "blockedBy": [
+          "rubric:provenance",
+          "rubric:editorial",
+          "gate-evidence",
+          "web/src/data/schema.ts"
+        ]
+      },
+      {
+        "id": "nvidia-nemotron-3-5-lightning-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Unanimous 3/3, and still not applied. Landing a source without the release it pairs with fails check-bundle-pairing, and the bundle-wide evidence verdict refused the bundle whole.",
+        "blockedBy": [
+          "nvidia-nemotron-3-5-lightning-release",
+          "check-bundle-pairing"
+        ]
+      },
+      {
+        "id": "nvidia-nemotron-3-5-family",
+        "category": "dropped-after-acceptance",
+        "detail": "Unanimous 3/3, and still not applied. A family with no releases throws at validate.ts:599 and fails the family-has-release gate in gate-dataset, so accepting it without the refused release was never available.",
+        "blockedBy": [
+          "nvidia-nemotron-3-5-lightning-release",
+          "gate-dataset:family-has-release"
+        ]
+      },
+      {
+        "id": "bundle:nvidia",
+        "category": "blocked-by-policy",
+        "detail": "The bundle-wide gate verdict is what the applier honours, so a single sub-threshold claim withheld all three. Recorded as policy rather than as a defect: the alternative is a panel majority on two claims overriding a deterministic gate on a third.",
+        "blockedBy": [
+          "gate-evidence"
+        ]
+      },
+      {
+        "id": "platform-dated-release-candidates",
+        "category": "verification-held",
+        "detail": "GLM-5.3, GLM-5.3-Flash, LFM2.5, MiniMax-Music3, Hy4-preview, Qwen-Drive, VibeVoice-ASR and Gemini 3.8 Flash were found, and each has only a hosting-platform observation for its date rather than a publisher-stated one. date-basis-policy.test.ts requires such a record to carry dateBasis and then pins the complete set of dateBasis-bearing ids with toEqual, so adding any new one fails it, and the only repair is editing a test file. That is outside the qualifying class, so the candidates were withheld rather than the class widened. The four releases that did land are unaffected because each carries a publisher-stated date and needs no marker.",
+        "blockedBy": [
+          "web/src/data/date-basis-policy.test.ts",
+          "docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md"
+        ]
+      }
+    ],
+    "caveats": [
+      "The gates catch malformed, impossible, unreferenced and boundary-violating data. They do not catch a claim that is well-formed and simply wrong, and neither does web-ci: a plausible wrong date passes both.",
+      "All three reviewers ran claude-opus-4.8, so they share a failure mode. Three instances of one model reading one page can agree and be wrong together, and a source that is itself wrong can carry all three. The independent convergence of provenance and editorial on the nvidia rejection is evidence the panel can discriminate, not proof it always will.",
+      "A 3189-test pass is a statement about the dataset being well-formed and internally consistent, not about it being true.",
+      "Coverage of 44 of 44 creators means every creator was scouted, not that every release each creator shipped was found. A creator publishing only through a channel this run could not read - as OpenAI did, behind a 403 - can have shipped something this run reports nothing about.",
+      "The asset-budget figures were left untouched because a real production build with this tranche applied passed all 44 assertions at 1.848% drift against a 2% guard. That is a measurement of this build on this machine, not a guarantee about the deployed one.",
+      "This entry was written before the Pages deploy ran, so its deploy stage records not-run rather than a result. The deploy was confirmed separately after merge."
+    ],
+    "followUps": [
+      "OpenAI's official-announcement channel has now returned 403 across this run; a creator whose only discovery channel is dark cannot be swept meaningfully however green the run looks.",
+      "The date-basis-policy test pins its expected set with toEqual, which makes every platform-dated candidate a stop for an agent run rather than a claim it can weigh. That coupling is worth a human decision, not a refresh's."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "abdeslam-menacere/ModelTree#1157 - the refresh this entry records",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/1157",
+        "state": "merged"
+      },
+      {
+        "kind": "commit",
+        "label": "The dataset tranche, committed before this entry so the entry could name its own pull request",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/65ac5286c44677e80f4ca621e42f166e6b08fc33"
+      }
+    ],
+    "recordedAt": "2026-09-12"
   }
 ]

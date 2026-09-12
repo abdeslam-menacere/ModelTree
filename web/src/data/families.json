@@ -858,7 +858,7 @@
     "slug": "granite-4-2",
     "organizationId": "ibm",
     "name": "Granite 4.2",
-    "description": "IBM’s Granite 4.2 generation: dense, decoder-only reasoning models in 3B, 8B and 30B, each with a thinking / non-thinking switch and native tool calling, released under the Apache 2.0 licence. Only the 30B release is recorded here.",
+    "description": "IBM’s Granite 4.2 generation: dense, decoder-only reasoning models in 3B, 8B and 30B, each with a thinking / non-thinking switch and native tool calling, released under the Apache 2.0 licence. All three releases are recorded here.",
     "categories": [
       "language-reasoning",
       "coding"
