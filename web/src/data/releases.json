@@ -5750,5 +5750,170 @@
       "microsoft-ai-models-page"
     ],
     "verifiedAt": "2026-09-06"
+  },
+  {
+    "id": "microsoft-mai-code-1-1-flash",
+    "slug": "mai-code-1-1-flash",
+    "canonicalName": "MAI-Code-1.1-Flash",
+    "displayName": "MAI-Code-1.1-Flash",
+    "organizationId": "microsoft",
+    "familyId": "microsoft-mai",
+    "version": "1.1",
+    "variant": "Code Flash",
+    "releaseDate": "2026-08-11",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "proprietary-hosted",
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Microsoft AI’s lightweight agentic coding model, which the company describes as a small, efficient coding workhorse now in production in GitHub Copilot.",
+    "intendedUse": "Microsoft AI presents it as helping engineering teams write code faster from inside GitHub Copilot and VS Code.",
+    "sourceIds": [
+      "microsoft-mai-code-1-1-flash-announcement",
+      "microsoft-ai-models-page"
+    ],
+    "verifiedAt": "2026-09-12"
+  },
+  {
+    "id": "microsoft-mai-voice-2",
+    "slug": "mai-voice-2",
+    "canonicalName": "MAI-Voice-2",
+    "displayName": "MAI-Voice-2",
+    "organizationId": "microsoft",
+    "familyId": "microsoft-mai",
+    "version": "2",
+    "variant": "Voice",
+    "releaseDate": "2026-06-02",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "audio-speech"
+    ],
+    "inputModalities": [
+      "text",
+      "audio"
+    ],
+    "outputModalities": [
+      "audio"
+    ],
+    "accessType": "proprietary-hosted",
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "Microsoft AI’s speech generation model, which the company describes as delivering expressive, low-latency speech that holds up across long generations.",
+    "intendedUse": "Microsoft AI presents it for production voice experiences such as assistants, customer support, audiobooks and accessibility interfaces, served through Microsoft Foundry.",
+    "sourceIds": [
+      "microsoft-mai-voice-2-announcement",
+      "microsoft-ai-models-page"
+    ],
+    "verifiedAt": "2026-09-12"
+  },
+  {
+    "id": "ibm-granite-4-2-8b",
+    "slug": "granite-4-2-8b",
+    "canonicalName": "granite-4.2-8b",
+    "displayName": "Granite 4.2 8B",
+    "organizationId": "ibm",
+    "familyId": "ibm-granite-4-2",
+    "version": "4.2",
+    "variant": "8B",
+    "releaseDate": "2026-08-25",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 8
+    },
+    "contextWindow": 131072,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "IBM’s 8B Granite 4.2 model: a dense decoder-only reasoning model post-trained on the Granite 4.1 8B base, with a built-in thinking / non-thinking switch and weights under Apache 2.0.",
+    "intendedUse": "IBM describes the generation as built for enterprise and research use, spanning reasoning, code generation, tool calling, agentic workflows and multilingual dialog.",
+    "sourceIds": [
+      "ibm-granite-4-2-8b-model-card",
+      "ibm-granite-4-2-technical-blog",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-09-12"
+  },
+  {
+    "id": "ibm-granite-4-2-3b",
+    "slug": "granite-4-2-3b",
+    "canonicalName": "granite-4.2-3b",
+    "displayName": "Granite 4.2 3B",
+    "organizationId": "ibm",
+    "familyId": "ibm-granite-4-2",
+    "version": "4.2",
+    "variant": "3B",
+    "releaseDate": "2026-08-25",
+    "datePrecision": "day",
+    "status": "current",
+    "featured": false,
+    "categories": [
+      "language-reasoning",
+      "coding"
+    ],
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "accessType": "open-weight",
+    "license": {
+      "name": "Apache 2.0",
+      "spdxId": "Apache-2.0",
+      "weightsDownloadable": true,
+      "osiApproved": true
+    },
+    "parameters": {
+      "totalBillions": 3
+    },
+    "contextWindow": 131072,
+    "apiAliases": [],
+    "predecessorIds": [],
+    "successorIds": [],
+    "siblingIds": [],
+    "summary": "IBM’s 3B Granite 4.2 model: a dense decoder-only reasoning model post-trained on the Granite 4.1 3B base, with a built-in thinking / non-thinking switch and weights under Apache 2.0.",
+    "intendedUse": "IBM describes the generation as built for enterprise and research use, spanning reasoning, code generation, tool calling, agentic workflows and multilingual dialog.",
+    "sourceIds": [
+      "ibm-granite-4-2-3b-model-card",
+      "ibm-granite-4-2-technical-blog",
+      "osi-approved-licenses"
+    ],
+    "verifiedAt": "2026-09-12"
   }
 ]
