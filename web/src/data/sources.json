@@ -224,7 +224,7 @@
     "title": "Gemini deprecations",
     "type": "official-docs",
     "publisherId": "google",
-    "lastCheckedDate": "2026-09-11",
+    "lastCheckedDate": "2026-09-13",
     "notes": "States the release date, shutdown date, and recommended replacement for each Gemini model ID."
   },
   {
