@@ -10648,5 +10648,510 @@
       }
     ],
     "recordedAt": "2026-09-12"
+  },
+  {
+    "id": "2026-09-13-bfee2c",
+    "title": "Gemini 3.8 Flash clears the panel and is refused by the home byte ceiling for the second run running",
+    "ranOn": "2026-09-13",
+    "outcome": "published",
+    "summary": "A full sweep of all 44 creators. Only google-deepmind yielded claims: Gemini 3.8 Flash, GA on 2026-09-02, with its Gemini API model page and its Vertex AI model page as sources, plus a featured-rationale restate on Gemini 3.7 Flash whose current wording calls it the newest Flash tier. The three-rubric panel accepted all five claims and gate-evidence admitted the bundle at exit 0. The deterministic asset budget then refused the tranche: the home route measures 1,100,526 raw critical bytes on clean HEAD against a criticalMaxRaw of 1,105,000, and the three new records take it to 1,110,273 - over by 5,273. A gate cannot be outvoted by a panel majority, so the four records that carry bytes were withheld and only the zero-byte verification advance on the Gemini deprecations page was published. This is the second consecutive run to reach the same wall: 2026-09-11-cd4874 withheld the same records for the same reason.",
+    "scope": "Every creator in organizations.json plus the long-tail profile: 44 scouted, none unswept. 92 pages attempted across 2 fetch rounds, 88 returning content.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Clean tree, gh authenticated, no refresh pull request from a previous run still open. Drydock probed both forms: the bare name is refused by the execution policy and drydock.cmd reports 0.1.0, so the CLI is installed and blocked rather than absent. npm probed the same way: bare refused, npm.cmd reports 11.9.0."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "92 pages attempted, 88 ok, 4 failed. Every quote is byte-verbatim from a fetched page, verified mechanically against the saved body by the bundle builder, which throws rather than emits when a quote is absent. Every page is sha256-hashed on the day. No search snippet was used as evidence. One bundle carried claims; 43 creators were scouted and yielded nothing."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Three sub-agents, one per rubric, on three different models, run in parallel and blind to each other, to the scout reasoning and to the running tally; each saw only the claims, their evidence and the dataset slice they touch. 15 verdicts over 5 claims. The chair neither voted nor broke a tie, and no reviewer was re-run."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-source-approval and gate-evidence ran pre-apply on a clean tree. gate-evidence passed at exit 0 and was controlled in the same session against two mutated bundles - one taken sub-threshold, one with retrieval set to search - which it refused at exit 1 apiece, so the pass is a reading rather than a blind instrument. gate-dataset, gate-reversals, gate-scope and gate-ledger passed on the applied tranche. npm run validate refused the full tranche on the asset budget, which is what withheld it."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "Two commits on one branch and one pull request: the dataset change first, then this ledger entry, which cannot be written until the pull request it must name exists. Merged by GitHub under --auto --squash once web-ci was green. No --admin, no --force, no skipped gate and no direct push to main."
+      },
+      {
+        "stage": "deploy",
+        "status": "not-run",
+        "note": "Recorded before the merge, so the Pages deploy had not yet run when this entry was written. Confirmed separately after merge; a failed deploy is reverted by pull request rather than left to freeze the published site."
+      }
+    ],
+    "found": {
+      "scouts": 1,
+      "pagesFetched": 92,
+      "claimsProposed": 5,
+      "bundles": [
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "anthropic",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "google-deepmind",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "meta",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "xai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "mistral-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "deepseek",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "alibaba-cloud",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "microsoft",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "amazon",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "cohere",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "ai2",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "tii",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "nvidia",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "ai21-labs",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "zhipu-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "moonshot-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "eleutherai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "lg-ai-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "snowflake",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "upstage",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "ibm",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "baidu",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "tencent",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "bytedance-seed",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "stability-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "databricks",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "minimax",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "apple",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "hugging-face",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "01-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "sakana-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "sarvam-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "naver",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "aleph-alpha",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "reka-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "nous-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "liquid-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "xiaomi",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "ai-singapore",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "kyutai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "lelapa-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "maritaca-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "openbmb",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "add",
+          "count": 3,
+          "effect": "The Gemini 3.8 Flash release and its two documentation sources. All three were accepted by the panel and then withheld by the home critical-path byte ceiling; none reached the dataset."
+        },
+        {
+          "kind": "change",
+          "count": 2,
+          "effect": "A featured-rationale restate on Gemini 3.7 Flash, withheld with the record it depends on, and a verification-date advance on the Gemini deprecations source, which is the one edit this run published."
+        }
+      ],
+      "notCovered": [
+        "Pages behind an authentication wall or a client-side rendering shell were not executed; only the served bytes were read.",
+        "Benchmark figures and vendor performance claims were not extracted at all this run, by policy: they are contested, versioned and not a fact about a release.",
+        "Creators other than google-deepmind were swept for novel tokens against the committed dataset; a change that introduces no new token would not have been seen by that filter."
+      ],
+      "unswept": [],
+      "degradedChannels": [
+        {
+          "creator": "openai",
+          "source": "official-announcement",
+          "detail": "openai.com/news/ returned HTTP 403 with a 9,908 byte body carrying no article text. This channel has now been dark across four consecutive runs. Reported rather than worked around: no user-agent was spoofed and no cache was substituted for the source."
+        },
+        {
+          "creator": "xai",
+          "source": "official-announcement",
+          "detail": "x.ai/news returned HTTP 403, so xai has no readable announcement channel this run."
+        },
+        {
+          "creator": "zhipu-ai",
+          "source": "official-announcement",
+          "detail": "z.ai/blog returned HTTP 404. The channel recorded in the catalogue no longer resolves."
+        }
+      ]
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 15,
+      "acceptedByPanel": 5,
+      "rejectedByPanel": 0,
+      "dissents": [
+        {
+          "claimId": "google-gemini-3-8-flash-release-add",
+          "rubric": "editorial",
+          "objection": "Rejected while provenance and consistency accepted, so the claim cleared the 2-of-3 pilot bar at 2. The dissent is that the proposed summary calls the release the most intelligent Flash tier of the Gemini 3 family, which is ranking language in the dataset's own voice and cannot stay true once a later Flash model ships. The chair did not vote, did not break the tie and did not reword the claim after the panel had read it, because publishing amended text would publish something no reviewer reviewed. The record was withheld on bytes before the wording could reach the dataset, and the wording is carried to a follow-up."
+        }
+      ],
+      "gates": [
+        {
+          "gate": "gate-source-approval",
+          "scope": "google-deepmind bundle, pre-apply on a clean tree",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Anchored on merge-base 04116fc43d20d49dc58acbdeb2f66a53ae351ef1. Both proposed origins are already stood behind by the committed dataset. This run approved no new publisher."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "google-deepmind bundle",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "5 claims admissible, 5 applicable, 0 failures, policy derived as pilot from the reviewed-profile set on disk rather than read from the bundle. Controlled in the same session: a sub-threshold mutation and a retrieval=search mutation were each refused at exit 1, so the exit 0 discriminates."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "applied change",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Zero failures. Referential integrity and entity boundaries hold across the changed document."
+        },
+        {
+          "gate": "gate-reversals",
+          "scope": "applied change",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Passes, and the pass is narrower than it looks: the 2026-09-06 rejection of these same Gemini 3.8 records sits in this gate's acknowledged blind spot, so it was not checked rather than checked and cleared. Disclosed here because not-looked and looked-and-found-nothing are not the same reading."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "web/, full tranche",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": false,
+          "detail": "Recorded as a gate that did its job. 3186 of 3189 tests passed; the 3 failures were the home critical-path budget at 1,110,273 over a 1,105,000 ceiling, and the measuredRaw drift that follows from it. This is what withheld the tranche. No ceiling was raised and no drift allowance was widened."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "web/, published change",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "The published edit is a two-character date advance and adds no bytes to any route. Exit code read from an unpiped invocation."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "committed HEAD and working tree",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Only web/src/data documents moved. web/asset-budgets.json was deliberately not touched: gate-scope would permit regenerating its measuredRaw field, but this run was instructed to confine itself to the dataset, and regenerating it would not have unblocked the tranche, which is refused by a ceiling rather than by the drift guard."
+        },
+        {
+          "gate": "gate-ledger",
+          "scope": "this entry against the diff it describes",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "transcription false. The entry describes the diff that shipped, including what did not ship and why."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 1,
+      "documents": [
+        {
+          "document": "web/src/data/sources.json",
+          "recordsBefore": 295,
+          "recordsAfter": 295,
+          "note": "One field advanced on google-gemini-deprecations: lastCheckedDate 2026-09-11 to 2026-09-13, attested by a page refetched and hashed on the day, which still carries the gemini-3.8-flash row with its September 2, 2026 release date and no announced shutdown date. Accepted unanimously against a 2-of-3 pilot threshold. No record was added or removed, so the document count is unchanged."
+        }
+      ],
+      "records": []
+    },
+    "withheld": [
+      {
+        "id": "google-gemini-3-8-flash",
+        "category": "blocked-by-policy",
+        "detail": "Accepted 2-of-3 by the panel and admitted by gate-evidence, then refused by the home route critical-path budget. Measured on this tree: clean HEAD 1,100,526 raw critical bytes, the tranche 1,110,273, ceiling 1,105,000, so it is over by 5,273. Real headroom on clean HEAD is 4,474 bytes, not the 24,445 that asset-budgets.json implies, because its recorded measuredRaw of 1,080,555 is 19,971 bytes stale. No ceiling was raised to admit this record.",
+        "blockedBy": [
+          "web/asset-budgets.json criticalMaxRaw",
+          "web/tests/build/asset-budgets.test.ts",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md"
+        ]
+      },
+      {
+        "id": "google-gemini-3-8-flash-docs",
+        "category": "blocked-by-policy",
+        "detail": "Withheld with the release it exists to cite. A source registered for a record that is not in the dataset would be an unreferenced entry, so the pair is kept together rather than split to fit.",
+        "blockedBy": [
+          "web/asset-budgets.json criticalMaxRaw",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md"
+        ]
+      },
+      {
+        "id": "google-gemini-3-8-flash-platform-docs",
+        "category": "blocked-by-policy",
+        "detail": "Withheld with the release it exists to cite, for the same reason as its sibling source.",
+        "blockedBy": [
+          "web/asset-budgets.json criticalMaxRaw",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md"
+        ]
+      },
+      {
+        "id": "google-gemini-3-7-flash-featured-rationale-restate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted unanimously, then dropped because its replacement text names Gemini 3.8 Flash as the model 3.7 Flash is the documented efficiency fallback from, and that record was withheld. The panel read this claim as part of a tranche in which 3.8 lands; publishing it alone would publish a configuration nobody reviewed. The wording it replaces - calling 3.7 Flash the newest generally available Flash tier - remains true of the dataset as it now stands, though it is already false of the world.",
+        "blockedBy": [
+          "google-gemini-3-8-flash",
+          "web/asset-budgets.json criticalMaxRaw",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-their-ceilings-are-not.md"
+        ]
+      }
+    ],
+    "caveats": [
+      "The home route is effectively full. Clean HEAD measures 1,100,526 raw critical bytes against a 1,105,000 ceiling, leaving 4,474 bytes; the three withheld records cost 9,747. At roughly 3,250 rendered bytes per release record this dataset can absorb at most one further release on the home route before the ceiling refuses it, whatever the panel says.",
+      "asset-budgets.json records measuredRaw for home as 1,080,555 while the tree measures 1,100,526. The drift of 19,971 is inside the 21,611 allowance, so it passes, but at 92% of it - a subsequent run adding as little as 1,640 bytes would fail the drift test rather than the ceiling, and would be told the ceiling was fine. ADR 0015 admits measuredRaw to the qualifying class and would have permitted regenerating it; this run was instructed to confine itself to web/src/data, and regenerating it would not have unblocked the tranche in any case, because what refuses the tranche is criticalMaxRaw, which ADR 0015 explicitly keeps out of class.",
+      "These same Gemini 3.8 Flash records were rejected by a panel on 2026-09-06 (docs-source-add 1-of-3, release-add 0-of-3) and accepted by a later panel on 2026-09-11, which then withheld them on the same byte ceiling. This run is a third independent panel and reached the 2026-09-11 result. rejection-reversals.json does not annotate the 2026-09-06 rejections and cannot be written by a refresh run, because it sits outside gate-scope ALLOWED_PATHS by design so that a run cannot absolve itself.",
+      "gate-reversals passes, but its check does not cover these rejections; they are 2 of the 186 of 204 it acknowledges it cannot see. A pass here is the absence of a finding, not a finding of absence.",
+      "The editorial dissent on the release summary was not acted on by rewording, because the chair does not amend text the panel has already read. The wording is carried to a follow-up rather than quietly fixed.",
+      "Only google-deepmind produced claims. The other 43 creators were swept by comparing fetched pages against the committed dataset for novel tokens; a change carrying no new token would not surface through that filter, so a nil result is weaker evidence than a positive one."
+    ],
+    "followUps": [
+      "The home route has 4,474 bytes of headroom and each new release record costs about 3,250 rendered bytes, so the next refresh that finds more than one release will be refused exactly as this one was. This is now the binding constraint on the whole pipeline and it needs a page-weight decision, not another withheld tranche.",
+      "asset-budgets.json records a home measuredRaw 19,971 bytes below what the tree measures, which is 92% of the drift allowance. A refresh confined to web/src/data cannot correct it, so it will keep eating the allowance until someone regenerates it.",
+      "The Gemini 3.8 Flash records carry a 2026-09-06 panel rejection that rejection-reversals.json does not annotate, and no refresh run can add that annotation. Two later panels have since accepted the same records, so the register is out of step with the reviewed record.",
+      "The summary wording proposed for the Gemini 3.8 Flash release drew an editorial rejection for ranking language. Whoever lands that record should settle the wording before it ships rather than inheriting the text this run withheld."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "abdeslam-menacere/ModelTree#1159 - the refresh this entry records",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/1159",
+        "state": "open"
+      },
+      {
+        "kind": "commit",
+        "label": "The dataset change, committed before this entry so the entry could name its own pull request",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/aaf0ecb5dd3dd1034b9674e16395397bc9e1bd8c"
+      }
+    ],
+    "recordedAt": "2026-09-13"
   }
 ]
