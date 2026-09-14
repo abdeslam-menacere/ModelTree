@@ -11153,5 +11153,670 @@
       }
     ],
     "recordedAt": "2026-09-13"
+  },
+  {
+    "id": "2026-09-14-708ff4",
+    "title": "Every creator re-verified; 465 dates advanced and nothing else",
+    "ranOn": "2026-09-14",
+    "outcome": "published",
+    "summary": "A full sweep of all 44 creators. 487 claims were proposed, 475 met their threshold, and 465 reached the dataset as verification-date advances across sources.json, releases.json and families.json. Every value is a 10-character ISO date replacing a 10-character ISO date, so the change is 465 insertions against 465 deletions and a net byte delta of zero, and it moves no asset budget. No fact changed: the run re-read what the dataset already asserts and recorded the date it did so. The 22 claims that did not reach the dataset are named individually under withheld, each with the rubric, gate or policy that held it back.",
+    "scope": "All 44 creators, every catalogued discovery channel. 336 page fetches attempted, 326 returned content. The three creators whose channels went dark are recorded as degraded channels rather than as unswept creators, because they were looked at.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Clean tree at 32ae0639ab, no refresh pull request left open from a previous run. Both invocation forms probed for every tool rather than either being assumed: bare drydock, npm and npx are all refused by the PowerShell execution policy on this host, while drydock.cmd reports 0.1.0 and npm.cmd reports 11.9.0. That is installed and blocked, not absent, and the .cmd form was used throughout. The execution policy was not changed."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "336 pages attempted across 44 creators, 326 returned content after retries. Every quote was sliced verbatim out of bytes fetched and hashed in this run, each carrying a sha256 and a fetch date; no quote was recalled and no search snippet was treated as evidence. 487 claims proposed, 481 change and 6 add."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "21 review agents across 7 packets, three independent rubrics per claim (provenance, consistency, editorial), blind to each other and to the scout. 1,461 verdicts cast over 487 claims. 2-of-3 for the 7 reviewed-profile creators and unanimous 3-of-3 for the 37 long-tail creators. No threshold was lowered and no reviewer was re-run to change an outcome."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-source-approval and gate-evidence ran pre-apply on a clean tree, 44 of 44 bundles at exit 0 each. After applying, gate-scope, gate-dataset (642 records), gate-reversals and gate-ledger all exited 0, and npm run validate passed 3,189 tests with 0 astro-check diagnostics. ci-preflight selected web-ci, skills-ci and source-link-health-tests and exited 0. An earlier ci-preflight run exited 1 on skills-ci; the cause was measured rather than assumed and one claim was withheld, not a test edited."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "Two commits on one branch and one pull request: the dataset change first, then this ledger entry, which cannot name its own pull request until that pull request exists. The repository squash-merges, so the two arrive on main as one commit and revert as one. GitHub performs the merge once web-ci is green; the agent does not. No --admin, no --force, no skipped gate and no direct push to main."
+      },
+      {
+        "stage": "deploy",
+        "status": "not-run",
+        "note": "Recorded before the merge, so the Pages deploy had not run when this entry was written. Confirmed separately against the full 40-character merge commit afterwards, with a two-armed negative control. Not-run is recorded as itself rather than rounded into a pass."
+      }
+    ],
+    "found": {
+      "scouts": 44,
+      "pagesFetched": 336,
+      "claimsProposed": 487,
+      "bundles": [
+        {
+          "creator": "01-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "ai-singapore",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "ai2",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "ai21-labs",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "aleph-alpha",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "alibaba-cloud",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 17
+        },
+        {
+          "creator": "amazon",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 13
+        },
+        {
+          "creator": "anthropic",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 28
+        },
+        {
+          "creator": "apple",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "baidu",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "bytedance-seed",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "cohere",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "databricks",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "deepseek",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "eleutherai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "google-deepmind",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 31
+        },
+        {
+          "creator": "hugging-face",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 31
+        },
+        {
+          "creator": "ibm",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 16
+        },
+        {
+          "creator": "kyutai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "lelapa-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "lg-ai-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 12
+        },
+        {
+          "creator": "liquid-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "maritaca-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "meta",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 39
+        },
+        {
+          "creator": "microsoft",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 23
+        },
+        {
+          "creator": "minimax",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 11
+        },
+        {
+          "creator": "mistral-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 19
+        },
+        {
+          "creator": "moonshot-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "naver",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "nous-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "nvidia",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 12
+        },
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 41
+        },
+        {
+          "creator": "openbmb",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 12
+        },
+        {
+          "creator": "reka-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "sakana-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "sarvam-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "snowflake",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "stability-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "tencent",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "tii",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "upstage",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "xai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "xiaomi",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "zhipu-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "change",
+          "count": 481,
+          "effect": "Advances a verifiedAt or lastCheckedDate on a record the run re-read and found unchanged."
+        },
+        {
+          "kind": "add",
+          "count": 6,
+          "effect": "Proposes a new source or release record. None reached the dataset this run."
+        }
+      ],
+      "notCovered": [
+        "Creators absent from the catalogue are outside every run by construction; this run adds none.",
+        "Nothing was fetched at runtime and no live API was polled; every fact rests on a page fetched and hashed during the run."
+      ],
+      "unswept": [],
+      "degradedChannels": [
+        {
+          "creator": "openai",
+          "source": "official-announcement",
+          "detail": "openai.com returned HTTP 403 on 8 URLs, dark for a fifth consecutive run. No user-agent was spoofed and no cache was substituted for the source."
+        },
+        {
+          "creator": "x-ai",
+          "source": "official-announcement",
+          "detail": "x.ai returned HTTP 403."
+        },
+        {
+          "creator": "z-ai",
+          "source": "official-announcement",
+          "detail": "z.ai returned HTTP 404."
+        }
+      ]
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 1461,
+      "acceptedByPanel": 475,
+      "rejectedByPanel": 12,
+      "dissents": [
+        {
+          "claimId": "add-release-google-gemini-3-8-flash",
+          "rubric": "editorial",
+          "objection": "Objected to the superlative \"most intelligent Flash model\". The claim met its 2-of-3 threshold and was accepted with the dissent recorded rather than the wording being edited to satisfy the objection or the reviewer re-run. The summary attributes the superlative to Google rather than asserting it in ModelTree's own voice. The claim is withheld regardless, on the byte ceiling."
+        }
+      ],
+      "gates": [
+        {
+          "gate": "gate-source-approval",
+          "scope": "all 44 bundles, pre-apply, clean tree",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Every citation rests on an approved origin: 51 origins drawn from 295 dataset source records and 20 updater profile catalogues, anchored at 32ae0639ab. 5 citations were refused and their claims dropped."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "all 44 bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Every published claim carries three rubric verdicts, one each of provenance, consistency and editorial, with a vote and a non-empty rationale."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "committed HEAD against the anchor",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "changed 3, empty false, every path a dataset document under web/src/data. An exit 0 on an empty result would mean nothing was measured and is never a licence to publish."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "the applied change, 642 records",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Referential integrity, date ordering and schema shape across families, releases and sources."
+        },
+        {
+          "gate": "gate-reversals",
+          "scope": "web/src/data",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "No previously rejected claim was reinstated. The gate reports its own blind spot: 186 of 204 rejections name no record, so it cannot tell whether those were reversed. Not checked is not passed."
+        },
+        {
+          "gate": "gate-ledger",
+          "scope": "this entry against the diff it describes",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Declared documents match the changed documents, record counts match at both ends, the run id is new and added once, and no prior entry was touched or reordered. transcription false, because dataset documents did change."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "web/, published change",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "3,189 tests across 139 files, 0 astro-check errors, warnings or hints. Read unpiped: an earlier piped read reported exit 1 for this same passing run, which was a pipeline artefact and not a result."
+        },
+        {
+          "gate": "ci-preflight",
+          "scope": "web-ci, skills-ci, source-link-health-tests",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Selected 3 of 7 check groups from the branch diff. An earlier run exited 1 on skills-ci; the cause was measured to this run rather than assumed, and one claim was withheld to resolve it. Exit 2 would never have been a pass."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 465,
+      "documents": [
+        {
+          "document": "web/src/data/sources.json",
+          "recordsBefore": 295,
+          "recordsAfter": 295,
+          "note": "275 lastCheckedDate advances. No record added or removed; only the date each source was last re-read moved."
+        },
+        {
+          "document": "web/src/data/releases.json",
+          "recordsBefore": 128,
+          "recordsAfter": 128,
+          "note": "116 verifiedAt advances. A 117th was accepted and withheld, so this document understates when one release was last verified rather than overstating it."
+        },
+        {
+          "document": "web/src/data/families.json",
+          "recordsBefore": 86,
+          "recordsAfter": 86,
+          "note": "74 verifiedAt advances. No record added or removed."
+        }
+      ],
+      "records": []
+    },
+    "withheld": [
+      {
+        "id": "redate-qwen3-8-flash-next-license",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for alibaba-cloud and rejected by the panel: 1 accept(s) against a 2-of-3 pilot threshold. provenance: The record is titled 'Qwen Community License 1.0 (Qwen3.8-Flash-Next)' and is cited as the licence text at huggingface.co/Qwen/Qwen3.8-Flash-Next/blob/main/LICENSE. I verified the actual Qwen Community License text is present on the fetched page (body 00d6143767f11890.body offset 36586, 'Qwen Community License 1.0 Copyright (c) 2026 Qwen Permission is hereby granted...'), so the material is still there — but the attached quote is chat-template Jinja code about reasoning-effort levels ('Supported types are xhigh (default), medium, and low'), which has nothing to do with a licence. Read alone, this quote does not show the page still carries the licence text it is cited for. editorial: Record is a LICENSE document (Qwen Community License 1.0) at /blob/main/LICENSE. Attached quote is Jinja chat-template code about reasoning_effort variables ('xhigh', 'medium', 'low'), which is no",
+        "blockedBy": [
+          "review rubric: provenance",
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "reverify-release-anthropic-claude-fable-5",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for anthropic and rejected by the panel: 1 accept(s) against a 2-of-3 pilot threshold. provenance: Entity mismatch. The record's target is release 'Claude Fable 5' (legacy), but the quote 'Use Claude Fable 5.1 for demanding reasoning and long-horizon agentic work, or when your evals on Claude Opus 5 at higher effort still fall short. All current' names only Claude Fable 5.1 — a distinct sibling release. I verified the phrase 'Fable 5 ' (with trailing space) is absent from the fetched models overview body d9e8980f3bd02b6d.body; only 'Claude Fable 5.1' appears. Read alone, the quote does not re-verify Claude Fable 5. editorial: Record is the Claude Fable 5 release (a distinct, legacy release from Fable 5.1). Attached quote from the models-overview page mentions only 'Claude Fable 5.1' and 'Claude Opus 5' — sibling releases in different families (anthropic-claude-5-1, anthropic-claude-5) — and does not name Fable 5 at all. A quote about Fable 5.1 does not re-verify the Fable ",
+        "blockedBy": [
+          "review rubric: provenance",
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "redate-osi-license-mit",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for deepseek and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: The record is 'The MIT License' at opensource.org/license/mit; it is cited as the MIT licence text. I verified the actual MIT licence text IS present on the fetched page (body 04c5c4d77b36d353.body, 'Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files'), but the attached quote 'Donate to the OSI The OSI is the authority that defines Open Source, recognized globally by individuals, companies, and public institutions' is a site-wide OSI donation/mission banner appearing after the licence body. Read alone, this quote shows only that an OSI page rendered; it does not demonstrate the MIT licence material is still present.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "redate-deepseek-v4-flash-model-card",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for deepseek and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Entity mismatch. The record's target is source deepseek-v4-flash-model-card (URL huggingface.co/deepseek-ai/DeepSeek-V4-Flash), but the attached quote 'DeepSeek-V4-Pro requires only 27% of single-token inference FLOPs and 10% of KV cache compared with DeepSeek-V3.2' names DeepSeek-V4-Pro, a distinct sibling release. Read alone, this quote does not demonstrate the V4-Flash page still carries V4-Flash material even though the page URL is correct.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "reverify-family-google-gemini-3",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for google-deepmind and rejected by the panel: 1 accept(s) against a 2-of-3 pilot threshold. provenance: Quote is a generic definition of \"deprecation\" (\"A deprecated model is one that we no longer recommend...\") — does not mention \"Gemini 3\" as a family. Grep of the saved deprecations page confirms it does contain a \"Gemini 3 models\" section, but the ATTACHED quote alone does not carry that material. editorial: Family record is Gemini 3; the quote is only the generic definition of 'deprecation' from the API deprecations page and does not name Gemini 3 anywhere. The quote does not speak to the record's own scope (the Gemini 3 family), so it fails to re-verify that this family is still named on the cited source.",
+        "blockedBy": [
+          "review rubric: provenance",
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "reverify-family-google-gemini-2-5",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for google-deepmind and rejected by the panel: 1 accept(s) against a 2-of-3 pilot threshold. provenance: Quote is the same generic \"deprecation\" definition, with no mention of \"Gemini 2.5\". The rubric asks whether the quote read alone shows the page carries material about the family — this quote does not name the family at all. editorial: Family record is Gemini 2.5; the quote is the generic 'deprecation' definition and does not name Gemini 2.5 anywhere. Nothing in the shown quote demonstrates the Gemini 2.5 family is named on the cited page — quote is entity-orthogonal to the record.",
+        "blockedBy": [
+          "review rubric: provenance",
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "reverify-release-kyutai-moshiko-pytorch-bf16",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for kyutai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Quote 'Bias, Risks, and Limitations The model has been trained with a few safeguards to try to limit potential toxic usages, however our toxicity analysis shows that it behaves in the middle of existing models with respect to textual generation' does not name 'moshiko-pytorch-bf16', 'moshiko', 'Moshi', or 'bf16'. Read alone it identifies no model — it is generic model-card boilerplate that could appear on any model page. The sibling source claim on the same URL quotes 'Moshi' and would have carried this release too; this quote does not.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "add-family-lg-ai-research-exaone-4-5",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for lg-ai-research and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: firstReleaseDate='2026-04-09' is not supported by any attached evidence quote. The two attached quotes are 'We release EXAONE 4.5, the first open-weight vision language model with 33B params' and 'Integrating a dedicated visual encoder into the existing EXAONE 4.0 framework, we expand the model's capability toward multimodality.' — neither states the date. The full News-list line on the page is '- 2026.04.09 : 🚩 We release EXAONE 4.5, the first open-weight vision language model with 33B params' (verified via ctx.mjs), but the scout truncated the evidence quote to the tail only, so the specific field firstReleaseDate has no quote that states it read alone. This is exactly the missing-quote-for-a-field failure the rubric's worked reject example (openai-gpt-5-3-codex-release-add: 'The page states the modalities, but the claim attached no quote for them. The remedy is to attach ",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "add-release-lg-ai-research-exaone-4-5-33b",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for lg-ai-research and rejected by the panel: 0 accept(s) against a 3-of-3 long-tail threshold. provenance: Two independent provenance failures. (1) releaseDate='2026-04-09' is not stated by any of the three attached evidence quotes ('We release EXAONE 4.5, the first open-weight vision language model with 33B params', 'EXAONE 4.5 features 33 billion parameters in total, including 1.2 billion parameters from the vision encoder.', 'Context Length: 262,144 tokens'). The date is in the News list on the page but the scout truncated the quote — same reject-example shape as above. (2) accessType='open-weights' (plural) is not a member of the schema's accessType vocabulary in web/src/data/schema.ts, which is exactly {proprietary-hosted, open-weight, source-available, both, unknown}. Under the vocabulary section of the rubric a mapping is admitted only when 'one member fits' — no schema member 'open-weights' exists, so no member fits and the recording step fails. The quote 'the first open-w",
+        "blockedBy": [
+          "review rubric: provenance",
+          "review rubric: consistency",
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "reverify-family-openai-gpt-image",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for openai and rejected by the panel: 1 accept(s) against a 2-of-3 pilot threshold. provenance: Entity mismatch. The quote from the OpenAI news RSS feed is a list of URL slugs (\"new-chatgpt-images-is-here\", \"staying-ahead-in-the-age-of-ai\", \"bny\") — the rubric explicitly treats a list of unrelated links as insufficient to re-verify an entity. The only arguably related slug is \"chatgpt-images\", which is a ChatGPT UI feature and not literally the GPT-Image API family; making the connection requires an inference the quote does not contain. Better evidence (the RSS also carries \"introducing-chatgpt-images-2-0\" from Apr 21 2026 matching firstReleaseDate) was available but not quoted. editorial: Family record is GPT-Image (the model family). The evidence quote from the OpenAI News RSS feed only shows 'new-chatgpt-images-is-here', which is a ChatGPT product feature announcement. ChatGPT is a product; GPT-Image is a model family — different entities. The quoted content does not",
+        "blockedBy": [
+          "review rubric: provenance",
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "reverify-release-stability-ai-svd-img2vid-xt",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for stability-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: The provided quote — \"For details on the user study, we refer to the research paper Uses Direct Use The model is intended for both non-commercial and commercial usage\" — does not name Stable Video Diffusion or img2vid-xt at all; \"the model\" is a generic pronoun that could be from any model card. Read alone as the rubric requires, the quote does not identify the release entity. Better identifying quotes exist on the saved page (e.g. \"Stable Video Diffusion Image-to-Video Model Card\" at offset 1601) but were not selected.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "reverify-release-xiaomi-mimo-7b-rl-0530",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for xiaomi and rejected by the panel: 1 accept(s) against a 3-of-3 long-tail threshold. provenance: Quote is a generic sentence \"achieving uniform and simultaneous improvements ... within a small model is challenging\" — makes no mention of \"MiMo\", \"Xiaomi\", \"7B-RL\", or the \"0530\" checkpoint. Read alone, this quote does not tie the page to this specific release. editorial: Release record canonicalName 'MiMo-7B-RL-0530'. The quote ('Moreover, it was widely considered that achieving uniform and simultaneous improvements in both mathematical and code capabilities within a small model is challenging.') does not name MiMo-7B-RL-0530 anywhere and is a general framing sentence about small models. Nothing in the shown quote demonstrates this specific dated release is still named on the source; entity-scope evidence is absent.",
+        "blockedBy": [
+          "review rubric: provenance",
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "redate-lgai-exaone-4-0-repository",
+        "category": "source-refused",
+        "detail": "Accepted by the panel, then refused by gate-source-approval and dropped before anything was applied. was read from https://raw.githubusercontent.com but is filed under source \"lgai-exaone-4-0-repository\", which is https://github.com; evidence must come from the source it cites The source was not added to sources.json to make the citation resolve; that is the move this gate exists to refuse.",
+        "blockedBy": [
+          "gate-source-approval"
+        ]
+      },
+      {
+        "id": "reverify-family-lg-ai-research-exaone-4-0",
+        "category": "source-refused",
+        "detail": "Accepted by the panel, then refused by gate-source-approval and dropped before anything was applied. was read from https://raw.githubusercontent.com but is filed under source \"lgai-exaone-4-0-repository\", which is https://github.com; evidence must come from the source it cites The source was not added to sources.json to make the citation resolve; that is the move this gate exists to refuse.",
+        "blockedBy": [
+          "gate-source-approval"
+        ]
+      },
+      {
+        "id": "redate-tencent-hunyuanimage-3-0-repository",
+        "category": "source-refused",
+        "detail": "Accepted by the panel, then refused by gate-source-approval and dropped before anything was applied. was read from https://raw.githubusercontent.com but is filed under source \"tencent-hunyuanimage-3-0-repository\", which is https://github.com; evidence must come from the source it cites The source was not added to sources.json to make the citation resolve; that is the move this gate exists to refuse.",
+        "blockedBy": [
+          "gate-source-approval"
+        ]
+      },
+      {
+        "id": "reverify-release-tencent-hunyuanimage-3-0-standard",
+        "category": "source-refused",
+        "detail": "Accepted by the panel, then refused by gate-source-approval and dropped before anything was applied. was read from https://raw.githubusercontent.com but is filed under source \"tencent-hunyuanimage-3-0-repository\", which is https://github.com; evidence must come from the source it cites The source was not added to sources.json to make the citation resolve; that is the move this gate exists to refuse.",
+        "blockedBy": [
+          "gate-source-approval"
+        ]
+      },
+      {
+        "id": "reverify-family-tencent-hunyuanimage-3-0",
+        "category": "source-refused",
+        "detail": "Accepted by the panel, then refused by gate-source-approval and dropped before anything was applied. was read from https://raw.githubusercontent.com but is filed under source \"tencent-hunyuanimage-3-0-repository\", which is https://github.com; evidence must come from the source it cites The source was not added to sources.json to make the citation resolve; that is the move this gate exists to refuse.",
+        "blockedBy": [
+          "gate-source-approval"
+        ]
+      },
+      {
+        "id": "add-source-google-gemini-3-8-flash-docs",
+        "category": "blocked-by-policy",
+        "detail": "Accepted 3/3. Withheld with its release: the home route measures 1,100,524 raw critical bytes against a criticalMaxRaw of 1,105,000, leaving 4,476 spare, and the Gemini 3.8 Flash tranche measures 9,360 bytes (applied build: 1,109,884, over by 4,884). This source exists to cite the release, so it is withheld with it rather than split to fit.",
+        "blockedBy": [
+          "web/asset-budgets.json home.criticalMaxRaw"
+        ]
+      },
+      {
+        "id": "add-release-google-gemini-3-8-flash",
+        "category": "blocked-by-policy",
+        "detail": "Accepted 2/3 under the pilot bar, with an editorial dissent recorded. Withheld on a measured budget refusal, not on the dissent: applying the tranche builds the home route at 1,109,884 raw critical bytes against a ceiling of 1,105,000 (over by 4,884; 9,360 needed against 4,476 spare). The runway report independently rates route:home as REFUSED at 0 further creators.",
+        "blockedBy": [
+          "web/asset-budgets.json home.criticalMaxRaw"
+        ]
+      },
+      {
+        "id": "add-source-lgai-exaone-4-5-repository",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted 3/3. Withheld because the records it exists to cite — add-family-lg-ai-research-exaone-4-5 and add-release-lg-ai-research-exaone-4-5-33b — were rejected by the panel. Publishing it alone would leave a source citing an EXAONE 4.5 family and release that are not in the dataset. Schema-legal (validate.ts carries no orphan-source rule) but editorially wrong, and it spends headroom on a route already at 4,476 spare bytes.",
+        "blockedBy": [
+          "add-family-lg-ai-research-exaone-4-5",
+          "add-release-lg-ai-research-exaone-4-5-33b"
+        ]
+      },
+      {
+        "id": "add-source-lgai-exaone-4-5-33b-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted 3/3. Withheld for the same reason as the sibling EXAONE 4.5 source: the family and release it cites were rejected, so it would land as an orphan.",
+        "blockedBy": [
+          "add-family-lg-ai-research-exaone-4-5",
+          "add-release-lg-ai-research-exaone-4-5-33b"
+        ]
+      },
+      {
+        "id": "reverify-release-openai-gpt-4-1-2025-04-14",
+        "category": "blocked-by-policy",
+        "detail": "Accepted 2/2 against the openai pilot threshold, and cleared gate-source-approval, gate-evidence, gate-scope and gate-dataset. Withheld because publishing it reddens skills-ci. The fixture at .github/skills/modeltree-gates/scripts/gates.test.mjs:1175 (\"a record verified today is accepted rather than read as the future\") mutates releases[0] positionally, setting its verifiedAt to the real today and declaring \"changed 1 releases.verifiedAt\"; its assertTouched guard then fails the run if that mutation changed nothing. releases[0] is this record, so advancing it to 2026-09-14 makes the fixture inert on the day the refresh lands. Measured both ways in one session: with the advance applied, gates.test.mjs exits 1 on that assertion; with the advance held back, it exits 0 and the assertion passes. The repair belongs in the fixture, which is out of class for this run, so the claim is withheld and the fixture fragility is filed as a follow-up. Withholding fails safe: the record understates when it was last verified and never overstates it.",
+        "blockedBy": [
+          ".github/skills/modeltree-gates/scripts/gates.test.mjs:1175",
+          "docs/adr/0003-an-agent-gated-data-refresh-may-auto-merge.md"
+        ]
+      }
+    ],
+    "caveats": [
+      "A green run proves the dataset is internally consistent and that every published claim was sourced, quoted and voted on. It does not prove the underlying page is correct, and it does not prove a page that went dark says what it said when it was last read.",
+      "gate-reversals passed while reporting that 186 of its 204 recorded rejections name no record in their detail, so it could not tell whether those were reversed. That is a limit of the gate, not a finding that they were not.",
+      "Three creators had a discovery channel return an error this run: openai.com 403 on 8 URLs, x.ai 403 and z.ai 404. Those creators were scouted, so anything announced only on a dark channel would have been missed without anything here showing it.",
+      "One accepted claim was withheld because publishing it reddens skills-ci: the fixture at .github/skills/modeltree-gates/scripts/gates.test.mjs:1175 mutates releases[0] positionally and goes inert when that record is dated today. The dataset now understates when that release was last verified. The repair belongs in the fixture, which is out of class for ADR 0003, so it is filed as a follow-up rather than fixed here.",
+      "The Gemini 3.8 Flash release and its source were accepted and withheld for a third consecutive run on the home route byte ceiling: 1,100,524 critical raw bytes against a 1,105,000 ceiling leaves 4,476 spare and the tranche costs 9,360. The dataset is therefore knowingly missing a shipped model, and assets:runway rates route:home REFUSED at 0 more creators.",
+      "No human reviewed this change. It reaches main under ADR 0003 on the agent panel and the deterministic gates alone, and GitHub performs the merge once web-ci is green.",
+      "This entry was written before the merge, so its deploy stage is not-run rather than a pass. The Pages deploy is confirmed separately against the full merge commit."
+    ],
+    "followUps": [
+      "The fixture at .github/skills/modeltree-gates/scripts/gates.test.mjs:1175 addresses releases[0] positionally and sets its verifiedAt to the real today, so any refresh that dates the first release today makes the mutation inert and reddens skills-ci on the day it lands. This run met it and worked around it by withholding a claim; the fixture should pin a record that the dataset is not free to re-date, or assert on a record it inserts itself.",
+      "Five claims were refused by gate-source-approval for citing https://raw.githubusercontent.com against a source record filed under https://github.com. Filing GitHub READMEs under https://github.com/<owner>/<repo>/raw/main/README.md keeps the citation on an already-approved origin; the EXAONE 4.5 source claim did exactly that and passed approval.",
+      "openai.com has returned 403 to this run for five consecutive runs, so OpenAI release discovery now rests entirely on the developer documentation host. A second approved discovery channel for that creator would remove the single point of failure."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "abdeslam-menacere/ModelTree#1161 - the refresh this entry records",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/1161",
+        "state": "open"
+      },
+      {
+        "kind": "commit",
+        "label": "The dataset change, committed before this entry so the entry could name its own pull request",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/a4da5e8"
+      }
+    ],
+    "recordedAt": "2026-09-14"
   }
 ]
