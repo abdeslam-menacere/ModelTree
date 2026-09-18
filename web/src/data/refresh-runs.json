@@ -12403,9 +12403,9 @@
           "exitCode": 0,
           "outcome": "pass",
           "required": true,
-          "detail": "changed 4, empty false, every path a dataset document under web/src/data. An exit 0 on an empty result would mean nothing was measured and is never a licence to publish.",
-          "elapsedMs": 684,
-          "stdoutBytes": 794,
+          "detail": "changed 5, empty false, every path a dataset document under web/src/data. An exit 0 on an empty result would mean nothing was measured and is never a licence to publish.",
+          "elapsedMs": 725,
+          "stdoutBytes": 832,
           "stderrBytes": 0
         },
         {
@@ -12415,7 +12415,7 @@
           "outcome": "pass",
           "required": true,
           "detail": "{   \"dataDir\": \"C:\\\\workspace\\\\copilot-worktrees\\\\ModelTree\\\\abdeslam-menacere-refactored-pancake\\\\web\\\\src\\\\data\",   \"today\": \"2026-09-18\",   \"counts\": {",
-          "elapsedMs": 132,
+          "elapsedMs": 129,
           "stdoutBytes": 894,
           "stderrBytes": 0
         },
@@ -12425,9 +12425,9 @@
           "exitCode": 0,
           "outcome": "pass",
           "required": true,
-          "detail": "{   \"dataDir\": \"C:\\\\workspace\\\\copilot-worktrees\\\\ModelTree\\\\abdeslam-menacere-refactored-pancake\\\\web\\\\src\\\\data\",   \"rejectionsRead\": 216,   \"rejectionsNamingARecord\": 18,",
-          "elapsedMs": 103,
-          "stdoutBytes": 26893,
+          "detail": "{   \"dataDir\": \"C:\\\\workspace\\\\copilot-worktrees\\\\ModelTree\\\\abdeslam-menacere-refactored-pancake\\\\web\\\\src\\\\data\",   \"rejectionsRead\": 282,   \"rejectionsNamingARecord\": 18,",
+          "elapsedMs": 94,
+          "stdoutBytes": 36110,
           "stderrBytes": 0
         }
       ]
@@ -13093,9 +13093,14 @@
     "references": [
       {
         "kind": "pull-request",
-        "label": "PR #1165 — the data commit, the ledger entry and the full evidence trail",
+        "label": "abdeslam-menacere/ModelTree#1165 - the refresh this entry records",
         "url": "https://github.com/abdeslam-menacere/ModelTree/pull/1165",
         "state": "open"
+      },
+      {
+        "kind": "commit",
+        "label": "The dataset change, committed before this entry so the entry could name its own pull request",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/f676d92"
       }
     ],
     "recordedAt": "2026-09-18"
