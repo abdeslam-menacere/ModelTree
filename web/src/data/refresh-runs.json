@@ -11818,5 +11818,1291 @@
       }
     ],
     "recordedAt": "2026-09-14"
+  },
+  {
+    "id": "2026-09-18-1d4a06",
+    "title": "Full sweep of all 44 creators, 406 edits published, the Gemini 3.8 Flash tranche withheld for a fifth run",
+    "ranOn": "2026-09-18",
+    "outcome": "published",
+    "summary": "Every catalogued creator was scouted from primary sources in one pass. 482 claims were proposed from 288 pages fetched and hashed in this run; a three-rubric panel cast 1,446 verdicts and accepted 416 at the per-profile threshold. 406 reached the dataset. Eight accepted claims were held before apply and are published as withheld findings rather than dropped: five verifiedAt advances that would have left a model-fit statement older than the fact it rests on, the two-record Gemini 3.8 Flash tranche, which the home route critical- path ceiling refuses for the fifth consecutive run, and one verifiedAt advance held because a gate fixture addresses releases[0] positionally and is falsified by re-dating whichever record sits there. The one substantive addition is OpenAI GPT Live 1, published as a new family, a new release and its documentation source.",
+    "scope": "All 44 creators, every catalogued discovery channel, with no creator narrowed out. The dataset recorded a uniform lastScouted of 2026-09-14 across all 44, so there was no partial sweep to resume and found.unswept is honestly empty rather than empty for want of looking. 296 page fetches were attempted and 288 returned content; the eight that did not are recorded as degraded channels, because those creators were looked at and the channel failed, which is a different state from a creator nobody reached.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Clean tree at eb7a4e961c, no refresh pull request left open from a previous run. Both invocation forms were probed for every tool rather than either being assumed: bare drydock, npm and npx are all refused by the PowerShell execution policy on this host, while drydock.cmd reports 0.1.0 and npm.cmd reports 11.9.0. That is installed and blocked, not absent, and the .cmd form was used throughout. The execution policy was not changed. npm ci was used for install; the lockfile was verified unmodified afterwards."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "296 pages attempted across 44 creators, 288 returned content. Every quote was sliced verbatim out of bytes fetched and hashed in this run, each carrying a sha256 and a fetch date; no quote was recalled and no search snippet was treated as evidence. A verbatim check re-read all 488 evidence quotes against the saved page bytes and matched 488 of 488. 482 claims proposed: 475 change, 5 add, 2 conflict."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Three independent rubrics per claim, each reviewer blind to the other two and to the scout. 1,446 verdicts over 482 claims, 2-of-3 for the 7 reviewed-profile creators and unanimous 3-of-3 for the 37 long-tail creators; the threshold was read from each bundle's policy field and never inferred. By rubric: provenance 444 accept / 38 reject, consistency 482 / 0, editorial 409 / 73. 416 claims accepted, 66 rejected. The chair cast no vote and reversed none. Mid-stage the provenance panel was found to be running a broken evidence lookup; it was repaired and those four reviewers re-ran on a outcome-neutral instruction, which is recorded in full under caveats."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "Five deterministic gates, all required, all read by exit code from an unpiped invocation. gate-source-approval and gate-evidence passed on 44 of 44 bundles; gate-scope, gate-dataset and gate-reversals passed on the applied tree. gate-evidence initially refused 21 bundles, correctly: a rejected claim was still carrying a data-changing kind into the gate. The fix was to withdraw rejected claims from the gate bundle and publish them as withheld, not to relax the gate. No gate was skipped, no threshold lowered and no override used."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "Dataset committed before this entry, so the entry could name its own pull request. npm run validate passes on the committed tree: 139 test files, 3,189 tests, exit 0. The pull request auto-merges on a green web-ci; it was not merged by hand, no branch protection was bypassed and nothing was pushed to main directly."
+      }
+    ],
+    "found": {
+      "scouts": 44,
+      "pagesFetched": 296,
+      "claimsProposed": 482,
+      "bundles": [
+        {
+          "creator": "01-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "ai-singapore",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "ai2",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "ai21-labs",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "aleph-alpha",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "alibaba-cloud",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 17
+        },
+        {
+          "creator": "amazon",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 13
+        },
+        {
+          "creator": "anthropic",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 35
+        },
+        {
+          "creator": "apple",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "baidu",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "bytedance-seed",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "cohere",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "databricks",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "deepseek",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "eleutherai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "google-deepmind",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 14
+        },
+        {
+          "creator": "hugging-face",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 31
+        },
+        {
+          "creator": "ibm",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 18
+        },
+        {
+          "creator": "kyutai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "lelapa-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "lg-ai-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "liquid-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "maritaca-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "meta",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 39
+        },
+        {
+          "creator": "microsoft",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 23
+        },
+        {
+          "creator": "minimax",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 11
+        },
+        {
+          "creator": "mistral-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 18
+        },
+        {
+          "creator": "moonshot-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "naver",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "nous-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "nvidia",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 12
+        },
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 46
+        },
+        {
+          "creator": "openbmb",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 12
+        },
+        {
+          "creator": "reka-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "sakana-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "sarvam-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "snowflake",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "stability-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "tencent",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "tii",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "upstage",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "xai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "xiaomi",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "zhipu-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "change",
+          "count": 475,
+          "effect": "Field values advanced in place on records already in the dataset."
+        },
+        {
+          "kind": "add",
+          "count": 5,
+          "effect": "New records written into the dataset."
+        },
+        {
+          "kind": "conflict",
+          "count": 2,
+          "effect": "Recorded that primary sources disagree. Makes no dataset edit by design."
+        }
+      ],
+      "notCovered": [
+        "Benchmark results and usage observations were not scouted this run. The sweep covered creators, families, releases and their sources only.",
+        "Four sources returned HTTP 200 with too little text to quote from, so they yielded no claims even though the fetch itself succeeded. They are listed as degraded channels, because a page that answers with nothing readable is not a page that was read."
+      ],
+      "unswept": [],
+      "degradedChannels": [
+        {
+          "creator": "openai",
+          "source": "openai-com-news",
+          "detail": "Seven fetches to openai.com returned HTTP 403. Mitigated through the openai-news-rss and developers.openai.com channels, which did return content, so the creator was still covered; the page budget went to 44 against a nominal 40 doing it."
+        },
+        {
+          "creator": "xai",
+          "source": "xai-news",
+          "detail": "One fetch to https://x.ai/news returned HTTP 403. No alternative channel returned the same material."
+        },
+        {
+          "creator": "meta",
+          "source": "meta-ai-site",
+          "detail": "HTTP 200 with 56 characters of extractable text. Treated as incomplete, not as a page that said nothing."
+        },
+        {
+          "creator": "cohere",
+          "source": "cohere-docs",
+          "detail": "HTTP 200 with 388 characters of extractable text, below what any claim here could be quoted from."
+        },
+        {
+          "creator": "zhipu-ai",
+          "source": "zhipu-ai-glm-4-5-announcement",
+          "detail": "HTTP 200 with 3 characters of extractable text."
+        },
+        {
+          "creator": "bytedance",
+          "source": "bytedance-seed-site",
+          "detail": "HTTP 200 with 19 characters of extractable text."
+        }
+      ],
+      "pagesWithContent": 0
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 1446,
+      "acceptedByPanel": 416,
+      "rejectedByPanel": 66,
+      "dissents": [
+        {
+          "claimId": "amazon-nova-models-page-last-checked-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The source-date claim is backed by 'industry-leading conversational quality and pricing', a rank-style marketing quote."
+        },
+        {
+          "claimId": "amazon-nova-2-bedrock-announcement-last-checked-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The recheck quote uses 'industry-leading price performance', so it substantiates the source through leaderboard-style marketing."
+        },
+        {
+          "claimId": "amazon-bedrock-product-page-last-checked-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The Bedrock product quote tells users to pick the 'best model', which is serving-platform marketing and a leaderboard framing."
+        },
+        {
+          "claimId": "amazon-sagemaker-jumpstart-page-last-checked-2026-09-18",
+          "rubric": "provenance",
+          "objection": "Reject: evidence lookup verifies presence, but the quote is AWS page title/navigation chrome rather than substantive SageMaker JumpStart content."
+        },
+        {
+          "claimId": "amazon-titan-embeddings-ga-announcement-last-checked-2026-09-18",
+          "rubric": "provenance",
+          "objection": "Reject: evidence lookup verifies presence, but the quote is title/navigation chrome, not substantive body text for the Titan Embeddings announcement."
+        },
+        {
+          "claimId": "amazon-nova-2-verified-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The family verifiedAt update rests on an 'industry-leading price performance' quote, not a neutral family-boundary statement."
+        },
+        {
+          "claimId": "amazon-titan-verified-2026-09-18",
+          "rubric": "provenance",
+          "objection": "Reject: evidence lookup verifies presence, but the same title/navigation quote does not substantively re-verify the Amazon Titan family record."
+        },
+        {
+          "claimId": "anthropic-source-models-overview-last-checked",
+          "rubric": "editorial",
+          "objection": "The selected quote uses ?state-of-the-art? marketing language, so the date advance is not supported by editorially clean source-record evidence."
+        },
+        {
+          "claimId": "anthropic-source-sonnet-4-5-announcement-last-checked",
+          "rubric": "editorial",
+          "objection": "The quote relies on ?best coding model,? ?strongest model,? and ?best model? superlatives, which the editorial rubric excludes from source-record support."
+        },
+        {
+          "claimId": "anthropic-source-sonnet-5-docs-last-checked",
+          "rubric": "editorial",
+          "objection": "The quote describes Sonnet 5 as ?the best combination of speed and intelligence,? a ranking-style claim that is not editorially clean evidence."
+        },
+        {
+          "claimId": "anthropic-source-sonnet-5-announcement-last-checked",
+          "rubric": "editorial",
+          "objection": "The supporting page/quote uses ?most agentic? and benchmark comparison framing, so a routine lastCheckedDate claim is being substantiated through rankings."
+        },
+        {
+          "claimId": "anthropic-source-sonnet-4-6-announcement-last-checked",
+          "rubric": "editorial",
+          "objection": "The quote?s ?most capable Sonnet model yet? framing is a comparative ranking boast, not clean evidence for a source date advance."
+        },
+        {
+          "claimId": "anthropic-source-opus-4-6-announcement-last-checked",
+          "rubric": "editorial",
+          "objection": "The quote calls Opus 4.6 the creator?s ?smartest model? and continues with capability improvements, which is marketing-rank framing under this rubric."
+        },
+        {
+          "claimId": "anthropic-claude-5-verified-at-2026-09-18",
+          "rubric": "provenance",
+          "objection": "Rejected: the verified quote is a page title plus cookie boilerplate and does not substantiate the Claude 5 family record."
+        },
+        {
+          "claimId": "anthropic-claude-4-5-verified-at-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The verification quote is built around ?best? and ?strongest? model claims, so the family date advance imports leaderboard-style framing."
+        },
+        {
+          "claimId": "anthropic-claude-4-6-verified-at-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The family verification relies on ?smartest model? superlative language, which is not an editorially acceptable way to substantiate the record."
+        },
+        {
+          "claimId": "anthropic-claude-4-8-verified-at-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The quote cites improvements across benchmarks, so the verification is framed through benchmark-boast evidence the rubric excludes."
+        },
+        {
+          "claimId": "anthropic-claude-mythos-5-verified-at-2026-09-18",
+          "rubric": "provenance",
+          "objection": "Rejected: the verified quote is a page title plus cookie boilerplate and does not substantiate the Claude Mythos 5 release."
+        },
+        {
+          "claimId": "anthropic-claude-sonnet-5-verified-at-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The release verification rests on ?best combination of speed and intelligence,? which is ranking prose and not an acceptable editorial framing."
+        },
+        {
+          "claimId": "anthropic-claude-opus-4-6-verified-at-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The release verification quote uses ?smartest model? superlative language, so it imports a ranking claim into the evidence framing."
+        },
+        {
+          "claimId": "google-source-deepmind-about-last-checked",
+          "rubric": "provenance",
+          "objection": "Rejected: the verified quote is title/navigation text and does not substantively re-verify the About Google DeepMind source."
+        },
+        {
+          "claimId": "google-source-gemini-pro-page-last-checked",
+          "rubric": "provenance",
+          "objection": "Rejected: the verified quote is title/navigation text and does not substantively re-verify the Gemini Pro source."
+        },
+        {
+          "claimId": "google-gemini-3-8-flash-docs-source-add",
+          "rubric": "provenance",
+          "objection": "Rejected: the verified quote is only a page title and language/navigation chrome, not substantive evidence for adding the source."
+        },
+        {
+          "claimId": "google-gemini-3-8-flash-release-add",
+          "rubric": "editorial",
+          "objection": "Google DeepMind?s profile says canonical release names should be API model ids, but this proposes the marketing name as canonicalName; the evidence also imports ?most intelligent? ranking prose."
+        },
+        {
+          "claimId": "meta-llama-4-announcement-lastcheckeddate-verified-2026-09-18",
+          "rubric": "provenance",
+          "objection": "The corrected lookup verifies the quote, but it is only the article/page title repeated next to site navigation, not substantive source content."
+        },
+        {
+          "claimId": "meta-muse-spark-announcement-lastcheckeddate-verified-2026-09-18",
+          "rubric": "provenance",
+          "objection": "The corrected lookup verifies the quote, but it is only the article/page title next to site navigation, not substantive source content."
+        },
+        {
+          "claimId": "meta-muse-image-video-announcement-lastcheckeddate-verified-2026-09-18",
+          "rubric": "provenance",
+          "objection": "The corrected lookup verifies the quote, but it is only the article/page title next to site navigation, not substantive source content."
+        },
+        {
+          "claimId": "meta-llama-4-scout-verifiedat-verified-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The supporting quote uses 'industry leading' ranking language for the release recheck; editorial review rejects rank/superlative framing even on date advances."
+        },
+        {
+          "claimId": "microsoft-mai-transcribe-2-announcement-lastcheckeddate-verified-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The recheck is framed through a fastest/most accurate/cheapest-in-the-world ranking, which is not editorially clean source metadata."
+        },
+        {
+          "claimId": "microsoft-mai-image-2-6-announcement-lastcheckeddate-verified-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The chosen quote says 'strongest image model yet', a rank-style marketing claim rather than clean source-date evidence."
+        },
+        {
+          "claimId": "microsoft-mai-code-1-1-flash-announcement-lastcheckeddate-verified-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The title and quote use better/faster/higher-quality comparative marketing to support a source-date update."
+        },
+        {
+          "claimId": "microsoft-mai-transcribe-2-verifiedat-verified-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The verifiedAt update is substantiated by a fastest/most accurate/cheapest-in-the-world ranking rather than a clean release-boundary quote."
+        },
+        {
+          "claimId": "microsoft-mai-image-2-6-verifiedat-verified-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The verifiedAt evidence is 'strongest image model yet', which imports a ranking into the review rather than a neutral release fact."
+        },
+        {
+          "claimId": "microsoft-mai-code-1-1-flash-verifiedat-verified-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The verifiedAt evidence relies on a higher-quality-code comparative boast, not an editorially clean model-release statement."
+        },
+        {
+          "claimId": "source-openai-gpt-5-6-cyber-docs-last-checked-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The quote frames GPT-5.6 Cyber as an alias for ?our most advanced? cybersecurity models, mixing alias/release framing with a superlative ranking."
+        },
+        {
+          "claimId": "source-openai-gpt-image-2-docs-last-checked-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The supporting quote calls GPT Image 2 ?state-of-the-art,? a leaderboard-style boast barred even for routine date advances."
+        },
+        {
+          "claimId": "source-openai-gpt-6-astra-docs-last-checked-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The supporting quote calls GPT-6 Astra ?our most capable model,? presenting a winner rather than a neutral source re-read."
+        },
+        {
+          "claimId": "family-openai-gpt-image-verified-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The evidence for the family verification relies on a ?state-of-the-art? claim, which is ranking language rather than clean editorial support."
+        },
+        {
+          "claimId": "family-openai-gpt-6-verified-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The evidence frames GPT-6 Astra as ?our most capable model,? so the family verification imports a superlative ranking."
+        },
+        {
+          "claimId": "release-openai-gpt-5-6-cyber-verified-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The quote describes an alias for ?our most advanced? cybersecurity models, so the release verification blurs alias versus release and uses ranking language."
+        },
+        {
+          "claimId": "release-openai-gpt-image-2-verified-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The release verification is supported by ?state-of-the-art? image-generation phrasing, which the rubric excludes from prose support."
+        },
+        {
+          "claimId": "release-openai-gpt-6-astra-verified-2026-09-18",
+          "rubric": "editorial",
+          "objection": "The release verification rests on ?our most capable model,? a superlative winner claim rather than neutral model evidence."
+        }
+      ],
+      "gates": [
+        {
+          "gate": "gate-scope",
+          "scope": "working tree against the merge-base",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "changed 5, empty false, every path a dataset document under web/src/data. An exit 0 on an empty result would mean nothing was measured and is never a licence to publish.",
+          "elapsedMs": 725,
+          "stdoutBytes": 832,
+          "stderrBytes": 0
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "the applied change",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "{   \"dataDir\": \"C:\\\\workspace\\\\copilot-worktrees\\\\ModelTree\\\\abdeslam-menacere-refactored-pancake\\\\web\\\\src\\\\data\",   \"today\": \"2026-09-18\",   \"counts\": {",
+          "elapsedMs": 129,
+          "stdoutBytes": 894,
+          "stderrBytes": 0
+        },
+        {
+          "gate": "gate-reversals",
+          "scope": "web/src/data",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "{   \"dataDir\": \"C:\\\\workspace\\\\copilot-worktrees\\\\ModelTree\\\\abdeslam-menacere-refactored-pancake\\\\web\\\\src\\\\data\",   \"rejectionsRead\": 282,   \"rejectionsNamingARecord\": 18,",
+          "elapsedMs": 94,
+          "stdoutBytes": 36110,
+          "stderrBytes": 0
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 406,
+      "documents": [
+        {
+          "document": "web/src/data/sources.json",
+          "recordsBefore": 295,
+          "recordsAfter": 296,
+          "note": "217 edits, almost all lastCheckedDate advances on sources re-read and re-hashed this run. The one new record is openai-gpt-live-1-docs, the primary documentation page the GPT Live 1 release record is built on, fetched and hashed this run. It is recorded here rather than in the posted-records list because the /refresh page links releases, families and organizations only, so a source record there would be a link to nowhere."
+        },
+        {
+          "document": "web/src/data/families.json",
+          "recordsBefore": 86,
+          "recordsAfter": 87,
+          "note": "76 edits. The new record is the OpenAI GPT Live family, kept distinct from the GPT-5 line rather than folded into it."
+        },
+        {
+          "document": "web/src/data/releases.json",
+          "recordsBefore": 128,
+          "recordsAfter": 129,
+          "note": "113 edits. The new record is OpenAI GPT Live 1. Gemini 3.8 Flash is not here: it was accepted by the panel and then withheld by the asset budget, and is listed under withheld rather than silently absent. The GPT-4.1 verifiedAt advance is also absent and listed under withheld, held by a positional gate fixture."
+        }
+      ],
+      "records": [
+        {
+          "id": "openai-gpt-live-1",
+          "collection": "releases",
+          "note": "New release, the only substantive addition this run. Modalities, context window and lifecycle status each transcribed from a quoted line of the model reference rather than taken from a sibling model."
+        },
+        {
+          "id": "openai-gpt-live",
+          "collection": "families",
+          "note": "New family for that release. Recorded as its own family rather than as a GPT-5 variant, because the creator documents it as a separate line."
+        }
+      ]
+    },
+    "withheld": [
+      {
+        "id": "01-ai-yi-repository-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for 01-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Reject: evidence lookup verifies presence, but the quote is GitHub title/navigation chrome rather than substantive Yi README content.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "01-ai-yi-1-5-34b-chat-model-card-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for 01-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Reject: evidence lookup verifies presence, but the quote is only the Hugging Face title/navigation area, not substantive Yi-1.5-34B-Chat card text.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "01-ai-yi-34b-chat-model-card-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for 01-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Reject: evidence lookup verifies presence, but the quote is only the Hugging Face title/navigation area, not substantive Yi-34B-Chat card text.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "01-ai-yi-1-5-34b-chat-verified-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for 01-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Reject: the quote states only that Yi-1.5 series models are open-sourced; it does not name or substantiate the 34B Chat release itself.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "01-ai-yi-34b-chat-verified-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for 01-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Reject: the quote describes chat models collectively but does not name or substantiate Yi-34B-Chat specifically.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "source-ai2-olmo-2-announcement-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for ai2 and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The statement repeats ?the best fully open language model to date,? a direct best-in-class ranking in the claim text.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "source-ai2-olmo-2-model-card-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for ai2 and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The evidence cites a ?9-point increase in MMLU? and evaluation improvements, so the date advance is substantiated with benchmark framing.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "source-ai2-molmo-announcement-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for ai2 and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The quote calls Molmo ?open state-of-the-art,? which is expressly barred ranking language.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "family-ai2-molmo-verified-at-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for ai2 and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The family verification relies on ?state-of-the-art? wording, importing a leaderboard-style claim into the dataset support.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "ai21-labs-jurassic-1-announcement-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for ai21-labs and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The source-date claim uses 'largest and most sophisticated ... ever', an explicit superlative/ranking frame.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "ai21-labs-jurassic-1-jumbo-verified-at-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for ai21-labs and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The release verifiedAt evidence repeats 'largest and most sophisticated ... ever', which is a superlative ranking rather than clean release framing.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "anthropic-source-fable-5-1-announcement-last-checked",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for anthropic and rejected by the panel: 1 accept(s) against a 2-of-3 pilot threshold. provenance: Rejected: the verified quote is only the article title, navigation labels, and section headings, not substantive source-record evidence. editorial: The source quote frames the page as ?a new performance frontier,? which is performance-boast framing rather than clean evidence for a routine source re-read.",
+        "blockedBy": [
+          "review rubric: provenance",
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "anthropic-claude-4-5-verified-at-2026-09-18",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted for anthropic at the pilot threshold and then held before apply: applying this verifiedAt advance makes a model-fit statement older than the fact it rests on, which validate.ts refuses; the guidance was never before this panel, so it is held rather than silently re-dated",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "anthropic-claude-5-1-verified-at-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for anthropic and rejected by the panel: 1 accept(s) against a 2-of-3 pilot threshold. provenance: Rejected: the verified quote is only title/navigation/section-heading text and does not substantiate the Claude 5.1 family. editorial: The family verification quote uses ?new performance frontier? marketing framing rather than a clean family/release boundary statement.",
+        "blockedBy": [
+          "review rubric: provenance",
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "anthropic-claude-mythos-5-verified-at-2026-09-18",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted for anthropic at the pilot threshold and then held before apply: applying this verifiedAt advance makes a model-fit statement older than the fact it rests on, which validate.ts refuses; the guidance was never before this panel, so it is held rather than silently re-dated",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "anthropic-claude-haiku-4-5-verified-at-2026-09-18",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted for anthropic at the pilot threshold and then held before apply: applying this verifiedAt advance makes a model-fit statement older than the fact it rests on, which validate.ts refuses; the guidance was never before this panel, so it is held rather than silently re-dated"
+      },
+      {
+        "id": "apple-openelm-3b-instruct-model-card-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for apple and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Rejected: the verified quote is only Hugging Face page title/navigation chrome and does not substantively re-verify the model card.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "apple-fastvlm-model-card-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for apple and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Rejected: the verified quote is only Hugging Face page title/navigation chrome and does not substantively re-verify the model card.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "apple-openelm-verified-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for apple and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The family verification quote calls OpenELM ?state-of-the-art,? which is leaderboard-style marketing language barred by the editorial rubric.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "source-cohere-models-overview-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for cohere and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: The corrected lookup verifies the quote, but the quote is only the page heading and does not substantiate any model-reference content.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "source-cohere-rerank-v3-5-changelog-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for cohere and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The quote calls Rerank 3.5 the 'newest and most performant' model, which is winner/ranking language unsuitable as editorial support.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "release-cohere-rerank-v3-5-verified-at-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for cohere and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: The corrected lookup verifies the quote, but it describes Rerank models generically and does not identify or substantiate the rerank-v3.5 release.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "databricks-dbrx-announcement-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for databricks and rejected by the panel: 1 accept(s) against a 3-of-3 long-tail threshold. provenance: The corrected lookup verifies the quote, but it is a page title followed by navigation text, not substantive DBRX source content. editorial: The evidence title frames DBRX as a 'State-of-the-Art Open LLM', a superlative/ranking claim unsuitable for an editorially clean source recheck.",
+        "blockedBy": [
+          "review rubric: provenance",
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "google-gemini-3-8-flash-docs-source-add",
+        "category": "blocked-by-policy",
+        "detail": "Accepted for google-deepmind at the pilot threshold and then held before apply: home route critical-path budget refusal; withheld as a tranche per ADR 0015",
+        "blockedBy": [
+          "web/asset-budgets.json fixedRoutes[home].criticalMaxRaw"
+        ]
+      },
+      {
+        "id": "google-gemini-3-8-flash-release-add",
+        "category": "blocked-by-policy",
+        "detail": "Accepted for google-deepmind at the pilot threshold and then held before apply: home route critical-path budget refusal; withheld as a tranche per ADR 0015",
+        "blockedBy": [
+          "web/asset-budgets.json fixedRoutes[home].criticalMaxRaw"
+        ]
+      },
+      {
+        "id": "hugging-face-download-stats-docs-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for hugging-face and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Reject: evidence lookup verifies presence, but the quote is page title/navigation chrome and does not substantiate the download-stat policy text.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "hugging-face-smollm3-model-card-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for hugging-face and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Reject: evidence lookup verifies presence, but the quote is only the Hugging Face model-card title/navigation, not substantive SmolLM3 card content.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "hugging-face-smollm3-blog-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for hugging-face and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Reject: evidence lookup verifies presence, but the quote is the blog title/navigation area and not substantive SmolLM3 article text.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "hugging-face-gguf-docs-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for hugging-face and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Reject: evidence lookup verifies presence, but the quote is docs title/navigation chrome and does not substantiate the GGUF documentation.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "liquid-lfm2-announcement-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for liquid-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The source recheck is supported by 'sets a new standard in quality, speed, and memory efficiency', a best-in-class marketing claim.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "liquid-lfm2-1-2b-model-card-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for liquid-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The model-card source recheck is supported by 'sets a new standard', which is rank-style marketing rather than neutral source metadata.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "meta-llama-4-scout-verifiedat-verified-2026-09-18",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted for meta at the pilot threshold and then held before apply: applying this verifiedAt advance makes a model-fit statement older than the fact it rests on, which validate.ts refuses; the guidance was never before this panel, so it is held rather than silently re-dated",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "minimax-m1-announcement-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for minimax and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Reject: evidence lookup verifies presence, but the quote is page title/navigation chrome, not substantive MiniMax-M1 announcement content.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "minimax-m1-80k-model-card-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for minimax and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Reject: evidence lookup verifies presence, but the quote is only the Hugging Face title/navigation area, not substantive MiniMax-M1-80k card text.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "minimax-m1-40k-model-card-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for minimax and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Reject: evidence lookup verifies presence, but the quote is only the Hugging Face title/navigation area, not substantive MiniMax-M1-40k card text.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "minimax-m1-repository-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for minimax and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Reject: evidence lookup verifies presence, but the quote is GitHub page header/navigation rather than README or licence text substantiating the repository source.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "minimax-text-01-model-card-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for minimax and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Reject: evidence lookup verifies presence, but the quote is only the Hugging Face title/navigation area, not substantive MiniMax-Text-01 card text.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "minimax-m1-40k-verified-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for minimax and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The release recheck is substantiated with SWE-bench scores, so it uses benchmark material instead of editorially clean release evidence.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "minimax-m1-80k-verified-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for minimax and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The release recheck is substantiated with SWE-bench scores, so it uses benchmark material instead of editorially clean release evidence.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "source-mistral-3-announcement-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for mistral-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: The corrected lookup verifies the quote, but it is only the page title plus Mistral site chrome, not substantive source content.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "source-mistral-large-3-model-card-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for mistral-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The quote frames Mistral Large 3 as 'state-of-the-art', which is leaderboard/superlative language outside this dataset's editorial scope.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "source-mistral-devstral-2-announcement-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for mistral-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: The corrected lookup verifies the quote, but it is only the page title plus Mistral site chrome, not substantive source content.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "source-mistral-small-4-announcement-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for mistral-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: The corrected lookup verifies the quote, but it is only the page title plus Mistral site chrome, not substantive source content.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "family-mistral-large-3-verified-at-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for mistral-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The family recheck is substantiated by a 'state-of-the-art' model boast, so the framing imports ranking language rather than a clean entity verification.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "release-mistral-large-3-675b-instruct-verified-at-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for mistral-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The release recheck relies on 'state-of-the-art' phrasing, a rank/superlative claim the editorial rubric excludes.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "moonshot-ai-kimi-k2-model-card-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for moonshot-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The source recheck relies on 'state-of-the-art' wording, a superlative/ranking frame excluded by the editorial rubric.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "moonshot-ai-kimi-k2-verified-at-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for moonshot-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The family recheck is substantiated by 'state-of-the-art' language, so it carries rank/superlative framing instead of a clean boundary check.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "moonshot-ai-kimi-k2-instruct-verified-at-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for moonshot-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The release recheck uses 'state-of-the-art' wording, which this rubric treats as disallowed rank/superlative phrasing.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "hyperclovax-seed-text-instruct-1-5b-release-verified-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for naver and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The release verification quote substantiates the record through ?competitive performance on major benchmarks,? which is benchmark/ranking framing.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "naver-hyperclova-x-seed-1-5b-model-card-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for naver and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The model-card lastCheckedDate claim uses a quote about competitive benchmark performance, not editorially clean source-record evidence.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "release-openai-gpt-4-1-2025-04-14-verified-2026-09-18",
+        "category": "blocked-by-policy",
+        "detail": "Accepted for openai at the pilot threshold and then held before apply: this record is releases[0], and the self-test at gates.test.mjs:1175 sets releases[0].verifiedAt to the real today and asserts exactly one change; dating it today makes that mutation inert and reddens the required skills-ci check. The fixture is under .github/ and so outside the ADR 0003 class a refresh may edit, leaving withholding the claim as the only remedy available to this run.",
+        "blockedBy": [
+          ".github/skills/modeltree-gates/scripts/gates.test.mjs:1175 (positional fixture addressing releases[0])"
+        ]
+      },
+      {
+        "id": "release-openai-gpt-5-verified-2026-09-18",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted for openai at the pilot threshold and then held before apply: applying this verifiedAt advance makes a model-fit statement older than the fact it rests on, which validate.ts refuses; the guidance was never before this panel, so it is held rather than silently re-dated"
+      },
+      {
+        "id": "openbmb-minicpm5-1b-model-card-last-checked-date",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for openbmb and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The quote says the model reaches ?1B-class open-source SOTA,? which imports state-of-the-art ranking language into a date-advance claim.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "openbmb-minicpm5-2b-model-card-last-checked-date",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for openbmb and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The quote says the model reaches ?2B-class open-source SOTA,? a leaderboard-style boast unsuitable for this dataset framing.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "openbmb-minicpm-v-4-5-model-card-last-checked-date",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for openbmb and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The supporting quote calls MiniCPM-V 4.5 the ?latest and most capable? model, presenting a ranked winner rather than clean source evidence.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "openbmb-minicpm-v-4-6-model-card-last-checked-date",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for openbmb and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The quote calls MiniCPM-V 4.6 the ?most edge-deployment-friendly? model to date, which is superlative ranking language.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "openbmb-minicpm-v-4-5-verified-at",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for openbmb and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The verification relies on ?latest and most capable? wording, so it imports a superlative ranking into the claim.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "openbmb-minicpm-v-4-6-verified-at",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for openbmb and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The verification relies on ?most edge-deployment-friendly? wording, which is a ranked-fit claim rather than conditional guidance.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "sakana-ai-evollm-jp-model-card-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for sakana-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Reject: the verified quote is only the Hugging Face title/navigation chrome and does not substantively re-verify the model-card source.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "sarvam-m-family-verified-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for sarvam-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The quote emphasizes ?exceptional improvements over the base model,? a benchmark-boast framing rather than a clean family verification statement.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "sarvam-m-v1-release-verified-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for sarvam-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The release verification quote publishes percentage benchmark improvements, which the editorial rubric rejects as benchmark/ranking prose.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "sarvam-ai-sarvam-m-model-card-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for sarvam-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The source date advance is supported by ?exceptional improvements? performance-boast language instead of clean source-record evidence.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "sarvam-ai-sarvam-m-blog-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for sarvam-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The source date advance relies on explicit benchmark improvement percentages, which are outside the editorial scope for source support.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "snowflake-arctic-release-date-conflict",
+        "category": "conflict-recorded",
+        "detail": "Accepted for snowflake but kind \"conflict\" does not touch the dataset by design. Snowflake sources disagree on Arctic release timing: the model card says April 24, 2024, while the Arctic repository says April 2023."
+      },
+      {
+        "id": "stability-ai-sd-3-5-announcement-lastcheckeddate-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for stability-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The source quote says ?superior quality? and ?most powerful,? making the date advance rely on winner/ranking language.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "stability-ai-stable-diffusion-3-5-verifiedat-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for stability-ai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The family verification uses the same ?superior quality? and ?most powerful? quote, which is excluded by the editorial rubric.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "stability-ai-svd-intended-use-conflict",
+        "category": "conflict-recorded",
+        "detail": "Accepted for stability-ai but kind \"conflict\" does not touch the dataset by design. Stability AI sources disagree on Stable Video Diffusion intended use: the announcement says it is not for real-world or commercial applications at that stage, while the model card says it is intended for both non-commercial and commercial usage."
+      },
+      {
+        "id": "tencent-hunyuan-video-model-card-lastcheckeddate-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for tencent and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The quote says HunyuanVideo is comparable or superior to leading closed-source models, a comparative ranking claim this rubric rejects.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "tencent-hunyuan-video-verifiedat-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for tencent and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The family recheck is supported by a superiority-to-leading-models quote, which imports ranking/winner framing into the record.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "source-tii-falcon-180b-announcement-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for tii and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The statement repeats ?World?s Most Powerful Open LLM,? a superlative winner claim rather than neutral source framing.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "xai-grok-4-announcement-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for xai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The evidence quote says Grok 4 is ?the most intelligent model in the world,? an explicit ranking claim unsuitable for a date advance.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "xai-grok-4-5-announcement-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for xai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The quote calls Grok 4.5 SpaceXAI?s ?smartest model,? which is superlative marketing rather than editorially clean source-record evidence.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "xai-release-notes-last-checked-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for xai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: Rejected: the verified quote is only release-notes title/navigation/loading text and does not substantiate release-note content.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "xai-grok-4-verified-2026-09-18",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for xai and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The family verification relies on ?most intelligent model in the world,? so it imports a ranking claim the dataset should not publish.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      },
+      {
+        "id": "xiaomi-mimo-7b-rl-0530-model-card-last-checked-date",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for xiaomi and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. provenance: The corrected lookup verifies the quote, but it is only the Hugging Face page title/navigation and not substantive model-card content.",
+        "blockedBy": [
+          "review rubric: provenance"
+        ]
+      },
+      {
+        "id": "xiaomi-mimo-7b-rl-0530-verified-at",
+        "category": "rejected-by-panel",
+        "detail": "Proposed for xiaomi and rejected by the panel: 2 accept(s) against a 3-of-3 long-tail threshold. editorial: The quote advances the release recheck through benchmark and 'surpass DeepSeek R1' language, which is comparative ranking framing.",
+        "blockedBy": [
+          "review rubric: editorial"
+        ]
+      }
+    ],
+    "caveats": [
+      "Forty-three of the 1,446 reviewer rationales carry a literal question mark where a typographic quotation mark was intended, lost in the reviewers own prose before it was recorded. None of the 488 evidence quotes is affected, and that split is the part that matters: the evidence is the text that was fetched, hashed and checked verbatim against the page, and it round-tripped clean at 488 of 488. The rationales are published as recorded rather than repaired, because a rationale is a reviewers words and silently rewriting one would make the published trail differ from the verdict that was actually cast.",
+      "A green run proves the dataset is internally consistent and that every published claim was sourced, quoted and voted on. It does not prove the underlying page is correct, and it does not prove a page that went dark says what it said when it was last read.",
+      "The provenance panel ran a broken instrument for its first pass and the failure was systemic, not per-claim. Its evidence lookup matched quotes against saved page bytes with a raw substring test, so any quote straddling a line wrap in the saved text read as \"not verbatim\"; and it guessed page filenames from the creator and source id, so pages not named that way read as \"absent\". Both defects fail toward rejection, which is the direction that looks like rigour while destroying sound claims. The instrument was replaced with one that normalises whitespace on both sides and keys pages by the meta.sourceId recorded inside each page's metadata, over an evidence base of 339 distinct source ids and 339 page files, and the four provenance reviewers were re-run on an instruction that named no desired outcome. Semantic rejections survived the repair; the ones resting on the false premise dissolved. Replacing a reviewer's broken instrument is not vote-rigging; re-running a reviewer to change an outcome is, and that was not done.",
+      "The editorial rejections carry the chair's fingerprints and should be read as such. The editorial brief this chair wrote extended the standing \"no composite score, rank or winner\" rule from the recorded value to the selection of the evidence quote, so a claim whose quote happened to carry a benchmark or marketing superlative was rejected even where the recorded value was unobjectionable. That accounts for the bulk of the 73 editorial rejections. The reviewers applied the rubric as written, so the rejections stand and were not re-run; but the rule is the chair's drafting choice and not a settled policy of this repository, and it is named here so a later reader can disagree with it.",
+      "The consistency rubric accepted 482 of 482 and rejected nothing. A rubric that returns one answer to everything has not been shown to discriminate, and this one has not been. Its accepts should carry less weight this run than the other two rubrics', and a later run should give it a claim it ought to refuse before trusting the column.",
+      "Three instances of the same model family reading the same page share a failure mode. The 2-of-3 and 3-of-3 thresholds buy independence of reasoning, not independence of training, and a source that is itself wrong can carry all three reviewers.",
+      "web/asset-budgets.json is in this run's diff. ADR 0015 amends ADR 0003 to admit that file into the auto-merging class for its regenerable measurement fields only, and gate-scope enforces that with a content-aware check rather than by listing the path. Only measurement figures were re-recorded here; no ceiling and no drift tolerance was touched. That was controlled rather than asserted: with the re-record alone gate-scope exits 0 and reports that only regenerable measurement and prose fields changed, and with home.criticalMaxRaw nudged in the same file it exits 1 and names fixedRoutes[0].criticalMaxRaw. The pass is a reading, not an instrument that says yes to everything.",
+      "The home route measurement had been left stale by earlier runs: run 2026-09-13-bfee2c recorded that measuredRaw was already 19,971 bytes out of date and published without re-recording it. That accumulated staleness, not this run's 2,249 bytes of content, is what made the drift check bind tighter than the ceiling here. It is re-recorded now.",
+      "One accepted claim was held because a gate fixture, not the dataset, refuses it. gates.test.mjs:1175 copies the live web/src/data, sets releases[0].verifiedAt to today and asserts the mutation changed exactly one field; so re-dating whichever record happens to sit at index 0 makes the fixture's own mutation inert and the assertion fails. That record is currently openai-gpt-4-1-2025-04-14. The diagnosis is a two-arm measurement rather than an inference: with that verifiedAt at today the suite is 440 of 441 with that one test failing, and with it left at 2026-09-01 the suite is 441 of 441, same command and same test filter, one field differing. skills-ci is deliberately unfiltered and required, so a red suite would have blocked auto-merge and reddened main. The fixture is under .github and outside the ADR 0003 class, so it was not edited; the claim was withheld instead, which is the same remedy run 2026-09-14-708ff4 used.",
+      "This run's own scratch controls carried two stale fixtures of exactly the kind they exist to catch, and both were repaired by deriving the fixture from the tree rather than pinning it. One named a release id that this run's claims then gave the very field the control needed it to lack, and its vacuity guard fired correctly rather than passing silently. The other assumed the branch carried no commit yet. Repairing them found a real defect described in the follow-ups; a control left broken would have found nothing. A third instrument defect was corrected in the same pass: the draft assembler filed the two recorded conflicts as blocked-by-policy, which is the category for an edit a rule refused rather than for a claim that makes no edit by design. They are published as conflict-recorded, so the three genuinely policy-blocked holds are countable as three."
+    ],
+    "followUps": [
+      "gates.test.mjs:1175 addresses releases[0] positionally, so a refresh that re-dates whichever record sits at index 0 falsifies the fixture and reddens a required, deliberately unfiltered workflow. Run 2026-09-14-708ff4 met this, worked around it the same way, and asked that the fixture pin a record the dataset is not free to re-date. This is its second consecutive recurrence, and the workaround costs a sound claim every time. The fixture should address a synthetic record it owns, or assert on a field the refresh class cannot touch, rather than on whatever the dataset happens to sort first.",
+      "This run's ledger writer kept its own path allow-list and refused web/asset-budgets.json outright, while the repository's gate-scope admits that file under ADR 0015 by a content-aware check. A second implementation of a rule cannot express a content-aware admission and drifts from the authority silently; this one was caught only because its two-arm control was re-run. It now delegates the question to gate-scope instead of re-deciding it. Any tooling that mirrors a gate's scope rule should call the gate rather than restate it.",
+      "The same defect exists in the repository, one layer up, and it disarms the guard that exists to prevent #419. gate-ledger.mjs computes the ADR 0003 qualifying class as a literal path list (DATASET_PATHS plus the ledger, line 397), whose comment asserts it is \"the qualifying class exactly as gate-scope.mjs computes it\". ADR 0015 made gate-scope content-aware, admitting web/asset-budgets.json when only measurement fields moved; gate-ledger was not widened, so it counts that file out of class. Rule 5 - the rule that requires a change able to reach main unattended to record itself on /refresh - fires only when outOfClass is empty, so it does not fire for any run that re-records budgets. That is exactly the run type that must record itself, and gate-ledger will not require it to. Measured on this branch, two arms: with the ledger entry deleted the gate returned exit 0 and failures [] while reporting unattended: false and outOfClass [web/asset-budgets.json]; the repository's own fixture test \"Rule 5 - a dataset change confined to the qualifying class must record itself\" passes in the same tree, so rule 5 is live and the arms differ. The self-test at gates.test.mjs:8502 cannot catch this: it compares the two literal path sets, and ADR 0015's admission is a conditional branch outside ALLOWED_PATHS, so the sets still match while the computed classes diverge. This run recorded itself regardless, so nothing is missing from the ledger - the guard simply did not ask. gate-ledger should call gate-scope for the in-class decision, on the same rule the entry above states.",
+      "postedRecordSchema.collection is typed as nonEmpty, so the ledger schema accepts any collection name, while the /refresh page resolves exactly three - postedRecordLink in web/src/lib/refresh-log-links.ts handles releases, families and organizations and returns resolved: false for everything else, which refresh-log-links.test.ts then fails the whole log over. This run listed its new source record among its posted records, which validated cleanly against the schema and reddened web-ci; the gates do not see it either, because gate-ledger checks the entry's numbers rather than its link targets. The failure therefore surfaces only at the last check before merge, with a message about an unresolved link rather than about an unsupported collection. Narrowing that field to the collections the page can render would move the refusal to the point of authorship and say what is wrong. Recorded rather than fixed here: refresh-log-schema.ts is outside the ADR 0003 qualifying class, so no refresh run may touch it.",
+      "The scout proposed featured: true on a new release record. No refresh may do that: featured-policy.test.ts pins FEATURED_ROSTER as an exact set by identity, and that roster lives in a .ts test file which is outside the ADR 0003 qualifying class, so a refresh can add the flag but can never add the roster entry that makes it legal. The scout brief should exclude featured from proposable fields, and the failure should say so rather than reporting a count mismatch.",
+      "Five verifiedAt advances were accepted and then held because model-fit-statements.json carries guidance dated earlier than the facts those advances would create, which validate.ts refuses. The guidance was never in front of the panel, so re-dating it here would have published a re-verification nobody performed. The scout should propose a record's verifiedAt advance together with re-verification of any fit statement resting on it, so the pair is reviewed as one thing or neither moves.",
+      "The Gemini 3.8 Flash tranche has now been withheld by the same home route ceiling in four consecutive runs before this one and in this one. It measures 9,748 bytes against 1,640 bytes of headroom on a clean tree, so no amount of unrelated trimming elsewhere in the dataset will admit it. This is a standing decision being re-taken by default rather than decided: either the home route should stop rendering every release in its critical path, or the ceiling should be revisited deliberately by a human under ADR 0015, which this pipeline may not do.",
+      "gate-reversals passed while reporting that it could not tell, for most of this run's 66 recorded rejections, whether the rejected value is present in the dataset, because their detail text names no record. That is a limit of the gate rather than a finding that nothing was reversed."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "abdeslam-menacere/ModelTree#1165 - the refresh this entry records",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/1165",
+        "state": "open"
+      },
+      {
+        "kind": "commit",
+        "label": "The dataset change, committed before this entry so the entry could name its own pull request",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/f676d92"
+      }
+    ],
+    "recordedAt": "2026-09-18"
   }
 ]
