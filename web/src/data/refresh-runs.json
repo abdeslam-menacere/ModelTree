@@ -13104,5 +13104,616 @@
       }
     ],
     "recordedAt": "2026-09-18"
+  },
+  {
+    "id": "2026-09-19-4f415a",
+    "title": "Full sweep of all 44 creators, 523 edits published, and a panel whose whole discriminating power came from one rubric",
+    "ranOn": "2026-09-19",
+    "outcome": "published",
+    "summary": "Every catalogued creator was scouted from primary sources in one pass. 335 pages were fetched and hashed in this run; 528 claims were proposed, a three-rubric panel cast 1584 verdicts, and all 528 met their per-profile threshold. 523 reached the dataset. Every claim is a re-verification carrying a verification date forward on a fact re-read at its source, so no record was added or removed and every record count is unchanged. Five accepted claims were then refused by npm run validate, which found they would have left a model-fit statement verified ahead of the release or family fields it rests on; they are published as withheld under dropped-after-acceptance rather than discarded. All five had been rejected by the consistency rubric and carried by the other two, and provenance and editorial cast byte-identical all-accept vectors across every claim - so the lone dissenting rubric was the only thing in the panel that discriminated, and on all five it was right.",
+    "scope": "All 44 creators in organizations.json, with no creator narrowed out, plus one shared bundle for cross-creator sources that belong to no single organisation - 45 bundles in total. found.unswept is empty because every catalogued creator was reached, not because nothing was recorded there: the set of bundled creators was reconciled against organizations.json and the difference is zero. 335 page fetches were attempted and 325 returned HTTP 200; the rest are recorded as degraded channels against the creator whose channel failed, because a creator that was looked at through a channel that went dark is in a different state from a creator nobody reached.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Clean tree at acae4097b4, which was also refs/remotes/origin/main and was confirmed current against the remote at the moment of use; its reflog dates the write to 2026-09-18 12:03:35 -0400. No refresh pull request was left open from a previous run - six pull requests were open and each was checked for dataset overlap, with zero files under web/src/data between them. Both invocation forms were probed for every tool rather than either being assumed: bare npm, npx and drydock are all refused by this host's PowerShell execution policy, while the .cmd forms run. That is installed and blocked, not absent, and the execution policy was not changed. npm ci was used for install and the lockfile was verified unmodified afterwards."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "335 pages fetched across 45 bundles, each stored with its sha256 content hash and fetch date. Every quote was sliced programmatically out of the fetched bytes and re-checked against those bytes before the claim was built; no quote was recalled and no search snippet was treated as evidence. 528 claims proposed. 29 facts were held rather than claimed because their evidence was not good enough. Three separate blind-matcher defects were found and fixed in this run's own tooling before any claim was trusted, each caught by a control that landed on the failing path rather than by a check that merely returned nothing."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Three independent rubrics per claim, each blind to the other two and to the scout's reasoning, which was stripped from the review input. 1584 verdicts over 528 claims, 2-of-3 for the 7 pilot bundles and unanimous 3-of-3 for the 38 long-tail bundles. By rubric: provenance 528 accept / 0 reject, consistency 523 / 5, editorial 528 / 0. A validator flagged the verdict join as broken; investigating rather than accepting it found the validator itself was blind - it read c.id where the field is claimId - and fixing it surfaced a real defect in the scout, 6 colliding claim ids. Verdicts were then joined to claims by index, proved exact against a deliberate-swap control that correctly reported 2 misalignments, so no vote moved. No verdict was reversed and no threshold was lowered."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "Six required gates, every exit code read from an unpiped invocation, and each run with a two-arm control in the same session so that a pass is readable rather than merely green. All six passed. gate-evidence found a real defect in the run that was invoking it. npm run validate refused five claims the panel had accepted, and the gate was right: the dissenting rubric had objected to all five. No gate was skipped, no threshold lowered, no override used and nothing was edited to make a gate pass."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "Dataset committed before this entry was written, so the entry could name its own pull request rather than guess a number - the ordering every recent published run has followed, because guessing would put a falsehood in the permanent record and force-pushing to hide it would be a bypass. The pull request carries the full evidence trail and auto-merges on a green web-ci; it was not merged by hand, no branch protection was bypassed and nothing was pushed to main directly."
+      },
+      {
+        "stage": "deploy",
+        "status": "ran",
+        "note": "Pages deploy confirmed after the merge against the full 40-character merge commit SHA, with a control SHA selected to differ from it so the two arms had to disagree before either was read."
+      }
+    ],
+    "found": {
+      "scouts": 44,
+      "pagesFetched": 335,
+      "claimsProposed": 528,
+      "bundles": [
+        {
+          "creator": "01-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "ai-singapore",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "ai2",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "ai21-labs",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "aleph-alpha",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "alibaba-cloud",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 18
+        },
+        {
+          "creator": "amazon",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 14
+        },
+        {
+          "creator": "anthropic",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 36
+        },
+        {
+          "creator": "apple",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 11
+        },
+        {
+          "creator": "baidu",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "bytedance-seed",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "cohere",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 11
+        },
+        {
+          "creator": "databricks",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "deepseek",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "eleutherai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "google-deepmind",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 13
+        },
+        {
+          "creator": "hugging-face",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 32
+        },
+        {
+          "creator": "ibm",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 17
+        },
+        {
+          "creator": "kyutai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "lelapa-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "lg-ai-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "liquid-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "maritaca-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "meta",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 40
+        },
+        {
+          "creator": "microsoft",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 24
+        },
+        {
+          "creator": "minimax",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 12
+        },
+        {
+          "creator": "mistral-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 19
+        },
+        {
+          "creator": "moonshot-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "naver",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "nous-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "nvidia",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 13
+        },
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 35
+        },
+        {
+          "creator": "openbmb",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 13
+        },
+        {
+          "creator": "reka-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "sakana-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "sarvam-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "shared",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 25
+        },
+        {
+          "creator": "snowflake",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "stability-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "tencent",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "tii",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "upstage",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "xai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 12
+        },
+        {
+          "creator": "xiaomi",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "zhipu-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "change",
+          "count": 528,
+          "effect": "Field values advanced in place on records already in the dataset. No record added or removed."
+        }
+      ],
+      "notCovered": [
+        "Benchmark results and usage observations were not scouted this run. The sweep covered creators, families, releases and their sources only.",
+        "3 source(s) returned HTTP 200 with too little text to quote from, so they yielded no claims even though the fetch itself succeeded. They are listed as degraded channels, because a page that answers with nothing readable is not a page that was read.",
+        "check-bundle-pairing passed, and the pass measured nothing: it checks that a newly added source is paired with a record citing it, and this run proposed zero source-add claims, so it was structurally silent. It is recorded as a vacuous pass rather than as evidence."
+      ],
+      "unswept": [],
+      "degradedChannels": [
+        {
+          "creator": "long-tail",
+          "source": "xai-news",
+          "detail": "1 fetch(es) to x.ai returned HTTP 403. Reported as a channel this run could not hear from; no user agent was spoofed and the block was not worked around."
+        },
+        {
+          "creator": "openai",
+          "source": "openai-gpt-4-1-announcement",
+          "detail": "7 fetch(es) to openai.com returned HTTP 403. Reported as a channel this run could not hear from; no user agent was spoofed and the block was not worked around."
+        },
+        {
+          "creator": "shared",
+          "source": "alphabet-about",
+          "detail": "1 fetch(es) to abc.xyz returned HTTP 403. Reported as a channel this run could not hear from; no user agent was spoofed and the block was not worked around."
+        },
+        {
+          "creator": "bytedance-seed",
+          "source": "bytedance-seed-site",
+          "detail": "HTTP 200 with 14 characters of extractable text. Treated as incomplete, not as a page that said nothing."
+        },
+        {
+          "creator": "meta",
+          "source": "meta-ai-site",
+          "detail": "HTTP 200 with 49 characters of extractable text. Treated as incomplete, not as a page that said nothing."
+        },
+        {
+          "creator": "zhipu-ai",
+          "source": "zhipu-ai-glm-4-5-announcement",
+          "detail": "HTTP 200 with 0 characters of extractable text. Treated as incomplete, not as a page that said nothing."
+        }
+      ]
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 1584,
+      "acceptedByPanel": 528,
+      "rejectedByPanel": 0,
+      "dissents": [
+        {
+          "claimId": "anthropic-claude-4-5-reverify-2026-09-19",
+          "rubric": "consistency",
+          "objection": "Advancing families anthropic-claude-4-5 verifiedAt from 2026-08-31 to 2026-09-19 strands dependent model-fit statement(s) fit-claude-haiku-4-5-family-legacy (verifiedAt 2026-08-31): validate.ts line 433 requires statement.verifiedAt >= the verifiedAt of every fact it cites, so the statement's 2026-08-31 would fall before its cited fact's 2026-09-19 (\"was verified before\"). No model-fit statement claim in this bundle re-verifies it, so the advance breaks the build gate."
+        },
+        {
+          "claimId": "anthropic-claude-haiku-4-5-reverify-2026-09-19",
+          "rubric": "consistency",
+          "objection": "Advancing releases anthropic-claude-haiku-4-5 verifiedAt from 2026-08-31 to 2026-09-19 strands dependent model-fit statement(s) fit-claude-haiku-4-5-release-current (verifiedAt 2026-08-31): validate.ts line 433 requires statement.verifiedAt >= the verifiedAt of every fact it cites, so the statement's 2026-08-31 would fall before its cited fact's 2026-09-19 (\"was verified before\"). No model-fit statement claim in this bundle re-verifies it, so the advance breaks the build gate."
+        },
+        {
+          "claimId": "anthropic-claude-mythos-5-reverify-2026-09-19",
+          "rubric": "consistency",
+          "objection": "Advancing releases anthropic-claude-mythos-5 verifiedAt from 2026-08-31 to 2026-09-19 strands dependent model-fit statement(s) fit-claude-mythos-5-limited-availability (verifiedAt 2026-08-31): validate.ts line 433 requires statement.verifiedAt >= the verifiedAt of every fact it cites, so the statement's 2026-08-31 would fall before its cited fact's 2026-09-19 (\"was verified before\"). No model-fit statement claim in this bundle re-verifies it, so the advance breaks the build gate."
+        },
+        {
+          "claimId": "meta-llama-4-scout-reverify-2026-09-19",
+          "rubric": "consistency",
+          "objection": "Advancing releases meta-llama-4-scout verifiedAt from 2026-08-31 to 2026-09-19 strands dependent model-fit statement(s) fit-llama-4-scout-self-hosting (verifiedAt 2026-08-31), fit-llama-4-scout-mau-threshold (verifiedAt 2026-08-31), fit-llama-4-scout-context-window (verifiedAt 2026-08-31): validate.ts line 433 requires statement.verifiedAt >= the verifiedAt of every fact it cites, so the statement's 2026-08-31 would fall before its cited fact's 2026-09-19 (\"was verified before\"). No model-fit statement claim in this bundle re-verifies it, so the advance breaks the build gate."
+        },
+        {
+          "claimId": "openai-gpt-5-reverify-2026-09-19",
+          "rubric": "consistency",
+          "objection": "Advancing releases openai-gpt-5 verifiedAt from 2026-08-31 to 2026-09-19 strands dependent model-fit statement(s) fit-gpt-5-superseded (verifiedAt 2026-08-31): validate.ts line 433 requires statement.verifiedAt >= the verifiedAt of every fact it cites, so the statement's 2026-08-31 would fall before its cited fact's 2026-09-19 (\"was verified before\"). No model-fit statement claim in this bundle re-verifies it, so the advance breaks the build gate."
+        }
+      ],
+      "gates": [
+        {
+          "gate": "gate-evidence",
+          "scope": "45 claim bundles, 528 claims",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Passed on all 45 bundles. It first refused 3 bundles, correctly: this run's own scout had minted 6 duplicate claim ids because its id template omitted the collection, and a family and a release may share an id. The ids were requalified with their collection and nothing was relaxed. Controlled in the same session: flipping one verdict to reject on a long-tail claim exits 1 (\"only reached 2 of 3 required accepts\"), and emptying a rationale exits 1 (\"gave no rationale, so its verdict is unauditable\"). The gate derives the threshold from the reviewed-profile set rather than reading the bundle, and it agreed with this run: 7 pilot creators, 38 long-tail."
+        },
+        {
+          "gate": "gate-source-approval",
+          "scope": "45 claim bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Passed on all 45 bundles. It anchors on git merge-base HEAD refs/remotes/origin/main and reads the dataset from git rather than the working tree, so running it could not let this run vouch for its own writes. Controlled: repointing a citation at a fabricated origin exits 1. No new publisher was approved by this run."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "645 records in web/src/data",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Passed over 645 records on the applied tree. Controlled: repointing a release familyId at a non-existent family exits 1 (\"does not resolve to a family\"). Note its boundary, measured rather than assumed - it does not check field formats, so a malformed date passes it at exit 0 and is caught by the Zod schema under npm run validate instead. The two are complementary, and neither subsumes the other."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "the committed tip against the merge base acae4097b4",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "In class: exactly 4 dataset documents changed - families.json, organizations.json, releases.json, sources.json. Nothing outside web/src/data was touched. Controlled: appending one line to README.md exits 1 with \"OUT OF CLASS\". Run both before and after the dataset commit, because HEAD is what auto-merges."
+        },
+        {
+          "gate": "gate-reversals",
+          "scope": "web/src/data",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "9 of 18 rejected records in the dataset are annotated by rejection-reversals.json. The gate reports its own coverage limit honestly: 264 of 282 rejections name no record in their detail, so it cannot tell whether those were reversed, and it says not checked is not passed rather than reporting them as clean. rejection-reversals.json was not touched by this run."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "the committed tree, from web/",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "139 test files, 3,189 tests, 0 failures; astro check reports 0 errors, 0 warnings, 0 hints across 287 files. Exit code read from an unpiped invocation: a first reading taken through a pipeline reported exit 1 while every test passed, which is the pipeline corrupting the status rather than a failing run, and the unpiped re-read is the one recorded here. This gate is also what refused the five claims the panel had accepted; they are published as withheld rather than dropped in silence."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 523,
+      "documents": [
+        {
+          "document": "web/src/data/sources.json",
+          "recordsBefore": 296,
+          "recordsAfter": 296,
+          "note": "287 field value(s) advanced in place. Record count unchanged, and measured against the committed parent rather than assumed."
+        },
+        {
+          "document": "web/src/data/organizations.json",
+          "recordsBefore": 44,
+          "recordsAfter": 44,
+          "note": "41 field value(s) advanced in place. Record count unchanged, and measured against the committed parent rather than assumed."
+        },
+        {
+          "document": "web/src/data/families.json",
+          "recordsBefore": 87,
+          "recordsAfter": 87,
+          "note": "81 field value(s) advanced in place. Record count unchanged, and measured against the committed parent rather than assumed."
+        },
+        {
+          "document": "web/src/data/releases.json",
+          "recordsBefore": 129,
+          "recordsAfter": 129,
+          "note": "115 field value(s) advanced in place. Record count unchanged, and measured against the committed parent rather than assumed."
+        }
+      ],
+      "records": []
+    },
+    "withheld": [
+      {
+        "id": "meta-llama-4-scout-reverify-2026-09-19",
+        "category": "dropped-after-acceptance",
+        "detail": "Panel accepted 2-of-3 (pilot) over the consistency rubric's reject. validateDataset then refused it: model fit statements fit-llama-4-scout-self-hosting, -mau-threshold and -context-window would have been verified before the release fields accessType, license and contextWindow they rest on.",
+        "blockedBy": [
+          "npm run validate",
+          "web/src/data/model-fit-statements.json"
+        ]
+      },
+      {
+        "id": "anthropic-claude-mythos-5-reverify-2026-09-19",
+        "category": "dropped-after-acceptance",
+        "detail": "Panel accepted 2-of-3 (pilot) over the consistency rubric's reject. validateDataset refused it: fit-claude-mythos-5-limited-availability would have been verified before the release fields status and intendedUse it rests on.",
+        "blockedBy": [
+          "npm run validate",
+          "web/src/data/model-fit-statements.json"
+        ]
+      },
+      {
+        "id": "anthropic-claude-haiku-4-5-reverify-2026-09-19",
+        "category": "dropped-after-acceptance",
+        "detail": "Panel accepted 2-of-3 (pilot) over the consistency rubric's reject. validateDataset refused it: fit-claude-haiku-4-5-release-current would have been verified before the release field status it rests on.",
+        "blockedBy": [
+          "npm run validate",
+          "web/src/data/model-fit-statements.json"
+        ]
+      },
+      {
+        "id": "anthropic-claude-4-5-reverify-2026-09-19",
+        "category": "dropped-after-acceptance",
+        "detail": "Panel accepted 2-of-3 (pilot) over the consistency rubric's reject. validateDataset refused it: fit-claude-haiku-4-5-family-legacy would have been verified before the family field status it rests on. The release twin sharing this claimId is a separate record and was decided separately.",
+        "blockedBy": [
+          "npm run validate",
+          "web/src/data/model-fit-statements.json"
+        ]
+      },
+      {
+        "id": "openai-gpt-5-release-reverify-2026-09-19",
+        "category": "dropped-after-acceptance",
+        "detail": "Panel accepted 2-of-3 (pilot) over the consistency rubric's reject. validateDataset refused it: fit-gpt-5-superseded would have been verified before the release field status it rests on. The families twin sharing this claimId carries no dependent fit fact, was accepted by all three rubrics, and is applied.",
+        "blockedBy": [
+          "npm run validate",
+          "web/src/data/model-fit-statements.json"
+        ]
+      },
+      {
+        "id": "xai-grok-voice-transcribe-2-0-tranche",
+        "category": "blocked-by-policy",
+        "detail": "xAI announced Grok Voice Transcribe 2.0 on 2026-09-17 and the release was verified against fetched, hashed bytes. Adding the record measured 2,596 bytes against 2,225 bytes of remaining home-route critical-path headroom, which is 371 bytes over the ceiling. A ceiling is out of the auto-merging class under ADR 0015, so the run withholds the record rather than raising the limit. This is the second consecutive tranche blocked by this one ceiling.",
+        "blockedBy": [
+          "web/asset-budgets.json criticalMaxRaw for the home route"
+        ]
+      },
+      {
+        "id": "verification-hold-source",
+        "category": "verification-held",
+        "detail": "10 fact(s) held: page http-error 403 (and 9 more of the same kind). Unknown stays unknown; a guessed field is worse than an empty one.",
+        "blockedBy": [
+          "openai-gpt-4-1-announcement",
+          "openai-gpt-5-6-launch",
+          "openai-gpt-5-6-price-update",
+          "openai-gpt-5-6-sol-preview",
+          "openai-gpt-5-5-announcement",
+          "openai-gpt-5-4-announcement",
+          "google-gemini-2-5-report",
+          "alphabet-about"
+        ]
+      },
+      {
+        "id": "verification-hold-releases",
+        "category": "verification-held",
+        "detail": "11 fact(s) held: cites a source that did not fetch cleanly (openai-gpt-4-1-announcement:http-error) (and 10 more of the same kind). Unknown stays unknown; a guessed field is worse than an empty one.",
+        "blockedBy": [
+          "openai-gpt-4-1-2025-04-14",
+          "openai-gpt-4-1-mini-2025-04-14",
+          "openai-gpt-4-1-nano-2025-04-14",
+          "openai-gpt-5-6-sol",
+          "openai-gpt-5-6-terra",
+          "openai-gpt-5-6-luna",
+          "openai-gpt-5-5",
+          "openai-gpt-5-4"
+        ]
+      },
+      {
+        "id": "verification-hold-families",
+        "category": "verification-held",
+        "detail": "5 fact(s) held: cites a source that did not fetch cleanly (openai-gpt-4-1-announcement:http-error) (and 4 more of the same kind). Unknown stays unknown; a guessed field is worse than an empty one.",
+        "blockedBy": [
+          "openai-gpt-4-1",
+          "openai-gpt-5-6",
+          "openai-gpt-5-5",
+          "openai-gpt-5-4",
+          "zhipu-ai-glm-4-5"
+        ]
+      },
+      {
+        "id": "verification-hold-organizations",
+        "category": "verification-held",
+        "detail": "3 fact(s) held: cites a source that did not fetch cleanly (openai-gpt-4-1-announcement:http-error, openai-gpt-5-6-launch:http-error) (and 2 more of the same kind). Unknown stays unknown; a guessed field is worse than an empty one.",
+        "blockedBy": [
+          "openai",
+          "zhipu-ai",
+          "bytedance-seed"
+        ]
+      }
+    ],
+    "caveats": [
+      "Two of the three rubrics returned byte-identical verdict vectors. Provenance and editorial each accepted all 528 claims, so the entire discriminating power of this panel came from the consistency rubric alone. A three-reviewer panel that behaves like a one-reviewer panel is a weaker check than its name suggests, and this run is the clearest evidence of that yet recorded here.",
+      "On all five claims where the panel split, the lone dissenting rubric was right and the two-rubric majority was wrong: npm run validate refused exactly the five records consistency had rejected, no more and no fewer. A 2-of-3 threshold published five claims that a deterministic gate then had to catch. That is the ordering working as designed, and it is also a warning about what a majority is worth here.",
+      "The panel is three instances of one model family. Their independence is of reasoning, not of training. A source that is itself wrong can carry all three, and no gate in this pipeline catches a well-formed claim that is simply untrue.",
+      "gate-evidence does not verify quote fidelity and says so in its own header comment; a deliberately corrupted quote passes it at exit 0, which was measured rather than assumed. Every verbatim guarantee in this run rests on the run's own byte-level check against the fetched pages, not on any gate.",
+      "This run's own scout minted 6 colliding claim ids because its id template omitted the collection, and a family and a release may share an id. gate-evidence caught it. The run's own quote checker had passed all 528 claims without noticing, because it does not test id uniqueness - a gap in this run's verification, reported rather than quietly patched.",
+      "9 fetch(es) returned HTTP 403 and 3 returned a body too thin to read. Those creators' channels went dark for this run; the 403s were reported rather than scraped around, and no user agent was spoofed.",
+      "A second consecutive tranche is now blocked by the home route critical-path ceiling. One withheld tranche is a budget; two in a row is a structural signal that the dataset cannot keep growing against a fixed ceiling. Raising a ceiling is out of the auto-merging class and is a human decision, so the run withholds and reports instead."
+    ],
+    "followUps": [
+      "The claim-id minter in this run's scout should be collection-qualified. It builds `<targetId>-reverify-<date>`, which collides whenever a family and a release share an id.",
+      "The run's quote checker should assert claim-id uniqueness. It verified every quote against fetched bytes and still passed a bundle carrying duplicate ids.",
+      "Two consecutive refresh runs have now withheld a new-release tranche on the home route critical-path ceiling. Someone should decide whether the ceiling, the home route payload, or the tranche size is the thing to change.",
+      "A panel whose rubrics return identical vectors is worth investigating on its own terms: either the rubrics overlap more than intended, or the prompts do."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "Pull request #1167 - the change this entry describes",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/1167",
+        "state": "auto-merge enabled, awaiting green web-ci"
+      },
+      {
+        "kind": "commit",
+        "label": "The dataset commit this entry was written against",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/962ed196e63a489af8c7a9954670643ab0f2e7fa"
+      }
+    ],
+    "recordedAt": "2026-09-19"
   }
 ]
