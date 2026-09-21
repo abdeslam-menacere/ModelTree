@@ -466,7 +466,7 @@
       "anthropic-fable-5-docs",
       "anthropic-api-release-notes"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "anthropic-claude-mythos-5",
@@ -556,7 +556,7 @@
       "anthropic-opus-5-announcement",
       "anthropic-opus-5-docs"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "anthropic-claude-haiku-4-5",
@@ -648,7 +648,7 @@
       "google-gemini-deprecations",
       "google-gemini-pro-page"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "google-gemini-3-1-flash-lite",
@@ -696,7 +696,7 @@
       "google-gemini-3-1-flash-lite-platform-docs",
       "google-gemini-deprecations"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "google-gemini-3-5-flash-lite",
@@ -744,7 +744,7 @@
       "google-gemini-3-5-flash-lite-platform-docs",
       "google-gemini-deprecations"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "google-gemini-2-5-pro",
@@ -792,7 +792,7 @@
       "google-gemini-deprecations",
       "google-gemini-2-5-report"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "google-gemini-2-5-flash",
@@ -840,7 +840,7 @@
       "google-gemini-deprecations",
       "google-gemini-2-5-report"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "meta-llama-4-scout",
@@ -959,7 +959,7 @@
       "meta-llama-4-maverick-original-model-card",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "meta-llama-3-1-405b",
@@ -1010,7 +1010,7 @@
       "meta-llama-3-1-license",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "meta-llama-3-3-70b",
@@ -1060,7 +1060,7 @@
       "meta-llama-3-3-license",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "openai-gpt-5-6-cyber",
@@ -1104,7 +1104,7 @@
       "openai-news-rss",
       "openai-gpt-daybreak-red-docs"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "openai-gpt-5-1",
@@ -1147,7 +1147,7 @@
     "sourceIds": [
       "openai-gpt-5-1-docs"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "openai-gpt-5-2",
@@ -1190,7 +1190,7 @@
     "sourceIds": [
       "openai-gpt-5-2-docs"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "openai-gpt-5-3-codex",
@@ -1232,7 +1232,7 @@
       "openai-gpt-5-3-codex-docs",
       "openai-news-rss"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "openai-gpt-image-2",
@@ -1315,7 +1315,7 @@
       "openai-gpt-6-astra-docs",
       "openai-news-rss"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "anthropic-claude-sonnet-5",
@@ -1360,7 +1360,7 @@
       "anthropic-sonnet-5-docs",
       "anthropic-sonnet-5-announcement"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "google-gemini-3-5-flash",
@@ -1407,7 +1407,7 @@
       "google-gemini-3-5-flash-platform-docs",
       "google-gemini-deprecations"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "google-gemini-3-6-flash",
@@ -1455,7 +1455,7 @@
       "google-gemini-deprecations",
       "google-gemini-models-reference"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "google-gemini-3-7-flash",
@@ -1502,7 +1502,7 @@
       "google-gemini-3-7-flash-platform-docs",
       "google-gemini-deprecations"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "meta-muse-spark",
@@ -1541,7 +1541,7 @@
     "sourceIds": [
       "meta-muse-spark-announcement"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "meta-muse-spark-1-1",
@@ -1582,7 +1582,7 @@
     "sourceIds": [
       "meta-muse-spark-1-1-announcement"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "meta-muse-image",
@@ -1619,7 +1619,7 @@
     "sourceIds": [
       "meta-muse-image-video-announcement"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "meta-muse-video",
@@ -1657,7 +1657,7 @@
     "sourceIds": [
       "meta-muse-image-video-announcement"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "meta-llama-3-2-1b",
@@ -1709,7 +1709,7 @@
       "meta-llama-collection",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "meta-llama-3-2-3b",
@@ -1761,7 +1761,7 @@
       "meta-llama-collection",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "meta-llama-3-2-11b-vision",
@@ -1815,7 +1815,7 @@
       "meta-llama-collection",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "meta-llama-3-2-90b-vision",
@@ -1869,7 +1869,7 @@
       "meta-llama-collection",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "xai-grok-4-6",
@@ -1914,7 +1914,7 @@
       "xai-grok-4-6-docs",
       "xai-models-docs"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "xai-grok-4-5",
@@ -1961,7 +1961,7 @@
       "xai-grok-4-5-docs",
       "xai-models-docs"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "mistral-large-3-675b-instruct",
@@ -2013,7 +2013,7 @@
       "mistral-large-3-model-card",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "mistral-ministral-3-8b-instruct",
@@ -2063,7 +2063,7 @@
       "mistral-ministral-3-8b-model-card",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "mistral-devstral-2-123b-instruct",
@@ -2113,7 +2113,7 @@
       "mistral-devstral-2-123b-model-card",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "mistral-devstral-small-2-24b-instruct",
@@ -2165,7 +2165,7 @@
       "mistral-devstral-small-2-24b-model-card",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "mistral-small-4-119b",
@@ -2217,7 +2217,7 @@
       "mistral-small-4-model-card",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "deepseek-v4-pro",
@@ -2270,7 +2270,7 @@
       "hugging-face-deepseek-v4-pro-hub-record",
       "osi-license-mit"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "deepseek-v4-flash",
@@ -2323,7 +2323,7 @@
       "hugging-face-deepseek-v4-flash-hub-record",
       "osi-license-mit"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "deepseek-v3-2",
@@ -2369,7 +2369,7 @@
       "hugging-face-deepseek-v3-2-hub-record",
       "osi-license-mit"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "anthropic-claude-opus-4-6",
@@ -2409,7 +2409,7 @@
       "anthropic-opus-4-6-announcement",
       "anthropic-model-deprecations"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "anthropic-claude-opus-4-7",
@@ -2450,7 +2450,7 @@
       "anthropic-opus-4-7-announcement",
       "anthropic-model-deprecations"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "anthropic-claude-opus-4-8",
@@ -2494,7 +2494,7 @@
       "anthropic-opus-4-8-docs",
       "anthropic-model-deprecations"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "anthropic-claude-fable-5-1",
@@ -2542,7 +2542,7 @@
       "anthropic-fable-5-1-announcement",
       "anthropic-api-release-notes"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "anthropic-claude-mythos-5-1",
@@ -2588,7 +2588,7 @@
       "anthropic-fable-5-1-announcement",
       "anthropic-api-release-notes"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "alibaba-qwen3-8-2-4t-a95b",
@@ -2638,7 +2638,7 @@
       "qwen3-8-repository",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "alibaba-qwen3-8-27b",
@@ -2690,7 +2690,7 @@
       "qwen3-8-repository",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "alibaba-qwen3-8-flash-next",
@@ -2741,7 +2741,7 @@
       "qwen3-8-flash-next-license",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "microsoft-mai-thinking-1",
@@ -2782,7 +2782,7 @@
     "sourceIds": [
       "microsoft-mai-thinking-1-announcement"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "microsoft-fara-1-5-27b",
@@ -2829,7 +2829,7 @@
       "microsoft-fara-1-5-27b-model-card",
       "osi-license-mit"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "microsoft-fara-1-5-4b",
@@ -2877,7 +2877,7 @@
       "hugging-face-fara-1-5-4b-hub-record",
       "osi-license-mit"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "microsoft-fara-1-5-9b",
@@ -2925,7 +2925,7 @@
       "hugging-face-fara-1-5-9b-hub-record",
       "osi-license-mit"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "amazon-nova-2-sonic",
@@ -2964,7 +2964,7 @@
       "amazon-nova-2-sonic-announcement",
       "amazon-nova-models-page"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "cohere-command-a-plus-05-2026",
@@ -3017,7 +3017,7 @@
       "cohere-command-a-plus-announcement",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "ai2-olmo-2-7b",
@@ -3064,7 +3064,7 @@
       "ai2-olmo-2-announcement",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "tii-falcon-h1-34b-instruct",
@@ -3110,7 +3110,7 @@
       "tii-falcon-h1-announcement",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "nvidia-nemotron-4-340b-base",
@@ -3157,7 +3157,7 @@
       "nvidia-nemotron-4-340b-announcement",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "ai21-labs-jamba-v0-1",
@@ -3205,7 +3205,7 @@
       "ai21-labs-jamba-paper",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-18"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "zhipu-ai-glm-4-5-air",
@@ -3303,7 +3303,7 @@
       "hugging-face-kimi-k2-instruct-hub-record",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "eleutherai-pythia-12b",
@@ -3348,7 +3348,7 @@
       "eleutherai-pythia-repository",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "lg-ai-research-exaone-3-5-7-8b-instruct",
@@ -3394,7 +3394,7 @@
       "lg-ai-research-exaone-3-5-repository",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "lg-ai-research-exaone-4-0-32b",
@@ -3438,7 +3438,7 @@
       "lgai-exaone-4-0-repository",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "snowflake-arctic-instruct",
@@ -3485,7 +3485,7 @@
       "snowflake-arctic-repository",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "upstage-solar-pro-preview-instruct",
@@ -3530,7 +3530,7 @@
       "upstage-solar-pro-preview-model-card",
       "osi-license-mit"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "ibm-granite-4-2-30b",
@@ -3577,7 +3577,7 @@
       "ibm-granite-4-2-technical-blog",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "baidu-ernie-4-5-300b-a47b",
@@ -3625,7 +3625,7 @@
       "hugging-face-ernie-4-5-300b-hub-record",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "tencent-hunyuan-video-t2v",
@@ -3667,7 +3667,7 @@
       "tencent-hunyuan-community-license",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "bytedance-seed-oss-36b-instruct",
@@ -3714,7 +3714,7 @@
       "bytedance-seed-oss-36b-instruct-model-card",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "stability-ai-stable-diffusion-3-5-large",
@@ -3759,7 +3759,7 @@
       "stability-ai-sd-3-5-large-model-card",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "databricks-dbrx-instruct",
@@ -3806,7 +3806,7 @@
       "databricks-open-model-license",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "minimax-m1-40k",
@@ -3854,7 +3854,7 @@
       "minimax-m1-repository",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "minimax-m1-80k",
@@ -3902,7 +3902,7 @@
       "minimax-m1-repository",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "apple-openelm-3b-instruct",
@@ -3950,7 +3950,7 @@
       "hugging-face-openelm-3b-instruct-hub-record",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "hugging-face-smollm3-3b",
@@ -3998,7 +3998,7 @@
       "hugging-face-smollm3-hub-record",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "01-ai-yi-1-5-34b-chat",
@@ -4042,7 +4042,7 @@
       "hugging-face-yi-1-5-34b-chat-hub-record",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "minimax-text-01-456b",
@@ -4089,7 +4089,7 @@
       "hugging-face-minimax-text-01-hub-record",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "sakana-ai-evollm-jp-v1-7b",
@@ -4136,7 +4136,7 @@
       "hugging-face-evollm-jp-hub-record",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "sarvam-ai-sarvam-m-v1",
@@ -4184,7 +4184,7 @@
       "hugging-face-sarvam-m-hub-record",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "naver-hyperclova-x-seed-text-instruct-1-5b",
@@ -4231,7 +4231,7 @@
       "naver-hyperclova-x-seed-license",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "aleph-alpha-pharia-1-llm-7b-control",
@@ -4276,7 +4276,7 @@
       "aleph-alpha-pharia-1-llm-7b-control-model-card",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "reka-flash-3-1",
@@ -4322,7 +4322,7 @@
       "reka-flash-3-1-model-card",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "nous-hermes-4-14b",
@@ -4368,7 +4368,7 @@
       "nous-hermes-4-14b-model-card",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "liquid-lfm2-1-2b",
@@ -4413,7 +4413,7 @@
       "liquid-lfm2-1-2b-model-card",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "xiaomi-mimo-7b-rl-0530",
@@ -4459,7 +4459,7 @@
       "xiaomi-mimo-7b-rl-0530-model-card",
       "osi-license-mit"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "ai-singapore-llama-sea-lion-v3-8b",
@@ -4505,7 +4505,7 @@
       "ai-singapore-llama-sea-lion-v3-8b-model-card",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "01-ai-yi-34b-chat",
@@ -4548,7 +4548,7 @@
       "01-ai-yi-34b-chat-model-card",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "alibaba-qwen3-5-397b-a17b",
@@ -4600,7 +4600,7 @@
       "qwen3-8-repository",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "alibaba-qwen3-6-35b-a3b",
@@ -4652,7 +4652,7 @@
       "qwen3-8-repository",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "eleutherai-gpt-neo-2-7b",
@@ -4698,7 +4698,7 @@
       "eleutherai-gpt-neo-repository",
       "osi-license-mit"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "ibm-granite-4-0-h-small",
@@ -4746,7 +4746,7 @@
       "ibm-granite-4-0-announcement",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "ibm-granite-4-0-h-tiny",
@@ -4794,7 +4794,7 @@
       "ibm-granite-4-0-announcement",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "kyutai-moshiko-pytorch-bf16",
@@ -4839,7 +4839,7 @@
       "kyutai-site-home",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "lelapa-ai-inkubalm-0-4b",
@@ -4884,7 +4884,7 @@
       "hugging-face-lelapa-inkubalm-0-4b-hub-record",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "maritaca-ai-sabia-7b",
@@ -4928,7 +4928,7 @@
       "maritaca-ai-about",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "openbmb-minicpm5-1b",
@@ -4977,7 +4977,7 @@
       "hugging-face-openbmb-minicpm5-1b-hub-record",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "openbmb-minicpm5-2b",
@@ -5026,7 +5026,7 @@
       "hugging-face-openbmb-minicpm5-2b-hub-record",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "nvidia-nemotron-nano-9b-v2",
@@ -5069,7 +5069,7 @@
       "hugging-face-nemotron-nano-9b-v2-hub-record",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "tencent-hunyuanimage-3-0-standard",
@@ -5115,7 +5115,7 @@
       "tencent-hunyuanimage-3-0-model-card",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "tii-falcon-180b",
@@ -5160,7 +5160,7 @@
       "tii-falcon-180b-model-card",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "ai2-molmo-7b-d",
@@ -5204,7 +5204,7 @@
       "ai2-molmo-7b-d-model-card",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "stability-ai-svd-img2vid-xt",
@@ -5246,7 +5246,7 @@
       "stability-ai-svd-xt-model-card",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "nvidia-cosmos-1-0-diffusion-7b-text2world",
@@ -5288,7 +5288,7 @@
       "nvidia-cosmos-diffusion-7b-model-card",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "apple-fastvlm-7b",
@@ -5332,7 +5332,7 @@
       "apple-fastvlm-announcement",
       "osi-license-index"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "zhipu-ai-cogvideox-2b",
@@ -5375,7 +5375,7 @@
       "zhipu-ai-cogvideox-2b-model-card",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "bytedance-seed-oss-36b-base",
@@ -5423,7 +5423,7 @@
       "bytedance-seed-oss-36b-base-model-card",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "openbmb-minicpm-v-4-5",
@@ -5474,7 +5474,7 @@
       "hugging-face-openbmb-minicpm-v-4-5-hub-record",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "openbmb-minicpm-v-4-6",
@@ -5525,7 +5525,7 @@
       "hugging-face-openbmb-minicpm-v-4-6-hub-record",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "cohere-rerank-v3-5",
@@ -5563,7 +5563,7 @@
       "cohere-rerank-docs",
       "cohere-rerank-v3-5-changelog"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "amazon-titan-text-express",
@@ -5598,7 +5598,7 @@
     "sourceIds": [
       "amazon-titan-text-express-lite-announcement"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "ai21-labs-jurassic-1-jumbo",
@@ -5635,7 +5635,7 @@
     "sourceIds": [
       "ai21-labs-jurassic-1-announcement"
     ],
-    "verifiedAt": "2026-09-05"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "moonshot-ai-kimi-audio-7b-instruct",
@@ -5680,7 +5680,7 @@
       "moonshot-ai-kimi-audio-model-card",
       "osi-license-mit"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "microsoft-mai-transcribe-2",
@@ -5715,7 +5715,7 @@
       "microsoft-mai-transcribe-2-announcement",
       "microsoft-ai-models-page"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "microsoft-mai-image-2-6",
@@ -5751,7 +5751,7 @@
       "microsoft-mai-image-2-6-announcement",
       "microsoft-ai-models-page"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "microsoft-mai-code-1-1-flash",
@@ -5786,7 +5786,7 @@
       "microsoft-mai-code-1-1-flash-announcement",
       "microsoft-ai-models-page"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "microsoft-mai-voice-2",
@@ -5822,7 +5822,7 @@
       "microsoft-mai-voice-2-announcement",
       "microsoft-ai-models-page"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "ibm-granite-4-2-8b",
@@ -5869,7 +5869,7 @@
       "ibm-granite-4-2-technical-blog",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "ibm-granite-4-2-3b",
@@ -5916,7 +5916,7 @@
       "ibm-granite-4-2-technical-blog",
       "osi-approved-licenses"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "openai-gpt-live-1",
@@ -5956,6 +5956,6 @@
       "openai-news-rss",
       "openai-gpt-live-1-docs"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   }
 ]

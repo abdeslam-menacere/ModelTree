@@ -13715,5 +13715,575 @@
       }
     ],
     "recordedAt": "2026-09-19"
+  },
+  {
+    "id": "2026-09-21-2f9a3a",
+    "title": "Verification dates refreshed across 45 creator bundles; four accepted releases held at the asset budget",
+    "ranOn": "2026-09-21",
+    "outcome": "published",
+    "summary": "A full-catalogue pass: 45 bundles scouted from primary sources, 325 pages fetched and hashed, 530 claims put to a three-rubric panel, and 526 applied. Every applied claim advances a verification date in place against freshly fetched evidence, so the dataset gained no record and lost none. Four panel-accepted claims adding the two GPT-Image-2.5 releases were held back rather than applied, because landing them breaches the home page asset budget and repairing that would mean editing a file outside the class this run is allowed to touch.",
+    "scope": "Every creator in the catalogue. No creator was skipped, so found.unswept is empty; the eight bundles whose discovery channels answered 403 were still scouted through their other catalogued sources.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Trunk anchor resolved to 32fae15cba0b9884d18935353f84fc9b681627b5, reflog-dated 2026-09-19 08:43:32 -0400, and re-read against the live remote at report time. Six open pull requests, none touching web/src/data."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "325 pages fetched, 316 returning usable bytes; each stored with a sha256 taken at fetch time and every quote sliced back out of those bytes. A coverage gap was found by audit rather than by a gate: eight publishers carry no organizationId, so 25 fetched sources initially belonged to no bundle. A 45th shared long-tail bundle now covers them."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "1590 verdicts from three rubrics, each blind to the others and to the scout's reasoning. Certified against a seeded 8-claim control before the real tally was read, because a sound panel and a rubber-stamping one produce identical all-accept tallies."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "Nine checks, every exit code read unpiped, each with a control that came back the other way. Exit 2 was treated as a failure throughout and no gate was skipped, overridden or edited to pass."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "526 claims applied across four documents as 526 insertions and 526 deletions, then auto-merged on a green web-ci. Four accepted claims were held back and are recorded under withheld."
+      },
+      {
+        "stage": "deploy",
+        "status": "ran",
+        "note": "The GitHub Pages deployment for the merge commit was confirmed against the full 40-character SHA, with a differing control SHA establishing that the query discriminates."
+      }
+    ],
+    "found": {
+      "scouts": 45,
+      "pagesFetched": 325,
+      "claimsProposed": 530,
+      "bundles": [
+        {
+          "creator": "01-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "ai-singapore",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "ai2",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "ai21-labs",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "aleph-alpha",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "alibaba-cloud",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 18
+        },
+        {
+          "creator": "amazon",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 14
+        },
+        {
+          "creator": "anthropic",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 33
+        },
+        {
+          "creator": "apple",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 11
+        },
+        {
+          "creator": "baidu",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "bytedance-seed",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "cohere",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 11
+        },
+        {
+          "creator": "databricks",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "deepseek",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "eleutherai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "google-deepmind",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 14
+        },
+        {
+          "creator": "hugging-face",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 32
+        },
+        {
+          "creator": "ibm",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 17
+        },
+        {
+          "creator": "kyutai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "lelapa-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "lg-ai-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "liquid-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "maritaca-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "meta",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 39
+        },
+        {
+          "creator": "microsoft",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 24
+        },
+        {
+          "creator": "minimax",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 12
+        },
+        {
+          "creator": "mistral-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 19
+        },
+        {
+          "creator": "moonshot-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "naver",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "nous-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "nvidia",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 13
+        },
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 37
+        },
+        {
+          "creator": "openbmb",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 13
+        },
+        {
+          "creator": "reka-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "sakana-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "sarvam-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "shared",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 25
+        },
+        {
+          "creator": "snowflake",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "stability-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "tencent",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "tii",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "upstage",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "xai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 11
+        },
+        {
+          "creator": "xiaomi",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "zhipu-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "change",
+          "count": 526,
+          "effect": "Verification dates advanced in place against freshly fetched, hashed evidence. Byte-neutral: each swaps one ten-character date for another."
+        },
+        {
+          "kind": "add",
+          "count": 4,
+          "effect": "New records proposed. All four were held back at the budget gate and none reached the dataset."
+        }
+      ],
+      "notCovered": [
+        "Ten of 325 fetches yielded nothing usable: nine returned HTTP 403 (seven catalogued sources plus the OpenAI and xAI announcement feeds), and zhipu-ai-glm-4-5-announcement returned HTTP 200 with zero extractable characters. Those sources kept their existing verification dates rather than being advanced on a page nobody read. Note that the 200-with-no-text case is recorded as a successful fetch by http status alone, so the usable count is 315 rather than the 316 that status suggests.",
+        "Anthropic verification dates on four records were deliberately not advanced, because advancing them would strand model-fit statements whose own verifiedAt is older, which validate.ts refuses. Recorded here rather than worked around.",
+        "Two Gemini documentation pages were served localized by content negotiation (Hindi and Portuguese). The quotes are verbatim and still identifying, but the channel was degraded and is reported as such."
+      ],
+      "unswept": [],
+      "degradedChannels": [
+        {
+          "creator": "openai",
+          "source": "openai-gpt-4-1-announcement",
+          "detail": "https://openai.com/index/gpt-4-1/ returned HTTP 403. No user agent was spoofed to work around it, so this creator's catalogued source went unread this pass."
+        },
+        {
+          "creator": "openai",
+          "source": "openai-gpt-5-6-launch",
+          "detail": "https://openai.com/index/gpt-5-6/ returned HTTP 403. No user agent was spoofed to work around it, so this creator's catalogued source went unread this pass."
+        },
+        {
+          "creator": "openai",
+          "source": "openai-gpt-5-6-price-update",
+          "detail": "https://openai.com/index/advancing-the-price-performance-frontier-with-gpt-5-6/ returned HTTP 403. No user agent was spoofed to work around it, so this creator's catalogued source went unread this pass."
+        },
+        {
+          "creator": "openai",
+          "source": "openai-gpt-5-6-sol-preview",
+          "detail": "https://openai.com/index/previewing-gpt-5-6-sol/ returned HTTP 403. No user agent was spoofed to work around it, so this creator's catalogued source went unread this pass."
+        },
+        {
+          "creator": "openai",
+          "source": "openai-gpt-5-5-announcement",
+          "detail": "https://openai.com/index/introducing-gpt-5-5/ returned HTTP 403. No user agent was spoofed to work around it, so this creator's catalogued source went unread this pass."
+        },
+        {
+          "creator": "openai",
+          "source": "openai-gpt-5-4-announcement",
+          "detail": "https://openai.com/index/introducing-gpt-5-4/ returned HTTP 403. No user agent was spoofed to work around it, so this creator's catalogued source went unread this pass."
+        },
+        {
+          "creator": "shared",
+          "source": "alphabet-about",
+          "detail": "https://abc.xyz/ returned HTTP 403. No user agent was spoofed to work around it, so this creator's catalogued source went unread this pass."
+        },
+        {
+          "creator": "zhipu-ai",
+          "source": "zhipu-ai-glm-4-5-announcement",
+          "detail": "https://z.ai/blog/glm-4.5 answered HTTP 200 with 598 bytes of markup and zero extractable characters. The fetch is recorded as ok, but a page that answers with nothing readable is not a page that was read, so nothing was verified against it."
+        },
+        {
+          "creator": "openai",
+          "source": "https://openai.com/news/ (discovery feed)",
+          "detail": "https://openai.com/news/ returned HTTP 403. No user agent was spoofed to work around it, so this creator's announcement feed went unread this pass."
+        },
+        {
+          "creator": "xai",
+          "source": "https://x.ai/news (discovery feed)",
+          "detail": "https://x.ai/news returned HTTP 403. No user agent was spoofed to work around it, so this creator's announcement feed went unread this pass."
+        }
+      ]
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 1590,
+      "acceptedByPanel": 530,
+      "rejectedByPanel": 0,
+      "dissents": [
+        {
+          "claimId": "releases-openai-gpt-image-2-5-sunburst-add-2026-09-21",
+          "rubric": "editorial",
+          "objection": "REJECT (add release): the summary imports OpenAI's verbatim first-person marketing superlative 'Our most capable model for image generation and editing' as the dataset's own unattributed characterization. This asserts a rank/winner in the dataset's phrasing (rubric: no composite score, rank, or winner in the data or phrasing) and breaks the dataset norm of converting vendor superlatives to third-person attribution or a marked quotation — the sibling live record openai-gpt-image-2 ('the current image model') and the same-run Flare add (neutral tagline) both do this correctly, making Sunburst the outlier. Fix: reword to a neutral/attributed form (e.g. drop the superlative like gpt-image-2, or 'OpenAI's catalogue lists it under Image as its most capable image model'). Naming/entity/modalities are otherwise fine."
+        }
+      ],
+      "gates": [
+        {
+          "gate": "gate-evidence",
+          "scope": "45 bundles, 530 claims",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Every claim carries a fetched page, a content hash taken at fetch time, and a quote re-sliced from those stored bytes. Controlled in the same session: an all-reject claim and a claim with no verdicts each exited 1."
+        },
+        {
+          "gate": "gate-source-approval",
+          "scope": "45 bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "All 45 agree on a single anchor matching trunk. Exactly two proposed sources run-wide, both held back, so this run approves no new source and no new publisher. An untrusted origin exited 1."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "645 records across 4 documents",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Schema, referential integrity and freshness coherence over the applied tree. Zero failures."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "committed tip against the computed merge-base",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Four changed paths, all inside web/src/data. A stray out-of-class file produced passed:false in the same session, so the pass is a reading rather than a default."
+        },
+        {
+          "gate": "gate-reversals",
+          "scope": "web/src/data",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "No field was advanced and then walked back. Baselined at exit 0 on the clean anchor tree before the change, so a non-zero afterwards would have been attributable to this run."
+        },
+        {
+          "gate": "gate-ledger",
+          "scope": "branch against the anchor",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Record counts per declared document match the diff. Ran before this entry existed and correctly failed, which is what makes the later pass readable."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "web/",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "139 test files, 3,189 tests, all passing on the committed tree."
+        },
+        {
+          "gate": "ci-preflight",
+          "scope": "repository root",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Selects the checks this diff actually triggers: web-ci, skills-ci and source-link-health-tests all passed locally."
+        },
+        {
+          "gate": "panel control",
+          "scope": "8 seeded claims through the live panel",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Four sound claims accepted 3-of-3; four planted defects rejected at both thresholds. The arms separated, so the all-accept tally above measures something rather than nothing."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 526,
+      "documents": [
+        {
+          "document": "web/src/data/sources.json",
+          "recordsBefore": 296,
+          "recordsAfter": 296,
+          "note": "288 field value(s) advanced in place. Record count unchanged, and measured against the committed parent at 32fae15cba rather than assumed."
+        },
+        {
+          "document": "web/src/data/organizations.json",
+          "recordsBefore": 44,
+          "recordsAfter": 44,
+          "note": "42 field value(s) advanced in place. Record count unchanged, and measured against the committed parent at 32fae15cba rather than assumed."
+        },
+        {
+          "document": "web/src/data/families.json",
+          "recordsBefore": 87,
+          "recordsAfter": 87,
+          "note": "81 field value(s) advanced in place. Record count unchanged, and measured against the committed parent at 32fae15cba rather than assumed."
+        },
+        {
+          "document": "web/src/data/releases.json",
+          "recordsBefore": 129,
+          "recordsAfter": 129,
+          "note": "115 field value(s) advanced in place. Record count unchanged, and measured against the committed parent at 32fae15cba rather than assumed."
+        }
+      ],
+      "records": []
+    },
+    "withheld": [
+      {
+        "id": "sources-openai-gpt-image-2-5-sunburst-docs-add-2026-09-21",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel at 3/3 (needed 2) and deliberately not applied. Applying the four GPT-Image-2.5 claims together takes the home page to 1,107,990 critical raw bytes against a 1,105,000 ceiling. Landing them needs web/asset-budgets.json widened, which is outside the ADR 0003 qualifying class and which that test forbids in its own text, so the budget decision is left to a human. Held, not rejected: the verdicts stand and the evidence is carried into a follow-up issue.",
+        "blockedBy": [
+          "web/tests/build/asset-budgets.test.ts",
+          "web/asset-budgets.json"
+        ]
+      },
+      {
+        "id": "sources-openai-gpt-image-2-5-flare-docs-add-2026-09-21",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel at 3/3 (needed 2) and deliberately not applied. Applying the four GPT-Image-2.5 claims together takes the home page to 1,107,990 critical raw bytes against a 1,105,000 ceiling. Landing them needs web/asset-budgets.json widened, which is outside the ADR 0003 qualifying class and which that test forbids in its own text, so the budget decision is left to a human. Held, not rejected: the verdicts stand and the evidence is carried into a follow-up issue.",
+        "blockedBy": [
+          "web/tests/build/asset-budgets.test.ts",
+          "web/asset-budgets.json"
+        ]
+      },
+      {
+        "id": "releases-openai-gpt-image-2-5-sunburst-add-2026-09-21",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel at 2/3 (needed 2) and deliberately not applied. Applying the four GPT-Image-2.5 claims together takes the home page to 1,107,990 critical raw bytes against a 1,105,000 ceiling. Landing them needs web/asset-budgets.json widened, which is outside the ADR 0003 qualifying class and which that test forbids in its own text, so the budget decision is left to a human. Held, not rejected: the verdicts stand and the evidence is carried into a follow-up issue.",
+        "blockedBy": [
+          "web/tests/build/asset-budgets.test.ts",
+          "web/asset-budgets.json"
+        ]
+      },
+      {
+        "id": "releases-openai-gpt-image-2-5-flare-add-2026-09-21",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel at 3/3 (needed 2) and deliberately not applied. Applying the four GPT-Image-2.5 claims together takes the home page to 1,107,990 critical raw bytes against a 1,105,000 ceiling. Landing them needs web/asset-budgets.json widened, which is outside the ADR 0003 qualifying class and which that test forbids in its own text, so the budget decision is left to a human. Held, not rejected: the verdicts stand and the evidence is carried into a follow-up issue.",
+        "blockedBy": [
+          "web/tests/build/asset-budgets.test.ts",
+          "web/asset-budgets.json"
+        ]
+      }
+    ],
+    "caveats": [
+      "A green run proves the applied dates match pages fetched today. It does not prove those pages are themselves correct, nor that a creator published something this pass missed.",
+      "All 530 claims were accepted. That tally is only readable because the seeded control separated its arms first: four planted defects were rejected at both thresholds while four sound claims passed 3-of-3.",
+      "One claim carried a recorded editorial objection and was applied anyway on a 2-of-3 pilot threshold. Raising a threshold after seeing the vote is as much a bypass as lowering it, so the dissent is published rather than acted on. It is one of the four claims held back for the unrelated budget reason.",
+      "The 25-source coverage gap was caught by an audit of my own bundling, not by any gate. No gate here checks that every fetched source reached a bundle, so a similar gap would pass unnoticed next run.",
+      "My first audit tool reported every source as unfetched because it read an id field that is named sourceId. That was a broken instrument rather than a finding, and it is recorded so the next reader does not trust a similar sweep without a control.",
+      "The home page sits at 1,102,773 raw bytes against a 1,105,000 ceiling: 2,227 bytes of headroom, 99.8% of budget. Any dataset growth at all now reddens the build, which is why four accepted claims could not land.",
+      "web/scripts/licence-identity.test.ts asserts that git status --porcelain src/data is empty, so it reddens on any uncommitted dataset edit and cannot distinguish a licence tool writing to src/data from a tree that already held refresh edits. It passes here and in CI; the ambiguity is a latent defect, not a failure this run caused."
+    ],
+    "followUps": [
+      "The four held GPT-Image-2.5 claims keep their panel verdicts and their fetched, hashed evidence. They need a human decision on the home page asset budget before they can land, and the Sunburst summary should be reworded to drop the imported first-person superlative before it does.",
+      "The home page budget has 2,227 bytes of headroom. Either the critical payload shrinks or the ceiling is revisited deliberately; the next refresh that adds a record will hit this again.",
+      "No gate asserts that every successfully fetched source reached a bundle. This run needed a hand audit to notice 25 that had not."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "Pull request #1171 - the change this entry describes",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/1171",
+        "state": "auto-merge enabled, awaiting green web-ci"
+      },
+      {
+        "kind": "commit",
+        "label": "The dataset commit this entry was written against",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/76e0780856940d986eab60e4559ef620e14b3487"
+      }
+    ],
+    "recordedAt": "2026-09-21"
   }
 ]

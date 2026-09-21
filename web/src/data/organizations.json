@@ -26,7 +26,7 @@
     "sourceIds": [
       "anthropic-models-overview"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "google-deepmind",
@@ -44,7 +44,7 @@
     "sourceIds": [
       "google-deepmind-about"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "meta",
@@ -62,7 +62,7 @@
       "meta-muse-spark-1-1-announcement",
       "meta-muse-image-video-announcement"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "xai",
@@ -78,7 +78,7 @@
       "xai-models-docs",
       "xai-release-notes"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "mistral-ai",
@@ -93,7 +93,7 @@
       "mistral-3-announcement",
       "mistral-ai-hf-organization"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "deepseek",
@@ -108,7 +108,7 @@
       "deepseek-hf-organization",
       "deepseek-v4-pro-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "alibaba-cloud",
@@ -123,7 +123,7 @@
       "qwen-hugging-face-organization",
       "qwen3-8-repository"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "microsoft",
@@ -138,7 +138,7 @@
       "microsoft-ai-models-page",
       "microsoft-mai-thinking-1-announcement"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "amazon",
@@ -153,7 +153,7 @@
       "amazon-nova-overview",
       "amazon-nova-2-bedrock-announcement"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "cohere",
@@ -169,7 +169,7 @@
       "cohere-command-a-plus-model-card",
       "cohere-pricing-docs"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "ai2",
@@ -184,7 +184,7 @@
       "ai2-olmo-2-announcement",
       "ai2-olmo-2-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "tii",
@@ -199,7 +199,7 @@
       "tii-falcon-h1-announcement",
       "tii-falcon-h1-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "nvidia",
@@ -214,7 +214,7 @@
       "nvidia-nemotron-4-340b-announcement",
       "nvidia-nemotron-4-340b-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "ai21-labs",
@@ -229,7 +229,7 @@
       "ai21-labs-jamba-announcement",
       "ai21-labs-jamba-paper"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "zhipu-ai",
@@ -259,7 +259,7 @@
     "sourceIds": [
       "moonshot-ai-kimi-k2-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "eleutherai",
@@ -274,7 +274,7 @@
       "eleutherai-organization-profile",
       "eleutherai-pythia-12b-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "lg-ai-research",
@@ -289,7 +289,7 @@
       "lg-ai-research-exaone-3-5-model-card",
       "lg-ai-research-exaone-3-5-repository"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "snowflake",
@@ -304,7 +304,7 @@
       "snowflake-arctic-instruct-model-card",
       "snowflake-arctic-repository"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "upstage",
@@ -318,7 +318,7 @@
     "sourceIds": [
       "upstage-solar-pro-preview-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "ibm",
@@ -333,7 +333,7 @@
       "ibm-granite-product-page",
       "ibm-granite-4-2-repository"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "baidu",
@@ -348,7 +348,7 @@
       "baidu-ernie-4-5-300b-model-card",
       "baidu-ernie-repository"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "tencent",
@@ -363,7 +363,7 @@
       "tencent-hunyuan-video-model-card",
       "tencent-hunyuan-community-license"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "bytedance-seed",
@@ -378,7 +378,7 @@
       "bytedance-seed-site",
       "bytedance-seed-oss-36b-instruct-model-card"
     ],
-    "verifiedAt": "2026-08-29"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "stability-ai",
@@ -393,7 +393,7 @@
       "stability-ai-sd-3-5-large-model-card",
       "stability-ai-community-license"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "databricks",
@@ -408,7 +408,7 @@
       "databricks-dbrx-announcement",
       "databricks-open-model-license"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "minimax",
@@ -423,7 +423,7 @@
       "minimax-m1-announcement",
       "minimax-m1-80k-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "apple",
@@ -439,7 +439,7 @@
       "apple-openelm-research-page",
       "apple-openelm-3b-instruct-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "hugging-face",
@@ -454,7 +454,7 @@
       "hugging-face-smollm3-blog",
       "hugging-face-smollm3-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "01-ai",
@@ -469,7 +469,7 @@
       "01-ai-yi-repository",
       "01-ai-yi-1-5-34b-chat-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "sakana-ai",
@@ -484,7 +484,7 @@
       "sakana-ai-evolutionary-model-merge-blog",
       "sakana-ai-evollm-jp-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "sarvam-ai",
@@ -499,7 +499,7 @@
       "sarvam-ai-sarvam-m-blog",
       "sarvam-ai-sarvam-m-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "naver",
@@ -515,7 +515,7 @@
       "naver-hyperclova-x-seed-1-5b-model-card",
       "naver-hyperclova-x-seed-license"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "aleph-alpha",
@@ -530,7 +530,7 @@
       "aleph-alpha-pharia-1-llm-announcement",
       "aleph-alpha-pharia-1-llm-7b-control-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "reka-ai",
@@ -545,7 +545,7 @@
       "reka-flash-3-1-announcement",
       "reka-flash-3-1-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "nous-research",
@@ -560,7 +560,7 @@
       "nous-research-releases",
       "nous-hermes-4-14b-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "liquid-ai",
@@ -575,7 +575,7 @@
       "liquid-lfm2-announcement",
       "liquid-lfm2-1-2b-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "xiaomi",
@@ -590,7 +590,7 @@
       "xiaomi-mimo-repository",
       "xiaomi-mimo-7b-rl-0530-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "ai-singapore",
@@ -605,7 +605,7 @@
       "ai-singapore-sea-lion-v3-docs",
       "ai-singapore-llama-sea-lion-v3-8b-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "kyutai",
@@ -620,7 +620,7 @@
       "kyutai-site-home",
       "kyutai-moshiko-pytorch-bf16-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "lelapa-ai",
@@ -636,7 +636,7 @@
       "lelapa-ai-pricing",
       "lelapa-ai-inkubalm-0-4b-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "maritaca-ai",
@@ -652,7 +652,7 @@
       "maritaca-ai-plans",
       "maritaca-ai-sabia-7b-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   },
   {
     "id": "openbmb",
@@ -667,6 +667,6 @@
       "openbmb-minicpm-repository",
       "openbmb-minicpm5-1b-model-card"
     ],
-    "verifiedAt": "2026-09-19"
+    "verifiedAt": "2026-09-21"
   }
 ]
