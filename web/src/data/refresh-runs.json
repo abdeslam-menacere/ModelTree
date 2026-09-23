@@ -15554,10 +15554,10 @@
         "state": "open; this is the second consecutive run it has blocked"
       },
       {
-        "kind": "commit",
-        "label": "Commit f2e4aee0ca — the dataset change this entry describes",
-        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/f2e4aee0ca742bdbb5c259dac2b153cbecf9b575",
-        "state": "on the pull request branch; the pull request and the GitHub Pages deployment are linked from the run summary issue, because neither exists at the moment this entry is committed"
+        "kind": "pull-request",
+        "label": "Pull request #1178 — the dataset change this entry describes",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/1178",
+        "state": "open; merges on a green web-ci under ADR 0003, with no human approving it"
       }
     ],
     "recordedAt": "2026-09-23"
