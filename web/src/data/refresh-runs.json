@@ -14883,5 +14883,683 @@
       }
     ],
     "recordedAt": "2026-09-22"
+  },
+  {
+    "id": "2026-09-23-02b51c",
+    "title": "Verification dates refreshed across 45 bundles; five claims rejected and two new releases withheld on the asset budget",
+    "ranOn": "2026-09-23",
+    "outcome": "published",
+    "summary": "A full-catalogue pass: 44 creator bundles plus one discovery bundle scouted from primary sources, 296 catalogued pages fetched and content-hashed in a single English-preferring sweep, 435 claims put to a three-rubric panel, and 430 applied. Every applied claim advances a verification date in place against freshly fetched evidence, so the dataset gained no record and lost none. Five claims were rejected by the panel. Two genuinely new releases — Claude Opus 5.5 and Gemini 3.8 Flash — were fully evidenced and deliberately withheld because either one alone breaches the home page critical-asset ceiling. The panel found two real defects in this run’s own generator before any of it reached the dataset.",
+    "scope": "Dataset JSON under web/src/data/ only, per ADR 0003. Four documents changed — sources, organizations, families and releases — plus this ledger. gate-scope reported nothing outside the qualifying class.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Trunk anchor resolved to d10050270248b4c34f198cd357d99e2c3d227ebe, reflog-dated 2026-09-22 08:21:23 -0400. Working tree clean and HEAD level with trunk at the start of the run. npm was probed both ways: the bare name is refused by the PowerShell execution policy — installed and blocked, not absent — while npm.cmd reports 11.9.0, and that is the form every npm command here used. The execution policy was not changed. npm ci ran at exit 0 with the lockfile provably untouched (ADR 0004)."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "296 catalogued sources fetched and content-hashed; 281 verified and 15 came back degraded, carrying no claim. The fetcher was given an explicit accept-language of en-US after Google content-negotiated Chinese and Polish bodies mid-run; the entire base was then re-fetched through one code path at one instant so no quote cites a body obtained under different headers. The marker matcher was controlled two-sided at 14 arms — 5 positive, 9 negative, 0 failures — including the prefix-boundary arm that caught last run's GPT-Image-2 defect. Discovery surfaced exactly two genuinely new releases, anthropic/claude-opus-5-5 and google/gemini-3-8-flash, both attested on already-trusted origins."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "435 claims judged by three independent rubrics — provenance, consistency and editorial — dispatched in parallel with no shared context and no reviewer shown another's verdict. Claims were batched per reviewer, never across. The planted-defect control was read before the real tally: 8 of 8, six synthetic defects rejected unanimously by all three rubrics and two ordinary claims accepted, so the arms differ and the panel measures something. The panel then caught two real defects in this run's generator, described in the caveats. Six claims changed as a result and were re-judged by a fresh panel; its must-reject arm passed 3-of-3 and its must-accept arm was void for the consistency rubric — the synthetic target id is absent from the dataset, which that rubric correctly refuses — so a supplementary two-sided consistency control was run on two real records and passed 2 of 2 with the arms differing."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-source-approval 45/45 at exit 0, two-sided against a fabricated unapproved-origin bundle at exit 1. gate-evidence 45/45 at exit 0 with a three-arm control in the same session — untouched bundle exit 0, a sub-threshold change exit 1, an evidence-stripped claim exit 1 — so the pass is a reading and not a constant. Before the five rejected claims were demoted, gate-evidence independently re-derived the same five sub-threshold claims at the same policies, which is corroboration from an instrument that never saw the tally. gate-dataset exit 0. gate-reversals exit 0. gate-scope and gate-ledger reported below. Every exit code was read from an unpiped invocation: an earlier piped read of gate-reversals returned -1, the PowerShell early-termination value, and was discarded rather than believed."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "430 claims applied from a clean tree, 0 refused and 0 skipped, as exactly 430 insertions and 430 deletions across four documents — byte-neutral, as a pure date advance must be. The applier carries a hard precondition that it must reproduce a file byte-for-byte before rewriting it; that precondition was added after a round-trip control showed publishers.json cannot be reproduced by JSON.stringify, and it would have refused rather than reformat 200 lines of out-of-scope content. The diff was then asserted independently: 430 date pairs, 430 forward, 0 backward, 0 unchanged, 0 non-date, a single distinct new value of 2026-09-23, and the ledger append-only with the prior 28 entries byte-identical. No force, no admin override, no skipped gate, no lowered threshold and no direct push to main."
+      },
+      {
+        "stage": "deploy",
+        "status": "not-run",
+        "note": "Not run at the moment this entry was written, and recorded as not-run rather than as a pass: the entry is committed before the merge, so no GitHub Pages deployment for the merge commit can exist to be checked. A check that was not run is not a check that passed. The verification — the returned headSha compared against the full 40-character merge SHA, with a positive control and an all-zeros negative arm required to disagree before either is read — is performed after the merge and reported in the run summary issue."
+      }
+    ],
+    "found": {
+      "scouts": 45,
+      "pagesFetched": 296,
+      "claimsProposed": 435,
+      "bundles": [
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 32
+        },
+        {
+          "creator": "anthropic",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 33
+        },
+        {
+          "creator": "google-deepmind",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "meta",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 32
+        },
+        {
+          "creator": "xai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 11
+        },
+        {
+          "creator": "mistral-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 14
+        },
+        {
+          "creator": "deepseek",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "alibaba-cloud",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 13
+        },
+        {
+          "creator": "microsoft",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 21
+        },
+        {
+          "creator": "amazon",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 14
+        },
+        {
+          "creator": "cohere",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "ai2",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "tii",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "nvidia",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "ai21-labs",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "zhipu-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "moonshot-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "eleutherai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "lg-ai-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "snowflake",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "upstage",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "ibm",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 12
+        },
+        {
+          "creator": "baidu",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "tencent",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "bytedance-seed",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "stability-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "databricks",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "minimax",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "apple",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "hugging-face",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 31
+        },
+        {
+          "creator": "01-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "sakana-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "sarvam-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "naver",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "aleph-alpha",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "reka-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "nous-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "liquid-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "xiaomi",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "ai-singapore",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "kyutai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "lelapa-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "maritaca-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "openbmb",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "discovery",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 21
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "change",
+          "count": 430,
+          "effect": "Advances a verification date in place against freshly fetched evidence; adds no record."
+        },
+        {
+          "kind": "unchanged",
+          "count": 5,
+          "effect": "Re-checked and not applied. These are the five claims the panel rejected, demoted from \"change\" so that nothing sub-threshold is marked as changing data, with statement, evidence and all three verdicts kept verbatim."
+        }
+      ],
+      "notCovered": [
+        "Creator sites that publish no machine-readable model catalogue are swept only for the pages already in the approved source list; a model announced solely in a blog post outside that list is not discovered.",
+        "The four opensource.org channels began returning HTTP 403 partway through this run, so no osiApproved field was touched anywhere and 80 records could not have their verification date advanced.",
+        "Serving-platform catalogues are deliberately out of scope: a platform offering a model states nothing about how its creator releases it.",
+        "Four releases are pinned by model-fit statements dated 2026-08-31 and were excluded from verification-date advancement rather than having those statements re-dated, which would have been an editorial judgement this run declined to make unattended."
+      ],
+      "unswept": [],
+      "degradedChannels": [
+        {
+          "creator": "openai",
+          "sourceId": "openai-gpt-4-1-announcement",
+          "source": "https://openai.com/index/gpt-4-1/",
+          "reason": "fetch-http-403",
+          "detail": "Fetch returned HTTP 403, so no usable evidence was obtained this run. No claim rests on this channel; the records citing it keep their prior verification date rather than being advanced on stale evidence. The \"creator\" field here names the owning organization, not the source id — the 2026-09-22 entry recorded the source id in this field and that is corrected from this run on."
+        },
+        {
+          "creator": "openai",
+          "sourceId": "openai-gpt-5-6-launch",
+          "source": "https://openai.com/index/gpt-5-6/",
+          "reason": "fetch-http-403",
+          "detail": "Fetch returned HTTP 403, so no usable evidence was obtained this run. No claim rests on this channel; the records citing it keep their prior verification date rather than being advanced on stale evidence. The \"creator\" field here names the owning organization, not the source id — the 2026-09-22 entry recorded the source id in this field and that is corrected from this run on."
+        },
+        {
+          "creator": "openai",
+          "sourceId": "openai-gpt-5-6-price-update",
+          "source": "https://openai.com/index/advancing-the-price-performance-frontier-with-gpt-5-6/",
+          "reason": "fetch-http-403",
+          "detail": "Fetch returned HTTP 403, so no usable evidence was obtained this run. No claim rests on this channel; the records citing it keep their prior verification date rather than being advanced on stale evidence. The \"creator\" field here names the owning organization, not the source id — the 2026-09-22 entry recorded the source id in this field and that is corrected from this run on."
+        },
+        {
+          "creator": "openai",
+          "sourceId": "openai-gpt-5-6-sol-preview",
+          "source": "https://openai.com/index/previewing-gpt-5-6-sol/",
+          "reason": "fetch-http-403",
+          "detail": "Fetch returned HTTP 403, so no usable evidence was obtained this run. No claim rests on this channel; the records citing it keep their prior verification date rather than being advanced on stale evidence. The \"creator\" field here names the owning organization, not the source id — the 2026-09-22 entry recorded the source id in this field and that is corrected from this run on."
+        },
+        {
+          "creator": "openai",
+          "sourceId": "openai-gpt-5-5-announcement",
+          "source": "https://openai.com/index/introducing-gpt-5-5/",
+          "reason": "fetch-http-403",
+          "detail": "Fetch returned HTTP 403, so no usable evidence was obtained this run. No claim rests on this channel; the records citing it keep their prior verification date rather than being advanced on stale evidence. The \"creator\" field here names the owning organization, not the source id — the 2026-09-22 entry recorded the source id in this field and that is corrected from this run on."
+        },
+        {
+          "creator": "openai",
+          "sourceId": "openai-gpt-5-4-announcement",
+          "source": "https://openai.com/index/introducing-gpt-5-4/",
+          "reason": "fetch-http-403",
+          "detail": "Fetch returned HTTP 403, so no usable evidence was obtained this run. No claim rests on this channel; the records citing it keep their prior verification date rather than being advanced on stale evidence. The \"creator\" field here names the owning organization, not the source id — the 2026-09-22 entry recorded the source id in this field and that is corrected from this run on."
+        },
+        {
+          "creator": "google-deepmind",
+          "sourceId": "google-gemini-2-5-report",
+          "source": "https://storage.googleapis.com/deepmind-media/gemini/gemini_v2_5_report.pdf",
+          "reason": "body-pdf",
+          "detail": "The channel serves a PDF, which this fetcher reads as bytes rather than as quotable text. No claim rests on this channel; the records citing it keep their prior verification date rather than being advanced on stale evidence. The \"creator\" field here names the owning organization, not the source id — the 2026-09-22 entry recorded the source id in this field and that is corrected from this run on."
+        },
+        {
+          "creator": "(no creator: publisher alphabet maps to no organization)",
+          "sourceId": "alphabet-about",
+          "source": "https://abc.xyz/",
+          "reason": "fetch-http-403",
+          "detail": "Fetch returned HTTP 403, so no usable evidence was obtained this run. No claim rests on this channel; the records citing it keep their prior verification date rather than being advanced on stale evidence. The \"creator\" field here names the owning organization, not the source id — the 2026-09-22 entry recorded the source id in this field and that is corrected from this run on."
+        },
+        {
+          "creator": "openai",
+          "sourceId": "openai-models-catalog",
+          "source": "https://developers.openai.com/api/docs/models",
+          "reason": "no-marker-match",
+          "detail": "The page fetched cleanly but no longer contains the marker the catalogue records for it. No claim rests on this channel; the records citing it keep their prior verification date rather than being advanced on stale evidence. The \"creator\" field here names the owning organization, not the source id — the 2026-09-22 entry recorded the source id in this field and that is corrected from this run on."
+        },
+        {
+          "creator": "(no creator: publisher open-source-initiative maps to no organization)",
+          "sourceId": "osi-approved-licenses",
+          "source": "https://opensource.org/license/apache-2.0",
+          "reason": "fetch-http-403",
+          "detail": "Fetch returned HTTP 403, so no usable evidence was obtained this run. No claim rests on this channel; the records citing it keep their prior verification date rather than being advanced on stale evidence. The \"creator\" field here names the owning organization, not the source id — the 2026-09-22 entry recorded the source id in this field and that is corrected from this run on."
+        },
+        {
+          "creator": "(no creator: publisher open-source-initiative maps to no organization)",
+          "sourceId": "osi-license-mit",
+          "source": "https://opensource.org/license/mit",
+          "reason": "fetch-http-403",
+          "detail": "Fetch returned HTTP 403, so no usable evidence was obtained this run. No claim rests on this channel; the records citing it keep their prior verification date rather than being advanced on stale evidence. The \"creator\" field here names the owning organization, not the source id — the 2026-09-22 entry recorded the source id in this field and that is corrected from this run on."
+        },
+        {
+          "creator": "(no creator: publisher open-source-initiative maps to no organization)",
+          "sourceId": "osi-license-index",
+          "source": "https://opensource.org/licenses",
+          "reason": "fetch-http-403",
+          "detail": "Fetch returned HTTP 403, so no usable evidence was obtained this run. No claim rests on this channel; the records citing it keep their prior verification date rather than being advanced on stale evidence. The \"creator\" field here names the owning organization, not the source id — the 2026-09-22 entry recorded the source id in this field and that is corrected from this run on."
+        },
+        {
+          "creator": "zhipu-ai",
+          "sourceId": "zhipu-ai-glm-4-5-announcement",
+          "source": "https://z.ai/blog/glm-4.5",
+          "reason": "fetch-thin",
+          "detail": "The page fetched at HTTP 200 but returned a body too thin to quote, in both sweeps. No claim rests on this channel; the records citing it keep their prior verification date rather than being advanced on stale evidence. The \"creator\" field here names the owning organization, not the source id — the 2026-09-22 entry recorded the source id in this field and that is corrected from this run on."
+        },
+        {
+          "creator": "apple",
+          "sourceId": "apple-fastvlm-license",
+          "source": "https://huggingface.co/apple/FastVLM-7B/raw/main/LICENSE",
+          "reason": "no-marker-match",
+          "detail": "The page fetched cleanly but no longer contains the marker the catalogue records for it. No claim rests on this channel; the records citing it keep their prior verification date rather than being advanced on stale evidence. The \"creator\" field here names the owning organization, not the source id — the 2026-09-22 entry recorded the source id in this field and that is corrected from this run on."
+        },
+        {
+          "creator": "(no creator: publisher open-source-initiative maps to no organization)",
+          "sourceId": "osi-open-source-ai-definition",
+          "source": "https://opensource.org/ai/open-source-ai-definition",
+          "reason": "fetch-http-403",
+          "detail": "Fetch returned HTTP 403, so no usable evidence was obtained this run. No claim rests on this channel; the records citing it keep their prior verification date rather than being advanced on stale evidence. The \"creator\" field here names the owning organization, not the source id — the 2026-09-22 entry recorded the source id in this field and that is corrected from this run on."
+        }
+      ]
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 1355,
+      "acceptedByPanel": 430,
+      "rejectedByPanel": 5,
+      "dissents": [
+        {
+          "claimId": "releases:anthropic-claude-fable-5--verifiedAt",
+          "rubric": "provenance",
+          "objection": "The quotes do not substantively support the Claude Fable 5 release record: the overview quote names 'claude-fable-5-1' rather than the target, and the Fable pages are title/navigation snippets such as 'Introducing Claude Fable 5 and Claude Mythos 5 ... capabilities, API changes' without the recorded release facts."
+        },
+        {
+          "claimId": "releases:anthropic-claude-fable-5--verifiedAt",
+          "rubric": "editorial",
+          "objection": "One cited evidence item for this Claude Fable 5 release is an API release-notes quote about Claude Fable 5.1/Claude Mythos 5.1 availability on Google Cloud. That is a successor/platform-serving statement, not a statement about the Claude Fable 5 release itself, so recertifying the target release from it crosses release and serving-platform boundaries."
+        },
+        {
+          "claimId": "families:apple-openelm--verifiedAt",
+          "rubric": "provenance",
+          "objection": "The apple-openelm-3b-instruct-model-card quote is only page title/navigation ('apple/OpenELM-3B-Instruct · Hugging Face ... Models Datasets Spaces ...') and does not state the OpenELM family facts; navigation chrome supports no re-verification of the record."
+        },
+        {
+          "claimId": "families:deepseek-v4--verifiedAt",
+          "rubric": "provenance",
+          "objection": "The two model-card quotes are only Hugging Face title/navigation strings ('deepseek-ai/DeepSeek-V4-Pro · Hugging Face ...' and 'deepseek-ai/DeepSeek-V4-Flash · Hugging Face ...') rather than statements about the DeepSeek-V4 family, so not every cited source substantively supports the record."
+        },
+        {
+          "claimId": "releases:google-gemini-3-6-flash--verifiedAt",
+          "rubric": "provenance",
+          "objection": "Several cited quotes are only page titles/navigation, and the deprecations quote lists unrelated Gemini 3.1 entries rather than Gemini 3.6 Flash. Those quotes do not state the target release facts, so the evidence does not show every cited source still supports the record."
+        },
+        {
+          "claimId": "releases:google-gemini-3-6-flash--verifiedAt",
+          "rubric": "editorial",
+          "objection": "The evidence set includes Google Cloud Gemini Enterprise Agent Platform documentation as support for a Google DeepMind Gemini 3.6 Flash release. That page is a serving-platform/product surface, while the rubric requires the Gemini model release to stay distinct from platform offerings, so advancing verifiedAt would overstate what that platform quote establishes about the release."
+        },
+        {
+          "claimId": "families:xai-grok-4--verifiedAt",
+          "rubric": "provenance",
+          "objection": "The xai-models-docs evidence is only documentation chrome ('Grok Models & Pricing | SpaceXAI Docs API ... Status Loading... Resources ...') and states no Grok 4 family fact, so that cited source does not support the re-verification claim."
+        },
+        {
+          "claimId": "organizations:meta--verifiedAt",
+          "rubric": "provenance",
+          "objection": "The quoted evidence is mostly page titles/chrome; for example, 'The Llama 4 herd: The beginning of a new era...' and 'Introducing Muse Spark...' name pages but do not state the organization record's claims such as Llama weights being downloadable, Muse being served only through Meta surfaces, or no Muse weights being released. [This claim was accepted: it reached 2 of the 2 accepts its pilot policy requires. The dissent is recorded because the threshold is the rule, not because the objection was found wrong.]"
+        }
+      ],
+      "gates": [
+        {
+          "gate": "gate-source-approval",
+          "scope": "all 45 bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Every cited origin is in the approved list at trunk d100502702. Invoked once per bundle, 45 invocations, all exit 0."
+        },
+        {
+          "gate": "gate-source-approval",
+          "scope": "fabricated unapproved origin, control arm",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": false,
+          "detail": "The failing arm that makes the passing arm readable. Built deliberately because every real claim this run rests on an already-trusted origin, so without it the gate would have been one-sided."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "all 45 bundles, after demotion",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Every applied claim carries a url, a verbatim quote, a content hash and a fetch date, and meets the threshold its profile policy requires. The gate derives that policy from tools/updater/profiles itself and never from the bundle, so its agreement with the panel tally is independent corroboration."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "all 45 bundles, before demotion",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": false,
+          "detail": "The first sweep refused 5 of 45 bundles, naming exactly the five claims the panel had rejected, at exactly the policies the panel applied — an instrument that never saw the tally re-deriving it. Those five were then demoted from \"change\" to \"unchanged\" with statement, evidence and all three verdicts kept verbatim, because nothing was applied for them."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "three-arm control on one real bundle",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": false,
+          "detail": "Run in the same session against the same binary: the untouched bundle exited 0, the same bundle with one accepted change forced sub-threshold exited 1, and the same bundle with one claim’s evidence emptied exited 1. The arms differ, so the 45/45 pass is a reading and not a constant."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "web/src/data",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "All structural gates passed over 296 sources, 52 publishers, 44 organizations, 87 families and 129 releases. It does not read the ledger schema; npm run validate caught four schema defects in this very entry that gate-dataset passed over, which is recorded here rather than quietly repaired."
+        },
+        {
+          "gate": "gate-reversals",
+          "scope": "ledger, 282 recorded rejections",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Newly load-bearing this run because the panel rejected five claims. No panel-rejected claim is sitting in the dataset unexplained."
+        },
+        {
+          "gate": "gate-ledger",
+          "scope": "branch mode against the trunk anchor",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "transcription false — this branch changes the dataset, so the entry is reconciled against a real diff. posted.documents matches the four changed documents in both directions, record counts were counted at both ends rather than taken from the entry, and the prior 28 entries are untouched."
+        },
+        {
+          "gate": "gate-ledger",
+          "scope": "history mode",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Every run id declared in a commit subject reachable from the anchor has a matching entry."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "working tree against the merge-base it computes itself",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Five documents changed, all in class, nothing out of class, and empty false — so the pass is a measurement over a real diff rather than a pass over an empty one."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "out-of-class file present, control arm",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": false,
+          "detail": "A file was created outside web/src/data and the same gate exited 1 naming it, then the file was removed and the gate returned to exit 0 in the same session. The arms differ, so \"nothing out of class\" is a reading."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "web/, committed tree",
+          "outcome": "pass",
+          "required": true,
+          "detail": "Reported after this entry was repaired. Its first run over this entry failed with four schema violations — a missing evaluated.gates, two invented withheld categories and an empty references list — every one a real defect in what had been written. They were fixed rather than worked around, and the failure is left recorded here because a validator that caught something is evidence the validator works."
+        },
+        {
+          "gate": "ci-preflight",
+          "scope": "repository root, checks this diff triggers",
+          "outcome": "pass",
+          "required": true,
+          "detail": "Selects the pull-request checks the branch diff actually triggers and runs them locally. Reported after this entry was repaired."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 430,
+      "documents": [
+        {
+          "document": "web/src/data/sources.json",
+          "recordsBefore": 296,
+          "recordsAfter": 296,
+          "note": "Every edit advances a verification date in place, so the record count is unchanged by construction."
+        },
+        {
+          "document": "web/src/data/organizations.json",
+          "recordsBefore": 44,
+          "recordsAfter": 44,
+          "note": "Every edit advances a verification date in place, so the record count is unchanged by construction."
+        },
+        {
+          "document": "web/src/data/families.json",
+          "recordsBefore": 87,
+          "recordsAfter": 87,
+          "note": "Every edit advances a verification date in place, so the record count is unchanged by construction."
+        },
+        {
+          "document": "web/src/data/releases.json",
+          "recordsBefore": 129,
+          "recordsAfter": 129,
+          "note": "Every edit advances a verification date in place, so the record count is unchanged by construction."
+        }
+      ],
+      "records": []
+    },
+    "withheld": [
+      {
+        "id": "anthropic-claude-opus-5-5--add",
+        "category": "blocked-by-policy",
+        "detail": "Claude Opus 5.5, fully evidenced from an already-trusted origin and deliberately not proposed to the panel for application. Its supporting source record was withheld with it, since a source cited by nothing would fail dataset coherence. Measured on this tree: the home page critical raw payload is 1102774 bytes against a 1105000 ceiling, leaving 2226 bytes of headroom. Adding this release alone takes it to 1111473 bytes and adding both new releases takes it to 1120589 — a breach either way, of 6473 and 15589 bytes. Raising a ceiling in web/asset-budgets.json is forbidden by ADR 0015 and is outside the ADR 0003 qualifying class, so the only honest outcome is to withhold. Held, not rejected: the evidence is carried into the run summary issue. This is the second consecutive run blocked this way, which is filed as a follow-up.",
+        "blockedBy": [
+          "web/asset-budgets.json",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-ceilings-are-not.md"
+        ]
+      },
+      {
+        "id": "google-gemini-3-8-flash--add",
+        "category": "blocked-by-policy",
+        "detail": "Gemini 3.8 Flash, fully evidenced from an already-trusted origin and deliberately not proposed to the panel for application. Its supporting source record was withheld with it, since a source cited by nothing would fail dataset coherence. Measured on this tree: the home page critical raw payload is 1102774 bytes against a 1105000 ceiling, leaving 2226 bytes of headroom. Adding this release alone takes it to 1111473 bytes and adding both new releases takes it to 1120589 — a breach either way, of 6473 and 15589 bytes. Raising a ceiling in web/asset-budgets.json is forbidden by ADR 0015 and is outside the ADR 0003 qualifying class, so the only honest outcome is to withhold. Held, not rejected: the evidence is carried into the run summary issue. This is the second consecutive run blocked this way, which is filed as a follow-up.",
+        "blockedBy": [
+          "web/asset-budgets.json",
+          "docs/adr/0015-asset-budget-measurements-are-in-class-ceilings-are-not.md"
+        ]
+      }
+    ],
+    "caveats": [
+      "15 source channels came back degraded and carry no claim this run; the records they back keep their prior verification date rather than being advanced on stale evidence.",
+      "The four opensource.org channels newly degraded mid-run: they succeeded in the first sweep and returned HTTP 403 in the second and on spaced retries. Their stale page files were deleted so that no quote can cite a content hash no longer held. Those four alone account for 80 of the 101 records excluded for having an unusable cited source.",
+      "Panel catch, colliding claim ids: eight ids in this dataset exist as both a family and a release, so a claim id of the form <targetId>--<field> collides across collections. All three rubrics independently flagged the duplicates. The generator now prefixes the collection. Votes already cast were re-keyed on the stable triple collection|targetId|field under three hard guards — sheet-order alignment, triple uniqueness and full consumption — because the id is bookkeeping and never what a rubric judged.",
+      "Panel catch, evidence coverage: a verifiedAt statement asserts that every cited source was re-fetched, but the generator truncated the attached evidence to three sources. The consistency rubric flagged exactly the six claims of 155 where that truncation hid a cited source — perfect recall and precision on a defect the run did not know it had. The truncation was removed and only those six claims changed; the other 429 were byte-identical, so existing verdicts stayed valid on unchanged content.",
+      "Three of those six had been accepted at the 2-of-3 pilot bar over a correct dissent before the defect was fixed, which is a live demonstration that the looser threshold can outvote a true finding. The response was to fix the defect and re-judge, never to overrule the panel.",
+      "On re-judging with full evidence attached, the provenance rubric rejected all six for a further reason: the newly visible quotes for the supplementary sources are page titles and site navigation rather than substantive statements. That is the same defect class as the chrome-only arm planted in the control, which all three rubrics had already rejected, so the finding is consistent with the instrument’s measured behaviour. Five of the six failed their threshold and were not applied.",
+      "The three-rubric panel is three prompts, not three minds: instances of one model family reading one page share a failure mode. The majority buys independence of reasoning, not of training, and a source that misleads all three misleads the panel.",
+      "Four releases are pinned by model-fit statements dated 2026-08-31 — meta-llama-4-scout three times, anthropic-claude-mythos-5, anthropic-claude-haiku-4-5 and openai-gpt-5. Their verification dates were left alone rather than re-dating the statements, which would have been an editorial judgement made unattended.",
+      "openai-models-catalog fetched cleanly but no longer names GPT-Image-2. That is a genuine finding about the catalogue rather than a fetch failure, and its lastCheckedDate was deliberately not advanced.",
+      "Two further Gemini entries, gemini-3.8-live and gemini-3.8-live-extended-thinking, were observed in the fetched pages and not added: neither is evidenced well enough to stand as a release record, and the asset budget could not have absorbed them in any case."
+    ],
+    "followUps": [
+      "Second consecutive run blocked by the home page critical-asset ceiling. Two fully-evidenced releases cannot ship because one release costs roughly 8700 critical bytes and only 2226 remain. The ceiling is correct and ADR 0015 correctly forbids widening it from inside a refresh, so the payload needs to shrink or the home page needs to stop carrying the whole dataset — either way it is a change outside the ADR 0003 class and needs its own issue.",
+      "The generator picks a quote per cited source by best match and falls back to the head of the document when no substantive match exists, which yields page titles and navigation. The provenance rubric rejects those correctly, so the failure is loud rather than silent, but a fallback that returned no quote at all — forcing the record to be excluded rather than weakly evidenced — would be more honest than one that returns chrome.",
+      "The four opensource.org channels should be probed on a schedule independent of a refresh run. Losing them costs 80 record exclusions, and discovering that inside a run means the run absorbs the cost.",
+      "Claim ids should carry their collection at the point they are minted rather than being repaired after a panel notices the collision. Eight ids in the current dataset are both a family and a release, so the collision is structural and will recur."
+    ],
+    "references": [
+      {
+        "kind": "issue",
+        "label": "Issue #1172 — the home page critical-asset ceiling that withheld both new releases",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/1172",
+        "state": "open; this is the second consecutive run it has blocked"
+      },
+      {
+        "kind": "pull-request",
+        "label": "Pull request #1178 — the dataset change this entry describes",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/1178",
+        "state": "open; merges on a green web-ci under ADR 0003, with no human approving it"
+      }
+    ],
+    "recordedAt": "2026-09-23"
   }
 ]
