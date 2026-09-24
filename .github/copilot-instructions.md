@@ -2024,6 +2024,10 @@ Then read the result against the two questions, not one:
 - Absent with the positive control also absent, or `grep` exiting 2 or above ⇒
   `UNDETERMINED`.
 
+The first of those three bullets is where a false *present* does its damage, and
+the mechanisms that produce one are enumerated at the end of this step, under
+**The other direction**. Read them before issuing `SUPERSEDED` on a hit.
+
 **Choosing the marker is the part that goes wrong, and there is one test for
 it: a marker is only usable if you can state what its absence would rule out.**
 Say what absence would prove before you search, and if the answer is "nothing",
@@ -2260,6 +2264,295 @@ the content equivalent of comparing a file you never touched. Before trusting a
 match, establish that the phrase is yours: grep for it at the merge-base, where
 it must be **absent**, in the same invocation with the same quoting. A phrase
 present at the merge-base is not a probe, it is a constant.
+
+#### The other direction — three mechanisms that corrupt a *present* reading
+
+Everything above this point enumerates ways a probe reads **absent** for content
+that is present. That is the reassuring direction and this page says so: a false
+`NOT LANDED` buys a redundant check, and the work it is wrong about still exists
+on trunk. The opposite failure is enumerated nowhere on this page, and it is the
+one these same passages call unrecoverable — a probe that matches too much
+reports that trunk already says this, so stop.
+
+Read that against step 4's own routing above. *Present, and absent at the
+merge-base* is `SUPERSEDED`, which routes to stop and report what of yours is
+novel, frequently nothing; and under **Your issue is closed** a `SUPERSEDED`
+reading is what sends a dock to the disposition table, whose one irreversible
+move is discarding. So a false present does not cost a cycle, it costs the
+branch. The mechanisms below are what produce one.
+
+The property, stated once, in the same shape as the false-absent one above:
+
+> **A hit establishes that the bytes are on trunk. It never establishes that
+> trunk asserts what your change asserts**, and the gap between those two is
+> where every mechanism below lives. Pair the check with a **negative control
+> that lands on the failing path** — an input you have separately established is
+> genuinely absent, chosen so that a matcher failing in the way you fear reports
+> it *present* — run in the same pass with the same quoting, and required to
+> come back **differing** from the subject. A control that exercises only the
+> matching path cannot detect a matcher that matches what it should not.
+
+That is the false-absent clause with its polarity reversed, and the reversal is
+the load-bearing part. The standard control on this page is a nonce nobody has
+ever written, which exercises the zero-match path — the path that works. It is
+blind to all three mechanisms below, and it reports green while every one of
+them fires.
+
+| mechanism | why the hit is not the assertion |
+|---|---|
+| **matcher case-folding**, abdeslam-menacere/ModelTree#1016 | the matcher folds case, so a hit on one identifier is returned for a differently-cased neighbour; `Select-String` is case-insensitive by default where `git grep` is case-sensitive by default, so the probe this page prescribes is safe and the idiomatic in-shell paraphrase of it is not |
+| **deletion-class polarity**, abdeslam-menacere/ModelTree#1016 | nothing is mismatched and the matcher is correct; the change *removes* content, so *present* means not landed and *absent* means landed, while every reading written out in step 4 above is written for an addition |
+| **provenance narrative collision**, abdeslam-menacere/ModelTree#1016 | a free-text query over any store matches the record *about* a condition rather than the condition itself; the store records what a failure looks like, the record is exemplary rather than defective, and the fix therefore belongs to the probe and never to the record |
+
+**Case-folding, measured.** At trunk
+`158a761a4027679e32f717e773c69c207fe9697f`, reflog-dated 2026-09-07 03:55:40
+-0400, on `web/src/components/ModelComparison.tsx` — which imports the *type*
+`CompactComparisonPayload` and contains no camelCase function of that name — on
+`PSVersion 5.1.26100.9168`:
+
+| identifier | truth in that file | `Select-String` | `Select-String -CaseSensitive` | `git grep -F` |
+|---|---|---|---|---|
+| `CompactComparisonPayload` | present | 2 | 2 | 2 |
+| `compactComparisonPayload` | **absent** | **2** | 0 | exit 1 |
+| `ComparisonDataset` | absent | 0 | 0 | exit 1 |
+| a nonce coined in the run | absent | 0 | 0 | exit 1 |
+
+Three of the four rows read identically under both invocations, so the single
+differing cell is attributable to case-folding rather than to a probe that is
+simply broken — which is what makes it a reading. A `PascalCase` type beside a
+`camelCase` value of the same name is ordinary TypeScript rather than a
+contrivance, so the collision is available wherever this repository is probed.
+
+`-CaseSensitive` is **load-bearing** on `Select-String`, in the sense this page
+already gives that phrase for `--state all`: the prescribed form is sound, a
+paraphrase of it is void, and nothing in the output says which you ran. This
+page mandates PowerShell throughout and reaches for `git grep` in the probes it
+writes out, so the written form is safe and the shell-native rewrite is not —
+and the rewrite is exactly what an agent reaches for when the needle is in a
+working tree rather than in a blob. Re-measure those columns against your own
+`$PSVersionTable.PSVersion` rather than trusting them, and on a shell with no
+`Select-String` say there is no default to reproduce rather than asserting one.
+
+**Deletion-class polarity, measured.** The fixture is
+abdeslam-menacere/ModelTree#899, merged as abdeslam-menacere/ModelTree#911 — a
+pure deletion, two files, one removed line each and nothing added. Both anchors
+are immutable, so this stays re-derivable: the squash is
+`17094121c481a6fa54955c87a26763428aa93a37` and the trunk it landed on is that
+commit's first parent, `90f15d92eec2c598551ea6f1a372103fb4185943`. Four arms of
+`git grep -q -F`, each scoped to the file its line was removed from:
+
+| needle | kind | at the pre-merge trunk | at the squash |
+|---|---|---|---|
+| `type ComparisonDataset,` | removed | present | absent |
+| `type CompactComparisonPayload,` | removed | present | absent |
+| `type ComparisonRow,` | kept — control | present | present |
+| a nonce coined in the run | control | absent | absent |
+
+The kept control is present at both ends, so the probe has not gone blind after
+the merge; the nonce is absent at both, so it is not answering present to
+everything. Only the two removed lines flip, and the flip is the polarity:
+
+| reading | for an addition | for a deletion |
+|---|---|---|
+| present | landed | **not landed, or refused — one reading, two dispositions** |
+| absent | not landed | landed |
+
+Two consequences follow, and neither is stated anywhere else on this page.
+*The pre-merge correct answer is textually identical to the refusal answer* —
+"the lines are still on trunk" is what you see when your deletion has not merged
+and what you see if it was refused outright, which is this page's own **a value
+covering several outcomes is not evidence on its own**, reached from the content
+side. And *it inverts inside the window you cannot observe*: a dock stops when it
+reports, the merge that flips the reading comes afterwards, so the correct
+reading and the correct verdict are never available to the same observer.
+
+**The live instance, which closes the natural escape route.** At the trunk
+anchored above — more than two days after that deletion merged — a tree-wide
+probe for both removed lines exits **0**. Each identifier survives in the *other*
+file of the very pair the deletion touched: `type ComparisonDataset,`, removed
+from `web/src/components/ModelComparison.tsx`, survives on line 20 of
+`web/src/components/ModelComparison.test.tsx`, and
+`type CompactComparisonPayload,`, removed from
+`web/src/components/ModelComparison.test.tsx`, survives on line 12 of
+`web/src/components/ModelComparison.tsx`. So narrowing the probe to the two
+files the change edited — the obvious remedy — leaves **both** reading present
+about a deletion that wholly landed. A third occurrence of
+`type ComparisonDataset,`, on line 27 of `web/src/lib/comparison.test.ts`, is
+**outside** that pair and carries none of that weight: the narrowing result
+rests on the two within-pair survivors alone.
+
+That is where this page's existing marker test does the work, and it is why no
+new rule is needed for the residue: *a marker is only usable if you can state
+what its absence would rule out.* Where the removed token also occurs
+legitimately in the paths you edited, neither its presence nor its absence rules
+anything out, so you have not got a marker, step 4 is `UNDETERMINED`, and the
+verdict rests on the record in step 2.
+
+**What is not polarity-inverted.** The record in step 2 asks whether the branch
+merged and is indifferent to change class. The tree comparison in step 5 is
+sound for a deletion too, measured on the same fixture with the exit code
+captured from an unpiped invocation as that step requires:
+
+```
+merge-tree --write-tree <pre-merge trunk> <tip>  exit 0  6878baab != 9c120df3  NOT LANDED  correct
+merge-tree --write-tree <the squash>     <tip>  exit 0  6878baab == 6878baab  LANDED      correct
+CONTROL  <pre-merge trunk> vs the merge-base    exit 0  prints that trunk's tree exactly
+```
+
+Against the current trunk anchored above, the same call exits 0 and prints
+trunk's own tree, which reads `LANDED` — expect that identity rather than a
+particular OID, since it is whichever trunk you resolved. So on this fixture the
+content probe and the tree comparison disagree, and the tree comparison is the
+one that is right. It keeps step 5's documented failure — once trunk edits a
+touched file it exits 1, the branch conflicting with its own descendant, as the
+two instances recorded there show — and that failure is `UNDETERMINED` rather
+than a wrong answer, *provided* the exit code is honoured and the printed tree
+is not compared anyway.
+
+So for a deletion: read the record, corroborate with the tree, and do not read
+step 4's content probe as written. Its question is unchanged — does trunk
+already assert what my change asserts — but a deletion asserts an absence, so
+the mapping from reading to verdict is the deletion column of the table above.
+
+**Provenance narrative collision, measured.** At the same trunk, over
+`web/src/data/sources.json` — 289 records, read through the JSON parser with no
+shell matching anywhere in the path:
+
+| needle | tree-wide in `web/src/data/` | in `.url` | in `.notes` |
+|---|---|---|---|
+| `Invalid username or password.` | 2 | 0 | 2 |
+| `oal.pdf` | 1 | 0 | 1 |
+| `huggingface` — control | — | **121** | 10 |
+| a nonce coined in the run | exit 1 | 0 | 0 |
+
+The control reads 121 in the very field the two markers read 0 in, and the
+nonce reads 0 in both fields, so the field-scoped counter discriminates in both
+directions and those two zeroes are readings rather than a blind instrument.
+
+None of the three records is defective, and that is the whole of the point.
+`Invalid username or password.` is held by `tii-falcon-180b-model-card` and
+`nvidia-cosmos-diffusion-7b-model-card`, in each case recording the body a
+**fabricated** repository id returns — the negative control that separates a
+gated repository from a nonexistent one, recorded because a status code could
+not carry the distinction. `oal.pdf` is held by
+`aleph-alpha-pharia-1-llm-7b-control-model-card`, whose note records the repair
+of a dead licence URL; that release's own `license.url` in
+`web/src/data/releases.json` now points elsewhere, and of the 57 records
+carrying a `license.url` none contains `oal.pdf` while 11 contain `github.com`.
+So a sweep asking "is the dead link still in the dataset?" reads **present**,
+finds the tombstone, and reports a corpse — the string survives *because* the
+fix was documented.
+
+**Why this is a row rather than an edit to those records.** Its population grows
+monotonically with the thing this repository requires. *Unknown and conflicting
+data stay explicit rather than being smoothed over* means failure text gets
+recorded, and every repair that records its own evidence adds one more. Three
+instances, three records, two unrelated strings, written by different hands,
+none of them defective. A fix scoped to the records is undone by the next
+well-sourced entry; scoped to the probe, it holds.
+
+Scope the probe to the field carrying the assertion, never to the free text.
+
+> **A free-text query over any store answers "is this discussed?" — never "is
+> this asserted?". Where a structured field carries the assertion, query that
+> field; a text match is evidence of discussion only.**
+
+One rule, two stores, and the second is not a corpus of JSON at all. In
+`web/src/data/sources.json` the asserting field is `.url` and the free text is
+every note and caveat, which exist in order to carry the vocabulary of the thing
+they describe. On GitHub the asserting field is `closingIssuesReferences` and the
+free text is an `in:body` search.
+
+**The second store, measured.** Asking whether seven in-flight issues had a pull
+request yet, `gh pr list --search "<n> in:body" --state all` returned a merged
+pull request for six of them, every one at exit 0. Four of those six were false.
+The **searched-for** issue is the first column below, what came back is the
+second, and what that pull request actually closes is the third — a different
+issue in every row:
+
+| searched for | the free-text arm returned | which closes |
+|---|---|---|
+| abdeslam-menacere/ModelTree#1109 | abdeslam-menacere/ModelTree#1111 | abdeslam-menacere/ModelTree#1097 |
+| abdeslam-menacere/ModelTree#1016 | abdeslam-menacere/ModelTree#824 | abdeslam-menacere/ModelTree#710 |
+| abdeslam-menacere/ModelTree#1082 | abdeslam-menacere/ModelTree#413 | abdeslam-menacere/ModelTree#403 |
+| abdeslam-menacere/ModelTree#1108 | abdeslam-menacere/ModelTree#630 and abdeslam-menacere/ModelTree#808 | abdeslam-menacere/ModelTree#623 and abdeslam-menacere/ModelTree#767 |
+
+Recorded at 2026-09-07T08:53:11Z, every issue in the **first** column read
+`OPEN` with an empty `closedByPullRequestsReferences`, so on all four the
+asserting field and the free-text arm disagreed. The third column is a property
+of what came back and says nothing about the first, which is the whole of the
+confusion the two arms invite. Two of the six were true. Nothing in the
+free-text arm separates them, and read at face value the four falses would have
+**stood down four live docks mid-implementation** — this subsection's own
+unrecoverable outcome, not a wasted sweep.
+
+Those two turned true *during* the measurement, because the coordinator holding
+the control merged them an hour before it was re-read. A control pinned on "has
+no pull request yet" is pinned on a state still in motion, and here its own
+author's next action decayed it. Pin a control on a terminal state.
+
+**The subject decays the same way that control did, so the first column is a
+reading bound to its instant rather than a standing fact.** Re-read at
+2026-09-07T14:00:57Z, three of those four searched-for issues had since acquired
+a closing pull request of their own, so the set no longer reads `OPEN` with an
+empty field and the run does not reproduce whole. What still reproduced at
+that instant is the second row, and it is the **pure** case: searching for
+abdeslam-menacere/ModelTree#1016 returned exactly one pull request,
+abdeslam-menacere/ModelTree#824, which closes abdeslam-menacere/ModelTree#710,
+while the issue searched for had no closing pull request at all. Every result
+the free-text arm gave for it was wrong, which is this mechanism with nothing
+else mixed in. That row is a reading at an instant too, not a standing fact: a
+closed issue can reopen, the free-text arm will also return whatever comes to
+match it later, and the branch that closes abdeslam-menacere/ModelTree#1016
+will give it a closing pull request by construction. Re-derive the row rather
+than quoting it — the claim is that the two arms disagreed, never that they
+must keep disagreeing.
+
+**This mechanism also defeats the negative control mandated throughout this
+page.** Four fabricated numbers, same run, same quoting:
+
+```text
+'99999 in:body'   -> two pull requests   NOT empty
+'88888 in:body'   -> []
+'123456 in:body'  -> []
+'97531 in:body'   -> []
+"#1016" in:body   -> still returns the pull request closing 710
+```
+
+Three clean arms, so the instrument discriminates and the outlier is a real
+occurrence rather than noise. Its context is the mechanism itself: that pull
+request's body says 99999 cannot turn a failed check green, and separately cites
+lines 1016/1089/1172 — so the nonce matched a **fabricated value quoted inside a
+description of a failure**, and the issue number matched a **line number**. The
+last line above is the obvious hardening, and it does not rescue the probe.
+
+> A nonce must be **coined uniquely for the run**, not merely fabricated.
+> "Obviously fake" is a small, shared space, and a corpus that records what
+> failure looks like is unusually likely to already occupy it, because somebody
+> else independently reached for an obviously-fake value to demonstrate a
+> failure. A run-unique nonce, minted at the moment of use, is not in that space.
+
+So `88888`, `123456` and `97531` are unoccupied today, drawn from that same small
+space, and one documented failure away from the same collision: the fix is not a
+different round number. This is also the shape of a rule stated one level too
+general — tested against the example that produced it, it is confirmed, because
+that example is the one case it cannot fail on.
+
+**What the three have in common, and why the usual control cannot see any of
+them.** Each returns a well-formed count at a clean exit, with nothing in the
+output to say the reading is wrong, and each fails toward `SUPERSEDED` or
+`LANDED` — the two verdicts that route a dock to stop and dispose of its work.
+A string nobody has written reads absent through a matcher that folds case,
+absent through a correct matcher pointed at a deletion, and absent through a
+corpus full of failure notes. It passes while all three fire, which is the
+negative-control clause above restated as the reason this table exists — and,
+by the nonce property under the third row, it is not guaranteed to pass at all.
+
+**And this section is now an instance of its own third row.** The identifiers
+and markers written out above are in this file, so a tree-wide probe for any of
+them meets a record *about* the mechanism rather than the mechanism. Scope the
+fixture probes to the paths named beside them, and take the warning this page
+already gives everywhere else: quoting instantiates.
 
 ### Step 5 — tree arithmetic, corroboration only and never the verdict
 
