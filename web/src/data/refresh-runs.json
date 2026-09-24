@@ -1,5 +1,949 @@
 [
   {
+    "id": "2026-09-24-83cd25",
+    "title": "Re-verified 397 records across 43 creators; the panel refused four Anthropic and NVIDIA claims",
+    "ranOn": "2026-09-24",
+    "outcome": "published",
+    "summary": "Swept all 44 creators against their own catalogued primary channels and found no new model, family or release anywhere: every one of the 441 claims this run proposed is a re-verification, moving a lastCheckedDate or verifiedAt to 2026-09-24 on a record that already existed. 397 of them were applied. The interesting result is the 44 that were not. Two rubrics independently rejected the Anthropic Sonnet 4.5 and Sonnet 4.6 announcement sources after noticing that both pages, fetched separately and returning different byte counts with no redirect, yielded the identical passage about a new life sciences research group -- a site-wide promotional component, not either article body, and so evidence that the fetched page is still the source the dataset names. The editorial rubric separately refused NVIDIA Cosmos as a family, because NVIDIA's own profile warns that Cosmos is a World Foundation Model Platform and that platform names are not family names. gate-evidence then refused the whole anthropic and nvidia bundles over those four claims, taking 40 unanimously accepted siblings down with them; that refusal was obeyed rather than cherry-picked around, which is why this entry records 441 claims proposed and 397 applied.",
+    "scope": "All 44 creator records in web/src/data/organizations.json, each scouted against the primary channels catalogued for it in web/src/data/sources.json; 296 URLs fetched in a single sweep, 289 of which returned a body that was saved to disk and hashed over the exact bytes received. Changed web/src/data/sources.json, web/src/data/organizations.json, web/src/data/families.json and web/src/data/releases.json, and nothing else: 397 insertions against 397 deletions, every one of them a lastCheckedDate or verifiedAt value. No record was added, removed or renamed, so all four documents hold exactly the record counts they held at the anchor, and the four files are byte-for-byte the same length after the run as before it. web/asset-budgets.json was not re-recorded: the measured route:home figure did move, by one byte, which is discussed in the caveats, and one byte against the 2% drift allowance that file records fails nothing and changes no ceiling.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Clean tree at merge-base 64f70ef9, gh authenticated, and no other open pull request touching a web/src/data path. npm was probed in both bare and .cmd form: the bare form is refused by the PowerShell execution policy while npm.cmd returns 11.9.0, which is installed-and-blocked rather than absent. The execution policy was not changed to make the bare form work, and reporting it as missing would have sent the next reader somewhere different. Dependencies were restored with npm ci, never a bare install, and git status --porcelain was empty afterwards, which is the check that the lockfile ADR 0004 protects was not rewritten."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "296 fetch attempts covering every catalogued source; 289 returned a body and 7 returned HTTP 403, each recorded as a degraded channel against the creator it belongs to rather than folded into a flat error list. No browser user-agent was spoofed to get past any of them. Every body was written to disk and hashed over the bytes received, so every quote published in the pull request is checkable against the artefact it came from. A separate discovery pass over 543 candidate names found no uncatalogued model: all 543 resolved to historical checkpoints or size variants already represented. The scout output was then re-audited by an independent script that re-hashed every body and re-checked every quote for verbatim containment by a different normalisation route than the extractor used -- 441 claims and 672 evidence entries, zero failures -- and that audit was itself controlled by injecting three defects into a copy, all three of which it caught."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "The 441 claims were split into nine batches of at most 50 and put to three rubrics -- provenance, consistency, editorial -- as 27 independent blind reviews. No reviewer saw another rubric's verdicts, the scout's reasoning, or the chair's expectations, and each brief carried the ADR 0017 guardrail verbatim: lastCheckedDate and verifiedAt are claims that a person looked, and a link checker is not a person. 1,323 verdicts came back. The chair tallied them and did not vote: 437 claims met their own threshold and 4 did not. An earlier version of the tally script compared a numeric accept count against the threshold recorded as the string \"2-of-3\", which is always false, and duly reported all 441 claims rejected; that uniform answer was caught because a panel rejecting everything is not a finding, and the repaired script cross-checks the parsed number against the policy rather than trusting either alone."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-source-approval passed on all 45 bundles, reporting 273 inherited sources and zero proposed ones -- this run introduces no source, so there is no origin here that nobody has approved. gate-evidence passed 43 bundles and refused 2. gate-dataset, the full web validate suite and ci-preflight were run after applying. The one validate failure seen before committing was licence-identity.test.ts asserting that git status --porcelain src/data is empty, which it cannot distinguish from a tree that was already dirty for a legitimate reason; it passes once the dataset change is committed, which is the state CI actually evaluates."
+      },
+      {
+        "stage": "publish",
+        "status": "ran",
+        "note": "One dataset commit and one ledger commit on a single branch, published as a pull request with auto-merge enabled so that web-ci gates the merge rather than any judgement of this run's. No direct push to main, no --admin, no --force. The dataset commit precedes the ledger commit deliberately: refreshLogSchema requires a published run to name its own pull request, so this entry could not be written until that number existed. Both commits are in the one pull request and squash to one commit, so the data and the record of why it changed still land together and revert together."
+      },
+      {
+        "stage": "deploy",
+        "status": "not-run",
+        "note": "Not run, and recorded as not-run rather than as a pass. This entry is committed into the very pull request whose merge triggers the Pages deploy, so at the moment it was written the deploy could not have happened and no probe available here could have reached it. The confirmation is performed after the merge, with both control arms, and recorded on this run's summary issue, which is where a reader should check it. Writing \"ran\" here would have been a claim about the future dressed as a measurement."
+      }
+    ],
+    "found": {
+      "scouts": 44,
+      "pagesFetched": 296,
+      "claimsProposed": 441,
+      "bundles": [
+        {
+          "creator": "01-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "ai-singapore",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "ai2",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "ai21-labs",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        },
+        {
+          "creator": "aleph-alpha",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "alibaba-cloud",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 17
+        },
+        {
+          "creator": "amazon",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 14
+        },
+        {
+          "creator": "anthropic",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 32
+        },
+        {
+          "creator": "apple",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "baidu",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "bytedance-seed",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "cohere",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "cross-creator",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 23
+        },
+        {
+          "creator": "databricks",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "deepseek",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "eleutherai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "google-deepmind",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "hugging-face",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 28
+        },
+        {
+          "creator": "ibm",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 15
+        },
+        {
+          "creator": "kyutai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "lelapa-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "lg-ai-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "liquid-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "maritaca-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "meta",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 32
+        },
+        {
+          "creator": "microsoft",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 21
+        },
+        {
+          "creator": "minimax",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 10
+        },
+        {
+          "creator": "mistral-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 16
+        },
+        {
+          "creator": "moonshot-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "naver",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "nous-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "nvidia",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 12
+        },
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 20
+        },
+        {
+          "creator": "openbmb",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 12
+        },
+        {
+          "creator": "reka-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "sakana-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "sarvam-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "snowflake",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "stability-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "tencent",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "tii",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "upstage",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "xai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "xiaomi",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "zhipu-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 6
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "change",
+          "count": 441,
+          "effect": "Every claim this run proposed is a re-verification of a record that already exists: a lastCheckedDate or verifiedAt moved to 2026-09-24 because the cited page was fetched again and still says what the dataset records. Nothing was added, nothing was removed, and no model fact changed value anywhere in the dataset."
+        }
+      ],
+      "notCovered": [
+        "A creator that was scouted and produced no claim is not represented here as an absence of scouting. All 44 creators produced a bundle, so unswept is empty; a zero-claim bundle would mean the channels were read and said nothing new.",
+        "The sweep reads the primary channels catalogued in sources.json. A creator that announced a model somewhere this dataset does not yet catalogue would not be seen by it, and the discovery pass that looks for exactly that is name-based and would miss a release announced under no recognisable name."
+      ],
+      "unswept": [],
+      "degradedChannels": [
+        {
+          "creator": "openai",
+          "source": "official-announcement",
+          "detail": "https://openai.com/index/gpt-4-1/ returned http-403"
+        },
+        {
+          "creator": "openai",
+          "source": "official-announcement",
+          "detail": "https://openai.com/index/gpt-5-6/ returned http-403"
+        },
+        {
+          "creator": "openai",
+          "source": "official-announcement",
+          "detail": "https://openai.com/index/advancing-the-price-performance-frontier-with-gpt-5-6/ returned http-403"
+        },
+        {
+          "creator": "openai",
+          "source": "official-announcement",
+          "detail": "https://openai.com/index/previewing-gpt-5-6-sol/ returned http-403"
+        },
+        {
+          "creator": "openai",
+          "source": "official-announcement",
+          "detail": "https://openai.com/index/introducing-gpt-5-5/ returned http-403"
+        },
+        {
+          "creator": "openai",
+          "source": "official-announcement",
+          "detail": "https://openai.com/index/introducing-gpt-5-4/ returned http-403"
+        },
+        {
+          "creator": "alphabet",
+          "source": "official-docs",
+          "detail": "https://abc.xyz/ returned http-403"
+        }
+      ]
+    },
+    "evaluated": {
+      "reviewers": 3,
+      "verdictsCast": 1323,
+      "acceptedByPanel": 437,
+      "rejectedByPanel": 4,
+      "dissents": [
+        {
+          "claimId": "families--anthropic-claude-5--verifiedAt",
+          "rubric": "editorial",
+          "objection": "The Claude 5 family record is being advanced with a quoted passage about the server-side fallbacks API parameter and Anthropic's recommended models. API fallback guidance is an API-surface/product behavior, not a Claude 5 family boundary statement, so the verification blurs the family/API boundary."
+        },
+        {
+          "claimId": "releases--anthropic-claude-fable-5--verifiedAt",
+          "rubric": "editorial",
+          "objection": "The target is the legacy Claude Fable 5 release, but the overview and API-release-note passages used here discuss Claude Fable 5.1 and other sibling/successor guidance. Fable 5 and Fable 5.1 are distinct releases in the current record, so a Fable 5.1 passage cannot editorially re-verify Fable 5."
+        },
+        {
+          "claimId": "releases--anthropic-claude-opus-5--verifiedAt",
+          "rubric": "editorial",
+          "objection": "The target is Claude Opus 5, but one cited overview passage recommends Claude Opus 5.5 for most workloads and discusses Claude Fable 5.1. Opus 5.5 and Fable 5.1 are separate releases, so using that sibling/successor guidance to advance Opus 5 crosses release boundaries."
+        }
+      ],
+      "gates": [
+        {
+          "gate": "gate-source-approval",
+          "scope": "all 45 claim bundles, run before any claim was applied",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "All 45 bundles passed against anchor 64f70ef9. 273 distinct inherited sources and zero proposed sources: this run cites only origins already approved in the catalogued profiles, so there is no case here of a run introducing a source and citing it in the same breath."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "the 397 applied claims, in the 43 bundles it admitted, run before any claim was applied",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Every claim carries a verbatim quote of at least the minimum length, a sha256 content hash, an https credential-free URL, a retrieval of \"fetch\" and a non-future fetch date, and every claim met the threshold its bundle policy sets -- 2-of-3 for the seven reviewed profiles, 3-of-3 for the long-tail. The threshold was derived by the gate from the reviewed-profile set on disk, not read from the bundles."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "the 32 claims in the anthropic bundle and the 12 in the nvidia bundle",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": false,
+          "detail": "Exit 1 on both. It refused the anthropic bundle over three claims that reached 1 of the 2 accepts the pilot policy requires, and the nvidia bundle over families--nvidia-cosmos--verifiedAt reaching 2 of the 3 the long-tail policy requires. This gate refuses at bundle granularity, so those four claims took 40 unanimously accepted siblings with them. The run honoured that refusal exactly: nothing from either bundle is in this pull request, which is why this gate run governs no published record and is marked not-required. Not-required records that the refusal was obeyed, never that it was waived -- the 40 siblings are in withheld[] under dropped-after-acceptance rather than quietly applied."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "the whole dataset after the 397 edits were applied",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Passed with zero failures. It read requiredCollections and lifecycleStatus out of the schema rather than a hand-copied vocabulary, reporting sources, organizations, families and releases as the floored collections."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "the branch diff against its computed merge-base",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "The change is confined to the ADR 0003 qualifying class: four dataset documents plus this ledger. Nothing outside web/src/data/ is touched, which is what makes this change eligible to merge unattended at all."
+        },
+        {
+          "gate": "gate-ledger",
+          "scope": "this entry against the diff it describes",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "Reconciled rather than transcribed: the branch changes dataset documents, so the record counts in posted.documents were re-derived at the anchor and in the working tree and checked against what this entry claims, in both directions. transcription is false, which is the reading that says these numbers were actually checked."
+        },
+        {
+          "gate": "gate-reversals",
+          "scope": "refresh-runs.json and the dataset read together",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "No rejected-by-panel record sits in the dataset unannotated as a result of this run. The four claims this panel refused are field re-verifications of records that were already present, which the gate correctly does not treat as reversals: the records stay, and only their date fields failed to move."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "the whole web workspace at the dataset commit",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "139 test files, 3,189 of 3,189 tests passing, and astro check reporting 0 errors, 0 warnings and 0 hints across 287 files. Read from an unpiped invocation: an earlier run of the same command through a Select-String filter reported exit 1 while every test passed, which is the shell terminating the producer rather than a failure, and reading that as a result would have manufactured a defect that did not exist."
+        },
+        {
+          "gate": "ci-preflight",
+          "scope": "the pull-request checks this branch's diff actually triggers",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": false,
+          "detail": "Run from the repository root before hand-off, selecting checks from the merge-base diff. It prints its own uncovered set on every run, including the networked link-health sweep, so a green preflight is not read here as a green CI. Not-required because it is a local selector for CI rather than a check CI runs."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 397,
+      "documents": [
+        {
+          "document": "web/src/data/sources.json",
+          "recordsBefore": 296,
+          "recordsAfter": 296,
+          "note": "248 field-level re-verifications moved to 2026-09-24. No record was added or removed, which is why the counts are equal at both ends; every changed line is a lastCheckedDate or verifiedAt value."
+        },
+        {
+          "document": "web/src/data/organizations.json",
+          "recordsBefore": 44,
+          "recordsAfter": 44,
+          "note": "29 field-level re-verifications moved to 2026-09-24. No record was added or removed, which is why the counts are equal at both ends; every changed line is a lastCheckedDate or verifiedAt value."
+        },
+        {
+          "document": "web/src/data/families.json",
+          "recordsBefore": 87,
+          "recordsAfter": 87,
+          "note": "64 field-level re-verifications moved to 2026-09-24. No record was added or removed, which is why the counts are equal at both ends; every changed line is a lastCheckedDate or verifiedAt value."
+        },
+        {
+          "document": "web/src/data/releases.json",
+          "recordsBefore": 129,
+          "recordsAfter": 129,
+          "note": "56 field-level re-verifications moved to 2026-09-24. No record was added or removed, which is why the counts are equal at both ends; every changed line is a lastCheckedDate or verifiedAt value."
+        }
+      ],
+      "records": []
+    },
+    "withheld": [
+      {
+        "id": "sources--anthropic-sonnet-4-5-announcement--lastCheckedDate",
+        "category": "rejected-by-panel",
+        "detail": "Reached 1 of the 2-of-3 its pilot policy requires, so the panel refused it. provenance: The proposed lastCheckedDate is for the source record named ?Introducing Claude Sonnet 4.5,? but the only quote says ?We?re announcing a new life sciences research group and laboratory at Anthropic? and describes Claude discovering an enzyme system. Read alone, that quote does not state or identify Claude Sonnet 4.5 or the named announcement page. editorial: The source record is named as 'Introducing Claude Sonnet 4.5', but the quoted passage is about Anthropic's life-sciences research group and Claude discovering an enzyme system. Treating that research/product news passage as the Sonnet 4.5 model-release source crosses the product/research versus model-release boundary.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "sources--anthropic-sonnet-4-6-announcement--lastCheckedDate",
+        "category": "rejected-by-panel",
+        "detail": "Reached 1 of the 2-of-3 its pilot policy requires, so the panel refused it. provenance: The proposed lastCheckedDate is for the source record named ?Introducing Claude Sonnet 4.6,? but the quote says ?We?re announcing a new life sciences research group and laboratory at Anthropic? and describes a CRISPR-like enzyme result. The quote does not mention Claude Sonnet 4.6 or otherwise state that the fetched page is still the source record named by the dataset. editorial: The source record is named as 'Introducing Claude Sonnet 4.6', but the quoted passage is the same Anthropic life-sciences/Claude enzyme-system post rather than a Sonnet 4.6 release statement. That makes the source identity a product/research item, not the model-release page the record names.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "families--anthropic-claude-4-6--verifiedAt",
+        "category": "rejected-by-panel",
+        "detail": "Reached 1 of the 2-of-3 its pilot policy requires, so the panel refused it. provenance: This verifiedAt claim depends on all three cited sources, but the attached quote for anthropic-sonnet-4-6-announcement is the life-sciences-laboratory passage, not a Claude Sonnet 4.6 or Claude 4.6 passage. Because one cited source quote does not say the record-specific fact it is being used to re-verify, the proposed 2026-09-24 verifiedAt is not supported by the claim?s own evidence. editorial: The Claude 4.6 family evidence set includes the supposed Sonnet 4.6 announcement source, but the quoted passage is the Anthropic life-sciences/Claude enzyme-system post. Using that research/product news item to re-verify a Claude 4.6 model family crosses entity boundaries.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "families--nvidia-cosmos--verifiedAt",
+        "category": "rejected-by-panel",
+        "detail": "Reached 2 of the 3-of-3 its long-tail policy requires, so the panel refused it. editorial: Reject on entity boundary: the NVIDIA profile explicitly warns that Cosmos is a World Foundation Model Platform and that platform names are not family names. Re-verifying a `families` record named Cosmos would bless a platform-as-family boundary; the quotes refer to Cosmos broadly or to an agreement's 'NVIDIA Cosmos Model', not to a ModelTree family.",
+        "blockedBy": [
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "sources--anthropic-models-overview--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "sources--anthropic-fable-5-mythos-5-docs--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "sources--anthropic-fable-5-1-announcement--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "sources--anthropic-fable-5-1-docs--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "sources--anthropic-fable-5-docs--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "sources--anthropic-model-deprecations--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "sources--anthropic-opus-5-announcement--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "sources--anthropic-haiku-4-5-announcement--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "sources--anthropic-sonnet-5-docs--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "sources--anthropic-sonnet-5-announcement--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "sources--anthropic-opus-4-8-announcement--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "sources--anthropic-opus-4-7-announcement--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "sources--anthropic-opus-4-6-announcement--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "sources--anthropic-opus-4-8-docs--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "sources--anthropic-mythos-5-1-docs--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "sources--anthropic-api-release-notes--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "sources--anthropic-opus-5-docs--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "organizations--anthropic--verifiedAt",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "families--anthropic-claude-5--verifiedAt",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "families--anthropic-claude-4-7--verifiedAt",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "families--anthropic-claude-4-8--verifiedAt",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "families--anthropic-claude-5-1--verifiedAt",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "releases--anthropic-claude-fable-5--verifiedAt",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "releases--anthropic-claude-opus-5--verifiedAt",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "releases--anthropic-claude-opus-4-6--verifiedAt",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "releases--anthropic-claude-opus-4-7--verifiedAt",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "releases--anthropic-claude-opus-4-8--verifiedAt",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "releases--anthropic-claude-fable-5-1--verifiedAt",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "releases--anthropic-claude-mythos-5-1--verifiedAt",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole anthropic bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "sources--nvidia-nemotron-4-340b-announcement--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole nvidia bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:nvidia"
+        ]
+      },
+      {
+        "id": "sources--nvidia-nemotron-4-340b-research--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole nvidia bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:nvidia"
+        ]
+      },
+      {
+        "id": "sources--nvidia-nemotron-4-340b-model-card--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole nvidia bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:nvidia"
+        ]
+      },
+      {
+        "id": "sources--nvidia-nemotron-nano-9b-v2-model-card--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole nvidia bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:nvidia"
+        ]
+      },
+      {
+        "id": "sources--nvidia-cosmos-announcement--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole nvidia bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:nvidia"
+        ]
+      },
+      {
+        "id": "sources--nvidia-cosmos-diffusion-7b-model-card--lastCheckedDate",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole nvidia bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:nvidia"
+        ]
+      },
+      {
+        "id": "organizations--nvidia--verifiedAt",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole nvidia bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:nvidia"
+        ]
+      },
+      {
+        "id": "families--nvidia-nemotron-4-340b--verifiedAt",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole nvidia bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:nvidia"
+        ]
+      },
+      {
+        "id": "families--nvidia-nemotron-nano-2--verifiedAt",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole nvidia bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:nvidia"
+        ]
+      },
+      {
+        "id": "releases--nvidia-nemotron-4-340b-base--verifiedAt",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole nvidia bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:nvidia"
+        ]
+      },
+      {
+        "id": "releases--nvidia-nemotron-nano-9b-v2--verifiedAt",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld because gate-evidence refused the whole nvidia bundle over a sibling claim that fell below threshold. That gate refuses at bundle granularity; applying this claim alone would have been cherry-picking past a refusal, so it was obeyed rather than worked around.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:nvidia"
+        ]
+      },
+      {
+        "id": "anthropic-claude-opus-5-5",
+        "category": "blocked-by-policy",
+        "detail": "Still not proposed. route:home measured 1,102,773 bytes against its 1,105,000 ceiling, leaving 2,227 bytes of headroom against a measured 7,002 bytes per additional creator, so no creator fits. Re-measured this run rather than recalled; the shortfall is tracked on issue #1172.",
+        "blockedBy": [
+          "web/asset-budgets.json:route:home",
+          "npm run assets:runway"
+        ]
+      },
+      {
+        "id": "google-deepmind-gemini-3-8-flash",
+        "category": "blocked-by-policy",
+        "detail": "Withheld on the same measurement as Claude Opus 5.5: route:home has 2,227 bytes spare and each additional creator costs a measured 7,002 bytes. Third consecutive run in which the budget, not the evidence, is what holds these back.",
+        "blockedBy": [
+          "web/asset-budgets.json:route:home",
+          "npm run assets:runway"
+        ]
+      }
+    ],
+    "caveats": [
+      "Every claim this run proposed is a date move. A green run therefore re-verifies that a cited page was fetched and still carries a passage naming the record; it does not establish that any model fact changed, because none did.",
+      "Fourteen of the 373 distinct quotes this run extracted are bound to more than one source page, touching 35 claims across 25 pages. Most are legitimate -- a repository README and a model card genuinely sharing a passage -- but the anthropic-sonnet-4-5 and anthropic-sonnet-4-6 pair is the case where it signals a site-wide promotional component being mistaken for article body, and it is what the panel caught. The measurement is the chair's and is published as a finding; it was not used to overrule any reviewer, and the other 12 shared quotes were left to the panel to judge on their own terms.",
+      "Seven catalogued channels returned HTTP 403 and were not read this run: six openai.com/index pages and abc.xyz. Those records were re-verified from the other sources cited on them where any existed, and where none did the claim was excluded rather than asserted. No user-agent was spoofed to get past a refusal.",
+      "gate-evidence checks the form of evidence -- that a quote exists, is long enough, is verbatim in the fetched body, and carries a hash and a date. It does not re-fetch the page or check that the hash still matches what the origin serves today, which ADR 0005 states plainly. The hashes here are of bytes this run received on 2026-09-24 and are checkable against the saved bodies, not against the live web.",
+      "115 candidate claims were excluded before review, 73 of them because the cited source returned a body that contained no substantive passage naming the record. An exclusion is a claim not made, which is a weaker statement than a claim examined and rejected, and the two are not interchangeable.",
+      "The 40 claims withheld as dropped-after-acceptance were each accepted unanimously or at threshold by the panel. They are absent from this pull request because of where they sat, not because of what the reviewers thought of them, and they will be proposed again by the next run.",
+      "A date-only change moved a measured byte, and the run could not say which one. route:home measured 1,102,774 raw bytes with this run's data against 1,102,773 with the dataset restored to the anchor -- same command, same session, same installed dependencies, four readings, two each way, perfectly correlated with the data state. Every applied edit replaces a ten-character date with another ten-character date, so no input to that measurement changed length, and the figure it moved is a raw byte count with no compressor in it. The mechanism was not identified. An attempt to locate it by diffing dist/ was discarded rather than reported: dist/ was 40 minutes stale throughout, because assets:runway builds its own two arms and never writes dist/, so those readings were taken against the wrong tree and say nothing. What the one byte does not do is change a decision -- both arms read REFUSED at 0 creators affordable, so the finding tracked on issue #1172 is the same either way, and one byte against the 2% drift allowance fails nothing."
+    ],
+    "followUps": [
+      "The anthropic-sonnet-4-5 and anthropic-sonnet-4-6 announcement URLs both returned 200 with no redirect and different byte counts, yet yielded an identical passage. Whether those two records still cite the right URLs is a question for a reviewed change, not for an unattended refresh, and until it is answered those two sources will keep failing this panel.",
+      "The NVIDIA Cosmos record is held as a family while NVIDIA's own profile warns that Cosmos is a World Foundation Model Platform. That is an entity-boundary question the refresh loop cannot settle on its own, because resolving it means moving or renaming a record rather than re-verifying one.",
+      "route:home has 2,226 bytes of headroom against a measured 7,001 bytes per additional creator, so no creator fits and two releases stay withheld for a third consecutive run. Tracked on issue #1172.",
+      "Find what makes a raw route measurement move by one byte when every input to it changed value without changing length. This run reproduced the move four times and did not explain it, and a byte that nobody can account for is worth more attention than a byte that is simply large: the same unexplained mechanism at a larger amplitude would be read as ordinary growth. Locating it means instrumenting the two arms assets:runway builds internally, not the dist/ tree, which that command does not write."
+    ],
+    "references": [
+      {
+        "kind": "pull-request",
+        "label": "PR #1181 -- data: re-verify 397 records across 43 creators (run 2026-09-24-83cd25)",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/pull/1181",
+        "state": "Open when this entry was written, carrying both the dataset commit and this ledger commit. Auto-merge is enabled, so web-ci gates the merge rather than any judgement of this run's. The dataset commit precedes the ledger commit because refreshLogSchema requires a published run to name its own pull request: the number had to exist before this entry could be written. Guessing it would have put a falsehood into the permanent record, and force-pushing to conceal the ordering would have been a bypass."
+      },
+      {
+        "kind": "commit",
+        "label": "Dataset commit 4cd6f98fc04ecf2db3788e1884554a5e562677b6",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/4cd6f98fc04ecf2db3788e1884554a5e562677b6",
+        "state": "The commit every gate above was measured against, and the commit npm run validate passed 3,189 of 3,189 tests on."
+      },
+      {
+        "kind": "issue",
+        "label": "#1172 -- route:home has no headroom for another creator",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/1172",
+        "state": "Open. Re-measured this run at 2,226 bytes spare against 7,001 bytes per creator, so 0 creators fit and two releases stay withheld for a third consecutive run. Commented on rather than duplicated."
+      }
+    ],
+    "recordedAt": "2026-09-24"
+  },
+  {
     "id": "2026-09-08-0152aa",
     "title": "Added OpenBMB MiniCPM5-2B and re-verified five OpenAI GPT-5.x releases",
     "ranOn": "2026-09-08",
