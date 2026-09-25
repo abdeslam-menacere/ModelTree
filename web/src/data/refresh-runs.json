@@ -16505,5 +16505,1890 @@
       }
     ],
     "recordedAt": "2026-09-23"
+  },
+  {
+    "id": "2026-09-25-0a7823",
+    "title": "Data refresh 2026-09-25",
+    "ranOn": "2026-09-25",
+    "outcome": "stopped",
+    "summary": "Scouted all 44 creators, extracted 165 claims across every one of them, ran the three-rubric panel over 15 independent reviewers (113 accepted, 52 rejected) and passed every deterministic data gate the skill set defines. The run then stopped at publish and applied nothing. Eleven gate-clean claims were applied and verified from disk, at which point the home route measured 1,117,382 bytes of critical path against a 1,105,000 ceiling in web/asset-budgets.json — a file outside the ADR 0003 qualifying class and outside web/src/data/ altogether. The committed baseline leaves 2,227 bytes of headroom against roughly 1,330 bytes per record, so any addition of two or more records now tips the same ceiling whatever its creator. The run filed #1183, published no dataset record, and returned the working tree to clean.",
+    "scope": "Every creator in organizations.json (44), taken to claim depth rather than discovery depth: seven pilot creators at the 2-of-3 threshold (openai, anthropic, google-deepmind, meta, microsoft, alibaba-cloud, amazon) and 37 long-tail creators at the unanimous 3-of-3 threshold. No creator was left unswept.",
+    "stages": [
+      {
+        "stage": "preflight",
+        "status": "ran",
+        "note": "Clean tree on abdeslam-menacere-special-engine, gh authenticated, node v24.14.0, merge-base c96e22caea re-read from the remote at report time and identical, with a fabricated ref name returning empty at exit 0 as the control. Bare npm is refused by this machine's PowerShell execution policy while npm.cmd runs — recorded as installed-and-blocked, not missing, and the policy was not changed."
+      },
+      {
+        "stage": "scout",
+        "status": "ran",
+        "note": "All 296 catalogued sources fetched and content-hashed (289 ok, 7 refused), plus 198 further pages pulled while chasing candidates, for 494 fetches in total. OpenAI GPT-6 Sol and Luna were discovered from the official RSS feed and documentation pages, not from a search snippet. Every quote was then re-verified byte-exact against the hashed bytes by an independent pass: 27 of the first 165 claims carried quotes that were faithful renderings rather than page bytes, and a two-stage repair re-anchored each span on the fetched bytes, refusing any span missing a distinctive token. Four claims were dropped outright rather than repaired loosely. Final state: 354 of 354 evidence entries verified byte-exact across 161 claims."
+      },
+      {
+        "stage": "review",
+        "status": "ran",
+        "note": "Fifteen reviewer agents over five batches, three rubrics each (provenance, consistency, editorial), none of which saw another rubric's verdicts or the scout's reasoning. 495 verdicts cast over 165 claims, exactly three per claim, asserted by the merger rather than assumed: it refused to run unless every claim carried three distinct rubrics and no verdict named a missing claim."
+      },
+      {
+        "stage": "gates",
+        "status": "ran",
+        "note": "gate-evidence over all 44 bundles one at a time (22 pass, 22 fail, every failure a review-threshold miss rather than an evidence defect); gate-source-approval 44 of 44 pass; gate-dataset exit 0 at 674 records with the first applied set; gate-scope, gate-ledger and gate-reversals run against the final ledger-only change. The gate that stopped the run was npm run validate, which is required and which no amount of gate-level green could outvote."
+      },
+      {
+        "stage": "publish",
+        "status": "not-run",
+        "note": "No dataset record was published and no data branch was pushed. The working tree was returned to clean and re-verified clean with git status --porcelain before this entry was written. This entry itself ships in an ordinary pull request that a human merges, and the reason is not that the ledger is out of class: ADR 0006 widened gate-scope to admit web/src/data/refresh-runs.json precisely so a run can record itself, and the gate measured here reports it inClass with changed: 1 and passed: true. What closes the auto-merge route is that this is not a publishing run. Three of the six preconditions in the publish skill are unmet by construction — no claim was applied so gate-dataset judged no tranche, npm run validate failed on the home ceiling, and gate-ledger reports transcription: true because the branch changes no composed dataset document. Auto-merge is therefore neither requested nor eligible, and no --auto, --admin or --force was used to seek it."
+      },
+      {
+        "stage": "deploy",
+        "status": "not-applicable",
+        "note": "No dataset change reached main, so there is no data deploy to confirm and none is claimed. Recorded as not-applicable rather than as a pass: this is the difference between a check that had nothing to verify and a check that verified something. The Pages deploy that follows this log entry's own merge is reported on the run summary issue, which is where a reader should check it."
+      }
+    ],
+    "found": {
+      "scouts": 44,
+      "pagesFetched": 494,
+      "claimsProposed": 165,
+      "bundles": [
+        {
+          "creator": "01-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "ai-singapore",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "ai2",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "ai21-labs",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "aleph-alpha",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "alibaba-cloud",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "amazon",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "anthropic",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "apple",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        },
+        {
+          "creator": "baidu",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "bytedance-seed",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "cohere",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "databricks",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "deepseek",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "eleutherai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "google-deepmind",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 12
+        },
+        {
+          "creator": "hugging-face",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "ibm",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "kyutai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "lelapa-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "lg-ai-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "liquid-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 9
+        },
+        {
+          "creator": "maritaca-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "meta",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "microsoft",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "minimax",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "mistral-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "moonshot-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "naver",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "nous-research",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "nvidia",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "openai",
+          "policy": "pilot",
+          "threshold": "2-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "openbmb",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 11
+        },
+        {
+          "creator": "reka-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 5
+        },
+        {
+          "creator": "sakana-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 3
+        },
+        {
+          "creator": "sarvam-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 8
+        },
+        {
+          "creator": "snowflake",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "stability-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "tencent",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 0
+        },
+        {
+          "creator": "tii",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "upstage",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 4
+        },
+        {
+          "creator": "xai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 1
+        },
+        {
+          "creator": "xiaomi",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 7
+        },
+        {
+          "creator": "zhipu-ai",
+          "policy": "long-tail",
+          "threshold": "3-of-3",
+          "claimsFound": 2
+        }
+      ],
+      "claimsByKind": [
+        {
+          "kind": "add",
+          "count": 148,
+          "effect": "A new source, family or release record proposed for the dataset."
+        },
+        {
+          "kind": "unchanged",
+          "count": 16,
+          "effect": "A fact re-verified against a freshly hashed primary source and found already correct; changes no byte."
+        },
+        {
+          "kind": "change",
+          "count": 1,
+          "effect": "An existing record proposed for amendment — anthropic-claude-opus-5-status-legacy, a lifecycle status transition."
+        }
+      ],
+      "notCovered": [
+        "osi-open-source-ai-definition — a catalogued source whose publisher is not among the 44 creators, so no creator bundle owns it and no scout swept it.",
+        "google-gemini-2-5-report — a 10.1 MB PDF from which no verbatim quote could be extracted by the fetch pipeline, so nothing in it could be cited as evidence.",
+        "Four origins that scouts wanted and correctly did not cite because no reviewed profile catalogue stands behind them: ai.byteplus.com, mimo.xiaomi.com, openbmb.notion.site and qwen.ai."
+      ],
+      "unswept": [],
+      "degradedChannels": [
+        {
+          "creator": "openai",
+          "source": "official-announcement",
+          "detail": "Six openai.com/index/... announcement pages returned HTTP 403, so the primary announcement channel was dark. GPT-6 Sol and Luna were reached instead through the official RSS feed and the documentation pages."
+        },
+        {
+          "creator": "google-deepmind",
+          "source": "alphabet-about",
+          "detail": "Returned HTTP 403, so this corporate channel contributed no bytes this run."
+        },
+        {
+          "creator": "zhipu-ai",
+          "source": "zhipu-ai-glm-4-5-announcement",
+          "detail": "Returned HTTP 200 but served an empty JavaScript shell with no article text. Its lastCheckedDate was deliberately not bumped: a 200 carrying no content is not a successful check, and recording it as one would make a dark channel read as a live one."
+        },
+        {
+          "creator": "kyutai",
+          "source": "huggingface-readme-raw",
+          "detail": "The Hugging Face raw README endpoint returned HTTP 401, so this creator's model-card channel could not be read."
+        }
+      ]
+    },
+    "evaluated": {
+      "reviewers": 15,
+      "verdictsCast": 495,
+      "acceptedByPanel": 113,
+      "rejectedByPanel": 52,
+      "dissents": [
+        {
+          "claimId": "alibaba-qwen-drive-1-0-family-add",
+          "rubric": "provenance",
+          "objection": "The attached quotes state Qwen-Drive-1.0 weights/configurations and the Hugging Face `createdAt` date, but read alone they do not state the proposed autonomous-driving/robotics family scope."
+        },
+        {
+          "claimId": "alibaba-qwen-drive-1-0-4b-release-add",
+          "rubric": "provenance",
+          "objection": "The quotes support weights/downloadability and the Hugging Face creation date, but no attached quote states the proposed text+image input and text output modalities; the OSI Apache page also does not tie Apache-2.0 to this model."
+        },
+        {
+          "claimId": "anthropic-claude-opus-5-5-release-add",
+          "rubric": "editorial",
+          "objection": "Reject the naming/family boundary: the release is attached to a new anthropic-claude-5-5 family, while the Anthropic profile says Claude is the family and generation/tier belong on the release."
+        },
+        {
+          "claimId": "microsoft-mai-cyber-1-flash-release",
+          "rubric": "provenance",
+          "objection": "The quotes state MAI-Cyber-1-Flash is announced, code-heavy, built to find vulnerabilities, and available through MDASH, but none states the proposed text input and text output modalities."
+        },
+        {
+          "claimId": "openai-release-add-gpt-6-luna",
+          "rubric": "editorial",
+          "objection": "Reject the summary field: ?most efficient model? is a superlative ranking/marketing phrase, and the editorial rubric forbids summaries that rank or declare a winner even when the source uses that wording."
+        }
+      ],
+      "gates": [
+        {
+          "gate": "gate-evidence",
+          "scope": "the 22 bundles that cleared it, one invocation per bundle",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "passed: true with zero failures. Every quote matched the hashed bytes exactly and every claim carried three verdicts, one per rubric."
+        },
+        {
+          "gate": "gate-evidence",
+          "scope": "the 22 bundles it refused, one invocation per bundle",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": false,
+          "detail": "Every failure reads \"is marked add but only reached N of M\", which is the gate agreeing with the panel rather than finding an evidence defect: zero quote mismatches across all 44 bundles. The gate refuses at bundle granularity, so 93 separately accepted claims were withheld with their bundles rather than cherry-picked past the refusal. Six further creators passed despite carrying a rejected claim, because each of those claims was kind unchanged and so changed nothing."
+        },
+        {
+          "gate": "gate-source-approval",
+          "scope": "all 44 claim bundles",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "passed: true for every bundle. Every cited URL resolved to an origin a reviewed profile catalogue or the committed dataset already stands behind, across 21 profile files and 20 catalogues. No run-approved source, and the four untrusted origins scouts wanted were left uncited rather than admitted."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "the working tree with the first 29 accepted claims applied",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "passed: true, failures: []. 674 records. The dataset was internally coherent with the change applied; this gate has no network and does not check that a source still says what it said when it was hashed."
+        },
+        {
+          "gate": "npm run validate",
+          "scope": "the working tree with 29 claims applied, then again with 11",
+          "exitCode": 1,
+          "outcome": "fail",
+          "required": true,
+          "detail": "This is the gate that stopped the run. With 29 claims: 10 failures across 4 files — the dateBasis pin, the parameter-gap pin, and the home and compare ceilings. Withholding ai-singapore, alibaba-cloud and sakana-ai whole cleared both pins and the compare ceiling, leaving 11 claims and 3 failures. Two were then artefacts of an uncommitted tree and a recorded measurement; the third was the home ceiling at 1,117,382 against 1,105,000. Control: the same suite on the same tree without the change passes 43 of 43 at exit 0, so the breach is caused by the dataset change and nothing else."
+        },
+        {
+          "gate": "gate-dataset",
+          "scope": "the final ledger-only tree that this pull request carries",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "passed: true, failures: []. 645 records across the four required collections — sources 296, organizations 44, families 87, releases 129 — which are the committed baseline figures unchanged, because this branch adds no dataset record. Recorded separately from the run against the applied tranche above so the two are not confused: that one judged 674 records and this one judges the dataset this pull request actually ships, which is the dataset main already has."
+        },
+        {
+          "gate": "gate-scope",
+          "scope": "the final ledger-only change against merge-base c96e22caea",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "passed: true, changed: 1, empty: false, outOfClass: []. The single changed path, web/src/data/refresh-runs.json, is reported inClass: ADR 0006 widened this gate by exactly that one file so a run can record itself in its own pull request, after three published runs out of three had their hand-transcribed entry missed and left the /refresh page a full run stale (#419). The gate was not modified and no path was added to ALLOWED_PATHS. Anchor c96e22caea7a1d7307fec6c2f6d3e65ff3064916 selected by merge-base with refs/remotes/origin/main, re-read from the remote at report time and identical."
+        },
+        {
+          "gate": "gate-ledger",
+          "scope": "this entry, branch mode",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "passed: true, failures: [], entriesAdded: [2026-09-25-0a7823], entriesRemoved: []. transcription: true, and that is the honest report rather than a defect: the gate marks an entry a transcription when its branch changes no composed dataset document, saying plainly that it had no diff to reconcile the record counts against. For a publishing run that would fail precondition 6 and mean the data and its entry had been separated. Here there is no data to separate — posted.editsApplied is 0 and posted.documents is empty — so there is nothing for the gate to check and it says so instead of passing silently as though there had been. Read the record totals in this entry as unverified by diff, because they are."
+        },
+        {
+          "gate": "gate-reversals",
+          "scope": "this entry read together with the committed dataset",
+          "exitCode": 0,
+          "outcome": "pass",
+          "required": true,
+          "detail": "passed: true, failures: []. 338 rejections read across the whole ledger, 62 of them naming a record in the structured form the gate resolves, and none resolving to a record present in web/src/data/ — so no withheld entry in this run or any earlier one reads as a reversal the dataset quietly contradicts. The 104 entries this run withheld after acceptance were deliberately written in prose that does not open with the collection-and-id form the gate parses, because one of them concerns anthropic-claude-opus-5, a record that does exist; claiming it was withheld in the structured form would have asserted a reversal that did not happen."
+        }
+      ]
+    },
+    "posted": {
+      "editsApplied": 0,
+      "documents": [],
+      "records": []
+    },
+    "withheld": [
+      {
+        "id": "releases--01-ai-yi-1-5-9b-chat",
+        "category": "rejected-by-panel",
+        "detail": "releases record 01-ai-yi-1-5-9b-chat for 01-ai. Reached 1 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The evidence identifies the Hugging Face modelId and createdAt date, but it does not quote the proposed modalities, categories, intendedUse, or the asserted absence behind status/accessType unknown; the release record states more than the quotes reach. consistency: Release 01-ai-yi-1-5-9b-chat has releaseDate 2024-05-10, which predates existing family 01-ai-yi-1-5 firstReleaseDate 2024-05-13.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:consistency"
+        ]
+      },
+      {
+        "id": "releases--ai21-labs-jamba-v0-1--verifiedAt",
+        "category": "rejected-by-panel",
+        "detail": "Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quotes support open weights under Apache 2.0 and 12B active of 52B parameters, but they do not state the claimed hybrid Mamba-Transformer architecture.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--amazon-nova-2-lite",
+        "category": "rejected-by-panel",
+        "detail": "releases record amazon-nova-2-lite for amazon. Reached 0 of the 2-of-3 its pilot policy requires, so the panel refused it. provenance: The quotes state release in Bedrock, text/image/video/document input, a one million-token context window, and model ID `global.amazon.nova-2-lite-v1:0`, but no quote states the proposed text output modality. consistency: Release amazon-nova-2-lite proposes siblingIds [amazon-nova-2-sonic], but existing release amazon-nova-2-sonic in family amazon-nova-2 has siblingIds [] and no reciprocal update is proposed in this bundle; validate.ts requires sibling relationships to be reciprocal. editorial: Reject the outputModalities field: the Amazon profile says Nova releases need stated input and output modalities; the cited Nova 2 Lite quote states inputs but not text output, so outputModalities=[\"text\"] is a plausible fill.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:consistency",
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "families--anthropic-claude-5-5",
+        "category": "rejected-by-panel",
+        "detail": "families record anthropic-claude-5-5 for anthropic. Reached 1 of the 2-of-3 its pilot policy requires, so the panel refused it. provenance: The attached quotes name and launch Claude Opus 5.5, but read alone they do not state a family-level `Claude 5.5` record or the claimed 2026-09-22 family firstReleaseDate. editorial: Reject the family boundary: the Anthropic profile naming_rules keep Claude as the family and record generation/tier on releases, so adding a separate Claude 5.5 family splits that boundary.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "releases--anthropic-claude-opus-5--status",
+        "category": "rejected-by-panel",
+        "detail": "Reached 1 of the 2-of-3 its pilot policy requires, so the panel refused it. provenance: The evidence says `If you're on Claude Opus 5 or earlier, see Migrating to Claude Opus 5.5` and labels Opus 5.5 `Latest`; it does not state that Claude Opus 5's lifecycle status is `legacy`. editorial: Reject the status field: migration guidance to Opus 5.5 does not itself state that Claude Opus 5 has a legacy lifecycle state, so status=legacy is a plausible fill rather than a stated field.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "releases--apple-fastvlm-7b--releaseDate",
+        "category": "rejected-by-panel",
+        "detail": "Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quote states the research page was \"published\" July 23, 2025 and names FastVLM, but it does not state that FastVLM-7B's releaseDate is 2025-07-23.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--baidu-ernie-4-5-vl-28b-a3b",
+        "category": "rejected-by-panel",
+        "detail": "releases record baidu-ernie-4-5-vl-28b-a3b for baidu. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quotes support modality, parameters, context, Apache 2.0 licensing and date, but none state that weights are downloadable; inferring accessType ?open-weight? from the license exceeds the quote.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "families--bytedance-seed-seedrealtime",
+        "category": "rejected-by-panel",
+        "detail": "families record bytedance-seed-seedrealtime for bytedance-seed. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. consistency: Family bytedance-seed-seedrealtime would have no release in the current dataset or this bundle; validate.ts would report family bytedance-seed-seedrealtime has no releases.",
+        "blockedBy": [
+          "reviewer:consistency"
+        ]
+      },
+      {
+        "id": "families--bytedance-seed-seedance-2-5",
+        "category": "rejected-by-panel",
+        "detail": "families record bytedance-seed-seedance-2-5 for bytedance-seed. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. consistency: Family bytedance-seed-seedance-2-5 would have no release in the current dataset or this bundle; validate.ts requires each family id to be referenced by at least one release.",
+        "blockedBy": [
+          "reviewer:consistency"
+        ]
+      },
+      {
+        "id": "families--bytedance-seed-seed-audio-1-0",
+        "category": "rejected-by-panel",
+        "detail": "families record bytedance-seed-seed-audio-1-0 for bytedance-seed. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. consistency: Family bytedance-seed-seed-audio-1-0 would have no release in the current dataset or this bundle; validate.ts requires each family id to be referenced by at least one release.",
+        "blockedBy": [
+          "reviewer:consistency"
+        ]
+      },
+      {
+        "id": "families--bytedance-seed-seedream-5-0-pro",
+        "category": "rejected-by-panel",
+        "detail": "families record bytedance-seed-seedream-5-0-pro for bytedance-seed. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. consistency: Family bytedance-seed-seedream-5-0-pro would have no release in the current dataset or this bundle; validate.ts requires each family id to be referenced by at least one release.",
+        "blockedBy": [
+          "reviewer:consistency"
+        ]
+      },
+      {
+        "id": "families--deepseek-v4-1",
+        "category": "rejected-by-panel",
+        "detail": "families record deepseek-v4-1 for deepseek. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quote is about the release \"DeepSeek-V4.1-Flash\" rather than a DeepSeek-V4.1 family, and it does not state the proposed coding category or family-level scope.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--deepseek-v4-1-flash",
+        "category": "rejected-by-panel",
+        "detail": "releases record deepseek-v4-1-flash for deepseek. Reached 1 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quotes support the model name, multimodal MoE, 552B parameters, one-million-token context, and Hub created date, but they do not state the proposed coding use/category, and the summary adds MIT-licensed repository/weights wording not present in the attached evidence. editorial: Reject: accessType is recorded as unknown while the creator card describes local inference and states the model weights are licensed; unknown cannot stand when the source itself states the weight-release boundary.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "releases--google-gemini-3-8-flash",
+        "category": "rejected-by-panel",
+        "detail": "releases record google-gemini-3-8-flash for google-deepmind. Reached 1 of the 2-of-3 its pilot policy requires, so the panel refused it. provenance: The model table supports the code, modalities, and token limits, but its date wording is `Latest update ... September 2026`; that is not a release or launch date for the proposed `releaseDate: 2026-09`. editorial: Reject the naming rule: the Google DeepMind profile says the canonical release name is the API model id, but canonicalName is ?Gemini 3.8 Flash? while the API id is only in apiAliases.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "releases--google-gemini-3-8-live",
+        "category": "rejected-by-panel",
+        "detail": "releases record google-gemini-3-8-live for google-deepmind. Reached 1 of the 2-of-3 its pilot policy requires, so the panel refused it. provenance: The quotes support the model code and live modalities, but the date wording is only `Latest update ... September 2026`; it does not state the proposed release date `2026-09`. editorial: Reject the naming rule: the Google DeepMind profile says the canonical release name is the API model id, but canonicalName is ?Gemini 3.8 Live? while the API id is only in apiAliases.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "releases--google-gemini-3-8-live-extended-thinking",
+        "category": "rejected-by-panel",
+        "detail": "releases record google-gemini-3-8-live-extended-thinking for google-deepmind. Reached 1 of the 2-of-3 its pilot policy requires, so the panel refused it. provenance: The quotes support the model code and live extended-thinking capabilities, but the date wording is only `Latest update ... September 2026`; it does not state the proposed release date `2026-09`. editorial: Reject the naming rule: the Google DeepMind profile says the canonical release name is the API model id, but canonicalName is ?Gemini 3.8 Live Extended Thinking? while the API id is only in apiAliases.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "releases--google-gemini-3-8-flash-tts",
+        "category": "rejected-by-panel",
+        "detail": "releases record google-gemini-3-8-flash-tts for google-deepmind. Reached 1 of the 2-of-3 its pilot policy requires, so the panel refused it. provenance: The attached release quotes identify Gemini 3.8 Flash TTS and its use cases, but they do not state a release or launch date for the proposed `releaseDate: 2026-09`. editorial: Reject the naming rule: the Google DeepMind profile says the canonical release name is the API model id, but canonicalName is ?Gemini 3.8 Flash TTS? while the API id is only in apiAliases.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "releases--google-gemini-3-8-flash-lite-tts",
+        "category": "rejected-by-panel",
+        "detail": "releases record google-gemini-3-8-flash-lite-tts for google-deepmind. Reached 1 of the 2-of-3 its pilot policy requires, so the panel refused it. provenance: The attached release quotes identify Gemini 3.8 Flash-Lite TTS and its use cases, but they do not state a release or launch date for the proposed `releaseDate: 2026-09`. editorial: Reject the naming rule: the Google DeepMind profile says the canonical release name is the API model id, but canonicalName is ?Gemini 3.8 Flash-Lite TTS? while the API id is only in apiAliases.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "releases--google-gemini-3-5-transcribe",
+        "category": "rejected-by-panel",
+        "detail": "releases record google-gemini-3-5-transcribe for google-deepmind. Reached 1 of the 2-of-3 its pilot policy requires, so the panel refused it. provenance: The docs quote gives `Latest update ... August 2026`, not a release or launch date, so the proposed `releaseDate: 2026-08` states more than the evidence. editorial: Reject the naming rule: the Google DeepMind profile says the canonical release name is the API model id, but canonicalName is ?Gemini 3.5 Transcribe? while the API ids are only in apiAliases.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "families--kyutai-pocket-tts",
+        "category": "rejected-by-panel",
+        "detail": "families record kyutai-pocket-tts for kyutai. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. editorial: Entity boundary: the quoted source calls Pocket TTS a lightweight TTS application, so recording a model/application family blurs application/product and model-family boundaries.",
+        "blockedBy": [
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "releases--kyutai-pocket-tts",
+        "category": "rejected-by-panel",
+        "detail": "releases record kyutai-pocket-tts for kyutai. Reached 1 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quotes support Pocket TTS as text-to-speech with 100M parameters and a 2025-12-29 Hub date, but they do not state the proposed audio input modality or selectable-voice/CLI/Python intendedUse. editorial: Naming and entity boundary: the proposed canonicalName uses the platform repo slug `pocket-tts` while the source uses Pocket TTS/Pocket-TTS, and the record describes the application rather than a distinct model release.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "releases--lg-ai-research-exaone-4-5-33b",
+        "category": "rejected-by-panel",
+        "detail": "releases record lg-ai-research-exaone-4-5-33b for lg-ai-research. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The model-card quotes support the open-weight vision-language model, 33B/1.2B parameters, 262,144-token context, license name and date, but the OSI quote only says ?View All Licenses? and does not state that the EXAONE NC license is non-OSI-approved.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "families--lg-ai-research-k-exaone-2-0",
+        "category": "rejected-by-panel",
+        "detail": "families record lg-ai-research-k-exaone-2-0 for lg-ai-research. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quote says K-EXAONE 2.0 is a frontier-scale multilingual language model, but it does not state the proposed coding category or agentic/long-context workflow description.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--lg-ai-research-k-exaone-2-0-750b-a37b",
+        "category": "rejected-by-panel",
+        "detail": "releases record lg-ai-research-k-exaone-2-0-750b-a37b for lg-ai-research. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The evidence for parameters and context is only the table headers ?Number of Parameters? and ?Context Length,? not the proposed 750B/37B and 262,144 values.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--liquid-lfm2-5-1-2b-instruct",
+        "category": "rejected-by-panel",
+        "detail": "releases record liquid-lfm2-5-1-2b-instruct for liquid-ai. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quotes support the name/date/text-only nature, 1.17B parameters, 32,768-token context, license metadata, and open-weight availability, but no attached quote states the proposed intendedUse of \"tool-use workflows\".",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--liquid-lfm2-5-2-6b",
+        "category": "rejected-by-panel",
+        "detail": "releases record liquid-lfm2-5-2-6b for liquid-ai. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quotes support the name/date/text-only nature, 2.69B parameters, 131,072-token context, and open-weight availability, but no attached quote states the proposed intendedUse scope of \"data extraction, RAG\" workflows.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "families--minimax-music-3-0",
+        "category": "rejected-by-panel",
+        "detail": "families record minimax-music-3-0 for minimax. Reached 1 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quotes identify and describe MiniMax Music 3.0, but the only date evidence is `datePublished`; that page publication timestamp does not by itself state the family `firstReleaseDate` of 2026-08-13. consistency: Adding family minimax-music-3-0 would leave a family with no releases: no current release uses that familyId and this bundle adds no MiniMax Music 3.0 release, which violates validateDataset's family-has-release rule.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:consistency"
+        ]
+      },
+      {
+        "id": "releases--minimax-m1-40k--releaseDate",
+        "category": "rejected-by-panel",
+        "detail": "Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The evidence quotes page `datePublished` metadata and the MiniMax-M1 title, but it does not state that the MiniMax-M1-40k release date is 2025-06-16.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "families--mistral-medium-3-5",
+        "category": "rejected-by-panel",
+        "detail": "families record mistral-medium-3-5 for mistral-ai. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The evidence quoted for the family states dense 128B, 256k context, instruction following, reasoning, and coding, plus the Hub `createdAt`; it does not state the proposed multimodal-generalist category or multimodal-input family description.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--mistral-medium-3-5-128b",
+        "category": "rejected-by-panel",
+        "detail": "releases record mistral-medium-3-5-128b for mistral-ai. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. editorial: Reject: the release canonicalName adds 128B from the Hugging Face repository slug rather than the creator prose name Mistral Medium 3.5, and accessType is recorded as unknown even though the creator card describes local deployment and release under a model license.",
+        "blockedBy": [
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "families--moonshot-ai-kimi-k3",
+        "category": "rejected-by-panel",
+        "detail": "families record moonshot-ai-kimi-k3 for moonshot-ai. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quotes support Kimi K3, native multimodality, KDA and the createdAt date, but they do not state the proposed coding category.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--moonshot-ai-kimi-k3",
+        "category": "rejected-by-panel",
+        "detail": "releases record moonshot-ai-kimi-k3 for moonshot-ai. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quotes state open-weight native multimodality, vision, 2.8T parameters and the createdAt date, but they do not state video input, 104B active parameters, an exact 1,048,576-token context, or non-OSI status for the Kimi K3 License.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--naver-hyperclova-x-seed-text-instruct-0-5b",
+        "category": "rejected-by-panel",
+        "detail": "releases record naver-hyperclova-x-seed-text-instruct-0-5b for naver. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The attached quotes do not state the proposed 2025-04-24 releaseDate (the API quote only shows createdAt 2025-04-22T) and the OSI-index quote does not state that the HyperCLOVA X SEED license is not OSI approved.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--naver-hyperclova-x-seed-vision-instruct-3b",
+        "category": "rejected-by-panel",
+        "detail": "releases record naver-hyperclova-x-seed-vision-instruct-3b for naver. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The attached quotes do not state the proposed 2025-04-24 releaseDate (the API quote only shows createdAt 2025-04-22T), and they do not quote the image/video/text modality set for the Vision Instruct release.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--nous-hermes-4-3-36b",
+        "category": "rejected-by-panel",
+        "detail": "releases record nous-hermes-4-3-36b for nous-research. Reached 1 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quotes support Hermes 4.3/36B, the 2025-12-01 announcement time, 512K context, and downloadable weights, but no attached quote states that this release's license is Apache-2.0; the OSI Apache quote only states OSI's Apache license page. editorial: Reject: naming rule - the model card names the model \"Hermes 4.3 - Seed 36B\" / \"Hermes 4.3 36B\", while canonicalName uses the Hugging Face repo slug \"Hermes-4.3-36B\"; canonical naming should follow the creator's spelling, not the platform path.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "releases--nvidia-nemotron-4-340b-base--verifiedAt",
+        "category": "rejected-by-panel",
+        "detail": "Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The NVIDIA quote supports a \"Nemotron-4 340B\" family of open models and downloadability, but it does not name or specifically support the `Nemotron-4-340B-Base` release.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--openbmb-voxcpm2",
+        "category": "rejected-by-panel",
+        "detail": "releases record openbmb-voxcpm2 for openbmb. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quotes support VoxCPM2 as a 2B text-to-speech model with 48kHz audio output and a 2026-04-03 Hub date, but they do not state the proposed audio input modality or voice-cloning/voice-design intendedUse.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "families--reka-edge",
+        "category": "rejected-by-panel",
+        "detail": "families record reka-edge for reka-ai. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The family evidence names Reka Edge and says it is now available, but it does not quote the proposed family description/category as an efficient multimodal vision-language line for edge deployments.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--reka-edge-2603",
+        "category": "rejected-by-panel",
+        "detail": "releases record reka-edge-2603 for reka-ai. Reached 1 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quote supports a 7B multimodal model with image/video+text inputs and an open weights license, but the OSI-index quote does not state that the Reka Edge license is not OSI approved, and the intendedUse adds object detection/tool-use/local-deployment scope not quoted. editorial: Reject: naming boundary - the creator-facing sources name the model \"Reka Edge\"; \"2603\" appears only in the Hugging Face repo/API path, so the release displayName/version/statement promote a platform-specific repo suffix into the creator's release identity.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "families--sarvam-ai-sarvam",
+        "category": "rejected-by-panel",
+        "detail": "families record sarvam-ai-sarvam for sarvam-ai. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quote says only that demonstrations show capabilities of the \"Sarvam model family\" and gives datePublished; it does not state the proposed firstReleaseDate as a family first release, status current, or the description's trained-in-India/open-source 30B/105B scope.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--sarvam-ai-sarvam-30b",
+        "category": "rejected-by-panel",
+        "detail": "releases record sarvam-ai-sarvam-30b for sarvam-ai. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quotes support open-sourcing Sarvam 30B and weights on AI Kosh/Hugging Face, but they do not quote the proposed activeBillions 2.4 or the intendedUse details such as coding, agentic, multilingual, and Indian-language tasks.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--sarvam-ai-sarvam-105b",
+        "category": "rejected-by-panel",
+        "detail": "releases record sarvam-ai-sarvam-105b for sarvam-ai. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quotes support open-sourcing Sarvam 105B and weights on AI Kosh/Hugging Face, but they do not quote the proposed activeBillions 10.3 or the intendedUse details such as coding, agentic, multilingual, and Indian-language tasks.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "families--snowflake-arctic-awm",
+        "category": "rejected-by-panel",
+        "detail": "families record snowflake-arctic-awm for snowflake. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quote states Arctic-AWM-14B is a tool-use agent model trained on Qwen3-14B with AgentWorldModel environments, but it does not state lifecycle status ?research? or the proposed coding category.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--snowflake-arctic-awm-14b",
+        "category": "rejected-by-panel",
+        "detail": "releases record snowflake-arctic-awm-14b for snowflake. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quotes state the Arctic-AWM-14B training setup and createdAt date, but they do not state lifecycle status ?research? or the MCP-style intended-use wording.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--stability-ai-svd-img2vid-xt--releaseDate",
+        "category": "rejected-by-panel",
+        "detail": "Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The evidence is the page `datePublished` metadata and headline; it does not state that Stable Video Diffusion img2vid-XT itself was released on 2023-11-21.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--tii-falcon-h1-34b-instruct--verifiedAt",
+        "category": "rejected-by-panel",
+        "detail": "Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quotes state that Falcon-H1 includes a 34B size and that Falcon models are open source, but they do not name Falcon-H1-34B-Instruct or state that it is the flagship member.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--upstage-solar-open2-250b",
+        "category": "rejected-by-panel",
+        "detail": "releases record upstage-solar-open2-250b for upstage. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quotes support the 250B-A15B open-weight model, 1M context, license name and date, but the OSI quote only says ?View All Licenses? and does not state that the Upstage Solar License is non-OSI-approved.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--xai-grok-4-7",
+        "category": "rejected-by-panel",
+        "detail": "releases record xai-grok-4-7 for xai. Reached 1 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The release-notes quote says only \"September 21\" and \"Grok 4.7\" with hosted API availability; it does not state the 2026 year, the API alias `grok-4.7`, or the proposed predecessor relationship, so the add record asserts more than the quoted evidence. editorial: Reject: the release record fills predecessorIds with xai-grok-4-6, but the cited xAI release/model text names Grok 4.7 and its API properties without stating a predecessor; a lineage field cannot be filled from numeric sequence alone.",
+        "blockedBy": [
+          "reviewer:provenance",
+          "reviewer:editorial"
+        ]
+      },
+      {
+        "id": "families--xiaomi-mimo-v2-6",
+        "category": "rejected-by-panel",
+        "detail": "families record xiaomi-mimo-v2-6 for xiaomi. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The attached model-card quote states a MiMo-V2.6 series built to scale reinforcement learning and the API quote states createdAt, but neither quote states the proposed multimodal-generalist category.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--xiaomi-mimo-v2-6-pro-rl",
+        "category": "rejected-by-panel",
+        "detail": "releases record xiaomi-mimo-v2-6-pro-rl for xiaomi. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The release quotes state the Pro-RL checkpoint, parameter counts, 1M context, and createdAt date, but no attached quote states the proposed text/image/audio/video modalities or tool-use/vision/audio/video intendedUse.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--xiaomi-mimo-v2-6-flash-rl",
+        "category": "rejected-by-panel",
+        "detail": "releases record xiaomi-mimo-v2-6-flash-rl for xiaomi. Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The release quotes state the Flash-RL checkpoint, parameter counts, 1M context, and createdAt date, but no attached quote states the proposed text/image/audio/video modalities or tool-use/vision/audio/video intendedUse.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "releases--zhipu-ai-glm-4-5-air--verifiedAt",
+        "category": "rejected-by-panel",
+        "detail": "Reached 2 of the unanimous 3-of-3 its long-tail policy requires, so the panel refused it. provenance: The quoted text says only that GLM-4.5-Air has a \"more compact design with\" and never gives the claimed 106B total or 12B active parameter counts.",
+        "blockedBy": [
+          "reviewer:provenance"
+        ]
+      },
+      {
+        "id": "sources--g7-01-ai-yi-1-5-9b-chat-card-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole 01-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:01-ai"
+        ]
+      },
+      {
+        "id": "sources--g7-01-ai-yi-1-5-9b-chat-api-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole 01-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:01-ai"
+        ]
+      },
+      {
+        "id": "sources--add-source-ai-singapore-nemotron-sea-lion-v4-8-30b-a3b-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole ai-singapore bundle. Applying it left npm run validate red against a pinned dataset invariant: records in this bundle carried dateBasis values outside the set web/src/data/date-basis-policy.test.ts pins, or added a name-stated parameter count with no parameters block, which widens the gap set web/src/data/parameter-gap-field.test.ts pins. Both pins live outside the dataset JSON this refresh may edit, so the bundle was refused whole rather than edited after review.",
+        "blockedBy": [
+          "npm run validate",
+          "bundle:ai-singapore"
+        ]
+      },
+      {
+        "id": "sources--add-source-hugging-face-ai-singapore-nemotron-sea-lion-v4-8-30b-a3b-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole ai-singapore bundle. Applying it left npm run validate red against a pinned dataset invariant: records in this bundle carried dateBasis values outside the set web/src/data/date-basis-policy.test.ts pins, or added a name-stated parameter count with no parameters block, which widens the gap set web/src/data/parameter-gap-field.test.ts pins. Both pins live outside the dataset JSON this refresh may edit, so the bundle was refused whole rather than edited after review.",
+        "blockedBy": [
+          "npm run validate",
+          "bundle:ai-singapore"
+        ]
+      },
+      {
+        "id": "sources--add-source-ai-singapore-nemotron-sea-lion-v4-8-120b-a12b-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole ai-singapore bundle. Applying it left npm run validate red against a pinned dataset invariant: records in this bundle carried dateBasis values outside the set web/src/data/date-basis-policy.test.ts pins, or added a name-stated parameter count with no parameters block, which widens the gap set web/src/data/parameter-gap-field.test.ts pins. Both pins live outside the dataset JSON this refresh may edit, so the bundle was refused whole rather than edited after review.",
+        "blockedBy": [
+          "npm run validate",
+          "bundle:ai-singapore"
+        ]
+      },
+      {
+        "id": "sources--add-source-hugging-face-ai-singapore-nemotron-sea-lion-v4-8-120b-a12b-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole ai-singapore bundle. Applying it left npm run validate red against a pinned dataset invariant: records in this bundle carried dateBasis values outside the set web/src/data/date-basis-policy.test.ts pins, or added a name-stated parameter count with no parameters block, which widens the gap set web/src/data/parameter-gap-field.test.ts pins. Both pins live outside the dataset JSON this refresh may edit, so the bundle was refused whole rather than edited after review.",
+        "blockedBy": [
+          "npm run validate",
+          "bundle:ai-singapore"
+        ]
+      },
+      {
+        "id": "families--ai-singapore-sea-lion-v4-8-add-family",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole ai-singapore bundle. Applying it left npm run validate red against a pinned dataset invariant: records in this bundle carried dateBasis values outside the set web/src/data/date-basis-policy.test.ts pins, or added a name-stated parameter count with no parameters block, which widens the gap set web/src/data/parameter-gap-field.test.ts pins. Both pins live outside the dataset JSON this refresh may edit, so the bundle was refused whole rather than edited after review.",
+        "blockedBy": [
+          "npm run validate",
+          "bundle:ai-singapore"
+        ]
+      },
+      {
+        "id": "releases--ai-singapore-nemotron-sea-lion-v4-8-30b-a3b-add-release",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole ai-singapore bundle. Applying it left npm run validate red against a pinned dataset invariant: records in this bundle carried dateBasis values outside the set web/src/data/date-basis-policy.test.ts pins, or added a name-stated parameter count with no parameters block, which widens the gap set web/src/data/parameter-gap-field.test.ts pins. Both pins live outside the dataset JSON this refresh may edit, so the bundle was refused whole rather than edited after review.",
+        "blockedBy": [
+          "npm run validate",
+          "bundle:ai-singapore"
+        ]
+      },
+      {
+        "id": "releases--ai-singapore-nemotron-sea-lion-v4-8-120b-a12b-add-release",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole ai-singapore bundle. Applying it left npm run validate red against a pinned dataset invariant: records in this bundle carried dateBasis values outside the set web/src/data/date-basis-policy.test.ts pins, or added a name-stated parameter count with no parameters block, which widens the gap set web/src/data/parameter-gap-field.test.ts pins. Both pins live outside the dataset JSON this refresh may edit, so the bundle was refused whole rather than edited after review.",
+        "blockedBy": [
+          "npm run validate",
+          "bundle:ai-singapore"
+        ]
+      },
+      {
+        "id": "sources--source-qwen-drive-1-0-4b-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole alibaba-cloud bundle. Applying it left npm run validate red against a pinned dataset invariant: records in this bundle carried dateBasis values outside the set web/src/data/date-basis-policy.test.ts pins, or added a name-stated parameter count with no parameters block, which widens the gap set web/src/data/parameter-gap-field.test.ts pins. Both pins live outside the dataset JSON this refresh may edit, so the bundle was refused whole rather than edited after review.",
+        "blockedBy": [
+          "npm run validate",
+          "bundle:alibaba-cloud"
+        ]
+      },
+      {
+        "id": "sources--source-hugging-face-qwen-drive-1-0-4b-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole alibaba-cloud bundle. Applying it left npm run validate red against a pinned dataset invariant: records in this bundle carried dateBasis values outside the set web/src/data/date-basis-policy.test.ts pins, or added a name-stated parameter count with no parameters block, which widens the gap set web/src/data/parameter-gap-field.test.ts pins. Both pins live outside the dataset JSON this refresh may edit, so the bundle was refused whole rather than edited after review.",
+        "blockedBy": [
+          "npm run validate",
+          "bundle:alibaba-cloud"
+        ]
+      },
+      {
+        "id": "sources--source-qwen-image-2-1-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole alibaba-cloud bundle. Applying it left npm run validate red against a pinned dataset invariant: records in this bundle carried dateBasis values outside the set web/src/data/date-basis-policy.test.ts pins, or added a name-stated parameter count with no parameters block, which widens the gap set web/src/data/parameter-gap-field.test.ts pins. Both pins live outside the dataset JSON this refresh may edit, so the bundle was refused whole rather than edited after review.",
+        "blockedBy": [
+          "npm run validate",
+          "bundle:alibaba-cloud"
+        ]
+      },
+      {
+        "id": "sources--source-hugging-face-qwen-image-2-1-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole alibaba-cloud bundle. Applying it left npm run validate red against a pinned dataset invariant: records in this bundle carried dateBasis values outside the set web/src/data/date-basis-policy.test.ts pins, or added a name-stated parameter count with no parameters block, which widens the gap set web/src/data/parameter-gap-field.test.ts pins. Both pins live outside the dataset JSON this refresh may edit, so the bundle was refused whole rather than edited after review.",
+        "blockedBy": [
+          "npm run validate",
+          "bundle:alibaba-cloud"
+        ]
+      },
+      {
+        "id": "families--alibaba-qwen-drive-1-0-family-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole alibaba-cloud bundle. Applying it left npm run validate red against a pinned dataset invariant: records in this bundle carried dateBasis values outside the set web/src/data/date-basis-policy.test.ts pins, or added a name-stated parameter count with no parameters block, which widens the gap set web/src/data/parameter-gap-field.test.ts pins. Both pins live outside the dataset JSON this refresh may edit, so the bundle was refused whole rather than edited after review.",
+        "blockedBy": [
+          "npm run validate",
+          "bundle:alibaba-cloud"
+        ]
+      },
+      {
+        "id": "releases--alibaba-qwen-drive-1-0-4b-release-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole alibaba-cloud bundle. Applying it left npm run validate red against a pinned dataset invariant: records in this bundle carried dateBasis values outside the set web/src/data/date-basis-policy.test.ts pins, or added a name-stated parameter count with no parameters block, which widens the gap set web/src/data/parameter-gap-field.test.ts pins. Both pins live outside the dataset JSON this refresh may edit, so the bundle was refused whole rather than edited after review.",
+        "blockedBy": [
+          "npm run validate",
+          "bundle:alibaba-cloud"
+        ]
+      },
+      {
+        "id": "families--alibaba-qwen-image-2-1-family-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole alibaba-cloud bundle. Applying it left npm run validate red against a pinned dataset invariant: records in this bundle carried dateBasis values outside the set web/src/data/date-basis-policy.test.ts pins, or added a name-stated parameter count with no parameters block, which widens the gap set web/src/data/parameter-gap-field.test.ts pins. Both pins live outside the dataset JSON this refresh may edit, so the bundle was refused whole rather than edited after review.",
+        "blockedBy": [
+          "npm run validate",
+          "bundle:alibaba-cloud"
+        ]
+      },
+      {
+        "id": "releases--alibaba-qwen-image-2-1-release-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole alibaba-cloud bundle. Applying it left npm run validate red against a pinned dataset invariant: records in this bundle carried dateBasis values outside the set web/src/data/date-basis-policy.test.ts pins, or added a name-stated parameter count with no parameters block, which widens the gap set web/src/data/parameter-gap-field.test.ts pins. Both pins live outside the dataset JSON this refresh may edit, so the bundle was refused whole rather than edited after review.",
+        "blockedBy": [
+          "npm run validate",
+          "bundle:alibaba-cloud"
+        ]
+      },
+      {
+        "id": "sources--amazon-nova-2-lite-blog-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole amazon bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:amazon"
+        ]
+      },
+      {
+        "id": "sources--anthropic-opus-5-5-docs-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole anthropic bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "releases--anthropic-claude-opus-5-5-release-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole anthropic bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:anthropic"
+        ]
+      },
+      {
+        "id": "sources--add-source-baidu-ernie-4-5-vl-28b-a3b-pt-raw-readme",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole baidu bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:baidu"
+        ]
+      },
+      {
+        "id": "sources--add-source-hugging-face-ernie-4-5-vl-28b-a3b-pt-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole baidu bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:baidu"
+        ]
+      },
+      {
+        "id": "families--add-family-baidu-ernie-4-5-vl",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole baidu bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:baidu"
+        ]
+      },
+      {
+        "id": "sources--bytedance-seed-realtime-av-blog-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole bytedance-seed bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:bytedance-seed"
+        ]
+      },
+      {
+        "id": "sources--bytedance-seed-seedance-2-5-blog-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole bytedance-seed bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:bytedance-seed"
+        ]
+      },
+      {
+        "id": "sources--bytedance-seed-audio-1-0-blog-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole bytedance-seed bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:bytedance-seed"
+        ]
+      },
+      {
+        "id": "sources--bytedance-seed-seedream-5-0-pro-blog-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole bytedance-seed bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:bytedance-seed"
+        ]
+      },
+      {
+        "id": "sources--source-deepseek-v4-1-flash-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole deepseek bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:deepseek"
+        ]
+      },
+      {
+        "id": "sources--source-hugging-face-deepseek-v4-1-flash-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole deepseek bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:deepseek"
+        ]
+      },
+      {
+        "id": "sources--google-source-gemini-3-8-flash-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole google-deepmind bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:google-deepmind"
+        ]
+      },
+      {
+        "id": "sources--google-source-gemini-3-8-live-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole google-deepmind bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:google-deepmind"
+        ]
+      },
+      {
+        "id": "sources--google-source-gemini-3-8-live-extended-thinking-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole google-deepmind bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:google-deepmind"
+        ]
+      },
+      {
+        "id": "sources--google-source-gemini-3-8-flash-tts-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole google-deepmind bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:google-deepmind"
+        ]
+      },
+      {
+        "id": "sources--google-source-gemini-3-8-flash-lite-tts-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole google-deepmind bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:google-deepmind"
+        ]
+      },
+      {
+        "id": "sources--google-source-gemini-3-5-transcribe-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole google-deepmind bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:google-deepmind"
+        ]
+      },
+      {
+        "id": "sources--add-source-kyutai-pocket-tts-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole kyutai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:kyutai"
+        ]
+      },
+      {
+        "id": "sources--add-source-hugging-face-kyutai-pocket-tts-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole kyutai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:kyutai"
+        ]
+      },
+      {
+        "id": "sources--add-source-lg-ai-research-exaone-4-5-33b-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole lg-ai-research bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:lg-ai-research"
+        ]
+      },
+      {
+        "id": "sources--add-source-hugging-face-exaone-4-5-33b-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole lg-ai-research bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:lg-ai-research"
+        ]
+      },
+      {
+        "id": "sources--add-source-lg-ai-research-k-exaone-2-0-750b-a37b-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole lg-ai-research bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:lg-ai-research"
+        ]
+      },
+      {
+        "id": "sources--add-source-hugging-face-k-exaone-2-0-750b-a37b-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole lg-ai-research bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:lg-ai-research"
+        ]
+      },
+      {
+        "id": "families--add-family-lg-ai-research-exaone-4-5",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole lg-ai-research bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:lg-ai-research"
+        ]
+      },
+      {
+        "id": "sources--add-source-liquid-lfm2-5-announcement",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole liquid-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:liquid-ai"
+        ]
+      },
+      {
+        "id": "sources--add-source-liquid-lfm2-5-1-2b-instruct-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole liquid-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:liquid-ai"
+        ]
+      },
+      {
+        "id": "sources--add-source-hugging-face-liquid-lfm2-5-1-2b-instruct-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole liquid-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:liquid-ai"
+        ]
+      },
+      {
+        "id": "sources--add-source-liquid-lfm2-5-2-6b-announcement",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole liquid-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:liquid-ai"
+        ]
+      },
+      {
+        "id": "sources--add-source-liquid-lfm2-5-2-6b-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole liquid-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:liquid-ai"
+        ]
+      },
+      {
+        "id": "sources--add-source-hugging-face-liquid-lfm2-5-2-6b-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole liquid-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:liquid-ai"
+        ]
+      },
+      {
+        "id": "families--liquid-lfm2-5-add-family",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole liquid-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:liquid-ai"
+        ]
+      },
+      {
+        "id": "sources--minimax-music-3-0-blog-source-add",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole minimax bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:minimax"
+        ]
+      },
+      {
+        "id": "sources--source-mistral-medium-3-5-128b-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole mistral-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:mistral-ai"
+        ]
+      },
+      {
+        "id": "sources--source-hugging-face-mistral-medium-3-5-128b-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole mistral-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:mistral-ai"
+        ]
+      },
+      {
+        "id": "sources--add-source-moonshot-ai-kimi-k3-raw-readme",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole moonshot-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:moonshot-ai"
+        ]
+      },
+      {
+        "id": "sources--add-source-hugging-face-kimi-k3-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole moonshot-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:moonshot-ai"
+        ]
+      },
+      {
+        "id": "sources--g7-naver-seed-text-instruct-0-5b-card-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole naver bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:naver"
+        ]
+      },
+      {
+        "id": "sources--g7-naver-seed-text-instruct-0-5b-api-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole naver bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:naver"
+        ]
+      },
+      {
+        "id": "sources--g7-naver-seed-text-instruct-0-5b-license-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole naver bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:naver"
+        ]
+      },
+      {
+        "id": "sources--g7-naver-seed-vision-instruct-3b-card-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole naver bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:naver"
+        ]
+      },
+      {
+        "id": "sources--g7-naver-seed-vision-instruct-3b-api-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole naver bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:naver"
+        ]
+      },
+      {
+        "id": "sources--g7-naver-seed-vision-instruct-3b-license-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole naver bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:naver"
+        ]
+      },
+      {
+        "id": "sources--g7-nous-hermes-4-3-announcement-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole nous-research bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:nous-research"
+        ]
+      },
+      {
+        "id": "sources--g7-nous-hermes-4-3-36b-card-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole nous-research bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:nous-research"
+        ]
+      },
+      {
+        "id": "sources--g7-nous-hermes-4-3-36b-api-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole nous-research bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:nous-research"
+        ]
+      },
+      {
+        "id": "sources--add-source-openbmb-voxcpm2-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole openbmb bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:openbmb"
+        ]
+      },
+      {
+        "id": "sources--add-source-hugging-face-openbmb-voxcpm2-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole openbmb bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:openbmb"
+        ]
+      },
+      {
+        "id": "sources--add-source-openbmb-minicpm-o-2-6-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole openbmb bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:openbmb"
+        ]
+      },
+      {
+        "id": "sources--add-source-hugging-face-openbmb-minicpm-o-2-6-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole openbmb bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:openbmb"
+        ]
+      },
+      {
+        "id": "sources--add-source-openbmb-minicpm-v-4-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole openbmb bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:openbmb"
+        ]
+      },
+      {
+        "id": "sources--add-source-hugging-face-openbmb-minicpm-v-4-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole openbmb bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:openbmb"
+        ]
+      },
+      {
+        "id": "families--openbmb-voxcpm-add-family",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole openbmb bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:openbmb"
+        ]
+      },
+      {
+        "id": "families--openbmb-minicpm-o-add-family",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole openbmb bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:openbmb"
+        ]
+      },
+      {
+        "id": "releases--openbmb-minicpm-o-2-6-add-release",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole openbmb bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:openbmb"
+        ]
+      },
+      {
+        "id": "releases--openbmb-minicpm-v-4-add-release",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole openbmb bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:openbmb"
+        ]
+      },
+      {
+        "id": "sources--g7-reka-edge-announcement-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole reka-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:reka-ai"
+        ]
+      },
+      {
+        "id": "sources--g7-reka-edge-2603-card-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole reka-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:reka-ai"
+        ]
+      },
+      {
+        "id": "sources--g7-reka-edge-2603-api-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole reka-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:reka-ai"
+        ]
+      },
+      {
+        "id": "sources--g7-sakana-evollm-jp-v1-10b-card-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole sakana-ai bundle. Applying it left npm run validate red against a pinned dataset invariant: records in this bundle carried dateBasis values outside the set web/src/data/date-basis-policy.test.ts pins, or added a name-stated parameter count with no parameters block, which widens the gap set web/src/data/parameter-gap-field.test.ts pins. Both pins live outside the dataset JSON this refresh may edit, so the bundle was refused whole rather than edited after review.",
+        "blockedBy": [
+          "npm run validate",
+          "bundle:sakana-ai"
+        ]
+      },
+      {
+        "id": "sources--g7-sakana-evollm-jp-v1-10b-api-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole sakana-ai bundle. Applying it left npm run validate red against a pinned dataset invariant: records in this bundle carried dateBasis values outside the set web/src/data/date-basis-policy.test.ts pins, or added a name-stated parameter count with no parameters block, which widens the gap set web/src/data/parameter-gap-field.test.ts pins. Both pins live outside the dataset JSON this refresh may edit, so the bundle was refused whole rather than edited after review.",
+        "blockedBy": [
+          "npm run validate",
+          "bundle:sakana-ai"
+        ]
+      },
+      {
+        "id": "releases--sakana-ai-evollm-jp-v1-10b-release",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole sakana-ai bundle. Applying it left npm run validate red against a pinned dataset invariant: records in this bundle carried dateBasis values outside the set web/src/data/date-basis-policy.test.ts pins, or added a name-stated parameter count with no parameters block, which widens the gap set web/src/data/parameter-gap-field.test.ts pins. Both pins live outside the dataset JSON this refresh may edit, so the bundle was refused whole rather than edited after review.",
+        "blockedBy": [
+          "npm run validate",
+          "bundle:sakana-ai"
+        ]
+      },
+      {
+        "id": "sources--g7-sarvam-30b-105b-blog-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole sarvam-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:sarvam-ai"
+        ]
+      },
+      {
+        "id": "sources--g7-sarvam-30b-card-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole sarvam-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:sarvam-ai"
+        ]
+      },
+      {
+        "id": "sources--g7-sarvam-30b-api-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole sarvam-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:sarvam-ai"
+        ]
+      },
+      {
+        "id": "sources--g7-sarvam-105b-card-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole sarvam-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:sarvam-ai"
+        ]
+      },
+      {
+        "id": "sources--g7-sarvam-105b-api-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole sarvam-ai bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:sarvam-ai"
+        ]
+      },
+      {
+        "id": "sources--add-source-snowflake-arctic-awm-14b-raw-readme",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole snowflake bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:snowflake"
+        ]
+      },
+      {
+        "id": "sources--add-source-hugging-face-arctic-awm-14b-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole snowflake bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:snowflake"
+        ]
+      },
+      {
+        "id": "sources--add-source-upstage-solar-open2-250b-raw-readme",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole upstage bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:upstage"
+        ]
+      },
+      {
+        "id": "sources--add-source-hugging-face-solar-open2-250b-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole upstage bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:upstage"
+        ]
+      },
+      {
+        "id": "families--add-family-upstage-solar-open2",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole upstage bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:upstage"
+        ]
+      },
+      {
+        "id": "sources--add-source-xiaomi-mimo-v2-6-pro-rl-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole xiaomi bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:xiaomi"
+        ]
+      },
+      {
+        "id": "sources--add-source-hugging-face-xiaomi-mimo-v2-6-pro-rl-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole xiaomi bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:xiaomi"
+        ]
+      },
+      {
+        "id": "sources--add-source-xiaomi-mimo-v2-6-flash-rl-model-card",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole xiaomi bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:xiaomi"
+        ]
+      },
+      {
+        "id": "sources--add-source-hugging-face-xiaomi-mimo-v2-6-flash-rl-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel, then withheld with the whole xiaomi bundle. gate-evidence refuses at bundle granularity, and a sibling claim in this bundle fell below its review threshold. Applying this claim alone would have been cherry-picking past a refusal, so the refusal was obeyed.",
+        "blockedBy": [
+          "gate-evidence",
+          "bundle:xiaomi"
+        ]
+      },
+      {
+        "id": "sources--add-source-ibm-granite-speech-5-0-470m-turboctc-raw-readme",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel and clean through every deterministic gate, including gate-dataset at 674 records. It was applied, verified from disk, and then reverted: with these records in the tree the home route measured 1,117,382 bytes of critical path against a 1,105,000 ceiling held in web/asset-budgets.json. That ceiling is out of the class ADR 0015 admits and outside web/src/data/ entirely, so the run stopped rather than raise it. Nothing about this claim was found wanting.",
+        "blockedBy": [
+          "npm run validate",
+          "web/asset-budgets.json:home.criticalMaxRaw",
+          "issue:#1183"
+        ]
+      },
+      {
+        "id": "sources--add-source-hugging-face-granite-speech-5-0-470m-turboctc-hub-record",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel and clean through every deterministic gate, including gate-dataset at 674 records. It was applied, verified from disk, and then reverted: with these records in the tree the home route measured 1,117,382 bytes of critical path against a 1,105,000 ceiling held in web/asset-budgets.json. That ceiling is out of the class ADR 0015 admits and outside web/src/data/ entirely, so the run stopped rather than raise it. Nothing about this claim was found wanting.",
+        "blockedBy": [
+          "npm run validate",
+          "web/asset-budgets.json:home.criticalMaxRaw",
+          "issue:#1183"
+        ]
+      },
+      {
+        "id": "sources--microsoft-mai-cyber-1-flash-announcement-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel and clean through every deterministic gate, including gate-dataset at 674 records. It was applied, verified from disk, and then reverted: with these records in the tree the home route measured 1,117,382 bytes of critical path against a 1,105,000 ceiling held in web/asset-budgets.json. That ceiling is out of the class ADR 0015 admits and outside web/src/data/ entirely, so the run stopped rather than raise it. Nothing about this claim was found wanting.",
+        "blockedBy": [
+          "npm run validate",
+          "web/asset-budgets.json:home.criticalMaxRaw",
+          "issue:#1183"
+        ]
+      },
+      {
+        "id": "sources--microsoft-mai-cyber-1-flash-model-page-source",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel and clean through every deterministic gate, including gate-dataset at 674 records. It was applied, verified from disk, and then reverted: with these records in the tree the home route measured 1,117,382 bytes of critical path against a 1,105,000 ceiling held in web/asset-budgets.json. That ceiling is out of the class ADR 0015 admits and outside web/src/data/ entirely, so the run stopped rather than raise it. Nothing about this claim was found wanting.",
+        "blockedBy": [
+          "npm run validate",
+          "web/asset-budgets.json:home.criticalMaxRaw",
+          "issue:#1183"
+        ]
+      },
+      {
+        "id": "sources--openai-source-add-gpt-6-sol-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel and clean through every deterministic gate, including gate-dataset at 674 records. It was applied, verified from disk, and then reverted: with these records in the tree the home route measured 1,117,382 bytes of critical path against a 1,105,000 ceiling held in web/asset-budgets.json. That ceiling is out of the class ADR 0015 admits and outside web/src/data/ entirely, so the run stopped rather than raise it. Nothing about this claim was found wanting.",
+        "blockedBy": [
+          "npm run validate",
+          "web/asset-budgets.json:home.criticalMaxRaw",
+          "issue:#1183"
+        ]
+      },
+      {
+        "id": "sources--openai-source-add-gpt-6-luna-docs",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel and clean through every deterministic gate, including gate-dataset at 674 records. It was applied, verified from disk, and then reverted: with these records in the tree the home route measured 1,117,382 bytes of critical path against a 1,105,000 ceiling held in web/asset-budgets.json. That ceiling is out of the class ADR 0015 admits and outside web/src/data/ entirely, so the run stopped rather than raise it. Nothing about this claim was found wanting.",
+        "blockedBy": [
+          "npm run validate",
+          "web/asset-budgets.json:home.criticalMaxRaw",
+          "issue:#1183"
+        ]
+      },
+      {
+        "id": "families--add-family-ibm-granite-speech-5-0",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel and clean through every deterministic gate, including gate-dataset at 674 records. It was applied, verified from disk, and then reverted: with these records in the tree the home route measured 1,117,382 bytes of critical path against a 1,105,000 ceiling held in web/asset-budgets.json. That ceiling is out of the class ADR 0015 admits and outside web/src/data/ entirely, so the run stopped rather than raise it. Nothing about this claim was found wanting.",
+        "blockedBy": [
+          "npm run validate",
+          "web/asset-budgets.json:home.criticalMaxRaw",
+          "issue:#1183"
+        ]
+      },
+      {
+        "id": "releases--add-release-ibm-granite-speech-5-0-470m-turboctc",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel and clean through every deterministic gate, including gate-dataset at 674 records. It was applied, verified from disk, and then reverted: with these records in the tree the home route measured 1,117,382 bytes of critical path against a 1,105,000 ceiling held in web/asset-budgets.json. That ceiling is out of the class ADR 0015 admits and outside web/src/data/ entirely, so the run stopped rather than raise it. Nothing about this claim was found wanting.",
+        "blockedBy": [
+          "npm run validate",
+          "web/asset-budgets.json:home.criticalMaxRaw",
+          "issue:#1183"
+        ]
+      },
+      {
+        "id": "releases--microsoft-mai-cyber-1-flash-release",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel and clean through every deterministic gate, including gate-dataset at 674 records. It was applied, verified from disk, and then reverted: with these records in the tree the home route measured 1,117,382 bytes of critical path against a 1,105,000 ceiling held in web/asset-budgets.json. That ceiling is out of the class ADR 0015 admits and outside web/src/data/ entirely, so the run stopped rather than raise it. Nothing about this claim was found wanting.",
+        "blockedBy": [
+          "npm run validate",
+          "web/asset-budgets.json:home.criticalMaxRaw",
+          "issue:#1183"
+        ]
+      },
+      {
+        "id": "releases--openai-release-add-gpt-6-sol",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel and clean through every deterministic gate, including gate-dataset at 674 records. It was applied, verified from disk, and then reverted: with these records in the tree the home route measured 1,117,382 bytes of critical path against a 1,105,000 ceiling held in web/asset-budgets.json. That ceiling is out of the class ADR 0015 admits and outside web/src/data/ entirely, so the run stopped rather than raise it. Nothing about this claim was found wanting.",
+        "blockedBy": [
+          "npm run validate",
+          "web/asset-budgets.json:home.criticalMaxRaw",
+          "issue:#1183"
+        ]
+      },
+      {
+        "id": "releases--openai-release-add-gpt-6-luna",
+        "category": "dropped-after-acceptance",
+        "detail": "Accepted by the panel and clean through every deterministic gate, including gate-dataset at 674 records. It was applied, verified from disk, and then reverted: with these records in the tree the home route measured 1,117,382 bytes of critical path against a 1,105,000 ceiling held in web/asset-budgets.json. That ceiling is out of the class ADR 0015 admits and outside web/src/data/ entirely, so the run stopped rather than raise it. Nothing about this claim was found wanting.",
+        "blockedBy": [
+          "npm run validate",
+          "web/asset-budgets.json:home.criticalMaxRaw",
+          "issue:#1183"
+        ]
+      }
+    ],
+    "caveats": [
+      "This run did not find \"nothing to do\". It found 113 panel-accepted, gate-clean claims it was not permitted to publish, which is why #1183 was filed and left open. Reading this entry as a quiet week would invert its meaning.",
+      "The blocker is structural and not about any particular creator or claim. The committed baseline leaves 2,227 bytes of home critical-path headroom against roughly 1,330 bytes per record, so any refresh adding two or more records tips the same ceiling. This is the same class of blocker as #935, which stopped run 2026-09-05-ad1a1f on the /compare ceiling.",
+      "Three bundles — ai-singapore, alibaba-cloud and sakana-ai — were withheld whole for a reason independent of page weight: their records carried a dateBasis value outside the set date-basis-policy.test.ts pins, or a name-stated parameter count with no parameters block, which widens the set parameter-gap-field.test.ts pins. Both pins sit outside the dataset JSON a refresh may edit. They were refused whole rather than edited after review, because editing a reviewed record to satisfy a gate is post-review mutation, and editing the pin would be the \"edit a test that claims it is already right\" failure its own comment warns against.",
+      "Twenty-two of 44 bundles were refused by gate-evidence at bundle granularity, so 93 individually accepted claims never reached the dataset. That is the documented behaviour and it was obeyed rather than worked around, following the precedent recorded in the previous entry under dropped-after-acceptance.",
+      "gate-evidence, gate-source-approval and gate-dataset all passing shows the applied dataset was internally coherent and every quote matched its hashed bytes. None of them has a network, and none checks that a source still says today what it said when it was hashed.",
+      "Verification dates were not bumped in bulk. All 44 creators were swept the previous day, so a blanket re-dating would have recorded fresh confidence the run did not earn. The one channel returning HTTP 200 with an empty shell, zhipu-ai, was specifically left un-bumped.",
+      "The OpenAI announcement channel returned 403 on all six index pages this run, so the creator with the most significant finding was read through its secondary channels. GPT-6 Sol and Luna are supported by RSS and documentation bytes, not by the announcement posts that would normally carry them.",
+      "Thirty-seven long-tail creators were held to a unanimous 3-of-3 threshold, so a single reasoned objection refused a claim. Forty-four of the 52 rejections came from the provenance or consistency rubric naming a specific field no quote reached; they are not evidence that the underlying releases do not exist.",
+      "The licence-identity suite failed locally on an assertion that git status --porcelain src/data is empty. That is an artefact of measuring while the refresh held uncommitted dataset edits, not a data defect; the tree was returned to clean and the assertion holds again.",
+      "This entry is appended to the end of refresh-runs.json rather than placed at the head, and that is deliberate rather than untidy. web/src/data/refresh-log.test.ts reaches for a stopped run with log.find(run => run.outcome === 'stopped') and then asserts that run scouted nothing, which is an incidental property of whichever stopped run happens to sit first in array order rather than an invariant of the stopped outcome — 2 of the 3 stopped runs already committed violate it, because they scouted and then stopped exactly as this one did. Measured: these same bytes fail the assertion at index 0 and pass it unchanged at any index after 2026-08-25-902306, the one preflight-only stopped run the test was really pinning. Repairing that reach is a change to a .ts file, which is outside the dataset JSON an ADR 0003 refresh may touch, so this run filed it rather than making it. Until it is repaired, a scouted stopped run cannot lead this log without turning main red, and the /refresh list will show this run out of date order."
+    ],
+    "followUps": [
+      "#1183 — the blocker this run filed: the home route's critical-path ceiling leaves 2,227 bytes, so an auto-merging refresh cannot add records while that ceiling sits outside the class it may edit.",
+      "Four origins scouts wanted and could not cite — ai.byteplus.com, mimo.xiaomi.com, openbmb.notion.site and qwen.ai — each need a reviewed profile catalogue entry before any claim can rest on them.",
+      "Two catalogued sources are unreachable by the current pipeline: osi-open-source-ai-definition has no owning creator among the 44, and google-gemini-2-5-report is a 10.1 MB PDF the fetcher cannot quote from.",
+      "Twenty-seven of the first pass's claims carried quotes that were faithful renderings rather than page bytes. The scout prompt should require the extractor to copy bytes rather than transcribe meaning, so the repair stage has less to do.",
+      "zhipu-ai's announcement URL returns 200 with an empty JavaScript shell. A fetcher that treats 200 as success will keep recording it as checked; it needs a content-emptiness signal.",
+      "web/src/data/refresh-log.test.ts selects a stopped run by array position and asserts it scouted nothing. That assertion is already false for 2 of the 3 committed stopped runs and blocks any scouted stopped run from leading the log. It should pin the run it means by id, or drop the scout assertion, which does not serve the test its own title describes."
+    ],
+    "references": [
+      {
+        "kind": "issue",
+        "label": "#1183 — refresh blocked by the home critical-path ceiling, outside web/src/data/",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/issues/1183",
+        "state": "open"
+      },
+      {
+        "kind": "commit",
+        "label": "merge-base this run measured against, re-read from the remote at report time",
+        "url": "https://github.com/abdeslam-menacere/ModelTree/commit/c96e22caea",
+        "state": "merged"
+      }
+    ],
+    "recordedAt": "2026-09-25"
   }
 ]
